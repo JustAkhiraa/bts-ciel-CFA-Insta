@@ -26,7 +26,7 @@ professeurs restent la référence**.
 
 ## Comment c'est vérifié
 
-Neuf contrôles automatiques, lancés à chaque modification :
+Dix contrôles automatiques, lancés à chaque modification :
 
 1. **Complétude** — chaque chapitre a ses trois fiches, chaque fiche ses parties
 2. **Structure** — liens morts, titres, aucune dépendance externe
@@ -37,6 +37,8 @@ Neuf contrôles automatiques, lancés à chaque modification :
 7. **Citations** — les renvois de ligne sont **recomptés** sur le texte source
 8. **Langage C** — les programmes publiés sont **compilés et exécutés**
 9. **Rendu** — mesure dans un navigateur, à 375, 768 et 1440 px
+10. **Site publié** — débordement, cibles tactiles et contraste, mesurés sur les
+    163 pages et les 40 thèmes (`outils/qa.html`, `outils/contraste.html`)
 
 ```bash
 python3 outils/verifier.py
@@ -45,7 +47,7 @@ python3 outils/verifier.py
 ## Technique
 
 Aucune dépendance, aucune étape de construction, aucun appel réseau. Du HTML, du
-CSS et du JavaScript écrits à la main. Trente-neuf thèmes, installable comme
+CSS et du JavaScript écrits à la main. Quarante thèmes, installable comme
 application, fonctionne hors-ligne.
 
 Pour le consulter en local :
