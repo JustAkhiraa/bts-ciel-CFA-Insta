@@ -50,6 +50,14 @@ TOLERES = {
 DOSSIERS_IGNORES = {".git", ".github", "outils", "node_modules"}
 
 
+# Les fichiers de texte publiés à côté des pages. Ils échappaient au contrôle
+# des données personnelles : seul « .html » était lu. Un nom déposé dans
+# README.md, LICENSE ou PRODUCT.md serait parti en ligne sans un mot — et ces
+# trois-là sont justement ceux qu'on écrit à la main.
+TEXTES = (".md", ".txt", ".json", ".webmanifest", ".yml", ".yaml", ".csv")
+SANS_EXTENSION = {"LICENSE", "NOTICE", "AUTHORS", "CITATION"}
+
+
 def pages():
     for dp, dn, fn in os.walk(RACINE):
         dn[:] = [d for d in dn if d not in DOSSIERS_IGNORES and not d.startswith(".")]
@@ -58,9 +66,42 @@ def pages():
                 yield os.path.join(dp, f)
 
 
+def textes():
+    """Tout ce qui est publié et lisible, en dehors des pages."""
+    for dp, dn, fn in os.walk(RACINE):
+        dn[:] = [d for d in dn if d not in DOSSIERS_IGNORES and not d.startswith(".")]
+        for f in fn:
+            if f.endswith(TEXTES) or f in SANS_EXTENSION:
+                yield os.path.join(dp, f)
+
+
+def personnel(h, rel, pbs):
+    """Contrôle 1, isolé : il s'applique à TOUT fichier lisible, pas aux
+    seules pages. Les contrôles de liens et de dépendances, eux, n'ont de
+    sens que sur du HTML."""
+    for mot in INTERDITS:
+        m = re.search(re.escape(mot), h, re.I)
+        if m:
+            a, b = max(0, m.start() - 50), min(len(h), m.end() + 40)
+            extrait = re.sub(r"\s+", " ", h[a:b]).strip()
+            pbs.append((rel, f"DONNÉE PERSONNELLE « {mot} » : …{extrait}…"))
+    for motif, quoi in MOTIFS_PRIVES:
+        for m in re.finditer(motif, h, re.I):
+            valeur = m.group(0)
+            if valeur in TOLERES or valeur.lower().endswith(DOMAINES_EXEMPLE):
+                continue
+            pbs.append((rel, f"{quoi} en clair : {valeur}"))
+
+
 def main():
     pbs, n = [], 0
     fichiers = sorted(pages())
+
+    for p in sorted(textes()):
+        try:
+            personnel(open(p, encoding="utf-8").read(), os.path.relpath(p, RACINE), pbs)
+        except (UnicodeDecodeError, OSError):
+            pass          # un binaire mal nommé n'est pas une donnée personnelle
 
     for p in fichiers:
         n += 1
@@ -68,18 +109,7 @@ def main():
         h = open(p, encoding="utf-8").read()
 
         # ── 1. données personnelles ───────────────────────────────────
-        for mot in INTERDITS:
-            m = re.search(re.escape(mot), h, re.I)
-            if m:
-                a, b = max(0, m.start() - 50), min(len(h), m.end() + 40)
-                extrait = re.sub(r"\s+", " ", h[a:b]).strip()
-                pbs.append((rel, f"DONNÉE PERSONNELLE « {mot} » : …{extrait}…"))
-        for motif, quoi in MOTIFS_PRIVES:
-            for m in re.finditer(motif, h, re.I):
-                valeur = m.group(0)
-                if valeur in TOLERES or valeur.lower().endswith(DOMAINES_EXEMPLE):
-                    continue
-                pbs.append((rel, f"{quoi} en clair : {valeur}"))
+        personnel(h, rel, pbs)
 
         # on neutralise les exemples de code avant les contrôles de liens
         hl = re.sub(r"(?is)<pre\b.*?</pre>", " ", h)
