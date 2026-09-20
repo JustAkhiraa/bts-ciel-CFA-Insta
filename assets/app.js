@@ -11,7 +11,8 @@
   var CLE = "bts-ciel";
   var DEFAUTS = {
     theme: "", taille: "normal", largeur: "normal", police: "systeme",
-    interligne: "normal", anim: 1, reponses: 0, faits: [], derniere: null
+    interligne: "normal", anim: 1, reponses: 0, faits: [],
+    derniere: null, recents: []
   };
   var S = (function () {
     try { return Object.assign({}, DEFAUTS, JSON.parse(localStorage.getItem(CLE) || "{}")); }
@@ -145,14 +146,40 @@
     _tm = setTimeout(function () { t.classList.remove("visible"); }, 2200);
   }
 
+  /* ───────────────────────────────────────── racine du site, en relatif
+     Une fiche vit deux dossiers plus bas que l'accueil, et l'index de
+     recherche donne des chemins depuis la racine. On déduit le préfixe de la
+     feuille de style, seule référence présente sur TOUTES les pages — plutôt
+     que de compter les segments de l'URL, qui change selon que le site est
+     servi à la racine du domaine ou dans un sous-dossier. */
+  function racine() {
+    var l = document.querySelector('link[rel="stylesheet"][href$="assets/fiche.css"]');
+    if (l) return l.getAttribute("href").replace(/assets\/fiche\.css$/, "");
+    var q = document.getElementById("q");
+    return (q && q.dataset.base) || "";
+  }
+
   /* ─────────────────────────────────────────────── feuille de réglages */
-  var voile, feuille, dernierFocus;
+  var voile, feuille, palette, dernierFocus, fermerVoile = null;
+
+  /* Un seul voile pour les deux panneaux : deux voiles superposés auraient
+     chacun leur opacité, et le fond aurait doublé de noirceur. */
+  function leVoile() {
+    if (!voile) {
+      voile = document.createElement("div");
+      voile.className = "voile";
+      voile.addEventListener("click", function () { if (fermerVoile) fermerVoile(); });
+      document.body.appendChild(voile);
+    }
+    return voile;
+  }
 
   function fermer() {
     if (!feuille) return;
     feuille.classList.remove("ouverte");
-    voile.classList.remove("ouvert");
+    leVoile().classList.remove("ouvert");
     document.body.style.overflow = "";
+    fermerVoile = null;
     if (dernierFocus && dernierFocus.focus) dernierFocus.focus();
   }
 
@@ -174,9 +201,7 @@
   }
 
   function construireFeuille() {
-    voile = document.createElement("div");
-    voile.className = "voile";
-    voile.addEventListener("click", fermer);
+    leVoile();
 
     feuille = document.createElement("aside");
     feuille.className = "feuille";
@@ -223,7 +248,7 @@
         '<button type="button" class="danger" data-effacer>Effacer mes données locales</button></div>' +
 
         '<div class="reglage"><h3>Raccourcis</h3>' +
-        '<p><b>/</b> chercher · <b>t</b> thème clair/sombre · <b>r</b> fiche au hasard · ' +
+        '<p><b>/</b> ou <b>⌘K</b> chercher · <b>t</b> thème clair/sombre · <b>r</b> fiche au hasard · ' +
         '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>' +
       "</div>";
 
@@ -288,7 +313,6 @@
       else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
     });
 
-    document.body.appendChild(voile);
     document.body.appendChild(feuille);
   }
 
@@ -302,7 +326,8 @@
                           " comme révisé" + (n > 1 ? "s" : "") + "."
                         : "Aucun chapitre coché pour l'instant.";
     }
-    voile.classList.add("ouvert");
+    fermerVoile = fermer;
+    leVoile().classList.add("ouvert");
     feuille.classList.add("ouverte");
     document.body.style.overflow = "hidden";
     var p = feuille.querySelector("[data-fermer]");
@@ -348,80 +373,140 @@
     btnJour.setAttribute("aria-label", sombre ? "Passer en clair" : "Passer en sombre");
   }
 
+  var ICONE_PREC =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M15 5l-7 7 7 7"/></svg>';
+  var ICONE_SUIV =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M9 5l7 7-7 7"/></svg>';
+  var ICONE_LOUPE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'aria-hidden="true"><circle cx="11" cy="11" r="7"/>' +
+    '<path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>';
+
+  function outil(classe, libelle, icone, action) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = classe;
+    b.setAttribute("aria-label", libelle);
+    b.innerHTML = icone;
+    if (action) b.addEventListener("click", action);
+    return b;
+  }
+
+  function lien(classe, libelle, icone, href) {
+    var a = document.createElement("a");
+    a.className = classe; a.href = href;
+    a.setAttribute("aria-label", libelle);
+    a.innerHTML = icone;
+    return a;
+  }
+
+  /* ─────────────────────────── la barre d'outils d'une fiche
+     Trois boutons empilés le long du bord droit mangeaient une colonne de
+     170 px par-dessus le texte : sur un écran de 375 px, ils tombaient en
+     plein dans la zone de lecture. Sur téléphone ils deviennent une barre
+     horizontale en bas — à portée de pouce, et qui ne couvre qu'une bande —
+     et elle s'efface dès qu'on descend dans le texte. */
+  function barreOutils() {
+    var barre = document.createElement("div");
+    barre.className = "barre-outils";
+
+    var v = document.querySelector(".voisins");
+    var prec = v && v.querySelector("a.prec");
+    var suiv = v && v.querySelector("a.suiv");
+
+    if (prec) barre.appendChild(lien("flottant", "Chapitre précédent : " +
+        prec.querySelector("b").textContent, ICONE_PREC, prec.getAttribute("href")));
+
+    barre.appendChild(outil("flottant", "Rechercher", ICONE_LOUPE, chercherMaintenant));
+
+    btnJour = outil("flottant", "", "", basculerClairSombre);
+    peindreBascule();
+    barre.appendChild(btnJour);
+
+    barre.appendChild(outil("flottant", "Réglages", ICONE_REGLAGES, ouvrir));
+
+    if (suiv) barre.appendChild(lien("flottant", "Chapitre suivant : " +
+        suiv.querySelector("b").textContent, ICONE_SUIV, suiv.getAttribute("href")));
+
+    document.body.appendChild(barre);
+    effacerAuDefilement(barre);
+  }
+
+  /* Elle disparaît vers le bas quand on descend, revient dès qu'on remonte.
+     Jamais tout en haut de la page, jamais pendant qu'un panneau est ouvert :
+     on ne fait pas disparaître une commande sous le doigt qui la vise. */
+  function effacerAuDefilement(barre) {
+    if (!S.anim) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var dernier = window.pageYOffset, enAttente = false;
+    window.addEventListener("scroll", function () {
+      if (enAttente) return;
+      enAttente = true;
+      window.requestAnimationFrame(function () {
+        enAttente = false;
+        var y = window.pageYOffset;
+        if (Math.abs(y - dernier) < 8) return;
+        barre.classList.toggle("effacee", y > dernier && y > 180 && !fermerVoile);
+        dernier = y;
+      });
+    }, { passive: true });
+  }
+
   function poserBoutons() {
     var tete = document.querySelector(".app-tete nav");
-    var cible = tete || document.body;
+    if (!tete) return barreOutils();
 
-    btnJour = document.createElement("button");
-    btnJour.type = "button";
-    btnJour.className = tete ? "bouton-rond" : "flottant flottant-2";
-    btnJour.addEventListener("click", basculerClairSombre);
-    peindreBascule();
-
-    var reg = document.createElement("button");
-    reg.type = "button";
-    reg.className = tete ? "bouton-rond" : "flottant";
-    reg.setAttribute("aria-label", "Réglages");
-    reg.innerHTML = ICONE_REGLAGES;
-    reg.addEventListener("click", ouvrir);
-
-    cible.appendChild(btnJour);
-    cible.appendChild(reg);
-  }
-
-  /* ─────────────────────────────────────────────────────── recherche
-     L'index est un SCRIPT, pas un fetch : il fonctionne aussi quand la
-     page est ouverte depuis un fichier local, où fetch est interdit. */
-  function normaliser(s) {
-    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  }
-  function echapper(s) {
-    return s.replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  function brancherRecherche() {
-    var champ = document.getElementById("q");
-    if (!champ) return;
-    var boite = document.getElementById("resultats");
-    var base = champ.dataset.base || "";
-
-    function chercher() {
-      var terme = champ.value.trim();
-      if (terme.length < 2) { boite.innerHTML = ""; return; }
-
-      var data = window.__INDEX;
-      if (!Array.isArray(data)) {
-        boite.innerHTML = '<p class="r-vide">L\'index de recherche n\'a pas pu être chargé.</p>';
-        return;
-      }
-      var mots = normaliser(terme).split(/\s+/).filter(Boolean);
-      var trouves = data.filter(function (e) {
-        return mots.every(function (mot) { return e.k.indexOf(mot) !== -1; });
-      });
-      if (!trouves.length) {
-        boite.innerHTML = '<p class="r-vide">Rien pour « ' + echapper(terme) + " ».</p>";
-        return;
-      }
-      boite.innerHTML = trouves.slice(0, 12).map(function (e) {
-        return '<a href="' + base + e.u + '">' +
-               '<span class="r-titre">' + e.t + "</span>" +
-               '<span class="r-chemin">' + e.m + " · " + e.c + "</span></a>";
-      }).join("") +
-      (trouves.length > 12
-        ? '<p class="r-vide">… et ' + (trouves.length - 12) + " autre" +
-          (trouves.length - 12 > 1 ? "s" : "") + ". Précisez votre recherche.</p>"
-        : "");
+    if (!document.getElementById("q")) {
+      tete.appendChild(outil("bouton-rond", "Rechercher", ICONE_LOUPE, chercherMaintenant));
     }
+    btnJour = outil("bouton-rond", "", "", basculerClairSombre);
+    peindreBascule();
+    tete.appendChild(btnJour);
+    tete.appendChild(outil("bouton-rond", "Réglages", ICONE_REGLAGES, ouvrir));
+  }
 
-    champ.addEventListener("input", chercher);
-    champ.addEventListener("focus", chercher);
-    document.addEventListener("click", function (e) {
-      if (!e.target.closest(".recherche")) boite.innerHTML = "";
+  /* Un seul moteur, deux surfaces : le champ de l'accueil et la palette qui
+     s'ouvre par-dessus n'importe quelle page. Sans cela le second aurait
+     redécrit la recherche, et les deux auraient divergé à la première
+     retouche. */
+  function trouver(terme) {
+    var data = window.__INDEX;
+    if (!Array.isArray(data)) return null;
+    var mots = normaliser(terme).split(/\s+/).filter(Boolean);
+    return data.filter(function (e) {
+      return mots.every(function (mot) { return e.k.indexOf(mot) !== -1; });
     });
+  }
+
+  function peindre(boite, terme, base) {
+    terme = terme.trim();
+    if (terme.length < 2) { boite.innerHTML = ""; return; }
+    var t = trouver(terme);
+    if (t === null) {
+      boite.innerHTML = '<p class="r-vide">L\'index de recherche n\'a pas pu être chargé.</p>';
+      return;
+    }
+    if (!t.length) {
+      boite.innerHTML = '<p class="r-vide">Rien pour « ' + echapper(terme) + ' ».</p>';
+      return;
+    }
+    var reste = t.length - 12;
+    boite.innerHTML = t.slice(0, 12).map(function (e) {
+      return '<a href="' + base + e.u + '">' +
+             '<span class="r-titre">' + e.t + "</span>" +
+             '<span class="r-chemin">' + e.m + " · " + e.c + "</span></a>";
+    }).join("") +
+    (reste > 0 ? '<p class="r-vide">… et ' + reste + " autre" + (reste > 1 ? "s" : "") +
+                 ". Précisez votre recherche.</p>" : "");
+  }
+
+  /* Flèches et Entrée, partagées elles aussi. */
+  function naviguer(champ, boite, surEchap) {
     champ.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") { champ.value = ""; boite.innerHTML = ""; champ.blur(); }
+      if (e.key === "Escape") { surEchap(); return; }
       if (e.key === "ArrowDown") {
         var premier = boite.querySelector("a");
         if (premier) { e.preventDefault(); premier.focus(); }
@@ -439,8 +524,89 @@
         e.preventDefault();
         if (i > 0) liens[i - 1].focus(); else champ.focus();
       }
-      if (e.key === "Escape") { boite.innerHTML = ""; champ.focus(); }
+      if (e.key === "Escape") { surEchap(); }
     });
+  }
+
+  function brancherRecherche() {
+    var champ = document.getElementById("q");
+    if (!champ) return;
+    var boite = document.getElementById("resultats");
+    var base = champ.dataset.base || "";
+
+    function chercher() { peindre(boite, champ.value, base); }
+    champ.addEventListener("input", chercher);
+    champ.addEventListener("focus", chercher);
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".recherche")) boite.innerHTML = "";
+    });
+    naviguer(champ, boite, function () {
+      champ.value = ""; boite.innerHTML = ""; champ.blur();
+    });
+  }
+
+  /* ─────────────────────────────────── la palette, ouverte de n'importe où
+     C'est depuis une fiche qu'on cherche le plus : en plein TP, on veut
+     retrouver une commande sans quitter la page où l'on est. Le champ de
+     l'accueil ne servait à rien une fois qu'on avait ouvert un cours. */
+  function construirePalette() {
+    palette = document.createElement("div");
+    palette.className = "palette";
+    palette.setAttribute("role", "dialog");
+    palette.setAttribute("aria-modal", "true");
+    palette.setAttribute("aria-label", "Rechercher dans les fiches");
+    palette.innerHTML =
+      '<div class="palette-champ">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'aria-hidden="true"><circle cx="11" cy="11" r="7"/>' +
+        '<path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>' +
+        '<input id="qp" type="search" autocomplete="off" spellcheck="false" ' +
+        'placeholder="Chercher un chapitre, une notion…" aria-label="Rechercher">' +
+        '<button type="button" class="bouton-rond" data-fermer-palette aria-label="Fermer">✕</button>' +
+      "</div>" +
+      '<div id="resultats-p" class="resultats" role="listbox"></div>' +
+      '<p class="palette-aide"><b>↑ ↓</b> parcourir · <b>Entrée</b> ouvrir · <b>Échap</b> fermer</p>';
+
+    var champ = palette.querySelector("#qp");
+    var boite = palette.querySelector("#resultats-p");
+    var base = racine();
+
+    champ.addEventListener("input", function () { peindre(boite, champ.value, base); });
+    naviguer(champ, boite, fermerPalette);
+    palette.addEventListener("click", function (e) {
+      if (e.target.closest("[data-fermer-palette]")) fermerPalette();
+    });
+    palette.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var f = palette.querySelectorAll('input, button, a');
+      if (!f.length) return;
+      var premier = f[0], dernier = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === premier) { e.preventDefault(); dernier.focus(); }
+      else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
+    });
+    document.body.appendChild(palette);
+  }
+
+  function ouvrirPalette() {
+    dernierFocus = document.activeElement;
+    if (!palette) construirePalette();
+    fermerVoile = fermerPalette;
+    leVoile().classList.add("ouvert");
+    palette.classList.add("ouverte");
+    document.body.style.overflow = "hidden";
+    var champ = palette.querySelector("#qp");
+    champ.value = "";
+    palette.querySelector("#resultats-p").innerHTML = "";
+    champ.focus();
+  }
+
+  function fermerPalette() {
+    if (!palette) return;
+    palette.classList.remove("ouverte");
+    leVoile().classList.remove("ouvert");
+    document.body.style.overflow = "";
+    fermerVoile = null;
+    if (dernierFocus && dernierFocus.focus) dernierFocus.focus();
   }
 
   /* ──────────────────────────────────────────────────── progression */
@@ -513,26 +679,50 @@
   function memoriser() {
     var t = document.querySelector("h1");
     if (!t || !/\/(cours|exercices|fiche-revision)\.html$/.test(location.pathname)) return;
-    S.derniere = { titre: t.textContent.trim(), url: location.pathname + location.hash };
+    var titre = t.textContent.trim(), url = location.pathname;
+    S.derniere = { titre: titre, url: url + location.hash };
+
+    /* Une pile de six, sans doublon, la plus récente en tête. Réviser, c'est
+       faire des allers-retours entre trois ou quatre chapitres : ne garder que
+       le dernier obligeait à repasser par l'index pour revenir au précédent. */
+    var r = (S.recents || []).filter(function (x) { return x && x.u !== url; });
+    r.unshift({ t: titre, u: url, m: document.body.dataset.matiere || "" });
+    S.recents = r.slice(0, 6);
     enregistrer();
   }
 
   function proposerReprise() {
     var zone = document.getElementById("reprise");
-    if (!zone || !S.derniere || !S.derniere.url) return;
-    zone.innerHTML = '<a class="carte-matiere reprise" href="' + S.derniere.url +
-      '"><span class="ic">↩</span><h2>Reprendre</h2><p>' +
-      echapper(S.derniere.titre) + "</p></a>";
+    if (!zone) return;
+
+    var r = (S.recents || []).filter(function (x) { return x && x.u && x.t; });
+    /* Reprise d'un état enregistré avant l'arrivée de la pile : on ne perd pas
+       la dernière fiche de quelqu'un qui revient. */
+    if (!r.length && S.derniere && S.derniere.url) {
+      r = [{ t: S.derniere.titre, u: S.derniere.url, m: "" }];
+    }
+    if (!r.length) return;
+
+    var prem = r[0], autres = r.slice(1);
+    var html = '<a class="carte-matiere reprise" href="' + prem.u +
+      '"><span class="ic">↩</span><h2>Reprendre</h2><p>' + echapper(prem.t) + "</p></a>";
+
+    if (autres.length) {
+      html += '<div class="recents"><h3>Vu récemment</h3><ul>' +
+        autres.map(function (x) {
+          return '<li' + (x.m ? ' data-matiere="' + x.m + '"' : "") + '>' +
+                 '<a href="' + x.u + '">' + echapper(x.t) + "</a></li>";
+        }).join("") + "</ul></div>";
+    }
+    zone.innerHTML = html;
   }
 
   /* ────────────────────────────────────────────────── fiche au hasard */
   function hasard() {
     var data = window.__INDEX;
     if (!Array.isArray(data) || !data.length) return;
-    var champ = document.getElementById("q");
-    var base = (champ && champ.dataset.base) || "";
     var e = data[Math.floor(Math.random() * data.length)];
-    location.href = base + e.u;
+    location.href = racine() + e.u;
   }
 
   function brancherHasard() {
@@ -542,17 +732,30 @@
   }
 
   /* ──────────────────────────────────────────────── raccourcis clavier */
+  /* « / » met le curseur dans le champ de la page quand il y en a un, et
+     ouvre la palette partout ailleurs. Cmd/Ctrl-K ouvre toujours la palette,
+     y compris depuis un champ de saisie. */
+  function chercherMaintenant() {
+    var champ = document.getElementById("q");
+    if (champ && champ.offsetParent !== null) { champ.focus(); champ.select(); }
+    else ouvrirPalette();
+  }
+
   function raccourcis() {
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && feuille && feuille.classList.contains("ouverte")) return fermer();
+      if (e.key === "Escape") {
+        if (palette && palette.classList.contains("ouverte")) return fermerPalette();
+        if (feuille && feuille.classList.contains("ouverte")) return fermer();
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault(); return chercherMaintenant();
+      }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       var a = document.activeElement;
       if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
 
-      if (e.key === "/") {
-        var champ = document.getElementById("q");
-        if (champ) { e.preventDefault(); champ.focus(); champ.select(); }
-      } else if (e.key === "t") { e.preventDefault(); basculerClairSombre(); }
+      if (e.key === "/") { e.preventDefault(); chercherMaintenant(); }
+      else if (e.key === "t") { e.preventDefault(); basculerClairSombre(); }
       else if (e.key === "r") { e.preventDefault(); hasard(); }
     });
   }

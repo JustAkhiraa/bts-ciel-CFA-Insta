@@ -1744,12 +1744,20 @@ html[data-theme="zellige"] body {
 .apercu-theme .ap-carte b { width: 34px; height: 8px; border-radius: 3px; background: var(--encre-tenue); }
 .apercu-theme .ap-txt { font-size: .7576rem; color: var(--encre-tenue); font-weight: 620; }
 
-/* Boutons flottants des fiches : réglages + bascule jour/nuit, empilés au
-   même endroit, hors du pouce quand on lit sur téléphone. */
+/* ── La barre d'outils d'une fiche ────────────────────────────────────
+   Empilés le long du bord droit, trois boutons mangeaient une colonne de
+   170 px par-dessus le texte : sur 375 px, ils tombaient en pleine zone de
+   lecture. Un seul conteneur, deux dispositions : pile discrète dans la
+   marge sur grand écran, barre horizontale en bas sur téléphone — là où le
+   pouce arrive, et où elle ne couvre qu'une bande. */
+.barre-outils {
+  position: fixed; z-index: 60;
+  right: 16px; bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 10px;
+}
 .flottant {
-  position: fixed; right: 16px; bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 60; width: 44px; height: 44px; border-radius: 14px; cursor: pointer;
-  display: grid; place-items: center; padding: 0;
+  width: 44px; height: 44px; border-radius: 14px; cursor: pointer; flex: none;
+  display: grid; place-items: center; padding: 0; text-decoration: none;
   background: color-mix(in srgb, var(--carte) 88%, transparent);
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
@@ -1757,11 +1765,36 @@ html[data-theme="zellige"] body {
   box-shadow: var(--ombre-haut);
   transition: transform .18s var(--ease, cubic-bezier(.34,1.3,.64,1)), color .15s, border-color .15s;
 }
-.flottant-2 { bottom: max(70px, calc(env(safe-area-inset-bottom) + 54px)); }
 .flottant:hover { color: var(--accent-sombre); border-color: var(--accent); transform: translateY(-2px); }
 .flottant:active { transform: scale(.93); }
 .flottant svg { width: 20px; height: 20px; }
-@media print { .flottant, .toast { display: none !important; } }
+
+@media (max-width: 720px) {
+  .barre-outils {
+    left: 0; right: 0; bottom: 0;
+    flex-direction: row; justify-content: space-evenly; gap: 2px;
+    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--carte) 92%, transparent);
+    backdrop-filter: blur(16px) saturate(170%);
+    -webkit-backdrop-filter: blur(16px) saturate(170%);
+    border-top: 1px solid var(--bord);
+    transition: transform .26s var(--ease, cubic-bezier(.32,.72,0,1));
+  }
+  /* Elle s'efface vers le bas pendant qu'on descend dans le texte. */
+  .barre-outils.effacee { transform: translateY(105%); }
+  .flottant {
+    background: transparent; border-color: transparent; box-shadow: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    border-radius: 12px; height: 46px; width: 46px;
+  }
+  .flottant:hover { transform: none; }
+  .flottant:active { background: var(--carte-creuse); transform: scale(.92); }
+  /* La barre ne doit pas recouvrir la fin du texte. */
+  /* « .page » est le conteneur des fiches, et elles seules portent la barre.
+     On évite ainsi un sélecteur parent que les vieux navigateurs ignorent. */
+  .page { padding-bottom: 5.5rem; }
+}
+@media print { .barre-outils, .toast { display: none !important; } }
 
 /* ═══════════════════════════════════════════════════════════════════════
    MOUVEMENT — discret, utile, et toujours désactivable
@@ -1892,3 +1925,117 @@ html[data-anim="0"] .apparait { opacity: 1; }
 .bouton-hasard:active { transform: translateY(0) scale(.97); }
 .bouton-hasard .de { display: inline-block; transition: transform .3s var(--ease); }
 .bouton-hasard:hover .de { transform: rotate(180deg); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NAVIGATION ENTRE CHAPITRES
+   Enchaîner deux chapitres demandait de remonter à l'index de la matière :
+   deux clics et un aller-retour pour avancer d'une page.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* La pile de trois boutons flottants occupe 168 px en bas à droite. Sans ce
+   dégagement, elle recouvrait la carte « chapitre suivant » — le dernier bloc
+   de la page, et le seul qu'on cherche à atteindre en bas. */
+.voisins {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .8rem;
+  margin: 3.2rem 0 5rem; padding-top: 1.8rem; border-top: 1px solid var(--bord);
+}
+.voisins a {
+  display: flex; flex-direction: column; gap: .18rem;
+  padding: .9rem 1.1rem; border-radius: var(--r);
+  background: var(--carte); border: 1px solid var(--bord);
+  text-decoration: none; box-shadow: var(--ombre); min-width: 0;
+  transition: border-color .15s, transform .15s var(--ease), box-shadow .15s;
+}
+.voisins a span {
+  font-size: .7273rem; font-weight: 650; color: var(--encre-tenue);
+  text-transform: uppercase; letter-spacing: .07em;
+}
+.voisins a b {
+  font-size: .9394rem; font-weight: 660; color: var(--encre); line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.voisins a:hover {
+  border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--ombre-haut);
+}
+.voisins a:hover b { color: var(--accent-sombre); }
+.voisins .suiv { text-align: right; align-items: flex-end; }
+.voisins .prec span::before { content: "\2190\00a0"; }
+.voisins .suiv span::after  { content: "\00a0\2192"; }
+/* La case vide garde sa colonne : sans elle, « suivant » remonterait à
+   gauche sur le premier chapitre, et la flèche pointerait vers l'arrière. */
+.voisins .vide { display: block; }
+@media (max-width: 620px) {
+  .voisins { grid-template-columns: 1fr; margin: 2.4rem 0 1.5rem; }
+  .voisins .vide { display: none; }
+  .voisins .suiv { text-align: left; align-items: flex-start; }
+}
+@media print { .voisins { display: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PALETTE DE RECHERCHE — ouvrable depuis n'importe quelle page
+   C'est depuis une fiche qu'on cherche le plus, en plein TP. Le champ de
+   l'accueil ne servait plus dès qu'un cours était ouvert.
+   ═══════════════════════════════════════════════════════════════════════ */
+.palette {
+  position: fixed; z-index: 92;
+  left: 50%; top: max(14px, 9vh);
+  width: min(680px, calc(100vw - 1.6rem));
+  transform: translate(-50%, -10px);
+  background: var(--carte); color: var(--encre);
+  border: 1px solid var(--bord-fort); border-radius: var(--r-l);
+  box-shadow: var(--ombre-haut); overflow: hidden;
+  opacity: 0; pointer-events: none;
+  transition: opacity .16s var(--ease), transform .18s var(--ease);
+}
+.palette.ouverte { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.palette-champ {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .55rem .6rem .55rem 1rem; border-bottom: 1px solid var(--bord);
+}
+.palette-champ svg { width: 18px; height: 18px; flex: none; color: var(--encre-tenue); }
+.palette-champ input {
+  flex: 1; min-width: 0; border: 0; background: transparent; outline: none;
+  font: inherit; font-size: 1.03rem; color: var(--encre); padding: .4rem 0;
+}
+.palette-champ input::placeholder { color: var(--encre-tenue); }
+/* La liste partagée avec l'accueil s'y pose à plat : elle n'a plus à flotter. */
+.palette .resultats {
+  position: static; transform: none; animation: none;
+  border: 0; border-radius: 0; box-shadow: none;
+  max-height: min(52vh, 420px); padding: .35rem;
+}
+.palette-aide {
+  margin: 0; padding: .5rem .9rem; border-top: 1px solid var(--bord);
+  font-size: .7273rem; color: var(--encre-tenue);
+}
+.palette-aide b { color: var(--encre-douce); }
+@media (hover: none) and (pointer: coarse) { .palette-aide { display: none; } }
+@media print { .palette, .voile { display: none !important; } }
+
+/* Troisième bouton flottant : la loupe, au-dessus des deux autres. */
+.flottant-3 { bottom: max(124px, calc(env(safe-area-inset-bottom) + 108px)); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   VU RÉCEMMENT — réviser, c'est faire des allers-retours
+   ═══════════════════════════════════════════════════════════════════════ */
+.recents { grid-column: 1 / -1; }
+.recents h3 {
+  margin: 0 0 .55rem; font-size: .697rem; font-weight: 750;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue);
+}
+.recents ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.recents li { min-width: 0; max-width: 100%; }
+.recents a {
+  display: inline-flex; align-items: center; min-height: 36px;
+  padding: .3rem .85rem; border-radius: 999px; max-width: 100%;
+  background: var(--carte); border: 1px solid var(--bord);
+  color: var(--encre-douce); font-size: .7879rem; font-weight: 620;
+  text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: border-color .14s, color .14s, transform .14s var(--ease);
+}
+/* Un point dans la couleur de la matière : on lit d'un coup d'œil si la fiche
+   était du réseau ou des maths, sans avoir à relire le titre. */
+.recents a::before {
+  content: ""; flex: none; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); margin-right: .5rem;
+}
+.recents a:hover { border-color: var(--accent); color: var(--accent-sombre); transform: translateY(-1px); }
