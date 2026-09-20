@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contrôle du contraste — BTS CIEL</title>
+<link rel="stylesheet" href="../assets/fiche.css">
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+  .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
+    max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
+    background: var(--carte-creuse); border: 1px solid var(--bord); border-radius: 10px; }
+  .journal p { margin: 0; }
+  .ok { color: var(--vert); font-weight: 700; }
+  .ko { color: var(--rouge); font-weight: 700; }
+  #cadre { position: fixed; left: -9999px; top: 0; width: 1100px; height: 900px; border: 0; }
+</style>
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<h1>Contrôle du contraste</h1>
+<p class="chapeau">Chaque texte du site est mesuré contre son fond réel, sur
+   <strong>les 24 ambiances × 9 accents</strong>, soit 216 combinaisons.
+   Seuil AA : 4,5:1, ramené à 3:1 pour le grand texte.</p>
+
+<div class="encart outils">
+  <div class="titre">🧰 Pourquoi un outil plutôt qu'un coup d'œil</div>
+  <p>Un thème sombre ne se juge pas à l'œil : une couleur écrite en dur dans la
+     feuille de style reste invisible jusqu'au jour où quelqu'un change de fond.
+     Ici, c'est mesuré — et la mesure compose les fonds semi-transparents, ce
+     qu'un contrôle naïf oublie.</p>
+  <p class="rap">Le site doit être servi en HTTP : <code>python3 -m http.server 8000</code>,
+     puis ouvrir <code>/outils/contraste.html</code>.</p>
+</div>
+
+<p><button class="lancer" id="go" style="font:inherit;font-weight:650;cursor:pointer;
+   background:var(--accent);color:var(--sur-accent);border:0;border-radius:8px;
+   padding:.6rem 1.3rem">Lancer la mesure</button>
+   <span id="etat" style="color:var(--encre-tenue);font-size:13.5px"></span></p>
+
+<div class="journal" id="journal"></div>
+<iframe id="cadre" title="cadre de mesure"></iframe>
+
+</main>
+</div>
+
+<script>
+const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","frost",
+  "peachlight","mintlight","marble","dark","emerald","ocean","mocha","nordic","carbon",
+  "rosewood","sunset","starry","aurora","midnight","amoled"];
+const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
+  "sunset","starry","aurora","midnight","amoled"]);
+const ACCENTS = ["","jade","saphir","rose","violet","braise","turquoise","or","perle"];
+
+/* Un analyseur qui sait lire color(srgb …) ET composer la transparence.
+   Sans cela, un fond « 13 % d'accent » se lisait comme du noir pur. */
+function couleur(s) {
+  s = String(s).trim();
+  let m = s.match(/^color\(srgb\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s+([\d.eE+-]+)(?:\s*\/\s*([\d.%]+))?\)$/);
+  if (m) { const a = m[4] == null ? 1 : (m[4].endsWith("%") ? parseFloat(m[4])/100 : parseFloat(m[4]));
+           return [+m[1]*255, +m[2]*255, +m[3]*255, a]; }
+  m = s.match(/^rgba?\(([^)]+)\)$/);
+  if (m) { const v = m[1].split(/[,\s/]+/).filter(Boolean)
+            .map(x => x.endsWith("%") ? parseFloat(x)/100 : parseFloat(x));
+           return [v[0], v[1], v[2], v.length > 3 ? v[3] : 1]; }
+  return [0, 0, 0, s === "transparent" ? 0 : 1];
+}
+const sur = (a, b) => { const k = a[3];
+  return [a[0]*k + b[0]*(1-k), a[1]*k + b[1]*(1-k), a[2]*k + b[2]*(1-k), 1]; };
+const lum = c => { const f = v => { v /= 255;
+  return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); };
+  return .2126*f(c[0]) + .7152*f(c[1]) + .0722*f(c[2]); };
+const ratio = (a, b) => { const x = lum(a), y = lum(b);
+  return (Math.max(x,y) + .05) / (Math.min(x,y) + .05); };
+
+function fondReel(el, vue) {
+  const pile = []; let e = el;
+  while (e) { const c = couleur(vue.getComputedStyle(e).backgroundColor);
+    if (c[3] > 0) { pile.push(c); if (c[3] >= 1) break; } e = e.parentElement; }
+  if (!pile.length) return [255,255,255,1];
+  let b = pile[pile.length-1]; if (b[3] < 1) b = sur(b, [255,255,255,1]);
+  for (let i = pile.length-2; i >= 0; i--) b = sur(pile[i], b);
+  return b;
+}
+
+function mesurer(doc, vue) {
+  const out = [];
+  for (const el of doc.querySelectorAll("main.corps *, .fiche-tete *, .contenu *")) {
+    const t = [...el.childNodes].filter(n => n.nodeType === 3)
+                .map(n => n.textContent.trim()).join("");
+    if (t.length < 3) continue;
+    if (el.closest("pre, svg, .copier")) continue;  // fonds fixes, hors ambiance
+    const cs = vue.getComputedStyle(el);
+    if (cs.visibility === "hidden" || cs.display === "none") continue;
+    const px = parseFloat(cs.fontSize), gras = parseInt(cs.fontWeight, 10) >= 700;
+    const seuil = (px >= 24 || (px >= 18.66 && gras)) ? 3 : 4.5;
+    const f = fondReel(el, vue);
+    let c = couleur(cs.color); if (c[3] < 1) c = sur(c, f);
+    const r = ratio(c, f);
+    if (r < seuil) out.push({
+      sig: el.tagName.toLowerCase() + (typeof el.className === "string" && el.className
+           ? "." + el.className.split(" ").filter(Boolean).slice(0,2).join(".") : ""),
+      r: +r.toFixed(2), seuil, txt: t.slice(0, 30) });
+  }
+  return out;
+}
+
+function charger(url) {
+  return new Promise(res => {
+    const f = document.getElementById("cadre");
+    f.onload = () => res(f);
+    f.src = url + "?m=" + Date.now();
+  });
+}
+
+document.getElementById("go").addEventListener("click", async () => {
+  const j = document.getElementById("journal"), e = document.getElementById("etat");
+  const bouton = document.getElementById("go");
+  bouton.disabled = true; j.innerHTML = "";
+  const pages = ["../index.html", "../03-mathematiques/index.html",
+                 "../03-mathematiques/12-integrales-primitives/cours.html",
+                 "../01-informatique-dev/12-langage-c/exercices.html",
+                 "../05-culture-generale/06-theme-le-vrai-du-faux/fiche-revision.html"];
+  const pire = {}; let n = 0;
+  for (const p of pages) {
+    const f = await charger(p);
+    const doc = f.contentDocument, vue = f.contentWindow, d = doc.documentElement;
+    d.dataset.anim = "0";   // sinon on mesure une couleur en pleine transition
+    for (const a of AMB) {
+      d.dataset.theme = a; d.dataset.sombre = SOMBRES.has(a) ? "1" : "0";
+      for (const ac of ACCENTS) {
+        if (ac) d.setAttribute("data-accent", ac); else d.removeAttribute("data-accent");
+        doc.body.offsetHeight;
+        n++;
+        for (const x of mesurer(doc, vue)) {
+          const k = p.replace("../","") + " · " + x.sig + " — " + x.txt;
+          if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: a + (ac ? "+" + ac : "") };
+        }
+      }
+    }
+    e.textContent = p.replace("../","") + " — " + n + " combinaisons mesurées";
+  }
+  const echecs = Object.entries(pire).sort((a,b) => a[1].r - b[1].r);
+  j.innerHTML = "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" +
+    (echecs.length
+      ? '<p class="ko">' + echecs.length + " élément(s) sous le seuil :</p>" +
+        echecs.map(([k,v]) => "<p>" + v.r + " &lt; " + v.seuil + "  (" + v.ou + ")  " + k + "</p>").join("")
+      : '<p class="ok">OK — aucun texte sous le seuil AA, sur aucune combinaison.</p>');
+  bouton.disabled = false;
+});
+</script>
+</body>
+</html>

@@ -118,16 +118,21 @@ def main():
                     pbs.append((f"{pole}/{chap}", f"{f} manquant"))
 
     # ── 5. l'index de recherche ───────────────────────────────────────
-    ir = os.path.join(RACINE, "recherche.json")
+    ir = os.path.join(RACINE, "assets", "recherche.js")
     n_index = 0
     if os.path.isfile(ir):
-        entrees = json.load(open(ir, encoding="utf-8"))
-        n_index = len(entrees)
-        for e in entrees:
-            if not os.path.isfile(os.path.join(RACINE, e["u"])):
-                pbs.append(("recherche.json", f"entrée vers une page absente : {e['u']}"))
+        brut = open(ir, encoding="utf-8").read()
+        m = re.search(r"window\.__INDEX\s*=\s*(\[.*\])\s*;", brut, re.S)
+        if not m:
+            pbs.append(("assets/recherche.js", "l'index n'est pas lisible"))
+        else:
+            entrees = json.loads(m.group(1))
+            n_index = len(entrees)
+            for e in entrees:
+                if not os.path.isfile(os.path.join(RACINE, e["u"])):
+                    pbs.append(("assets/recherche.js", f"entrée vers une page absente : {e['u']}"))
     else:
-        pbs.append(("recherche.json", "absent"))
+        pbs.append(("assets/recherche.js", "absent"))
 
     print(f"{n} pages · {n_index} entrées de recherche")
     if pbs:

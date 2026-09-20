@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithmique — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés du TP1 : diagnostic réseau, compteurs, parcours de tableau, fonctions EstPortValide et EstLent, dimensionnement d'une sauvegarde.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.anim=S.anim===0?"0":"1";if(S.accent)d.dataset.accent=S.accent}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#temperature">1 · Surveillance d'un équipement</a></li>
+    <li><a href="#sauvegarde">2 · Dimensionner une sauvegarde</a></li>
+    <li><a href="#diagnostic">3 · Diagnostic de connexion</a></li>
+    <li><a href="#compteur">4 · Compter les équipements</a></li>
+    <li><a href="#tableau-exo">5 · Parcourir un tableau</a></li>
+    <li><a href="#fonctions-exo">6 · Écrire des fonctions</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 11</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Algorithmique — exercices</h1>
+  <p class="chapeau">Les cinq exercices du TP1 et ceux du cours, entièrement déroulés — analyse
+     d'abord, algorithme ensuite.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>La méthode qui rapporte des points</h2>
+      <p>Sur chaque exercice, commencez par écrire les <strong>entrées</strong>, la
+         <strong>sortie</strong> et les <strong>étapes</strong>. Ces trois lignes valent des points
+         <em>même si l'algorithme final est incomplet</em> — et elles vous évitent la moitié des
+         erreurs.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="temperature">
+  <h2><span class="num">01</span>Surveillance d'un équipement</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Trois tranches de température <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Une entreprise souhaite surveiller la température d'un équipement réseau. Si la température
+         est :</p>
+      <ul>
+        <li>inférieure ou égale à <strong>60 °C</strong> → fonctionnement normal ;</li>
+        <li>entre <strong>61 et 70 °C</strong> → température élevée ;</li>
+        <li>supérieure à <strong>70 °C</strong> → alerte.</li>
+      </ul>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>Analyse</strong> — Entrée : <code>temperature</code>. Sortie : l'état de
+           l'équipement. Traitement : classer la valeur dans l'une des trois tranches.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme SurveillanceEquipement
+
+Variables
+    temperature : réel
+
+Début
+    Lire temperature
+
+    Si temperature ≤ 60 Alors
+        Afficher "fonctionnement normal"
+    Sinon Si temperature ≤ 70 Alors
+        Afficher "température élevée"
+    Sinon
+        Afficher "alerte : température critique"
+    FinSi
+Fin</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Pourquoi <code>≤ 70</code> et non <code>&gt; 60 ET ≤ 70</code></div>
+          <p>Si l'on atteint le deuxième test, c'est que le premier était <strong>faux</strong> :
+             <code>temperature</code> dépasse donc déjà 60. Le préciser serait redondant. Chaque
+             branche d'une cascade hérite du contraire des précédentes.</p>
+          <p>Testez avec <strong>60</strong>, <strong>61</strong>, <strong>70</strong> et
+             <strong>71</strong> : ce sont les valeurs aux frontières qui révèlent les erreurs, pas
+             celles du milieu.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="sauvegarde">
+  <h2><span class="num">02</span>Dimensionner une sauvegarde</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Calcul d'espace de stockage <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le service informatique doit mettre en place une sauvegarde d'un serveur de fichiers
+         contenant <strong>1 250 Go</strong>. Le responsable souhaite :</p>
+      <ul>
+        <li>une sauvegarde <strong>complète</strong> chaque semaine ;</li>
+        <li>conserver les sauvegardes pendant <strong>4 semaines</strong> ;</li>
+        <li>une marge de sécurité de <strong>20 %</strong>.</li>
+      </ul>
+      <p>Identifiez les entrées, la sortie, les étapes de calcul, écrivez l'algorithme et
+         testez-le.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <tbody>
+            <tr><td><strong>Entrées</strong></td>
+                <td>volume de données (1 250 Go), nombre de sauvegardes conservées (4),
+                    taux de marge (20 %)</td></tr>
+            <tr><td><strong>Sortie</strong></td><td>espace de stockage nécessaire, en Go</td></tr>
+            <tr><td><strong>Étapes</strong></td>
+                <td>1. multiplier le volume par le nombre de sauvegardes ·
+                    2. ajouter 20 %</td></tr>
+          </tbody>
+        </table>
+        </div>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme EspaceSauvegarde
+
+Constantes
+    NB_SEMAINES = 4
+    MARGE = 0.20
+
+Variables
+    volume : réel
+    espace_brut : réel
+    espace_total : réel
+
+Début
+    Lire volume
+
+    espace_brut  ← volume * NB_SEMAINES
+    espace_total ← espace_brut * (1 + MARGE)
+
+    Afficher "Espace nécessaire : "
+    Afficher espace_total
+Fin</code></pre></div>
+        <p><strong>Test avec les données fournies :</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>espace_brut  = 1250 × 4        = 5000 Go
+espace_total = 5000 × 1,20     = 6000 Go
+
+→ il faut un disque d'au moins 6 To</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Ajouter 20 % », deux écritures pour un seul calcul</div>
+          <p>On peut écrire <code>espace_brut * 1,20</code> ou
+             <code>espace_brut + espace_brut * 0,20</code> : c'est identique. En revanche,
+             <strong>diviser</strong> par 0,8 donnerait 6 250 Go — ce serait la réponse à une
+             <em>autre</em> question (« quel volume représente 80 % du disque ? »).</p>
+          <p>Remarquez l'usage des <strong>constantes</strong> : le jour où la rétention passe à
+             6 semaines, une seule ligne change.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="diagnostic">
+  <h2><span class="num">03</span>Diagnostic de connexion (TP1 · ex. 1)</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Trois booléens, quatre diagnostics <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un utilisateur n'accède plus à Internet. Vous disposez de trois informations, chacune
+         <code>Vrai</code> ou <code>Faux</code> : <code>reseau</code>, <code>internet</code>,
+         <code>dns</code>. Le programme doit afficher :</p>
+      <ul>
+        <li>« Poste non connecté au réseau local » si <code>reseau = Faux</code> ;</li>
+        <li>« Problème d'accès à Internet » si le réseau fonctionne mais pas Internet ;</li>
+        <li>« Problème DNS » si réseau et Internet fonctionnent mais pas le DNS ;</li>
+        <li>« Connexion fonctionnelle » si les trois fonctionnent.</li>
+      </ul>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme DiagnosticConnexion
+
+Variables
+    reseau : booléen
+    internet : booléen
+    dns : booléen
+
+Début
+    Lire reseau
+    Lire internet
+    Lire dns
+
+    Si reseau = Faux Alors
+        Afficher "Poste non connecté au réseau local"
+    Sinon Si internet = Faux Alors
+        Afficher "Problème d'accès à Internet"
+    Sinon Si dns = Faux Alors
+        Afficher "Problème DNS"
+    Sinon
+        Afficher "Connexion fonctionnelle"
+    FinSi
+Fin</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 L'ordre des tests <em>est</em> le raisonnement</div>
+          <p>Cet exercice reproduit exactement la méthode de dépannage du
+             <a href="../../02-reseaux-systemes/13-depannage-wireshark/cours.html">chapitre
+             Dépannage</a> : on teste <strong>du plus proche au plus lointain</strong>. Le réseau
+             local d'abord, puis Internet, puis le DNS.</p>
+          <p>Cet ordre n'est pas un choix esthétique : il <strong>évite d'écrire les
+             conditions composées</strong>. Sans cascade, le troisième cas s'écrirait
+             <code>reseau = Vrai ET internet = Vrai ET dns = Faux</code>. Avec la cascade, un simple
+             <code>dns = Faux</code> suffit — le reste est déjà garanti.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>Si dns = Faux</code> ou <code>Si NON dns</code> ?</div>
+          <p>Les deux sont corrects. <code>dns</code> étant un booléen, écrire
+             <code>dns = Faux</code> revient à <code>NON dns</code>. La seconde forme est plus
+             concise et plus proche du C (<code>if (!dns)</code>) ; la première est plus explicite
+             pour un débutant. Choisissez-en une et <strong>restez cohérent</strong> dans toute la
+             copie.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="compteur">
+  <h2><span class="num">04</span>Compter les équipements (TP1 · ex. 2)</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Deux compteurs <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un technicien vérifie la disponibilité de <strong>10 équipements</strong>. Pour chacun il
+         saisit <code>1</code> (accessible) ou <code>0</code> (inaccessible). Écrivez l'algorithme
+         qui demande les 10 états, compte les accessibles et les inaccessibles, puis affiche les
+         deux résultats.</p>
+      <p>Exemple : pour <code>1 1 0 1 1 0 1 1 1 0</code> → accessibles : 7 · inaccessibles : 3.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme DisponibiliteEquipements
+
+Constantes
+    NB_EQUIPEMENTS = 10
+
+Variables
+    i : entier
+    etat : entier
+    accessibles : entier
+    inaccessibles : entier
+
+Début
+    accessibles   ← 0
+    inaccessibles ← 0
+
+    Pour i allant de 1 à NB_EQUIPEMENTS
+        Afficher "État de l'équipement "
+        Afficher i
+        Lire etat
+
+        Si etat = 1 Alors
+            accessibles ← accessibles + 1
+        Sinon
+            inaccessibles ← inaccessibles + 1
+        FinSi
+    FinPour
+
+    Afficher "Équipements accessibles : "
+    Afficher accessibles
+    Afficher "Équipements inaccessibles : "
+    Afficher inaccessibles
+Fin</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Initialiser les compteurs — avant la boucle</div>
+          <p>Oublier <code>accessibles ← 0</code> est l'erreur classique : la variable contiendrait
+             une valeur indéterminée, et l'incrémenter donnerait n'importe quoi. Et l'initialisation
+             doit être <strong>avant</strong> la boucle : placée dedans, le compteur repartirait de
+             zéro à chaque tour et finirait à 1.</p>
+          <p><strong>Astuce de relecture :</strong> <code>accessibles + inaccessibles</code> doit
+             toujours valoir 10. Si ce n'est pas le cas, un cas n'est pas traité.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Un seul compteur aurait suffi</div>
+          <p>Puisque le total est connu, on peut n'en compter qu'un et déduire l'autre :</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>inaccessibles ← NB_EQUIPEMENTS - accessibles</code></pre></div>
+          <p>Moins de code, donc moins d'occasions de se tromper. Les deux réponses sont
+             acceptées.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="tableau-exo">
+  <h2><span class="num">05</span>Parcourir un tableau (TP1 · ex. 3)</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Détecter les serveurs lents <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un outil de supervision mesure le temps de réponse de 10 serveurs :</p>
+<div class="bloc-code"><span class="langue">données</span><pre><code>temps = [12, 18, 25, 15, 42, 17, 31, 14, 55, 20]</code></pre></div>
+      <p>Un serveur est <strong>lent</strong> si son temps dépasse <strong>30 ms</strong>. Écrivez
+         l'algorithme qui parcourt le tableau, affiche chaque temps, signale les serveurs lents, les
+         compte et affiche le total.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme ServeursLents
+
+Constantes
+    SEUIL = 30
+    TAILLE = 10
+
+Variables
+    temps : tableau
+    i : entier
+    nb_lents : entier
+
+Début
+    temps ← [12, 18, 25, 15, 42, 17, 31, 14, 55, 20]
+    nb_lents ← 0
+
+    Pour i allant de 0 à TAILLE - 1
+        Afficher "Serveur "
+        Afficher i + 1
+        Afficher " : "
+        Afficher temps[i]
+        Afficher " ms"
+
+        Si temps[i] &gt; SEUIL Alors
+            Afficher " → Serveur lent"
+            nb_lents ← nb_lents + 1
+        FinSi
+    FinPour
+
+    Afficher "Nombre de serveurs lents : "
+    Afficher nb_lents
+Fin</code></pre></div>
+        <p><strong>Déroulé sur les données de l'énoncé :</strong></p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Serveur</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+                     <th>7</th><th>8</th><th>9</th><th>10</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Temps (ms)</strong></td><td>12</td><td>18</td><td>25</td><td>15</td>
+                <td>42</td><td>17</td><td>31</td><td>14</td><td>55</td><td>20</td></tr>
+            <tr><td><strong>&gt; 30 ?</strong></td><td></td><td></td><td></td><td></td>
+                <td class="rep-non">oui</td><td></td><td class="rep-non">oui</td><td></td>
+                <td class="rep-non">oui</td><td></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p>→ les serveurs <strong>5, 7 et 9</strong> sont lents. <strong>Nombre de serveurs lents :
+           3.</strong></p>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>i</code> est l'indice, pas le numéro du serveur</div>
+          <p>Le tableau se parcourt de <strong>0 à 9</strong>, mais l'utilisateur veut lire
+             « Serveur 1 » à « Serveur 10 ». D'où le <code>Afficher i + 1</code>.</p>
+          <p>Mélanger les deux donne soit un « Serveur 0 » incompréhensible, soit un décalage d'une
+             case. C'est l'erreur d'un cran (<em>off-by-one</em>), la plus fréquente de toute la
+             programmation.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="fonctions-exo">
+  <h2><span class="num">06</span>Écrire des fonctions (TP1 · ex. 4 et 5)</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span><code>EstPortValide</code> <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un numéro de port doit être compris entre <strong>0 et 65535</strong>. Créez la fonction
+         <code>EstPortValide(port)</code> qui retourne <code>Vrai</code> ou <code>Faux</code>, puis
+         un programme principal qui demande un port, appelle la fonction et affiche le résultat.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Fonction EstPortValide(port)
+    Retourner (port ≥ 0 ET port ≤ 65535)
+FinFonction
+
+
+Algorithme VerificationPort
+
+Variables
+    port : entier
+
+Début
+    Afficher "Entrez un numéro de port : "
+    Lire port
+
+    Si EstPortValide(port) Alors
+        Afficher "Port valide"
+    Sinon
+        Afficher "Port invalide"
+    FinSi
+Fin</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Pourquoi une fonction plutôt qu'un <code>Si</code></div>
+          <p>Parce que la règle « entre 0 et 65535 » sera vérifiée à plusieurs endroits du logiciel.
+             Écrite une fois dans une fonction, elle est <strong>juste partout</strong> — et si la
+             règle change, on modifie <strong>une seule ligne</strong>.</p>
+          <p>C'est aussi plus lisible : <code>Si EstPortValide(port)</code> se lit comme une phrase,
+             là où <code>Si port ≥ 0 ET port ≤ 65535</code> oblige à décoder.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">7</span><code>EstLent</code> et le verdict <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Un logiciel de supervision reçoit les temps de réponse de 10 serveurs :</p>
+<div class="bloc-code"><span class="langue">données</span><pre><code>temps = [15, 22, 48, 12, 75, 18, 35, 105, 20, 60]</code></pre></div>
+      <p>Un serveur est lent si son temps dépasse <strong>50 ms</strong>.</p>
+      <ol>
+        <li>Écrire la fonction <code>EstLent(temps)</code>.</li>
+        <li>Parcourir le tableau et afficher les serveurs lents avec leur numéro et leur temps.</li>
+        <li>Compter les serveurs lents.</li>
+        <li>Afficher : « Situation normale » si aucun · « Surveillance recommandée » si 1 ou 2 ·
+            « Intervention nécessaire » si plus de 2.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Fonction EstLent(t)
+    Retourner (t &gt; 50)
+FinFonction
+
+
+Algorithme SupervisionServeurs
+
+Constantes
+    TAILLE = 10
+
+Variables
+    temps : tableau
+    i : entier
+    nb_lents : entier
+
+Début
+    temps ← [15, 22, 48, 12, 75, 18, 35, 105, 20, 60]
+    nb_lents ← 0
+
+    Pour i allant de 0 à TAILLE - 1
+        Si EstLent(temps[i]) Alors
+            Afficher "Serveur "
+            Afficher i + 1
+            Afficher " : "
+            Afficher temps[i]
+            Afficher " ms → lent"
+            nb_lents ← nb_lents + 1
+        FinSi
+    FinPour
+
+    Afficher "Nombre de serveurs lents : "
+    Afficher nb_lents
+
+    Si nb_lents = 0 Alors
+        Afficher "Situation normale"
+    Sinon Si nb_lents ≤ 2 Alors
+        Afficher "Surveillance recommandée"
+    Sinon
+        Afficher "Intervention nécessaire"
+    FinSi
+Fin</code></pre></div>
+        <p><strong>Résultat attendu :</strong></p>
+<div class="bloc-code"><span class="langue">résultat</span><pre><code>Serveur 5  : 75 ms → lent
+Serveur 8  : 105 ms → lent
+Serveur 10 : 60 ms → lent
+Nombre de serveurs lents : 3
+Intervention nécessaire</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le piège du 48 — et celui des bornes</div>
+          <p>Le troisième serveur affiche <strong>48 ms</strong> : proche du seuil, mais
+             <em>pas</em> lent, car la règle est « <strong>supérieur à</strong> 50 », pas
+             « supérieur ou égal ». Un serveur à exactement 50 ms ne serait pas lent non plus.</p>
+          <p>Les énoncés jouent systématiquement sur cette nuance. Relisez toujours : « supérieur »
+             (<code>&gt;</code>) ou « supérieur ou égal » (<code>≥</code>) ? Une seule barre change
+             le résultat.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 L'intérêt de la fonction, ici</div>
+          <p>Le seuil de 50 n'apparaît qu'à <strong>un seul endroit</strong> : dans
+             <code>EstLent</code>. Le programme principal ne parle plus de nombres, il parle de
+             <em>serveurs lents</em>. Passer le seuil à 40, c'est changer un caractère.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Ne pas initialiser un compteur</strong> à 0 avant la boucle.</li>
+      <li><strong>Parcourir de 1 à taille</strong> au lieu de <strong>0 à taille − 1</strong>.</li>
+      <li><strong>Confondre l'indice <code>i</code> et le numéro affiché</strong>
+          (<code>i + 1</code>).</li>
+      <li><strong>Confondre <code>&gt;</code> et <code>≥</code></strong> aux bornes de l'énoncé.</li>
+      <li><strong>Écrire des conditions composées inutiles</strong> au lieu d'une cascade.</li>
+      <li><strong>Oublier de faire évoluer la condition</strong> d'un <code>Tant que</code>.</li>
+      <li><strong>Sauter l'analyse</strong> entrées / sortie / étapes — des points gratuits perdus.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>TP1 — Algorithmique, exercices 1 à 5 (le professeur, 2026-2027)</li>
+      <li>Cours « Algorithmique et programmation » — exercices d'application du chapitre 1</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
