@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DHCP — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : DORA, ports, méthodes d'attribution, configuration Cisco et ISC, relais et dépannage DHCP.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 11</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>DHCP — l'essentiel</h1>
+  <p class="chapeau">Une page à imprimer (⌘P). DORA, les ports, les commandes, les pannes.</p>
+</header>
+
+<section class="section-revision" id="base-dhcp">
+  <h2><span class="num">01</span>Le principe</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>DORA — les 4 messages</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>#</th><th>Message</th><th>Par</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><strong>D</strong>ISCOVER</td><td>Client</td><td><strong>Diffusion</strong></td></tr>
+          <tr><td>2</td><td><strong>O</strong>FFER</td><td>Serveur</td><td>Unicast</td></tr>
+          <tr><td>3</td><td><strong>R</strong>EQUEST</td><td>Client</td><td><strong>Diffusion</strong></td></tr>
+          <tr><td>4</td><td><strong>A</strong>CK</td><td>Serveur</td><td>Unicast</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Le DISCOVER part de <code>0.0.0.0</code> vers
+        <code>255.255.255.255</code> — le client n'a pas encore d'adresse.</p>
+      <p style="margin:.3rem 0 0;font-size:13px">Le REQUEST est en diffusion pour <strong>prévenir
+        les autres serveurs</strong> que leur offre est refusée.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les chiffres</h3>
+      <div class="formule" style="font-size:13.5px">UDP <strong>67</strong> serveur<br>UDP <strong>68</strong> client</div>
+      <p style="margin:0;font-size:13.5px"><strong>Renouvellement :</strong> T1 à <strong>50 %</strong>
+        (unicast) · T2 à <strong>87,5 %</strong> (diffusion) · 100 % → nouveau DORA</p>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong><code>169.254.x.x</code> = APIPA</strong> :
+        aucun serveur joint.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Ce que DHCP distribue</h3>
+      <ul>
+        <li>Adresse IP</li>
+        <li>Masque de sous-réseau</li>
+        <li><strong>Passerelle par défaut</strong></li>
+        <li>Serveur DNS</li>
+        <li>Nom de domaine</li>
+      </ul>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 3 méthodes d'attribution</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Manuelle</strong></td><td>Réservation <strong>IP ↔ MAC</strong> sur le serveur</td></tr>
+          <tr><td><strong>Automatique</strong></td><td>Adresse du pool, réservée <strong>définitivement</strong>. Pas de bail</td></tr>
+          <tr><td><strong>Dynamique</strong></td><td><strong>Bail limité</strong> — la plus courante</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Réservation &gt; statique</strong> : même
+        résultat, gestion centralisée. Sauf pour le routeur lui-même.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="conf-dhcp">
+  <h2><span class="num">02</span>Configurer</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Routeur Cisco — les 5 étapes</h3>
+<div class="bloc-code"><pre><code>! 1 — EXCLURE, en config GLOBALE, AVANT le pool
+R1(config)# ip dhcp excluded-address 192.168.20.1 192.168.20.99
+R1(config)# ip dhcp excluded-address 192.168.20.201 192.168.20.254
+
+! 2 à 5 — le pool
+R1(config)# ip dhcp pool LAN-BUREAU
+R1(dhcp-config)# network 192.168.20.0 255.255.255.0
+R1(dhcp-config)# default-router 192.168.20.1
+R1(dhcp-config)# dns-server 8.8.8.8 1.1.1.1
+R1(dhcp-config)# domain-name biovision.local
+R1(dhcp-config)# lease 8                     ← en JOURS
+
+! vérifier
+show ip dhcp binding · show ip dhcp pool · show ip dhcp conflict</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <code>network</code> met <strong>tout le
+        sous-réseau</strong> dans le pool. C'est par <strong>exclusion</strong> qu'on réduit la
+        plage.</p>
+    </div>
+
+    <div class="memo large">
+      <h3>Serveur ISC sous Debian</h3>
+<div class="bloc-code"><pre><code>apt install isc-dhcp-server -y
+cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.old     ← SAUVEGARDER
+
+# /etc/dhcp/dhcpd.conf
+subnet 192.168.20.0 netmask 255.255.255.0 {
+    range 192.168.20.100 192.168.20.200;
+    option routers             192.168.20.1;
+    option domain-name-servers 8.8.8.8;
+}
+host station-1 {                          ← EN DEHORS du bloc subnet
+    hardware ethernet 08:00:27:1a:2b:3c;
+    fixed-address 192.168.20.10;
+}
+
+# /etc/default/isc-dhcp-server
+INTERFACESv4="enp0s3"                     ← sinon le service n'écoute nulle part
+
+dhcpd -t -cf /etc/dhcp/dhcpd.conf         ← tester la syntaxe AVANT
+systemctl restart isc-dhcp-server
+cat /var/lib/dhcp/dhcpd.leases            ← les baux accordés</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <strong>Point-virgule à chaque ligne.</strong>
+        Serveur en <strong>IP fixe</strong>. Aucun autre DHCP actif.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Le relais DHCP</h3>
+      <p style="margin:0 0 .35rem;font-size:13.5px"><strong>Le problème :</strong> un routeur ne
+        relaie pas les diffusions → un serveur ne sert que son propre segment.</p>
+<div class="bloc-code"><pre><code>! sur l'interface côté CLIENT
+R1(config-subif)# ip helper-address 192.168.100.10</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px">La diffusion devient un <strong>unicast</strong>
+        vers le serveur, avec l'adresse de l'interface (<code>giaddr</code>) : c'est ainsi que le
+        serveur choisit le bon pool.</p>
+      <p style="margin:.3rem 0 0;font-size:13px">⚠️ Il faut <strong>un pool par sous-réseau
+        relayé</strong> sur le serveur.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="dep-fr">
+  <h2><span class="num">03</span>Dépannage</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Symptôme → cause</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Symptôme</th><th>Cause</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><code>169.254.x.x</code></td><td><strong>Aucun serveur joint</strong></td>
+              <td>Câble, VLAN, service, relais</td></tr>
+          <tr><td>Adresse du mauvais réseau</td><td><strong>Serveur pirate</strong></td>
+              <td><code>ipconfig /all</code> → quel serveur ?</td></tr>
+          <tr><td>Ping IP OK, noms KO</td><td><strong>DNS</strong></td>
+              <td><code>dns-server</code> dans le pool</td></tr>
+          <tr><td>Conflit d'adresse</td><td><strong>Exclusion manquante</strong></td>
+              <td><code>ip dhcp excluded-address</code></td></tr>
+          <tr><td>Plus rien pour les nouveaux</td><td><strong>Pool épuisé</strong></td>
+              <td>Élargir la plage ou réduire le bail</td></tr>
+          <tr><td>Rien depuis un autre VLAN</td><td><strong>Relais absent</strong></td>
+              <td><code>ip helper-address</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo">
+      <h3>Commandes client</h3>
+<div class="bloc-code"><pre><code># Windows
+ipconfig /all       ← LA commande à faire en premier
+ipconfig /release
+ipconfig /renew
+
+# Linux
+ip a
+dhclient -r enp0s3
+dhclient enp0s3</code></pre></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>DORA</strong>, et les deux diffusions : Discover et Request.</li>
+      <li><strong>Un routeur bloque les diffusions</strong> → <code>ip helper-address</code> côté
+          client + un pool par sous-réseau.</li>
+      <li><strong>Toujours exclure</strong> la passerelle et les adresses statiques.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-cours_DHCP_nat-pat.pdf — le professeur</li>
+      <li>Mission1-DHCP-Serveur.pdf · TP_DHCP_BioVision.html</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

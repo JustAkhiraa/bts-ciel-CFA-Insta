@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lois uniforme &amp; exponentielle | BTS CIEL</title>
+<meta name="description" content="Cours complet : variable aléatoire continue, loi uniforme, loi exponentielle, fonction de fiabilité et de défaillance, loi sans mémoire, MTBF et opérations sur les variables aléatoires.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#continue">1 · Du discret au continu</a></li>
+    <li><a href="#uniforme">2 · La loi uniforme</a></li>
+    <li><a href="#fiabilite">3 · Fiabilité et défaillance</a></li>
+    <li><a href="#exponentielle">4 · La loi exponentielle</a></li>
+    <li><a href="#calculs">5 · Les trois calculs</a></li>
+    <li><a href="#sansmemoire">6 · La loi sans mémoire</a></li>
+    <li><a href="#mtbf">7 · MTBF et espérance</a></li>
+    <li><a href="#retrouver">8 · Retrouver λ</a></li>
+    <li><a href="#operations">9 · Opérations aX + b</a></li>
+    <li><a href="#somme">10 · La somme X + Y</a></li>
+    <li><a href="#examen">11 · À l'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Lois uniforme &amp; exponentielle</h1>
+  <p class="chapeau">Un tableau ne suffit plus : quand la variable peut prendre
+     <em>toutes</em> les valeurs d'un intervalle, une probabilité devient une
+     <strong>aire</strong>.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une variable <strong>continue</strong> n'a plus de tableau : sa probabilité est l'aire
+         sous une courbe de <strong>densité</strong>. La loi <strong>uniforme</strong> sur [a ; b]
+         a une densité constante <code>1/(b−a)</code> — une probabilité y est donc l'aire d'un
+         <em>rectangle</em>. La loi <strong>exponentielle</strong> modélise les durées de vie :
+         sa <strong>fonction de fiabilité</strong> est <code>R(t) = P(T &gt; t) = e<sup>−λt</sup></code>,
+         elle est <strong>sans mémoire</strong>, et sa durée de vie moyenne — le
+         <strong>MTBF</strong> — vaut <code>1/λ</code>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#variable-continue</code> <code>#densité</code> <code>#loi-uniforme</code>
+    <code>#loi-exponentielle</code> <code>#fiabilité</code> <code>#défaillance</code>
+    <code>#R(t)</code> <code>#sans-mémoire</code> <code>#MTBF</code>
+    <code>#AFNOR</code> <code>#aX+b</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="continue">
+  <h2><span class="num">01</span>Du discret au continu</h2>
+
+  <p>Au <a href="../08-variables-aleatoires-loi-binomiale/cours.html">chapitre précédent</a>, X
+     comptait : 0, 1, 2, … 40 sacs. On pouvait dresser un tableau. Ici, X <strong>mesure</strong> :
+     une durée d'attente, une durée de vie. Elle peut valoir 4 minutes, 4,1, 4,137 285… Le tableau
+     devient impossible.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ En continu, P(X = une valeur précise) = 0</div>
+    <p>Quelle est la probabilité qu'une ampoule grille <strong>exactement</strong> à 1 000,000 000 h ?
+       Nulle. Il y a une infinité de valeurs possibles, chacune a donc une probabilité nulle — sans
+       que l'événement soit impossible pour autant.</p>
+    <div class="formule">En continu on ne calcule que des <strong>intervalles</strong> :<br>
+      P(a ⩽ X ⩽ b), P(X &gt; t), P(X &lt; t)</div>
+    <p><strong>Conséquence pratique majeure :</strong> les inégalités strictes et larges donnent le
+       <em>même</em> résultat.</p>
+    <div class="formule">P(X &lt; 3) = P(X ⩽ 3) &nbsp;·&nbsp; P(X &gt; 5) = P(X ⩾ 5)</div>
+    <p>C'est l'inverse exact du chapitre précédent, où passer de <code>X &lt; 3</code> à
+       <code>X ⩽ 2</code> changeait tout. Ne transposez pas le réflexe : <strong>le glissement d'un
+       cran n'existe qu'en discret</strong>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La probabilité devient une aire</div>
+    <p>À la place du tableau, une <strong>courbe de densité</strong> <em>f</em>. La probabilité que
+       X tombe entre <em>c</em> et <em>d</em> est l'<strong>aire sous la courbe</strong> entre ces
+       deux bornes.</p>
+    <div class="formule">aire totale sous la courbe = <strong>1</strong></div>
+    <p>C'est la traduction continue de « la somme des probabilités vaut 1 ». Tout le chapitre
+       revient à calculer des aires — et pour la loi uniforme, ce sont des rectangles.</p>
+  </div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Discret (ch. 08)</th><th>Continu (ch. 09)</th></tr></thead>
+    <tbody>
+      <tr><td>Valeurs</td><td>0, 1, 2, … — dénombrables</td><td>tout un intervalle</td></tr>
+      <tr><td>Description</td><td>un <strong>tableau</strong></td>
+          <td>une <strong>densité</strong></td></tr>
+      <tr><td>Probabilité</td><td>P(X = k) se calcule</td><td>P(X = k) = 0 ; on calcule des
+          intervalles</td></tr>
+      <tr><td>Somme / aire</td><td>Σ p<sub>i</sub> = 1</td><td>aire totale = 1</td></tr>
+      <tr><td>« &lt; » et « ⩽ »</td><td><strong>différents</strong></td>
+          <td><strong>identiques</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="uniforme">
+  <h2><span class="num">02</span>La loi uniforme</h2>
+
+  <p>C'est la plus simple : <strong>aucune valeur n'est privilégiée</strong> sur l'intervalle
+     [a ; b]. La densité est constante, la courbe est un rectangle.</p>
+
+  <div class="formule">X ↝ <strong>U</strong><sub>[a ; b]</sub> &nbsp;→&nbsp;
+    densité constante = <strong>1 / (b − a)</strong></div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 230" role="img" aria-label="Densité de la loi uniforme : un rectangle, et la probabilité comme aire partielle">
+      <style>
+        .ur{fill:none;stroke:var(--rouge);stroke-width:1.8}
+        .uz{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .ua{stroke:var(--bord-fort);stroke-width:1.3}
+        .ut{font:700 11.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .ud{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .um{font:600 11px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+      </style>
+      <line class="ua" x1="50" y1="170" x2="320" y2="170"/>
+      <line class="ua" x1="60" y1="180" x2="60" y2="40"/>
+      <rect class="uz" x="140" y="70" width="70" height="100"/>
+      <path class="ur" d="M100,70 H290 M100,70 V170 M290,70 V170"/>
+      <text class="um" x="44" y="74">1/(b−a)</text>
+      <text class="ud" x="100" y="188">a</text><text class="ud" x="140" y="188">c</text>
+      <text class="ud" x="210" y="188">d</text><text class="ud" x="290" y="188">b</text>
+      <text class="ut" x="175" y="128">aire</text>
+      <text class="ud" x="185" y="212">P(c ⩽ X ⩽ d) = (d − c) × 1/(b − a)</text>
+
+      <line class="ua" x1="360" y1="170" x2="600" y2="170"/>
+      <line class="ua" x1="370" y1="180" x2="370" y2="40"/>
+      <rect class="uz" x="400" y="90" width="60" height="80"/>
+      <path class="ur" d="M400,90 H570 M400,90 V170 M570,90 V170"/>
+      <text class="um" x="362" y="94">1/10</text>
+      <text class="ud" x="400" y="188">0</text><text class="ud" x="460" y="188">3</text>
+      <text class="ud" x="570" y="188">10</text>
+      <text class="ut" x="430" y="136">0,3</text>
+      <text class="ud" x="485" y="212">X ↝ U[0 ; 10] : P(X &lt; 3) = 3 × 1/10 = 0,3</text>
+      <text class="ut" x="485" y="26">l'exemple du cours</text>
+    </svg>
+    <figcaption>La densité est constante : une probabilité est l'aire d'un rectangle,
+      <strong>largeur × hauteur</strong>. Rien de plus.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois formules</div>
+    <div class="formule">P(c ⩽ X ⩽ d) = <strong>(d − c) / (b − a)</strong><br>
+      E(X) = <strong>(a + b) / 2</strong></div>
+    <p>Et la vérification qui justifie la densité : sur l'intervalle entier,</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(a ⩽ X ⩽ b) = (b − a) × 1/(b − a) = 1        ← l'aire du grand rectangle
+
+C'est pourquoi la hauteur vaut 1/(b − a) et pas autre chose :
+c'est la seule valeur qui donne une aire totale de 1.</code></pre></div>
+    <p>L'espérance <code>(a + b) / 2</code> est simplement le <strong>milieu</strong> de
+       l'intervalle — ce qui est évident si aucune valeur n'est privilégiée.</p>
+  </div>
+
+  <h3>Les exemples du cours</h3>
+
+<div class="bloc-code"><span class="langue">calcul — X ↝ U[0 ; 10], densité 1/10</span><pre><code>P(X &lt; 3)      = 3 × 1/10        = 0,3      ← largeur 3 − 0
+P(X ⩾ 6)      = (10 − 6) × 1/10 = 0,4
+P(3 &lt; X ⩽ 8)  = (8 − 3) × 1/10  = 0,5</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Alice et Brigitte à la bibliothèque</div>
+    <p>Brigitte arrive entre 15 h et 16 h, Alice à 15 h 20. Le délai d'arrivée de Brigitte, en
+       minutes après 15 h, suit <code>U<sub>[0 ; 60]</sub></code>.</p>
+<div class="bloc-code"><span class="langue">calcul — densité 1/60</span><pre><code>« Brigitte arrive avant Alice »       P(X &lt; 20) = 20/60 ≈ 0,33
+« Alice attend Brigitte plus de 20 min »  P(X &gt; 40) = 20/60 ≈ 0,33
+« Alice attend Brigitte moins de 5 min »  P(20 &lt; X &lt; 25) = 5/60 ≈ 0,08</code></pre></div>
+    <p>Le troisième calcul est le seul qui demande de réfléchir : Alice attend
+       <strong>moins de 5 minutes</strong> si Brigitte arrive entre la 20ᵉ et la 25ᵉ minute — pas
+       avant, sinon Alice n'attend pas du tout.</p>
+    <p>Toute la difficulté d'un exercice de loi uniforme est là : <strong>traduire la phrase en
+       intervalle</strong>. Le calcul qui suit est une division.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'intervalle ne commence pas toujours à zéro</div>
+    <p>Deuxième exercice du cours : un standardiste transfère les appels ; la durée d'attente T est
+       comprise <strong>entre 10 secondes et 1 minute</strong>. Donc
+       <code>T ↝ U<sub>[10 ; 60]</sub></code> — et non <code>U<sub>[0 ; 60]</sub></code>.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>densité = 1/(60 − 10) = 1/50        ← et non 1/60 !
+
+P(T &lt; 20) = P(10 ⩽ T &lt; 20) = 10/50 = 0,2
+P(T &gt; 40) = (60 − 40)/50    = 20/50 = 2/5 = 0,4
+E(T)      = (10 + 60)/2             = 35 secondes</code></pre></div>
+    <p>Remarquez <code>P(T &lt; 20)</code> : la largeur n'est pas 20 mais <strong>10</strong>,
+       puisque T ne peut pas descendre sous 10. Le réflexe : <strong>dessiner le rectangle</strong>
+       avant de calculer, avec ses vraies bornes. La largeur se lit alors sur le dessin.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un bus passe toutes les 12 minutes. Vous arrivez à l'arrêt sans connaître l'horaire. Quelle
+       est la probabilité d'attendre plus de 9 minutes ? Et l'attente moyenne ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Le temps d'attente T suit <code>U<sub>[0 ; 12]</sub></code> : arriver « sans connaître
+         l'horaire » signifie qu'aucun instant n'est privilégié.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>densité = 1/12
+
+P(T &gt; 9) = (12 − 9) × 1/12 = 3/12 = 0,25
+
+E(T) = (0 + 12)/2 = 6 minutes</code></pre></div>
+      <p>Une chance sur quatre d'attendre plus de 9 minutes, et 6 minutes d'attente moyenne — la
+         moitié de l'intervalle, comme l'intuition le suggère.</p>
+      <p class="rap">Contrôle : une probabilité de loi uniforme est toujours un
+         <strong>rapport de longueurs</strong>. Si vous trouvez une valeur supérieure à 1, c'est
+         que vous avez oublié de diviser par (b − a).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="fiabilite">
+  <h2><span class="num">03</span>Fiabilité et défaillance</h2>
+
+  <p>On change de sujet : on ne parle plus d'attente mais de <strong>durée de vie</strong>. Et le
+     vocabulaire vient de l'industrie, pas des mathématiques.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 La définition de l'AFNOR</div>
+    <p>L'Association Française de NORmalisation définit la fiabilité ainsi :</p>
+    <div class="formule">« La fiabilité est la caractéristique d'un dispositif qui s'exprime par la
+      <strong>probabilité</strong> pour ce dispositif d'accomplir une fonction requise, dans des
+      conditions données, pendant une période donnée. »</div>
+    <p>Trois mots comptent : <em>probabilité</em> (ce n'est pas une certitude), <em>conditions
+       données</em> (une ampoule ne dure pas autant dehors que dedans), <em>période donnée</em>
+       (la fiabilité dépend de la durée qu'on considère).</p>
+    <p>Dire qu'un modèle est « plus fiable » qu'un autre, c'est énoncer une
+       <strong>tendance</strong>, pas une garantie sur un exemplaire donné.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux fonctions, et leurs noms anglais</div>
+    <p>T est la durée de vie du matériel, à valeurs dans [0 ; +∞[.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Fonction</th><th>Définition</th><th>Se lit</th><th>D'où la lettre</th></tr></thead>
+      <tbody>
+        <tr><td><strong>F(t)</strong></td><td>P(T ⩽ t)</td>
+            <td>le matériel <strong>est tombé en panne</strong> avant t</td>
+            <td><em>failure</em> — défaillance</td></tr>
+        <tr><td><strong>R(t)</strong></td><td>1 − F(t) = P(T &gt; t)</td>
+            <td>le matériel <strong>fonctionne encore</strong> à t</td>
+            <td><em>reliability</em> — fiabilité</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">F(t) + R(t) = 1</div>
+    <p>Les deux lettres viennent de l'anglais : c'est la seule façon de ne pas les confondre —
+       <strong>F comme <em>failure</em></strong>, <strong>R comme <em>reliability</em></strong>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ne pas confondre les deux sens</div>
+    <p>R(t) <strong>décroît</strong> : plus le temps passe, moins il est probable que l'appareil
+       tienne encore. R(0) = 1 (tout fonctionne au départ), et R(t) tend vers 0.</p>
+    <p>F(t) <strong>croît</strong> : la probabilité d'être tombé en panne ne peut qu'augmenter.
+       F(0) = 0, et F(t) tend vers 1.</p>
+    <div class="formule">R décroît de 1 vers 0 &nbsp;·&nbsp; F croît de 0 vers 1</div>
+    <p>Si votre R(t) augmente avec t, il y a une erreur de signe — voir la
+       <a href="#exponentielle">section suivante</a>.</p>
+  </div>
+
+  <h3>D'où vient le modèle : l'expérience des ampoules</h3>
+
+  <p>Sur un grand nombre d'ampoules identiques mises en service au même moment, on relève toutes
+     les 500 heures la proportion encore en fonctionnement :</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>t (heures)</th><th>0</th><th>500</th><th>1 000</th><th>1 500</th>
+      <th>2 000</th><th>2 500</th><th>3 000</th></tr></thead>
+    <tbody>
+      <tr><td><strong>R(t)</strong></td><td>1</td><td>0,78</td><td>0,60</td><td>0,47</td>
+          <td>0,37</td><td>0,28</td><td>0,22</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Pourquoi un modèle exponentiel et pas une droite</div>
+    <p>Le nuage de points descend en <strong>s'aplatissant</strong> : il perd 0,22 entre 0 et 500 h,
+       mais seulement 0,06 entre 2 500 et 3 000 h. Une droite ne peut pas décrire cela — et elle
+       finirait par passer sous zéro, ce qui n'a pas de sens pour une probabilité.</p>
+    <p>On cherche donc un modèle de la forme <code>R(t) = k e<sup>−λt</sup></code>. Une régression
+       exponentielle à la calculatrice donne :</p>
+<div class="bloc-code"><span class="langue">calcul — régression exponentielle</span><pre><code>a = 1,001 495        →  k ≈ 1     (cohérent : R(0) = 1)
+b = −5,053 × 10⁻⁴    →  λ ≈ 0,000 5
+r = −0,999 886       →  corrélation quasi parfaite
+
+d'où :   R(t) = e^(−0,000 5 t)</code></pre></div>
+    <p>Le coefficient de corrélation <code>r</code> proche de −1 signale que le modèle colle aux
+       données. Et <code>k ≈ 1</code> n'est pas un hasard : R(0) doit valoir 1, puisque toutes les
+       ampoules fonctionnent au départ.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Vérifier le modèle sur les données</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>t = 500  :  e^(−0,25) = 0,7788   →  relevé 0,78   ✔
+t = 1000 :  e^(−0,50) = 0,6065   →  relevé 0,60   ✔
+t = 1500 :  e^(−0,75) = 0,4724   →  relevé 0,47   ✔
+t = 2000 :  e^(−1,00) = 0,3679   →  relevé 0,37   ✔
+t = 3000 :  e^(−1,50) = 0,2231   →  relevé 0,22   ✔</code></pre></div>
+    <p>Le modèle reproduit les relevés à moins de 0,01 près. C'est ce qui autorise à remplacer
+       le tableau par une formule — et à l'extrapoler au-delà de 3 000 heures.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="exponentielle">
+  <h2><span class="num">04</span>La loi exponentielle</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La définition</div>
+    <p>Quand la fonction de fiabilité s'écrit <code>R(t) = e<sup>−λt</sup></code>, où λ est un réel
+       <strong>strictement positif</strong>, on dit que T suit une <strong>loi
+       exponentielle</strong> de paramètre λ.</p>
+    <div class="formule">T ↝ <strong>E</strong><sub>λ</sub> &nbsp;⟺&nbsp;
+      R(t) = P(T &gt; t) = <strong>e<sup>−λt</sup></strong> sur [0 ; +∞[</div>
+    <p>Et par complémentarité :</p>
+    <div class="formule">F(t) = P(T ⩽ t) = <strong>1 − e<sup>−λt</sup></strong></div>
+    <p>Ces deux formules suffisent pour tout le chapitre. Il n'y a pas d'autre cas au programme.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — le signe moins qui manque dans la définition</div>
+    <p>Le document de cours écrit, dans le <em>même</em> encadré « Définition », deux formules
+       contradictoires à quatre lignes d'écart :</p>
+<div class="bloc-code"><span class="langue">ce qui est écrit</span><pre><code>ligne 1 : « la fonction de fiabilité R s'écrit R(t) = e^(λt)
+            où λ est un réel strictement positif »        ✘
+
+ligne 4 : « T ↝ E_λ signifie que la fonction de fiabilité est
+            la fonction R définie sur [0;+∞[ par : R(t) = e^(−λt) »   ✔</code></pre></div>
+    <p>C'est la deuxième qui est juste. Le raisonnement qui le prouve tient en une ligne : avec
+       λ &gt; 0, la fonction <code>e<sup>λt</sup></code> <strong>croît vers l'infini</strong>.</p>
+<div class="bloc-code"><span class="langue">calcul — avec λ = 0,0005 et la formule fautive</span><pre><code>R(1000) = e^(+0,5)  = 1,65      ✘ une probabilité supérieure à 1
+R(3000) = e^(+1,5)  = 4,48      ✘ absurde
+
+avec la bonne formule :
+R(1000) = e^(−0,5)  = 0,6065    ✔
+R(3000) = e^(−1,5)  = 0,2231    ✔</code></pre></div>
+    <p>Une fonction de fiabilité <strong>décroît</strong> de 1 vers 0 : un matériel ne devient pas
+       plus fiable en vieillissant. Le signe moins est ce qui produit cette décroissance.</p>
+    <div class="formule">Le contrôle en deux secondes : <strong>R(t) doit diminuer quand t
+      augmente.</strong></div>
+    <p class="rap">La copie A avait d'ailleurs annoté cette ligne au crayon : «<code> = P(T&gt;t)</code> ».
+       C'est la bonne réaction — rattacher la formule à son sens est ce qui permet de repérer le
+       signe manquant.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 250" role="img" aria-label="Courbes de fiabilité R(t) décroissante et de défaillance F(t) croissante">
+      <style>
+        .ea{stroke:var(--bord-fort);stroke-width:1.3}
+        .eR{fill:none;stroke:var(--accent);stroke-width:2.4}
+        .eF{fill:none;stroke:var(--encre-douce);stroke-width:2;stroke-dasharray:7 4}
+        .et{font:700 11.5px var(--sans);fill:var(--encre)}
+        .ed{font:10px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .ey{font:10px var(--mono);text-anchor:end;fill:var(--encre-douce)}
+      </style>
+      <line class="ea" x1="70" y1="200" x2="580" y2="200"/>
+      <line class="ea" x1="70" y1="210" x2="70" y2="35"/>
+      <text class="ey" x="64" y="52">1</text>
+      <text class="ey" x="64" y="130">0,5</text>
+      <text class="ey" x="64" y="204">0</text>
+      <line x1="70" y1="48" x2="580" y2="48" stroke="var(--bord)" stroke-width="1" stroke-dasharray="3 4"/>
+      <!-- R(t) = e^(-t/150) sur 0..510 px  →  y = 200 - 152*exp(-x/150) -->
+      <path class="eR" d="M70,48 C140,92 200,124 260,146 C330,170 420,186 580,195"/>
+      <!-- F(t) = 1 - R(t) -->
+      <path class="eF" d="M70,200 C140,156 200,124 260,102 C330,78 420,62 580,53"/>
+      <text class="et" x="576" y="150" text-anchor="end" fill="var(--accent)">R(t) = e<tspan baseline-shift="super" font-size="8">−λt</tspan> — fiabilité</text>
+      <text class="et" x="576" y="96" text-anchor="end" fill="var(--encre-douce)">F(t) = 1 − e<tspan baseline-shift="super" font-size="8">−λt</tspan> — défaillance</text>
+      <line x1="452" y1="146" x2="500" y2="182" stroke="var(--accent)" stroke-width="1"/>
+      <line x1="448" y1="100" x2="400" y2="70" stroke="var(--encre-douce)" stroke-width="1"/>
+      <text class="ed" x="325" y="220">durée t</text>
+      <text class="ed" x="112" y="240">R(0) = 1 · F(0) = 0</text>
+      <text class="ed" x="520" y="240">R → 0 · F → 1</text>
+    </svg>
+    <figcaption>Les deux courbes sont symétriques par rapport à la droite d'ordonnée 0,5 : leur
+      somme vaut 1 à chaque instant.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="calculs">
+  <h2><span class="num">05</span>Les trois calculs</h2>
+
+  <p>Tout exercice de loi exponentielle se ramène à trois formes. Elles découlent toutes de
+     <code>R(t) = e<sup>−λt</sup></code>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le formulaire complet</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>La question</th><th>La formule</th><th>Le sens</th></tr></thead>
+      <tbody>
+        <tr><td>« fonctionne encore après t »</td>
+            <td><code>P(T &gt; t) = e<sup>−λt</sup></code></td><td>la fiabilité R(t)</td></tr>
+        <tr><td>« tombe en panne avant t »</td>
+            <td><code>P(T &lt; t) = 1 − e<sup>−λt</sup></code></td><td>la défaillance F(t)</td></tr>
+        <tr><td>« tombe en panne entre t₁ et t₂ »</td>
+            <td><code>P(t₁ &lt; T &lt; t₂) = e<sup>−λt₁</sup> − e<sup>−λt₂</sup></code></td>
+            <td>R(t₁) − R(t₂)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>La troisième se retrouve sans l'apprendre : « tenir jusqu'à t₁ mais pas jusqu'à t₂ », c'est
+       la différence des deux fiabilités.</p>
+  </div>
+
+  <h3>L'exemple des ampoules — λ = 0,000 5</h3>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>A : « l'ampoule fonctionne encore au bout de 1 000 heures »
+P(A) = R(1000) = e^(−0,0005 × 1000) = e^(−0,5)  ≈ 0,606 5
+
+B : « l'ampoule fonctionne encore au bout de 1 500 heures »
+P(B) = R(1500) = e^(−0,0005 × 1500) = e^(−0,75) ≈ 0,472 4
+
+C : « l'ampoule fonctionne encore au bout de 500 heures »
+P(C) = R(500)  = e^(−0,0005 × 500)  = e^(−0,25) ≈ 0,778 8</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Vérifier les unités de λ</div>
+    <p>λ s'exprime dans l'inverse de l'unité de t. Ici <code>λ = 0,000 5 h⁻¹</code> parce que t est
+       en <strong>heures</strong>. Si l'énoncé donne une durée moyenne en minutes, λ est en
+       <code>min⁻¹</code> — et tous les t devront être en minutes.</p>
+    <div class="formule">Le produit <strong>λt doit être sans unité</strong></div>
+    <p>C'est le contrôle le plus rapide d'un exercice de fiabilité : si λ est en h⁻¹ et t en
+       minutes, le résultat est faux d'un facteur 60.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Lire l'énoncé : « avant » ou « après » ?</div>
+    <p>Les deux formules ne diffèrent que par un « 1 − ». Le mot qui décide est dans l'énoncé :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>L'énoncé dit</th><th>Événement</th><th>Formule</th></tr></thead>
+      <tbody>
+        <tr><td>« fonctionne encore », « survit », « tient »</td><td>T &gt; t</td>
+            <td><code>e<sup>−λt</sup></code></td></tr>
+        <tr><td>« tombe en panne », « périt », « grille »</td><td>T &lt; t</td>
+            <td><code>1 − e<sup>−λt</sup></code></td></tr>
+        <tr><td>« a une durée de vie inférieure à »</td><td>T &lt; t</td>
+            <td><code>1 − e<sup>−λt</sup></code></td></tr>
+        <tr><td>« dure au moins »</td><td>T ⩾ t = T &gt; t</td>
+            <td><code>e<sup>−λt</sup></code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Contrôle de vraisemblance : pour un t <strong>grand</strong>, « fonctionne encore » doit être
+       <strong>petit</strong>. Si vous trouvez 0,95 pour une durée trois fois supérieure à la
+       moyenne, vous avez inversé les formules.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Dans un jeu vidéo, la durée de vie T d'un monstre suit une loi exponentielle. Le jeu est
+       programmé pour que la durée de vie moyenne soit de 10 minutes. Calculez la probabilité que
+       le monstre soit <strong>encore en vie à la dixième minute et périsse avant la
+       vingtième</strong>.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>1. Trouver λ.</strong> La durée de vie moyenne est l'espérance, et
+         <code>E(T) = 1/λ</code> (voir la <a href="#mtbf">section 7</a>) :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>E(T) = 10  →  1/λ = 10  →  λ = 0,1 min⁻¹</code></pre></div>
+      <p><strong>2. Traduire l'événement.</strong> « Encore en vie à la 10ᵉ minute ET périt avant
+         la 20ᵉ » signifie que la panne survient <em>entre</em> 10 et 20 :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(10 &lt; T &lt; 20) = R(10) − R(20)
+               = e^(−0,1 × 10) − e^(−0,1 × 20)
+               = e^(−1)        − e^(−2)
+               = 0,367 9       − 0,135 3
+               = 0,232 5   ≈ 0,23</code></pre></div>
+      <p><strong>Conclusion :</strong> environ 23 % des monstres meurent entre la dixième et la
+         vingtième minute.</p>
+      <div class="encart outils">
+        <div class="titre">🧰 Les deux autres questions du même exercice</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>A : « encore en vie après 10 minutes »
+P(A) = e^(−1) ≈ 0,37                     ← 37 % seulement
+
+B : « périt avant 20 minutes »
+P(B) = 1 − e^(−2) ≈ 0,86</code></pre></div>
+        <p>Contrôle : P(C) = P(A) − (1 − P(B)) = 0,37 − 0,14 = 0,23 ✔ Les trois résultats sont
+           cohérents entre eux.</p>
+      </div>
+      <p class="rap">Remarquez que <strong>seulement 37 %</strong> des monstres atteignent la durée
+         de vie <em>moyenne</em>. C'est une propriété de la loi exponentielle :
+         <code>R(1/λ) = e<sup>−1</sup> ≈ 0,37</code>, quel que soit λ. La moyenne n'est pas la
+         médiane.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="sansmemoire">
+  <h2><span class="num">06</span>La loi sans mémoire</h2>
+
+  <p>C'est la propriété la plus surprenante du chapitre, et celle qui explique pourquoi la loi
+     exponentielle convient à l'électronique et pas à la mécanique.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'observation qui la révèle</div>
+    <p>Reprenons les ampoules. Quelle est la probabilité qu'une ampoule tienne 1 500 heures
+       <strong>sachant qu'elle a déjà tenu 1 000 heures</strong> ?</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P_A(B) = P(A ∩ B) / P(A)
+
+Or B (tenir 1500 h) implique A (tenir 1000 h) : A ∩ B = B
+
+P_A(B) = P(B) / P(A)
+       = e^(−0,75) / e^(−0,5)
+       = e^(−0,75 + 0,5)
+       = e^(−0,25)
+       = 0,778 8
+
+… ce qui est EXACTEMENT P(C) = R(500).</code></pre></div>
+    <p>Autrement dit : qu'elle ait déjà brûlé 1 000 heures ou qu'elle sorte de sa boîte, la
+       probabilité qu'une ampoule tienne <strong>500 heures de plus</strong> est la même.</p>
+  </div>
+
+  <div class="formule">P<sub>(T &gt; t₁)</sub>(T &gt; t₁ + t₂) = R(t₂) = P(T &gt; t₂)</div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Pourquoi c'est mathématiquement inévitable</div>
+    <p>La propriété vient d'une seule règle sur les exponentielles :</p>
+    <div class="formule">e<sup>a</sup> × e<sup>b</sup> = e<sup>a+b</sup></div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>R(t₁ + t₂) = e^(−λ(t₁ + t₂))
+           = e^(−λt₁) × e^(−λt₂)
+           = R(t₁) × R(t₂)
+
+donc  P(T > t₁ + t₂) = P(T > t₁) × P(T > t₂)
+
+et en divisant par P(T > t₁) :
+      P_(T>t₁)(T > t₁ + t₂) = P(T > t₂)</code></pre></div>
+    <p>La loi exponentielle est <strong>la seule</strong> loi continue à avoir cette propriété — et
+       c'est précisément parce que l'exponentielle transforme les sommes en produits.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi l'électronique et pas la mécanique</div>
+    <p>« Sans mémoire » signifie : <strong>le matériel ne vieillit pas</strong>. Il ne s'use pas,
+       il tombe en panne <em>par accident</em>, à un taux constant.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Adapté</th><th>Mal adapté</th></tr></thead>
+      <tbody>
+        <tr><td>composants électroniques</td><td>pièces mécaniques</td></tr>
+        <tr><td>circuits intégrés, LED</td><td>roulements, courroies, pneus</td></tr>
+        <tr><td>panne <strong>accidentelle</strong></td><td>panne par <strong>usure</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Un roulement de 100 000 km est <em>plus</em> près de la panne qu'un roulement neuf : sa
+       probabilité de survie dépend de son passé. La loi exponentielle ne sait pas modéliser cela —
+       on emploie alors d'autres lois (Weibull, en fiabilité industrielle).</p>
+    <p>Le cours le dit en une phrase, et c'est une question d'oral classique :
+       <em>« la modélisation par une loi exponentielle est plutôt adaptée aux situations où les
+       dispositifs ne subissent pas de défauts d'usure. »</em></p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le contre-sens à ne pas faire</div>
+    <p>« Sans mémoire » ne veut <strong>pas</strong> dire que l'appareil est éternel, ni que la
+       probabilité de panne est nulle. Elle veut dire que le <strong>risque instantané</strong> de
+       panne reste constant.</p>
+    <p>Sur un grand parc, le nombre d'appareils survivants <em>diminue</em> bien — mais parmi ceux
+       qui restent, les vieux ne sont pas plus fragiles que les neufs.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="mtbf">
+  <h2><span class="num">07</span>MTBF et espérance</h2>
+
+  <div class="formule">E(T) = σ(T) = <strong>1 / λ</strong></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le MTBF, mot du métier</div>
+    <p>E(T) est la <strong>durée de vie moyenne</strong> du matériel. En fiabilité industrielle,
+       elle porte un nom et un sigle que l'on retrouve sur toutes les fiches techniques :</p>
+    <div class="formule"><strong>MTBF</strong> = Moyenne des Temps de Bon Fonctionnement<br>
+      <em>Mean Time Before Failure</em> &nbsp;=&nbsp; <strong>1 / λ</strong></div>
+<div class="bloc-code"><span class="langue">calcul — les ampoules</span><pre><code>λ = 0,000 5 h⁻¹
+
+MTBF = 1 / 0,000 5 = 2 000 heures
+
+Une ampoule de ce lot dure en moyenne 2 000 heures.</code></pre></div>
+    <p>Et l'<strong>écart-type vaut la même chose</strong> — <code>σ(T) = 1/λ</code>. C'est une
+       particularité de la loi exponentielle : la dispersion est aussi grande que la moyenne, ce
+       qui traduit une durée de vie très imprévisible d'un exemplaire à l'autre.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La moyenne n'est pas la médiane</div>
+    <p>Le MTBF vaut 2 000 heures. Mais quelle proportion d'ampoules atteint réellement 2 000
+       heures ?</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>R(2000) = e^(−0,0005 × 2000) = e^(−1) = 0,367 9
+
+Seulement 37 % des ampoules atteignent la durée de vie MOYENNE.</code></pre></div>
+    <p>Ce n'est pas une contradiction : la loi est très asymétrique. Beaucoup d'ampoules grillent
+       tôt, quelques-unes durent très longtemps, et ces dernières tirent la moyenne vers le haut.</p>
+    <div class="formule">R(1/λ) = e<sup>−1</sup> ≈ 0,37 &nbsp;— toujours, quel que soit λ</div>
+    <p>La <strong>médiane</strong> — la durée que la moitié des appareils dépasse — vaut
+       <code>ln 2 / λ ≈ 0,69/λ</code>, soit environ 1 386 heures ici. Elle est toujours
+       <em>inférieure</em> à la moyenne.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 λ, le taux de défaillance</div>
+    <p>λ s'interprète comme un <strong>taux de panne par unité de temps</strong>. Avec
+       λ = 0,000 5 h⁻¹, on observe en moyenne 5 pannes pour 10 000 heures de fonctionnement
+       cumulé.</p>
+    <div class="formule">λ grand → matériel fragile, MTBF court<br>
+      λ petit → matériel fiable, MTBF long</div>
+    <p>Les deux quantités sont <strong>inverses</strong> l'une de l'autre : améliorer la fiabilité,
+       c'est faire baisser λ. C'est le vocabulaire des fiches constructeur, et la raison pour
+       laquelle un disque dur annoncé « MTBF 1,2 million d'heures » n'est pas garanti 136 ans —
+       c'est un taux moyen sur un parc, pas une promesse sur un exemplaire.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="retrouver">
+  <h2><span class="num">08</span>Retrouver λ</h2>
+
+  <p>λ n'est pas toujours donné. Deux situations reviennent, et toutes deux se résolvent avec le
+     <strong>logarithme népérien</strong>.</p>
+
+  <h3>Cas 1 — on donne la durée de vie moyenne</h3>
+
+  <div class="formule">E(T) = 1/λ &nbsp;→&nbsp; <strong>λ = 1 / E(T)</strong></div>
+
+<div class="bloc-code"><span class="langue">calcul — le temps d'attente au café</span><pre><code>« Le temps d'attente moyen d'un client est égal à 4 minutes.
+  Expliquer pourquoi on a alors λ = 0,25. »
+
+E(T) = 1/λ  et  E(T) = 4
+
+donc  1/λ = 4     →     λ = 1/4 = 0,25 min⁻¹</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Expliquer pourquoi » demande la formule, pas le résultat</div>
+    <p>Ce type de question donne la valeur : le point porte sur la <strong>justification</strong>.
+       Il faut citer <code>E(T) = 1/λ</code> et poser l'équation. Écrire « λ = 0,25 » seul ne
+       rapporte rien.</p>
+  </div>
+
+  <h3>Cas 2 — on donne une probabilité</h3>
+
+  <p>C'est le cas le plus fréquent en examen, et il demande de « faire descendre » l'exposant avec
+     le logarithme.</p>
+
+<div class="bloc-code"><span class="langue">calcul — Y ↝ E_λ et P(Y &gt; 8) = 0,7</span><pre><code>P(Y > 8) = 0,7
+e^(−8λ)  = 0,7
+
+on applique ln aux deux membres :
+ln(e^(−8λ)) = ln(0,7)
+       −8λ  = ln(0,7)          ← car ln(e^x) = x
+       −8λ  = −0,356 675
+         λ  = 0,356 675 / 8
+         λ  ≈ 0,044 6</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Vérifier en remontant</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>e^(−8 × 0,044 6) = e^(−0,356 8) = 0,700 0    ✔</code></pre></div>
+    <p>Cette vérification coûte une frappe sur la calculatrice et attrape les erreurs de signe —
+       qui sont ici les plus fréquentes, puisque <code>ln(0,7)</code> est <strong>négatif</strong>.</p>
+  </div>
+
+  <h3>Cas 3 — on cherche une durée</h3>
+
+  <p>La question se retourne : au bout de combien de temps la probabilité de survie tombe-t-elle
+     sous un seuil ?</p>
+
+<div class="bloc-code"><span class="langue">calcul — « déterminer t tel que P(T &gt; t) = 0,1 »</span><pre><code>avec λ = 0,25 (le café)
+
+e^(−0,25 t) = 0,1
+     −0,25 t = ln(0,1) = −2,302 6
+           t = 2,302 6 / 0,25
+           t = 9,210 3 minutes
+
+soit environ 9 minutes et 13 secondes.
+(0,210 3 × 60 = 12,6 s)</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Convertir la partie décimale en secondes</div>
+    <p>9,210 3 minutes ne se lit <strong>pas</strong> « 9 minutes 21 ». La partie décimale se
+       multiplie par 60 :</p>
+    <div class="formule">0,210 3 × 60 = 12,6 &nbsp;→&nbsp; 9 min 13 s</div>
+    <p>Même piège pour les heures. Quand l'énoncé demande « à la seconde près », c'est exactement
+       cette conversion qui est testée.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le cas particulier de la demi-vie</div>
+    <p>Quand le seuil est <strong>0,5</strong>, le résultat prend une forme remarquable :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(T ⩽ m) = 0,5
+1 − e^(−λm) = 0,5
+    e^(−λm) = 0,5
+       −λm  = ln(0,5) = −ln 2
+          m = ln 2 / λ ≈ 0,693 / λ</code></pre></div>
+    <p>Pour le monstre du jeu vidéo (λ = 0,1) : <code>m = 0,693/0,1 ≈ 6,93 minutes</code>. La
+       moitié des monstres meurent avant 6,9 minutes, alors que la durée de vie
+       <em>moyenne</em> est de 10 minutes. La médiane est bien inférieure à la moyenne.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="operations">
+  <h2><span class="num">09</span>Opérations aX + b</h2>
+
+  <p>Dernier point du chapitre, valable aussi bien en discret qu'en continu : que devient
+     l'espérance quand on transforme la variable ?</p>
+
+  <div class="formule">E(aX + b) = <strong>a E(X) + b</strong><br>
+    V(aX + b) = <strong>a² V(X)</strong></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'exemple des montres</div>
+    <p>Trois modèles à 10, 20 et 30 €, achetés dans les proportions 0,5 / 0,3 / 0,2. X est le prix
+       catalogue de la montre vendue.</p>
+<div class="bloc-code"><span class="langue">calcul — la variable de départ</span><pre><code>E(X) = 10 × 0,5 + 20 × 0,3 + 30 × 0,2 = 5 + 6 + 6 = 17 €
+
+V(X) = 10² × 0,5 + 20² × 0,3 + 30² × 0,2 − 17²
+     = 50 + 120 + 180 − 289
+     = 61</code></pre></div>
+    <p>Promotion : <strong>−10 % sur tous les modèles</strong>, et <strong>2 € de frais
+       d'expédition</strong>. Le prix payé est Y = 0,9 X + 2.</p>
+<div class="bloc-code"><span class="langue">calcul — par le tableau</span><pre><code>valeurs de Y : 0,9×10+2 = 11    0,9×20+2 = 20    0,9×30+2 = 29
+probabilités : inchangées        0,5 · 0,3 · 0,2
+
+E(Y) = 11 × 0,5 + 20 × 0,3 + 29 × 0,2 = 5,5 + 6 + 5,8 = 17,3 €</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — par le théorème</span><pre><code>E(Y) = 0,9 × E(X) + 2 = 0,9 × 17 + 2 = 15,3 + 2 = 17,3    ✔
+V(Y) = 0,9² × V(X)    = 0,81 × 61    = 49,41              ✔</code></pre></div>
+    <p>Les deux méthodes donnent le même résultat — et la seconde évite de reconstruire tout le
+       tableau.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le « + b » disparaît dans la variance</div>
+    <div class="formule">E(aX + b) = aE(X) <strong>+ b</strong><br>
+      V(aX + b) = a²V(X) &nbsp;&nbsp;<strong>— pas de b</strong></div>
+    <p>La raison est intuitive : ajouter 2 € à tous les prix <strong>décale</strong> la
+       distribution sans la <strong>disperser</strong> davantage. L'écart entre deux montres reste
+       le même. Seule la multiplication par 0,9 resserre les écarts — et elle le fait au carré.</p>
+    <p>Corollaire pour l'écart-type : <code>σ(aX + b) = |a| × σ(X)</code>. La valeur absolue
+       compte : un coefficient négatif retourne la distribution, mais la dispersion reste
+       positive.</p>
+  </div>
+</section>
+
+<!-- ================================================================ 10 -->
+<!-- ================================================================= 10 -->
+<section id="somme">
+  <h2><span class="num">10</span>La somme X + Y</h2>
+
+  <p>Dernière opération du programme : <strong>additionner deux variables aléatoires</strong>.
+     Deux représentants, A et B ; on veut le nombre <em>total</em> de contrats qu'ils obtiennent
+     ensemble.</p>
+
+  <h3>La loi conjointe</h3>
+  <p>Quand deux variables sont observées <em>en même temps</em>, on ne donne plus une loi mais
+     un <strong>tableau à double entrée</strong> : chaque case porte la probabilité que les deux
+     évènements se produisent ensemble.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>P(X = x <strong>et</strong> Y = y)</th><th>X = 0</th><th>X = 1</th><th>X = 2</th><th>X = 3</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Y = 0</strong></td><td>0,05</td><td>0,15</td><td>0,20</td><td>0,10</td></tr>
+      <tr><td><strong>Y = 1</strong></td><td>0,10</td><td>0,20</td><td>0,15</td><td>0,05</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Les huit cases totalisent <strong>1</strong> : c'est le premier contrôle à faire.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Retrouver les lois de X et de Y — les « marges »</div>
+    <p>On additionne par colonne pour X, par ligne pour Y. D'où leur nom de
+       <strong>lois marginales</strong> : elles se lisent dans la marge du tableau.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(X = 0) = 0,05 + 0,10 = 0,15      P(Y = 0) = 0,05 + 0,15 + 0,20 + 0,10 = 0,50
+P(X = 1) = 0,15 + 0,20 = 0,35      P(Y = 1) = 0,10 + 0,20 + 0,15 + 0,05 = 0,50
+P(X = 2) = 0,20 + 0,15 = 0,35
+P(X = 3) = 0,10 + 0,05 = 0,15
+
+E(X) = 0(0,15) + 1(0,35) + 2(0,35) + 3(0,15) = 1,5     V(X) = 0,85
+E(Y) = 0(0,50) + 1(0,50)                     = 0,5     V(Y) = 0,25</code></pre></div>
+  </div>
+
+  <h3>La loi de X + Y</h3>
+  <p><code>X + Y</code> prend ses valeurs dans <code>{0 ; 1 ; 2 ; 3 ; 4}</code>. Pour chaque
+     total, on <strong>regroupe les cases</strong> qui y mènent.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>X+Y = 0 : (0,0)                 → 0,05
+X+Y = 1 : (1,0) ou (0,1)        → 0,15 + 0,10 = 0,25
+X+Y = 2 : (2,0) ou (1,1)        → 0,20 + 0,20 = 0,40
+X+Y = 3 : (3,0) ou (2,1)        → 0,10 + 0,15 = 0,25
+X+Y = 4 : (3,1)                 → 0,05
+
+contrôle : 0,05 + 0,25 + 0,40 + 0,25 + 0,05 = 1   ✔</code></pre></div>
+
+  <div class="formule">E(X + Y) = 0(0,05) + 1(0,25) + 2(0,40) + 3(0,25) + 4(0,05) = <strong>2</strong><br>
+     V(X + Y) = 4,9 − 2² = <strong>0,9</strong></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Incompatibles » et « indépendants » ne veulent pas dire la même chose</div>
+    <p>C'est <strong>la</strong> confusion du chapitre, et elle décide de l'opération :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Incompatibles</th><th>Indépendants</th></tr></thead>
+      <tbody>
+        <tr><td>Définition</td><td>ne peuvent pas arriver ensemble</td>
+            <td>l'un n'influence pas l'autre</td></tr>
+        <tr><td>Ce qu'on en tire</td><td><code>P(A ∪ B) = P(A) + P(B)</code></td>
+            <td><code>P(A ∩ B) = P(A) × P(B)</code></td></tr>
+        <tr><td>On les emploie pour</td><td>« ou » — <strong>on additionne</strong></td>
+            <td>« et » — <strong>on multiplie</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Dans le calcul ci-dessus on additionne : c'est donc
+       l'<strong>incompatibilité</strong> qui sert. « A obtient 1 contrat et B aucun » et
+       « A n'en obtient aucun et B en obtient 1 » ne peuvent pas se produire en même temps.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — le polycopié écrit « indépendants » là où il faut « incompatibles »</div>
+    <p>Le document justifie l'addition par : « <em>les deux évènements sont indépendants, et
+       donc</em> ». <strong>C'est l'inverse de la propriété utilisée.</strong> L'indépendance
+       sert à <em>multiplier</em> ; ici on <em>additionne</em>, donc on se sert de
+       l'incompatibilité.</p>
+    <p>Le résultat, lui, est juste : 0,25. Seul le mot de justification est faux — mais c'est
+       exactement ce qu'un correcteur vérifie dans une rédaction.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — les deux termes sont intervertis</div>
+    <p>Le polycopié écrit
+       <code>P(X = 0 ∩ Y = 1) + P(X = 1 ∩ Y = 0) = 0,15 + 0,10</code>. Or le tableau donne
+       <code>P(X = 0 ∩ Y = 1) = <strong>0,10</strong></code> et
+       <code>P(X = 1 ∩ Y = 0) = <strong>0,15</strong></code>.</p>
+    <p class="rap">La somme ne change pas — 0,25 dans les deux cas — mais chaque terme est
+       attribué au mauvais évènement. À recopier dans le bon ordre.</p>
+  </div>
+
+  <h3>Espérance et variance d'une somme</h3>
+  <div class="formule">E(X + Y) = E(X) + E(Y)&nbsp;&nbsp;&nbsp;<span class="sub">toujours vrai</span><br>
+     V(X + Y) = V(X) + V(Y)&nbsp;&nbsp;&nbsp;<span class="sub">seulement si X et Y sont indépendantes</span></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Sur cet exemple, la variance trahit une dépendance</div>
+<div class="bloc-code"><span class="langue">vérification</span><pre><code>E(X) + E(Y) = 1,5 + 0,5 = 2       et  E(X + Y) = 2      ✔ identiques
+
+V(X) + V(Y) = 0,85 + 0,25 = 1,1   et  V(X + Y) = 0,9    ✘ différentes</code></pre></div>
+    <p>L'espérance s'additionne <strong>toujours</strong>. La variance, elle, ne s'additionne
+       que si les variables sont indépendantes. Ici <code>0,9 ≠ 1,1</code> :
+       <strong>X et Y ne sont donc pas indépendantes</strong>.</p>
+    <p>Le test direct le confirme :</p>
+<div class="bloc-code"><span class="langue">test d'indépendance</span><pre><code>P(X = 0 et Y = 0) = 0,05
+P(X = 0) × P(Y = 0) = 0,15 × 0,50 = 0,075
+
+0,05 ≠ 0,075   →  X et Y ne sont pas indépendantes</code></pre></div>
+    <p class="rap">Le polycopié place pourtant cet exemple sous le titre « <em>Variables
+       aléatoires indépendantes</em> ». Les deux représentants se partagent visiblement les
+       mêmes clients : ce que l'un décroche, l'autre ne le décroche pas.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Comment vérifier en une ligne que deux variables sont indépendantes ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Prendre <strong>une seule case</strong> du tableau et comparer :</p>
+      <div class="formule">P(X = x <strong>et</strong> Y = y) &nbsp;=?&nbsp; P(X = x) × P(Y = y)</div>
+      <p>Si l'égalité tombe en défaut sur <strong>une</strong> case, c'est fini : les variables
+         ne sont pas indépendantes. En revanche, pour conclure qu'elles <em>le sont</em>, il
+         faudrait vérifier <strong>toutes</strong> les cases.</p>
+      <p class="rap">Une seule case suffit à démontrer la <em>dépendance</em> ; il en faut huit
+         pour démontrer l'<em>indépendance</em>. C'est le principe du contre-exemple.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 11 -->
+<section id="examen">
+  <h2><span class="num">11</span>À l'examen</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La structure type d'une partie « fiabilité »</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Question</th><th>Attendu</th><th>Formule</th></tr></thead>
+      <tbody>
+        <tr><td>1. Justifier que λ = …</td><td>citer <code>E(T) = 1/λ</code></td>
+            <td>λ = 1/E(T)</td></tr>
+        <tr><td>2. Décrire un événement par une phrase</td>
+            <td>traduire (T &lt; 3) en français</td><td>—</td></tr>
+        <tr><td>3. P(T &lt; t) ou P(T &gt; t)</td><td>la bonne formule + arrondi demandé</td>
+            <td><code>1 − e<sup>−λt</sup></code> ou <code>e<sup>−λt</sup></code></td></tr>
+        <tr><td>4. Déterminer t tel que P(T &gt; t) = …</td><td>équation avec <strong>ln</strong></td>
+            <td>t = −ln(p)/λ</td></tr>
+        <tr><td>5. MTBF et interprétation</td><td>1/λ <strong>+ une phrase</strong></td>
+            <td>E(T) = 1/λ</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les cinq erreurs les plus coûteuses</div>
+    <ol>
+      <li><strong>Oublier le signe moins</strong> dans <code>e<sup>−λt</sup></code> — le résultat
+          dépasse alors 1.</li>
+      <li><strong>Confondre R et F</strong> : « fonctionne encore » c'est R, « tombe en panne »
+          c'est 1 − R.</li>
+      <li><strong>Mélanger les unités</strong> : λ en h⁻¹ avec un t en minutes.</li>
+      <li><strong>Perdre le signe de ln</strong> : <code>ln(0,7)</code> est négatif, et le − du
+          −λt le compense.</li>
+      <li><strong>Transposer le glissement d'un cran</strong> du chapitre 08 : en continu,
+          <code>P(T &lt; 3) = P(T ⩽ 3)</code>, il n'y a rien à décaler.</li>
+    </ol>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Le temps d'attente T d'un client à la terrasse d'un café suit une loi exponentielle de
+       paramètre λ. Le temps d'attente moyen est de 4 minutes.</p>
+    <ol>
+      <li>Expliquer pourquoi λ = 0,25.</li>
+      <li>Décrire l'événement (T &lt; 3) par une phrase et déterminer sa probabilité, à 10⁻³.</li>
+      <li>Quelle est la probabilité qu'un client attende au moins 5 minutes ? À 10⁻³.</li>
+      <li>Déterminer, à la seconde près, le temps t tel que P(T &gt; t) = 0,1.</li>
+    </ol>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul — 1</span><pre><code>Pour une loi exponentielle de paramètre λ, on a E(T) = 1/λ.
+L'énoncé donne E(T) = 4 minutes, donc :
+
+1/λ = 4     →     λ = 1/4 = 0,25 min⁻¹</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 2</span><pre><code>(T &lt; 3) : « le client est servi en moins de 3 minutes ».
+
+P(T &lt; 3) = 1 − e^(−0,25 × 3)
+         = 1 − e^(−0,75)
+         = 1 − 0,472 4
+         = 0,527 6   ≈ 0,528
+
+Environ 52,8 % des clients sont servis en moins de 3 minutes.</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 3</span><pre><code>« au moins 5 minutes » : T ⩾ 5, soit T &gt; 5 (variable continue).
+
+P(T ⩾ 5) = e^(−0,25 × 5)
+         = e^(−1,25)
+         = 0,286 5   ≈ 0,287
+
+Environ 28,7 % des clients attendent au moins 5 minutes.</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 4</span><pre><code>P(T &gt; t) = 0,1
+e^(−0,25 t) = 0,1
+    −0,25 t = ln(0,1) = −2,302 585
+          t = 2,302 585 / 0,25
+          t = 9,210 3 minutes
+
+partie décimale : 0,210 3 × 60 = 12,6 s
+
+t ≈ 9 minutes et 13 secondes.
+
+10 % des clients attendent plus de 9 min 13 s.</code></pre></div>
+      <p class="rap">Trois contrôles : 0,528 et 0,287 sont bien entre 0 et 1 ✔ ; attendre
+         <em>moins</em> de 3 min (proche de la moyenne de 4) doit être un peu plus d'une chance sur
+         deux — 0,528 est cohérent ✔ ; et t = 9,2 min est supérieur au MTBF de 4 min, ce qui est
+         normal pour un seuil aussi bas que 10 % ✔</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Variable continue</strong> : <code>P(X = k) = 0</code>, on ne calcule que des
+          intervalles. <strong>« &lt; » et « ⩽ » sont identiques</strong> — pas de glissement
+          d'un cran.</li>
+      <li><strong>Loi uniforme</strong> <code>U<sub>[a;b]</sub></code> : densité
+          <code>1/(b−a)</code>, probabilité = <strong>aire d'un rectangle</strong>.</li>
+      <li><code>P(c ⩽ X ⩽ d) = (d − c)/(b − a)</code> · <code>E(X) = (a + b)/2</code>.</li>
+      <li><strong>Attention aux bornes</strong> : <code>U<sub>[10;60]</sub></code> a une densité
+          de 1/50, pas 1/60.</li>
+      <li><strong>Fiabilité</strong> <code>R(t) = P(T &gt; t)</code> — <em>reliability</em>, elle
+          <strong>décroît</strong> de 1 vers 0.</li>
+      <li><strong>Défaillance</strong> <code>F(t) = P(T ⩽ t) = 1 − R(t)</code> —
+          <em>failure</em>, elle croît de 0 vers 1.</li>
+      <li><strong>Loi exponentielle</strong> : <code>R(t) = e<sup>−λt</sup></code>. Le
+          <strong>signe moins</strong> est ce qui fait décroître — sans lui, R dépasse 1.</li>
+      <li><strong>Les trois calculs</strong> : <code>P(T&gt;t) = e<sup>−λt</sup></code> ·
+          <code>P(T&lt;t) = 1 − e<sup>−λt</sup></code> ·
+          <code>P(t₁&lt;T&lt;t₂) = e<sup>−λt₁</sup> − e<sup>−λt₂</sup></code>.</li>
+      <li><strong>Sans mémoire</strong> : <code>P<sub>(T&gt;t₁)</sub>(T &gt; t₁+t₂) = P(T &gt; t₂)</code>.
+          Adaptée à l'électronique, pas à l'usure mécanique.</li>
+      <li><strong>MTBF</strong> = <code>E(T) = σ(T) = 1/λ</code>. Et seulement
+          <strong>37 %</strong> du parc atteint la durée de vie moyenne.</li>
+      <li><strong>Retrouver λ</strong> : par la moyenne (<code>λ = 1/E(T)</code>) ou par le
+          <strong>logarithme</strong> (<code>λ = −ln(p)/t</code>).</li>
+      <li><strong>Opérations</strong> : <code>E(aX+b) = aE(X)+b</code> ·
+          <code>V(aX+b) = a²V(X)</code> — <strong>sans le b</strong>.</li>
+      <li><strong>Vérifier</strong> : λt sans unité · R(t) décroissante · remonter par
+          <code>e<sup>x</sup></code> après un ln · convertir les décimales en secondes.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Fiabilité, loi exponentielle » (5 pages) — cadre AFNOR, fonctions F et R, expérience
+          des ampoules, régression exponentielle, loi sans mémoire, MTBF</li>
+      <li>Tableau « Loi uniforme » (CG2 2425) — densité, aire du rectangle, exercices corrigés
+          U[0;10], U[0;60] et U[10;60]</li>
+      <li>« Opérations sur les variables aléatoires » — théorème aX + b, exemple des montres</li>
+      <li>Exercices de fiabilité : temps d'attente au café, durée de vie d'un monstre de jeu vidéo,
+          détermination de λ à partir d'une probabilité</li>
+      <li>version annotée du cours (ajout de « = P(T&gt;t) » sous R(t))</li>
+      <li>Captures de la séance sur la loi exponentielle et la fiabilité</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fondements des réseaux — équipements, supports, topologies | BTS CIEL</title>
+<meta name="description" content="Cours complet : hôtes et équipements intermédiaires, supports de transmission, topologies, PAN/LAN/MAN/WAN, client-serveur et sécurité.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#definition">1 · Qu'est-ce qu'un réseau</a></li>
+    <li><a href="#equipements">2 · Les deux familles d'équipements</a></li>
+    <li><a href="#intermediaires">3 · Les équipements intermédiaires</a></li>
+    <li><a href="#supports">4 · Les supports de transmission</a></li>
+    <li><a href="#modes">5 · Client-serveur et pair-à-pair</a></li>
+    <li><a href="#etendue">6 · PAN, LAN, MAN, WAN</a></li>
+    <li><a href="#topologies">7 · Les topologies</a></li>
+    <li><a href="#securite">8 · Sécuriser le réseau</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 02</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Fondements des réseaux</h1>
+  <p class="chapeau">Qui parle à qui, par quel câble, selon quelle organisation — et comment on
+     lit un schéma de réseau sans hésiter.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un réseau, ce sont des <strong>hôtes</strong> (qui produisent ou consomment les données)
+         reliés par des <strong>équipements intermédiaires</strong> (qui ne font que transporter).
+         Le <strong>support</strong> — cuivre, fibre ou ondes — se choisit sur quatre critères :
+         distance, environnement, débit, coût. L'<strong>étendue</strong> classe le réseau
+         (PAN, LAN, MAN, WAN) et la <strong>topologie</strong> décrit son organisation — avec une
+         distinction capitale entre ce qu'on voit (physique) et ce qui circule réellement
+         (logique).</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#hôte</code> <code>#périphérique-final</code> <code>#intermédiaire</code>
+    <code>#répéteur</code> <code>#pont</code> <code>#hub</code> <code>#switch</code>
+    <code>#routeur</code> <code>#coaxial</code> <code>#paire-torsadée</code>
+    <code>#fibre-optique</code> <code>#UTP-STP</code> <code>#LAN-MAN-WAN</code>
+    <code>#topologie</code> <code>#client-serveur</code> <code>#P2P</code>
+    <code>#firewall</code> <code>#proxy</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="definition">
+  <h2><span class="num">01</span>Qu'est-ce qu'un réseau</h2>
+
+  <p>Un réseau est un <strong>ensemble d'objets interconnectés</strong> qui font circuler des
+     éléments selon des <strong>règles définies</strong>. Cette définition tient en trois mots, et
+     les trois comptent : des objets, une circulation, des règles.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Le réseau, c'est le restaurant entier. Les <strong>éléments qui circulent</strong>, ce sont
+       les plats. Les <strong>règles</strong>, ce sont le menu et la façon de commander. Si vous
+       commandez en japonais dans un restaurant italien, personne ne comprend : c'est exactement ce
+       qu'on appelle une <strong>erreur de protocole</strong>.</p>
+  </div>
+
+  <p>Ces règles portent un nom : les <strong>protocoles</strong>. Deux machines qui ne parlent pas
+     le même protocole ne communiquent pas, même parfaitement câblées.</p>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="equipements">
+  <h2><span class="num">02</span>Les deux familles d'équipements</h2>
+
+  <h3>Les périphériques finaux — les hôtes</h3>
+  <p>Ce sont les périphériques réseau auxquels les personnes sont le plus habituées. Ils forment
+     l'<strong>interface entre le réseau humain et le réseau de communication sous-jacent</strong> :</p>
+  <ul>
+    <li>ordinateurs — stations de travail, portables, serveurs de fichiers, serveurs Web ;</li>
+    <li>imprimantes réseau ;</li>
+    <li>téléphones VoIP ;</li>
+    <li>caméras de surveillance ;</li>
+    <li>périphériques portables mobiles — lecteurs de codes-barres sans fil, assistants numériques,
+        smartphones, tablettes.</li>
+  </ul>
+
+  <p>Dans le cas d'un réseau, les périphériques finaux sont appelés <strong>hôtes</strong>. Un hôte
+     constitue soit la <strong>source</strong>, soit la <strong>destination</strong> d'un message
+     transmis à travers le réseau. Pour qu'il soit possible de les distinguer, chaque hôte est
+     identifié par une <strong>adresse</strong>. Lorsqu'un hôte démarre une communication, il
+     utilise l'adresse de l'hôte de destination pour indiquer où le message doit être envoyé.</p>
+
+  <p>Dans les réseaux actuels, un hôte peut jouer le rôle de <strong>client</strong>, de
+     <strong>serveur</strong>, ou <strong>les deux</strong>. C'est le logiciel installé qui
+     détermine son rôle :</p>
+  <ul>
+    <li>les <strong>serveurs</strong> sont des hôtes équipés de logiciels leur permettant de
+        fournir des informations et des services — messagerie, pages Web — à d'autres hôtes ;</li>
+    <li>les <strong>clients</strong> sont des hôtes équipés d'un logiciel qui leur permet de
+        demander des informations auprès du serveur et de les afficher.</li>
+  </ul>
+
+  <h3>Les périphériques intermédiaires</h3>
+  <p>Ce sont les travailleurs de l'ombre : ils <strong>ne créent ni ne consomment</strong> les
+     données, ils les <strong>transportent et les dirigent</strong>. Switchs, routeurs, hubs,
+     ponts, répéteurs, points d'accès sans fil.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 190" role="img" aria-label="Hôtes et équipements intermédiaires">
+      <style>
+        .ho{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.6}
+        .im{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.6;stroke-dasharray:5 3}
+        .n1{font:700 11.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .n2{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .lk{stroke:var(--bord-fort);stroke-width:1.6;fill:none}
+      </style>
+      <text class="n1" x="290" y="16" style="font-size:12px">Le message part d'un hôte et arrive à un hôte. Entre les deux : que du transport.</text>
+
+      <rect class="ho" x="20" y="46" width="110" height="52" rx="8"/>
+      <text class="n1" x="75" y="70">HÔTE</text><text class="n2" x="75" y="87">source</text>
+
+      <rect class="im" x="170" y="52" width="90" height="40" rx="7"/>
+      <text class="n1" x="215" y="70" style="font-size:10.5px">SWITCH</text>
+      <text class="n2" x="215" y="84" style="font-size:9.5px">couche 2</text>
+
+      <rect class="im" x="300" y="52" width="90" height="40" rx="7"/>
+      <text class="n1" x="345" y="70" style="font-size:10.5px">ROUTEUR</text>
+      <text class="n2" x="345" y="84" style="font-size:9.5px">couche 3</text>
+
+      <rect class="ho" x="450" y="46" width="110" height="52" rx="8"/>
+      <text class="n1" x="505" y="70">HÔTE</text><text class="n2" x="505" y="87">destination</text>
+
+      <path class="lk" d="M130 72 L168 72 M262 72 L298 72 M392 72 L448 72"/>
+
+      <text class="n2" x="75"  y="128" style="fill:var(--accent);font-weight:600">crée / consomme</text>
+      <text class="n2" x="280" y="128">ne fait que transporter et diriger</text>
+      <text class="n2" x="505" y="128" style="fill:var(--accent);font-weight:600">crée / consomme</text>
+      <text class="n2" x="290" y="160">Chaque hôte possède une adresse : c'est elle qui dit où va le message.</text>
+    </svg>
+    <figcaption>La question à se poser devant un équipement : « est-il l'origine ou la destination
+      d'un message ? » Si non, c'est un intermédiaire.</figcaption>
+  </figure>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Sur un schéma de réseau figurent un smartphone et un point d'accès Wi-Fi.
+       Lequel est un hôte, lequel est un intermédiaire, et pourquoi ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Le <strong>smartphone est un hôte</strong> : il consulte des pages, envoie des messages —
+         il est source ou destination des données, et il possède sa propre adresse en tant que
+         terminal.</p>
+      <p>Le <strong>point d'accès est un intermédiaire</strong> : il ne produit aucune donnée
+         utile, il relaie celles des autres entre le sans-fil et le câble.</p>
+      <p><strong>Le critère qui tranche</strong> — et non la taille ou la mobilité de l'appareil :
+         <em>l'équipement est-il l'origine ou la fin du message ?</em> Un serveur d'armoire est un
+         hôte ; un petit switch de bureau est un intermédiaire.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="intermediaires">
+  <h2><span class="num">03</span>Les équipements intermédiaires</h2>
+
+  <p>Ils se classent par <strong>niveau d'intelligence croissante</strong>. Plus un équipement
+     monte dans les couches, plus il comprend ce qu'il transporte — et plus il peut prendre de
+     décisions.</p>
+
+  <h3>Le répéteur</h3>
+  <p>Ces systèmes permettent l'interconnexion de médias similaires ou différents pour une méthode
+     d'accès donnée, et assurent une <strong>continuité de la topologie physique</strong> pour
+     constituer un réseau local unique. Le répéteur est l'équipement clé du réseau Ethernet pour
+     tout ce qui concerne la <strong>taille du réseau</strong> ou le <strong>changement de
+     média</strong>. C'est le matériel de plus bas niveau sur le réseau local : il
+     <strong>n'interprète pas les trames</strong> qu'il reçoit et se contente de les retransmettre
+     <strong>bit à bit</strong> sur les autres segments.</p>
+  <p>Sa principale fonction est la <strong>régénération du signal</strong> : le signal subit une
+     atténuation et une distorsion tout au long de sa propagation dans le câble ; le répéteur émet
+     les signaux reçus en les remettant en forme.</p>
+
+  <h3>Le pont (bridge)</h3>
+  <p>Il réalise la connexion entre <strong>deux réseaux locaux de type différent</strong>. Il
+     permet de gérer des liaisons locales ou distantes et d'optimiser les flux de communication ;
+     il offre en outre une possibilité d'extension au-delà des limites imposées par la norme
+     Ethernet ou Token Ring.</p>
+  <p>Au niveau de la sécurité, les ponts sont <strong>plus puissants que le répéteur</strong> :
+     ils peuvent éviter la propagation de certains défauts, et ils <strong>filtrent les
+     trames</strong> entre deux réseaux.</p>
+
+  <h3>Le hub (concentrateur)</h3>
+  <p>Les hubs permettent la connexion de plusieurs nœuds sur un même point d'accès, <strong>en se
+     partageant la bande passante totale</strong>. La structure physique qui s'en dégage est une
+     <strong>étoile</strong>, mais la topologie <strong>logique reste un bus</strong> (pour
+     Ethernet).</p>
+
+  <h3>Le switch (commutateur)</h3>
+  <p>Le commutateur assure l'interconnexion de stations ou de segments d'un réseau local en leur
+     attribuant l'<strong>intégralité de la bande passante</strong>, à l'inverse du concentrateur
+     qui la partage. Les commutateurs ont donc été introduits pour <strong>augmenter la bande
+     passante globale</strong> d'un réseau d'entreprise ; ils sont une évolution des concentrateurs
+     Ethernet. Ils ne mettent en œuvre <strong>aucune fonctionnalité de sécurité</strong>, hormis
+     l'amélioration de la disponibilité.</p>
+
+  <h3>Le routeur</h3>
+  <p>Les routeurs sont des éléments actifs qui permettent d'interconnecter localement ou à distance
+     <strong>des réseaux entre eux</strong>. Agissant au <strong>niveau 3 du modèle OSI</strong>,
+     ils proposent des mécanismes évolués permettant de déterminer le <strong>meilleur
+     chemin</strong> pour acheminer l'information. Leur mécanisme est lié aux protocoles supportés
+     par les réseaux qu'ils interconnectent : les fonctionnalités de routage des paquets
+     interviennent au niveau de la couche réseau et mettent en œuvre des <strong>algorithmes de
+     routage</strong> pour assurer l'acheminement des paquets à leur destination finale.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le tableau qui résume tout</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Équipement</th><th>Couche OSI</th><th>Ce qu'il lit</th><th>Bande passante</th><th>Sépare quoi ?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Répéteur</strong></td><td>1 — physique</td><td>Rien, il régénère des bits</td>
+            <td>Partagée</td><td>Rien</td></tr>
+        <tr><td><strong>Hub</strong></td><td>1 — physique</td><td>Rien, répéteur multiport</td>
+            <td><strong>Partagée</strong></td><td>Rien</td></tr>
+        <tr><td><strong>Pont</strong></td><td>2 — liaison</td><td>Adresses MAC</td>
+            <td>Segmentée</td><td>Les domaines de collision</td></tr>
+        <tr><td><strong>Switch</strong></td><td>2 — liaison</td><td>Adresses MAC</td>
+            <td><strong>Intégrale par port</strong></td><td>Les domaines de collision</td></tr>
+        <tr><td><strong>Routeur</strong></td><td>3 — réseau</td><td>Adresses IP</td>
+            <td>Selon interface</td><td>Les <strong>domaines de diffusion</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — hub contre switch</div>
+    <p>La différence n'est pas « le switch est plus récent ». Elle est mesurable : sur un hub à
+       8 ports en 100 Mbit/s, les 8 machines se <strong>partagent</strong> 100 Mbit/s. Sur un
+       switch à 8 ports en 100 Mbit/s, <strong>chaque</strong> machine dispose de 100 Mbit/s. C'est
+       la formulation attendue : le hub <em>partage</em>, le switch <em>attribue
+       l'intégralité</em>.</p>
+    <p>Second point souvent oublié : le switch, comme le hub, <strong>ne bloque pas les
+       diffusions</strong>. Seul le <strong>routeur</strong> arrête un broadcast.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>Répéteurs, ponts et hubs ont pratiquement disparu du marché : le switch fait leur travail en
+       mieux, et pour moins cher. S'ils restent au programme, c'est parce qu'ils expliquent le
+       <em>pourquoi</em> du switch — et parce que les notions de domaine de collision et de domaine
+       de diffusion, elles, n'ont pas bougé d'un pouce.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="supports">
+  <h2><span class="num">04</span>Les supports de transmission</h2>
+
+  <p>Pour relier les diverses entités d'un réseau, plusieurs supports physiques peuvent être
+     utilisés. On distingue généralement trois familles : les fils métalliques, les fibres
+     optiques, et le sans-fil.</p>
+
+  <h3>Le câble coaxial</h3>
+  <p>Proche du câble qui relie le téléviseur à son antenne, il se compose de quatre couches
+     concentriques :</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Couche</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Gaine</strong></td>
+          <td>Protège le câble de l'environnement extérieur. Habituellement en caoutchouc,
+              parfois en PVC</td></tr>
+      <tr><td><strong>Blindage</strong></td>
+          <td>Enveloppe métallique entourant les câbles. Protège les données des
+              <strong>parasites</strong> (le « bruit ») qui causeraient une distorsion</td></tr>
+      <tr><td><strong>Isolant</strong></td>
+          <td>Entoure la partie centrale. Matériau diélectrique qui évite tout contact avec le
+              blindage — donc tout <strong>court-circuit</strong></td></tr>
+      <tr><td><strong>Âme</strong></td>
+          <td>Accomplit le <strong>transport des données</strong>. Un seul brin de cuivre, ou
+              plusieurs brins torsadés</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Il permet des vitesses de transmission plus élevées que la paire torsadée de son époque et des
+     connexions à plus grande distance. Il reste néanmoins <strong>assez coûteux</strong>.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Précision d'actualité</div>
+    <p>L'affirmation « le coaxial permet des vitesses bien plus élevées que la paire torsadée »
+       était vraie face aux premières paires torsadées. Ce n'est <strong>plus le cas
+       aujourd'hui</strong> : une paire torsadée Cat 6a atteint 10 Gbit/s sur 100 m, très au-delà
+       du coaxial en réseau local. Le coaxial a quasiment disparu des LAN ; il survit en télévision
+       et dans les réseaux d'opérateurs. À l'examen, citez l'affirmation du cours, mais sachez la
+       situer dans son époque.</p>
+  </div>
+
+  <h3>La paire torsadée</h3>
+  <p>Elle est composée de <strong>brins de cuivre entrelacés (torsadés)</strong> et recouverts
+     d'une enveloppe isolante. L'entrelacement des brins permet de <strong>limiter les
+     interférences extérieures</strong> — moteur, relais, transformateur — mais la protection d'un
+     blindage est bien plus efficace.</p>
+  <p>C'est le même câble que celui utilisé pour les téléphones. Il existe des câbles à 2 ou 4
+     paires, blindés (<strong>STP</strong>) ou non blindés (<strong>UTP</strong>). Ce type de câble
+     est utilisé pour le câblage dit universel, mais aussi pour les réseaux Token Ring (anneau à
+     jeton) et Ethernet.</p>
+  <p>C'est une solution <strong>économique mais limitée</strong> : elle ne permet pas une très
+     grande vitesse de transmission et reste <strong>sensible à l'environnement
+     électromagnétique</strong>.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Pourquoi torsader ?</div>
+    <p>Deux fils parallèles captent un parasite différemment — l'un est plus près de la source que
+       l'autre, le déséquilibre fausse le signal. En les <strong>torsadant</strong>, on fait
+       alterner leur position des dizaines de fois par mètre : chacun subit exactement la même
+       perturbation, et le récepteur, qui ne lit que la <em>différence</em> entre les deux fils,
+       l'annule. Le parasite s'auto-détruit par symétrie.</p>
+  </div>
+
+  <h3>La fibre optique</h3>
+  <p>Elle est composée de :</p>
+  <ul>
+    <li><strong>deux cylindres extrêmement fins en verre</strong> (silice ou plastique), l'un pour
+        recevoir les données et l'autre pour les envoyer : c'est le <strong>cœur</strong>
+        (<em>core</em>) ;</li>
+    <li><strong>deux gaines optiques</strong> en verre concentrique, une pour chaque cylindre ;</li>
+    <li><strong>deux couches de fibre en Kevlar</strong>, une pour chaque gaine optique : le petit
+        isolant et le grand isolant.</li>
+  </ul>
+  <p>C'est le nec plus ultra des médias télématiques : elle véhicule des <strong>impulsions
+     lumineuses</strong> et non électromagnétiques, elle n'est <strong>absolument pas sensible aux
+     perturbations</strong> pouvant affecter les autres supports, et elle permet d'aller jusqu'à
+     <strong>plusieurs kilomètres</strong> avant que l'information ne subisse de graves
+     détériorations — là où le câble coaxial doit être régénéré tous les kilomètres.</p>
+
+  <h3>Les ondes hertziennes</h3>
+  <p>Elles supportent de grandes distances et de grandes capacités, pour une propagation
+     <strong>en visibilité directe</strong> (entre 50 et 80 km). Elles prolongent et remplacent les
+     câbles, pour une plus grande souplesse mais aussi une plus grande <strong>sensibilité au
+     bruit</strong>.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Précision — ne pas confondre deux sans-fil</div>
+    <p>Les 50 à 80 km en visibilité directe décrivent les <strong>faisceaux hertziens</strong>,
+       ces antennes paraboliques qui relient deux sites distants. Le <strong>Wi-Fi</strong>, lui,
+       porte quelques dizaines de mètres en intérieur. Les deux sont « du sans-fil » mais ne jouent
+       pas dans la même catégorie : ne citez pas les 80 km pour justifier un Wi-Fi d'entreprise.</p>
+  </div>
+
+  <h3>Les quatre critères de choix</h3>
+  <div class="encart outils">
+    <div class="titre">🧰 À connaître par cœur — ils tombent tels quels</div>
+    <ol>
+      <li>La <strong>distance</strong> sur laquelle les supports peuvent transporter correctement
+          un signal.</li>
+      <li>L'<strong>environnement</strong> dans lequel les supports doivent être installés.</li>
+      <li>La <strong>quantité de données</strong> et le <strong>débit</strong> de la transmission.</li>
+      <li>Le <strong>coût</strong> des supports et de l'installation.</li>
+    </ol>
+  </div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Support</th><th>Distance</th><th>Immunité au bruit</th><th>Débit</th><th>Coût</th></tr></thead>
+    <tbody>
+      <tr><td>Paire torsadée UTP</td><td>100 m</td><td>Faible</td><td>Bon</td><td class="rep-ok">Faible</td></tr>
+      <tr><td>Paire torsadée STP</td><td>100 m</td><td>Moyenne</td><td>Bon</td><td>Moyen</td></tr>
+      <tr><td>Coaxial</td><td>Quelques centaines de m</td><td>Bonne</td><td>Moyen</td><td>Élevé</td></tr>
+      <tr><td><strong>Fibre optique</strong></td><td class="rep-ok"><strong>Plusieurs km</strong></td>
+          <td class="rep-ok"><strong>Totale</strong></td><td class="rep-ok"><strong>Très élevé</strong></td><td>Élevé</td></tr>
+      <tr><td>Sans-fil</td><td>Variable</td><td class="rep-non">Faible</td><td>Moyen</td><td>Faible</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une usine doit relier deux bâtiments distants de 2 km, et l'atelier
+       intermédiaire est plein de machines qui produisent des étincelles et des parasites
+       électriques. Quel support choisissez-vous, et avec quel argument du cours ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>La fibre optique</strong>, et deux critères sur quatre la désignent :</p>
+      <ul>
+        <li><strong>Distance</strong> — 2 km. La paire torsadée plafonne à 100 m, le coaxial exige
+            une régénération tous les kilomètres. La fibre parcourt plusieurs kilomètres sans
+            détérioration grave.</li>
+        <li><strong>Environnement</strong> — elle véhicule des impulsions <em>lumineuses</em>, pas
+            électromagnétiques : elle est <strong>totalement insensible</strong> aux parasites des
+            machines. Aucun câble cuivre, même blindé, n'offre cela.</li>
+      </ul>
+      <p><strong>Si le cuivre était imposé</strong> à l'intérieur de l'atelier : de la
+         <strong>STP</strong> (blindée), car le blindage est bien plus efficace que le simple
+         torsadage face à un environnement électromagnétique agressif. Mais cela ne résoudrait pas
+         le problème des 2 km.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="modes">
+  <h2><span class="num">05</span>Client-serveur et pair-à-pair</h2>
+
+  <p>On distingue deux modes de fonctionnement, dont le choix dépend de la <strong>taille de
+     l'entreprise</strong>, du <strong>niveau de sécurité nécessaire</strong>, du <strong>type
+     d'activité</strong>, du <strong>niveau de compétence d'administration disponible</strong>, du
+     <strong>volume de trafic</strong>, des <strong>besoins des utilisateurs</strong> et du
+     <strong>budget</strong> — achat, mais aussi entretien et maintenance.</p>
+
+  <h3>Le mode client / serveur</h3>
+  <p>Le périphérique qui <strong>demande</strong> les informations est nommé <strong>client</strong> ;
+     celui qui <strong>répond à la requête</strong> est nommé <strong>serveur</strong>. Le client
+     commence l'échange en demandant des données au serveur, qui répond en envoyant un ou plusieurs
+     flux de données.</p>
+  <p><strong>Exemple :</strong> dans une entreprise, les employés utilisent un serveur de
+     messagerie. Le client de messagerie situé sur l'ordinateur d'un employé envoie une demande au
+     serveur pour tout courriel non lu ; le serveur répond en envoyant le courriel requis.</p>
+  <p>Bien que les données soient généralement décrites comme transmises du serveur au client,
+     <strong>certaines vont toujours du client au serveur</strong>. Le flux peut être égal dans les
+     deux sens, ou même plus important dans le sens client vers serveur — un client peut transférer
+     un fichier vers le serveur à des fins de stockage.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux mots à ne jamais inverser</div>
+<div class="bloc-code"><span class="langue">vocabulaire</span><pre><code>Upload   — téléchargement MONTANT     : client  →  serveur
+Download — téléchargement DESCENDANT  : serveur →  client
+
+Astuce : « up » = tu envoies vers le haut, vers le serveur.
+         Quand tu déposes un devoir sur l'ENT, tu fais un UPLOAD.</code></pre></div>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 130" role="img" aria-label="Modèle client-serveur">
+      <style>
+        .b{fill:var(--carte);stroke:var(--accent);stroke-width:1.8}
+        .t{font:700 13px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .s{font:11.5px var(--sans);text-anchor:middle;fill:var(--accent-sombre);font-weight:600}
+        .a{stroke:var(--accent);stroke-width:1.8;fill:none;marker-end:url(#fl)}
+      </style>
+      <defs><marker id="fl" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 z" fill="var(--accent)"/></marker></defs>
+      <rect class="b" x="30"  y="42" width="130" height="50" rx="8"/><text class="t" x="95"  y="72">CLIENT</text>
+      <rect class="b" x="360" y="42" width="130" height="50" rx="8"/><text class="t" x="425" y="72">SERVEUR</text>
+      <path class="a" d="M165 57 L353 57"/>
+      <text class="s" x="259" y="46">Requête — je demande</text>
+      <path class="a" d="M355 80 L167 80"/>
+      <text class="s" x="259" y="102">Réponse — je fournis</text>
+    </svg>
+    <figcaption>Une hiérarchie : le client demande toujours en premier, le serveur ne parle jamais spontanément.</figcaption>
+  </figure>
+
+  <h3>Le mode pair-à-pair (peer to peer)</h3>
+  <p>Contrairement à une architecture client/serveur, il n'y a <strong>pas de serveur
+     dédié</strong>. Chaque ordinateur peut être considéré comme serveur <em>ou</em> client : chacun
+     est libre de partager ses ressources. Un ordinateur relié à une imprimante pourra donc
+     éventuellement la partager afin que tous les autres y accèdent via le réseau.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Client / serveur</th><th>Pair-à-pair</th></tr></thead>
+    <tbody>
+      <tr><td>Organisation</td><td>Hiérarchie, rôles fixes</td><td>Pas de chef, rôles interchangeables</td></tr>
+      <tr><td>Administration</td><td>Centralisée</td><td>Chacun gère son poste</td></tr>
+      <tr><td>Sécurité</td><td class="rep-ok">Bonne — comptes centralisés</td><td class="rep-non">Faible — autant de politiques que de postes</td></tr>
+      <tr><td>Coût</td><td>Élevé — serveur, licences, compétences</td><td class="rep-ok">Faible</td></tr>
+      <tr><td>Taille adaptée</td><td>Moyenne à grande entreprise</td><td>Quelques postes</td></tr>
+      <tr><td>Panne du serveur</td><td class="rep-non">Tout s'arrête</td><td class="rep-ok">Seul le poste concerné est perdu</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="etendue">
+  <h2><span class="num">06</span>PAN, LAN, MAN, WAN</h2>
+
+  <p>On distingue différents types de réseaux privés selon leur <strong>taille</strong> (en nombre
+     de machines), leur <strong>vitesse de transfert</strong> et leur <strong>étendue</strong>. Les
+     réseaux privés appartiennent à une même organisation.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 150" role="img" aria-label="Classification des réseaux par étendue">
+      <style>
+        .e{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .n{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .d{font:10.5px var(--mono);text-anchor:middle;fill:var(--encre-tenue)}
+        .ax{fill:none;stroke:var(--bord-fort);stroke-width:1.4}
+      </style>
+      <ellipse class="e" cx="72"  cy="46" rx="60" ry="30" style="opacity:.45"/>
+      <ellipse class="e" cx="212" cy="46" rx="72" ry="34" style="opacity:.65"/>
+      <ellipse class="e" cx="360" cy="46" rx="66" ry="30" style="opacity:.85"/>
+      <ellipse class="e" cx="510" cy="46" rx="70" ry="32" style="opacity:1"/>
+      <text class="n" x="72"  y="42">PAN</text><text class="d" x="72"  y="58">personnel</text>
+      <text class="n" x="212" y="42">LAN</text><text class="d" x="212" y="58">local</text>
+      <text class="n" x="360" y="42">MAN</text><text class="d" x="360" y="58">métropolitain</text>
+      <text class="n" x="510" y="42">WAN</text><text class="d" x="510" y="58">étendu</text>
+      <path class="ax" d="M20 100 L585 100 M580 95 L588 100 L580 105"/>
+      <g class="d">
+        <text x="40"  y="120">1 m</text>
+        <text x="110" y="120">10 m</text>
+        <text x="185" y="120">100 m</text>
+        <text x="265" y="120">1 km</text>
+        <text x="345" y="120">10 km</text>
+        <text x="430" y="120">100 km</text>
+        <text x="520" y="120">1 000 km</text>
+      </g>
+      <text class="d" x="300" y="142" style="font-size:10px">étendue</text>
+    </svg>
+    <figcaption>Une échelle continue : la frontière entre deux catégories est une zone, pas une ligne.</figcaption>
+  </figure>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Deux points à rectifier dans le polycopié :</p>
+    <ul>
+      <li><strong>PAN</strong> est développé en « <em>Private</em> Area Network ». Le terme
+          normalisé est <strong>Personal Area Network</strong> — réseau personnel. La confusion est
+          fréquente parce que ces réseaux sont effectivement privés, mais c'est bien
+          <em>Personal</em> qui est attendu.</li>
+      <li>Le cours annonce « il existe <strong>trois</strong> catégories de réseaux » puis en
+          énumère <strong>quatre</strong> (PAN, LAN, MAN, WAN), et la figure en montre quatre
+          également. Retenez <strong>quatre</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Nom complet</th><th>Étendue</th><th>Infrastructure</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PAN</strong></td><td><em>Personal</em> Area Network</td><td>1 à 10 m</td>
+          <td>Personnelle</td><td>Écouteurs Bluetooth reliés au téléphone</td></tr>
+      <tr><td><strong>LAN</strong></td><td>Local Area Network</td><td>100 m à 1 km</td>
+          <td><strong>Privée, gérée localement</strong> par le personnel informatique</td>
+          <td>Le réseau du lycée, d'un bâtiment, d'un campus</td></tr>
+      <tr><td><strong>MAN</strong></td><td>Metropolitan Area Network</td><td>10 à 100 km</td>
+          <td>Privée <em>ou</em> publique</td><td>Une ville reliant ses différents services</td></tr>
+      <tr><td><strong>WAN</strong></td><td>Wide Area Network</td><td>1 000 km et plus</td>
+          <td><strong>En général publique</strong> — opérateurs, facturation à l'usage</td>
+          <td>Internet</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Ce que le cours précise sur chacun</h3>
+  <p><strong>LAN</strong> — en général circonscrits à un bâtiment ou à un groupe de bâtiments pas
+     trop éloignés : site universitaire, usine, campus. L'infrastructure est <strong>privée et
+     gérée localement par le personnel informatique</strong>. Bande passante annoncée dans le
+     cours : de 4 Mbit/s à 100 Mbit/s.</p>
+  <p><strong>MAN</strong> — regroupe un petit nombre de réseaux locaux à l'échelle d'une ville ou
+     d'une région. L'infrastructure peut être privée ou publique. Une ville peut créer un MAN pour
+     relier ses services disséminés sur quelques kilomètres, et en profiter pour
+     <strong>louer</strong> cette infrastructure à d'autres. Bande passante : de quelques centaines
+     de kbit/s à quelques Mbit/s.</p>
+  <p><strong>WAN</strong> — permet l'interconnexion de réseaux locaux et métropolitains à l'échelle
+     de la planète, d'un pays, d'une région ou d'une ville. L'infrastructure est en général
+     <strong>publique</strong> (opérateurs télécom) et l'utilisation est <strong>facturée</strong>
+     en fonction du trafic ou de la bande passante réservée. Une <strong>ligne louée</strong> est
+     réservée exclusivement au locataire, 24 h sur 24, pour la durée du contrat. Les
+     <strong>modems</strong> sont un des éléments de base des WAN.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Ces débits ont vieilli</div>
+    <p>« 4 à 100 Mbit/s » pour un LAN décrit les années 1990-2000. Un LAN d'entreprise actuel
+       tourne à 1 Gbit/s sur le poste et 10 Gbit/s ou plus en cœur de réseau. Citez la valeur du
+       cours si on vous la demande, mais si l'énoncé porte sur un dimensionnement réel, raisonnez
+       en gigabits.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Sur un schéma figurent trois zones encadrées — <em>Home Office</em>,
+       <em>Central</em>, <em>Branch</em> — reliées par un nuage marqué <em>Internet</em>. Combien
+       de LAN, combien de WAN, et comment le justifier ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Trois LAN</strong> : chaque zone encadrée est un réseau local, circonscrit à un
+         site, avec son infrastructure privée et ses propres équipements intermédiaires.</p>
+      <p><strong>Un WAN</strong> : le nuage <em>Internet</em>, qui interconnecte ces LAN à travers
+         une infrastructure publique que l'entreprise ne possède ni ne gère.</p>
+      <p><strong>Le critère de lecture d'un schéma :</strong> un cadre = un site = un LAN ; un
+         nuage = un réseau qu'on ne maîtrise pas = un WAN. Le nuage est justement dessiné en nuage
+         <em>parce qu'</em>on ignore ce qu'il y a dedans.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="topologies">
+  <h2><span class="num">07</span>Les topologies</h2>
+
+  <p>Un réseau informatique est constitué d'ordinateurs reliés entre eux par du matériel — câbles,
+     cartes réseau et autres équipements assurant la bonne circulation des données. L'arrangement
+     physique de ces éléments est appelé <strong>topologie physique</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La distinction la plus importante du chapitre</div>
+    <p><strong>Topologie physique</strong> = la configuration spatiale, <em>visible</em> : le
+       dessin des câbles, ce que vos yeux voient.<br>
+       <strong>Topologie logique</strong> = la façon dont les données <em>transitent réellement</em>
+       dans les câbles.</p>
+    <p>Les deux peuvent différer, et c'est précisément ce que l'examen vérifie. Un hub crée une
+       étoile <em>physique</em> mais un bus <em>logique</em>.</p>
+  </div>
+
+  <h3>La topologie en bus</h3>
+  <p>C'est l'organisation la plus simple : tous les ordinateurs sont reliés à une <strong>même
+     ligne de transmission</strong> par l'intermédiaire d'un câble, généralement coaxial. Le mot
+     « bus » désigne cette ligne physique.</p>
+  <p><strong>Avantages :</strong> simplicité de mise en œuvre, fonctionnement facile.<br>
+     <strong>Inconvénient majeur :</strong> elle est <strong>extrêmement vulnérable</strong> — si
+     l'une des connexions est défectueuse, c'est <strong>l'ensemble du réseau</strong> qui est
+     affecté.</p>
+
+  <h3>La topologie en étoile</h3>
+  <p>Les ordinateurs sont reliés à un système matériel central appelé <strong>hub</strong> ou
+     <strong>concentrateur</strong> : une boîte comprenant un certain nombre de jonctions
+     auxquelles on connecte les câbles en provenance des ordinateurs. Le concentrateur assure la
+     communication entre les différentes jonctions.</p>
+  <p><strong>Avantage :</strong> beaucoup <strong>moins vulnérable</strong> que le bus — on peut
+     retirer une connexion en la débranchant du concentrateur sans paralyser le reste du réseau.<br>
+     <strong>Inconvénient :</strong> plus <strong>onéreuse</strong>, car un matériel supplémentaire
+     est nécessaire (le hub).</p>
+
+  <h3>La topologie en anneau</h3>
+  <p>Les ordinateurs communiquent <strong>chacun à leur tour</strong> : on a une boucle sur
+     laquelle chacun va « avoir la parole » successivement.</p>
+  <p>En réalité, les ordinateurs d'un réseau en anneau ne sont <strong>pas reliés en
+     boucle</strong> : ils sont reliés à un répartiteur appelé <strong>MAU</strong>
+     (<em>Multistation Access Unit</em>) qui gère la communication en impartissant à chacun un
+     temps de parole. Physiquement, c'est donc une étoile.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 170" role="img" aria-label="Les trois topologies">
+      <style>
+        .nd{fill:var(--accent);stroke:none}
+        .hb{fill:var(--carte);stroke:var(--accent);stroke-width:2}
+        .ln{stroke:var(--bord-fort);stroke-width:1.6;fill:none}
+        .ti{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .su{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <g>
+        <text class="ti" x="95" y="20">BUS</text>
+        <path class="ln" d="M25 78 L165 78"/>
+        <circle class="nd" cx="45"  cy="52" r="8"/><path class="ln" d="M45 60 L45 78"/>
+        <circle class="nd" cx="85"  cy="52" r="8"/><path class="ln" d="M85 60 L85 78"/>
+        <circle class="nd" cx="125" cy="52" r="8"/><path class="ln" d="M125 60 L125 78"/>
+        <circle class="nd" cx="65"  cy="104" r="8"/><path class="ln" d="M65 96 L65 78"/>
+        <circle class="nd" cx="145" cy="104" r="8"/><path class="ln" d="M145 96 L145 78"/>
+        <text class="su" x="95" y="134">Un câble unique</text>
+        <text class="su" x="95" y="150" style="fill:var(--rouge)">1 coupure = tout tombe</text>
+      </g>
+      <g transform="translate(200,0)">
+        <text class="ti" x="100" y="20">ÉTOILE</text>
+        <rect class="hb" x="76" y="62" width="48" height="32" rx="5"/>
+        <text class="su" x="100" y="82" style="font-size:9px;font-weight:700">HUB</text>
+        <circle class="nd" cx="40"  cy="42" r="8"/><path class="ln" d="M46 48 L78 64"/>
+        <circle class="nd" cx="160" cy="42" r="8"/><path class="ln" d="M154 48 L122 64"/>
+        <circle class="nd" cx="30"  cy="110" r="8"/><path class="ln" d="M37 105 L76 92"/>
+        <circle class="nd" cx="100" cy="122" r="8"/><path class="ln" d="M100 114 L100 96"/>
+        <circle class="nd" cx="170" cy="110" r="8"/><path class="ln" d="M163 105 L124 92"/>
+        <text class="su" x="100" y="150" style="fill:var(--vert)">1 coupure = 1 poste perdu</text>
+      </g>
+      <g transform="translate(410,0)">
+        <text class="ti" x="95" y="20">ANNEAU</text>
+        <ellipse class="ln" cx="95" cy="80" rx="62" ry="36"/>
+        <circle class="nd" cx="95"  cy="44" r="8"/>
+        <circle class="nd" cx="152" cy="70" r="8"/>
+        <circle class="nd" cx="130" cy="110" r="8"/>
+        <circle class="nd" cx="60"  cy="110" r="8"/>
+        <circle class="nd" cx="38"  cy="70" r="8"/>
+        <text class="su" x="95" y="150">Chacun parle à son tour</text>
+      </g>
+    </svg>
+    <figcaption>Trois organisations, trois compromis entre coût et résistance à la panne.</figcaption>
+  </figure>
+
+  <h3>Physique et logique : les trois cas à connaître</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Équipement</th><th>Topologie physique</th><th>Topologie logique</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Hub</strong></td><td>Étoile</td><td><strong>Bus</strong></td></tr>
+      <tr><td><strong>Switch</strong></td><td>Étoile</td>
+          <td><strong>Bus</strong> si en mode broadcast, <strong>point à point</strong> si en mode
+              unicast</td></tr>
+      <tr><td><strong>Token Ring</strong></td><td>Étoile</td><td><strong>Anneau</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège classique</div>
+    <p>« Mes PC sont branchés sur un hub, donc c'est une étoile. » — Physiquement oui.
+       <strong>Logiquement, c'est un bus</strong> : le hub recopie chaque signal sur tous ses ports,
+       exactement comme s'ils partageaient un unique câble. D'où le partage de bande passante et
+       les collisions. La question d'examen est presque toujours posée sur la topologie
+       <em>logique</em>, celle qu'on ne voit pas.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="securite">
+  <h2><span class="num">08</span>Sécuriser le réseau</h2>
+
+  <p>La sécurité des réseaux passe par l'acquisition de matériels et de logiciels, et par une
+     démarche visant à mettre en évidence les différentes facettes de la problématique pour en
+     déduire les solutions techniques et organisationnelles adéquates. Elle se joue donc à
+     <strong>deux niveaux</strong>.</p>
+
+  <h3>Côté matériel — le firewall</h3>
+  <p>Un firewall est un <strong>matériel autonome ou un ordinateur équipé de plusieurs cartes
+     réseau</strong>, placé entre le réseau interne et le réseau externe (souvent Internet). Comme
+     son nom l'indique, il sert à protéger le réseau local des problèmes pouvant provenir de
+     l'extérieur. Il comporte <strong>au minimum deux interfaces</strong> :</p>
+  <ul>
+    <li>une interface pour le réseau à protéger — le réseau interne ;</li>
+    <li>une interface pour le réseau externe.</li>
+  </ul>
+  <p>D'autres terminologies sont parfois employées : <em>garde-barrière</em> (<em>gate-keeper</em>),
+     <em>porte coupe-feu</em>.</p>
+
+  <p>Lorsque certaines machines internes doivent être accessibles depuis l'extérieur — serveur Web,
+     serveur de messagerie, serveur FTP public — il est souvent nécessaire de créer une
+     <strong>nouvelle interface vers un réseau à part</strong>, accessible aussi bien du réseau
+     interne que de l'extérieur, sans pour autant compromettre la sécurité de l'entreprise.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Ce réseau à part porte un nom</div>
+    <p>C'est la <strong>DMZ</strong> — <em>zone démilitarisée</em>. On y place les serveurs
+       exposés. Si l'un d'eux est compromis, l'attaquant se retrouve dans la DMZ, pas dans le
+       réseau interne : le firewall filtre aussi entre la DMZ et le LAN. C'est le terme attendu en
+       épreuve dès qu'on parle de « serveur accessible depuis Internet ».</p>
+  </div>
+
+  <p><strong>Le firewall a deux buts :</strong></p>
+  <ul>
+    <li><strong>Surveiller tous les paquets</strong> de données, entrants et sortants, et écarter
+        ceux qui ne répondent pas positivement aux règles de filtrage. C'est ce qu'on appelle le
+        <strong>filtrage paquet</strong>.</li>
+    <li><strong>Contrôler une application spécifique</strong>, telle que le courrier électronique,
+        et décider ce qui est admissible. C'est le terme <strong>proxy</strong> qui désigne de
+        telles passerelles.</li>
+  </ul>
+
+  <h3>Les deux politiques de filtrage</h3>
+  <div class="encart outils">
+    <div class="titre">🧰 La règle d'or</div>
+    <p>Un système pare-feu contient un ensemble de règles prédéfinies permettant :</p>
+    <ol>
+      <li>soit d'autoriser <strong>uniquement</strong> les communications explicitement autorisées :
+          <em>« Tout ce qui n'est pas explicitement autorisé est interdit »</em> ;</li>
+      <li>soit d'empêcher les échanges explicitement interdits.</li>
+    </ol>
+    <p>Le choix dépend de la politique de sécurité adoptée. La <strong>première méthode est sans
+       nul doute la plus sûre</strong>, mais elle impose une définition précise et contraignante
+       des besoins en communication.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Politique 1 — la <strong>liste blanche</strong> : le videur n'accepte que les noms sur sa
+       liste. Personne d'inconnu n'entre, mais il faut penser à inscrire tout le monde à l'avance.
+       Politique 2 — la <strong>liste noire</strong> : il refuse les personnes signalées et laisse
+       passer le reste. Plus confortable, mais il suffit d'un visage inconnu et malveillant pour
+       que ça rate. En sécurité, on préfère toujours la liste blanche.</p>
+  </div>
+
+  <h3>Côté logiciel — l'antivirus</h3>
+  <p>Vu le nombre de virus existants, leur nuisance et leur rapidité de propagation, accrue par
+     Internet, l'utilité d'un antivirus n'est plus à démontrer. C'est un utilitaire qui
+     <strong>détecte les virus par l'analyse des fichiers</strong> — disque dur, CD, fichiers
+     chargés en mémoire — et les empêche de nuire.</p>
+
+  <h3>Côté logiciel — le serveur proxy</h3>
+  <p>Il s'agit d'un logiciel qui se situe <strong>entre les clients et les serveurs</strong>,
+     qu'ils soient internes au réseau local ou externes. Son rôle :</p>
+  <ul>
+    <li>il <strong>relaie</strong> tous les échanges entre clients et serveurs ;</li>
+    <li>il <strong>authentifie</strong> tous les services ;</li>
+    <li>il maintient un <strong>journal</strong> de tout ce qui passe par lui ;</li>
+    <li>il <strong>masque</strong> certaines informations (nom et adresse IP) des machines internes
+        et les remplace par les siennes.</li>
+  </ul>
+  <p>Il empêche donc les personnes extérieures d'avoir des informations sur l'organisation du
+     réseau : <strong>seule l'adresse du proxy est connue de l'extérieur</strong>.</p>
+  <p>D'autres services utiles sont fournis :</p>
+  <ul>
+    <li>un <strong>historique</strong> de toutes les connexions Internet des utilisateurs est
+        maintenu — on peut ainsi contrôler leur activité ;</li>
+    <li>une <strong>liste d'URL peut être interdite</strong>, pour proscrire certains sites aux
+        utilisateurs internes ;</li>
+    <li>les pages web récemment consultées sont mises en <strong>cache</strong>, ce qui accélère
+        les consultations suivantes.</li>
+  </ul>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Le directeur du lycée veut interdire une liste précise de sites web aux
+       élèves. Firewall ou proxy ? Et si un pirate scanne le réseau depuis Internet, comment
+       s'appelle l'action du proxy qui l'empêche de voir vos postes ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Le proxy.</strong> Le firewall raisonne en paquets — adresses IP, ports,
+         protocoles — et bloquerait au mieux une adresse IP, ce qui est grossier : un même serveur
+         peut héberger cent sites, et un site peut changer d'IP. Le proxy, lui, se situe au niveau
+         applicatif : il <strong>lit les URL</strong> demandées et peut interdire une liste
+         d'adresses précises.</p>
+      <p><strong>L'action du proxy :</strong> il <strong>masque</strong> les noms et adresses IP
+         des machines du réseau interne et les remplace par les siennes. Le pirate ne voit que
+         l'adresse du proxy ; l'organisation interne du réseau lui reste invisible.</p>
+      <p><strong>En pratique</strong>, on emploie les deux : firewall en barrière d'entrée, proxy
+         en contrôle des usages.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Réseau</strong> = objets interconnectés + circulation + <strong>règles</strong>
+          (les protocoles).</li>
+      <li><strong>Hôte</strong> = source ou destination. <strong>Intermédiaire</strong> = ne fait
+          que transporter. C'est le seul critère.</li>
+      <li><strong>Hub partage</strong> la bande passante, <strong>switch attribue</strong>
+          l'intégralité. Seul le <strong>routeur</strong> (couche 3) arrête un broadcast.</li>
+      <li><strong>4 critères de support :</strong> distance, environnement, débit, coût.</li>
+      <li><strong>Fibre</strong> = longue distance + immunité totale au bruit.
+          <strong>STP</strong> quand il faut du cuivre en milieu perturbé.</li>
+      <li><strong>Upload</strong> = client → serveur. <strong>Download</strong> = serveur → client.</li>
+      <li><strong>PAN / LAN / MAN / WAN</strong> : 10 m / 1 km / 100 km / au-delà.
+          <em>Personal</em>, pas <em>Private</em>.</li>
+      <li><strong>Physique ≠ logique.</strong> Hub = étoile physique, <strong>bus logique</strong>.</li>
+      <li><strong>Firewall</strong> filtre les paquets, <strong>proxy</strong> filtre les usages et
+          masque le réseau. Règle d'or : tout ce qui n'est pas autorisé est interdit.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>2-Fondement_Réseaux.pdf — le professeur, chap. 1</li>
+      <li>2-TD1-Représentation du réseau.pdf</li>
+      <li>2-TP1-Schématiser un Réseau.pdf</li>
+      <li>Modules 1-5 Fondations.docx</li>
+      <li>TP 1 — compte rendu l'élève</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

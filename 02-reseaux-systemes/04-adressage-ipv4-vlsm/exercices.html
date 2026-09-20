@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adressage IPv4 — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="TD Cisco et TP d'adressage IPv4 entièrement corrigés : classes, masques, plages d'hôtes, validité, VLSM.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#echauffement">1 · Échauffement — classes</a></li>
+    <li><a href="#et-logique">2 · Le ET logique</a></li>
+    <li><a href="#td-cisco">3 · TD Cisco — identification</a></li>
+    <li><a href="#plages">4 · Plages d'hôtes et diffusion</a></li>
+    <li><a href="#types">5 · Type d'adresse</a></li>
+    <li><a href="#public-prive">6 · Public ou privé</a></li>
+    <li><a href="#validite">7 · Hôte valide ?</a></li>
+    <li><a href="#tp-avance">8 · TP avancé</a></li>
+    <li><a href="#vlsm-exo">9 · VLSM — plan d'adressage</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 04</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Adressage IPv4 — exercices</h1>
+  <p class="chapeau">Les énoncés d'origine des TD et TP, intégralement corrigés et commentés.
+     Cherchez d'abord, ouvrez la correction ensuite.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Comment travailler ces exercices</h2>
+      <p>Traitez chaque ligne avec la méthode en 6 gestes du cours : masque → octet coupé →
+         pas → encadrement → bornes → contrôle. Les corrections détaillent le raisonnement,
+         pas seulement le résultat : c'est le raisonnement qui est noté.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="echauffement">
+  <h2><span class="num">01</span>Échauffement — reconnaître une classe</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Classe de ces adresses <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>À quelle classe d'adresses appartiennent ces adresses IP ?</p>
+      <ul>
+        <li><code>192.168.2.3</code></li>
+        <li><code>127.0.0.1</code></li>
+        <li><code>0.236.1.63</code></li>
+        <li><code>220.50.223.222</code></li>
+        <li><code>155.22.36.366</code></li>
+      </ul>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>1<sup>er</sup> octet</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.2.3</code></td><td>192</td>
+                <td><strong>Classe C</strong> — et adresse privée (RFC 1918)</td></tr>
+            <tr><td><code>127.0.0.1</code></td><td>127</td>
+                <td><span class="rep-non">Réservée</span> — bouclage (<em>loopback</em>). Dans la
+                    fourchette binaire de la classe A, mais inutilisable sur un réseau</td></tr>
+            <tr><td><code>0.236.1.63</code></td><td>0</td>
+                <td><span class="rep-non">Réservée</span> — le réseau 0 n'est pas attribuable</td></tr>
+            <tr><td><code>220.50.223.222</code></td><td>220</td>
+                <td><strong>Classe C</strong> — 220 est dans 192–223, et l'adresse est publique</td></tr>
+            <tr><td><code>155.22.36.366</code></td><td>155</td>
+                <td><span class="rep-non">Adresse invalide</span> — 366 &gt; 255, aucun octet ne
+                    peut dépasser 255</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Ce que teste vraiment cet exercice</div>
+          <p>Trois adresses sur cinq ne sont pas de simples questions de classe : ce sont des cas
+             particuliers. L'exercice vérifie que vous n'appliquez pas mécaniquement la règle du
+             premier octet sans regarder le reste.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="et-logique">
+  <h2><span class="num">02</span>Le ET logique pas à pas</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Trois applications guidées <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Déterminez l'adresse de sous-réseau de chaque machine.</p>
+      <ol>
+        <li>Adresse <code>200.100.40.33</code>, masque <code>255.255.255.224</code></li>
+        <li>Adresse <code>192.0.0.131</code>, masque <code>255.255.255.192</code> — donnez aussi
+            la décomposition (réseau, hôte)</li>
+        <li>Adresse <code>10.217.123.7</code>, masque <code>255.248.0.0</code> — calculez
+            l'identificateur de réseau</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">1</span><pre><code>Adresse   200.100.40.33     11001000 01100100 00101000 00100001
+Masque    255.255.255.224   11111111 11111111 11111111 11100000
+                            ───────────────────────────────────
+Résultat  200.100.40.32     11001000 01100100 00101000 00100000
+
+Seul le 4ᵉ octet travaille :  33 = 00100001,  ET 11100000 → 00100000 = 32
+→ sous-réseau 200.100.40.32   (pas = 256 − 224 = 32 ; 33 tombe dans le bloc 32–63)</code></pre></div>
+
+<div class="bloc-code"><span class="langue">2</span><pre><code>Adresse   192.0.0.131       11000000 00000000 00000000 10000011
+Masque    255.255.255.192   11111111 11111111 11111111 11000000
+                            ───────────────────────────────────
+Résultat  192.0.0.128       11000000 00000000 00000000 10000000
+
+Décomposition (R | H) : 11000000 00000000 00000000 10 | 000011
+→ sous-réseau 192.0.0.128, la machine y porte le n° d'hôte 3</code></pre></div>
+
+<div class="bloc-code"><span class="langue">3</span><pre><code>Adresse   10.217.123.7      00001010 11011001 01111011 00000111
+Masque    255.248.0.0       11111111 11111000 00000000 00000000
+                            ───────────────────────────────────
+Résultat  10.216.0.0        00001010 11011000 00000000 00000000
+
+Seul le 2ᵉ octet travaille : 217 = 11011001, ET 11111000 → 11011000 = 216
+→ identificateur de réseau : 10.216.0.0
+Contrôle par le pas : 256 − 248 = 8 ; multiples de 8 : … 208, 216, 224 → 217 ∈ [216 ; 223]  ✓</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le réflexe qui fait gagner du temps</div>
+          <p>Ne convertissez jamais les quatre octets. Repérez le <strong>seul octet coupé</strong>
+             (celui du masque qui n'est ni 255 ni 0) et ne travaillez que sur lui. Les octets à
+             255 se recopient tels quels, ceux à 0 deviennent 0.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="td-cisco">
+  <h2><span class="num">03</span>TD Cisco — identifier les adresses IPv4</h2>
+
+  <p>Légende du tableau : <code>N</code> = les 8 bits de l'octet sont dans la partie réseau ·
+     <code>n</code> = un bit de la partie réseau · <code>H</code> = les 8 bits sont dans la partie
+     hôte · <code>h</code> = un bit de la partie hôte.</p>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Partie réseau et partie hôte <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Adresse IP / préfixe</th><th>Réseau / hôte</th><th>Masque</th><th>Adresse réseau</th></tr></thead>
+        <tbody>
+          <tr><td><code>192.168.10.10/24</code></td><td><code>N.N.N.H</code></td><td><code>255.255.255.0</code></td><td><code>192.168.10.0</code></td></tr>
+          <tr><td><code>10.101.99.17/23</code></td><td><code>N.N.nnnnnnnh.H</code></td><td><code>255.255.254.0</code></td><td><code>10.101.98.0</code></td></tr>
+          <tr><td><code>209.165.200.227/27</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>172.31.45.252/24</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>10.1.8.200/26</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>172.16.117.77/20</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>10.1.1.101/25</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>209.165.202.140/27</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>192.168.28.45/28</code></td><td colspan="3"><em>à compléter</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse / préfixe</th><th>Réseau / hôte</th><th>Masque</th><th>Adresse réseau</th><th>Pas</th></tr></thead>
+          <tbody>
+            <tr><td><code>209.165.200.227/27</code></td><td><code>N.N.N.nnnhhhhh</code></td>
+                <td><code>255.255.255.224</code></td><td><strong><code>209.165.200.224</code></strong></td><td>32</td></tr>
+            <tr><td><code>172.31.45.252/24</code></td><td><code>N.N.N.H</code></td>
+                <td><code>255.255.255.0</code></td><td><strong><code>172.31.45.0</code></strong></td><td>256</td></tr>
+            <tr><td><code>10.1.8.200/26</code></td><td><code>N.N.N.nnhhhhhh</code></td>
+                <td><code>255.255.255.192</code></td><td><strong><code>10.1.8.192</code></strong></td><td>64</td></tr>
+            <tr><td><code>172.16.117.77/20</code></td><td><code>N.N.nnnnhhhh.H</code></td>
+                <td><code>255.255.240.0</code></td><td><strong><code>172.16.112.0</code></strong></td><td>16</td></tr>
+            <tr><td><code>10.1.1.101/25</code></td><td><code>N.N.N.nhhhhhhh</code></td>
+                <td><code>255.255.255.128</code></td><td><strong><code>10.1.1.0</code></strong></td><td>128</td></tr>
+            <tr><td><code>209.165.202.140/27</code></td><td><code>N.N.N.nnnhhhhh</code></td>
+                <td><code>255.255.255.224</code></td><td><strong><code>209.165.202.128</code></strong></td><td>32</td></tr>
+            <tr><td><code>192.168.28.45/28</code></td><td><code>N.N.N.nnnnhhhh</code></td>
+                <td><code>255.255.255.240</code></td><td><strong><code>192.168.28.32</code></strong></td><td>16</td></tr>
+          </tbody>
+        </table>
+        </div>
+<div class="bloc-code"><span class="langue">détail</span><pre><code>/27 → 3 bits pris dans le 4ᵉ octet → masque 224 → pas 32
+      227 : multiples de 32 → 192, 224, 256 → 227 ∈ [224 ; 255] → réseau .224
+
+/26 → 2 bits pris → masque 192 → pas 64
+      200 : 0, 64, 128, 192 → 200 ∈ [192 ; 255] → réseau .192
+
+/20 → 4 bits pris dans le 3ᵉ octet → masque 240 → pas 16
+      117 : … 96, 112, 128 → 117 ∈ [112 ; 127] → réseau 172.16.112.0
+
+/25 → 1 bit pris → masque 128 → pas 128
+      101 &lt; 128 → premier bloc → réseau 10.1.1.0
+
+/28 → 4 bits pris → masque 240 → pas 16
+      45 : 32, 48 → 45 ∈ [32 ; 47] → réseau .32</code></pre></div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="plages">
+  <h2><span class="num">04</span>Plages d'hôtes et adresse de diffusion</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Première, dernière et diffusion <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pour chaque paire adresse / préfixe, indiquez la première adresse d'hôte, la dernière et
+         l'adresse de diffusion. La première ligne montre comment remplir.</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Adresse / préfixe</th><th>1<sup>re</sup> adresse hôte</th><th>Dernière adresse hôte</th><th>Diffusion</th></tr></thead>
+        <tbody>
+          <tr><td><code>192.168.10.10/24</code></td><td><code>192.168.10.1</code></td><td><code>192.168.10.254</code></td><td><code>192.168.10.255</code></td></tr>
+          <tr><td><code>10.101.99.17/23</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>209.165.200.227/27</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>172.31.45.252/24</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>10.1.8.200/26</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>172.16.117.77/20</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>10.1.1.101/25</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>209.165.202.140/27</code></td><td colspan="3"><em>à compléter</em></td></tr>
+          <tr><td><code>192.168.28.45/28</code></td><td colspan="3"><em>à compléter</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse / préfixe</th><th>Réseau</th><th>1<sup>er</sup> hôte</th><th>Dernier hôte</th><th>Diffusion</th><th>Nb hôtes</th></tr></thead>
+          <tbody>
+            <tr><td><code>10.101.99.17/23</code></td><td><code>10.101.98.0</code></td>
+                <td><code>10.101.98.1</code></td><td><code>10.101.99.254</code></td>
+                <td><code>10.101.99.255</code></td><td>510</td></tr>
+            <tr><td><code>209.165.200.227/27</code></td><td><code>209.165.200.224</code></td>
+                <td><code>209.165.200.225</code></td><td><code>209.165.200.254</code></td>
+                <td><code>209.165.200.255</code></td><td>30</td></tr>
+            <tr><td><code>172.31.45.252/24</code></td><td><code>172.31.45.0</code></td>
+                <td><code>172.31.45.1</code></td><td><code>172.31.45.254</code></td>
+                <td><code>172.31.45.255</code></td><td>254</td></tr>
+            <tr><td><code>10.1.8.200/26</code></td><td><code>10.1.8.192</code></td>
+                <td><code>10.1.8.193</code></td><td><code>10.1.8.254</code></td>
+                <td><code>10.1.8.255</code></td><td>62</td></tr>
+            <tr><td><code>172.16.117.77/20</code></td><td><code>172.16.112.0</code></td>
+                <td><code>172.16.112.1</code></td><td><code>172.16.127.254</code></td>
+                <td><code>172.16.127.255</code></td><td>4 094</td></tr>
+            <tr><td><code>10.1.1.101/25</code></td><td><code>10.1.1.0</code></td>
+                <td><code>10.1.1.1</code></td><td><code>10.1.1.126</code></td>
+                <td><code>10.1.1.127</code></td><td>126</td></tr>
+            <tr><td><code>209.165.202.140/27</code></td><td><code>209.165.202.128</code></td>
+                <td><code>209.165.202.129</code></td><td><code>209.165.202.158</code></td>
+                <td><code>209.165.202.159</code></td><td>30</td></tr>
+            <tr><td><code>192.168.28.45/28</code></td><td><code>192.168.28.32</code></td>
+                <td><code>192.168.28.33</code></td><td><code>192.168.28.46</code></td>
+                <td><code>192.168.28.47</code></td><td>14</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les deux lignes qui font tomber</div>
+          <p><code>10.101.99.17/23</code> — le bloc s'étend sur <strong>deux octets</strong> :
+             98 et 99. La diffusion n'est donc pas <code>10.101.98.255</code> mais
+             <code>10.101.99.255</code>. Un /23 regroupe deux /24 consécutifs.</p>
+          <p><code>172.16.117.77/20</code> — même piège : le bloc va de 112 à 127 dans le
+             3<sup>e</sup> octet, donc la diffusion est <code>172.16.127.255</code>. Beaucoup
+             répondent <code>172.16.112.255</code>, qui n'est qu'une adresse d'hôte ordinaire.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="types">
+  <h2><span class="num">05</span>Classifier : réseau, hôte, diffusion ou multicast</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Type d'adresse <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Adresse IP</th><th>Masque</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td><code>10.1.1.1</code></td><td><code>255.255.255.252</code></td><td>hôte</td></tr>
+          <tr><td><code>192.168.33.63</code></td><td><code>255.255.255.192</code></td><td><em>?</em></td></tr>
+          <tr><td><code>239.192.1.100</code></td><td><code>255.252.0.0</code></td><td><em>?</em></td></tr>
+          <tr><td><code>172.25.12.52</code></td><td><code>255.255.255.0</code></td><td><em>?</em></td></tr>
+          <tr><td><code>10.255.0.0</code></td><td><code>255.0.0.0</code></td><td><em>?</em></td></tr>
+          <tr><td><code>172.16.128.48</code></td><td><code>255.255.255.240</code></td><td><em>?</em></td></tr>
+          <tr><td><code>209.165.202.159</code></td><td><code>255.255.255.224</code></td><td><em>?</em></td></tr>
+          <tr><td><code>172.16.0.255</code></td><td><code>255.255.0.0</code></td><td><em>?</em></td></tr>
+          <tr><td><code>224.10.1.11</code></td><td><code>255.255.255.0</code></td><td><em>?</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Type</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.33.63</code></td><td><strong>Diffusion</strong></td>
+                <td>/26, pas 64 → bloc 0–63. 63 est la <em>dernière</em> du bloc</td></tr>
+            <tr><td><code>239.192.1.100</code></td><td><strong>Multidiffusion</strong></td>
+                <td>1<sup>er</sup> octet 239, dans 224–239. Le masque est sans effet</td></tr>
+            <tr><td><code>172.25.12.52</code></td><td><strong>Hôte</strong></td>
+                <td>/24, bloc 0–255 → 52 est au milieu</td></tr>
+            <tr><td><code>10.255.0.0</code></td><td><strong>Hôte</strong></td>
+                <td>/8 → réseau 10.0.0.0, diffusion 10.255.255.255. Ni l'un ni l'autre</td></tr>
+            <tr><td><code>172.16.128.48</code></td><td><strong>Adresse réseau</strong></td>
+                <td>/28, pas 16 → 48 est un multiple de 16, donc la <em>première</em> du bloc</td></tr>
+            <tr><td><code>209.165.202.159</code></td><td><strong>Diffusion</strong></td>
+                <td>/27, pas 32 → bloc 128–159. 159 est la dernière</td></tr>
+            <tr><td><code>172.16.0.255</code></td><td><strong>Hôte</strong></td>
+                <td>/16 → diffusion = 172.16.255.255. Le .255 final ne suffit pas à conclure</td></tr>
+            <tr><td><code>224.10.1.11</code></td><td><strong>Multidiffusion</strong></td>
+                <td>1<sup>er</sup> octet 224 → classe D</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Ça finit par 255 donc c'est un broadcast »</div>
+          <p>Faux, et c'est exactement ce que teste <code>172.16.0.255</code>. Un octet final à
+             255 ne signifie rien tant qu'on n'a pas regardé le masque. Avec un /16, la diffusion
+             est <code>172.16.255.255</code> ; <code>172.16.0.255</code> est une adresse d'hôte
+             parfaitement ordinaire. Symétriquement, <code>172.16.128.48</code> ne finit pas par 0
+             et c'est pourtant une adresse réseau.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="public-prive">
+  <h2><span class="num">06</span>Publique ou privée ?</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Neuf adresses à trancher <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><code>209.165.201.30/27</code> · <code>192.168.255.253/24</code> ·
+         <code>10.100.11.103/16</code> · <code>172.30.1.100/28</code> · <code>192.31.7.11/24</code> ·
+         <code>172.20.18.150/22</code> · <code>128.107.10.1/16</code> ·
+         <code>192.135.250.10/24</code> · <code>64.104.0.11/16</code></p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Verdict</th><th>Raison</th></tr></thead>
+          <tbody>
+            <tr><td><code>209.165.201.30/27</code></td><td class="rep-ok">Publique</td><td>209 n'appartient à aucune plage RFC 1918</td></tr>
+            <tr><td><code>192.168.255.253/24</code></td><td>Privée</td><td>bloc <code>192.168.0.0/16</code></td></tr>
+            <tr><td><code>10.100.11.103/16</code></td><td>Privée</td><td>bloc <code>10.0.0.0/8</code></td></tr>
+            <tr><td><code>172.30.1.100/28</code></td><td>Privée</td><td>30 est bien entre 16 et 31</td></tr>
+            <tr><td><code>192.31.7.11/24</code></td><td class="rep-ok">Publique</td><td><strong>192.31 ≠ 192.168</strong> — seul <code>192.168.</code> est privé</td></tr>
+            <tr><td><code>172.20.18.150/22</code></td><td>Privée</td><td>20 est entre 16 et 31</td></tr>
+            <tr><td><code>128.107.10.1/16</code></td><td class="rep-ok">Publique</td><td>classe B publique</td></tr>
+            <tr><td><code>192.135.250.10/24</code></td><td class="rep-ok">Publique</td><td>192.135 n'est pas 192.168</td></tr>
+            <tr><td><code>64.104.0.11/16</code></td><td class="rep-ok">Publique</td><td>classe A publique — seul le 10 est privé</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les deux faux amis</div>
+          <p><code>192.31.7.11</code> et <code>192.135.250.10</code> commencent par 192 mais ne
+             sont <strong>pas</strong> privées : la plage privée est <code>192.168.</code>
+             <em>en entier</em>, pas « tout ce qui commence par 192 ». De même,
+             <code>64.104.0.11</code> est publique : c'est <code>10.</code> qui est privé en
+             classe A, pas n'importe quelle adresse de classe A.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="validite">
+  <h2><span class="num">07</span>Cette adresse d'hôte est-elle valide ?</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Validité et cause <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Pour chaque paire adresse / préfixe, dites si c'est une adresse d'hôte valide, et
+         justifiez.</p>
+      <p><code>127.1.0.10/24</code> · <code>172.16.255.0/16</code> · <code>241.19.10.100/24</code> ·
+         <code>192.168.0.254/24</code> · <code>192.31.7.255/24</code> · <code>64.102.255.255/14</code> ·
+         <code>224.0.0.5/16</code> · <code>10.0.255.255/8</code> · <code>198.133.219.8/24</code></p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse / préfixe</th><th>Valide ?</th><th>Cause</th></tr></thead>
+          <tbody>
+            <tr><td><code>127.1.0.10/24</code></td><td class="rep-non">Non</td>
+                <td>Bouclage — tout le bloc 127.0.0.0/8 est réservé</td></tr>
+            <tr><td><code>172.16.255.0/16</code></td><td class="rep-ok">Oui</td>
+                <td>/16 → réseau 172.16.0.0, diffusion 172.16.255.255. Le <code>.0</code> final
+                    n'est pas l'adresse réseau ici</td></tr>
+            <tr><td><code>241.19.10.100/24</code></td><td class="rep-non">Non</td>
+                <td>Classe E (240–255), réservée à l'expérimentation</td></tr>
+            <tr><td><code>192.168.0.254/24</code></td><td class="rep-ok">Oui</td>
+                <td>Hôte ordinaire du réseau 192.168.0.0/24</td></tr>
+            <tr><td><code>192.31.7.255/24</code></td><td class="rep-non">Non</td>
+                <td>C'est l'adresse de diffusion du /24</td></tr>
+            <tr><td><code>64.102.255.255/14</code></td><td class="rep-ok">Oui</td>
+                <td>/14 → masque 255.252.0.0, pas 4 → réseau 64.100.0.0, diffusion
+                    64.103.255.255. L'adresse est au milieu du bloc</td></tr>
+            <tr><td><code>224.0.0.5/16</code></td><td class="rep-non">Non</td>
+                <td>Multidiffusion (classe D)</td></tr>
+            <tr><td><code>10.0.255.255/8</code></td><td class="rep-ok">Oui</td>
+                <td>/8 → diffusion = 10.255.255.255. Celle-ci est un hôte</td></tr>
+            <tr><td><code>198.133.219.8/24</code></td><td class="rep-ok">Oui</td>
+                <td>Hôte ordinaire</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le cœur de l'exercice</div>
+          <p>Trois lignes — <code>172.16.255.0/16</code>, <code>64.102.255.255/14</code> et
+             <code>10.0.255.255/8</code> — piègent ceux qui jugent une adresse sur son dernier
+             octet. <strong>Une adresse ne veut rien dire sans son masque.</strong> Un
+             <code>.0</code> final n'est une adresse réseau que si le masque s'arrête pile là ;
+             des <code>.255.255</code> ne sont une diffusion que si le bloc se termine à cet
+             endroit précis.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le détail de 64.102.255.255/14</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>/14 → 8 bits pleins + 6 bits dans le 2ᵉ octet → masque 255.252.0.0
+pas = 256 − 252 = 4
+multiples de 4 : … 96, 100, 104 …  →  102 ∈ [100 ; 103]
+
+réseau     64.100.0.0
+diffusion  64.103.255.255
+→ 64.102.255.255 est bien au milieu : adresse d'hôte VALIDE</code></pre></div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="tp-avance">
+  <h2><span class="num">08</span>TP avancé — structure, plages, classification</h2>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Trois parties enchaînées <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Partie 1 — structure &amp; masques.</strong> Notation N/H, masque, adresse réseau
+         pour : <code>192.168.10.55/24</code>, <code>172.16.5.10/20</code>,
+         <code>10.100.50.4/30</code>, <code>192.168.1.130/25</code>.</p>
+      <p><strong>Partie 2 — plages.</strong> Première et dernière adresse utilisable, diffusion
+         pour : <code>192.168.5.0/24</code>, <code>10.0.0.0/29</code>,
+         <code>172.16.10.33/27</code>, <code>192.168.100.128/26</code>.</p>
+      <p><strong>Partie 3 — classification.</strong> Réseau, hôte, diffusion ou multicast pour :
+         <code>10.1.1.0</code> /24, <code>192.168.1.55</code> /26, <code>224.0.0.5</code> /24,
+         <code>172.16.31.255</code> /19.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>Partie 1</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse / préfixe</th><th>Notation</th><th>Masque</th><th>Adresse réseau</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.10.55/24</code></td><td><code>N.N.N.H</code></td>
+                <td><code>255.255.255.0</code></td><td><code>192.168.10.0</code></td></tr>
+            <tr><td><code>172.16.5.10/20</code></td><td><code>N.N.nnnnhhhh.H</code></td>
+                <td><code>255.255.240.0</code></td><td><code>172.16.0.0</code></td></tr>
+            <tr><td><code>10.100.50.4/30</code></td><td><code>N.N.N.nnnnnnhh</code></td>
+                <td><code>255.255.255.252</code></td><td><code>10.100.50.4</code></td></tr>
+            <tr><td><code>192.168.1.130/25</code></td><td><code>N.N.N.nhhhhhhh</code></td>
+                <td><code>255.255.255.128</code></td><td><code>192.168.1.128</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><code>172.16.5.10/20</code> : pas de 16 dans le 3<sup>e</sup> octet, et 5 &lt; 16 →
+           premier bloc → réseau <code>172.16.0.0</code>.
+           <code>10.100.50.4/30</code> : pas de 4, et 4 est un multiple de 4 → l'adresse
+           <em>est</em> l'adresse réseau.</p>
+
+        <h4>Partie 2</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Réseau</th><th>1<sup>re</sup> utilisable</th><th>Dernière utilisable</th><th>Diffusion</th><th>Hôtes</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.5.0/24</code></td><td><code>192.168.5.1</code></td>
+                <td><code>192.168.5.254</code></td><td><code>192.168.5.255</code></td><td>254</td></tr>
+            <tr><td><code>10.0.0.0/29</code></td><td><code>10.0.0.1</code></td>
+                <td><code>10.0.0.6</code></td><td><code>10.0.0.7</code></td><td>6</td></tr>
+            <tr><td><code>172.16.10.33/27</code></td><td><code>172.16.10.33</code></td>
+                <td><code>172.16.10.62</code></td><td><code>172.16.10.63</code></td><td>30</td></tr>
+            <tr><td><code>192.168.100.128/26</code></td><td><code>192.168.100.129</code></td>
+                <td><code>192.168.100.190</code></td><td><code>192.168.100.191</code></td><td>62</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><code>172.16.10.33/27</code> : le réseau est <code>172.16.10.32</code> — l'adresse
+           donnée, <code>.33</code>, est déjà la première utilisable.</p>
+
+        <h4>Partie 3</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Masque</th><th>Type</th><th>Raison</th></tr></thead>
+          <tbody>
+            <tr><td><code>10.1.1.0</code></td><td><code>/24</code></td><td><strong>Réseau</strong></td>
+                <td>tous les bits hôte à 0</td></tr>
+            <tr><td><code>192.168.1.55</code></td><td><code>/26</code></td><td><strong>Hôte</strong></td>
+                <td>bloc 0–63, 55 est au milieu</td></tr>
+            <tr><td><code>224.0.0.5</code></td><td><code>/24</code></td><td><strong>Multicast</strong></td>
+                <td>classe D — c'est l'adresse réservée à OSPF</td></tr>
+            <tr><td><code>172.16.31.255</code></td><td><code>/19</code></td><td><strong>Diffusion</strong></td>
+                <td>pas 32 → bloc 0–31 du 3<sup>e</sup> octet → dernière adresse du bloc</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="vlsm-exo">
+  <h2><span class="num">09</span>VLSM — construire un plan d'adressage</h2>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Découpage d'un /24 <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Vous disposez du réseau <code>192.168.1.0/24</code>. Établissez le plan d'adressage
+         complet — masque, adresse réseau, plage utilisable et diffusion — pour :</p>
+      <ul>
+        <li>Service <strong>Commercial</strong> : 50 postes</li>
+        <li>Service <strong>Technique</strong> : 25 postes</li>
+        <li>Service <strong>Direction</strong> : 10 postes</li>
+        <li>Liaison série entre les deux routeurs : 2 adresses</li>
+      </ul>
+      <p>Précisez ce qu'il reste de disponible à la fin.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>Étape 0 — trier du plus gros au plus petit :</strong> 50, 25, 10, 2. Sans ce
+           tri, les blocs se chevauchent.</p>
+<div class="bloc-code"><span class="langue">dimensionnement</span><pre><code>50 postes → 50 + 2 = 52 → 2⁶ = 64  → n = 6 → /26 → pas 64
+25 postes → 25 + 2 = 27 → 2⁵ = 32  → n = 5 → /27 → pas 32
+10 postes → 10 + 2 = 12 → 2⁴ = 16  → n = 4 → /28 → pas 16
+ 2 adresses →  2 + 2 =  4 → 2² =  4  → n = 2 → /30 → pas 4</code></pre></div>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Service</th><th>Besoin</th><th>Masque</th><th>Réseau</th>
+                     <th>Plage utilisable</th><th>Diffusion</th></tr></thead>
+          <tbody>
+            <tr><td>Commercial</td><td>50</td><td><code>/26</code> — <code>255.255.255.192</code></td>
+                <td><code>192.168.1.0</code></td><td><code>192.168.1.1 → .62</code></td><td><code>192.168.1.63</code></td></tr>
+            <tr><td>Technique</td><td>25</td><td><code>/27</code> — <code>255.255.255.224</code></td>
+                <td><code>192.168.1.64</code></td><td><code>192.168.1.65 → .94</code></td><td><code>192.168.1.95</code></td></tr>
+            <tr><td>Direction</td><td>10</td><td><code>/28</code> — <code>255.255.255.240</code></td>
+                <td><code>192.168.1.96</code></td><td><code>192.168.1.97 → .110</code></td><td><code>192.168.1.111</code></td></tr>
+            <tr><td>Liaison routeurs</td><td>2</td><td><code>/30</code> — <code>255.255.255.252</code></td>
+                <td><code>192.168.1.112</code></td><td><code>192.168.1.113 → .114</code></td><td><code>192.168.1.115</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>Reste disponible :</strong> de <code>192.168.1.116</code> à
+           <code>192.168.1.255</code>, soit 140 adresses — de quoi loger encore un /26, ou deux
+           /27, ou tout autre découpage futur.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Contrôle de cohérence</div>
+          <p>Chaque bloc doit commencer sur un <strong>multiple de sa propre taille</strong> :
+             0 est multiple de 64 ✓, 64 est multiple de 32 ✓, 96 est multiple de 16 ✓,
+             112 est multiple de 4 ✓. Si un bloc ne tombe pas sur un multiple de sa taille, le
+             plan est faux — c'est le contrôle le plus rapide avant de rendre la copie.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi le VLSM change tout ici</div>
+          <p>À masque fixe, il aurait fallu prendre /26 pour tout le monde (le plus gros besoin) :
+             4 blocs de 64 adresses = 256, soit la totalité du /24, sans une seule adresse
+             disponible ensuite — et 62 adresses gaspillées pour une liaison qui en réclamait 2.
+             Le VLSM libère ici <strong>140 adresses</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Juger une adresse sans son masque.</strong> Un <code>.0</code> ou un
+          <code>.255</code> final ne prouve rien.</li>
+      <li><strong>Oublier que le bloc peut déborder sur l'octet précédent</strong> — /23, /20,
+          /14 travaillent sur le 2<sup>e</sup> ou 3<sup>e</sup> octet.</li>
+      <li><strong>Confondre taille de bloc et nombre d'hôtes</strong> : 2ⁿ contre 2ⁿ − 2.</li>
+      <li><strong>Croire que « commence par 192 » = privé.</strong> Seul
+          <code>192.168.</code> l'est.</li>
+      <li><strong>Ne pas trier les besoins en VLSM</strong> — chevauchement assuré.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-TD-Identifier Adresse IPv4 (Cisco) — parties 1 à 7</li>
+      <li>Exo adressage IP — TP avancé</li>
+      <li>5-Adressage_IP.pdf — exercice d'application et applications 1 à 3</li>
+      <li>vlsm_reference_guide</li>
+      <li>Règle Public/Privé &amp; validité</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dépannage réseau — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : interpréter ipconfig, ping et TTL, tracert, étude de cas de sous-réseaux, TP Wireshark et méthode de dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#lire-ipconfig">1 · Interpréter ipconfig</a></li>
+    <li><a href="#ttl-exo">2 · Le TTL et le ping</a></li>
+    <li><a href="#tracert-exo">3 · Localiser une coupure</a></li>
+    <li><a href="#etude-cas">4 · Étude de cas — 172.177.0.0</a></li>
+    <li><a href="#wireshark-exo">5 · TP Wireshark</a></li>
+    <li><a href="#methode-exo">6 · Dépanner un réseau d'entreprise</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 13</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Dépannage réseau — exercices</h1>
+  <p class="chapeau">Lire une sortie de commande, localiser une panne, et l'étude de cas de
+     sous-réseaux entièrement déroulée.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Ce qui est évalué</h2>
+      <p>Pas la connaissance des commandes — tout le monde sait taper <code>ping</code>. Ce qui
+         rapporte des points, c'est d'<strong>interpréter la sortie</strong> et de dire
+         <em>ce qu'on en déduit</em>. Une réponse qui commence par « donc le problème est
+         forcément… » vaut toujours mieux qu'une liste de commandes.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="lire-ipconfig">
+  <h2><span class="num">01</span>Interpréter ipconfig</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Quatre sorties, quatre diagnostics <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Pour chaque sortie, dites ce qui ne va pas et ce que vous vérifiez ensuite.</p>
+<div class="bloc-code"><pre><code>A)  Adresse IPv4. . . . : 169.254.72.13
+    Masque . . . . . . : 255.255.0.0
+    Passerelle . . . . : (vide)
+
+B)  Adresse IPv4. . . . : 192.168.1.45
+    Masque . . . . . . : 255.255.255.0
+    Passerelle . . . . : (vide)
+    Serveurs DNS . . . : 192.168.1.1
+
+C)  Adresse IPv4. . . . : 192.168.1.45
+    Masque . . . . . . : 255.255.255.0
+    Passerelle . . . . : 192.168.1.1
+    Serveurs DNS . . . : (vide)
+
+D)  Adresse IPv4. . . . : 192.168.1.45
+    Masque . . . . . . : 255.255.0.0
+    Passerelle . . . . : 192.168.1.1
+    Serveurs DNS . . . : 192.168.1.1</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th></th><th>Diagnostic</th><th>Vérification suivante</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A</strong></td>
+                <td><strong>APIPA</strong> — la machine n'a joint <em>aucun</em> serveur DHCP et
+                    s'est auto-attribué une adresse en <code>169.254.x.x</code></td>
+                <td>Câble et LED, VLAN du port, service DHCP, <code>ip helper-address</code> si le
+                    serveur est distant</td></tr>
+            <tr><td><strong>B</strong></td>
+                <td><strong>Passerelle absente</strong> : la machine communique dans son LAN mais
+                    ne peut <em>pas en sortir</em></td>
+                <td>Ping d'un poste voisin (doit marcher), puis ping de <code>8.8.8.8</code>
+                    (doit échouer). Vérifier la configuration DHCP ou la saisie manuelle</td></tr>
+            <tr><td><strong>C</strong></td>
+                <td><strong>DNS absent</strong> : l'accès par adresse IP fonctionne, aucun nom ne
+                    se résout</td>
+                <td><code>ping 8.8.8.8</code> réussit, <code>ping www.google.fr</code> échoue.
+                    Renseigner un DNS</td></tr>
+            <tr><td><strong>D</strong></td>
+                <td><strong>Masque incohérent</strong> : <code>/16</code> sur un réseau prévu en
+                    <code>/24</code></td>
+                <td>Comparer au plan d'adressage. La machine croira que tout
+                    <code>192.168.x.x</code> est local et n'utilisera jamais la passerelle</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le cas D est le plus vicieux</div>
+          <p>Tout est renseigné, rien n'est vide : au premier coup d'œil, la configuration semble
+             correcte. Mais avec un masque <code>255.255.0.0</code> au lieu de
+             <code>255.255.255.0</code>, la machine considère que <code>192.168.<u>2</u>.10</code>
+             est sur son propre réseau. Elle tentera donc de le joindre <strong>directement, par
+             ARP</strong>, au lieu de passer par la passerelle — et n'obtiendra jamais de
+             réponse.</p>
+          <p>Symptôme caractéristique : certaines destinations marchent, d'autres non, sans logique
+             apparente. <strong>Vérifiez toujours le masque contre le plan d'adressage</strong>,
+             pas seulement sa présence.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="ttl-exo">
+  <h2><span class="num">02</span>Le TTL et le ping</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Que révèle le TTL <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Un ping vers un serveur du même VLAN revient avec <code>TTL=64</code>. Combien de
+            routeurs ont été traversés ?</li>
+        <li>Un ping vers <code>1.1.1.1</code> revient avec <code>TTL=54</code>. Combien de
+            routeurs, et comment le calculez-vous ?</li>
+        <li>Un ping revient avec <code>TTL=118</code>. Que pouvez-vous en déduire sur la machine
+            distante ?</li>
+        <li>Un <code>ping</code> vers un poste voisin ne répond pas, alors que ce poste vous ping
+            très bien. Que se passe-t-il ?</li>
+        <li>Citez cinq raisons pour lesquelles un hôte peut ne pas répondre au ping.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>1. Aucun routeur.</strong> Le TTL est <strong>intact</strong> à sa valeur
+           initiale de 64 : le paquet n'a traversé aucun routeur. C'est logique, les deux machines
+           sont sur le <strong>même segment</strong>.</p>
+
+        <p><strong>2. Dix routeurs.</strong></p>
+        <div class="formule">64 − 54 = <strong>10</strong></div>
+        <p>La valeur initiale du TTL est généralement 64. Chaque routeur traversé la
+           <strong>décrémente de 1</strong>. Rien d'étonnant : <code>1.1.1.1</code> est un serveur
+           DNS public situé sur Internet.</p>
+
+        <p><strong>3. C'est probablement une machine Windows.</strong> 118 est proche de
+           <strong>128</strong>, la valeur initiale de Windows — 10 routeurs traversés. Un départ à
+           64 (Linux/Unix) n'aurait pas pu donner 118.</p>
+
+        <p><strong>4. Le pare-feu du poste voisin.</strong> Cette <strong>asymétrie</strong> — A ne
+           ping pas B, mais B ping A — ne peut venir d'aucun problème réseau : le chemin est
+           forcément bon dans les deux sens. Windows bloque l'ICMP <em>entrant</em> par défaut.</p>
+
+        <p><strong>5. Les cinq raisons du cours :</strong></p>
+        <ol>
+          <li>L'hôte distant est injoignable à cause d'un <strong>problème de routage</strong> ;</li>
+          <li>un <strong>pare-feu entre les deux machines</strong> bloque le ping ;</li>
+          <li>le <strong>pare-feu local de l'hôte distant</strong> ne répond pas au ping ;</li>
+          <li>le <strong>pare-feu réseau</strong> entre les deux hôtes bloque le ping ;</li>
+          <li>le ping porte sur un <strong>nom de domaine</strong> que le <strong>DNS</strong> ne
+              résout pas.</li>
+        </ol>
+        <div class="encart outils">
+          <div class="titre">🧰 La formule et ses deux points de départ</div>
+          <div class="formule">routeurs traversés = TTL initial − TTL reçu</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>TTL initial</th><th>Système</th><th>TTL reçu typique</th></tr></thead>
+            <tbody>
+              <tr><td><strong>64</strong></td><td>Linux, Unix, macOS, équipements réseau</td>
+                  <td>50 à 64</td></tr>
+              <tr><td><strong>128</strong></td><td>Windows</td><td>110 à 128</td></tr>
+              <tr><td>255</td><td>Certains équipements Cisco</td><td>240 à 255</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>On identifie le point de départ en arrondissant à la valeur supérieure la plus
+             proche.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Ça ne ping pas » ne veut pas dire « c'est en panne »</div>
+          <p>C'est l'erreur de raisonnement la plus fréquente. Le ping utilise <strong>ICMP</strong>,
+             un protocole que beaucoup d'équipements et de pare-feux bloquent
+             <strong>volontairement</strong>, pour ne pas se signaler.</p>
+          <p>Un serveur web qui ne répond pas au ping peut très bien servir des pages sans le
+             moindre problème. Avant de conclure à une panne, testez le <strong>service</strong>
+             lui-même — un navigateur, un <code>telnet</code> sur le port concerné.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="tracert-exo">
+  <h2><span class="num">03</span>Localiser une coupure</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Trois traces à interpréter <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>La passerelle locale est <code>192.168.1.1</code>. Interprétez chaque trace.</p>
+<div class="bloc-code"><pre><code>A)  1   *   *   *   Délai d'attente de la demande dépassé.
+    2   *   *   *   Délai d'attente de la demande dépassé.
+    (arrêt)
+
+B)  1   1 ms   1 ms   1 ms   192.168.1.1
+    2   *      *      *      Délai d'attente de la demande dépassé.
+    3   *      *      *      Délai d'attente de la demande dépassé.
+    (arrêt)
+
+C)  1   1 ms    1 ms    1 ms   192.168.1.1
+    2   12 ms   11 ms   12 ms  10.20.30.1
+    3   *       *       *      Délai d'attente de la demande dépassé.
+    4   18 ms   17 ms   18 ms  8.8.8.8</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th></th><th>Interprétation</th><th>Où chercher</th></tr></thead>
+          <tbody>
+            <tr><td><strong>A</strong></td>
+                <td>Le poste <strong>ne joint même pas sa propre passerelle</strong>. Le problème
+                    est <strong>interne</strong> et très proche</td>
+                <td>Câble, port du switch, configuration IP du poste, masque, VLAN</td></tr>
+            <tr><td><strong>B</strong></td>
+                <td>La passerelle répond, <strong>rien au-delà</strong>. La coupure est
+                    <strong>juste après</strong></td>
+                <td>Routage sur le routeur, route par défaut absente, ou lien opérateur coupé</td></tr>
+            <tr><td><strong>C</strong></td>
+                <td class="rep-ok"><strong>Tout va bien.</strong> La destination est atteinte</td>
+                <td>Rien à chercher — un routeur intermédiaire refuse simplement de répondre</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le cas C piège tout le monde</div>
+          <p>Les astérisques au saut 3 <strong>ne sont pas une panne</strong>. Le cours le dit :
+             « ceci dépend de la configuration du routeur et n'empêchera pas <code>tracert</code> de
+             poursuivre l'opération ».</p>
+          <p>Beaucoup de routeurs sont configurés pour <strong>ne pas répondre</strong> aux sondes
+             de traceroute — par choix de sécurité ou pour économiser leurs ressources. Ils
+             <em>acheminent</em> pourtant parfaitement le trafic, comme le prouve le saut 4 qui
+             aboutit.</p>
+          <p><strong>La règle :</strong> ce qui compte, c'est de savoir si la trace
+             <strong>atteint sa destination</strong>. Des astérisques au milieu sont normaux ; des
+             astérisques jusqu'à la fin sont le symptôme.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le tableau de lecture du cours</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Où le blocage se produit</th><th>Responsabilité</th></tr></thead>
+            <tbody>
+              <tr><td>Entre le poste et la <strong>passerelle locale</strong></td>
+                  <td>Problème <strong>interne</strong> — LAN, sous-réseau, routeur</td></tr>
+              <tr><td><strong>Juste après</strong> la passerelle</td>
+                  <td>Routage sur le routeur, ou <strong>liens opérateur</strong></td></tr>
+              <tr><td><strong>Plus loin</strong>, dans le nuage Internet</td>
+                  <td>Coupure chez le <strong>fournisseur d'accès</strong> ou filtrage extérieur —
+                      hors de votre contrôle</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>C'est ce tableau qui transforme un « ça ne marche pas » en « le problème est chez
+             l'opérateur, voici la preuve ».</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="etude-cas">
+  <h2><span class="num">04</span>Étude de cas — 172.177.0.0</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Découpage en quatre sous-réseaux <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Une entreprise a demandé et reçu l'adresse réseau <code>172.177.0.0</code>.</p>
+      <ol>
+        <li>Déterminer la <strong>classe</strong> de ce réseau.</li>
+        <li>Quel(s) octet(s) représentent la <strong>portion réseau</strong> ?</li>
+        <li>Quel(s) octet(s) représentent la <strong>portion hôte</strong> ?</li>
+        <li>Quel est le <strong>masque par défaut</strong> ?</li>
+        <li>Nombre <strong>maximal de machines</strong> dans ce réseau ?</li>
+      </ol>
+      <p>Vous souhaitez diviser ce réseau physique en <strong>quatre sous-réseaux</strong>.</p>
+      <ol start="6">
+        <li>Combien de <strong>bits</strong> faut-il emprunter à la portion hôte ?</li>
+        <li>Remplir le tableau des sous-réseaux.</li>
+        <li>Quel <strong>masque de sous-réseau</strong> utiliser, en décimal et en binaire ?</li>
+        <li>Combien de bits reste-t-il pour les <strong>hôtes</strong> ?</li>
+        <li>L'hôte A est en <code>172.177.7.15</code>, l'hôte B en <code>172.177.222.97</code>.
+            <strong>Font-ils partie du même sous-réseau ?</strong> Pourquoi ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>Questions 1 à 5 — le réseau de départ</h4>
+        <div class="tableau">
+        <table>
+          <tbody>
+            <tr><td><strong>1. Classe</strong></td>
+                <td><strong>Classe B</strong> — le premier octet vaut 172, donc entre
+                    <strong>128 et 191</strong></td></tr>
+            <tr><td><strong>2. Portion réseau</strong></td>
+                <td>Les <strong>deux premiers</strong> octets : <code>172.177</code></td></tr>
+            <tr><td><strong>3. Portion hôte</strong></td>
+                <td>Les <strong>deux derniers</strong> octets</td></tr>
+            <tr><td><strong>4. Masque par défaut</strong></td>
+                <td><code>255.255.0.0</code> — soit <code>/16</code></td></tr>
+            <tr><td><strong>5. Machines maximum</strong></td>
+                <td>16 bits d'hôte → <strong>2¹⁶ − 2 = 65 534</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h4>Question 6 — les bits à emprunter</h4>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>on cherche 2ⁿ ≥ 4 sous-réseaux
+
+2¹ = 2   → insuffisant
+2² = 4   → EXACTEMENT ce qu'il faut
+
+→ il faut emprunter 2 BITS à la portion hôte</code></pre></div>
+
+        <h4>Questions 8 et 9 — le masque et les bits restants</h4>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>masque de départ  /16  = 11111111.11111111.00000000.00000000
++ 2 bits empruntés     = 11111111.11111111.11000000.00000000
+                                            └┬┘
+                                    les 2 bits pris à l'hôte
+
+NOUVEAU MASQUE
+  binaire  : 11111111.11111111.11000000.00000000
+  décimal  : 255.255.192.0
+  CIDR     : /18
+
+BITS RESTANTS POUR LES HÔTES
+  32 − 18 = 14 bits  →  2¹⁴ − 2 = 16 382 hôtes par sous-réseau</code></pre></div>
+
+        <h4>Question 7 — le tableau des quatre sous-réseaux</h4>
+        <p>Le <strong>pas</strong> vaut <code>256 − 192 = 64</code>, et il s'applique au
+           <strong>3<sup>e</sup> octet</strong> — c'est là que le masque coupe.</p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Adresse de sous-réseau</th><th>Premier hôte</th>
+                     <th>Dernier hôte</th><th>Diffusion</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>172.177.0.0</code></td><td><code>172.177.0.1</code></td>
+                <td><code>172.177.63.254</code></td><td><code>172.177.63.255</code></td></tr>
+            <tr><td>2</td><td><code>172.177.64.0</code></td><td><code>172.177.64.1</code></td>
+                <td><code>172.177.127.254</code></td><td><code>172.177.127.255</code></td></tr>
+            <tr><td>3</td><td><code>172.177.128.0</code></td><td><code>172.177.128.1</code></td>
+                <td><code>172.177.191.254</code></td><td><code>172.177.191.255</code></td></tr>
+            <tr><td>4</td><td><code>172.177.192.0</code></td><td><code>172.177.192.1</code></td>
+                <td><code>172.177.255.254</code></td><td><code>172.177.255.255</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h4>Question 10 — A et B sont-ils dans le même sous-réseau ?</h4>
+        <p><strong>Non.</strong> Il suffit de regarder le <strong>3<sup>e</sup> octet</strong>, le
+           seul qui soit coupé par le masque :</p>
+<div class="bloc-code"><span class="langue">vérification</span><pre><code>Hôte A : 172.177.  7.15    →  3ᵉ octet = 7    →  7 ∈ [0 ; 63]     → sous-réseau 172.177.0.0
+Hôte B : 172.177.222.97    →  3ᵉ octet = 222  →  222 ∈ [192 ; 255] → sous-réseau 172.177.192.0
+
+→ SOUS-RÉSEAUX DIFFÉRENTS : le 1ᵉʳ et le 4ᵉ</code></pre></div>
+        <p><strong>Conséquence pratique :</strong> A et B <strong>ne peuvent pas communiquer
+           directement</strong>. Il faut un <strong>routeur</strong> — ou un commutateur de couche 3
+           — pour acheminer le trafic entre les deux sous-réseaux.</p>
+
+        <div class="encart outils">
+          <div class="titre">🧰 La vérification par le ET logique</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Hôte A            172.177.7.15
+  3ᵉ octet          7  = 00000111
+  masque          192  = 11000000
+  ET logique           = 00000000 = 0     →  172.177.0.0
+
+Hôte B            172.177.222.97
+  3ᵉ octet        222  = 11011110
+  masque          192  = 11000000
+  ET logique           = 11000000 = 192   →  172.177.192.0</code></pre></div>
+          <p>Le raccourci du <em>pas</em> donne le même résultat en dix secondes, mais le ET logique
+             reste la méthode à montrer si l'énoncé demande de « justifier ».</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le piège du 3<sup>e</sup> octet</div>
+          <p>Sur un réseau de <strong>classe B</strong>, le découpage ne touche <em>pas</em> le
+             dernier octet mais le <strong>troisième</strong>. Beaucoup appliquent
+             machinalement le pas au 4<sup>e</sup> octet — réflexe pris sur les classes C — et
+             obtiennent des sous-réseaux qui n'existent pas.</p>
+          <p><strong>La règle :</strong> le pas s'applique toujours à l'<strong>octet coupé</strong>,
+             celui du masque qui n'est ni 255 ni 0. Ici <code>255.255.<u>192</u>.0</code> : c'est
+             le troisième.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="wireshark-exo">
+  <h2><span class="num">05</span>TP Wireshark</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Capturer et filtrer <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Qu'est-ce que Wireshark capture exactement, et selon quelles spécifications
+            décode-t-il ?</li>
+        <li>Écrivez le filtre d'affichage pour ne voir que : les pings · le dialogue DHCP ·
+            le trafic HTTPS d'une machine précise.</li>
+        <li>Vous capturez depuis votre poste sur un réseau commuté. Verrez-vous le trafic de votre
+            voisin ? Pourquoi ?</li>
+        <li>Quelle démonstration faire avec Wireshark pour prouver que Telnet est dangereux ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>1.</strong> Wireshark capture <strong>chaque unité de données de protocole
+           (PDU)</strong> des flux circulant sur le réseau, et permet de décoder et d'analyser leur
+           contenu <strong>conformément aux spécifications RFC</strong> ou autres appropriées.</p>
+        <p>C'est un <strong>analyseur de protocoles</strong>, open source, disponible pour Windows,
+           macOS et Linux — devenu le standard des ingénieurs réseau.</p>
+
+        <p><strong>2. Les filtres d'affichage :</strong></p>
+<div class="bloc-code"><span class="langue">Wireshark</span><pre><code>icmp                                     les pings
+dhcp                                     le dialogue DORA complet
+ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443    le HTTPS d'une machine</code></pre></div>
+
+        <p><strong>3. Non</strong>, sauf configuration particulière. Un <strong>commutateur</strong>
+           envoie chaque trame <strong>uniquement sur le port du destinataire</strong>. Votre carte
+           réseau ne reçoit donc que :</p>
+        <ul>
+          <li>le trafic qui vous est destiné ;</li>
+          <li>les <strong>diffusions</strong> — ARP, DHCP — qui partent sur tous les ports.</li>
+        </ul>
+        <p>Pour voir le trafic d'un autre poste, il faut configurer un <strong>port miroir</strong>
+           (SPAN) sur le commutateur.</p>
+
+        <p><strong>4. La démonstration Telnet :</strong></p>
+<div class="bloc-code"><span class="langue">démonstration</span><pre><code>1.  Lancer la capture sur l'interface concernée
+2.  Ouvrir une session Telnet vers un équipement, et s'authentifier
+3.  Filtre d'affichage :  telnet
+4.  Clic droit sur un paquet → « Suivre » → « Flux TCP »
+
+→ le NOM D'UTILISATEUR et le MOT DE PASSE apparaissent EN CLAIR
+  (caractère par caractère : Telnet envoie chaque frappe séparément)
+
+5.  Refaire la même chose en SSH  →  filtre :  ssh
+→ tout est CHIFFRÉ, illisible</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi cette démonstration marque</div>
+          <p>C'est le moment où l'on comprend pourquoi le cours répète que Telnet envoie
+             « les informations d'authentification, les mots de passe et les commandes en clair ».
+             Lire soi-même son propre mot de passe dans une capture est beaucoup plus convaincant
+             qu'une phrase de diaporama.</p>
+          <p>C'est aussi la meilleure façon de justifier, à l'oral, pourquoi on configure SSH plutôt
+             que Telnet sur un équipement Cisco.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Capture ≠ affichage</div>
+          <p>Deux filtres différents, deux syntaxes différentes :</p>
+          <div class="tableau">
+          <table>
+            <thead><tr><th></th><th>Filtre de <strong>capture</strong></th>
+                       <th>Filtre d'<strong>affichage</strong></th></tr></thead>
+            <tbody>
+              <tr><td>Quand</td><td><em>Avant</em> l'enregistrement</td><td><em>Après</em></td></tr>
+              <tr><td>Syntaxe</td><td><code>host 192.168.1.10</code></td>
+                  <td><code>ip.addr == 192.168.1.10</code></td></tr>
+              <tr><td>Effet</td><td>Ce qui n'est pas capturé est <strong>perdu</strong></td>
+                  <td>Tout reste, on ne fait que masquer</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>En TP, <strong>capturez large et filtrez à l'affichage</strong> : vous pourrez revenir
+             en arrière si vous vous êtes trompé de piste.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="methode-exo">
+  <h2><span class="num">06</span>Dépanner un réseau d'entreprise</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>L'exercice d'application du cours <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p><strong>Contexte :</strong> un réseau local d'entreprise comporte plusieurs postes clients
+         reliés à un commutateur, lui-même connecté à un routeur pour accéder à Internet. Certains
+         utilisateurs rencontrent des <strong>problèmes de connexion intermittente</strong> ou une
+         <strong>perte totale d'accès</strong>.</p>
+      <p><strong>Question :</strong> donner les étapes à suivre pour dépanner ce réseau.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>Étape 1 — Vérification physique</h4>
+        <p>Contrôler l'état des <strong>câbles</strong> (section, usure, mauvaise connexion), des
+           <strong>connecteurs</strong> et des <strong>LED d'activité</strong> sur les commutateurs.
+           Remplacer tout câble suspect.</p>
+        <p><em>But :</em> s'assurer que le problème ne provient pas d'un défaut matériel facilement
+           observable — câble coupé, débranché, port endommagé.</p>
+
+        <h4>Étape 2 — Connectivité locale : ping du switch</h4>
+<div class="bloc-code"><pre><code>ping &lt;adresse_IP_du_commutateur&gt;</code></pre></div>
+        <p><strong>Réponse négative</strong> → le client ne joint pas le switch au niveau IP. Trois
+           hypothèses : mauvaise configuration IP de l'un des deux, défaut physique du port switch
+           ou PC, problème de câblage ou <strong>port désactivé</strong>.</p>
+
+        <h4>Étape 3 — Connectivité interne : ping du routeur, puis d'un autre poste</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Résultat</th><th>Ce qu'on en déduit</th></tr></thead>
+          <tbody>
+            <tr><td>Switch OK, <strong>routeur KO</strong></td>
+                <td>Configuration ou lien défectueux entre switch et routeur, ou
+                    <strong>VLAN / sous-réseau incorrect</strong></td></tr>
+            <tr><td><strong>Autre poste KO</strong></td>
+                <td>Isolation, configuration VLAN, <strong>pare-feu</strong>, ou câble</td></tr>
+            <tr><td>Ping local OK</td><td>Le LAN est fonctionnel</td></tr>
+            <tr><td>Ping routeur OK</td><td>La sortie vers d'autres réseaux est possible</td></tr>
+            <tr><td>Ping poste distant OK</td><td>La communication LAN est établie</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h4>Étape 4 — Connectivité externe : ping vers 8.8.8.8</h4>
+        <p><strong>Réussi</strong> → la connexion Internet fonctionne.<br>
+           <strong>Échec</strong> → <code>tracert 8.8.8.8</code> pour voir où le chemin
+           s'interrompt, puis interpréter : avant la passerelle (interne), juste après (routeur ou
+           opérateur), plus loin (fournisseur d'accès).</p>
+
+        <h4>Étape 5 — Vérification des configurations</h4>
+        <p><code>ipconfig /all</code> sur le poste. Vérifier la <strong>cohérence des adresses IP,
+           du masque et de la passerelle</strong> avec le plan d'adressage.</p>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Le cas particulier : « intermittent »</div>
+          <p>L'énoncé mentionne des problèmes <strong>intermittents</strong> — c'est le cas le plus
+             difficile, parce que tout fonctionne au moment où l'on teste. Quatre causes classiques,
+             qu'aucune des cinq étapes ne révèle directement :</p>
+          <ul>
+            <li><strong>Conflit d'adresses IP</strong> — deux machines partagent la même adresse, et
+                celle qui répond varie. Symptôme typiquement intermittent, souvent dû à une adresse
+                statique non exclue du pool DHCP.</li>
+            <li><strong>Câble en limite</strong> — il fonctionne, puis lâche sous l'effet de la
+                chaleur ou d'une vibration. Un <code>ping -t</code> laissé plusieurs minutes fait
+                apparaître les pertes.</li>
+            <li><strong>Bail DHCP qui expire</strong> sans renouvellement possible — la machine perd
+                son adresse à intervalles réguliers.</li>
+            <li><strong>Serveur DHCP pirate</strong> — une box branchée par un utilisateur répond
+                parfois avant le vrai serveur : certains postes reçoivent alors une mauvaise
+                configuration, d'autres non.</li>
+          </ul>
+<div class="bloc-code"><span class="langue">diagnostic de l'intermittent</span><pre><code>ping -t 192.168.1.1          laisser tourner 10 minutes, observer les pertes
+ipconfig /all                le serveur DHCP est-il bien LE nôtre ?
+arp -a                       deux entrées pour la même IP = conflit</code></pre></div>
+          <p>Une panne intermittente se diagnostique dans la <strong>durée</strong> : un test
+             ponctuel qui réussit ne prouve rien.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Ce que le correcteur attend vraiment</div>
+          <p>Pas une liste de commandes, mais une <strong>progression justifiée</strong>. La phrase
+             qui rapporte des points : <em>« je teste du plus proche au plus lointain, car le
+             premier test qui échoue localise la panne »</em>.</p>
+          <p>Et pour chaque étape, dire <strong>ce qu'on en déduit</strong> — pas seulement ce qu'on
+             tape.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Conclure « c'est en panne » parce que le ping ne répond pas</strong> — souvent un
+          pare-feu.</li>
+      <li><strong>Prendre des astérisques dans un <code>tracert</code> pour une coupure</strong> —
+          seul l'échec final compte.</li>
+      <li><strong>Appliquer le pas au dernier octet</strong> sur un réseau de classe B.</li>
+      <li><strong>Oublier de vérifier le masque</strong> quand tout semble renseigné.</li>
+      <li><strong>Tester une panne intermittente ponctuellement</strong> — il faut durer.</li>
+      <li><strong>Confondre filtre de capture et filtre d'affichage</strong> dans Wireshark.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>6-Depannage_Réseaux.pdf — exercice d'application et étapes de dépannage</li>
+      <li>3-TP_Wireshark.pdf — travaux pratiques Cisco</li>
+      <li>4.Etude_cas.pdf — découpage de 172.177.0.0</li>
+      <li>SIMULATION_RESEAU_INFORMATIQUE_2022 — compte rendu l'élève</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

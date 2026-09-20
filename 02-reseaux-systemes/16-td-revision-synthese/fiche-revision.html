@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TD de révision — fiche | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : OSI et PDU, la méthode VLSM, les commandes Cisco de base, VLAN access et trunk, router-on-a-stick contre SVI, et l'ordre de diagnostic.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 16</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Synthèse réseaux &amp; Cisco</h1>
+  <p class="chapeau">Recto-verso. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ OSI de bas en haut</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Nº</th><th>Couche</th><th>PDU</th><th>Équipement</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Physique</td><td>Bit</td><td>câble, hub</td></tr>
+        <tr><td>2</td><td>Liaison</td><td>Trame</td><td><strong>switch</strong></td></tr>
+        <tr><td>3</td><td>Réseau</td><td>Paquet</td><td><strong>routeur</strong></td></tr>
+        <tr><td>4</td><td>Transport</td><td>Segment</td><td>TCP / UDP</td></tr>
+        <tr><td>5-7</td><td>Session · Présentation · Application</td><td>Données</td><td>HTTP, DNS</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Le <strong>switch</strong> segmente les <strong>collisions</strong> · le
+       <strong>routeur</strong> et le <strong>VLAN</strong> segmentent les
+       <strong>broadcasts</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>MAC · IP · ARP</h2>
+    <ul>
+      <li><strong>MAC</strong> — physique, 48 bits, valable sur le lien local.</li>
+      <li><strong>IP</strong> — logique, hiérarchique, identifie l'hôte <strong>de bout en
+          bout</strong>.</li>
+      <li><strong>ARP</strong> — trouve la MAC à partir de l'IP, sur le réseau local.</li>
+      <li><strong>ICMP</strong> — <code>ping</code>, <code>traceroute</code>.</li>
+    </ul>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ VLSM — du plus gros au plus petit</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Besoin</th><th>Bloc</th><th>Masque</th><th>Hôtes</th></tr></thead>
+      <tbody>
+        <tr><td>500</td><td><code>/23</code></td><td><code>255.255.254.0</code></td><td>510</td></tr>
+        <tr><td>100</td><td><code>/25</code></td><td><code>255.255.255.128</code></td><td>126</td></tr>
+        <tr><td>20</td><td><code>/27</code></td><td><code>255.255.255.224</code></td><td>30</td></tr>
+        <tr><td>2 (liaison)</td><td><code>/30</code></td><td><code>255.255.255.252</code></td><td>2</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Contrôle :</strong> broadcast d'un bloc <strong>+ 1</strong> = réseau du suivant.
+       Sinon : trou ou recouvrement.</p>
+    <p>Justifier le masque en écrivant <strong>celui du dessous et pourquoi il ne suffit
+       pas</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le découpage de 172.16.0.0/16</h2>
+<div class="bloc-code"><span class="langue">resultat</span><pre><code>A  172.16.0.0/23     .0.1   -> .1.254    bc .1.255
+B  172.16.2.0/25     .2.1   -> .2.126    bc .2.127
+C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
+  </article>
+
+  <article class="memo">
+    <h2>Configuration de base</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+hostname SW1
+enable secret cisco123
+line console 0
+ password consolepass
+ login
+line vty 0 4
+ password vtypass
+ login
+service password-encryption
+interface vlan 1
+ ip address 192.168.1.2 255.255.255.0
+ no shutdown
+ip default-gateway 192.168.1.1
+end
+copy running-config startup-config</code></pre></div>
+    <p><code>service password-encryption</code> = <strong>type 7, réversible</strong> : ça masque,
+       ça ne protège pas. Seul <code>enable secret</code> est haché.</p>
+  </article>
+
+  <article class="memo">
+    <h2>VLAN · access et trunk</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>vlan 10
+ name DIRECTION
+
+interface range fa0/1 - 5
+ switchport mode access
+ switchport access vlan 10
+
+interface g0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30</code></pre></div>
+    <p><strong>access</strong> = 1 VLAN, sans étiquette · <strong>trunk</strong> = plusieurs VLAN,
+       étiquetés <strong>802.1Q</strong> (4 octets, 12 bits → <strong>4 094</strong> VLAN).</p>
+    <p>Sur un 2960, <code>switchport trunk encapsulation</code> <strong>n'existe pas</strong> :
+       passer directement à <code>switchport mode trunk</code>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Routage inter-VLAN</h2>
+<div class="bloc-code"><span class="langue">router-on-a-stick — R1</span><pre><code>interface g0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+
+interface g0/0
+ no ip address
+ no shutdown</code></pre></div>
+<div class="bloc-code"><span class="langue">SVI — switch L3</span><pre><code>ip routing
+interface vlan 10
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown</code></pre></div>
+    <p>Les deux lignes qu'on oublie : <strong><code>no shutdown</code> sur l'interface
+       physique</strong> (elle porte les sous-interfaces) et <strong><code>ip routing</code></strong>
+       sur le switch L3 (sans lui, rien ne route).</p>
+  </article>
+
+  <article class="memo">
+    <h2>Stick ou L3 ?</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Stick</th><th>Switch L3</th></tr></thead>
+      <tbody>
+        <tr><td>Coût</td><td>faible</td><td>élevé</td></tr>
+        <tr><td>Débit</td><td><strong>÷ 2</strong> — aller ET retour sur le même lien</td>
+            <td>commutation matérielle</td></tr>
+        <tr><td>Croissance</td><td>goulot d'étranglement</td><td>excellente</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>L'argument : sur un lien à 1 Gb/s, il reste <strong>500 Mb/s utiles</strong> de trafic
+       inter-VLAN.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Diagnostiquer de bas en haut</h2>
+    <ol>
+      <li><code>show ip interface brief</code> → <code>up / up</code> ?</li>
+      <li><code>show cdp neighbors</code> → qui est en face ?</li>
+      <li><code>show vlan brief</code> → VLAN et ports</li>
+      <li><code>show interfaces trunk</code> → VLAN autorisés</li>
+      <li><code>show ip route</code> → 3 réseaux en <code>C</code></li>
+      <li>ping <strong>intra</strong>, puis <strong>inter</strong></li>
+      <li><code>copy running-config startup-config</code></li>
+    </ol>
+    <p><code>administratively down</code> = il manque <code>no shutdown</code>.<br>
+       <code>up/up</code> mais pas de ping = chercher en <strong>couche 3</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>⚠️ Les cinq pièges</h2>
+    <ol>
+      <li><strong>Interfaces du routeur éteintes</strong> par défaut.</li>
+      <li><strong>VLAN absent d'<code>allowed vlan</code></strong> : trames jetées en silence, on
+          accuse le routeur à tort.</li>
+      <li><strong><code>no ip address</code> oublié</strong> sur la physique du stick.</li>
+      <li><strong><code>ip routing</code> oublié</strong> sur le switch L3.</li>
+      <li><strong>Mauvais masque</strong> : une partie du réseau répond, l'autre non.</li>
+    </ol>
+  </article>
+
+  <article class="memo">
+    <h2>En production</h2>
+    <ul>
+      <li><strong>VLAN 1 inutilisé</strong> — c'est le défaut de tout le monde, il porte CDP/DTP/
+          STP/VTP, et c'est le premier essayé par un attaquant.</li>
+      <li><strong>Administration dans un VLAN dédié</strong> (99).</li>
+      <li><strong>VLAN natif</strong> du trunk changé — il circule sans étiquette.</li>
+      <li><strong>ACL</strong> après le routage : le VLAN sépare, le routeur relie,
+          <strong>l'ACL arbitre</strong>.</li>
+      <li>Une ACL sans <code>permit</code> final <strong>bloque tout</strong> :
+          <code>deny any</code> implicite.</li>
+    </ul>
+  </article>
+
+</section>
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

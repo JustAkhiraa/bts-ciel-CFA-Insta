@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration des systèmes Linux — commandes, droits, processus | BTS CIEL</title>
+<meta name="description" content="Cours complet : Unix et Linux, shell, arborescence, commandes de base, APT, processus, utilisateurs, groupes, permissions et configuration réseau.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#unix">1 · Unix, Linux, distributions</a></li>
+    <li><a href="#shell">2 · Se connecter et utiliser le shell</a></li>
+    <li><a href="#arborescence">3 · Le système de fichiers</a></li>
+    <li><a href="#commandes">4 · Les commandes de base</a></li>
+    <li><a href="#paquets">5 · La gestion des paquets</a></li>
+    <li><a href="#processus">6 · Les processus</a></li>
+    <li><a href="#utilisateurs">7 · Utilisateurs et groupes</a></li>
+    <li><a href="#permissions">8 · Les permissions</a></li>
+    <li><a href="#reseau">9 · La configuration réseau</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 05</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Administration des systèmes Linux</h1>
+  <p class="chapeau">Le système qui fait tourner la quasi-totalité des serveurs du monde —
+     et qu'on administre au clavier, une commande à la fois.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Sous Linux, <strong>tout est fichier</strong> et tout part de la racine <code>/</code>.
+         Le <strong>shell</strong> traduit vos commandes, écrites toujours de la même façon :
+         <em>commande, options, paramètres</em>. Le système est
+         <strong>multi-utilisateurs</strong> : chaque fichier a un propriétaire, un groupe et
+         <strong>neuf droits</strong> (<code>rwx</code> × 3) que l'on manipule avec
+         <code>chmod</code>. Seul <code>root</code> — ou un utilisateur passant par
+         <code>sudo</code> — peut tout faire.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#Unix</code> <code>#noyau</code> <code>#distribution</code> <code>#shell</code>
+    <code>#bash</code> <code>#arborescence</code> <code>#chemin</code> <code>#APT</code>
+    <code>#processus</code> <code>#PID</code> <code>#root</code> <code>#sudo</code>
+    <code>#UID-GID</code> <code>#chmod</code> <code>#chown</code> <code>#octal</code>
+    <code>#interfaces</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="unix">
+  <h2><span class="num">01</span>Unix, Linux, distributions</h2>
+
+  <h3>D'où vient Unix</h3>
+  <ul>
+    <li><strong>1969</strong> — Unix naît aux <strong>laboratoires Bell</strong>, développé par
+        <strong>Ken Thompson</strong> et <strong>Dennis Ritchie</strong>, ce dernier étant aussi le
+        créateur du <strong>langage C</strong>.</li>
+    <li><strong>1973</strong> — Unix est réécrit presque entièrement <strong>en C</strong>, pour
+        faciliter la <strong>portabilité</strong>.</li>
+    <li>Le code source est vendu à bas prix aux sociétés. IBM, Sun et d'autres reprennent son
+        développement pour créer leur propre version : <strong>Solaris</strong> (Sun),
+        <strong>AIX</strong> (IBM), <strong>HP-UX</strong> (HP).</li>
+  </ul>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi la réécriture en C a tout changé</div>
+    <p>Avant 1973, un système d'exploitation s'écrivait en assembleur — donc pour <em>une</em>
+       machine, et il fallait tout reprendre pour en changer. En le réécrivant en C, langage
+       portable, Thompson et Ritchie ont rendu Unix transportable d'une architecture à l'autre en
+       recompilant simplement. C'est ce choix, plus que le système lui-même, qui explique qu'Unix
+       et ses descendants tournent aujourd'hui du Raspberry Pi au supercalculateur.</p>
+  </div>
+
+  <h3>Les caractéristiques d'Unix</h3>
+  <ul>
+    <li>Basé sur le principe <strong>« tout est fichier »</strong>.</li>
+    <li><strong>Multi-tâches</strong> en temps partagé.</li>
+    <li><strong>Multi-utilisateurs</strong>.</li>
+    <li>Utilisation du <strong>shell</strong> comme interpréteur de commandes.</li>
+    <li>Disponible sur une <strong>large gamme d'architectures</strong>, du PC au supercalculateur
+        massivement parallèle.</li>
+    <li>C'est le système le plus utilisé dans les universités, les centres de recherche et les
+        serveurs d'Internet.</li>
+  </ul>
+
+  <div class="encart analogie">
+    <div class="titre">💡 « Tout est fichier », concrètement</div>
+    <p>Le disque dur est un fichier (<code>/dev/sda</code>). Le clavier est un fichier. La souris
+       est un fichier. Même le générateur de nombres aléatoires est un fichier
+       (<code>/dev/urandom</code>). Conséquence pratique : les <em>mêmes</em> commandes — lire,
+       écrire, copier — fonctionnent sur tout. Vous n'avez pas cinquante outils à apprendre, mais
+       cinq outils applicables partout.</p>
+  </div>
+
+  <h3>Logiciel libre</h3>
+  <p>Un logiciel libre est un logiciel dont la licence prévoit :</p>
+  <ul>
+    <li>la <strong>disponibilité des codes sources</strong> ;</li>
+    <li>la possibilité de <strong>modifier, améliorer, adapter</strong> le logiciel, sous réserve
+        que ces modifications soient rendues accessibles à toute personne intéressée ;</li>
+    <li>la possibilité de <strong>copier et diffuser</strong> le logiciel, sous réserve que les
+        termes de la licence ne soient pas modifiés.</li>
+  </ul>
+  <p><strong>Exemples :</strong> Linux, OpenOffice, Apache, Sendmail, MySQL, PostgreSQL, gcc, PHP.</p>
+
+  <h3>Noyau et distributions</h3>
+  <p>Le <strong>noyau</strong> (ou <em>kernel</em>), développé par <strong>Linus Torvalds</strong>,
+     est l'élément essentiel de toutes les distributions Linux existantes. C'est l'ensemble de
+     programmes qui gère la machine et ses ressources. Chaque <strong>distribution</strong> essaie
+     d'offrir de la valeur ajoutée sous la forme d'<strong>outils d'installation et
+     d'administration</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Distribution</th><th>Origine</th><th>Remarque</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Red Hat Linux</strong></td><td>États-Unis</td><td>Référence en entreprise</td></tr>
+      <tr><td><strong>Fedora</strong></td><td>—</td><td>Version libre de Red Hat</td></tr>
+      <tr><td><strong>Debian</strong></td><td>Internet</td><td>Communautaire — <strong>celle du TP</strong></td></tr>
+      <tr><td><strong>Ubuntu</strong></td><td>—</td><td>Dérivée de Debian</td></tr>
+      <tr><td><strong>Mandrake Linux</strong></td><td>France</td><td>Devenue Mandriva</td></tr>
+      <tr><td><strong>SuSE Linux</strong></td><td>Allemagne</td><td></td></tr>
+      <tr><td>KNOPPIX, Slackware, Mandriva</td><td>—</td><td></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>La position du noyau dans une distribution</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Élément</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Noyau Linux</strong></td><td>Gère la machine et ses ressources</td></tr>
+      <tr><td><strong>Shell</strong></td><td>Interpréteur de commandes</td></tr>
+      <tr><td><strong>Pilotes</strong> (<em>drivers</em>)</td>
+          <td>Disques durs, carte graphique, carte réseau, imprimantes…</td></tr>
+      <tr><td><strong>Logiciels d'application</strong></td>
+          <td><strong>X-Window</strong> fournit l'environnement graphique ;
+              <strong>KDE</strong> et <strong>GNOME</strong> gèrent l'interface (fenêtres…)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="shell">
+  <h2><span class="num">02</span>Se connecter et utiliser le shell</h2>
+
+  <p>Linux étant un système <strong>multi-utilisateurs</strong>, il faut entrer un
+     <strong>nom et un mot de passe</strong> pour y accéder.</p>
+  <ul>
+    <li><strong>Utilisateur simple</strong> — droits restreints ; chaque utilisateur possède un
+        répertoire de travail.</li>
+    <li><strong>Super-utilisateur</strong> ou administrateur, <code>root</code> — tous les
+        droits.</li>
+  </ul>
+  <p>Les utilisateurs sont organisés en <strong>groupes</strong> : chaque utilisateur doit
+     appartenir à un groupe. La connexion se fait selon deux modes : <strong>mode texte</strong>
+     (ou console, pour exécuter des commandes shell) et <strong>mode graphique</strong> (à l'aide du
+     serveur de graphisme X-Window).</p>
+
+  <h3>Le shell</h3>
+  <p>C'est l'<strong>interface entre les utilisateurs et le système</strong>. Le shell est un
+     interpréteur qui exécute les commandes <strong>une à une</strong>, après traduction de
+     l'instruction — écrite en langage évolué — en langage interne.</p>
+  <p><strong>Versions :</strong> <code>sh</code>, <code>ksh</code>, <code>bash</code>,
+     <code>csh</code>… <code>bash</code> est celui de Debian et d'Ubuntu.</p>
+
+  <h3>Lire l'invite de commande</h3>
+<div class="bloc-code"><span class="langue">shell</span><pre><code>anthony@debian:~$
+   │       │     │ │
+   │       │     │ └── $ = simple utilisateur   #  = super-utilisateur (root)
+   │       │     └──── ~ = le répertoire personnel de l'utilisateur connecté
+   │       └────────── le nom de la machine
+   └────────────────── le nom de l'utilisateur connecté</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le caractère le plus important de l'écran</div>
+    <p><code>$</code> ou <code>#</code> ? C'est la première chose à regarder. Un <code>#</code>
+       signifie que vous êtes <strong>root</strong> : chaque commande peut détruire le système sans
+       le moindre avertissement. Sous Linux, <em>il n'y a pas de « êtes-vous sûr ? »</em>.</p>
+  </div>
+
+  <h3>La syntaxe d'une commande</h3>
+<div class="bloc-code"><span class="langue">syntaxe</span><pre><code>commande [option] [paramètres]
+
+• option     : NON nécessaire pour exécuter la commande     (souvent  -x  ou  --mot)
+• paramètres : arguments NÉCESSAIRES à l'exécution
+• les trois champs sont séparés par des ESPACES
+• plusieurs commandes sur une même ligne : les séparer par  ;
+
+exemple :   ls  -la  /etc
+            │    │    └── paramètre : le répertoire à lister
+            │    └─────── options : -l (détaillé) et -a (fichiers cachés)
+            └──────────── commande</code></pre></div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="arborescence">
+  <h2><span class="num">03</span>Le système de fichiers</h2>
+
+  <p>Le système de fichiers <strong>structure les données</strong> sur le ou les disques. Sous
+     Linux, il forme une <strong>arborescence unique</strong> :</p>
+  <ul>
+    <li>la <strong>racine</strong> est dénotée par <code>/</code> ;</li>
+    <li>les chemins sont séparés par <code>/</code> ;</li>
+    <li>les noms des objets sont des séquences de <strong>255 caractères maximum</strong>,
+        <strong>sensibles à la casse</strong> ;</li>
+    <li>le <strong>point en premier caractère</strong> signifie un <strong>fichier caché</strong> ;</li>
+    <li>le point <strong>ne sépare pas forcément</strong> le nom de son extension — exemples :
+        <code>rapport.ps.gz</code>, <code>postgresql-2.3.6-src.tar.Z</code>,
+        <code>README</code>.</li>
+  </ul>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Nommer proprement un fichier</div>
+    <p><strong>À éviter :</strong> <code>?</code> <code>*</code> <code>&amp;</code>
+       <code>`</code> <code>'</code> <code>"</code> <code>&lt;</code> <code>&gt;</code>, les
+       caractères accentués et les <strong>espaces</strong>.</p>
+    <p><strong>À utiliser :</strong> <code>A-Z</code> <code>a-z</code> <code>0-9</code>, le
+       soulignement <code>_</code>, le tiret <code>-</code> et le point <code>.</code>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sensible à la casse — vraiment</div>
+    <p><code>Rapport.txt</code>, <code>rapport.txt</code> et <code>RAPPORT.TXT</code> sont
+       <strong>trois fichiers différents</strong> qui peuvent coexister dans le même répertoire.
+       Windows ne fait pas cette distinction : c'est la source d'erreur numéro un quand on arrive
+       de Windows, en particulier sur les noms de scripts et de dossiers web.</p>
+  </div>
+
+  <h3>Les répertoires à connaître</h3>
+  <figure class="schema">
+    <svg viewBox="0 0 560 240" role="img" aria-label="Arborescence Linux">
+      <style>
+        .rt{fill:var(--accent);stroke:none}
+        .bx{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.3}
+        .rr{font:700 15px var(--mono);fill:#fff;text-anchor:middle}
+        .dn{font:600 12px var(--mono);fill:var(--accent-sombre)}
+        .dd{font:10.5px var(--sans);fill:var(--encre-tenue)}
+        .br{stroke:var(--bord-fort);stroke-width:1.3;fill:none}
+      </style>
+      <rect class="rt" x="18" y="14" width="46" height="30" rx="6"/>
+      <text class="rr" x="41" y="35">/</text>
+      <path class="br" d="M41 44 L41 226"/>
+      <g>
+        <path class="br" d="M41 32 L86 32"/>
+        <path class="br" d="M41 58 L86 58"/><rect class="bx" x="86" y="44" width="76" height="26" rx="5"/><text class="dn" x="96" y="62">/boot</text><text class="dd" x="176" y="62">démarrage du système</text>
+        <path class="br" d="M41 84 L86 84"/><rect class="bx" x="86" y="70" width="76" height="26" rx="5"/><text class="dn" x="96" y="88">/bin</text><text class="dd" x="176" y="88">commandes de base (binaires)</text>
+        <path class="br" d="M41 110 L86 110"/><rect class="bx" x="86" y="96" width="76" height="26" rx="5"/><text class="dn" x="96" y="114">/sbin</text><text class="dd" x="176" y="114">commandes du super-utilisateur</text>
+        <path class="br" d="M41 136 L86 136"/><rect class="bx" x="86" y="122" width="76" height="26" rx="5"/><text class="dn" x="96" y="140">/etc</text><text class="dd" x="176" y="140">fichiers de configuration</text>
+        <path class="br" d="M41 162 L86 162"/><rect class="bx" x="86" y="148" width="76" height="26" rx="5"/><text class="dn" x="96" y="166">/home</text><text class="dd" x="176" y="166">répertoires des utilisateurs simples</text>
+        <path class="br" d="M41 188 L86 188"/><rect class="bx" x="86" y="174" width="76" height="26" rx="5"/><text class="dn" x="96" y="192">/root</text><text class="dd" x="176" y="192">répertoire personnel de root</text>
+        <path class="br" d="M41 214 L86 214"/><rect class="bx" x="86" y="200" width="76" height="26" rx="5"/><text class="dn" x="96" y="218">/usr</text><text class="dd" x="176" y="218">programmes et logiciels</text>
+        <path class="br" d="M41 240 L86 240"/>
+      </g>
+      <rect class="bx" x="400" y="14" width="76" height="26" rx="5"/><text class="dn" x="410" y="32">/dev</text>
+      <text class="dd" x="410" y="52">noms des périphériques</text>
+    </svg>
+    <figcaption>Une racine unique, et chaque répertoire a un rôle défini. Il n'y a pas de « lecteur C: » sous Linux.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Chemin</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><code>.</code></td><td>Le répertoire <strong>actuel</strong></td></tr>
+      <tr><td><code>..</code></td><td>Le répertoire <strong>parent</strong></td></tr>
+      <tr><td><code>~</code></td><td>Le répertoire <strong>personnel</strong></td></tr>
+      <tr><td><code>/boot</code></td><td>Fichiers nécessaires au démarrage du système</td></tr>
+      <tr><td><code>/bin</code></td><td>Commandes de base (binaires)</td></tr>
+      <tr><td><code>/sbin</code></td><td>Commandes du super-utilisateur</td></tr>
+      <tr><td><code>/usr/bin</code>, <code>/usr/sbin</code></td><td>Autres fichiers binaires</td></tr>
+      <tr><td><code>/etc</code></td><td><strong>Fichiers de configuration</strong> du système et des services</td></tr>
+      <tr><td><code>/home</code></td><td>Répertoires personnels des utilisateurs simples</td></tr>
+      <tr><td><code>/root</code></td><td>Répertoire personnel de l'administrateur</td></tr>
+      <tr><td><code>/usr</code></td><td>Reste des programmes du système et logiciels</td></tr>
+      <tr><td><code>/dev</code></td><td>Noms des périphériques</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>/root</code> n'est pas <code>/</code></div>
+    <p>La <strong>racine</strong> est <code>/</code>. Le <strong>répertoire personnel de
+       root</strong> est <code>/root</code>. Deux choses différentes, souvent confondues à l'oral
+       parce qu'on dit « la racine » et « root ». De même, <code>/bin</code> contient les commandes
+       de <em>tout le monde</em>, <code>/sbin</code> celles de l'<em>administrateur</em> — le
+       <strong>s</strong> comme <em>system</em>.</p>
+  </div>
+
+  <h3>La représentation des disques</h3>
+  <p>Selon le type de contrôleur et d'interface sur lesquels les disques sont connectés, Linux
+     donne des <strong>noms différents</strong> aux fichiers spéciaux des périphériques. Chaque
+     disque est représenté par un <strong>fichier spécial de type bloc</strong> — et chaque
+     partition également.</p>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>lsblk              # liste les disques et partitions, en arborescence
+ls -l /dev/sd*     # les fichiers spéciaux des disques
+
+/dev/sda           → le premier disque
+/dev/sda1          → sa première partition
+/dev/sda2          → sa deuxième partition</code></pre></div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="commandes">
+  <h2><span class="num">04</span>Les commandes de base</h2>
+
+  <h3>Se repérer et se déplacer</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>pwd                 # affiche le répertoire de travail courant
+ls                  # liste le contenu du répertoire courant
+ls -l               # informations étendues : droits, propriétaire, groupe, taille
+ls -a               # affiche TOUS les fichiers, y compris les cachés (.nom)
+ls -la              # les deux à la fois
+ls -l -C            # affichage en colonnes
+
+cd /                # aller à la RACINE
+cd ..               # remonter au répertoire PARENT
+cd ~   ou   cd      # revenir à son répertoire personnel
+cd /usr/bin         # se déplacer vers un chemin précis
+cd -                # revenir au répertoire précédent</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le mémo de commandes présente <code>cd /</code> comme servant à « revenir au dossier
+       parent ». C'est inexact : <code>cd /</code> conduit à la <strong>racine</strong> du système
+       de fichiers. C'est <code>cd ..</code> qui remonte d'un niveau, vers le
+       <strong>parent</strong>. La confusion vient d'une fusion de deux lignes du tableau
+       d'origine.</p>
+  </div>
+
+  <h3>Créer, copier, déplacer, supprimer</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>mkdir dossier1                   # crée un répertoire
+mkdir -p dossier2/dossier3       # crée l'arborescence complète d'un coup
+touch essai.txt                  # crée un fichier texte vide
+
+cp fichier1 /dossier1            # copie un fichier dans un dossier
+cp -r dossier1 dossier2          # copie TOUT le dossier (récursif)
+
+mv fichier1 fichier2             # RENOMME fichier1 en fichier2
+mv dossier2 dossier3             # renomme un dossier
+mv fichier2 dossier3             # DÉPLACE fichier2 dans dossier3
+mv fichier2 dossier4/fichier3    # déplace ET renomme
+
+rm essai.txt                     # supprime un fichier
+rmdir dossier1                   # supprime un répertoire VIDE
+rm -r dossier1                   # supprime un répertoire et son contenu
+rm -rf dossier1                  # idem, sans aucune confirmation  ⚠ DANGER</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le mémo indique <code>rm dossier1</code> pour « supprimer un répertoire vide ». Cela
+       <strong>échoue</strong> : <code>rm</code> refuse les répertoires et répond
+       <code>rm: impossible de supprimer 'dossier1': est un dossier</code>. La commande correcte
+       est <strong><code>rmdir</code></strong> pour un répertoire vide, ou
+       <code>rm -r</code> pour un répertoire avec son contenu.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>rm -rf</code> — la commande qui ne pardonne pas</div>
+    <p>Il n'y a <strong>pas de corbeille</strong> sous Linux : ce qui est supprimé est perdu.
+       <code>rm -rf</code> ne demande aucune confirmation et ne s'arrête sur aucune erreur. Une
+       faute de frappe comme <code>rm -rf / home/bob</code> — avec un espace de trop — détruit le
+       système entier au lieu du seul dossier.</p>
+    <p><strong>Le réflexe :</strong> lancez d'abord <code>ls</code> avec exactement le même chemin.
+       Ce que <code>ls</code> affiche est précisément ce que <code>rm</code> supprimera.</p>
+  </div>
+
+  <h3>Se renseigner sur le système</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>man ls                    # AIDE sur une commande — la référence absolue
+uname -a                  # quel noyau est installé (uname -rms pour l'essentiel)
+cat /etc/debian_version   # quelle version de Debian
+cat /etc/issue            # quelle distribution
+who                       # utilisateurs actuellement connectés
+whoami                    # sous quel nom suis-je connecté
+id                        # mon UID, mon GID principal et tous mes groupes
+date                      # date et heure
+clear                     # efface l'écran</code></pre></div>
+
+  <h3>Arrêter et redémarrer</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>shutdown            # arrête le système        (ou  init 0  , ou  poweroff)
+shutdown -r         # redémarre le système     (ou  reboot  , ou  init 6)
+exit  /  logout     # ferme la session         (ou  Ctrl + D)</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les raccourcis qui font gagner des heures</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Touche</th><th>Effet</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>TAB</kbd></td><td><strong>Autocomplétion</strong> des noms de commandes et de
+            fichiers. À utiliser en permanence : c'est aussi une vérification que le fichier existe</td></tr>
+        <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Naviguer dans l'historique des commandes</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Arrêter la commande en cours</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Curseur en début de ligne</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Curseur en fin de ligne</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Fermer la session</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Vous êtes dans <code>/home/la copie A/projets</code>. Écrivez les commandes pour :
+       lister les fichiers cachés, créer <code>test/sous-test</code> en une seule commande,
+       revenir à la racine, puis afficher l'aide de <code>date</code>.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>ls -la                    # ou  ls -a  si le détail n'est pas demandé
+mkdir -p test/sous-test   # l'option -p crée toute l'arborescence
+cd /                      # la racine — PAS cd ..  qui remonterait à /home/la copie A
+man date                  # l'aide complète  (date --help pour un résumé)</code></pre></div>
+      <p><strong>Le point qui départage :</strong> l'option <code>-p</code> de <code>mkdir</code>.
+         Sans elle, <code>mkdir test/sous-test</code> échoue tant que <code>test</code> n'existe
+         pas ; il faudrait deux commandes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="paquets">
+  <h2><span class="num">05</span>La gestion des paquets</h2>
+
+  <p>Contrairement à d'autres systèmes, il n'est pas courant sous Linux de disposer de logiciels
+     fournis avec un programme d'installation interactif — <strong>pas d'<code>install.exe</code></strong>.
+     On dispose des produits, outils et mises à jour sous forme de <strong>paquetages</strong>
+     (<em>packages</em>). Un package est un fichier, parfois gros, qui contient le produit à
+     installer <strong>et des règles</strong> :</p>
+  <ul>
+    <li><strong>Gestion des dépendances</strong> — le produit ne pourra être installé que si les
+        produits qu'il utilise sont déjà présents ;</li>
+    <li><strong>Pré-installation</strong> — des actions à prévoir avant l'installation : changer
+        des droits, créer des répertoires ;</li>
+    <li><strong>Post-installation</strong> — des actions après : paramétrer un fichier de
+        configuration, compiler une annexe.</li>
+  </ul>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Format</th><th>Distributions</th><th>Outil</th></tr></thead>
+    <tbody>
+      <tr><td><strong>RPM</strong> (<em>Red Hat Package Manager</em>)</td>
+          <td>Red Hat, Fedora, SuSE, Mandriva</td><td><code>rpm -i paquet.rpm</code>, <code>dnf</code>, <code>yum</code></td></tr>
+      <tr><td><strong>DPKG</strong> (<em>Debian Package</em>)</td>
+          <td>Debian, Knoppix, Kaella, Ubuntu</td><td><code>dpkg</code>, et surtout <strong><code>apt</code></strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Outre le format, ce sont surtout les <strong>outils</strong> qui les différencient. Nous
+     utilisons <strong><code>apt</code></strong>, qui gère les dépendances sous Debian et Ubuntu.
+     Ces commandes s'utilisent en tant que <code>root</code> ou via <code>sudo</code>.</p>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo apt update                 # met à jour la BASE LOCALE (la liste des paquets disponibles)
+sudo apt upgrade                # met à jour les paquets installés
+sudo apt full-upgrade           # mise à jour complète, peut retirer des paquets
+sudo apt install php            # installe un paquet
+sudo apt remove php             # désinstalle, en gardant la configuration
+sudo apt purge php              # désinstalle ET supprime la configuration
+sudo apt autoremove             # retire les dépendances devenues inutiles
+apt search apache               # cherche un paquet
+apt show php                    # affiche les détails d'un paquet</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>update</code> ≠ <code>upgrade</code></div>
+    <p><code>apt update</code> ne met <strong>aucun logiciel</strong> à jour : il rafraîchit
+       seulement le <em>catalogue</em>, la liste de ce qui est disponible dans les dépôts. C'est
+       <code>apt upgrade</code> qui installe réellement les nouvelles versions.</p>
+    <p>D'où l'enchaînement systématique : <code>sudo apt update &amp;&amp; sudo apt upgrade</code>.
+       Faire <code>upgrade</code> sans <code>update</code> revient à faire ses courses avec le
+       catalogue de l'an dernier.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Un dépôt APT, c'est un magasin d'applications — vingt ans avant l'App Store. Vous ne
+       téléchargez pas un <code>.exe</code> sur un site inconnu : vous demandez au système
+       d'installer un paquet <strong>signé et vérifié</strong>, qui apporte automatiquement tout ce
+       dont il a besoin. C'est aussi pour cela que les virus sont rares sous Linux : personne ne
+       télécharge de logiciel au hasard.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="processus">
+  <h2><span class="num">06</span>Les processus</h2>
+
+  <p>Un <strong>processus</strong> représente à la fois un <strong>programme en cours
+     d'exécution</strong> et <strong>tout son environnement d'exécution</strong> : mémoire, état,
+     identification, propriétaire, père.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Caractéristiques</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Processus système</strong><br>(<em>daemon</em>)</td>
+          <td>N'est attaché à <strong>aucun terminal</strong>. Son rôle est de rendre des services :
+              FTP, SSH, serveur web…</td></tr>
+      <tr><td><strong>Processus utilisateur</strong></td>
+          <td>Lancé par un utilisateur ; se termine automatiquement lorsque celui-ci se
+              déconnecte</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les données d'identification d'un processus</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Donnée</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PID</strong></td><td><em>Process Identifier</em> — numéro <strong>unique</strong> pour chaque processus</td></tr>
+      <tr><td><strong>PPID</strong></td><td><em>Parent PID</em> — le PID du processus « père »</td></tr>
+      <tr><td><strong>État</strong></td><td>Prêt (<em>Ready</em>), Actif, Endormi (<em>Sleep</em>), Attente E/S…</td></tr>
+      <tr><td><strong>Terminal</strong></td><td>Le terminal depuis lequel le processus a été lancé</td></tr>
+      <tr><td><strong>Priorité</strong></td><td>Liée à son contexte d'exécution</td></tr>
+      <tr><td><strong>Taille mémoire</strong></td><td>Occupation en mémoire</td></tr>
+      <tr><td><strong>UID</strong></td><td><em>User Identifier</em> — l'utilisateur qui a lancé le processus</td></tr>
+      <tr><td><strong>GID</strong></td><td><em>Group Identifier</em> — le <strong>groupe</strong> propriétaire du processus</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Précision</div>
+    <p>Le polycopié définit le GID comme « le GID du propriétaire du processus,
+       c'est-à-dire de l'utilisateur qui a lancé l'exécution » — reprenant mot pour mot la
+       définition de l'UID. Le <strong>GID désigne le groupe</strong>, pas l'utilisateur : c'est
+       en général le groupe principal de celui qui a lancé le processus. La distinction compte,
+       car les droits d'accès s'appliquent séparément au propriétaire et au groupe.</p>
+  </div>
+
+  <h3>Avant-plan et arrière-plan</h3>
+  <p>Lorsqu'un processus fonctionne en <strong>arrière-plan</strong>, il n'est
+     <strong>pas bloquant</strong> : l'utilisateur récupère la main pour continuer son travail. Il
+     suffit de placer un <strong><code>&amp;</code></strong> à la fin de la commande.</p>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>ps                    # les processus du terminal courant
+ps -ef                # TOUS les processus, format complet
+ps aux                # idem, autre syntaxe, avec la consommation CPU/mémoire
+pstree                # l'ARBORESCENCE des processus (père → fils)
+top   /   htop        # activité en temps réel
+
+sleep 1000 &          # lance en arrière-plan ; le shell affiche le PID
+jobs                  # liste les tâches de la session
+fg %1                 # ramène la tâche 1 en AVANT-plan
+Ctrl + Z              # STOPPE le processus courant (il ne meurt pas, il est suspendu)
+bg %1                 # relance la tâche 1 en ARRIÈRE-plan
+ps -f -p 1234         # les détails du processus dont le PID est 1234
+
+kill 1234             # demande poliment au processus de se terminer  (signal TERM)
+kill -9 1234          # le TUE sans discussion  (signal KILL) — dernier recours</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Stopper n'est pas tuer</div>
+    <p><kbd>Ctrl</kbd>+<kbd>Z</kbd> <strong>suspend</strong> le processus : il reste en mémoire,
+       figé, et peut repartir avec <code>fg</code> ou <code>bg</code>.<br>
+       <kbd>Ctrl</kbd>+<kbd>C</kbd> et <code>kill</code> le <strong>terminent</strong>.</p>
+    <p>L'énoncé du TP demande explicitement de « stopper le processus, <em>ne pas le tuer</em> » :
+       c'est <kbd>Ctrl</kbd>+<kbd>Z</kbd> qui est attendu, pas <code>kill</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="utilisateurs">
+  <h2><span class="num">07</span>Utilisateurs et groupes</h2>
+
+  <p>Linux est <strong>multi-utilisateurs</strong> : plusieurs personnes peuvent s'y connecter en
+     même temps et partager des ressources. Chaque utilisateur a un <strong>nom</strong> et un
+     <strong>répertoire personnel</strong> dans <code>/home</code>. Le système peut théoriquement
+     accueillir <strong>2<sup>32</sup></strong> utilisateurs.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Précision de lecture</div>
+    <p>Le diaporama affiche « 232 utilisateurs » : il s'agit de <strong>2<sup>32</sup></strong>
+       (environ 4,3 milliards), l'exposant ayant été perdu à l'impression. Même accident que dans
+       le chapitre sur la RAM.</p>
+  </div>
+
+  <h3>Le super-utilisateur</h3>
+  <p>Pour des raisons de sécurité, un utilisateur ordinaire <strong>ne peut pas tout faire</strong>.
+     Seul le super-utilisateur peut installer ou supprimer des programmes, et accéder aux fichiers
+     « dangereux ».</p>
+  <p>Les utilisateurs sont identifiés par un nom et un <strong>UID</strong>. <strong>Le
+     super-utilisateur <code>root</code> a toujours l'UID 0.</strong> Il existe par ailleurs de
+     nombreux utilisateurs « spéciaux », créés par les services.</p>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo commande                    # exécute UNE commande en super-utilisateur
+su                               # ouvre une session root (si on n'a pas le droit d'utiliser sudo)
+su -c 'commande options'         # exécute UNE seule commande en super-utilisateur
+sudo visudo                      # édite /etc/sudoers pour autoriser un utilisateur</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>sudo</code> ou <code>su</code> ?</div>
+    <p><code>sudo</code> demande <strong>votre</strong> mot de passe et n'élève les privilèges que
+       pour <strong>une commande</strong>. <code>su</code> demande le mot de passe de
+       <strong>root</strong> et ouvre une session root <strong>entière</strong>.</p>
+    <p><code>sudo</code> est préférable : chaque action est journalisée, l'élévation est limitée
+       dans le temps, et on peut accorder des droits <strong>précis</strong> via
+       <code>/etc/sudoers</code> — par exemple le droit de redémarrer un service, et rien d'autre.
+       C'est exactement la réponse attendue à la question « comment permettre à un utilisateur
+       d'exécuter une commande administrative sans lui donner un shell root complet ».</p>
+  </div>
+
+  <h3>Gérer les utilisateurs</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo adduser bob                    # ajoute l'utilisateur (interactif, crée le /home)
+sudo useradd bob                    # équivalent bas niveau, moins automatique
+sudo deluser bob                    # supprime — le /home N'EST PAS supprimé
+sudo deluser --remove-home bob      # supprime aussi son répertoire personnel
+sudo deluser --remove-all-files bob # supprime tous ses fichiers, où qu'ils soient
+sudo usermod bob                    # modifie l'utilisateur
+passwd                              # change SON propre mot de passe
+sudo passwd bob                     # change celui de bob</code></pre></div>
+
+  <h3>Gérer les groupes</h3>
+  <p>Les groupes sont identifiés par un nom et un <strong>GID</strong>. Ils servent à définir des
+     permissions de manière plus <strong>globale et simple</strong> :</p>
+  <ul>
+    <li>faire partie de <code>audio</code> permet d'utiliser les périphériques audio ;</li>
+    <li>faire partie de <code>lpadmin</code> permet de configurer les imprimantes ;</li>
+    <li>faire partie de <code>sudo</code> permet… d'utiliser <code>sudo</code>.</li>
+  </ul>
+  <p><strong>Chaque utilisateur fait partie de son propre groupe</strong>, créé à son nom.</p>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>groups                              # affiche les groupes dont je fais partie
+sudo addgroup projet                # crée un groupe
+sudo delgroup projet                # supprime un groupe
+sudo groupmod projet                # modifie un groupe
+
+sudo usermod -aG projet bob         # AJOUTE bob au groupe projet
+                                    # -a = append : sans lui, on REMPLACE tous ses groupes !</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'option <code>-a</code> n'est pas optionnelle</div>
+    <p><code>usermod -G projet bob</code> — sans le <code>-a</code> — <strong>remplace</strong> la
+       liste complète des groupes secondaires de bob par <code>projet</code> seul. S'il était dans
+       <code>sudo</code>, il en sort : il perd instantanément ses droits d'administration.</p>
+    <p>Retenez : <strong><code>usermod -aG</code></strong>, <em>a</em> comme
+       <em>append</em> — « ajouter ». C'est une question classique de QCM.</p>
+  </div>
+
+  <h3>Les fichiers du système</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Fichier</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><code>/etc/passwd</code></td>
+          <td>Liste <strong>principale des comptes</strong> : nom, UID, GID principal, répertoire
+              personnel, shell. <strong>Lisible par tous</strong> — malgré son nom, il ne contient
+              plus de mot de passe</td></tr>
+      <tr><td><code>/etc/shadow</code></td>
+          <td>Les <strong>mots de passe chiffrés</strong>. Lisible par root seul</td></tr>
+      <tr><td><code>/etc/group</code></td><td>La liste des groupes et de leurs membres</td></tr>
+      <tr><td><code>/etc/sudoers</code></td>
+          <td>Qui a le droit d'utiliser <code>sudo</code>, et pour quelles commandes. À éditer
+              <strong>uniquement avec <code>visudo</code></strong>, qui vérifie la syntaxe</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="permissions">
+  <h2><span class="num">08</span>Les permissions</h2>
+
+  <p>Les objectifs sont au nombre de trois : la <strong>sécurité des données</strong> (empêcher
+     l'accès non autorisé), l'<strong>organisation</strong> (permettre des accès spécifiques selon
+     les rôles) et l'<strong>audit</strong> (identifier qui a accédé ou modifié des fichiers
+     sensibles).</p>
+
+  <h3>Lire une ligne de <code>ls -l</code></h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>$ ls -l
+-rwxr-xr--  1  la copie A  projet  4096  15 jan 10:23  script.sh
+│└┬┘└┬┘└┬┘     └─┬─┘  └─┬──┘
+│ │  │  │        │      └──── le GROUPE propriétaire
+│ │  │  │        └─────────── le PROPRIÉTAIRE (user)
+│ │  │  └──────────────────── droits des AUTRES     (o)  r--
+│ │  └─────────────────────── droits du GROUPE      (g)  r-x
+│ └────────────────────────── droits du PROPRIÉTAIRE(u)  rwx
+└──────────────────────────── TYPE de fichier</code></pre></div>
+
+  <p>Les types les plus fréquents : <code>-</code> pour un <strong>fichier ordinaire</strong>,
+     <code>d</code> pour un <strong>répertoire</strong>, <code>l</code> pour un
+     <strong>lien</strong>.</p>
+
+  <h3>Les trois catégories et les trois droits</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Catégorie</th><th>Qui</th><th></th><th>Droit</th><th>Sur un fichier</th><th>Sur un répertoire</th><th>Valeur</th></tr></thead>
+    <tbody>
+      <tr><td><code>u</code></td><td><strong>User</strong> — le propriétaire</td><td></td>
+          <td><code>r</code></td><td>Lire le contenu</td><td><strong>Lister</strong> le contenu</td><td><strong>4</strong></td></tr>
+      <tr><td><code>g</code></td><td><strong>Group</strong> — l'équipe</td><td></td>
+          <td><code>w</code></td><td>Modifier</td><td>Créer / supprimer des fichiers</td><td><strong>2</strong></td></tr>
+      <tr><td><code>o</code></td><td><strong>Others</strong> — le reste du monde</td><td></td>
+          <td><code>x</code></td><td>Exécuter comme programme</td><td><strong>Traverser</strong> (entrer dedans)</td><td><strong>1</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Un fichier exécutable se lance avec <code>./fichier</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sur un répertoire, les droits ne veulent pas dire la même chose</div>
+    <ul>
+      <li><code>r</code> — je peux <strong>lister</strong> les noms des fichiers.</li>
+      <li><code>x</code> — je peux <strong>traverser</strong> le répertoire, donc accéder à un
+          fichier dont je connais déjà le nom.</li>
+    </ul>
+    <p>D'où deux situations déroutantes qui tombent souvent :</p>
+    <ul>
+      <li><code>r</code> sans <code>x</code> — je vois les noms mais je ne peux
+          <strong>rien ouvrir</strong>.</li>
+      <li><code>x</code> sans <code>r</code> — je ne vois rien, mais si je connais le nom exact,
+          j'ouvre le fichier.</li>
+    </ul>
+    <p>C'est pourquoi un répertoire utile porte presque toujours <code>r</code> et <code>x</code>
+       ensemble.</p>
+  </div>
+
+  <h3>Modifier les droits — la méthode symbolique</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>chmod g+w fich       # AJOUTE le droit d'écriture au groupe
+chmod o+wx fich      # ajoute écriture et exécution aux autres
+chmod u-r fich       # RETIRE la lecture au propriétaire
+chmod g=r fich       # FIXE les droits du groupe à « lecture seule » exactement
+chmod ug-wx fich     # retire w et x au propriétaire ET au groupe
+chmod a+r fich       # a = all : ajoute la lecture à tout le monde
+
+  qui :  u (user)  g (group)  o (others)  a (all)
+  quoi:  + (ajoute)  - (retire)  = (fixe exactement)
+  koi :  r (4)  w (2)  x (1)</code></pre></div>
+
+  <h3>Modifier les droits — la méthode octale</h3>
+  <p>On utilise <strong>un chiffre par catégorie</strong>, obtenu en additionnant les valeurs des
+     droits souhaités.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>r = 4     w = 2     x = 1
+
+rwx = 4+2+1 = 7      r-x = 4+0+1 = 5      r-- = 4      --- = 0
+rw- = 4+2   = 6      -wx =   2+1 = 3      -w- = 2      --x = 1
+
+chmod 755 fichier    →  rwx r-x r-x   (le classique d'un script ou d'un dossier)
+chmod 644 fichier    →  rw- r-- r--   (le classique d'un fichier de données)
+chmod 640 fichier    →  rw- r-- ---   (le groupe lit, les autres ne voient rien)
+chmod 770 dossier    →  rwx rwx ---   (travail d'équipe, rien pour l'extérieur)
+chmod 600 fichier    →  rw- --- ---   (privé : clé SSH, mot de passe)</code></pre></div>
+
+  <h3>Un exemple déroulé, à partir de <code>644</code></h3>
+<div class="bloc-code"><span class="langue">exercice</span><pre><code>départ                                  644   rw- r-- r--
+
+1. ajouter w au groupe          g+w  →  664   rw- rw- r--
+2. ajouter wx aux autres        o+wx →  667   rw- rw- rwx
+3. retirer r au propriétaire    u-r  →  267   -w- rw- rwx
+4. retirer w au groupe
+   et wx aux autres             g-w, o-wx → 244   -w- r-- r--</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le diaporama donne <code>chmod 367</code> à l'étape 3 et <code>chmod 344</code> à l'étape 4.
+       Les deux valeurs sont fausses, et la seconde découle de la première.</p>
+    <p><strong>Étape 3 :</strong> le propriétaire a <code>6</code> (<code>rw-</code>). Lui retirer
+       <code>r</code> revient à retrancher <strong>4</strong> : 6 − 4 = <strong>2</strong>
+       (<code>-w-</code>). Le résultat est donc <strong><code>267</code></strong>, pas 367 —
+       <code>3</code> vaudrait <code>-wx</code>, ce qui signifierait qu'on a <em>ajouté</em> le
+       droit d'exécution alors qu'on n'a rien fait de tel.</p>
+    <p><strong>Étape 4 :</strong> en repartant de <code>267</code> — groupe 6 − 2 = 4, autres
+       7 − 3 = 4 — on obtient <strong><code>244</code></strong>, et non 344.</p>
+    <p><strong>Le contrôle qui évite l'erreur :</strong> après chaque étape, retraduisez le nombre
+       en <code>rwx</code> et relisez l'énoncé. Un chiffre qui augmente alors qu'on a « retiré » un
+       droit signale une faute de calcul.</p>
+  </div>
+
+  <h3>Changer le propriétaire</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo chown alice fichier            # change le PROPRIÉTAIRE
+sudo chown alice:projet fichier     # change le propriétaire ET le groupe, d'un coup
+sudo chgrp projet fichier           # change seulement le GROUPE
+sudo chown -R alice:projet dossier  # récursif, sur tout le contenu</code></pre></div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Trois personnes doivent travailler ensemble dans
+       <code>/srv/projet</code>, sans que quiconque d'autre puisse y accéder ni y voir quoi que ce
+       soit. Quelle est la bonne solution, et pourquoi pas <code>chmod 777</code> ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>La solution :</strong> un <strong>groupe commun</strong> et des permissions
+         <code>rwxrwx---</code>, soit <strong><code>770</code></strong>.</p>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo addgroup projet
+sudo usermod -aG projet alice
+sudo usermod -aG projet bob
+sudo usermod -aG projet claire
+
+sudo chgrp projet /srv/projet      # le groupe devient propriétaire
+sudo chmod 770 /srv/projet         # rwx pour u et g, RIEN pour les autres
+sudo chmod g+s /srv/projet         # bonus : les fichiers créés héritent du groupe</code></pre></div>
+      <p><strong>Pourquoi pas <code>777</code> :</strong> cela donne
+         <strong>tous les droits à tout le monde</strong>, y compris à n'importe quel compte de
+         service compromis. Le but était justement de restreindre : <code>777</code> fait
+         exactement l'inverse. C'est la mauvaise réponse classique du QCM.</p>
+      <p><strong>Pourquoi pas non plus un compte partagé ni le mot de passe root :</strong> on perd
+         toute traçabilité — impossible de savoir qui a fait quoi — et on donne bien plus de droits
+         que nécessaire. Le principe est celui du <strong>moindre privilège</strong> : juste ce
+         qu'il faut, à la bonne personne.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="reseau">
+  <h2><span class="num">09</span>La configuration réseau</h2>
+
+  <h3>Voir la configuration actuelle</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>ip a          # ou  ip addr  — affiche les interfaces et leurs adresses
+ip route      # la table de routage, dont la passerelle par défaut
+              # (ifconfig et route sont les commandes ANCIENNES, souvent absentes)</code></pre></div>
+  <p>La commande retourne l'interface <code>lo</code>, qui correspond à la <strong>boucle
+     locale</strong> (<em>loopback</em>), ainsi qu'une ou plusieurs autres interfaces —
+     <code>enp0s3</code>, <code>ens33</code>… Il faut <strong>récupérer le nom exact</strong> de
+     l'interface connectée au réseau local.</p>
+
+  <h3>Passer en adresse IP statique</h3>
+  <p>On édite le fichier <strong><code>/etc/network/interfaces</code></strong>, où les interfaces
+     sont déclarées. La mention <code>inet dhcp</code> signifie que l'interface est en mode DHCP :
+     il faut remplacer <code>dhcp</code> par <code>static</code> et déclarer les propriétés.</p>
+
+<div class="bloc-code"><span class="langue">/etc/network/interfaces</span><pre><code>auto enp0s3
+iface enp0s3 inet static
+    address   10.0.0.10
+    netmask   255.255.255.0
+    gateway   10.0.0.1
+    dns-nameservers 8.8.8.8 1.1.1.1</code></pre></div>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo nano /etc/network/interfaces          # éditer, puis sauvegarder et fermer
+sudo systemctl restart networking.service  # redémarrer le service réseau
+sudo ifup enp0s3                           # activer la carte réseau
+ip a                                       # VÉRIFIER la nouvelle configuration</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les quatre lignes qui font échouer le TP</div>
+    <ul>
+      <li><strong><code>auto enp0s3</code> manquante</strong> — sans elle, l'interface n'est pas
+          activée au démarrage. Tout est juste, et pourtant rien ne marche après un
+          redémarrage.</li>
+      <li><strong>Le masque en notation CIDR</strong> — dans ce fichier, on écrit
+          <code>netmask 255.255.255.0</code> sur une ligne séparée, <em>pas</em>
+          <code>address 10.0.0.10/24</code>.</li>
+      <li><strong>Le nom de l'interface</strong> — <code>eth0</code> n'existe plus sur Debian
+          récent. Relevez le nom réel avec <code>ip a</code> avant d'écrire quoi que ce soit.</li>
+      <li><strong>La passerelle oubliée</strong> — sans <code>gateway</code>, la machine
+          communique dans son LAN mais ne sort pas.</li>
+    </ul>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi <code>eth0</code> a disparu</div>
+    <p>Autrefois, les interfaces étaient numérotées dans l'ordre de détection au démarrage :
+       <code>eth0</code>, <code>eth1</code>… Problème : cet ordre pouvait <strong>changer</strong>
+       d'un démarrage à l'autre sur une machine à plusieurs cartes, et la configuration se
+       retrouvait appliquée à la mauvaise interface. Les noms actuels — <code>enp0s3</code>,
+       <code>ens33</code> — encodent l'<strong>emplacement physique</strong> de la carte
+       (<em>bus</em>, <em>slot</em>) : ils sont laids, mais ils ne bougent jamais.</p>
+  </div>
+
+  <h3>Statique ou DHCP ?</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Adresse statique</th><th>DHCP</th></tr></thead>
+    <tbody>
+      <tr><td>Pour</td><td><strong>Serveurs</strong>, imprimantes, routeurs, switchs</td>
+          <td>Postes de travail, portables, mobiles</td></tr>
+      <tr><td>Avantage</td><td>Adresse <strong>stable et prévisible</strong> : les clients et le
+          DNS la retrouvent toujours</td><td>Aucune configuration manuelle, aucun conflit</td></tr>
+      <tr><td>Inconvénient</td><td>À documenter, sous peine de conflit d'adresses</td>
+          <td>L'adresse peut changer — inacceptable pour un service</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Sur un serveur accessible en permanence, l'adressage <strong>statique est
+     indispensable</strong>.</p>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Unix 1969, réécrit en C en 1973</strong> pour la portabilité. Linux = un
+          <strong>noyau</strong> (Torvalds) + une <strong>distribution</strong>.</li>
+      <li><strong>Tout est fichier</strong>, tout part de <code>/</code>, tout est
+          <strong>sensible à la casse</strong>.</li>
+      <li><code>$</code> = utilisateur simple, <code>#</code> = <strong>root</strong>. Syntaxe :
+          <code>commande [option] [paramètres]</code>.</li>
+      <li><strong>À retenir :</strong> <code>/etc</code> configuration · <code>/home</code>
+          utilisateurs · <code>/bin</code> commandes · <code>/sbin</code> commandes admin ·
+          <code>/dev</code> périphériques.</li>
+      <li><code>apt update</code> = catalogue, <code>apt upgrade</code> = installation. Jamais
+          l'un sans l'autre.</li>
+      <li><strong>PID unique</strong>, <code>&amp;</code> pour l'arrière-plan,
+          <kbd>Ctrl</kbd>+<kbd>Z</kbd> suspend, <code>kill</code> termine.</li>
+      <li><strong><code>root</code> a l'UID 0.</strong> <code>sudo</code> pour une commande,
+          <code>usermod <strong>-aG</strong></code> pour ajouter à un groupe.</li>
+      <li><strong>r=4, w=2, x=1.</strong> Sur un répertoire : <code>r</code> liste,
+          <code>x</code> traverse.</li>
+      <li><strong>Serveur = IP statique</strong>, dans <code>/etc/network/interfaces</code>, sans
+          oublier <code>auto</code> ni <code>gateway</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-Cours-Administration des systèmes Linux.pdf — le professeur</li>
+      <li>1-1-Memo-Commande_base.pdf — tutos-info.fr, Debian 12</li>
+      <li>1-2-TP-Permission.pdf · 1-2-TP_accès_Sécurité_linux.pdf</li>
+      <li>Adresse IP statique sur Linux.pdf</li>
+      <li>Test Linux.pdf — évaluation notée</li>
+      <li>Arborescence.docx · Les Commandes.docx · Les Permissions.docx</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration Cisco — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : modes IOS, configuration complète d'un switch, sécurisation des accès, SVI et lecture des états d'interface.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#modes-exo">1 · Naviguer dans les modes</a></li>
+    <li><a href="#config-complete">2 · Configuration complète d'un switch</a></li>
+    <li><a href="#tp-switch">3 · TP — lire les états d'interface</a></li>
+    <li><a href="#erreurs">4 · Corriger une configuration</a></li>
+    <li><a href="#scenario">5 · Cas de synthèse</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Configuration Cisco — exercices</h1>
+  <p class="chapeau">Des commandes à écrire, des configurations à corriger, des états d'interface
+     à interpréter. Exactement ce qui tombe en TP noté.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Le conseil qui vaut des points</h2>
+      <p>En épreuve, <strong>écrivez le prompt devant chaque commande</strong> :
+         <code>S1(config-if)#</code>. Cela prouve au correcteur que vous savez dans quel mode vous
+         vous trouvez — et cela vous évite à vous-même la moitié des erreurs.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="modes-exo">
+  <h2><span class="num">01</span>Naviguer dans les modes</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Quel mode, quelle commande ? <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Indiquez le <strong>mode</strong> (et son invite) dans lequel il faut se trouver, et la
+         <strong>commande</strong> pour y arriver depuis le mode d'exécution utilisateur.</p>
+      <ol>
+        <li>Donner un nom au commutateur</li>
+        <li>Configurer le mot de passe de la console</li>
+        <li>Attribuer une adresse IP à l'interface VLAN 1</li>
+        <li>Enregistrer la configuration</li>
+        <li>Afficher la table des adresses MAC</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Tâche</th><th>Mode</th><th>Chemin depuis <code>Switch&gt;</code></th></tr></thead>
+          <tbody>
+            <tr><td>1 — Nommer</td><td><code>(config)#</code><br>Configuration globale</td>
+                <td><code>enable</code> → <code>configure terminal</code> → <code>hostname S1</code></td></tr>
+            <tr><td>2 — Mot de passe console</td><td><code>(config-line)#</code><br>Configuration de ligne</td>
+                <td>… → <code>line console 0</code> → <code>password X</code> + <code>login</code></td></tr>
+            <tr><td>3 — Adresse IP sur VLAN 1</td><td><code>(config-if)#</code><br>Configuration d'interface</td>
+                <td>… → <code>interface vlan 1</code> → <code>ip address …</code> + <code>no shutdown</code></td></tr>
+            <tr><td>4 — Enregistrer</td><td><code>#</code><br><strong>Exécution privilégié</strong></td>
+                <td><code>enable</code> → <code>copy running-config startup-config</code></td></tr>
+            <tr><td>5 — Table MAC</td><td><code>#</code><br>Exécution privilégié</td>
+                <td><code>enable</code> → <code>show mac address-table</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les commandes <code>show</code> et <code>copy</code> ne sont pas des commandes de configuration</div>
+          <p>Elles s'exécutent en mode <strong>privilégié</strong> (<code>#</code>), pas en mode de
+             configuration. Erreur très fréquente : taper <code>copy run start</code> depuis
+             <code>(config)#</code>. IOS répond alors <code>% Invalid input detected</code>.</p>
+          <p>Le réflexe : <code>end</code> pour remonter au <code>#</code>, puis
+             <code>copy run start</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Lire les messages d'erreur <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Que signifie chacun de ces retours, et que faire ?</p>
+<div class="bloc-code"><pre><code>a)  S1# show ru
+    % Ambiguous command:  "show ru"
+
+b)  S1(config)# interface
+    % Incomplete command.
+
+c)  S1(config)# hostnme S1
+    % Invalid input detected at '^' marker.
+
+d)  S1# ping 192.168.1.99
+    ....."Translating "192.168.1.99"...domain server (255.255.255.255)</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th></th><th>Signification</th><th>Solution</th></tr></thead>
+          <tbody>
+            <tr><td><strong>a</strong></td><td>L'abréviation correspond à <strong>plusieurs
+                commandes</strong> — <code>show running-config</code>, <code>show rmon</code>…</td>
+                <td>Taper quelques lettres de plus : <code>show run</code></td></tr>
+            <tr><td><strong>b</strong></td><td>La commande est <strong>valide mais
+                incomplète</strong> : il manque l'interface à configurer</td>
+                <td><code>interface ?</code> pour voir les possibilités, puis
+                    <code>interface vlan 1</code></td></tr>
+            <tr><td><strong>c</strong></td><td><strong>Faute de frappe</strong> —
+                <code>hostnme</code>. Le <code>^</code> pointe l'endroit exact</td>
+                <td><code>hostname S1</code></td></tr>
+            <tr><td><strong>d</strong></td><td>IOS tente une <strong>résolution DNS</strong> et
+                bloque la console une trentaine de secondes</td>
+                <td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>6</kbd> pour interrompre, puis
+                    <code>no ip domain-lookup</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le cas (d) mérite un mot</div>
+          <p>Ce message apparaît dès qu'IOS reçoit quelque chose qu'il ne reconnaît pas comme une
+             commande : il suppose que vous vouliez atteindre un hôte et tente de résoudre son nom.
+             Il interroge alors l'adresse de diffusion <code>255.255.255.255</code>, n'obtient rien,
+             et attend le délai complet.</p>
+          <p>C'est pourquoi <code>no ip domain-lookup</code> est la première commande que l'on tape
+             sur un équipement de laboratoire : elle supprime définitivement cette perte de
+             temps.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="config-complete">
+  <h2><span class="num">02</span>Configuration complète d'un switch</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>De l'état d'usine à l'administration à distance <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un commutateur sort de son carton. Écrivez la <strong>séquence complète</strong> de
+         commandes, avec les prompts, pour :</p>
+      <ol>
+        <li>le nommer <code>S1</code> ;</li>
+        <li>protéger le mode privilégié par <code>classe456</code> ;</li>
+        <li>protéger la console par <code>cisco123</code> ;</li>
+        <li>protéger les 16 lignes VTY par <code>vty789</code> ;</li>
+        <li>chiffrer tous les mots de passe ;</li>
+        <li>afficher une bannière d'avertissement ;</li>
+        <li>lui donner l'adresse <code>192.168.1.2/24</code> avec la passerelle
+            <code>192.168.1.1</code> ;</li>
+        <li>désactiver la résolution DNS ;</li>
+        <li>enregistrer.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch&gt; enable
+Switch# configure terminal
+
+! ─── 1. nom d'hôte ───────────────────────────────────────────
+Switch(config)# hostname S1
+
+! ─── 8. confort : plus d'attente sur les fautes de frappe ────
+S1(config)# no ip domain-lookup
+
+! ─── 2. mode privilégié ──────────────────────────────────────
+S1(config)# enable secret classe456
+
+! ─── 3. console ──────────────────────────────────────────────
+S1(config)# line console 0
+S1(config-line)# password cisco123
+S1(config-line)# login
+S1(config-line)# exit
+
+! ─── 4. lignes VTY (accès distant) ───────────────────────────
+S1(config)# line vty 0 15
+S1(config-line)# password vty789
+S1(config-line)# login
+S1(config-line)# exit
+
+! ─── 5. chiffrement des mots de passe ────────────────────────
+S1(config)# service password-encryption
+
+! ─── 6. bannière d'avertissement ─────────────────────────────
+S1(config)# banner motd #Acces reserve au personnel autorise.
+Toute tentative non autorisee fera l'objet de poursuites.#
+
+! ─── 7. adressage pour l'administration distante ─────────────
+S1(config)# interface vlan 1
+S1(config-if)# ip address 192.168.1.2 255.255.255.0
+S1(config-if)# no shutdown
+S1(config-if)# exit
+S1(config)# ip default-gateway 192.168.1.1
+S1(config)# end
+
+! ─── 9. ENREGISTRER ──────────────────────────────────────────
+S1# copy running-config startup-config</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Les cinq points qui font la différence à la correction</div>
+          <ol>
+            <li><code>enable <strong>secret</strong></code> et non <code>enable password</code> —
+                le premier est haché.</li>
+            <li><code><strong>login</strong></code> après chaque <code>password</code> — sans lui,
+                aucun mot de passe n'est demandé.</li>
+            <li><code>line vty <strong>0 15</strong></code> — les 16 lignes, pas seulement la
+                première.</li>
+            <li><code><strong>no shutdown</strong></code> sur l'interface VLAN — sinon elle reste
+                <code>administratively down</code>.</li>
+            <li><code>copy run start</code> — sinon tout disparaît au redémarrage.</li>
+          </ol>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ L'ordre a une conséquence pratique</div>
+          <p><code>service password-encryption</code> chiffre les mots de passe <strong>présents au
+             moment où on la tape</strong>, et tous ceux entrés ensuite. La placer <em>avant</em>
+             les <code>password</code> fonctionne donc aussi.</p>
+          <p>En revanche, <code>no ip domain-lookup</code> gagne à être tapée <strong>tôt</strong> :
+             c'est justement pendant qu'on saisit beaucoup de commandes qu'on fait des fautes de
+             frappe.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="tp-switch">
+  <h2><span class="num">03</span>TP — lire les états d'interface</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Le relevé du TP <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Voici le relevé obtenu avec <code>show ip interface brief</code> sur les deux commutateurs
+         du TP « Sécurité des équipements réseaux » :</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Interface</th><th>S1 — État</th><th>S1 — Protocole</th>
+                   <th>S2 — État</th><th>S2 — Protocole</th></tr></thead>
+        <tbody>
+          <tr><td><code>F0/1</code></td><td>up</td><td>up</td><td>up</td><td>up</td></tr>
+          <tr><td><code>F0/6</code></td><td>up</td><td>up</td><td>down</td><td>down</td></tr>
+          <tr><td><code>F0/18</code></td><td>down</td><td>down</td><td>up</td><td>up</td></tr>
+          <tr><td><code>VLAN 1</code></td><td>administratively down</td><td>down</td>
+              <td>administratively down</td><td>down</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><strong>Questions de réflexion :</strong></p>
+      <ol>
+        <li>Pourquoi certains ports FastEthernet sont-ils activés tandis que d'autres sont hors
+            service ?</li>
+        <li>Qu'est-ce qui pourrait empêcher l'envoi d'une requête <code>ping</code> entre des
+            ordinateurs ?</li>
+        <li>Pourquoi VLAN 1 est-il <code>administratively down</code> sur les deux commutateurs, et
+            comment le corriger ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Pourquoi certains ports sont-ils actifs et d'autres non</h4>
+        <p>Un port FastEthernet passe à <code>up/up</code> uniquement quand un
+           <strong>équipement allumé est raccordé</strong> par un câble en bon état. Les ports
+           <code>down/down</code> correspondent donc à :</p>
+        <ul>
+          <li>des ports sur lesquels <strong>rien n'est branché</strong> — le cas le plus
+              fréquent ;</li>
+          <li>un câble débranché, coupé ou du mauvais type ;</li>
+          <li>un équipement distant éteint ou dont la carte réseau est désactivée.</li>
+        </ul>
+        <p>On observe la symétrie du montage : <code>F0/6</code> est actif sur S1 mais pas sur S2,
+           <code>F0/18</code> l'inverse. Chaque commutateur a un poste sur un port différent, et
+           <code>F0/1</code> est actif des deux côtés — c'est la liaison entre S1 et S2.</p>
+
+        <h4>2. Ce qui peut empêcher un ping</h4>
+        <p>Il faut balayer les couches, de la plus basse à la plus haute :</p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Couche</th><th>Cause possible</th><th>Comment le vérifier</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 — Physique</strong></td><td>Câble débranché, défectueux, port
+                <code>down/down</code></td><td><code>show ip interface brief</code></td></tr>
+            <tr><td><strong>2 — Liaison</strong></td><td>Interface
+                <code>administratively down</code>, VLAN différents sur les deux ports</td>
+                <td><code>show interfaces status</code></td></tr>
+            <tr><td><strong>3 — Réseau</strong></td><td><strong>Adresses IP dans des sous-réseaux
+                différents</strong>, masque erroné, passerelle absente</td>
+                <td><code>ipconfig</code> sur les postes</td></tr>
+            <tr><td><strong>Autre</strong></td><td><strong>Pare-feu</strong> du poste bloquant
+                l'ICMP — Windows le fait par défaut</td>
+                <td>Désactiver temporairement, ou pinguer dans l'autre sens</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ La réponse à ne pas donner</div>
+          <p>« Le PC n'est pas connecté à Internet » n'explique rien : deux machines du même réseau
+             local se pinguent <strong>sans aucun accès Internet</strong>. Le ping local ne quitte
+             jamais le LAN.</p>
+          <p>La bonne réponse mentionne le <strong>plan d'adressage</strong> — mêmes sous-réseau et
+             masque — et le <strong>pare-feu</strong>, qui est la cause la plus fréquente quand tout
+             le reste semble correct. Sous Windows, le pare-feu bloque l'ICMP entrant par défaut :
+             le PC A ne répond pas au PC B, alors que B répond très bien à A.</p>
+        </div>
+
+        <h4>3. VLAN 1 <code>administratively down</code></h4>
+        <p><strong>C'est l'état d'usine.</strong> L'interface VLAN 1 existe sur tout commutateur
+           Cisco, mais elle est <em>désactivée par défaut</em> : tant qu'on n'a pas besoin
+           d'administrer l'équipement à distance, elle ne sert à rien.</p>
+        <p>Le mot <strong><em>administratively</em></strong> est la clé : ce n'est pas une panne,
+           c'est un choix de configuration — ici, celui d'usine.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# interface vlan 1
+S1(config-if)# ip address 192.168.1.2 255.255.255.0
+S1(config-if)# no shutdown              ← la commande qui lève l'état
+S1(config-if)# end
+S1# show ip interface brief             ← Vlan1 doit passer à up / up</code></pre></div>
+        <p><strong>Attention :</strong> l'interface ne passera à <code>up/up</code> que si
+           <strong>au moins un port physique du VLAN 1 est actif</strong>. Une SVI sans aucun port
+           actif dans son VLAN reste <code>down</code>, même après <code>no shutdown</code>.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="erreurs">
+  <h2><span class="num">04</span>Corriger une configuration</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Six erreurs à trouver <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Un camarade vous montre sa configuration. Elle ne fonctionne pas comme prévu : personne
+         ne lui demande de mot de passe, il ne peut pas joindre le commutateur à distance, et tout
+         disparaît au redémarrage. Trouvez les <strong>six erreurs</strong>.</p>
+<div class="bloc-code"><pre><code>Switch(config)# hostname S 1
+Switch(config)# enable password classe456
+S1(config)# line console 0
+S1(config-line)# password cisco123
+S1(config-line)# exit
+S1(config)# line vty 0
+S1(config-line)# password vty789
+S1(config-line)# login
+S1(config-line)# exit
+S1(config)# interface vlan 1
+S1(config-if)# ip address 192.168.1.2 255.255.255.0
+S1(config-if)# exit
+S1(config)# end
+S1#</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>#</th><th>Erreur</th><th>Conséquence</th><th>Correction</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>hostname S 1</code> — un <strong>espace</strong> dans le nom</td>
+                <td>Refusé : les règles de nommage interdisent les espaces</td>
+                <td><code>hostname S1</code></td></tr>
+            <tr><td>2</td><td><code>enable <strong>password</strong></code> au lieu de
+                <code>secret</code></td>
+                <td>Mot de passe protégé par un chiffrement réversible</td>
+                <td><code>enable secret classe456</code></td></tr>
+            <tr><td>3</td><td><strong><code>login</code> manquant</strong> sur la console</td>
+                <td><strong>Aucun mot de passe n'est demandé</strong> à la connexion console</td>
+                <td>Ajouter <code>login</code> après <code>password</code></td></tr>
+            <tr><td>4</td><td><code>line vty <strong>0</strong></code> au lieu de
+                <code>0 15</code></td>
+                <td>Seule la première session distante est protégée ; les 15 autres sont
+                    ouvertes</td>
+                <td><code>line vty 0 15</code></td></tr>
+            <tr><td>5</td><td><strong><code>no shutdown</code> manquant</strong> sur l'interface
+                VLAN</td>
+                <td>L'interface reste <code>administratively down</code> : impossible de joindre le
+                    commutateur</td>
+                <td>Ajouter <code>no shutdown</code></td></tr>
+            <tr><td>6</td><td><strong><code>copy run start</code> manquant</strong></td>
+                <td><strong>Toute la configuration disparaît au redémarrage</strong></td>
+                <td><code>copy running-config startup-config</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Une septième amélioration, non comptée comme erreur</div>
+          <p>Il manque aussi <code>ip default-gateway 192.168.1.1</code>. Sans elle, le commutateur
+             est joignable depuis <em>son propre sous-réseau</em>, mais pas depuis un réseau
+             distant. Ce n'est une erreur que si l'énoncé demande une administration depuis
+             l'extérieur — mais c'est une bonne pratique systématique.</p>
+          <p>Et <code>service password-encryption</code> reste à ajouter : sans elle, un
+             <code>show running-config</code> affiche <code>cisco123</code> et <code>vty789</code>
+             en clair à quiconque regarde l'écran.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les erreurs 3 et 6 sont les plus vicieuses</div>
+          <p>Elles <strong>ne produisent aucun message d'erreur</strong>. IOS accepte la
+             configuration sans broncher ; tout semble parfait dans <code>show running-config</code>.
+             On ne découvre le problème qu'à la reconnexion — ou le lendemain, quand tout a
+             disparu.</p>
+          <p>D'où les deux vérifications systématiques en fin de TP : <strong>se déconnecter et se
+             reconnecter</strong> pour contrôler que le mot de passe est bien demandé, et
+             <strong>taper <code>copy run start</code></strong> avant de quitter.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="scenario">
+  <h2><span class="num">05</span>Cas de synthèse</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Le commutateur injoignable <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Le commutateur <code>S1</code> a été configuré avec l'adresse <code>192.168.1.2/24</code>
+         sur son interface VLAN 1, et <code>no shutdown</code> a bien été tapé. Un technicien tente
+         de s'y connecter en SSH depuis un poste du réseau <code>192.168.5.0/24</code>, à travers un
+         routeur. La connexion échoue.</p>
+      <p>Depuis un poste du réseau <code>192.168.1.0/24</code>, la connexion SSH fonctionne
+         parfaitement.</p>
+      <ol>
+        <li>Quelle est la cause ?</li>
+        <li>Quelle commande la corrige ?</li>
+        <li>Comment auriez-vous pu diagnostiquer cela sans avoir accès au poste distant ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. La cause</h4>
+        <p><strong>La passerelle par défaut n'est pas configurée sur le commutateur.</strong></p>
+        <p>Le raisonnement : depuis le même sous-réseau, ça marche — donc l'adresse IP, la SVI et le
+           service SSH sont corrects. Depuis un autre sous-réseau, ça échoue. Le problème n'est donc
+           pas la <em>demande</em> qui arrive, mais la <strong>réponse</strong> qui ne repart
+           pas.</p>
+        <p>Un commutateur de couche 2 ne route pas : il ne sait pas où envoyer un paquet destiné à
+           <code>192.168.5.x</code>. La requête SSH lui parvient bien — le routeur la lui a
+           livrée —, mais il ignore par où renvoyer la réponse et l'abandonne.</p>
+
+        <h4>2. La correction</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# ip default-gateway 192.168.1.1
+S1(config)# end
+S1# copy running-config startup-config</code></pre></div>
+        <p>C'est exactement ce que dit le cours : « le commutateur doit être configuré avec une
+           passerelle par défaut s'il doit être géré à distance depuis des <strong>réseaux
+           connectés indirectement</strong> ».</p>
+
+        <h4>3. Le diagnostic depuis le commutateur seul</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1# show ip interface brief
+    Vlan1   192.168.1.2   up   up            ← l'interface est bonne
+
+S1# show running-config | include default-gateway
+                                             ← AUCUNE ligne : c'est le diagnostic
+
+S1# ping 192.168.5.10                        ← échoue : le switch ne sait pas sortir
+S1# ping 192.168.1.1                         ← réussit : la passerelle est joignable</code></pre></div>
+        <p>Le test décisif est le troisième : <strong>si le commutateur ne peut pas pinguer une
+           adresse hors de son sous-réseau alors qu'il ping sa passerelle</strong>, c'est qu'il n'a
+           pas de route par défaut.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Le filtre <code>| include</code></div>
+          <p><code>show running-config | include default-gateway</code> n'affiche que les lignes
+             contenant ce texte. Sur une configuration de plusieurs centaines de lignes, c'est ce
+             qui permet de vérifier un point précis en une seconde au lieu de tout parcourir.</p>
+          <p>Autres usages courants : <code>| include password</code>,
+             <code>| section interface</code>, <code>| begin line vty</code>.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi un switch a besoin d'une passerelle alors qu'il ne route pas</div>
+          <p>Il ne route pas <em>le trafic des autres</em> — il commute en couche 2. Mais pour
+             <strong>son propre trafic</strong> — répondre à un SSH, envoyer un journal vers un
+             serveur syslog, interroger un serveur NTP —, il se comporte comme n'importe quel hôte
+             IP. Et comme tout hôte, il lui faut une passerelle pour sortir de son sous-réseau.</p>
+          <p>La formule à retenir : <em>un switch route pour lui-même, jamais pour les autres.</em></p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Oublier <code>login</code></strong> — le mot de passe n'est jamais demandé, et
+          rien ne le signale.</li>
+      <li><strong>Oublier <code>no shutdown</code></strong> sur la SVI — l'interface reste
+          <code>administratively down</code>.</li>
+      <li><strong>Oublier <code>copy run start</code></strong> — tout disparaît au redémarrage.</li>
+      <li><strong><code>line vty 0</code> au lieu de <code>0 15</code></strong> — 15 accès
+          laissés ouverts.</li>
+      <li><strong><code>enable password</code> au lieu de <code>secret</code></strong> —
+          protection réversible.</li>
+      <li><strong>Taper <code>copy</code> ou <code>show</code> depuis <code>(config)#</code></strong>
+          — ce sont des commandes du mode privilégié.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>7-Configuration_base_périphériques.pdf — B3.1</li>
+      <li>7-TP-Configuration-base-switch.pdf</li>
+      <li>TP config base switch — comptes rendus l'élève et le binôme</li>
+      <li>5-TP-Initiation Cisco Packet Tracer.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

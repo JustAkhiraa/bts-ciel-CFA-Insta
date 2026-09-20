@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript — rendre une page vivante | BTS CIEL</title>
+<meta name="description" content="Cours complet : intégration et console, variables et types, opérateurs et conversions, conditions, boucles, fonctions, DOM, événements et validation de formulaire.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#role">1 · Le rôle de JavaScript</a></li>
+    <li><a href="#integrer">2 · Intégrer et tester</a></li>
+    <li><a href="#variables">3 · Variables et types</a></li>
+    <li><a href="#operateurs">4 · Opérateurs et conversions</a></li>
+    <li><a href="#conditions">5 · Les conditions</a></li>
+    <li><a href="#boucles">6 · Les boucles</a></li>
+    <li><a href="#fonctions">7 · Les fonctions</a></li>
+    <li><a href="#dom">8 · Le DOM</a></li>
+    <li><a href="#evenements">9 · Les événements</a></li>
+    <li><a href="#validation">10 · Valider un formulaire</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 04</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>JavaScript — rendre une page vivante</h1>
+  <p class="chapeau">Le troisième langage du web : celui qui <em>réagit</em>. Le HTML structure,
+     le CSS habille, JavaScript fait bouger.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>JavaScript</strong> est le langage de programmation du <strong>navigateur</strong>.
+         Il stocke des données (<code>let</code>, <code>const</code>), les teste
+         (<code>if</code>, <code>switch</code>), les répète (<code>for</code>, <code>while</code>)
+         et les organise en <strong>fonctions</strong>. Sa vraie puissance : le
+         <strong>DOM</strong> — la page vue comme un arbre d'objets qu'il peut lire et modifier —
+         et les <strong>événements</strong>, qui déclenchent du code quand l'utilisateur agit.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#let-const</code> <code>#typeof</code> <code>#===</code> <code>#template-literal</code>
+    <code>#if-else</code> <code>#switch</code> <code>#for</code> <code>#while</code>
+    <code>#function</code> <code>#arrow</code> <code>#scope</code> <code>#DOM</code>
+    <code>#querySelector</code> <code>#addEventListener</code> <code>#preventDefault</code>
+    <code>#regex</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="role">
+  <h2><span class="num">01</span>Le rôle de JavaScript</h2>
+
+  <p>JavaScript est le <strong>langage de programmation du navigateur</strong>. Contrairement au
+     HTML (structure) et au CSS (mise en forme), c'est un vrai langage : il calcule, décide, répète.
+     Il permet :</p>
+  <ul>
+    <li>d'ajouter de l'<strong>interactivité</strong> — réponses aux clics, menus, formulaires
+        dynamiques ;</li>
+    <li>de <strong>modifier l'apparence en temps réel</strong> — changer un texte, cacher un
+        élément, basculer une classe CSS ;</li>
+    <li>de <strong>communiquer avec un serveur</strong> sans recharger la page (AJAX,
+        <code>fetch</code>) ;</li>
+    <li>de créer des <strong>animations</strong> ;</li>
+    <li>de <strong>contrôler le navigateur</strong> — redirections, alertes, stockage local.</li>
+  </ul>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Le retour du corps humain</div>
+    <p>On avait posé l'image au <a href="../01-html/cours.html">chapitre HTML</a> : le HTML est le
+       <strong>squelette</strong>, le CSS la <strong>peau et les vêtements</strong>. JavaScript,
+       ce sont les <strong>muscles et les nerfs</strong> — ce qui permet de réagir à ce qui arrive
+       de l'extérieur. Sans lui, la page est une photo ; avec lui, elle devient une
+       application.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="integrer">
+  <h2><span class="num">02</span>Intégrer et tester</h2>
+
+  <h3>Deux façons d'ajouter du JavaScript</h3>
+<div class="bloc-code"><span class="langue">html — script interne</span><pre><code>&lt;script&gt;
+    console.log("Script interne exécuté !");
+&lt;/script&gt;</code></pre></div>
+  <p>Pratique pour tester vite, <strong>déconseillé</strong> sur un vrai projet.</p>
+
+<div class="bloc-code"><span class="langue">html — fichier externe (recommandé)</span><pre><code>&lt;script src="script.js"&gt;&lt;/script&gt;</code></pre></div>
+  <p>Plus organisé, réutilisable, maintenable. C'est la même logique qu'un
+     <code>style.css</code> séparé.</p>
+
+  <h3>Où placer la balise <code>&lt;script&gt;</code> ?</h3>
+  <p>L'emplacement décide <strong>du moment où le code s'exécute</strong> — et c'est capital,
+     car un script ne peut pas manipuler des éléments qui n'existent pas encore.</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Emplacement</th><th>Comportement</th></tr></thead>
+    <tbody>
+      <tr><td><strong>À la fin du <code>&lt;body&gt;</code></strong></td>
+          <td>le HTML est déjà lu quand le script démarre — la méthode la plus courante</td></tr>
+      <tr><td><strong>Dans le <code>&lt;head&gt;</code> avec <code>defer</code></strong></td>
+          <td>chargé en arrière-plan pendant la lecture du HTML, exécuté une fois le DOM complet —
+              <strong>la méthode moderne recommandée</strong></td></tr>
+      <tr><td>Dans le <code>&lt;head&gt;</code> <em>sans</em> <code>defer</code></td>
+          <td class="rep-non">bloque l'affichage, et le DOM n'existe pas encore</td></tr>
+    </tbody>
+  </table>
+  </div>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;head&gt;
+    &lt;script src="script.js" defer&gt;&lt;/script&gt;
+&lt;/head&gt;</code></pre></div>
+
+  <h3>La console : votre meilleur outil</h3>
+  <p>Ouvrir avec <strong>F12</strong> → onglet <em>Console</em>, ou clic droit → Inspecter.</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>console.log("message");                        // message normal
+console.error("erreur");                       // en rouge
+console.table(["HTML", "CSS", "JavaScript"]);  // tableau lisible</code></pre></div>
+
+  <h3>Commentaires et points-virgules</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>// commentaire sur une seule ligne
+
+/* commentaire
+   sur plusieurs lignes */</code></pre></div>
+  <p>Les points-virgules ne sont pas toujours obligatoires : si chaque instruction est sur sa propre
+     ligne, JavaScript les devine. Mais si plusieurs instructions partagent une ligne, ils sont
+     <strong>indispensables</strong> :</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>x += 1; y -= 1; z = 0;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Mettez toujours les points-virgules</div>
+    <p>Le mécanisme qui les devine (l'<em>insertion automatique</em>) se trompe dans certains cas —
+       notamment quand une ligne commence par <code>(</code> ou <code>[</code>. Le bug qui en résulte
+       est inintelligible pour un débutant. Prenez l'habitude de les écrire :
+       <strong>zéro inconvénient, un piège en moins</strong>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="variables">
+  <h2><span class="num">03</span>Variables et types</h2>
+
+  <p>Une <strong>variable</strong> est un espace mémoire qui contient une valeur. En JavaScript, son
+     nom n'a pas de symbole particulier.</p>
+
+  <h3>Règles de nommage</h3>
+  <ul>
+    <li>lettres, chiffres, <code>$</code> ou <code>_</code> uniquement ;</li>
+    <li>ni espace, ni caractère spécial ;</li>
+    <li>ne commence <strong>jamais par un chiffre</strong> ;</li>
+    <li>JavaScript est <strong>sensible à la casse</strong> : <code>y</code> ≠ <code>Y</code> ;</li>
+    <li>pas de mot réservé du langage.</li>
+  </ul>
+
+  <h3>Trois mots pour déclarer</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mot-clé</th><th>Usage</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><code>let</code></td><td>variable <strong>modifiable</strong>, portée de bloc</td>
+          <td class="rep-ok">à utiliser</td></tr>
+      <tr><td><code>const</code></td><td><strong>constante</strong> : ne peut plus être réaffectée</td>
+          <td class="rep-ok">à privilégier</td></tr>
+      <tr><td><code>var</code></td><td>l'ancienne façon, portée <em>de fonction</em></td>
+          <td class="rep-non">à éviter</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let age = 20;          // déclaration
+age = 21;              // modification : autorisée
+console.log(age);      // 21
+
+const pi = 3.14;
+pi = 3.1415;           // ✘ Erreur : impossible de réaffecter une constante</code></pre></div>
+
+  <h3>Les chaînes de caractères</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let texte1 = "Bonjour";          // guillemets doubles
+let texte2 = 'Bienvenue !';      // guillemets simples
+let texte3 = `Ceci est une chaîne.`;   // backticks : template literal</code></pre></div>
+
+  <h3>Les types de données</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Exemple</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>number</code></td><td><code>42</code>, <code>3.14</code></td><td>valeurs numériques</td></tr>
+      <tr><td><code>string</code></td><td><code>"Alice"</code></td><td>chaînes de caractères</td></tr>
+      <tr><td><code>boolean</code></td><td><code>true</code> / <code>false</code></td><td>vrai ou faux</td></tr>
+      <tr><td><code>undefined</code></td><td><code>let x;</code></td><td>déclarée sans valeur</td></tr>
+      <tr><td><code>null</code></td><td><code>null</code></td><td>valeur vide <strong>volontaire</strong></td></tr>
+      <tr><td><code>array</code></td><td><code>[1, 2, 3]</code></td><td>liste ordonnée</td></tr>
+      <tr><td><code>object</code></td><td><code>{nom: "Bob"}</code></td><td>regroupement clé/valeur</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le template literal, bien plus lisible</div>
+    <p>Les backticks permettent d'insérer des variables directement avec <code>${…}</code>, au lieu
+       d'empiler les <code>+</code> :</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let nom = "Alice", age = 25;
+
+console.log("Je m'appelle " + nom + " et j'ai " + age + " ans.");   // à l'ancienne
+console.log(`Je m'appelle ${nom} et j'ai ${age} ans.`);             // template literal</code></pre></div>
+    <p>Moins de guillemets à fermer, donc moins d'erreurs. C'est aussi la seule façon simple
+       d'écrire une chaîne sur plusieurs lignes.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>undefined</code> n'est pas <code>null</code></div>
+    <p><code>undefined</code> : la variable existe mais <strong>personne ne lui a donné de
+       valeur</strong>. <code>null</code> : quelqu'un a <strong>volontairement</strong> décidé
+       qu'elle était vide. Le premier signale souvent un oubli, le second une intention. Les
+       confondre, c'est se priver d'un indice de débogage.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="operateurs">
+  <h2><span class="num">04</span>Opérateurs et conversions</h2>
+
+  <h3>Arithmétiques</h3>
+  <p><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code> (reste) et
+     <code>**</code> (puissance).</p>
+
+  <h3>Comparaison</h3>
+  <p>Ils retournent toujours un <strong>booléen</strong>.</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opérateur</th><th>Signification</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>==</code></td><td>égal — <strong>valeur seulement</strong></td>
+          <td><code>5 == "5"</code> → <code>true</code></td></tr>
+      <tr><td><code>===</code></td><td>strictement égal — <strong>valeur + type</strong></td>
+          <td><code>5 === "5"</code> → <code>false</code></td></tr>
+      <tr><td><code>!=</code></td><td>différent</td><td><code>5 != 3</code> → <code>true</code></td></tr>
+      <tr><td><code>!==</code></td><td>strictement différent</td>
+          <td><code>5 !== "5"</code> → <code>true</code></td></tr>
+      <tr><td><code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code></td>
+          <td>comparaisons numériques</td><td><code>7 &gt; 3</code> → <code>true</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Utilisez toujours <code>===</code></div>
+    <p><code>==</code> <strong>convertit avant de comparer</strong> : il juge que la chaîne
+       <code>"5"</code> et le nombre <code>5</code> sont égaux. Cela produit des résultats
+       déroutants :</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>5 == "5"        // true   ← la chaîne est convertie en nombre
+0 == ""         // true
+0 == false      // true
+
+5 === "5"       // false  ← types différents : la réponse honnête
+0 === false     // false</code></pre></div>
+    <p>C'est un piège majeur quand on lit un formulaire : <code>input.value</code> renvoie
+       <strong>toujours une chaîne</strong>. Comparez avec <code>===</code> après conversion
+       explicite, et vous supprimez toute une famille de bugs.</p>
+  </div>
+
+  <h3>Logiques</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opérateur</th><th>Vrai quand…</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>&amp;&amp;</code></td><td><strong>toutes</strong> les conditions sont vraies (ET)</td>
+          <td><code>age &gt;= 18 &amp;&amp; mdp === "1234"</code></td></tr>
+      <tr><td><code>||</code></td><td><strong>au moins une</strong> est vraie (OU)</td>
+          <td><code>role === "admin" || role === "prof"</code></td></tr>
+      <tr><td><code>!</code></td><td>inverse la valeur (NON)</td>
+          <td><code>!(age &gt;= 18)</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — le OU logique manque dans le polycopié</div>
+    <p>Le tableau des opérateurs logiques du cours ne présente que <code>&amp;&amp;</code> et
+       <code>!</code>. L'opérateur <strong><code>||</code></strong> (OU logique), tout aussi
+       fondamental, en est absent. Il est vrai dès qu'<strong>au moins une</strong> des conditions
+       l'est :</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>if (nom === "" || email === "") {
+    alert("Merci de remplir tous les champs");
+}</code></pre></div>
+    <p>Sans lui, impossible d'écrire proprement « si l'un OU l'autre pose problème » — ce qui est
+       exactement le cas dans une validation de formulaire.</p>
+  </div>
+
+  <h3>Concaténation et conversions</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let texte1 = "Bonjour ", texte2 = "le monde";
+console.log(texte1 + texte2);        // "Bonjour le monde"
+
+let age = 20;
+console.log("J'ai " + age + " ans.");  // "J'ai 20 ans."
+
+Number("42")     // 42        → transforme en nombre
+String(100)      // "100"     → transforme en texte
+typeof "Alice"   // "string"  → donne le type</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le <code>+</code> a deux métiers</div>
+    <p>Avec deux nombres il <strong>additionne</strong> ; dès qu'une chaîne apparaît, il
+       <strong>concatène</strong> :</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>2 + 3          // 5      ← addition
+"2" + 3        // "23"   ← concaténation !
+Number("2") + 3  // 5    ← conversion explicite : correct</code></pre></div>
+    <p>C'est <em>le</em> bug du calculateur de TP : on lit deux champs, on les additionne, et
+       « 2 + 3 » affiche « 23 ». La cause est toujours la même — <code>.value</code> renvoie du
+       texte. <strong>Convertissez avant de calculer.</strong></p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="conditions">
+  <h2><span class="num">05</span>Les conditions</h2>
+
+<div class="bloc-code"><span class="langue">javascript — if / else if / else</span><pre><code>let age = 18;
+
+if (age &lt; 18) {
+    console.log("Vous êtes mineur");
+} else if (age === 18) {
+    console.log("Vous venez d'atteindre la majorité");
+} else {
+    console.log("Vous êtes majeur");
+}</code></pre></div>
+
+  <h3><code>switch</code> : tester une variable contre plusieurs valeurs</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let jour = "lundi";
+
+switch (jour) {
+    case "lundi":
+        console.log("C'est le début de la semaine");
+        break;
+    case "vendredi":
+        console.log("Dernier jour avant le weekend");
+        break;
+    case "dimanche":
+        console.log("C'est le weekend !");
+        break;
+    default:
+        console.log("Jour quelconque");
+}</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le <code>break</code> n'est pas décoratif</div>
+    <p>Sans <code>break</code>, l'exécution <strong>continue dans les cas suivants</strong> — c'est
+       la « chute » (<em>fall-through</em>). Avec <code>jour = "lundi"</code> et un
+       <code>break</code> oublié, les trois messages s'afficheraient.</p>
+    <p>Ce comportement est parfois voulu (regrouper plusieurs cas), mais il est presque toujours
+       accidentel. <code>default</code> joue le rôle du <code>else</code> final.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="boucles">
+  <h2><span class="num">06</span>Les boucles</h2>
+
+  <p>Même logique qu'en <a href="../11-algorithmique/cours.html">algorithmique</a>,
+     avec la syntaxe du langage.</p>
+
+  <h3><code>for</code> — quand on connaît le nombre de tours</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>for (initialisation; condition; incrémentation) {
+    // instructions à répéter
+}
+
+for (let i = 1; i &lt;= 5; i++) {
+    console.log("Tour numéro :", i);
+}</code></pre></div>
+  <p>Les trois parties, séparées par des <strong>points-virgules</strong> : on part de
+     <code>i = 1</code>, on continue <strong>tant que</strong> <code>i &lt;= 5</code>, et on ajoute
+     1 à chaque tour.</p>
+
+  <h3><code>while</code> — quand on ne sait pas combien de fois</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let compteur = 1;
+
+while (compteur &lt;= 5) {
+    console.log("Compteur :", compteur);
+    compteur++;          // ← sans cette ligne : boucle infinie
+}</code></pre></div>
+
+  <h3><code>do…while</code> — au moins un tour, toujours</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let nombre = 10;
+
+do {
+    console.log("Le nombre est :", nombre);
+} while (nombre &lt; 5);
+
+// Affiche une fois « Le nombre est : 10 »,
+// alors même que 10 &lt; 5 est faux : le test vient APRÈS.</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La boucle infinie</div>
+    <p>Toute boucle <code>while</code> doit contenir une instruction qui <strong>fait évoluer sa
+       condition</strong>. Oubliez le <code>compteur++</code> et l'onglet se fige — le navigateur
+       ne rend plus la main.</p>
+    <p><strong>Le réflexe :</strong> après avoir écrit un <code>while</code>, cherchez des yeux la
+       ligne qui permettra d'en sortir. Si vous ne la trouvez pas, elle manque.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="fonctions">
+  <h2><span class="num">07</span>Les fonctions</h2>
+
+  <p>Une <strong>fonction</strong> est un bloc de code autonome, réutilisable : elle reçoit des
+     <strong>paramètres</strong>, effectue un traitement, et peut <strong>retourner</strong> une
+     valeur.</p>
+
+  <h3>Trois écritures</h3>
+<div class="bloc-code"><span class="langue">javascript — déclarée</span><pre><code>function addition(a, b) {
+    return a + b;
+}
+console.log(addition(5, 3));      // 8
+
+// Particularité : elle est « hoistée », donc appelable AVANT sa déclaration
+console.log(addition(3, 4));      // fonctionne</code></pre></div>
+
+<div class="bloc-code"><span class="langue">javascript — expression</span><pre><code>const multiplication = function (a, b) {
+    return a * b;
+};
+console.log(multiplication(4, 6));    // 24
+// Utilisable seulement APRÈS sa déclaration.</code></pre></div>
+
+<div class="bloc-code"><span class="langue">javascript — fléchée</span><pre><code>const soustraction = (a, b) =&gt; a - b;          // une seule expression : return implicite
+console.log(soustraction(10, 7));   // 3
+
+const calcul = (x, y) =&gt; {                     // plusieurs instructions : accolades + return
+    let resultat = x * y + 10;
+    return resultat;
+};
+console.log(calcul(2, 5));          // 20</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — une fonction anonyme ne s'écrit pas toute seule</div>
+    <p>Le polycopié présente la « fonction anonyme » ainsi :</p>
+<div class="bloc-code"><span class="langue">erreur de syntaxe</span><pre><code>function() {
+    // instructions
+}</code></pre></div>
+    <p>Écrit seul sur une ligne, ce code ne se contente pas d'être inutilisable : il
+       <strong>ne compile pas</strong>. Le navigateur répond
+       <em>« Function statements require a function name »</em>. Une fonction anonyme n'existe que
+       <strong>comme expression</strong> — assignée à une variable, ou passée en argument :</p>
+<div class="bloc-code"><span class="langue">javascript — correct</span><pre><code>const f = function () { /* … */ };        // assignée
+
+setTimeout(function () {                   // passée en argument (callback)
+    console.log("Bonjour après 2 secondes !");
+}, 2000);
+
+setTimeout(() =&gt; console.log("idem, en fléchée"), 2000);</code></pre></div>
+  </div>
+
+  <h3>Paramètres, retour et valeurs par défaut</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>function carre(nombre) {
+    return nombre * nombre;
+}
+let resultat = carre(5);          // 25
+
+function afficherMessage() {
+    console.log("Bonjour !");
+}
+let valeur = afficherMessage();   // undefined : pas de return
+
+function saluer(nom = "Invité") { // valeur par défaut
+    console.log("Bonjour " + nom + " !");
+}
+saluer();          // Bonjour Invité !
+saluer("Alice");   // Bonjour Alice !</code></pre></div>
+  <p>Les <strong>paramètres</strong> sont les noms déclarés ; les <strong>arguments</strong> sont
+     les valeurs réellement passées à l'appel. Après <code>return</code>, la fonction
+     <strong>s'arrête</strong>.</p>
+
+  <h3>La portée (<em>scope</em>)</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let global = "Je suis global";
+
+function testScope() {
+    let local = "Je suis local";
+    console.log(global);   // ✔ accessible
+    console.log(local);    // ✔ accessible
+}
+
+testScope();
+console.log(global);       // ✔
+console.log(local);        // ✘ Erreur : local n'existe pas ici</code></pre></div>
+  <p>Une variable déclarée <strong>dans</strong> une fonction n'existe que là. C'est une
+     protection : deux fonctions peuvent utiliser un <code>i</code> sans se gêner.</p>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="dom">
+  <h2><span class="num">08</span>Le DOM</h2>
+
+  <p>Le <strong>DOM</strong> (<em>Document Object Model</em>) est la représentation
+     <strong>en arbre</strong> de la page. Quand le navigateur charge le HTML, il le transforme en
+     objets JavaScript : <strong>chaque balise devient un nœud</strong>, que le code peut lire et
+     modifier.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 200" role="img" aria-label="Le HTML transformé en arbre DOM">
+      <style>
+        .dn{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .dt{font:600 11px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .dl{stroke:var(--bord-fort);stroke-width:1.3;fill:none}
+        .dc{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <text class="dc" x="260" y="14" style="font-weight:700;fill:var(--encre)">document</text>
+      <rect class="dn" x="210" y="24" width="100" height="26" rx="5"/><text class="dt" x="260" y="41">html</text>
+      <path class="dl" d="M260,50 V64 H140 V78"/><path class="dl" d="M260,50 V64 H380 V78"/>
+      <rect class="dn" x="90" y="78" width="100" height="26" rx="5"/><text class="dt" x="140" y="95">head</text>
+      <rect class="dn" x="330" y="78" width="100" height="26" rx="5"/><text class="dt" x="380" y="95">body</text>
+      <path class="dl" d="M380,104 V120 H280 V134"/>
+      <path class="dl" d="M380,104 V120 H480 V134"/>
+      <rect class="dn" x="230" y="134" width="100" height="26" rx="5"/><text class="dt" x="280" y="151">h1</text>
+      <rect class="dn" x="430" y="134" width="86" height="26" rx="5"/><text class="dt" x="473" y="151">button</text>
+      <text class="dc" x="280" y="180">chaque balise = un nœud</text>
+    </svg>
+    <figcaption>Le DOM n'est pas le fichier HTML : c'est ce que le navigateur en a fait, <em>en
+      mémoire</em>. Le modifier change la page immédiatement.</figcaption>
+  </figure>
+
+  <h3>Sélectionner un élément</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Méthode</th><th>Ce qu'elle prend</th><th>Ce qu'elle rend</th></tr></thead>
+    <tbody>
+      <tr><td><code>getElementById("id")</code></td><td>un identifiant</td><td>l'élément</td></tr>
+      <tr><td><code>querySelector("…")</code></td><td>un <strong>sélecteur CSS</strong></td>
+          <td>le <strong>premier</strong> qui correspond</td></tr>
+      <tr><td><code>querySelectorAll("…")</code></td><td>un sélecteur CSS</td>
+          <td><strong>tous</strong> ceux qui correspondent</td></tr>
+    </tbody>
+  </table>
+  </div>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let titre       = document.getElementById("titre");
+let paragraphe  = document.querySelector("p");          // le premier &lt;p&gt;
+let important   = document.querySelector(".important");  // la 1re classe "important"
+let conteneur   = document.querySelector("#conteneur");  // par id, façon CSS
+let paragraphes = document.querySelectorAll("p");        // tous les &lt;p&gt;</code></pre></div>
+
+  <h3>Modifier un élément</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>titre.textContent = "Nouveau titre";                    // texte brut
+titre.innerHTML   = "&lt;span style='color:red'&gt;Rouge&lt;/span&gt;";  // interprète le HTML
+
+titre.style.color           = "blue";                   // style en ligne
+titre.style.backgroundColor = "yellow";                 // camelCase !
+
+texte.classList.add("rouge");        // ajouter une classe
+texte.classList.remove("rouge");     // l'enlever
+texte.classList.toggle("rouge");     // l'un ou l'autre selon l'état</code></pre></div>
+
+  <h3>Créer et ajouter</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let p = document.createElement("p");
+p.textContent = "Paragraphe ajouté par JavaScript";
+document.body.appendChild(p);</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>textContent</code> ou <code>innerHTML</code> ?</div>
+    <p><code>textContent</code> insère du <strong>texte brut</strong> ;
+       <code>innerHTML</code> <strong>interprète le HTML</strong>. La règle :</p>
+    <div class="formule">Par défaut <code>textContent</code>. <code>innerHTML</code> seulement si
+      l'on veut vraiment des balises.</div>
+    <p>Pourquoi ? Parce qu'injecter dans <code>innerHTML</code> du texte venant de l'utilisateur
+       laisse exécuter du code étranger dans votre page — c'est la faille <strong>XSS</strong>, vue
+       au <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
+       cybersécurité</a>. <code>textContent</code> affiche les balises telles quelles, donc sans
+       danger.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les propriétés CSS passent en camelCase</div>
+    <p>En CSS on écrit <code>background-color</code> ; en JavaScript, le tiret est interdit dans un
+       nom de propriété. On écrit donc <code>style.backgroundColor</code>,
+       <code>style.fontSize</code>, <code>style.marginTop</code>.</p>
+    <p>Cela dit, modifier <code>classList</code> est presque toujours préférable à
+       <code>style</code> : le design reste dans le CSS, et JavaScript se contente de basculer une
+       classe.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="evenements">
+  <h2><span class="num">09</span>Les événements</h2>
+
+  <p>Un <strong>événement</strong> est une action détectée par le navigateur : un clic, une touche
+     du clavier, l'envoi d'un formulaire, le chargement de la page. JavaScript peut les
+     <strong>écouter</strong> et exécuter du code en réponse.</p>
+
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>element.addEventListener("typeEvenement", fonctionCallback);</code></pre></div>
+  <ul>
+    <li><code>"typeEvenement"</code> — <code>click</code>, <code>submit</code>,
+        <code>keydown</code>…</li>
+    <li><code>fonctionCallback</code> — la fonction exécutée quand l'événement se produit.</li>
+  </ul>
+
+  <div class="demo" data-apercu="js">
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>const bouton = document.getElementById("btn");
+const zone   = document.getElementById("zone");
+let compteur = 0;
+
+bouton.addEventListener("click", function () {
+    compteur++;
+    zone.textContent = "Clics : " + compteur;
+    zone.style.color = compteur &gt;= 5 ? "crimson" : "#2D5A27";
+});</code></pre></div>
+<template class="markup"><button id="btn" style="padding:8px 16px;border:0;border-radius:6px;background:#2D5A27;color:#fff;font:inherit;cursor:pointer">Cliquez-moi</button><p id="zone" style="font-weight:700;margin-top:12px">Clics : 0</p></template>
+  </div>
+  <p style="font-size:.85em;color:var(--encre-tenue)">↑ Cliquez réellement sur le bouton : le code
+     de gauche s'exécute dans le cadre de droite.</p>
+
+  <h3>Les principaux événements</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Catégorie</th><th>Événement</th><th>Déclenché quand…</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="4"><strong>Souris</strong></td><td><code>click</code></td><td>clic simple</td></tr>
+      <tr><td><code>dblclick</code></td><td>double clic</td></tr>
+      <tr><td><code>mouseover</code> / <code>mouseout</code></td><td>la souris entre / quitte</td></tr>
+      <tr><td><code>contextmenu</code></td><td>clic droit</td></tr>
+      <tr><td rowspan="2"><strong>Clavier</strong></td><td><code>keydown</code></td><td>touche enfoncée</td></tr>
+      <tr><td><code>keyup</code></td><td>touche relâchée</td></tr>
+      <tr><td rowspan="2"><strong>Formulaire</strong></td><td><code>submit</code></td><td>envoi du formulaire</td></tr>
+      <tr><td><code>change</code> / <code>input</code></td><td>une valeur change</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>addEventListener("click", maFonction)</code> — sans parenthèses</div>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>bouton.addEventListener("click", direBonjour);      // ✔ on PASSE la fonction
+bouton.addEventListener("click", direBonjour());    // ✘ on l'APPELLE tout de suite</code></pre></div>
+    <p>Avec les parenthèses, la fonction s'exécute <strong>immédiatement</strong>, au chargement, et
+       c'est son <em>résultat</em> (souvent <code>undefined</code>) qui est enregistré comme
+       écouteur. Résultat : l'action se produit une fois toute seule, puis le bouton reste
+       inerte.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 10 -->
+<section id="validation">
+  <h2><span class="num">10</span>Valider un formulaire</h2>
+
+  <p>Objectifs : empêcher l'envoi de données incorrectes, améliorer l'expérience utilisateur,
+     réduire les erreurs côté serveur et sécuriser les données. Avec JavaScript on peut
+     <strong>intercepter l'envoi</strong>, <strong>vérifier</strong>, et <strong>bloquer</strong> si
+     nécessaire.</p>
+
+  <h3>Récupérer les valeurs</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Propriété</th><th>Rôle</th><th>Sur quoi</th></tr></thead>
+    <tbody>
+      <tr><td><code>.value</code></td><td>le texte saisi</td>
+          <td><code>input</code>, <code>textarea</code>, <code>select</code></td></tr>
+      <tr><td><code>.checked</code></td><td>coché ou non</td>
+          <td><code>checkbox</code>, <code>radio</code></td></tr>
+      <tr><td><code>.selectedIndex</code></td><td>l'index choisi (à partir de <strong>0</strong>)</td>
+          <td><code>select</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let nom   = document.getElementById("nom").value;
+let email = document.getElementById("email").value;</code></pre></div>
+
+  <h3>Les vérifications de base</h3>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>if (nom === "") {
+    alert("Le nom est obligatoire");
+}
+
+if (password.length &lt; 8) {
+    alert("Mot de passe trop court");
+}
+
+if (!email.includes("@")) {
+    alert("Email invalide");
+}</code></pre></div>
+
+  <h3>Les expressions régulières</h3>
+  <p>Une <strong>regex</strong> vérifie un <em>format</em> précis.</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+if (!regex.test(email)) {
+    alert("Email invalide");
+}
+
+let telRegex = /^[0-9]{10}$/;
+if (!telRegex.test(telephone)) {
+    alert("Numéro invalide");
+}</code></pre></div>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Partie</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><code>^</code></td><td>début de la chaîne</td></tr>
+      <tr><td><code>[^\s@]+</code></td><td>un ou plusieurs caractères qui ne sont ni un espace ni
+          <code>@</code></td></tr>
+      <tr><td><code>@</code></td><td>l'arobase, obligatoire</td></tr>
+      <tr><td><code>\.</code></td><td>un point (le <code>\</code> l'échappe)</td></tr>
+      <tr><td><code>[0-9]{10}</code></td><td>un chiffre, exactement 10 fois</td></tr>
+      <tr><td><code>$</code></td><td>fin de la chaîne</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Messages d'erreur dans la page</h3>
+  <p>Plutôt qu'un <code>alert()</code> qui bloque tout, on affiche l'erreur à côté du champ.</p>
+
+  <div class="demo" data-apercu="js">
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>const form  = document.getElementById("formulaire");
+const champ = document.getElementById("email");
+const err   = document.getElementById("erreurEmail");
+const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+form.addEventListener("submit", function (e) {
+    e.preventDefault();              // ← bloque l'envoi
+    const email = champ.value.trim();
+
+    if (email === "") {
+        err.textContent = "L'email est obligatoire";
+    } else if (!regex.test(email)) {
+        err.textContent = "Format d'email invalide";
+    } else {
+        err.textContent = "";
+        champ.style.borderColor = "green";
+    }
+});</code></pre></div>
+<template class="markup"><form id="formulaire"><label for="email" style="display:block;margin-bottom:4px">Email :</label><input type="text" id="email" placeholder="vous@exemple.fr" style="padding:6px;border:1px solid #bbb;border-radius:5px;font:inherit"><button type="submit" style="padding:6px 14px;margin-left:6px;border:0;border-radius:5px;background:#2D5A27;color:#fff;font:inherit;cursor:pointer">Valider</button><span id="erreurEmail" style="display:block;color:crimson;font-size:13px;margin-top:8px"></span></form></template>
+  </div>
+  <p style="font-size:.85em;color:var(--encre-tenue)">↑ Essayez d'envoyer le formulaire vide, puis
+     avec « abc », puis avec une vraie adresse.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>preventDefault()</code> : la clé de toute validation</div>
+    <p>Par défaut, un <code>submit</code> envoie le formulaire et <strong>recharge la page</strong>
+       — votre code de vérification n'a même pas le temps d'agir. <code>e.preventDefault()</code>
+       annule ce comportement par défaut et vous laisse la main.</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>form.addEventListener("submit", function (e) {
+    e.preventDefault();     // sans cette ligne, rien de ce qui suit ne sert
+    // … vérifications …
+});</code></pre></div>
+    <p>Notez aussi <code>.trim()</code>, qui retire les espaces avant et après : sans lui, un champ
+       ne contenant qu'une espace passerait le test <code>=== ""</code>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La validation côté client ne sécurise rien</div>
+    <p>Tout ce JavaScript s'exécute <strong>dans le navigateur de l'utilisateur</strong> : il peut
+       le désactiver, le modifier, ou envoyer la requête sans passer par votre page. La validation
+       côté client sert le <strong>confort</strong> — un retour immédiat, une faute signalée avant
+       l'envoi.</p>
+    <p>La <strong>sécurité</strong>, elle, se joue côté <strong>serveur</strong>, où l'utilisateur
+       n'a pas la main. Toute donnée reçue doit y être <em>revérifiée</em>. C'est le sujet du
+       <a href="../05-php/cours.html">chapitre PHP</a>.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Ce code additionne deux champs et affiche « 23 » au lieu de « 5 ». Pourquoi, et comment le
+       corriger ?</p>
+<div class="bloc-code"><span class="langue">javascript</span><pre><code>let a = document.getElementById("a").value;   // l'utilisateur a saisi 2
+let b = document.getElementById("b").value;   // l'utilisateur a saisi 3
+console.log(a + b);</code></pre></div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><code>.value</code> renvoie <strong>toujours une chaîne de caractères</strong>, même quand
+         le champ est un <code>type="number"</code>. On a donc <code>"2" + "3"</code>, et le
+         <code>+</code> <strong>concatène</strong> au lieu d'additionner.</p>
+<div class="bloc-code"><span class="langue">javascript — corrigé</span><pre><code>let a = Number(document.getElementById("a").value);
+let b = Number(document.getElementById("b").value);
+console.log(a + b);      // 5</code></pre></div>
+      <p class="rap"><strong>La règle :</strong> tout ce qui sort d'un formulaire est du
+         <em>texte</em>. Convertissez avec <code>Number()</code> avant tout calcul, et comparez avec
+         <code>===</code> après conversion.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Intégration</strong> : fichier externe, dans le <code>&lt;head&gt;</code> avec
+          <code>defer</code> (ou en fin de <code>&lt;body&gt;</code>).</li>
+      <li><strong>Variables</strong> : <code>const</code> par défaut, <code>let</code> si ça change,
+          <code>var</code> jamais.</li>
+      <li><strong>Comparaison</strong> : toujours <code>===</code>. <code>==</code> convertit et
+          ment.</li>
+      <li><strong>Logiques</strong> : <code>&amp;&amp;</code> (et), <code>||</code> (ou),
+          <code>!</code> (non).</li>
+      <li><strong>Le <code>+</code></strong> additionne les nombres, concatène dès qu'il y a du
+          texte → <code>Number()</code>.</li>
+      <li><strong>Boucles</strong> : <code>for</code> (nombre connu), <code>while</code>,
+          <code>do…while</code> (1 tour minimum). Faire évoluer la condition.</li>
+      <li><strong>Fonctions</strong> : déclarée (hoistée), expression, fléchée
+          (<code>=&gt;</code>). Anonyme = seulement en expression.</li>
+      <li><strong>DOM</strong> : <code>querySelector</code> / <code>querySelectorAll</code>,
+          <code>textContent</code> (sûr) vs <code>innerHTML</code>, <code>classList</code>.</li>
+      <li><strong>Événements</strong> : <code>addEventListener("click", fn)</code> — sans
+          parenthèses.</li>
+      <li><strong>Validation</strong> : <code>e.preventDefault()</code>, <code>.trim()</code>,
+          regex — et tout revérifier côté serveur.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « Développement web — JavaScript » (le professeur, BTS CIEL 2025-2026)</li>
+      <li>Cours « JavaScript et le DOM » · « Formulaires et validation »</li>
+      <li>TP 1 à 4 — opérateurs et conditions, fonctions, DOM, validation de formulaire</li>
+      <li>comptes rendus d'élève (TP3 DOM, TP4 validation)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

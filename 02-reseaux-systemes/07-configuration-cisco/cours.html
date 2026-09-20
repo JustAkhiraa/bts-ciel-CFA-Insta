@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration de base Cisco IOS — modes, mots de passe, SVI | BTS CIEL</title>
+<meta name="description" content="Cours complet : accès à IOS, modes de commande, configuration de base d'un switch et d'un routeur, mots de passe, bannière, sauvegarde et vérification.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#acces">1 · Accéder à Cisco IOS</a></li>
+    <li><a href="#modes">2 · Les modes de commande</a></li>
+    <li><a href="#syntaxe">3 · Syntaxe, aide et raccourcis</a></li>
+    <li><a href="#base">4 · La configuration de base</a></li>
+    <li><a href="#motsdepasse">5 · Sécuriser les accès</a></li>
+    <li><a href="#sauvegarde">6 · Enregistrer la configuration</a></li>
+    <li><a href="#adressage">7 · L'adressage du commutateur</a></li>
+    <li><a href="#verification">8 · Vérifier son travail</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Configuration de base Cisco IOS</h1>
+  <p class="chapeau">Les commandes qui reviennent dans <em>tous</em> les TP réseau — celles qu'il
+     faut taper sans réfléchir pour garder son attention sur le reste.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>On accède à un équipement Cisco par la <strong>console</strong> (première configuration)
+         ou par <strong>SSH</strong> (à distance, sécurisé). IOS impose des
+         <strong>modes emboîtés</strong> : <code>&gt;</code> utilisateur, <code>#</code> privilégié,
+         <code>(config)#</code> global. La configuration active vit dans la
+         <strong>RAM volatile</strong> : sans <code>copy running-config startup-config</code>,
+         <strong>tout est perdu au redémarrage</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#IOS</code> <code>#console</code> <code>#SSH</code> <code>#Telnet</code>
+    <code>#enable</code> <code>#configure-terminal</code> <code>#hostname</code>
+    <code>#enable-secret</code> <code>#line-vty</code> <code>#banner-motd</code>
+    <code>#running-config</code> <code>#startup-config</code> <code>#NVRAM</code>
+    <code>#SVI</code> <code>#default-gateway</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="acces">
+  <h2><span class="num">01</span>Accéder à Cisco IOS</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Méthode</th><th>Principe</th><th>Sécurité</th><th>Quand l'utiliser</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Console</strong></td>
+          <td>Port de gestion <strong>physique</strong>, câble bleu roulé (<em>rollover</em>)</td>
+          <td>Accès physique requis</td>
+          <td><strong>Configuration initiale</strong>, maintenance, récupération d'un mot de passe
+              perdu</td></tr>
+      <tr><td><strong>SSH</strong></td>
+          <td>Connexion CLI <strong>à distance</strong> par une interface virtuelle, sur le
+              réseau</td>
+          <td class="rep-ok"><strong>Chiffrée</strong></td>
+          <td><strong>La méthode recommandée</strong> pour se connecter à distance</td></tr>
+      <tr><td><strong>Telnet</strong></td>
+          <td>Connexion CLI distante, sur le réseau</td>
+          <td class="rep-non"><strong>En clair</strong></td>
+          <td>À éviter — identifiants, mots de passe et commandes circulent en clair</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pourquoi la console reste indispensable</div>
+    <p>Un équipement neuf n'a <strong>aucune adresse IP</strong> : impossible de le joindre par le
+       réseau. La console est le seul moyen d'entrer la toute première configuration. C'est aussi
+       le seul recours quand on a perdu le mot de passe, ou qu'une mauvaise commande a coupé
+       l'accès distant.</p>
+    <p>Retenez la formule : <strong>on configure par la console, on administre par SSH.</strong></p>
+  </div>
+
+  <h3>Les émulateurs de terminal</h3>
+  <p>Ce sont les programmes utilisés pour se connecter à un périphérique réseau, par le port de
+     console ou par SSH/Telnet : <strong>PuTTY</strong>, <strong>Tera Term</strong>,
+     <strong>SecureCRT</strong>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Telnet n'est pas « moins bien », il est dangereux</div>
+    <p>Telnet transmet <strong>tout en clair</strong>, y compris le mot de passe
+       <code>enable secret</code> que vous venez de taper. N'importe qui capturant le trafic avec
+       Wireshark le lit en clair. C'est la raison pour laquelle il figure encore au programme :
+       non pour l'utiliser, mais pour comprendre <em>pourquoi</em> on ne l'utilise plus — et pour
+       le reconnaître dans une capture de trames en épreuve.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="modes">
+  <h2><span class="num">02</span>Les modes de commande</h2>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 250" role="img" aria-label="Navigation entre les modes IOS">
+      <style>
+        .m{fill:var(--carte);stroke:var(--accent);stroke-width:1.6}
+        .mg{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.6}
+        .pr{font:700 13px var(--mono);fill:var(--accent-sombre)}
+        .nm{font:600 12px var(--sans);fill:var(--encre)}
+        .cm{font:600 11px var(--mono);fill:var(--accent);text-anchor:middle}
+        .ar{stroke:var(--accent);stroke-width:1.6;fill:none;marker-end:url(#a3)}
+        .ab{stroke:var(--bord-fort);stroke-width:1.4;fill:none;marker-end:url(#a4)}
+      </style>
+      <defs>
+        <marker id="a3" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 z" fill="var(--accent)"/></marker>
+        <marker id="a4" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 z" fill="var(--bord-fort)"/></marker>
+      </defs>
+
+      <rect class="m" x="30" y="16" width="230" height="42" rx="7"/>
+      <text class="pr" x="44" y="35">Switch&gt;</text>
+      <text class="nm" x="44" y="51">Exécution utilisateur</text>
+
+      <path class="ar" d="M145 60 L145 84"/><text class="cm" x="200" y="76">enable</text>
+      <path class="ab" d="M175 84 L175 60"/><text class="cm" x="228" y="98" fill="var(--encre-tenue)">disable</text>
+
+      <rect class="m" x="30" y="88" width="230" height="42" rx="7"/>
+      <text class="pr" x="44" y="107">Switch#</text>
+      <text class="nm" x="44" y="123">Exécution privilégié</text>
+
+      <path class="ar" d="M145 132 L145 156"/><text class="cm" x="218" y="148">configure terminal</text>
+      <path class="ab" d="M175 156 L175 132"/><text class="cm" x="200" y="170" fill="var(--encre-tenue)">exit</text>
+
+      <rect class="mg" x="30" y="160" width="230" height="42" rx="7"/>
+      <text class="pr" x="44" y="179">Switch(config)#</text>
+      <text class="nm" x="44" y="195">Configuration globale</text>
+
+      <path class="ar" d="M262 181 L318 181"/>
+      <rect class="mg" x="322" y="128" width="215" height="40" rx="7"/>
+      <text class="pr" x="334" y="146" style="font-size:11.5px">S1(config-line)#</text>
+      <text class="nm" x="334" y="161" style="font-size:11px">Ligne — console, VTY, AUX</text>
+      <text class="cm" x="430" y="122" style="font-size:10.5px">line console 0 / line vty 0 15</text>
+
+      <rect class="mg" x="322" y="194" width="215" height="40" rx="7"/>
+      <text class="pr" x="334" y="212" style="font-size:11.5px">S1(config-if)#</text>
+      <text class="nm" x="334" y="227" style="font-size:11px">Interface — port, VLAN</text>
+      <text class="cm" x="430" y="188" style="font-size:10.5px">interface f0/1 / interface vlan 1</text>
+
+      <path class="ar" d="M262 172 L318 150"/>
+      <path class="ar" d="M262 192 L318 210"/>
+    </svg>
+    <figcaption>Le prompt indique toujours où l'on se trouve. <kbd>Ctrl</kbd>+<kbd>Z</kbd> ramène directement au mode privilégié depuis n'importe quel niveau.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mode</th><th>Invite</th><th>Ce qu'on y fait</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Exécution utilisateur</strong></td><td><code>Switch&gt;</code></td>
+          <td>N'autorise l'accès qu'à un <strong>nombre limité de commandes de surveillance de
+              base</strong></td></tr>
+      <tr><td><strong>Exécution privilégié</strong></td><td><code>Switch#</code></td>
+          <td>Permet d'accéder à <strong>toutes</strong> les commandes et fonctionnalités</td></tr>
+      <tr><td><strong>Configuration globale</strong></td><td><code>Switch(config)#</code></td>
+          <td>Accéder aux options de configuration de l'appareil</td></tr>
+      <tr><td><strong>Configuration de ligne</strong></td><td><code>Switch(config-line)#</code></td>
+          <td>Configurer l'accès par console, SSH, Telnet ou AUX</td></tr>
+      <tr><td><strong>Configuration d'interface</strong></td><td><code>Switch(config-if)#</code></td>
+          <td>Configurer un port de commutateur ou une interface de routeur</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch&gt; enable                          ← passer en mode privilégié
+Switch# configure terminal              ← passer en configuration globale
+Switch(config)# line console 0          ← configuration de ligne
+Switch(config-line)# exit               ← revenir au mode précédent
+Switch(config)# interface fastethernet 0/1
+Switch(config-if)# end                  ← revenir DIRECTEMENT au mode privilégié
+Switch# disable                         ← redescendre en mode utilisateur</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>exit</code>, <code>end</code> ou <kbd>Ctrl</kbd>+<kbd>Z</kbd> ?</div>
+    <ul>
+      <li><code>exit</code> — remonte d'<strong>un seul</strong> niveau.</li>
+      <li><code>end</code> — remonte <strong>directement</strong> au mode d'exécution privilégié,
+          quel que soit le niveau où l'on se trouve.</li>
+      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> — identique à <code>end</code>.</li>
+    </ul>
+    <p>Le réflexe qui fait gagner du temps : depuis <code>(config-if)#</code>, tapez
+       <code>end</code> plutôt que deux <code>exit</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="syntaxe">
+  <h2><span class="num">03</span>Syntaxe, aide et raccourcis</h2>
+
+  <h3>La structure d'une commande</h3>
+<div class="bloc-code"><span class="langue">syntaxe</span><pre><code>Switch(config-if)#  ip address  192.168.10.5  255.255.255.0
+                    └────┬────┘  └─────┬────┘
+                     MOTS-CLÉS      ARGUMENTS
+
+• Mot-clé  : un paramètre spécifique défini dans le système d'exploitation
+• Argument : une valeur ou variable définie par L'UTILISATEUR</code></pre></div>
+
+  <h3>Les deux formes d'aide</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Forme</th><th>Ce qu'elle apporte</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Aide contextuelle</strong> — le <code>?</code></td>
+          <td>Quelles commandes sont disponibles dans ce mode ? Lesquelles commencent par tel
+              groupe de caractères ? Quels arguments et mots-clés accepte cette commande ?</td></tr>
+      <tr><td><strong>Vérification de syntaxe</strong></td>
+          <td>Contrôle que la commande saisie est valide. Si l'interpréteur ne comprend pas, il
+              affiche un commentaire décrivant le problème</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch# ?                    ← toutes les commandes de ce mode
+Switch# sh?                  ← toutes celles commençant par « sh »
+Switch# show ?               ← tous les mots-clés acceptés après « show »
+Switch# show ip ?            ← et ainsi de suite
+
+Switch# show ru
+  % Ambiguous command                ← plusieurs commandes commencent ainsi
+Switch# show running
+  % Incomplete command               ← il manque un argument
+Switch# shwo running-config
+  % Invalid input detected at '^'    ← faute de frappe : le ^ pointe l'erreur</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les trois messages d'erreur à savoir lire</div>
+    <ul>
+      <li><strong><code>% Ambiguous command</code></strong> — votre abréviation correspond à
+          plusieurs commandes. Tapez quelques lettres de plus.</li>
+      <li><strong><code>% Incomplete command</code></strong> — la commande est juste mais
+          incomplète. Ajoutez <code>?</code> pour voir ce qui manque.</li>
+      <li><strong><code>% Invalid input detected at '^'</code></strong> — il y a une erreur, et le
+          <code>^</code> pointe <strong>exactement</strong> l'endroit fautif.</li>
+    </ul>
+    <p>Ces trois messages disent trois choses différentes. Les distinguer fait gagner un temps
+       considérable en TP — et c'est une question fréquente à l'oral.</p>
+  </div>
+
+  <h3>Les raccourcis clavier</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Frappe</th><th>Effet</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Tab</kbd></td><td>Complète un nom de commande entré partiellement</td></tr>
+      <tr><td><kbd>Retour arrière</kbd></td><td>Efface le caractère à gauche du curseur</td></tr>
+      <tr><td><kbd>←</kbd> ou <kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>Curseur d'un caractère vers la gauche</td></tr>
+      <tr><td><kbd>→</kbd> ou <kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Curseur d'un caractère vers la droite</td></tr>
+      <tr><td><kbd>↑</kbd> ou <kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Rappelle les commandes antérieures, de la plus récente à la plus ancienne</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Quitte le mode de configuration, retour au mode privilégié</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Idem</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>6</kbd></td><td>Séquence de coupure : annule un <code>ping</code>, un <code>traceroute</code>, une recherche DNS</td></tr>
+      <tr><td><kbd>Entrée</kbd> à l'invite <code>--More--</code></td><td>Affiche la ligne suivante</td></tr>
+      <tr><td><kbd>Espace</kbd> à l'invite <code>--More--</code></td><td>Affiche l'écran suivant</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>6</kbd> — le raccourci qui sauve</div>
+    <p>Vous lancez un <code>ping</code> vers une adresse injoignable, ou une commande déclenche une
+       recherche DNS qui prend trente secondes. La console semble figée et
+       <kbd>Ctrl</kbd>+<kbd>C</kbd> ne fait rien.</p>
+    <p>C'est la <strong>séquence de coupure</strong> qu'il faut :
+       <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>6</kbd>. Elle interrompt l'opération en cours et rend la
+       main immédiatement. Utile aussi après une faute de frappe : IOS croit que vous avez tapé un
+       nom d'hôte et tente de le résoudre.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="base">
+  <h2><span class="num">04</span>La configuration de base</h2>
+
+  <h3>Le nom du périphérique</h3>
+  <p>La <strong>première commande</strong> de configuration sur n'importe quel périphérique doit
+     être de lui donner un <strong>nom d'hôte unique</strong>. Par défaut, tous les périphériques
+     portent un nom d'usine — <code>Switch</code> pour un commutateur Cisco IOS.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les règles de nommage</div>
+    <ul>
+      <li>débuter par une <strong>lettre</strong> ;</li>
+      <li>ne contenir <strong>aucun espace</strong> ;</li>
+      <li>se terminer par une lettre ou un chiffre ;</li>
+      <li>ne comporter que des <strong>lettres, chiffres et tirets</strong> ;</li>
+      <li>faire <strong>moins de 64 caractères</strong>.</li>
+    </ul>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch&gt; enable
+Switch# configure terminal
+Switch(config)# hostname S1
+S1(config)#                          ← l'invite change IMMÉDIATEMENT
+
+S1(config)# no hostname              ← revenir au nom d'usine « Switch »</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le préfixe <code>no</code>, la commande la plus utile d'IOS</div>
+    <p>Presque toute commande IOS s'annule en la répétant précédée de <code>no</code> :
+       <code>no hostname</code>, <code>no shutdown</code>, <code>no ip domain-lookup</code>,
+       <code>no service password-encryption</code>. C'est un principe général, pas une exception :
+       il évite d'avoir à mémoriser une seconde commande pour défaire la première.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="motsdepasse">
+  <h2><span class="num">05</span>Sécuriser les accès</h2>
+
+  <p>L'utilisation de mots de passe faibles ou facilement devinés est un problème de sécurité. Tous
+     les périphériques réseau doivent <strong>limiter l'accès administratif</strong> en sécurisant
+     l'accès d'exécution, l'accès utilisateur et l'accès Telnet à distance. Tous les mots de passe
+     doivent être <strong>chiffrés</strong>, et des <strong>notifications légales</strong> doivent
+     être fournies.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Recommandations pour un mot de passe fort</div>
+    <ul>
+      <li>plus de <strong>8 caractères</strong> ;</li>
+      <li>une <strong>combinaison</strong> de majuscules, minuscules, chiffres et caractères
+          spéciaux ;</li>
+      <li><strong>ne pas réutiliser</strong> le même mot de passe sur tous les périphériques ;</li>
+      <li><strong>éviter les mots courants</strong>, faciles à deviner.</li>
+    </ul>
+  </div>
+
+  <h3>Les trois accès à protéger</h3>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! ── 1. Accès CONSOLE (mode d'exécution utilisateur) ──
+S1(config)# line console 0
+S1(config-line)# password cisco123
+S1(config-line)# login                    ← ACTIVE la demande de mot de passe
+S1(config-line)# exit
+
+! ── 2. Accès au mode d'exécution PRIVILÉGIÉ ──
+S1(config)# enable secret classe456       ← « secret », pas « password »
+
+! ── 3. Accès distant par les lignes VTY (Telnet / SSH) ──
+S1(config)# line vty 0 15                 ← les 16 lignes virtuelles, de 0 à 15
+S1(config-line)# password vty789
+S1(config-line)# login
+S1(config-line)# exit</code></pre></div>
+
+  <p>Les lignes <strong>VTY</strong> (terminal virtuel) activent l'accès à distance en utilisant
+     Telnet ou SSH. La plupart des commutateurs Cisco prennent en charge jusqu'à
+     <strong>16 lignes VTY, numérotées de 0 à 15</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sans <code>login</code>, le mot de passe ne sert à rien</div>
+    <p><code>password</code> <em>définit</em> le mot de passe ; <code>login</code>
+       <strong>active la demande</strong>. Configurer l'un sans l'autre laisse l'accès totalement
+       ouvert — et c'est l'oubli le plus fréquent en TP, parce que rien ne signale l'erreur.</p>
+    <p>Vérifiez toujours en vous déconnectant puis en vous reconnectant : si aucun mot de passe
+       n'est demandé, il manque <code>login</code>.</p>
+  </div>
+
+  <h3>Chiffrer les mots de passe</h3>
+  <p>Les fichiers <code>startup-config</code> et <code>running-config</code> affichent la plupart
+     des mots de passe <strong>en texte clair</strong>. La commande
+     <code>service password-encryption</code> les chiffre.</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1# show running-config          ← vérifier : les mots de passe sont EN CLAIR
+    password cisco123
+
+S1(config)# service password-encryption
+
+S1# show running-config          ← vérifier : ils sont maintenant chiffrés
+    password 7 0822455D0A16</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>enable secret</code> et <code>service password-encryption</code> ne protègent pas pareil</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th><code>enable secret</code></th><th><code>service password-encryption</code></th></tr></thead>
+      <tbody>
+        <tr><td>Protège</td><td>Le mot de passe du mode privilégié</td><td>Tous les autres mots de
+            passe du fichier</td></tr>
+        <tr><td>Méthode</td><td><strong>Hachage</strong> (type 5 ou 9)</td><td>Chiffrement
+            <strong>type 7</strong></td></tr>
+        <tr><td>Réversible ?</td><td class="rep-ok"><strong>Non</strong></td>
+            <td class="rep-non"><strong>Oui, en quelques secondes</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Le « chiffrement » de type 7 est trivialement réversible : des outils en ligne le décodent
+       instantanément. Il n'empêche que la <strong>lecture par-dessus l'épaule</strong>, pas une
+       vraie attaque.</p>
+    <p>C'est pourquoi on utilise <code>enable <strong>secret</strong></code> et jamais
+       <code>enable password</code> : le premier hache, le second se contente du type 7. Si la
+       question tombe, la formule attendue est : <em>« secret est haché, donc irréversible ;
+       password-encryption est réversible et ne protège que de la lecture accidentelle »</em>.</p>
+  </div>
+
+  <h3>Le message de bannière</h3>
+  <p>Un message de bannière est important pour <strong>avertir le personnel non autorisé</strong>
+     tentant d'accéder à l'appareil. Il s'affiche lors des tentatives de connexion.</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# banner motd #Acces reserve au personnel autorise. Toute
+tentative non autorisee fera l'objet de poursuites.#
+                        ↑                                          ↑
+                    délimiteur                                délimiteur</code></pre></div>
+
+  <p><strong>MOTD</strong> signifie <em>Message Of The Day</em>. Le <code>#</code> est le
+     <strong>caractère de délimitation</strong> : il est placé avant et après le message.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Ne jamais écrire « Bienvenue »</div>
+    <p>Une bannière n'est pas décorative : elle a une <strong>portée juridique</strong>. Écrire
+       « Bienvenue » sur un équipement peut être interprété comme une <em>invitation</em> à s'y
+       connecter, ce qui affaiblit les poursuites en cas d'intrusion. La bannière doit énoncer que
+       l'accès est <strong>réservé</strong> et que toute tentative non autorisée est
+       <strong>répréhensible</strong>. Elle ne doit pas non plus révéler le modèle, la version ou
+       la fonction de l'équipement — autant d'informations offertes à un attaquant.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="sauvegarde">
+  <h2><span class="num">06</span>Enregistrer la configuration</h2>
+
+  <p>Deux fichiers système stockent la configuration des périphériques. La différence entre les
+     deux est <strong>la source d'erreur numéro un</strong> en TP.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 540 190" role="img" aria-label="running-config en RAM et startup-config en NVRAM">
+      <style>
+        .ram{fill:#FBEDEC;stroke:var(--rouge);stroke-width:1.6}
+        .nv {fill:var(--vert-pale);stroke:var(--vert);stroke-width:1.6}
+        .tt {font:700 13px var(--mono);text-anchor:middle}
+        .st {font:11px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .cm {font:600 11.5px var(--mono);fill:var(--accent-sombre);text-anchor:middle}
+        .ar {stroke:var(--accent);stroke-width:2;fill:none;marker-end:url(#a5)}
+      </style>
+      <defs><marker id="a5" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 z" fill="var(--accent)"/></marker></defs>
+
+      <rect class="ram" x="24" y="34" width="200" height="76" rx="8"/>
+      <text class="tt" x="124" y="60" fill="var(--rouge)">running-config</text>
+      <text class="st" x="124" y="80">en RAM · configuration ACTIVE</text>
+      <text class="st" x="124" y="98" style="font-weight:700;fill:var(--rouge)">VOLATILE — perdue à l'extinction</text>
+
+      <rect class="nv" x="316" y="34" width="200" height="76" rx="8"/>
+      <text class="tt" x="416" y="60" fill="var(--vert)">startup-config</text>
+      <text class="st" x="416" y="80">en NVRAM · lue au démarrage</text>
+      <text class="st" x="416" y="98" style="font-weight:700;fill:var(--vert)">CONSERVÉE hors tension</text>
+
+      <path class="ar" d="M228 62 L312 62"/>
+      <text class="cm" x="270" y="52">copy run start</text>
+      <path class="ar" d="M312 92 L228 92"/>
+      <text class="cm" x="270" y="112">au démarrage</text>
+
+      <text class="st" x="270" y="150" style="font-size:12px;fill:var(--encre)">Toute commande tapée modifie <tspan style="font-weight:700">immédiatement</tspan> le running-config…</text>
+      <text class="st" x="270" y="170" style="font-size:12px;fill:var(--rouge);font-weight:700">…et disparaît au redémarrage si elle n'a pas été copiée.</text>
+    </svg>
+    <figcaption>Le seul pont entre les deux est la commande <code>copy running-config startup-config</code>.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th><code>running-config</code></th><th><code>startup-config</code></th></tr></thead>
+    <tbody>
+      <tr><td>Stocké dans</td><td><strong>RAM</strong></td><td><strong>NVRAM</strong></td></tr>
+      <tr><td>Contenu</td><td>La configuration <strong>actuelle</strong></td>
+          <td>Les commandes utilisées au <strong>démarrage ou redémarrage</strong></td></tr>
+      <tr><td>Effet d'une modification</td><td><strong>Immédiat</strong> sur le fonctionnement</td>
+          <td>Aucun avant le prochain démarrage</td></tr>
+      <tr><td>À la mise hors tension</td><td class="rep-non"><strong>Tout est perdu</strong> —
+          mémoire volatile</td><td class="rep-ok"><strong>Conservé</strong> — mémoire non
+          volatile</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1# copy running-config startup-config     ← ENREGISTRER (la commande à ne jamais oublier)
+S1# copy run start                         ← abréviation courante
+S1# write memory                           ← ancienne syntaxe, équivalente
+
+S1# show running-config                    ← voir la configuration active
+S1# show startup-config                    ← voir la configuration enregistrée</code></pre></div>
+
+  <h3>Annuler des modifications</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Situation</th><th>Solution</th><th>Conséquence</th></tr></thead>
+    <tbody>
+      <tr><td>Modifications <strong>non enregistrées</strong> à annuler</td>
+          <td>Supprimer les commandes une à une avec <code>no</code>, <strong>ou</strong>
+              recharger avec <code>reload</code></td>
+          <td><code>reload</code> déconnecte brièvement l'appareil et
+              <strong>interrompt le réseau</strong></td></tr>
+      <tr><td>Modifications indésirables <strong>déjà enregistrées</strong></td>
+          <td><code>erase startup-config</code> puis <code>reload</code></td>
+          <td>Efface <strong>toute</strong> la configuration : l'appareil revient à l'état
+              d'usine</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le scénario qui coûte deux heures de TP</div>
+    <p>Vous configurez pendant une heure, tout fonctionne, vous êtes satisfait. Vous éteignez la
+       machine virtuelle ou le poste. Le lendemain, <strong>tout a disparu</strong> : le
+       commutateur s'appelle à nouveau <code>Switch</code> et aucun mot de passe n'est demandé.</p>
+    <p>La configuration vivait en RAM et n'a jamais été copiée en NVRAM. Prenez le réflexe de taper
+       <code>copy run start</code> <strong>après chaque bloc de configuration réussi</strong>, pas
+       à la fin de la séance.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="adressage">
+  <h2><span class="num">07</span>L'adressage du commutateur</h2>
+
+  <h3>Pourquoi un commutateur a besoin d'une adresse IP</h3>
+  <p>Un commutateur commute en <strong>couche 2</strong> et fonctionne parfaitement <em>sans
+     aucune adresse IP</em>. L'adresse ne sert qu'à une chose : <strong>l'administrer à
+     distance</strong>, par SSH ou Telnet.</p>
+  <p>Cette adresse ne se place pas sur un port physique — un commutateur en a des dizaines — mais
+     sur une <strong>interface virtuelle</strong>, la <strong>SVI</strong> (<em>Switch Virtual
+     Interface</em>).</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# interface vlan 1                       ← l'interface virtuelle
+S1(config-if)# ip address 192.168.1.2 255.255.255.0
+S1(config-if)# no shutdown                         ← ACTIVER l'interface
+S1(config-if)# exit
+S1(config)# ip default-gateway 192.168.1.1         ← la passerelle par défaut</code></pre></div>
+
+  <p>Le commutateur doit être configuré avec une <strong>passerelle par défaut</strong> s'il doit
+     être géré à distance depuis des <strong>réseaux connectés indirectement</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>no shutdown</code> — l'oubli qui rend fou</div>
+    <p>Par défaut, l'interface VLAN 1 est <strong><code>administratively down</code></strong>.
+       L'adresse IP est bien configurée, tout semble correct dans <code>show running-config</code>,
+       et pourtant rien ne répond au <code>ping</code>.</p>
+    <p>Le TP de configuration de base montre exactement cela dans son tableau de relevé :
+       <code>VLAN 1 — administratively down</code>. Ce terme est explicite : ce n'est pas une
+       panne, c'est <strong>vous</strong> (ou l'état d'usine) qui l'avez laissée désactivée. La
+       commande <code>no shutdown</code> est la seule à la lever.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>ip default-gateway</code> ou <code>ip route</code> ?</div>
+    <ul>
+      <li>Sur un <strong>commutateur de couche 2</strong> : <code>ip default-gateway</code>. Il ne
+          route pas ; il a juste besoin de savoir à qui remettre ses propres paquets sortants.</li>
+      <li>Sur un <strong>routeur</strong> : <code>ip route 0.0.0.0 0.0.0.0 &lt;suivant&gt;</code>.
+          C'est une véritable route par défaut dans sa table de routage.</li>
+    </ul>
+    <p>Utiliser <code>ip default-gateway</code> sur un routeur n'a aucun effet — la commande est
+       ignorée dès que le routage IP est actif.</p>
+  </div>
+
+  <h3>Adresser les périphériques finaux</h3>
+  <p>Les périphériques terminaux ont besoin d'une adresse IP pour communiquer. Elle peut être
+     saisie <strong>manuellement</strong>, ou attribuée <strong>automatiquement par DHCP</strong> —
+     ce qui est le comportement par défaut de la plupart des postes.</p>
+  <p>Sous Windows : <em>Panneau de configuration → Centre Réseau et partage → Modifier les
+     paramètres de la carte</em>, clic droit sur la carte → <em>Propriétés</em> →
+     <em>Protocole Internet version 4 (TCP/IPv4)</em> → <em>Propriétés</em>. On y saisit l'adresse,
+     le masque et la passerelle, ou l'on coche <em>Obtenir une adresse IP automatiquement</em>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Une commande de confort à connaître</div>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# no ip domain-lookup</code></pre></div>
+    <p>Elle <strong>désactive la résolution DNS</strong>. Sans elle, la moindre faute de frappe —
+       IOS croit que vous avez tapé un nom d'hôte — déclenche une recherche DNS qui bloque la
+       console une trentaine de secondes. C'est la première commande que tapent les habitués en
+       arrivant sur un équipement de laboratoire.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="verification">
+  <h2><span class="num">08</span>Vérifier son travail</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Commande</th><th>Ce qu'elle affiche</th></tr></thead>
+    <tbody>
+      <tr><td><code>show version</code></td><td>Quel <strong>IOS</strong> le commutateur exécute,
+          le modèle, la mémoire</td></tr>
+      <tr><td><code>show ip interface brief</code></td><td>Un <strong>résumé pour toutes les
+          interfaces</strong> : adresse, état, protocole</td></tr>
+      <tr><td><code>show interfaces status</code></td><td>Le <strong>statut des interfaces
+          connectées</strong> : vitesse, duplex, VLAN</td></tr>
+      <tr><td><code>show running-config</code></td><td>La configuration active complète</td></tr>
+      <tr><td><code>show startup-config</code></td><td>La configuration enregistrée</td></tr>
+      <tr><td><code>show mac address-table</code></td><td>La table d'apprentissage des adresses
+          MAC</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Lire <code>show ip interface brief</code></h3>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1# show ip interface brief
+
+Interface       IP-Address    OK?  Method  Status                  Protocol
+Vlan1           192.168.1.2   YES  manual  up                      up
+FastEthernet0/1 unassigned    YES  unset   up                      up
+FastEthernet0/6 unassigned    YES  unset   down                    down
+FastEthernet0/18 unassigned   YES  unset   administratively down   down
+                                            └──────┬─────────┘     └──┬──┘
+                                              couche 1 (physique)  couche 2 (liaison)</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois états, et ce qu'ils veulent dire</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Status / Protocol</th><th>Signification</th><th>Que faire</th></tr></thead>
+      <tbody>
+        <tr><td><code>up</code> / <code>up</code></td><td class="rep-ok">Tout fonctionne</td>
+            <td>Rien</td></tr>
+        <tr><td><code>down</code> / <code>down</code></td>
+            <td><strong>Problème physique</strong> : rien n'est branché, câble défectueux, ou
+                l'équipement d'en face est éteint</td>
+            <td>Vérifier le câble et l'équipement distant</td></tr>
+        <tr><td><code>administratively down</code> / <code>down</code></td>
+            <td><strong>L'interface a été désactivée</strong> par configuration — ou n'a jamais été
+                activée</td>
+            <td><code>no shutdown</code></td></tr>
+        <tr><td><code>up</code> / <code>down</code></td>
+            <td>Le lien physique existe, mais la couche 2 ne s'établit pas — encapsulation ou
+                protocole incompatible</td>
+            <td>Vérifier l'encapsulation des deux côtés</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>C'est le tableau de diagnostic le plus rentable du chapitre : il permet de séparer une panne
+       de câble d'une erreur de configuration en une seule commande.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Sur un commutateur, <code>show ip interface brief</code> affiche
+       <code>FastEthernet0/6 — down / down</code> alors qu'un PC est branché dessus et allumé. Et
+       <code>Vlan1 — administratively down</code> alors que vous venez de lui donner une adresse IP.
+       Quelles sont les deux causes, et sont-elles de même nature ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Non, elles sont de nature complètement différente</strong> — et c'est tout
+         l'intérêt de la question.</p>
+      <p><strong>1. <code>FastEthernet0/6 — down / down</code> : un problème physique.</strong>
+         Le port ne détecte aucun signal. Causes possibles : câble débranché ou défectueux, mauvais
+         type de câble, carte réseau du PC désactivée, ou port du PC éteint. Aucune commande sur le
+         commutateur ne corrigera cela : c'est du matériel.</p>
+      <p><strong>2. <code>Vlan1 — administratively down</code> : une omission de
+         configuration.</strong> Le mot <em>administratively</em> le dit : c'est volontaire, ou
+         c'est l'état d'usine. Configurer une adresse IP n'active pas l'interface. Il manque :</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# interface vlan 1
+S1(config-if)# no shutdown</code></pre></div>
+      <p><strong>La règle de lecture :</strong> <code>administratively down</code> signale
+         <em>toujours</em> une action manquante de votre part. Un simple <code>down</code> signale
+         un problème extérieur au commutateur.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Console</strong> pour la première configuration, <strong>SSH</strong> pour
+          l'administration. Telnet circule en clair.</li>
+      <li><code>&gt;</code> utilisateur → <code>enable</code> → <code>#</code> privilégié →
+          <code>configure terminal</code> → <code>(config)#</code>.</li>
+      <li><code>end</code> et <kbd>Ctrl</kbd>+<kbd>Z</kbd> remontent <strong>directement</strong> au
+          mode privilégié ; <code>exit</code> d'un seul niveau.</li>
+      <li><strong>Le <code>?</code> est votre meilleur outil.</strong> Et le <code>^</code> pointe
+          exactement l'erreur.</li>
+      <li><code>password</code> définit, <strong><code>login</code> active</strong>. Sans
+          <code>login</code>, aucun mot de passe n'est demandé.</li>
+      <li><code>enable <strong>secret</strong></code> est haché ;
+          <code>service password-encryption</code> est <strong>réversible</strong>.</li>
+      <li><strong><code>copy running-config startup-config</code></strong> — sinon tout est perdu
+          au redémarrage.</li>
+      <li><strong>SVI :</strong> <code>interface vlan 1</code> + adresse +
+          <strong><code>no shutdown</code></strong> + <code>ip default-gateway</code>.</li>
+      <li><code>administratively down</code> = vous. <code>down/down</code> = le câble.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>7-Configuration_base_périphériques.pdf — sécurité technique B3.1</li>
+      <li>7-TP-Configuration-base-switch.pdf</li>
+      <li>5-TP-Initiation Cisco Packet Tracer.pdf</li>
+      <li>TP config base switch — comptes rendus l'élève et le binôme</li>
+      <li>1.2.7-packet-tracer-create-a-simple-network.pka</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

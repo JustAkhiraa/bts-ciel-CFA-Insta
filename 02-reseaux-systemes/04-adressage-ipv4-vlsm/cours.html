@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adressage IPv4, masques et sous-réseaux — BTS CIEL</title>
+<meta name="description" content="Cours complet d'adressage IPv4 : modes de transmission, classes, masques, subnetting et VLSM.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#modes">1 · Les modes de transmission</a></li>
+    <li><a href="#anatomie">2 · Anatomie d'une adresse IPv4</a></li>
+    <li><a href="#classes">3 · Les classes d'adresses</a></li>
+    <li><a href="#reservees">4 · Les adresses réservées</a></li>
+    <li><a href="#masque">5 · Le masque de sous-réseau</a></li>
+    <li><a href="#subnetting">6 · Découper en sous-réseaux</a></li>
+    <li><a href="#vlsm">7 · VLSM : masques de longueur variable</a></li>
+    <li><a href="#reference">8 · Table de référence CIDR</a></li>
+    <li><a href="#methode">9 · La méthode d'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span>
+    <span>Chapitre 04</span>
+    <span class="sep">/</span>
+    <span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Adressage IPv4, masques et sous-réseaux</h1>
+  <p class="chapeau">Comment une machine est identifiée sur un réseau, comment on découpe
+     un réseau en morceaux, et comment ne plus jamais se tromper dans un calcul de masque.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une adresse IPv4 tient sur <strong>32 bits</strong> et se lit en deux parties : la
+         <strong>partie réseau</strong> (le quartier) et la <strong>partie hôte</strong> (le
+         numéro dans la rue). C'est le <strong>masque</strong> qui dit où passe la frontière —
+         un <code>ET</code> logique entre l'adresse et le masque donne l'adresse du réseau.
+         Emprunter des bits à la partie hôte permet de découper un réseau en sous-réseaux
+         (<strong>subnetting</strong>), et le <strong>VLSM</strong> autorise des tailles
+         différentes selon les besoins.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#adresse-IPv4</code> <code>#octet</code> <code>#classes-A-B-C-D-E</code>
+    <code>#masque</code> <code>#CIDR</code> <code>#ET-logique</code>
+    <code>#subnetting</code> <code>#VLSM</code> <code>#broadcast</code>
+    <code>#RFC1918</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="modes">
+  <h2><span class="num">01</span>Les modes de transmission</h2>
+
+  <p>Avant de parler d'adresses, il faut savoir <em>à qui</em> on parle. Sur un réseau IP, il
+     existe trois façons d'envoyer une information, et chacune correspond à un type d'adresse
+     de destination différent.</p>
+
+  <h3>Unicast — un vers un</h3>
+  <p>C'est le principe le plus utilisé et le plus simple. Chaque ordinateur possède une adresse
+     IP ; on envoie les trames en spécifiant l'adresse IP de l'ordinateur à qui on veut envoyer
+     les informations. Les éléments actifs et passifs du réseau (commutateurs, répéteurs,
+     routeurs…) dirigent l'information dans la bonne direction pour que les trames arrivent au
+     bon endroit. <strong>Seule la machine dont l'adresse figure dans la trame regarde et traite
+     l'information.</strong></p>
+
+  <h3>Broadcast — un vers tous</h3>
+  <p>Le principe du broadcast est d'envoyer une information à tous les ordinateurs du réseau où
+     l'on est. Au lieu d'envoyer en unicast vers l'adresse IP de chaque machine, on envoie la
+     trame à tous les ordinateurs du sous-réseau en utilisant une <strong>adresse de
+     broadcast</strong>, réservée à cet usage. Chacun des ordinateurs du sous-réseau regarde et
+     traite la trame comme si elle lui était personnellement adressée.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen</div>
+    <p>Les trames de broadcast ont une caractéristique décisive : <strong>elles ne passent pas
+       les routeurs</strong>. Un broadcast s'adresse uniquement aux ordinateurs d'un même
+       sous-réseau. C'est précisément l'argument qui justifie le découpage en sous-réseaux —
+       et une question classique à l'oral.</p>
+  </div>
+
+  <h3>Multicast — un vers un groupe</h3>
+  <p>Plutôt que d'envoyer les fichiers du serveur vers chacune des machines clientes (unicast),
+     on n'envoie l'information qu'<strong>une seule fois</strong> et chaque client la récupère.
+     Dans un réseau Ethernet, toutes les trames qui circulent passent par tous les ordinateurs :
+     on envoie donc l'information à une adresse, et tous les clients écoutent cette adresse.
+     Chaque client multicast s'enregistre avec une adresse IP multicast ; c'est sur cette adresse
+     que les informations sont envoyées.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 640 210" role="img" aria-label="Comparaison unicast, broadcast et multicast">
+      <style>
+        .src{fill:var(--accent)} .dst{fill:#C9BFAE} .on{fill:var(--accent)}
+        .lbl{font:600 12px var(--sans);fill:var(--encre)}
+        .leg{font:11px var(--sans);fill:var(--encre-tenue)}
+        .lnk{stroke:#C9BFAE;stroke-width:1.5;fill:none}
+        .lnkOn{stroke:var(--accent);stroke-width:2;fill:none}
+      </style>
+      <g transform="translate(0,0)">
+        <text class="lbl" x="100" y="18" text-anchor="middle">Unicast</text>
+        <text class="leg" x="100" y="34" text-anchor="middle">un vers un</text>
+        <circle class="src" cx="100" cy="60" r="11"/>
+        <path class="lnkOn" d="M100 71 L48 118"/>
+        <path class="lnk" d="M100 71 L100 118"/>
+        <path class="lnk" d="M100 71 L152 118"/>
+        <circle class="on"  cx="48"  cy="130" r="10"/>
+        <circle class="dst" cx="100" cy="130" r="10"/>
+        <circle class="dst" cx="152" cy="130" r="10"/>
+        <text class="leg" x="100" y="170" text-anchor="middle">1 destinataire désigné</text>
+      </g>
+      <g transform="translate(220,0)">
+        <text class="lbl" x="100" y="18" text-anchor="middle">Broadcast</text>
+        <text class="leg" x="100" y="34" text-anchor="middle">un vers tous</text>
+        <circle class="src" cx="100" cy="60" r="11"/>
+        <path class="lnkOn" d="M100 71 L48 118"/>
+        <path class="lnkOn" d="M100 71 L100 118"/>
+        <path class="lnkOn" d="M100 71 L152 118"/>
+        <circle class="on" cx="48"  cy="130" r="10"/>
+        <circle class="on" cx="100" cy="130" r="10"/>
+        <circle class="on" cx="152" cy="130" r="10"/>
+        <text class="leg" x="100" y="170" text-anchor="middle">tout le sous-réseau</text>
+        <text class="leg" x="100" y="188" text-anchor="middle">✗ ne franchit pas le routeur</text>
+      </g>
+      <g transform="translate(440,0)">
+        <text class="lbl" x="100" y="18" text-anchor="middle">Multicast</text>
+        <text class="leg" x="100" y="34" text-anchor="middle">un vers un groupe</text>
+        <circle class="src" cx="100" cy="60" r="11"/>
+        <path class="lnkOn" d="M100 71 L48 118"/>
+        <path class="lnk"   d="M100 71 L100 118"/>
+        <path class="lnkOn" d="M100 71 L152 118"/>
+        <circle class="on"  cx="48"  cy="130" r="10"/>
+        <circle class="dst" cx="100" cy="130" r="10"/>
+        <circle class="on"  cx="152" cy="130" r="10"/>
+        <text class="leg" x="100" y="170" text-anchor="middle">les abonnés au groupe</text>
+      </g>
+    </svg>
+    <figcaption>Les trois modes de transmission. En couleur : les machines qui traitent la trame.</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Dans un immeuble : l'<strong>unicast</strong>, c'est glisser une lettre dans la boîte
+       de l'appartement 3B. Le <strong>broadcast</strong>, c'est l'affiche punaisée dans le hall —
+       tout le monde la lit, mais elle ne sort pas de l'immeuble. Le <strong>multicast</strong>,
+       c'est la liste de diffusion du syndic : seuls ceux qui s'y sont inscrits reçoivent le
+       message.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Pourquoi un broadcast ne traverse-t-il pas un routeur, et quelle
+       conséquence concrète cela a-t-il sur la conception d'un réseau d'entreprise ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Un routeur sépare deux réseaux logiques distincts. L'adresse de broadcast ne désigne
+         que les hôtes d'un <em>même</em> sous-réseau : le routeur ne la relaie donc pas, sans
+         quoi la diffusion se propagerait à l'infini.</p>
+      <p><strong>Conséquence :</strong> plus un sous-réseau contient de machines, plus le trafic
+         de diffusion sature la bande passante et oblige chaque machine à traiter des trames qui
+         ne la concernent pas. Découper en sous-réseaux réduit ce <em>domaine de broadcast</em> —
+         c'est la justification principale du subnetting.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="anatomie">
+  <h2><span class="num">02</span>Anatomie d'une adresse IPv4</h2>
+
+  <p>L'adressage IP est basé sur le concept d'<strong>hôtes</strong> et de <strong>réseaux</strong>.
+     Un hôte est tout ce qui peut envoyer ou recevoir des trames IP : une station de travail, un
+     routeur. Il ne faut pas le confondre avec un serveur — clients et serveurs sont tous des
+     hôtes IP.</p>
+
+  <p>L'adresse IP de n'importe quel hôte est le rassemblement de <strong>deux choses</strong> :</p>
+  <ul>
+    <li>l'adresse du <strong>réseau</strong> où il se trouve ;</li>
+    <li>son adresse <strong>personnelle</strong> sur ce réseau.</li>
+  </ul>
+
+  <p>Une adresse IP est une séquence de <strong>32 bits</strong> composée de 1 et de 0. Afin de
+     faciliter leur lecture, les adresses IP sont exprimées sous la forme de quatre nombres
+     décimaux séparés par des points — la <em>notation décimale pointée</em>. Chaque élément
+     s'appelle un <strong>octet</strong> (8 chiffres binaires).</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 190" role="img" aria-label="Structure d'une adresse IPv4 sur 32 bits">
+      <style>
+        .oct{fill:#FFF;stroke:var(--bord-fort);stroke-width:1.5}
+        .net{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .val{font:600 17px var(--mono);fill:var(--encre);text-anchor:middle}
+        .bin{font:11px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+        .cap{font:600 11px var(--sans);text-anchor:middle;letter-spacing:.06em}
+        .dim{font:11px var(--sans);fill:var(--encre-tenue);text-anchor:middle}
+        .ar{stroke:var(--encre-tenue);stroke-width:1;fill:none}
+      </style>
+      <text class="cap" x="160" y="20" fill="var(--accent)">PARTIE RÉSEAU</text>
+      <text class="cap" x="450" y="20" fill="var(--encre-douce)">PARTIE HÔTE</text>
+      <rect class="net" x="20"  y="30" width="140" height="42" rx="5"/>
+      <rect class="net" x="164" y="30" width="140" height="42" rx="5"/>
+      <rect class="oct" x="308" y="30" width="140" height="42" rx="5"/>
+      <rect class="oct" x="452" y="30" width="140" height="42" rx="5"/>
+      <text class="val" x="90"  y="58">192</text>
+      <text class="val" x="234" y="58">168</text>
+      <text class="val" x="378" y="58">1</text>
+      <text class="val" x="522" y="58">8</text>
+      <text class="bin" x="90"  y="92">11000000</text>
+      <text class="bin" x="234" y="92">10101000</text>
+      <text class="bin" x="378" y="92">00000001</text>
+      <text class="bin" x="522" y="92">00001000</text>
+      <text class="dim" x="90"  y="112">8 bits · 1 octet</text>
+      <text class="dim" x="234" y="112">8 bits · 1 octet</text>
+      <text class="dim" x="378" y="112">8 bits · 1 octet</text>
+      <text class="dim" x="522" y="112">8 bits · 1 octet</text>
+      <path class="ar" d="M20 140 L592 140 M20 135 L20 145 M592 135 L592 145"/>
+      <text class="dim" x="306" y="163" style="font-weight:600">32 bits au total</text>
+      <text class="dim" x="306" y="182">exemple : 192.168.1.8 avec un masque /16</text>
+    </svg>
+    <figcaption>Quatre octets, 32 bits. La frontière réseau / hôte est fixée par le masque.</figcaption>
+  </figure>
+
+  <p>La notation décimale pointée est plus simple à comprendre que la méthode des 1 et des 0
+     binaires, et elle évite un grand nombre d'erreurs de transposition. Les adresses
+     <code>192.168.1.8</code> et <code>192.168.1.9</code> se distinguent d'un coup d'œil, alors
+     que <code>…00001000</code> et <code>…00001001</code> demandent un effort.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Boîte à outils — les 8 poids d'un octet</div>
+    <p>À connaître par cœur : ce sont les seules valeurs dont vous aurez besoin pour convertir
+       n'importe quel octet.</p>
+<div class="bloc-code"><span class="langue">binaire</span><pre><code>bit n°     8    7    6    5    4    3    2    1
+poids     128   64   32   16    8    4    2    1
+
+exemple :  1    1    0    0    0    0    0    0   →  128 + 64        = 192
+           1    0    1    0    1    0    0    0   →  128 + 32 + 8    = 168
+           1    1    1    0    0    0    0    0   →  128 + 64 + 32   = 224</code></pre></div>
+  </div>
+
+  <p>Par convention, une adresse valide est dans la plage allant de <code>0.0.0.0</code> à
+     <code>255.255.255.255</code>, soit un total de <strong>4,3 milliards d'adresses</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen</div>
+    <p>Un octet ne peut jamais dépasser <strong>255</strong> (<code>11111111</code>). Une adresse
+       comme <code>155.22.36.366</code> n'est pas « de classe B » : elle est
+       <strong>invalide</strong>, point. Les sujets glissent régulièrement une adresse impossible
+       au milieu d'un exercice de classification — c'est un test de vigilance, pas de calcul.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="classes">
+  <h2><span class="num">03</span>Les classes d'adresses</h2>
+
+  <p>Les adresses IP sont regroupées en classes afin de permettre l'adaptation à des réseaux de
+     différentes tailles. Dans un modèle d'adressage par classe, la frontière entre partie réseau
+     et partie hôte tombe toujours <strong>sur une limite d'octet</strong>. Ce sont les
+     <strong>premiers bits</strong> de l'adresse qui déterminent la classe.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 250" role="img" aria-label="Répartition réseau/hôte selon la classe">
+      <style>
+        .n{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .h{fill:#FFF;stroke:var(--bord-fort);stroke-width:1.4}
+        .t{font:600 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .c{font:700 12px var(--sans);fill:var(--encre)}
+        .b{font:11px var(--mono);fill:var(--accent);font-weight:600}
+      </style>
+      <g transform="translate(0,10)">
+        <text class="c" x="0" y="26">Classe A</text><text class="b" x="0" y="42">0…</text>
+        <rect class="n" x="90"  y="12" width="120" height="30" rx="4"/><text class="t" x="150" y="32">RÉSEAU</text>
+        <rect class="h" x="212" y="12" width="120" height="30" rx="4"/><text class="t" x="272" y="32">hôte</text>
+        <rect class="h" x="334" y="12" width="120" height="30" rx="4"/><text class="t" x="394" y="32">hôte</text>
+        <rect class="h" x="456" y="12" width="120" height="30" rx="4"/><text class="t" x="516" y="32">hôte</text>
+      </g>
+      <g transform="translate(0,70)">
+        <text class="c" x="0" y="26">Classe B</text><text class="b" x="0" y="42">10…</text>
+        <rect class="n" x="90"  y="12" width="120" height="30" rx="4"/><text class="t" x="150" y="32">RÉSEAU</text>
+        <rect class="n" x="212" y="12" width="120" height="30" rx="4"/><text class="t" x="272" y="32">RÉSEAU</text>
+        <rect class="h" x="334" y="12" width="120" height="30" rx="4"/><text class="t" x="394" y="32">hôte</text>
+        <rect class="h" x="456" y="12" width="120" height="30" rx="4"/><text class="t" x="516" y="32">hôte</text>
+      </g>
+      <g transform="translate(0,130)">
+        <text class="c" x="0" y="26">Classe C</text><text class="b" x="0" y="42">110…</text>
+        <rect class="n" x="90"  y="12" width="120" height="30" rx="4"/><text class="t" x="150" y="32">RÉSEAU</text>
+        <rect class="n" x="212" y="12" width="120" height="30" rx="4"/><text class="t" x="272" y="32">RÉSEAU</text>
+        <rect class="n" x="334" y="12" width="120" height="30" rx="4"/><text class="t" x="394" y="32">RÉSEAU</text>
+        <rect class="h" x="456" y="12" width="120" height="30" rx="4"/><text class="t" x="516" y="32">hôte</text>
+      </g>
+      <g transform="translate(0,190)">
+        <text class="c" x="0" y="26">Classe D</text><text class="b" x="0" y="42">1110…</text>
+        <rect class="h" x="90" y="12" width="486" height="30" rx="4" style="fill:var(--ambre-pale);stroke:var(--ambre)"/>
+        <text class="t" x="333" y="32">multicast — pas de découpage réseau / hôte</text>
+      </g>
+    </svg>
+    <figcaption>Plus la classe avance dans l'alphabet, plus la part « réseau » grandit et plus il reste peu d'hôtes.</figcaption>
+  </figure>
+
+  <h3>Classe A — les très grands réseaux</h3>
+  <p>Réservée aux réseaux de très grande taille, avec plus de 16 millions d'adresses hôte
+     disponibles. Seul le <strong>premier octet</strong> indique l'adresse réseau ; les trois
+     suivants définissent les adresses hôte. Le premier bit est toujours <code>0</code> : la
+     valeur la plus faible est <code>00000000</code> (0) et la plus élevée <code>01111111</code>
+     (127). Les valeurs <strong>0 et 127 sont réservées</strong>, donc toute adresse dont le
+     premier octet est compris entre <strong>1 et 126</strong> est de classe A.</p>
+
+  <h3>Classe B — les réseaux moyens à grands</h3>
+  <p>Les <strong>deux premiers octets</strong> indiquent le réseau, les deux suivants les hôtes.
+     Les deux premiers bits sont toujours <code>10</code> : de <code>10000000</code> (128) à
+     <code>10111111</code> (191).</p>
+
+  <h3>Classe C — les petits réseaux</h3>
+  <p>C'est l'espace le plus utilisé. Les <strong>trois premiers octets</strong> indiquent le
+     réseau, le dernier les hôtes — soit <strong>254 hôtes maximum</strong>. Les trois premiers
+     bits valent <code>110</code> : de <code>11000000</code> (192) à <code>11011111</code> (223).</p>
+
+  <h3>Classes D et E — réservées</h3>
+  <p>La classe <strong>D</strong> est réservée à la diffusion multicast : ses quatre premiers
+     bits valent <code>1110</code>, soit un premier octet de <strong>224 à 239</strong>. Il n'est
+     pas nécessaire d'allouer des bits pour séparer réseau et hôte. La classe <strong>E</strong>
+     commence par <code>1111</code> (240 à 255) et reste réservée à la recherche : l'IETF
+     l'utilise à des fins expérimentales, aucune adresse de classe E n'est disponible sur
+     Internet.</p>
+
+  <h3>Tableau récapitulatif</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr>
+      <th>Cl.</th><th>1<sup>er</sup> octet</th><th>Bits de tête</th><th>Structure</th>
+      <th>Masque par défaut</th><th>Nb de réseaux</th><th>Hôtes par réseau</th>
+    </tr></thead>
+    <tbody>
+      <tr><td><strong>A</strong></td><td><code>1 – 126</code></td><td><code>0</code></td>
+          <td><code>R.H.H.H</code></td><td><code>255.0.0.0</code></td>
+          <td>126 <span class="sub">(2⁷ − 2)</span></td><td>16 777 214 <span class="sub">(2²⁴ − 2)</span></td></tr>
+      <tr><td><strong>B</strong></td><td><code>128 – 191</code></td><td><code>10</code></td>
+          <td><code>R.R.H.H</code></td><td><code>255.255.0.0</code></td>
+          <td>16 384 <span class="sub">(2¹⁴)</span></td><td>65 534 <span class="sub">(2¹⁶ − 2)</span></td></tr>
+      <tr><td><strong>C</strong></td><td><code>192 – 223</code></td><td><code>110</code></td>
+          <td><code>R.R.R.H</code></td><td><code>255.255.255.0</code></td>
+          <td>2 097 152 <span class="sub">(2²¹)</span></td><td>254 <span class="sub">(2⁸ − 2)</span></td></tr>
+      <tr><td><strong>D</strong></td><td><code>224 – 239</code></td><td><code>1110</code></td>
+          <td colspan="4">Réservée à la diffusion multicast</td></tr>
+      <tr><td><strong>E</strong></td><td><code>240 – 255</code></td><td><code>1111</code></td>
+          <td colspan="4">Expérimentale, réservée à la recherche</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Trois écarts avec le tableau du polycopié d'origine, rectifiés ci-dessus :</p>
+    <ul>
+      <li><strong>Nombre de réseaux de classe B</strong> — le cours indique
+          « 16 382 (2¹⁴ − 2) ». La soustraction de 2 s'applique aux <em>hôtes</em> d'un réseau
+          (adresse réseau et broadcast), pas au décompte des réseaux d'une classe. Le nombre
+          correct est <strong>2¹⁴ = 16 384</strong>.</li>
+      <li><strong>Nombre de réseaux de classe C</strong> — même cause : <strong>2²¹ = 2 097 152</strong>,
+          et non 2 097 150.</li>
+      <li><strong>Classe E</strong> — le tableau d'origine annonce « 240 – 254 » et des bits de
+          tête « 11110 » (5 bits), alors que le corps du cours dit, correctement, quatre bits à 1
+          et une plage de <strong>240 à 255</strong>. C'est cette seconde version qui est retenue.</li>
+    </ul>
+    <p>Le cas de la classe A est en revanche exact : on retranche bien 2 (les réseaux 0 et 127
+       étant réservés), d'où 126 réseaux.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>L'adressage par classes est <strong>obsolète depuis 1993</strong>, remplacé par le CIDR
+       (<em>Classless Inter-Domain Routing</em>), qui autorise une frontière réseau/hôte n'importe
+       où dans les 32 bits — d'où la notation <code>/24</code>. Les classes restent enseignées et
+       tombent à l'examen parce qu'elles fixent les <em>masques par défaut</em> et expliquent
+       pourquoi les plages privées ont les bornes qu'on leur connaît.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">À quelle classe appartiennent <code>192.168.2.3</code>,
+       <code>127.0.0.1</code>, <code>0.236.1.63</code>, <code>220.50.223.222</code> et
+       <code>155.22.36.366</code> ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <ul>
+        <li><code>192.168.2.3</code> → premier octet 192, dans 192–223 : <strong>classe C</strong>
+            (et adresse privée).</li>
+        <li><code>127.0.0.1</code> → 127 est <strong>réservé au bouclage</strong> (<em>loopback</em>).
+            Techniquement dans la fourchette binaire de la classe A, mais inutilisable comme
+            adresse d'hôte sur un réseau.</li>
+        <li><code>0.236.1.63</code> → premier octet 0, <strong>réservé</strong> : ce n'est pas une
+            adresse de classe A exploitable.</li>
+        <li><code>220.50.223.222</code> → 220 est dans 192–223 : <strong>classe C</strong>.</li>
+        <li><code>155.22.36.366</code> → <strong>adresse invalide</strong> : 366 dépasse 255.
+            Le piège de l'exercice.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="reservees">
+  <h2><span class="num">04</span>Les adresses réservées</h2>
+
+  <p>Certaines adresses hôte sont réservées et ne peuvent pas être affectées aux équipements du
+     réseau. Il faut savoir les reconnaître instantanément.</p>
+
+  <h3>L'adresse de réseau</h3>
+  <p>Une adresse IP dont <strong>tous les bits hôte sont à 0</strong> est réservée pour identifier
+     le réseau lui-même. Un routeur utilise cette adresse pour acheminer des données. Elle n'est
+     jamais affectée à une machine.</p>
+  <p>Exemple en classe B : <code>176.10.0.0</code>. Les deux premiers octets forment la partie
+     réseau ; les deux derniers, à 0, indiquent qu'on parle du réseau et non d'une machine. Une
+     machine de ce réseau pourrait être <code>176.10.16.1</code>.</p>
+
+  <h3>L'adresse de diffusion (broadcast)</h3>
+  <p>À l'inverse, une adresse dont <strong>tous les bits hôte sont à 1</strong> sert à diffuser
+     vers tous les équipements du réseau. Pour le réseau <code>176.10.0.0/16</code>, le broadcast
+     est <code>176.10.255.255</code> — 255 étant la valeur décimale de <code>11111111</code>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Boîte à outils — les deux extrémités d'un bloc</div>
+<div class="bloc-code"><span class="langue">règle</span><pre><code>bits hôte tous à 0  →  adresse de RÉSEAU      (la première du bloc)
+bits hôte tous à 1  →  adresse de DIFFUSION   (la dernière du bloc)
+
+tout ce qui est entre les deux  →  adresses d'hôte utilisables
+d'où la formule :  hôtes utilisables = 2^n − 2</code></pre></div>
+  </div>
+
+  <h3>Les adresses privées (RFC 1918)</h3>
+  <p>Ces plages peuvent être librement utilisées pour monter un réseau privé ; elles ne sont pas
+     routées sur Internet.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Débute par</th><th>Plage exacte</th><th>Bloc CIDR</th><th>Type</th></tr></thead>
+    <tbody>
+      <tr><td><code>10.</code></td><td><code>10.0.0.0 – 10.255.255.255</code></td>
+          <td><code>10.0.0.0/8</code></td><td>Privé — classe A</td></tr>
+      <tr><td><code>172.16.</code> à <code>172.31.</code></td>
+          <td><code>172.16.0.0 – 172.31.255.255</code></td>
+          <td><code>172.16.0.0/12</code></td><td>Privé — classe B</td></tr>
+      <tr><td><code>192.168.</code></td><td><code>192.168.0.0 – 192.168.255.255</code></td>
+          <td><code>192.168.0.0/16</code></td><td>Privé — classe C</td></tr>
+      <tr><td><code>169.254.</code></td><td><code>169.254.0.0 – 169.254.255.255</code></td>
+          <td><code>169.254.0.0/16</code></td><td>APIPA — auto-configuration</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Tout le reste est <strong>public</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — la plage 172</div>
+    <p>C'est l'erreur la plus fréquente. La plage privée s'arrête à <strong>172.31</strong>,
+       pas à 172.16 ni à 172.255. Ainsi <code>172.30.1.100</code> est <strong>privée</strong>,
+       mais <code>172.32.0.1</code> est <strong>publique</strong>. Le moyen mnémotechnique :
+       <em>16 et 31, comme les deux dates limites d'un demi-mois.</em></p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Une adresse privée, c'est un numéro de poste dans un standard téléphonique d'entreprise :
+       le « poste 42 » a du sens à l'intérieur du bâtiment, et plusieurs entreprises peuvent avoir
+       leur propre poste 42 sans conflit. Pour appeler l'extérieur, il faut passer par le numéro
+       public du standard — c'est exactement le rôle du NAT.</p>
+  </div>
+
+  <h3>Comment savoir si une adresse d'hôte est valide</h3>
+  <p>Quatre vérifications, dans cet ordre :</p>
+  <ol>
+    <li>Ce n'est pas l'adresse de <strong>réseau</strong> (la toute première du bloc).</li>
+    <li>Ce n'est pas l'adresse de <strong>diffusion</strong> (la toute dernière du bloc).</li>
+    <li>Ce n'est pas une adresse de <strong>bouclage</strong> : tout ce qui commence par 127
+        est interdit sur une carte réseau physique.</li>
+    <li>Ce n'est pas du <strong>multicast</strong> : premier octet de 224 à 239.</li>
+  </ol>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="masque">
+  <h2><span class="num">05</span>Le masque de sous-réseau</h2>
+
+  <p>Le masque répond à une seule question : <strong>où s'arrête la partie réseau et où commence
+     la partie hôte ?</strong> Pour le savoir, il suffit d'écrire l'adresse IP en binaire et
+     d'écrire dessous le masque, également en binaire.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Décimal</th><th>Binaire</th></tr></thead>
+    <tbody>
+      <tr><td><code>192.168.2.53</code></td>
+          <td><code><strong>11000000.10101000.00000010.</strong>00110101</code></td></tr>
+      <tr><td><code>255.255.255.0</code></td>
+          <td><code><strong>11111111.11111111.11111111.</strong>00000000</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>La partie correspondant aux <strong>1 du masque</strong> est le numéro de <strong>réseau</strong>,
+     la partie correspondant aux <strong>0</strong> est le numéro d'<strong>hôte</strong>. Ici, avec
+     un masque <code>255.255.255.0</code>, on peut avoir 254 hôtes différents sur le sous-réseau
+     <code>192.168.2.0</code>.</p>
+
+  <h3>Le ET logique : trouver le réseau d'une machine</h3>
+  <p>Pour connaître l'adresse du sous-réseau auquel une machine appartient, on effectue un
+     <strong>ET logique</strong> entre l'adresse de la machine et le masque, bit à bit.
+     Rappel : <code>1 ET 1 = 1</code>, tout le reste donne <code>0</code>.</p>
+
+  <h4>Application 1</h4>
+  <p>Adresse <code>200.100.40.33</code>, masque <code>255.255.255.224</code>.</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Décimal</th><th>Binaire</th></tr></thead>
+    <tbody>
+      <tr><td>Adresse</td><td><code>200.100.40.33</code></td>
+          <td><code>11001000.01100100.00101000.00100001</code></td></tr>
+      <tr><td>Masque</td><td><code>255.255.255.224</code></td>
+          <td><code>11111111.11111111.11111111.11100000</code></td></tr>
+      <tr><td><strong>ET</strong></td><td><strong><code>200.100.40.32</code></strong></td>
+          <td><code>11001000.01100100.00101000.00100000</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>La machine appartient au sous-réseau <strong><code>200.100.40.32</code></strong>.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le polycopié écrit le troisième octet de <code>200.100.40.33</code> en binaire
+       <code>00101000</code> dans la ligne « Adresse » — ce qui est bien 40 — mais le reporte en
+       <code>00101000</code> puis <code>00100000</code> de façon incohérente d'une ligne à
+       l'autre du tableau. Les valeurs ci-dessus ont été recalculées :
+       40 = <code>00101000</code> et 33 = <code>00100001</code>, ET 224 = <code>11100000</code>
+       donne <code>00100000</code> = 32. Le résultat final annoncé par le cours,
+       <code>200.100.40.32</code>, est correct.</p>
+  </div>
+
+  <h4>Application 2</h4>
+  <p>Adresse <code>192.0.0.131</code>, masque <code>255.255.255.192</code> (soit <code>/26</code>).</p>
+<div class="bloc-code"><span class="langue">ET logique</span><pre><code>Adresse   192.0.0.131      11000000 00000000 00000000 10000011
+Masque    255.255.255.192  11111111 11111111 11111111 11000000
+                           ───────────────────────────────────
+Résultat  192.0.0.128      11000000 00000000 00000000 10000000
+
+→ sous-réseau 192.0.0.128, la machine y porte le numéro d'hôte 3 (000011)</code></pre></div>
+
+  <h4>Application 3</h4>
+  <p>Adresse <code>10.217.123.7</code>, masque <code>255.248.0.0</code> (soit <code>/13</code>).</p>
+<div class="bloc-code"><span class="langue">ET logique</span><pre><code>Adresse   10.217.123.7   00001010 11011001 01111011 00000111
+Masque    255.248.0.0    11111111 11111000 00000000 00000000
+                         ───────────────────────────────────
+Résultat  10.216.0.0     00001010 11011000 00000000 00000000
+
+→ identificateur de réseau : 10.216.0.0
+  (seul le 2ᵉ octet travaille : 217 = 11011001, ET 248 = 11111000 → 11011000 = 216)</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Boîte à outils — vérifier un masque en 3 secondes</div>
+    <p>Un masque valide est une suite <strong>ininterrompue</strong> de 1 suivie d'une suite
+       ininterrompue de 0. Il n'existe donc que 9 valeurs possibles par octet :</p>
+<div class="bloc-code"><span class="langue">masques</span><pre><code>0    128   192   224   240   248   252   254   255
+     /1    /2    /3    /4    /5    /6    /7    /8   (bits ajoutés dans l'octet)
+
+255.255.255.196  →  INVALIDE : 196 = 11000100, les 1 ne sont pas contigus
+255.255.255.192  →  valide   : 192 = 11000000  →  /26</code></pre></div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une machine porte l'adresse <code>172.16.117.77</code> avec le masque
+       <code>/20</code>. Quelle est son adresse réseau, et combien d'hôtes le réseau peut-il
+       accueillir ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Adresse réseau.</strong> /20 = <code>255.255.240.0</code>. Seul le 3<sup>e</sup>
+         octet est coupé : 117 = <code>01110101</code>, ET <code>11110000</code> =
+         <code>01110000</code> = <strong>112</strong>. D'où <strong><code>172.16.112.0</code></strong>.</p>
+      <p><strong>Capacité.</strong> Il reste 32 − 20 = <strong>12 bits</strong> d'hôte, soit
+         2¹² − 2 = <strong>4 094 hôtes utilisables</strong>.</p>
+      <p><strong>Bornes.</strong> Premier hôte <code>172.16.112.1</code>, dernier hôte
+         <code>172.16.127.254</code>, diffusion <code>172.16.127.255</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="subnetting">
+  <h2><span class="num">06</span>Découper en sous-réseaux</h2>
+
+  <p>Les masques de sous-réseaux permettent de <strong>segmenter un réseau en plusieurs
+     sous-réseaux</strong>. On utilise pour cela une partie des bits de l'adresse d'hôte pour
+     identifier les sous-réseaux — on dit qu'on <strong>emprunte</strong> des bits.</p>
+
+  <p><strong>Toutes les machines appartenant à un sous-réseau possèdent le même numéro de
+     réseau.</strong> Ainsi, le masque d'une adresse de classe B commencera toujours par
+     <code>255.255.xx.xx</code>.</p>
+
+  <h3>Pourquoi créer des sous-réseaux ?</h3>
+  <ul>
+    <li><strong>Utiliser plusieurs supports physiques.</strong> Connecter tous les nœuds à un
+        seul support peut être impossible, difficile ou coûteux lorsqu'ils sont trop éloignés.</li>
+    <li><strong>Réduire l'encombrement.</strong> Plus les nœuds sont nombreux sur un même réseau,
+        plus la bande passante requise est importante. Répartir les nœuds réduit l'encombrement
+        global.</li>
+    <li><strong>Économiser du temps de calcul.</strong> Les diffusions obligent chaque nœud du
+        réseau à réagir avant d'accepter ou de rejeter le paquet.</li>
+    <li><strong>Isoler une panne.</strong> Diviser un grand réseau limite l'impact d'une
+        défaillance — une erreur matérielle, une connexion fautive — au seul segment concerné.</li>
+    <li><strong>Renforcer la sécurité.</strong> Sur un support de diffusion comme Ethernet, tous
+        les nœuds voient les paquets. Si le trafic sensible n'est autorisé que sur un réseau, les
+        autres hôtes n'y ont pas accès.</li>
+    <li><strong>Optimiser l'espace d'adressage.</strong> Avec un seul numéro de réseau de classe A
+        ou B, on peut couvrir plusieurs réseaux physiques sans demander de numéros
+        supplémentaires.</li>
+  </ul>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 170" role="img" aria-label="Emprunt de bits à la partie hôte">
+      <style>
+        .zn{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .zs{fill:var(--ambre-pale);stroke:var(--ambre);stroke-width:1.4}
+        .zh{fill:#FFF;stroke:var(--bord-fort);stroke-width:1.4}
+        .lb{font:600 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .sm{font:11px var(--sans);fill:var(--encre-tenue);text-anchor:middle}
+        .mn{font:11px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+      </style>
+      <text class="sm" x="300" y="16" style="font-weight:600;fill:var(--encre)">Avant — 200.100.40.0 /24</text>
+      <rect class="zn" x="40"  y="26" width="330" height="30" rx="4"/><text class="lb" x="205" y="46">RÉSEAU — 24 bits</text>
+      <rect class="zh" x="372" y="26" width="188" height="30" rx="4"/><text class="lb" x="466" y="46">hôte — 8 bits</text>
+      <text class="mn" x="466" y="72">2⁸ − 2 = 254 hôtes, 1 seul réseau</text>
+
+      <text class="sm" x="300" y="106" style="font-weight:600;fill:var(--encre)">Après — masque 255.255.255.224 /27</text>
+      <rect class="zn" x="40"  y="116" width="330" height="30" rx="4"/><text class="lb" x="205" y="136">RÉSEAU — 24 bits</text>
+      <rect class="zs" x="372" y="116" width="72"  height="30" rx="4"/><text class="lb" x="408" y="136">+3</text>
+      <rect class="zh" x="446" y="116" width="114" height="30" rx="4"/><text class="lb" x="503" y="136">hôte — 5</text>
+      <text class="mn" x="408" y="162">3 bits empruntés</text>
+      <text class="mn" x="503" y="162">2⁵ − 2 = 30 hôtes</text>
+    </svg>
+    <figcaption>Emprunter 3 bits à la partie hôte crée 2³ = 8 sous-réseaux de 30 hôtes chacun.</figcaption>
+  </figure>
+
+  <h3>Combien de sous-réseaux ?</h3>
+  <p>Le nombre théorique de sous-réseaux est égal à <strong>2ⁿ</strong>, où <em>n</em> est le
+     nombre de bits à 1 <em>empruntés</em> pour coder les sous-réseaux.</p>
+  <p><strong>Exemple.</strong> Réseau <code>200.100.40.0</code>, masque <code>255.255.255.224</code>.
+     224 = <code>11100000</code>, donc <strong>3 bits</strong> pour le numéro de sous-réseau et
+     5 bits pour l'hôte. Le nombre de sous-réseaux est 2³ = <strong>8</strong>.</p>
+
+  <h3>Quelles sont les adresses de ces sous-réseaux ?</h3>
+  <p>Il faut faire varier les 3 bits empruntés, en laissant les bits d'hôte à 0 :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>000 00000 =   0   →  200.100.40.0
+001 00000 =  32   →  200.100.40.32
+010 00000 =  64   →  200.100.40.64
+011 00000 =  96   →  200.100.40.96
+100 00000 = 128   →  200.100.40.128
+101 00000 = 160   →  200.100.40.160
+110 00000 = 192   →  200.100.40.192
+111 00000 = 224   →  200.100.40.224</code></pre></div>
+
+  <p>Le <strong>pas</strong> entre deux adresses de sous-réseau est de <strong>32 = 2⁵</strong>,
+     c'est-à-dire la taille complète d'un bloc.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le cours d'origine présente ce pas de 32 comme « correspondant au nombre théorique d'hôtes
+       par sous-réseau ». La formulation prête à confusion : 32 est le <strong>nombre total
+       d'adresses</strong> du bloc, adresse de réseau et adresse de diffusion comprises. Le
+       nombre d'hôtes réellement <em>utilisables</em> est <strong>32 − 2 = 30</strong>. Confondre
+       les deux fait perdre des points à chaque exercice de dimensionnement.</p>
+  </div>
+
+  <h3>Adresse de diffusion d'un sous-réseau</h3>
+  <p>Il faut mettre <strong>tous les bits de la partie hôte à 1</strong>.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>sous-réseau 200.100.40.32   →  32 = 001 00000
+diffusion                      001 11111 = 63   →  200.100.40.63
+
+sous-réseau 200.100.40.64   →  diffusion 200.100.40.95
+sous-réseau 200.100.40.96   →  diffusion 200.100.40.127
+…et ainsi de suite, de 32 en 32.</code></pre></div>
+
+  <h3>Combien de postes par sous-réseau ?</h3>
+  <p>Le nombre de postes est égal à <strong>2ⁿ − 2</strong>, où <em>n</em> est le nombre de bits
+     à <strong>0</strong> du masque. On retranche deux numéros réservés :</p>
+  <ul>
+    <li>tous les bits à zéro, qui identifient le sous-réseau lui-même ;</li>
+    <li>tous les bits à un, qui forment l'adresse de diffusion du sous-réseau.</li>
+  </ul>
+  <p>Avec <code>255.255.255.224</code> : 5 bits d'hôte, donc 2⁵ − 2 = <strong>30 postes</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — le sous-réseau zéro</div>
+    <p>L'enseignement historique excluait le premier sous-réseau (tous les bits empruntés à 0) et
+       le dernier (tous à 1), donnant la formule 2ⁿ − 2 <em>pour les sous-réseaux aussi</em>. Le
+       CIDR et les IOS Cisco modernes les acceptent : la formule retenue aujourd'hui est
+       <strong>2ⁿ sous-réseaux</strong>. Si l'énoncé mentionne <code>ip subnet-zero</code> ou une
+       version d'IOS récente, comptez <strong>2ⁿ</strong> ; s'il parle de « sous-réseaux
+       utilisables » dans un contexte historique, précisez votre hypothèse par écrit — c'est ce
+       que le correcteur attend.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="vlsm">
+  <h2><span class="num">07</span>VLSM : masques de longueur variable</h2>
+
+  <p>Le subnetting classique découpe un réseau en morceaux <strong>tous de la même taille</strong>.
+     C'est un gâchis dès que les besoins diffèrent : donner 30 adresses à une liaison entre deux
+     routeurs, qui n'en réclame que 2, gaspille 28 adresses. Le <strong>VLSM</strong>
+     (<em>Variable Length Subnet Mask</em>) autorise des masques différents pour chaque
+     sous-réseau.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Boîte à outils — l'algorithme en 4 temps</div>
+    <ol>
+      <li><strong>Trier</strong> les besoins du plus gros au plus petit. C'est l'étape que tout
+          le monde saute et c'est celle qui évite les chevauchements.</li>
+      <li><strong>Isoler la puissance de 2.</strong> Chercher le 2ⁿ immédiatement supérieur ou
+          égal au <em>nombre d'hôtes requis + 2</em>. Cela donne <em>n</em>.</li>
+      <li><strong>Déduire le masque.</strong> Une adresse IPv4 fait 32 bits :
+          <code>CIDR = 32 − n</code>.</li>
+      <li><strong>Calculer le pas.</strong> Le pas — la taille du bloc — vaut exactement
+          <strong>2ⁿ</strong>. On l'ajoute à l'adresse réseau précédente pour trouver le début du
+          bloc suivant.</li>
+    </ol>
+  </div>
+
+  <h3>Démonstration</h3>
+  <p><strong>Cahier des charges :</strong> découper <code>192.168.1.0/24</code> pour un
+     département de <strong>28 machines</strong>.</p>
+  <ul>
+    <li>2⁴ = 16 → trop petit. 2⁵ = 32 → valide, car 32 − 2 = 30 adresses utiles, ce qui couvre
+        les 28. Donc <strong>n = 5</strong>.</li>
+    <li>Masque CIDR = 32 − 5 = <strong>/27</strong>, soit <code>255.255.255.224</code>.</li>
+    <li>Sur le dernier octet, 3 bits vont au réseau (8 − 5) et 5 restent aux machines.</li>
+    <li>Pas = 2⁵ = <strong>32</strong>.</li>
+  </ul>
+
+  <h3>Un plan d'adressage complet</h3>
+  <p>Réseau de départ <code>192.168.1.0/24</code>. Besoins : Commercial 50 postes,
+     Technique 25 postes, Direction 10 postes, liaison entre deux routeurs 2 adresses.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr>
+      <th>Service</th><th>Besoin</th><th>Bloc 2ⁿ</th><th>Masque</th>
+      <th>Adresse réseau</th><th>Plage utilisable</th><th>Diffusion</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Commercial</td><td>50</td><td>64 <span class="sub">(2⁶)</span></td><td><code>/26</code></td>
+          <td><code>192.168.1.0</code></td><td><code>.1 → .62</code></td><td><code>.63</code></td></tr>
+      <tr><td>Technique</td><td>25</td><td>32 <span class="sub">(2⁵)</span></td><td><code>/27</code></td>
+          <td><code>192.168.1.64</code></td><td><code>.65 → .94</code></td><td><code>.95</code></td></tr>
+      <tr><td>Direction</td><td>10</td><td>16 <span class="sub">(2⁴)</span></td><td><code>/28</code></td>
+          <td><code>192.168.1.96</code></td><td><code>.97 → .110</code></td><td><code>.111</code></td></tr>
+      <tr><td>Liaison routeurs</td><td>2</td><td>4 <span class="sub">(2²)</span></td><td><code>/30</code></td>
+          <td><code>192.168.1.112</code></td><td><code>.113 → .114</code></td><td><code>.115</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Le reste, de <code>192.168.1.116</code> à <code>192.168.1.255</code>, demeure disponible
+     pour les extensions futures. Avec un découpage à masque fixe en /26, les quatre services
+     auraient consommé la totalité du /24 sans laisser un seul bloc libre.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Le subnetting à masque fixe, c'est découper une baguette en tranches identiques : pratique,
+       mais on jette les bouts inutilisés. Le VLSM, c'est découper selon l'appétit de chacun — une
+       grosse part pour le service commercial, une bouchée pour la liaison entre routeurs. À la
+       fin, il reste du pain pour les invités surprise.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — l'ordre de traitement</div>
+    <p>Traiter les besoins dans l'ordre de l'énoncé au lieu de les trier du plus grand au plus
+       petit produit presque toujours un <strong>chevauchement de blocs</strong>. Le correcteur le
+       repère instantanément : deux sous-réseaux qui se recouvrent invalident tout le plan
+       d'adressage, même si chaque calcul pris isolément est juste.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une liaison série entre deux routeurs a besoin de 2 adresses. Quel masque
+       choisir, et pourquoi pas <code>/31</code> ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong><code>/30</code></strong>, soit <code>255.255.255.252</code>. Il reste 2 bits
+         d'hôte : 2² − 2 = <strong>2 adresses utilisables</strong>, exactement ce qu'il faut. Un
+         bloc /30 occupe 4 adresses : réseau, deux hôtes, diffusion.</p>
+      <p>Un <code>/31</code> ne laisserait qu'un bit d'hôte, soit 2¹ − 2 = <strong>0 adresse
+         utilisable</strong> selon la règle générale. La RFC 3021 autorise bien /31 sur les
+         liaisons point-à-point en supprimant les adresses réseau et diffusion, mais
+         <strong>ce n'est pas ce qui est attendu en BTS</strong> : répondez /30.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="reference">
+  <h2><span class="num">08</span>Table de référence CIDR</h2>
+
+  <p>À garder sous les yeux pendant les TP. La colonne « hôtes » donne le nombre d'adresses
+     <strong>utilisables</strong> (2ⁿ − 2).</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Préfixe</th><th>Masque décimal</th><th>Dernier octet binaire</th>
+               <th>Pas / bloc</th><th>Hôtes utilisables</th></tr></thead>
+    <tbody>
+      <tr><td><code>/24</code></td><td><code>255.255.255.0</code></td><td><code>00000000</code></td><td>256</td><td>254</td></tr>
+      <tr><td><code>/25</code></td><td><code>255.255.255.128</code></td><td><code>10000000</code></td><td>128</td><td>126</td></tr>
+      <tr><td><code>/26</code></td><td><code>255.255.255.192</code></td><td><code>11000000</code></td><td>64</td><td>62</td></tr>
+      <tr><td><code>/27</code></td><td><code>255.255.255.224</code></td><td><code>11100000</code></td><td>32</td><td>30</td></tr>
+      <tr><td><code>/28</code></td><td><code>255.255.255.240</code></td><td><code>11110000</code></td><td>16</td><td>14</td></tr>
+      <tr><td><code>/29</code></td><td><code>255.255.255.248</code></td><td><code>11111000</code></td><td>8</td><td>6</td></tr>
+      <tr><td><code>/30</code></td><td><code>255.255.255.252</code></td><td><code>11111100</code></td><td>4</td><td>2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Masques sur les octets supérieurs</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Préfixe</th><th>Masque</th><th>Hôtes</th>
+               <th>Préfixe</th><th>Masque</th><th>Hôtes</th></tr></thead>
+    <tbody>
+      <tr><td><code>/8</code></td><td><code>255.0.0.0</code></td><td>16 777 214</td>
+          <td><code>/16</code></td><td><code>255.255.0.0</code></td><td>65 534</td></tr>
+      <tr><td><code>/9</code></td><td><code>255.128.0.0</code></td><td>8 388 606</td>
+          <td><code>/17</code></td><td><code>255.255.128.0</code></td><td>32 766</td></tr>
+      <tr><td><code>/10</code></td><td><code>255.192.0.0</code></td><td>4 194 302</td>
+          <td><code>/18</code></td><td><code>255.255.192.0</code></td><td>16 382</td></tr>
+      <tr><td><code>/11</code></td><td><code>255.224.0.0</code></td><td>2 097 150</td>
+          <td><code>/19</code></td><td><code>255.255.224.0</code></td><td>8 190</td></tr>
+      <tr><td><code>/12</code></td><td><code>255.240.0.0</code></td><td>1 048 574</td>
+          <td><code>/20</code></td><td><code>255.255.240.0</code></td><td>4 094</td></tr>
+      <tr><td><code>/13</code></td><td><code>255.248.0.0</code></td><td>524 286</td>
+          <td><code>/21</code></td><td><code>255.255.248.0</code></td><td>2 046</td></tr>
+      <tr><td><code>/14</code></td><td><code>255.252.0.0</code></td><td>262 142</td>
+          <td><code>/22</code></td><td><code>255.255.252.0</code></td><td>1 022</td></tr>
+      <tr><td><code>/15</code></td><td><code>255.254.0.0</code></td><td>131 070</td>
+          <td><code>/23</code></td><td><code>255.255.254.0</code></td><td>510</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="methode">
+  <h2><span class="num">09</span>La méthode d'examen</h2>
+
+  <p>Face à n'importe quelle question d'adressage, dérouler toujours la même séquence. Elle ne
+     rate jamais et fait gagner un temps considérable.</p>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Les 6 gestes, dans l'ordre</div>
+    <ol>
+      <li><strong>Traduire le préfixe en masque.</strong> <code>/n</code> → combien d'octets
+          pleins (255), puis quel reste dans l'octet coupé.</li>
+      <li><strong>Repérer l'octet coupé.</strong> Celui qui n'est ni 255 ni 0 : c'est le seul où
+          il y a un calcul à faire.</li>
+      <li><strong>Calculer le pas :</strong> <code>256 − valeur de l'octet coupé</code>.
+          Exemple : masque 224 → pas de 32.</li>
+      <li><strong>Encadrer l'adresse.</strong> Descendre au multiple du pas immédiatement
+          inférieur ou égal → c'est l'adresse réseau.</li>
+      <li><strong>En déduire les bornes.</strong> Diffusion = adresse réseau + pas − 1.
+          Premier hôte = réseau + 1. Dernier hôte = diffusion − 1.</li>
+      <li><strong>Vérifier la cohérence.</strong> Nombre d'hôtes = 2^(32−n) − 2. Si le compte ne
+          tombe pas rond, une erreur s'est glissée à l'étape 3.</li>
+    </ol>
+  </div>
+
+  <h4>Exemple déroulé : <code>10.1.8.200/26</code></h4>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>1. /26  =  255.255.255.192          (24 bits pleins + 2 bits)
+2. octet coupé : le 4ᵉ (192)
+3. pas = 256 − 192 = 64
+4. multiples de 64 : 0, 64, 128, 192 …  200 tombe entre 192 et 255
+   →  adresse réseau  = 10.1.8.192
+5. diffusion    = 192 + 64 − 1 = 255  →  10.1.8.255
+   premier hôte = 10.1.8.193
+   dernier hôte = 10.1.8.254
+6. contrôle : 2^(32−26) − 2 = 2⁶ − 2 = 62 hôtes
+              de .193 à .254 → 254 − 193 + 1 = 62  ✓</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>L'astuce du <code>256 − masque</code> n'a rien de magique : elle calcule le
+       <em>complément à deux</em> de l'octet du masque, c'est-à-dire la valeur du dernier bit à 1.
+       C'est exactement le poids du bit le moins significatif de la partie réseau — donc, par
+       construction, la taille d'un bloc.</p>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>32 bits, 4 octets.</strong> Chaque octet vaut de 0 à 255 — au-delà, l'adresse
+          est invalide.</li>
+      <li><strong>Le masque tranche.</strong> Les 1 désignent le réseau, les 0 désignent l'hôte.
+          Un <code>ET</code> logique entre adresse et masque donne l'adresse réseau.</li>
+      <li><strong>Classes :</strong> A 1–126, B 128–191, C 192–223, D 224–239 (multicast),
+          E 240–255. Le 127 est réservé au bouclage.</li>
+      <li><strong>Privé :</strong> 10.x, 172.16 → 172.31, 192.168.x, et 169.254 pour l'APIPA.</li>
+      <li><strong>Deux adresses perdues par bloc :</strong> la première (réseau) et la dernière
+          (diffusion). D'où <code>2ⁿ − 2</code> hôtes.</li>
+      <li><strong>Le pas fait tout :</strong> <code>256 − octet du masque</code>. Il donne la
+          taille du bloc, donc les frontières de tous les sous-réseaux.</li>
+      <li><strong>VLSM :</strong> trier du plus gros besoin au plus petit, puis servir. Sans tri,
+          chevauchement garanti.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-Adressage_IP.pdf — le professeur, chap. 3</li>
+      <li>5-TD-Identifier Adresse IPv4 (Cisco)</li>
+      <li>Tableau des masques de sous-réseau</li>
+      <li>vlsm_reference_guide</li>
+      <li>Les 3 classes principales IPv4</li>
+      <li>Règle Public/Privé &amp; validité</li>
+      <li>Règle multidiffusion</li>
+      <li>Corrections de TD — segmentation de 192.168.10.0/24 en 3 sous-réseaux
+          (méthode par emprunt de bits) et subnetting/VLSM</li>
+      <li>3-TP-Configuring IPv4 Static and Default Routes</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

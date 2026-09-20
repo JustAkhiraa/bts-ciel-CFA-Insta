@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DHCP — attribution automatique d'adresses IPv4 | BTS CIEL</title>
+<meta name="description" content="Cours complet : rôle de DHCPv4, les 4 messages DORA, méthodes d'attribution, configuration Cisco et serveur ISC sous Debian, relais DHCP et dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#statique-dyn">1 · Statique ou dynamique</a></li>
+    <li><a href="#objectifs">2 · Ce que distribue DHCPv4</a></li>
+    <li><a href="#methodes">3 · Les trois méthodes d'attribution</a></li>
+    <li><a href="#dora">4 · Le dialogue DORA</a></li>
+    <li><a href="#ou">5 · Où placer le serveur</a></li>
+    <li><a href="#cisco">6 · Configurer un routeur Cisco</a></li>
+    <li><a href="#relais">7 · Le relais DHCP</a></li>
+    <li><a href="#linux">8 · Un serveur ISC sous Debian</a></li>
+    <li><a href="#depanner">9 · Dépanner</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 11</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>DHCP — l'adressage automatique</h1>
+  <p class="chapeau">Comment une machine qui n'a aucune adresse arrive à en demander une —
+     et pourquoi ce paradoxe se résout en quatre messages.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>DHCPv4</strong> distribue automatiquement adresse IP, masque, passerelle et DNS,
+         pour une durée limitée appelée <strong>bail</strong>. Le dialogue tient en quatre messages —
+         <strong>DORA</strong> : <em>Discover, Offer, Request, Ack</em>. Il fonctionne sur
+         <strong>UDP, ports 67 (serveur) et 68 (client)</strong>. Comme les deux premiers messages
+         sont des <strong>diffusions</strong>, un routeur les bloque : d'où le <strong>relais
+         DHCP</strong> quand le serveur est sur un autre réseau.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#DHCPv4</code> <code>#bail</code> <code>#DORA</code> <code>#UDP-67-68</code>
+    <code>#pool</code> <code>#réservation</code> <code>#exclusion</code>
+    <code>#ip-helper-address</code> <code>#relais</code> <code>#isc-dhcp-server</code>
+    <code>#APIPA</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="statique-dyn">
+  <h2><span class="num">01</span>Statique ou dynamique</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Attribution statique</th><th>Attribution dynamique</th></tr></thead>
+    <tbody>
+      <tr><td>Principe</td>
+          <td>Adresse IP, masque, passerelle et DNS <strong>saisis à la main</strong> sur la
+              machine</td>
+          <td>Un <strong>serveur DHCP</strong> attribue automatiquement une adresse depuis un
+              <strong>pool</strong>, pour une durée de <strong>bail</strong> limitée</td></tr>
+      <tr><td>Pour</td>
+          <td><strong>Serveurs</strong>, imprimantes réseau, équipements qui doivent garder
+              toujours la même adresse</td>
+          <td><strong>Postes clients</strong>, smartphones, portables — là où l'on ne veut pas
+              gérer les adresses une par une</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>L'adresse statique, c'est une place de parking nominative : elle vous attend, personne
+       d'autre ne la prend, mais il faut la gérer. Le DHCP, c'est le parking en libre-service :
+       vous prenez une place au hasard en arrivant, vous la libérez en partant. Parfait pour les
+       visiteurs, inacceptable pour l'ambulance de garde.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="objectifs">
+  <h2><span class="num">02</span>Ce que distribue DHCPv4</h2>
+
+  <p>DHCPv4 permet à un ordinateur qui se connecte sur un réseau local d'obtenir et de configurer
+     <strong>dynamiquement et automatiquement</strong> :</p>
+  <ul>
+    <li>son <strong>adresse IP</strong> ;</li>
+    <li>le <strong>masque</strong> de son sous-réseau ;</li>
+    <li>sa <strong>passerelle par défaut</strong> ;</li>
+    <li>l'<strong>adresse IP du serveur DNS</strong> ;</li>
+    <li>le <strong>nom de son domaine</strong>.</li>
+  </ul>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les ports à retenir</div>
+    <p>DHCP est <strong>encapsulé dans UDP</strong> :</p>
+    <div class="formule">port <strong>67</strong> côté serveur · port <strong>68</strong> côté client</div>
+    <p>Un routeur Cisco peut lui-même être configuré pour fournir les services DHCPv4.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi UDP et non TCP</div>
+    <p>TCP exige une connexion établie entre deux adresses IP connues. Or, au moment où le client
+       demande une adresse, <strong>il n'en a pas</strong> — et il ignore celle du serveur. Une
+       poignée de main TCP est donc impossible.</p>
+    <p>UDP, sans connexion, permet d'émettre en <strong>diffusion</strong> vers
+       <code>255.255.255.255</code> : « quelqu'un ici sait-il me donner une adresse ? ». C'est la
+       seule façon de résoudre le paradoxe de départ.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="methodes">
+  <h2><span class="num">03</span>Les trois méthodes d'attribution</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Méthode</th><th>Principe</th><th>Bail</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Manuelle</strong><br>(par réservation)</td>
+          <td>L'administrateur associe une <strong>IP fixe à une adresse MAC</strong> dans le
+              serveur. DHCP ne fait que communiquer cette adresse au client</td>
+          <td>—</td>
+          <td>Serveurs, imprimantes — on veut une adresse fixe <em>et</em> la centralisation</td></tr>
+      <tr><td><strong>Automatique</strong></td>
+          <td>Le serveur choisit une adresse libre dans le pool et la <strong>réserve
+              définitivement</strong> pour ce client. En pratique, une dynamique qui devient fixe
+              après la première attribution</td>
+          <td class="rep-non">Aucun</td>
+          <td>Rare</td></tr>
+      <tr><td><strong>Dynamique</strong></td>
+          <td>Le serveur <strong>loue</strong> une adresse du pool pour une <strong>durée
+              limitée</strong>. À l'expiration ou à l'arrêt du poste, l'adresse peut être
+              réutilisée</td>
+          <td class="rep-ok">Oui</td>
+          <td><strong>La méthode la plus courante</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Réservation ≠ adresse statique</div>
+    <p>Dans les deux cas la machine a toujours la même adresse. Mais :</p>
+    <ul>
+      <li><strong>Adresse statique</strong> — saisie <em>sur la machine</em>. Pour la changer, il
+          faut aller sur chaque poste.</li>
+      <li><strong>Réservation DHCP</strong> — configurée <em>sur le serveur</em>. Le poste reste en
+          « obtenir automatiquement » ; on modifie tout depuis un seul endroit.</li>
+    </ul>
+    <p>La réservation est donc <strong>presque toujours préférable</strong> : même résultat, gestion
+       centralisée. C'est ce que demande la mission BioVision pour les trois stations critiques.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="dora">
+  <h2><span class="num">04</span>Le dialogue DORA</h2>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 250" role="img" aria-label="Les quatre messages DHCP : Discover, Offer, Request, Ack">
+      <style>
+        .bx{fill:var(--carte);stroke:var(--accent);stroke-width:1.8}
+        .ti{font:700 12.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .ms{font:700 11.5px var(--mono);fill:var(--accent-sombre)}
+        .dt{font:10.5px var(--sans);fill:var(--encre-tenue)}
+        .ar{stroke:var(--accent);stroke-width:1.8;fill:none;marker-end:url(#a8)}
+        .bc{stroke:var(--ambre);stroke-width:1.8;fill:none;marker-end:url(#a9);stroke-dasharray:5 3}
+      </style>
+      <defs>
+        <marker id="a8" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="var(--accent)"/></marker>
+        <marker id="a9" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="var(--ambre)"/></marker>
+      </defs>
+      <rect class="bx" x="24"  y="14" width="120" height="34" rx="6"/><text class="ti" x="84"  y="36">CLIENT</text>
+      <rect class="bx" x="436" y="14" width="120" height="34" rx="6"/><text class="ti" x="496" y="36">SERVEUR</text>
+      <path d="M84 48 L84 236"  stroke="var(--bord-fort)" stroke-width="1.2" stroke-dasharray="3 3" fill="none"/>
+      <path d="M496 48 L496 236" stroke="var(--bord-fort)" stroke-width="1.2" stroke-dasharray="3 3" fill="none"/>
+
+      <path class="bc" d="M88 78 L490 78"/>
+      <text class="ms" x="150" y="72">1 · DISCOVER</text>
+      <text class="dt" x="290" y="94">diffusion — « y a-t-il un serveur DHCP ? »</text>
+
+      <path class="ar" d="M492 122 L90 122"/>
+      <text class="ms" x="360" y="116">2 · OFFER</text>
+      <text class="dt" x="290" y="138">« je te propose 192.168.20.150 »</text>
+
+      <path class="bc" d="M88 166 L490 166"/>
+      <text class="ms" x="150" y="160">3 · REQUEST</text>
+      <text class="dt" x="290" y="182">diffusion — « j'accepte cette offre »</text>
+
+      <path class="ar" d="M492 210 L90 210"/>
+      <text class="ms" x="368" y="204">4 · ACK</text>
+      <text class="dt" x="290" y="226">« confirmé, bail de 8 jours »</text>
+    </svg>
+    <figcaption>En pointillé ambre : les messages émis en diffusion. Le client n'a pas encore d'adresse — il ne peut parler qu'à tout le monde.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>#</th><th>Message</th><th>Émis par</th><th>Type</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>DHCPDISCOVER</strong></td><td>Client</td>
+          <td><strong>Diffusion</strong></td>
+          <td>« Y a-t-il un serveur DHCP ? » — le client n'a aucune adresse, il émet depuis
+              <code>0.0.0.0</code> vers <code>255.255.255.255</code></td></tr>
+      <tr><td>2</td><td><strong>DHCPOFFER</strong></td><td>Serveur</td><td>Unicast ou diffusion</td>
+          <td>Une adresse proposée, avec masque, passerelle, DNS et durée de bail</td></tr>
+      <tr><td>3</td><td><strong>DHCPREQUEST</strong></td><td>Client</td>
+          <td><strong>Diffusion</strong></td>
+          <td>« J'accepte cette offre » — en diffusion, pour prévenir <em>les autres</em>
+              serveurs que leur offre est déclinée</td></tr>
+      <tr><td>4</td><td><strong>DHCPACK</strong></td><td>Serveur</td><td>Unicast</td>
+          <td>Confirmation, et le bail commence</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le moyen mnémotechnique</div>
+    <div class="formule"><strong>D</strong>iscover · <strong>O</strong>ffer ·
+      <strong>R</strong>equest · <strong>A</strong>ck → <strong>DORA</strong></div>
+    <p>Et l'ordre est logique : je cherche, on me propose, j'accepte, on me confirme.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pourquoi le REQUEST est en diffusion</div>
+    <p>C'est la subtilité que l'on comprend rarement. S'il y a <strong>deux serveurs DHCP</strong>
+       sur le réseau, le client reçoit deux OFFER. Il en choisit une — mais il doit
+       <strong>prévenir l'autre serveur</strong> que son offre est refusée, faute de quoi celui-ci
+       garderait l'adresse réservée inutilement.</p>
+    <p>Le REQUEST est donc émis en diffusion : il porte l'identité du serveur retenu, et les autres
+       comprennent qu'ils peuvent libérer leur proposition.</p>
+  </div>
+
+  <h3>Le renouvellement du bail</h3>
+  <p>Un bail n'attend pas son expiration pour être renouvelé :</p>
+  <ul>
+    <li>à <strong>50 % de la durée</strong> (T1), le client envoie un REQUEST directement au
+        serveur qui lui a donné l'adresse ;</li>
+    <li>à <strong>87,5 %</strong> (T2), s'il n'a pas eu de réponse, il repasse en diffusion pour
+        interroger n'importe quel serveur ;</li>
+    <li>à <strong>100 %</strong>, il abandonne l'adresse et recommence un DORA complet.</li>
+  </ul>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Et si aucun serveur ne répond : l'APIPA</div>
+    <p>Un poste Windows qui n'obtient rien s'attribue lui-même une adresse en
+       <strong><code>169.254.x.x</code></strong> — c'est l'<strong>APIPA</strong>
+       (<em>Automatic Private IP Addressing</em>).</p>
+    <p>Voir une adresse en 169.254 est donc un <strong>diagnostic immédiat</strong> : le poste n'a
+       pas joint de serveur DHCP. Câble débranché, service arrêté, VLAN incorrect, ou relais
+       manquant. Cette adresse ne permet de communiquer qu'avec d'autres machines en APIPA sur le
+       même segment.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="ou">
+  <h2><span class="num">05</span>Où placer le serveur</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Emplacement</th><th>Exemples</th><th>Adapté à</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Sur un routeur</strong></td>
+          <td>Routeur Cisco, box opérateur, routeur de bordure</td>
+          <td>Petits réseaux, laboratoires</td></tr>
+      <tr><td><strong>Sur un serveur dédié</strong></td>
+          <td>Windows Server (rôle DHCP), Linux (<code>isc-dhcp-server</code>)</td>
+          <td><strong>Réseaux d'entreprise structurés</strong></td></tr>
+      <tr><td><strong>Sur un équipement multifonction</strong></td>
+          <td>Pare-feu/UTM, appliance de sécurité, contrôleur Wi-Fi, NAS</td>
+          <td>Selon l'infrastructure existante</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Au niveau du routeur, DHCP peut être configuré de trois façons : en <strong>serveur</strong>,
+     en <strong>relais</strong>, ou en <strong>client</strong> — ce dernier cas quand le routeur
+     lui-même reçoit son adresse de l'opérateur.</p>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="cisco">
+  <h2><span class="num">06</span>Configurer un routeur Cisco</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les 5 étapes, dans l'ordre</div>
+    <ol>
+      <li><strong>Exclure</strong> des adresses du pool — adresse de passerelle, adresses attribuées
+          statiquement.</li>
+      <li><strong>Définir le nom</strong> du pool DHCP.</li>
+      <li><strong>Définir la plage</strong> d'adresses et le masque.</li>
+      <li><strong>La passerelle par défaut</strong>, avec <code>default-router</code>.</li>
+      <li>Les <strong>paramètres facultatifs</strong> : serveur DNS, nom de domaine.</li>
+    </ol>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! ─── 1. EXCLURE avant de créer le pool ───
+R1(config)# ip dhcp excluded-address 192.168.20.1 192.168.20.99
+R1(config)# ip dhcp excluded-address 192.168.20.201 192.168.20.254
+
+! ─── 2 à 5. Le pool ───
+R1(config)# ip dhcp pool LAN-BUREAU
+R1(dhcp-config)# network 192.168.20.0 255.255.255.0
+R1(dhcp-config)# default-router 192.168.20.1
+R1(dhcp-config)# dns-server 8.8.8.8 1.1.1.1
+R1(dhcp-config)# domain-name biovision.local
+R1(dhcp-config)# lease 8                        ← durée du bail en JOURS
+R1(dhcp-config)# end
+
+! ─── désactiver le service DHCP ───
+R1(config)# no service dhcp</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'exclusion se déclare AVANT le pool</div>
+    <p><code>ip dhcp excluded-address</code> est une commande de <strong>configuration
+       globale</strong>, pas une commande du pool. Si on la tape depuis
+       <code>(dhcp-config)#</code>, IOS refuse.</p>
+    <p>Et il faut <strong>toujours exclure la passerelle</strong> ainsi que toutes les adresses
+       attribuées statiquement : sinon le serveur les distribuera, et deux machines se retrouveront
+       avec la même adresse. Le symptôme est un <em>conflit d'adresse IP</em> difficile à
+       diagnostiquer.</p>
+  </div>
+
+  <h3>Vérifier</h3>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip dhcp binding        ← quelles adresses sont attribuées, à quelles MAC
+R1# show ip dhcp pool           ← utilisation du pool, adresses restantes
+R1# show ip dhcp conflict       ← conflits détectés
+R1# clear ip dhcp binding *     ← libérer toutes les attributions
+R1# debug ip dhcp server events</code></pre></div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="relais">
+  <h2><span class="num">07</span>Le relais DHCP</h2>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le problème que le relais résout</div>
+    <p>Le DHCPDISCOVER est une <strong>diffusion</strong>. Or un <strong>routeur ne relaie jamais
+       les diffusions</strong> — c'est le principe même de la séparation des domaines de
+       diffusion, vu au chapitre 02.</p>
+    <p>Conséquence : un serveur DHCP ne sert <strong>que son propre segment</strong>. Avec dix
+       VLAN, il faudrait dix serveurs. C'est précisément ce que le relais évite.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 160" role="img" aria-label="Fonctionnement du relais DHCP">
+      <style>
+        .b2{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .rt2{fill:var(--accent);stroke:none}
+        .l2{font:700 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .lw2{font:700 11px var(--sans);text-anchor:middle;fill:#fff}
+        .s2{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .bd{stroke:var(--ambre);stroke-width:2;fill:none;stroke-dasharray:5 3;marker-end:url(#ab)}
+        .un{stroke:var(--accent);stroke-width:2;fill:none;marker-end:url(#ac)}
+      </style>
+      <defs>
+        <marker id="ab" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="var(--ambre)"/></marker>
+        <marker id="ac" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 z" fill="var(--accent)"/></marker>
+      </defs>
+      <rect class="b2"  x="20"  y="52" width="94" height="34" rx="5"/><text class="l2" x="67"  y="74">CLIENT</text>
+      <rect class="rt2" x="230" y="52" width="120" height="34" rx="5"/><text class="lw2" x="290" y="74">ROUTEUR</text>
+      <rect class="b2"  x="464" y="52" width="96" height="34" rx="5"/><text class="l2" x="512" y="74">SERVEUR</text>
+
+      <path class="bd" d="M118 62 L226 62"/>
+      <text class="s2" x="172" y="42" style="fill:#8A6408;font-weight:700">DISCOVER</text>
+      <text class="s2" x="172" y="102">diffusion</text>
+
+      <path class="un" d="M354 62 L460 62"/>
+      <text class="s2" x="407" y="42" style="fill:var(--accent);font-weight:700">unicast</text>
+      <text class="s2" x="407" y="102">vers l'adresse du serveur</text>
+
+      <text class="s2" x="290" y="122" style="font-weight:700;fill:var(--encre)">ip helper-address 192.168.100.10</text>
+      <text class="s2" x="290" y="142">Le routeur transforme la diffusion en unicast — et fait suivre.</text>
+    </svg>
+    <figcaption>Le relais n'ouvre pas les diffusions : il les convertit en messages dirigés vers le serveur.</figcaption>
+  </figure>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! sur l'interface QUI REÇOIT les demandes des clients
+R1(config)# interface g0/0.20
+R1(config-subif)# ip helper-address 192.168.100.10
+!                                   └── l'adresse du serveur DHCP distant</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux points qui font échouer le relais</div>
+    <ul>
+      <li><strong>La commande va sur l'interface côté CLIENT</strong>, celle qui reçoit les
+          diffusions — pas côté serveur. C'est l'erreur la plus fréquente.</li>
+      <li><strong>Le serveur doit avoir un pool pour chaque réseau relayé.</strong> Le routeur
+          insère son adresse d'interface dans la demande, ce qui permet au serveur de savoir de quel
+          sous-réseau vient le client. Sans pool correspondant, il n'a rien à proposer.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="linux">
+  <h2><span class="num">08</span>Un serveur ISC sous Debian</h2>
+
+  <p><strong>Mission BioVision :</strong> le pôle Bureau d'étude pharmaceutique
+     (<code>192.168.20.0/24</code>) a besoin d'un serveur DHCP ISC sous Debian 12, avec une étendue
+     dynamique <code>192.168.20.100-200</code> et des <strong>réservations MAC</strong> pour trois
+     stations critiques (<code>.10</code>, <code>.11</code>, <code>.12</code>).</p>
+
+  <h3>Les prérequis</h3>
+  <ul>
+    <li>Une machine Debian avec une <strong>adresse IP fixe</strong> — <code>192.168.20.2/24</code> ;</li>
+    <li><strong>aucun autre serveur DHCP actif</strong> sur le réseau, pour éviter les conflits ;</li>
+    <li>une machine cliente <strong>sans configuration IP</strong>, pour tester ;</li>
+    <li>une connexion Internet sur la Debian, pour télécharger les paquets.</li>
+  </ul>
+
+  <h3>Les six étapes</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code># 1 — mettre à jour la distribution
+apt update &amp;&amp; apt upgrade -y
+
+# 2 — installer le paquet
+dpkg -l isc-dhcp-server          # vérifier s'il est déjà présent
+apt install isc-dhcp-server -y
+
+# 3 — passer le serveur en adresse fixe
+ip a                              # relever le nom exact de l'interface
+nano /etc/network/interfaces</code></pre></div>
+
+<div class="bloc-code"><span class="langue">/etc/network/interfaces</span><pre><code>auto enp0s3
+iface enp0s3 inet static
+    address  192.168.20.2
+    netmask  255.255.255.0
+    gateway  192.168.20.1</code></pre></div>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code>systemctl restart networking      # ou : /etc/init.d/networking restart
+
+# 4 — configurer le serveur DHCP
+cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.old      # SAUVEGARDER d'abord
+nano /etc/dhcp/dhcpd.conf</code></pre></div>
+
+<div class="bloc-code"><span class="langue">/etc/dhcp/dhcpd.conf</span><pre><code>default-lease-time 600;
+max-lease-time 7200;
+authoritative;
+
+subnet 192.168.20.0 netmask 255.255.255.0 {
+    range 192.168.20.100 192.168.20.200;
+    option routers             192.168.20.1;
+    option subnet-mask         255.255.255.0;
+    option domain-name-servers 8.8.8.8, 1.1.1.1;
+    option domain-name         "biovision.local";
+}
+
+# 5 — RÉSERVATIONS : en dehors du bloc subnet
+host station-simul-1 {
+    hardware ethernet 08:00:27:1a:2b:3c;
+    fixed-address 192.168.20.10;
+}
+host station-simul-2 {
+    hardware ethernet 08:00:27:4d:5e:6f;
+    fixed-address 192.168.20.11;
+}
+host station-simul-3 {
+    hardware ethernet 08:00:27:7a:8b:9c;
+    fixed-address 192.168.20.12;
+}</code></pre></div>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code># déclarer l'interface d'écoute
+nano /etc/default/isc-dhcp-server
+    INTERFACESv4="enp0s3"
+
+# 6 — redémarrer et tester
+systemctl restart isc-dhcp-server
+systemctl status isc-dhcp-server        # doit être « active (running) »
+journalctl -u isc-dhcp-server -f        # suivre les attributions en direct
+cat /var/lib/dhcp/dhcpd.leases          # les baux accordés</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les quatre pièges du fichier <code>dhcpd.conf</code></div>
+    <ul>
+      <li><strong>Chaque ligne se termine par un point-virgule.</strong> Un oubli et le service
+          refuse de démarrer, avec un message peu explicite.</li>
+      <li><strong>Les réservations <code>host</code> se placent en dehors du bloc
+          <code>subnet</code></strong> — c'est explicitement demandé par l'énoncé.</li>
+      <li><strong>La plage <code>range</code> ne doit pas recouvrir les adresses réservées.</strong>
+          Ici <code>.100-.200</code> et les réservations en <code>.10-.12</code> : aucun
+          chevauchement.</li>
+      <li><strong>L'interface d'écoute doit être déclarée</strong> dans
+          <code>/etc/default/isc-dhcp-server</code>. Sans cela, le service démarre mais n'écoute
+          nulle part.</li>
+    </ul>
+    <p>Le réflexe : <code>dhcpd -t -cf /etc/dhcp/dhcpd.conf</code> teste la syntaxe
+       <em>avant</em> de redémarrer le service.</p>
+  </div>
+
+  <h3>Tester depuis un client</h3>
+<div class="bloc-code"><span class="langue">bash</span><pre><code># Linux
+dhclient -r enp0s3        # libérer le bail actuel
+dhclient enp0s3           # en demander un nouveau
+ip a                      # vérifier l'adresse obtenue
+
+# Windows
+ipconfig /release
+ipconfig /renew
+ipconfig /all             # adresse, bail, serveur DHCP ayant répondu</code></pre></div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="depanner">
+  <h2><span class="num">09</span>Dépanner</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Symptôme</th><th>Cause probable</th><th>Vérification</th></tr></thead>
+    <tbody>
+      <tr><td>Le client a une adresse en <strong><code>169.254.x.x</code></strong></td>
+          <td><strong>Aucun serveur DHCP joint</strong> — APIPA</td>
+          <td>Câble, VLAN du port, service arrêté, relais manquant</td></tr>
+      <tr><td>Le client obtient une adresse du <strong>mauvais réseau</strong></td>
+          <td>Un <strong>serveur DHCP pirate</strong> répond avant le bon</td>
+          <td><code>ipconfig /all</code> → quelle adresse de serveur ?</td></tr>
+      <tr><td>Adresse OK, mais aucun accès Internet</td>
+          <td><code>default-router</code> ou <code>dns-server</code> mal renseigné</td>
+          <td><code>ipconfig /all</code>, puis <code>ping</code> de la passerelle</td></tr>
+      <tr><td><strong>Conflit d'adresse IP</strong></td>
+          <td>Une adresse statique n'a pas été <strong>exclue</strong> du pool</td>
+          <td><code>show ip dhcp conflict</code></td></tr>
+      <tr><td>Le pool est épuisé</td>
+          <td>Plage trop petite, ou baux trop longs</td>
+          <td><code>show ip dhcp pool</code></td></tr>
+      <tr><td>Rien ne fonctionne depuis un autre VLAN</td>
+          <td><code>ip helper-address</code> absent</td>
+          <td>Vérifier la sous-interface côté client</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Sur un réseau à trois VLAN, un seul serveur DHCP est installé dans le
+       VLAN 100. Les postes du VLAN 100 obtiennent bien une adresse, ceux des VLAN 20 et 30 non.
+       Pourquoi, et comment corriger ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>La cause :</strong> le DHCPDISCOVER est une <strong>diffusion</strong>, et un
+         routeur ne relaie jamais les diffusions. Les demandes des VLAN 20 et 30 s'arrêtent donc au
+         routeur : elles n'atteignent jamais le serveur.</p>
+      <p>Les postes du VLAN 100 fonctionnent parce qu'ils sont <em>sur le même domaine de
+         diffusion</em> que le serveur.</p>
+      <p><strong>La correction — deux volets :</strong></p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! 1 — sur le routeur, côté CLIENT de chaque VLAN concerné
+R1(config)# interface g0/0.20
+R1(config-subif)# ip helper-address 192.168.100.10
+R1(config-subif)# exit
+R1(config)# interface g0/0.30
+R1(config-subif)# ip helper-address 192.168.100.10</code></pre></div>
+      <p><strong>2 — sur le serveur</strong>, créer un <strong>pool par sous-réseau relayé</strong>.
+         Le routeur insère son adresse d'interface dans la demande relayée : c'est ainsi que le
+         serveur sait de quel VLAN vient le client et choisit le bon pool. Sans pool correspondant,
+         il ne peut rien proposer, même si le relais fonctionne parfaitement.</p>
+      <p><strong>Le piège :</strong> mettre <code>ip helper-address</code> sur l'interface côté
+         serveur. C'est côté <em>client</em> qu'il faut la placer — là où arrivent les
+         diffusions.</p>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le serveur DHCP pirate</div>
+    <p>N'importe qui branchant une box personnelle sur le réseau crée un second serveur DHCP.
+       Comme le client retient <strong>la première offre reçue</strong>, une partie des postes
+       reçoit alors une mauvaise adresse, une mauvaise passerelle — et perd le réseau.</p>
+    <p>C'est l'incident classique en TP, et la raison pour laquelle un serveur DHCP de test se monte
+       toujours sur un réseau isolé. La parade en production s'appelle <strong>DHCP
+       snooping</strong> : le commutateur n'accepte les réponses DHCP que sur les ports déclarés de
+       confiance.</p>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>DHCP distribue :</strong> adresse IP, masque, passerelle, DNS, nom de domaine.</li>
+      <li><strong>UDP 67 (serveur) / 68 (client).</strong></li>
+      <li><strong>DORA :</strong> Discover, Offer, Request, Ack. Discover et Request sont des
+          <strong>diffusions</strong>.</li>
+      <li><strong>3 méthodes :</strong> manuelle (réservation MAC), automatique (définitive),
+          <strong>dynamique</strong> (bail — la plus courante).</li>
+      <li><strong>Toujours exclure</strong> la passerelle et les adresses statiques du pool.</li>
+      <li><strong>Un routeur bloque les diffusions</strong> → <code>ip helper-address</code> côté
+          client, et un pool par sous-réseau sur le serveur.</li>
+      <li><strong><code>169.254.x.x</code> = aucun serveur joint</strong> (APIPA).</li>
+      <li><strong>Réservation &gt; adresse statique :</strong> même résultat, gestion
+          centralisée.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-cours_DHCP_nat-pat.pdf — le professeur</li>
+      <li>Mission1-DHCP-Serveur.pdf — BioVision, Debian 12</li>
+      <li>TP_DHCP_BioVision.html</li>
+      <li>7-Lab — Implement DHCPv4.docx</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adressage IPv4 — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche de révision imprimable : classes, masques, pas, VLSM, méthode d'examen.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 04</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Adressage IPv4 — l'essentiel</h1>
+  <p class="chapeau">Tout ce qu'il faut savoir sur deux pages. Conçue pour être imprimée
+     (⌘P) et relue la veille de l'épreuve.</p>
+</header>
+
+<section class="section-revision" id="socle">
+  <h2><span class="num">01</span>Le socle</h2>
+  <div class="grille">
+
+    <div class="memo">
+      <h3>Structure</h3>
+      <ul>
+        <li><strong>32 bits</strong> = 4 octets, chacun de <strong>0 à 255</strong></li>
+        <li>Deux parties : <strong>réseau</strong> + <strong>hôte</strong></li>
+        <li>C'est le <strong>masque</strong> qui place la frontière</li>
+        <li>Notation CIDR <code>/n</code> = nombre de bits à 1 du masque</li>
+      </ul>
+    </div>
+
+    <div class="memo">
+      <h3>Poids des bits d'un octet</h3>
+      <div class="formule">128 · 64 · 32 · 16 · 8 · 4 · 2 · 1</div>
+      <p style="margin:0;font-size:13px">
+        <code>11100000</code> = 128+64+32 = <strong>224</strong><br>
+        <code>11000000</code> = 128+64 = <strong>192</strong></p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 3 formules</h3>
+      <div class="formule">hôtes = 2ⁿ − 2</div>
+      <div class="formule">sous-réseaux = 2ᵇ</div>
+      <div class="formule">pas = 256 − octet du masque</div>
+      <p style="margin:.4rem 0 0;font-size:13px"><em>n</em> = bits à 0 du masque ·
+         <em>b</em> = bits empruntés</p>
+    </div>
+
+    <div class="memo">
+      <h3>ET logique</h3>
+      <p style="margin:0 0 .4rem;font-size:13.5px">Adresse <code>ET</code> masque = adresse réseau.
+         Seul <code>1 ET 1</code> donne 1.</p>
+      <p style="margin:0;font-size:13.5px"><strong>Raccourci :</strong> ne travaillez que sur
+         l'octet coupé (ni 255 ni 0). Les autres se recopient.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Modes de transmission</h3>
+      <ul>
+        <li><strong>Unicast</strong> — 1 vers 1</li>
+        <li><strong>Broadcast</strong> — 1 vers tous du sous-réseau.
+            <strong>Ne franchit pas le routeur</strong></li>
+        <li><strong>Multicast</strong> — 1 vers un groupe abonné (224–239)</li>
+      </ul>
+    </div>
+
+    <div class="memo">
+      <h3>Masques valides</h3>
+      <p style="margin:0 0 .35rem;font-size:13.5px">Suite ininterrompue de 1 puis de 0.
+         Seules 9 valeurs par octet :</p>
+      <div class="formule" style="font-size:13px">0 · 128 · 192 · 224 · 240 · 248 · 252 · 254 · 255</div>
+      <p style="margin:0;font-size:13px">196 = <code>11000100</code> → <strong>masque invalide</strong></p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="classes-rev">
+  <h2><span class="num">02</span>Classes et plages réservées</h2>
+  <div class="grille">
+
+    <div class="memo large">
+      <h3>Les cinq classes</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Classe</th><th>1<sup>er</sup> octet</th><th>Bits de tête</th>
+                   <th>Structure</th><th>Masque défaut</th><th>Hôtes / réseau</th></tr></thead>
+        <tbody>
+          <tr><td><strong>A</strong></td><td><code>1 – 126</code></td><td><code>0</code></td>
+              <td><code>R.H.H.H</code></td><td><code>255.0.0.0</code></td><td>16 777 214</td></tr>
+          <tr><td><strong>B</strong></td><td><code>128 – 191</code></td><td><code>10</code></td>
+              <td><code>R.R.H.H</code></td><td><code>255.255.0.0</code></td><td>65 534</td></tr>
+          <tr><td><strong>C</strong></td><td><code>192 – 223</code></td><td><code>110</code></td>
+              <td><code>R.R.R.H</code></td><td><code>255.255.255.0</code></td><td>254</td></tr>
+          <tr><td><strong>D</strong></td><td><code>224 – 239</code></td><td><code>1110</code></td>
+              <td colspan="3">Multicast</td></tr>
+          <tr><td><strong>E</strong></td><td><code>240 – 255</code></td><td><code>1111</code></td>
+              <td colspan="3">Expérimentale / recherche</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.5rem 0 0;font-size:13px"><strong>127</strong> est absent des classes
+         utilisables : c'est le <strong>bouclage</strong> (<code>127.0.0.1</code>).
+         <strong>0</strong> est également réservé.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Adresses privées — RFC 1918</h3>
+      <ul>
+        <li><code>10.0.0.0/8</code> → 10.0.0.0 – 10.255.255.255</li>
+        <li><code>172.16.0.0/12</code> → 172.<strong>16</strong>.0.0 – 172.<strong>31</strong>.255.255</li>
+        <li><code>192.168.0.0/16</code> → 192.168.0.0 – 192.168.255.255</li>
+        <li><code>169.254.0.0/16</code> → APIPA, auto-configuration</li>
+      </ul>
+      <p style="margin:.45rem 0 0;font-size:13px">Tout le reste est <strong>public</strong>.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Hôte valide ? Les 4 refus</h3>
+      <ol>
+        <li>C'est l'adresse <strong>réseau</strong> (1<sup>re</sup> du bloc)</li>
+        <li>C'est l'adresse de <strong>diffusion</strong> (dernière du bloc)</li>
+        <li>Ça commence par <strong>127</strong> → bouclage</li>
+        <li>C'est du <strong>multicast</strong> (224–239) ou de la classe E (240+)</li>
+      </ol>
+      <p style="margin:.45rem 0 0;font-size:13px">Sinon : valide.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="table-rev">
+  <h2><span class="num">03</span>Table CIDR à mémoriser</h2>
+  <div class="grille">
+
+    <div class="memo large">
+      <h3>Du /24 au /30 — le cœur des exercices</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>/n</th><th>Masque</th><th>Dernier octet</th><th>Pas</th><th>Hôtes</th>
+                   <th>/n</th><th>Masque</th><th>Pas</th><th>Hôtes</th></tr></thead>
+        <tbody>
+          <tr><td><code>/24</code></td><td><code>…255.0</code></td><td><code>00000000</code></td><td>256</td><td>254</td>
+              <td><code>/16</code></td><td><code>255.255.0.0</code></td><td>—</td><td>65 534</td></tr>
+          <tr><td><code>/25</code></td><td><code>…255.128</code></td><td><code>10000000</code></td><td>128</td><td>126</td>
+              <td><code>/20</code></td><td><code>255.255.240.0</code></td><td>16</td><td>4 094</td></tr>
+          <tr><td><code>/26</code></td><td><code>…255.192</code></td><td><code>11000000</code></td><td>64</td><td>62</td>
+              <td><code>/21</code></td><td><code>255.255.248.0</code></td><td>8</td><td>2 046</td></tr>
+          <tr><td><code>/27</code></td><td><code>…255.224</code></td><td><code>11100000</code></td><td>32</td><td>30</td>
+              <td><code>/22</code></td><td><code>255.255.252.0</code></td><td>4</td><td>1 022</td></tr>
+          <tr><td><code>/28</code></td><td><code>…255.240</code></td><td><code>11110000</code></td><td>16</td><td>14</td>
+              <td><code>/23</code></td><td><code>255.255.254.0</code></td><td>2</td><td>510</td></tr>
+          <tr><td><code>/29</code></td><td><code>…255.248</code></td><td><code>11111000</code></td><td>8</td><td>6</td>
+              <td><code>/13</code></td><td><code>255.248.0.0</code></td><td>8</td><td>524 286</td></tr>
+          <tr><td><code>/30</code></td><td><code>…255.252</code></td><td><code>11111100</code></td><td>4</td><td>2</td>
+              <td><code>/14</code></td><td><code>255.252.0.0</code></td><td>4</td><td>262 142</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.5rem 0 0;font-size:13px">Le <strong>pas</strong> s'applique dans l'octet
+         coupé : pour /20 il porte sur le 3<sup>e</sup> octet, pour /14 sur le 2<sup>e</sup>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="methode-rev">
+  <h2><span class="num">04</span>La méthode et les pièges</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les 6 gestes, dans l'ordre</h3>
+      <ol>
+        <li>Traduire <code>/n</code> en masque</li>
+        <li>Repérer l'<strong>octet coupé</strong> (ni 255 ni 0)</li>
+        <li>Pas = <strong>256 − cet octet</strong></li>
+        <li>Descendre au multiple du pas ≤ à l'octet de l'adresse → <strong>réseau</strong></li>
+        <li>Diffusion = réseau + pas − 1 · 1<sup>er</sup> hôte = réseau + 1 ·
+            dernier = diffusion − 1</li>
+        <li>Contrôle : 2<sup>(32−n)</sup> − 2 doit tomber juste</li>
+      </ol>
+    </div>
+
+    <div class="memo">
+      <h3>Exemple type — 10.1.8.200/26</h3>
+<div class="bloc-code"><pre><code>/26 → 255.255.255.192
+pas = 256 − 192 = 64
+0, 64, 128, 192 → 200 ∈ [192;255]
+
+réseau      10.1.8.192
+1ᵉʳ hôte    10.1.8.193
+dernier     10.1.8.254
+diffusion   10.1.8.255
+contrôle    2⁶ − 2 = 62 ✓</code></pre></div>
+    </div>
+
+    <div class="memo">
+      <h3>VLSM en 4 temps</h3>
+      <ol>
+        <li><strong>Trier</strong> du plus gros besoin au plus petit</li>
+        <li>Chercher 2ⁿ ≥ besoin <strong>+ 2</strong></li>
+        <li>Masque = <code>/32 − n</code></li>
+        <li>Pas = 2ⁿ, à ajouter au réseau précédent</li>
+      </ol>
+      <p style="margin:.45rem 0 0;font-size:13px"><strong>Contrôle :</strong> chaque bloc commence
+         sur un multiple de sa propre taille.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 5 pièges classiques</h3>
+      <ul>
+        <li>Un octet <strong>&gt; 255</strong> → adresse invalide, pas une classe</li>
+        <li>Un <code>.0</code> ou <code>.255</code> final ne prouve rien <strong>sans le
+            masque</strong></li>
+        <li><code>192.31.x.x</code> est <strong>public</strong> — seul <code>192.168.</code>
+            est privé</li>
+        <li>Les blocs /23, /20, /14 <strong>débordent</strong> sur l'octet précédent</li>
+        <li>Taille du bloc (2ⁿ) ≠ nombre d'hôtes (2ⁿ − 2)</li>
+      </ul>
+    </div>
+
+    <div class="memo">
+      <h3>Cas de référence à connaître</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><code>/30</code></td><td>liaison entre 2 routeurs — 2 hôtes</td></tr>
+          <tr><td><code>127.0.0.1</code></td><td>bouclage local</td></tr>
+          <tr><td><code>224.0.0.5</code></td><td>multicast OSPF</td></tr>
+          <tr><td><code>169.254.x.x</code></td><td>APIPA — pas de serveur DHCP joignable</td></tr>
+          <tr><td><code>255.255.255.255</code></td><td>diffusion limitée</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Le pas fait tout.</strong> <code>256 − octet du masque</code> donne la taille du
+          bloc, donc toutes les frontières.</li>
+      <li><strong>Deux adresses perdues par bloc</strong> — la première et la dernière. D'où le
+          <code>− 2</code>.</li>
+      <li><strong>Aucune adresse ne se lit sans son masque.</strong> C'est le masque qui décide de
+          tout, jamais l'apparence du dernier octet.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-Adressage_IP.pdf — le professeur</li>
+      <li>Tableau des masques de sous-réseau</li>
+      <li>vlsm_reference_guide</li>
+      <li>5-TD-Identifier Adresse IPv4 (Cisco)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

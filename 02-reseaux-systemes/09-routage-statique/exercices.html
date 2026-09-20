@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage statique — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : configuration d'interfaces, écriture de routes statiques, route par défaut, lecture de table et dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#interfaces">1 · Configurer les interfaces</a></li>
+    <li><a href="#ecrire">2 · Écrire des routes statiques</a></li>
+    <li><a href="#lire">3 · Lire une table de routage</a></li>
+    <li><a href="#exolab">4 · Exolab — trois services</a></li>
+    <li><a href="#depanner-exo">5 · Dépanner un routage</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Routage statique — exercices</h1>
+  <p class="chapeau">Écrire des routes, lire une table, et surtout retrouver celle qui manque.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>La méthode qui ne rate jamais</h2>
+      <p>Pour chaque routeur, faites deux colonnes : <strong>« ce qu'il connaît déjà »</strong>
+         (ses réseaux connectés) et <strong>« ce qu'il ignore »</strong>. La seconde colonne
+         <em>est</em> la liste des routes à écrire. Puis recommencez pour le
+         <strong>retour</strong> — c'est l'oubli le plus coûteux du chapitre.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="interfaces">
+  <h2><span class="num">01</span>Configurer les interfaces</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Mettre un routeur en service <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Le routeur R1 doit être configuré ainsi :</p>
+      <ul>
+        <li><code>Fa0/0</code> → LAN, <code>192.168.1.1/24</code>, description « LAN
+            Administratif » ;</li>
+        <li><code>S0/0/0</code> → liaison vers R2, <code>192.168.2.1/30</code>, R1 est du côté
+            <strong>DCE</strong> ;</li>
+        <li>une interface de <strong>bouclage</strong> <code>10.1.1.1/32</code> pour les tests.</li>
+      </ul>
+      <p>Écrivez la configuration, puis la commande de vérification et ce qu'elle doit afficher.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1# configure terminal
+
+R1(config)# interface fa0/0
+R1(config-if)# description LAN Administratif
+R1(config-if)# ip address 192.168.1.1 255.255.255.0
+R1(config-if)# no shutdown
+R1(config-if)# exit
+
+R1(config)# interface s0/0/0
+R1(config-if)# description Liaison vers R2
+R1(config-if)# ip address 192.168.2.1 255.255.255.252
+R1(config-if)# clock rate 64000              ← côté DCE UNIQUEMENT
+R1(config-if)# no shutdown
+R1(config-if)# exit
+
+R1(config)# interface loopback 0
+R1(config-if)# ip address 10.1.1.1 255.255.255.255
+R1(config-if)# exit                          ← PAS de no shutdown : elle est UP d'office
+
+R1(config)# end
+R1# copy running-config startup-config</code></pre></div>
+        <h4>La vérification</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip interface brief
+
+Interface        IP-Address     OK?  Method  Status  Protocol
+FastEthernet0/0  192.168.1.1    YES  manual  up      up
+Serial0/0/0      192.168.2.1    YES  manual  up      up
+Loopback0        10.1.1.1       YES  manual  up      up</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les trois pièges de cet exercice</div>
+          <ul>
+            <li><strong>Le masque /30</strong> = <code>255.255.255.252</code>, pas
+                <code>255.255.255.0</code>. Un /30 offre exactement 2 adresses utilisables — c'est
+                le masque standard d'une liaison point à point.</li>
+            <li><strong><code>clock rate</code> uniquement côté DCE.</strong> Le taper des deux
+                côtés ne casse rien, mais ne pas le taper du tout laisse l'interface série en
+                <code>up / down</code>. Pour savoir de quel côté on est :
+                <code>show controllers s0/0/0</code>.</li>
+            <li><strong>Pas de <code>no shutdown</code> sur la loopback.</strong> C'est une
+                interface logicielle : elle est <code>up</code> dès sa création.</li>
+          </ul>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Interpréter <code>up / down</code> sur une série</div>
+          <p><code>Status: up</code> mais <code>Protocol: down</code> sur une interface série
+             signifie que le câble est bien branché (couche 1) mais que la couche 2 ne s'établit
+             pas. Sur une liaison de laboratoire, la cause est presque toujours l'<strong>horloge
+             manquante côté DCE</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="ecrire">
+  <h2><span class="num">02</span>Écrire des routes statiques</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Les trois méthodes <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>R1 doit joindre le réseau <code>192.168.3.0/24</code>. Le tronçon suivant est
+         <code>192.168.2.2</code>, atteignable par l'interface <code>S0/0/0</code>.</p>
+      <p>Écrivez la route selon les <strong>trois méthodes</strong>, et indiquez laquelle vous
+         choisiriez ici.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! 1 — adresse du tronçon suivant seule
+R1(config)# ip route 192.168.3.0 255.255.255.0 192.168.2.2
+
+! 2 — interface de sortie seule
+R1(config)# ip route 192.168.3.0 255.255.255.0 s0/0/0
+
+! 3 — entièrement spécifiée
+R1(config)# ip route 192.168.3.0 255.255.255.0 s0/0/0 192.168.2.2</code></pre></div>
+        <p><strong>Le choix ici : la méthode 2 ou la 3.</strong> <code>S0/0/0</code> est une
+           liaison <strong>série, donc point à point</strong> : il n'y a qu'un seul voisin possible
+           au bout du câble. Nommer l'interface suffit et évite au routeur toute recherche
+           supplémentaire.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 La règle de choix</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Type de liaison</th><th>Méthode</th><th>Raison</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Point à point</strong> (série)</td><td>Interface de sortie</td>
+                  <td>Un seul voisin possible — pas d'ambiguïté</td></tr>
+              <tr><td><strong>Multi-accès</strong> (Ethernet)</td><td><strong>Next-hop</strong></td>
+                  <td>Plusieurs voisins partagent le lien : il faut désigner lequel</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Utiliser l'interface de sortie seule sur un Ethernet fonctionne mais force le routeur à
+             faire un ARP pour chaque destination, comme si tout le réseau distant était
+             directement connecté. C'est inutilement coûteux.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Routes précises ou route par défaut ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pour chaque routeur, dites s'il faut des routes précises ou une route par défaut, et
+         écrivez-la.</p>
+      <ol>
+        <li>Le routeur d'une agence, relié uniquement au siège.</li>
+        <li>Un routeur central relié à trois agences.</li>
+        <li>La box d'un particulier.</li>
+        <li>Un routeur d'agence relié au siège <strong>et</strong> à un accès Internet de
+            secours.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Cas</th><th>Choix</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td>1 — Agence, une seule sortie</td><td><strong>Route par défaut</strong></td>
+                <td>C'est un <strong>réseau d'extrémité</strong> : tout part du même côté</td></tr>
+            <tr><td>2 — Routeur central</td><td><strong>Routes précises</strong></td>
+                <td>Trois directions différentes : il faut savoir <em>laquelle</em> pour chaque
+                    destination</td></tr>
+            <tr><td>3 — Box particulier</td><td><strong>Route par défaut</strong></td>
+                <td>Une seule sortie vers l'opérateur. C'est l'exemple type</td></tr>
+            <tr><td>4 — Agence à double accès</td><td><strong>Les deux</strong></td>
+                <td>Routes précises vers le siège, plus une route par défaut de secours avec une
+                    AD supérieure</td></tr>
+          </tbody>
+        </table>
+        </div>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! 1 et 3 — réseau d'extrémité
+R-agence(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.1
+
+! 2 — routeur central, trois directions
+R-central(config)# ip route 192.168.10.0 255.255.255.0 10.0.0.2
+R-central(config)# ip route 192.168.20.0 255.255.255.0 10.0.0.6
+R-central(config)# ip route 192.168.30.0 255.255.255.0 10.0.0.10
+
+! 4 — chemin principal + secours (route flottante)
+R-agence(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.1          ← AD 1 par défaut
+R-agence(config)# ip route 0.0.0.0 0.0.0.0 172.16.0.1 10     ← AD forcée à 10</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">🌍 La route flottante</div>
+          <p>Dans le cas 4, la seconde route porte une <strong>distance administrative de 10</strong>
+             au lieu de 1. Comme l'AD la plus faible gagne, elle reste <strong>invisible dans la
+             table</strong> tant que la route principale fonctionne.</p>
+          <p>Si la liaison vers le siège tombe, la route principale disparaît de la table et la
+             route de secours prend automatiquement sa place. C'est le seul moyen d'obtenir une
+             forme de tolérance de panne en routage statique — et c'est exactement pour cela qu'on
+             peut choisir l'AD manuellement.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="lire">
+  <h2><span class="num">03</span>Lire une table de routage</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Décoder chaque ligne <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><pre><code>R2# show ip route
+
+     172.31.0.0/16 is variably subnetted, 5 subnets, 4 masks
+C       172.31.0.0/24   is directly connected, GigabitEthernet0/0
+L       172.31.0.1/32   is directly connected, GigabitEthernet0/0
+S       172.31.1.0/25   [1/0] via 10.0.0.1
+S       172.31.1.128/26 [1/0] via 10.0.0.5
+     10.0.0.0/30 is subnetted, 2 subnets
+C       10.0.0.0/30     is directly connected, Serial0/0/0
+C       10.0.0.4/30     is directly connected, Serial0/0/1
+S*   0.0.0.0/0 [1/0] via 192.0.2.1</code></pre></div>
+      <ol>
+        <li>Combien de réseaux R2 connaît-il directement, et combien a-t-il appris ?</li>
+        <li>Que signifient les <code>[1/0]</code> ?</li>
+        <li>Que signifie l'astérisque de la dernière ligne ?</li>
+        <li>Un paquet arrive pour <code>172.31.1.200</code>. Quelle route est utilisée, et
+            pourquoi ?</li>
+        <li>Un paquet arrive pour <code>8.8.8.8</code>. Que fait R2 ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Directement connectés / appris</h4>
+        <p><strong>Trois réseaux directement connectés</strong> (<code>C</code>) :
+           <code>172.31.0.0/24</code>, <code>10.0.0.0/30</code> et <code>10.0.0.4/30</code>.</p>
+        <p><strong>Trois routes apprises</strong> (<code>S</code>) : <code>172.31.1.0/25</code>,
+           <code>172.31.1.128/26</code> et la route par défaut.</p>
+        <p>La ligne <code>L</code> n'est pas un réseau : c'est l'adresse propre de l'interface, en
+           /32.</p>
+
+        <h4>2. <code>[1/0]</code></h4>
+        <p><strong>1</strong> = la <strong>distance administrative</strong> — celle d'une route
+           statique.<br>
+           <strong>0</strong> = la <strong>métrique</strong>. Une route statique a toujours une
+           métrique nulle : elle n'est pas calculée, elle est décidée.</p>
+
+        <h4>3. L'astérisque</h4>
+        <p><code>S*</code> signale la <strong>route candidate par défaut</strong> — celle utilisée
+           pour toute destination sans correspondance plus précise. C'est la <em>gateway of last
+           resort</em>.</p>
+
+        <h4>4. Le paquet pour <code>172.31.1.200</code></h4>
+        <p>Trois routes pourraient correspondre. Il faut appliquer la
+           <strong>correspondance la plus longue</strong> :</p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Route</th><th>Plage couverte</th><th>Contient .200 ?</th><th>Bits</th></tr></thead>
+          <tbody>
+            <tr><td><code>172.31.1.0/25</code></td><td>.1.0 → .1.127</td><td class="rep-non">Non</td><td>25</td></tr>
+            <tr><td><code>172.31.1.128/26</code></td><td>.1.128 → .1.191</td><td class="rep-non">Non</td><td>26</td></tr>
+            <tr><td><code>0.0.0.0/0</code></td><td>tout</td><td class="rep-ok">Oui</td><td>0</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>Réponse : la route par défaut</strong>, via <code>192.0.2.1</code>.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le vrai piège de cette question</div>
+          <p>On lit « <code>172.31.1.200</code> » et on saute sur <code>172.31.1.128/26</code> parce
+             que les trois premiers octets correspondent. Mais un <code>/26</code> à partir de
+             <code>.128</code> ne couvre que <strong>.128 à .191</strong> — le pas est de 64.
+             L'adresse <code>.200</code> tombe dans le bloc suivant, qui n'est déclaré nulle
+             part.</p>
+          <p>Il faut <strong>toujours calculer la plage réelle</strong>, jamais se fier à
+             l'apparence des octets. C'est l'adressage IPv4 du chapitre 04 qui sert ici.</p>
+        </div>
+
+        <h4>5. Le paquet pour <code>8.8.8.8</code></h4>
+        <p>Aucune route précise ne correspond. R2 utilise la <strong>route par défaut</strong> et
+           transmet le paquet à <code>192.0.2.1</code>.</p>
+        <p><strong>S'il n'y avait pas de route par défaut</strong>, le paquet serait
+           <strong>abandonné</strong> et R2 renverrait un message ICMP
+           <em>Destination unreachable</em> à l'émetteur.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="exolab">
+  <h2><span class="num">04</span>Exolab — trois services</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Routage statique sur trois réseaux <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Une entreprise comporte <strong>trois services</strong> plus ou moins autonomes, un réseau
+         logique par service. Les trois réseaux sont interconnectés par des routeurs Cisco 1941,
+         chaque segment étant équipé d'un commutateur 2960.</p>
+      <p>Décrivez la démarche complète, de la mise en place à la validation, et indiquez les points
+         sur lesquels l'auto-correction de l'activité va vous juger.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>La démarche, dans l'ordre</h4>
+        <ol>
+          <li><strong>Placer les équipements</strong> selon le schéma, en respectant
+              <strong>l'emplacement géographique et les noms</strong>.</li>
+          <li><strong>Câbler</strong> en mode non automatique, pour choisir les interfaces de départ
+              et d'arrivée conformément au schéma.</li>
+          <li><strong>Adresser</strong> : chaque LAN dans son propre sous-réseau, chaque liaison
+              inter-routeurs dans un <code>/30</code> dédié.</li>
+          <li><strong>Configurer les interfaces</strong> des routeurs : adresse, masque,
+              <code>no shutdown</code>, et <code>clock rate</code> côté DCE.</li>
+          <li><strong>Vérifier la connectivité directe</strong> : chaque routeur doit pinguer son
+              voisin immédiat. <em>Ne pas aller plus loin tant que ce point n'est pas acquis.</em></li>
+          <li><strong>Écrire les routes statiques</strong>, dans les deux sens, sur chaque
+              routeur.</li>
+          <li><strong>Configurer les postes</strong> : adresse, masque, et surtout
+              <strong>passerelle par défaut</strong>.</li>
+          <li><strong>Tester de bout en bout</strong> par <code>ping</code>, puis
+              <code>tracert</code> pour visualiser le chemin.</li>
+        </ol>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Ce que l'auto-correction vérifie</div>
+          <p>L'énoncé est explicite : « <strong>le nom des équipements conditionne l'autocorrection
+             de l'activité : respectez bien les minuscules, majuscules et traits d'union</strong> ».</p>
+          <p>Une configuration parfaite avec un routeur nommé <code>R1</code> au lieu de
+             <code>r1</code> peut être comptée fausse. Recopiez les noms du schéma
+             <strong>caractère par caractère</strong>, y compris la casse.</p>
+          <p>Même exigence pour les <strong>numéros d'interface</strong> : le câblage automatique de
+             Packet Tracer choisit les ports tout seul, ce qui ne correspond pas au schéma. D'où la
+             consigne d'utiliser les connexions <strong>non automatiques</strong>.</p>
+        </div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 L'ordre de test qui fait gagner du temps</div>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>1. Depuis R1 : ping l'interface du VOISIN direct
+   → échec ? le problème est physique ou d'adressage. Rien d'autre ne marchera.
+
+2. Depuis R1 : ping une interface DISTANTE (2 sauts)
+   → échec ? il manque une route. Regardez show ip route.
+
+3. Depuis un PC : ping sa PROPRE passerelle
+   → échec ? adressage du PC ou interface du routeur down.
+
+4. Depuis un PC : ping un PC d'un autre réseau
+   → échec alors que 1 à 3 fonctionnent ? c'est la route RETOUR qui manque.
+
+5. tracert depuis le PC → montre EXACTEMENT où le paquet s'arrête.</code></pre></div>
+          <p>Cette progression isole la panne en quelques minutes. Tester directement l'étape 4
+             sans les précédentes ne dit rien d'exploitable.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="depanner-exo">
+  <h2><span class="num">05</span>Dépanner un routage</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Le TP de dépannage <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p><strong>La topologie :</strong></p>
+      <ul>
+        <li><strong>R1</strong> connecte le LAN 1 (<code>172.31.1.0/25</code>) et relie R2 par
+            <code>S0/0/0</code> ;</li>
+        <li><strong>R2</strong> est le routeur central, connecté à R1 (<code>S0/0/0</code>), à R3
+            (<code>S0/0/1</code>) et au LAN 2 (<code>172.31.0.0/24</code>) ;</li>
+        <li><strong>R3</strong> connecte le serveur (<code>172.31.1.128/26</code>) et relie R2 par
+            <code>S0/0/1</code>.</li>
+      </ul>
+      <p>PC1 (sur R1) ne joint ni PC2 (sur R2) ni le serveur (sur R3).</p>
+      <ol>
+        <li>Que doit obligatoirement contenir la table de routage de chaque routeur ?</li>
+        <li>PC1 ping maintenant PC2, mais toujours pas le serveur. Où chercher ?</li>
+        <li>PC1 ping le serveur, mais le serveur ne répond pas à un ping venant de PC1 alors que
+            la trace montre que le paquet arrive. Que se passe-t-il ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Ce que chaque routeur doit connaître</h4>
+        <p>Chaque routeur connaît <strong>gratuitement</strong> ses réseaux directement connectés.
+           Il faut lui apprendre <strong>tous les autres</strong>.</p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Routeur</th><th>Connu (C)</th><th>À apprendre</th></tr></thead>
+          <tbody>
+            <tr><td><strong>R1</strong></td><td>LAN 1, liaison R1–R2</td>
+                <td>LAN 2 · réseau du serveur · liaison R2–R3</td></tr>
+            <tr><td><strong>R2</strong></td><td>LAN 2, les deux liaisons</td>
+                <td>LAN 1 (via R1) · réseau du serveur (via R3)</td></tr>
+            <tr><td><strong>R3</strong></td><td>Réseau serveur, liaison R2–R3</td>
+                <td>LAN 1 · LAN 2 · liaison R1–R2</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>Simplification :</strong> R1 et R3 sont des <strong>réseaux d'extrémité</strong> —
+           une seule sortie chacun. Une <strong>route par défaut</strong> suffit :</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# ip route 0.0.0.0 0.0.0.0 s0/0/0
+R3(config)# ip route 0.0.0.0 0.0.0.0 s0/0/1
+
+! R2 est central : deux directions, donc des routes précises
+R2(config)# ip route 172.31.1.0   255.255.255.128 s0/0/0     ← /25 vers R1
+R2(config)# ip route 172.31.1.128 255.255.255.192 s0/0/1     ← /26 vers R3</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les masques de cet énoncé sont piégeux</div>
+          <p><code>/25</code> = <code>255.255.255.128</code> et <code>/26</code> =
+             <code>255.255.255.192</code>. On écrit <code>255.255.255.0</code> par réflexe, et la
+             route ne correspond alors à rien de ce qui existe.</p>
+          <p>Autre subtilité : <code>172.31.1.0/25</code> et <code>172.31.1.128/26</code>
+             commencent par les mêmes trois octets mais sont <strong>deux réseaux distincts</strong>.
+             Le <code>/25</code> couvre .0 à .127, le <code>/26</code> couvre .128 à .191. Aucune
+             route « <code>172.31.1.0/24</code> » ne pourrait les distinguer.</p>
+        </div>
+
+        <h4>2. PC2 est joint, mais pas le serveur</h4>
+        <p>PC1 → PC2 passe par R1 puis R2 : les routes R1→R2 et le retour R2→R1 existent donc.</p>
+        <p>Le problème est <strong>au-delà de R2</strong> — sur le segment R2 ↔ R3. Trois pistes,
+           dans cet ordre :</p>
+        <ol>
+          <li><strong>La route de R2 vers le réseau du serveur</strong> est absente ou porte un
+              mauvais masque → <code>show ip route</code> sur R2.</li>
+          <li><strong>La route retour de R3</strong> vers le LAN 1 est absente → le paquet arrive
+              au serveur mais la réponse se perd.</li>
+          <li><strong>L'interface <code>S0/0/1</code></strong> de R2 ou R3 est
+              <code>down</code> → <code>show ip interface brief</code>.</li>
+        </ol>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2# show ip route | include 172.31.1.128     ← la route existe-t-elle ?
+R2# ping 172.31.1.129                        ← R2 joint-il l'interface de R3 ?
+R3# show ip route                            ← R3 sait-il revenir vers 172.31.1.0/25 ?</code></pre></div>
+
+        <h4>3. Le paquet arrive mais rien ne revient</h4>
+        <p>C'est le symptôme <strong>caractéristique d'une route retour manquante</strong> — ou d'un
+           pare-feu sur le serveur.</p>
+        <p><strong>Deux causes possibles, à distinguer :</strong></p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Cause</th><th>Comment la reconnaître</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Route retour absente sur R3</strong></td>
+                <td><code>show ip route</code> sur R3 : aucune entrée pour
+                    <code>172.31.1.0/25</code>. Un <code>ping</code> lancé <em>depuis</em> le
+                    serveur vers PC1 échoue également</td></tr>
+            <tr><td><strong>Pare-feu du serveur</strong></td>
+                <td>R3 a bien la route. Un <code>ping</code> depuis <strong>R3</strong> vers le
+                    serveur fonctionne, mais depuis PC1 non</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le réflexe à acquérir</div>
+          <p>Un ping qui part sans revenir n'est <strong>jamais</strong> un problème d'aller. Le
+             paquet a manifestement trouvé son chemin. Cherchez donc systématiquement du
+             <strong>côté du retour</strong> : la machine distante sait-elle revenir chez
+             l'émetteur ?</p>
+          <p>C'est pour cette raison qu'une route statique se configure <strong>toujours par
+             paire</strong>. Configurer l'aller sans le retour donne l'illusion d'un travail fait à
+             moitié — alors qu'il ne fonctionne pas du tout.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Oublier <code>no shutdown</code></strong> sur les interfaces du routeur.</li>
+      <li><strong>Oublier <code>clock rate</code></strong> côté DCE d'une liaison série.</li>
+      <li><strong>Oublier la route retour.</strong> Une route statique se configure par paire.</li>
+      <li><strong>Se tromper de masque</strong> — /25 = .128, /26 = .192, /30 = .252.</li>
+      <li><strong>Oublier la passerelle par défaut</strong> sur les postes.</li>
+      <li><strong>Confondre AD et métrique</strong> dans <code>[1/0]</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>3-cours_Routage statique.pdf — le professeur</li>
+      <li>A-2-TP-Note_Decouverte_RoutageCisco-01.pdf — Exolab CERTA</li>
+      <li>TP réseaux routage — session de dépannage guidée</li>
+      <li>Doc 3-Troubleshoot Static and Default Routes.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

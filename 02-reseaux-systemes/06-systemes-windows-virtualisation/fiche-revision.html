@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtualisation et installation — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : hyperviseurs, dimensionnement, modes réseau, installation Debian, prérequis Windows 11 et configuration serveur.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 06</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Virtualisation et installation — l'essentiel</h1>
+  <p class="chapeau">Une page à imprimer (⌘P). Les valeurs, les modes, les pièges.</p>
+</header>
+
+<section class="section-revision" id="virtu-rev">
+  <h2><span class="num">01</span>Virtualisation</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les deux types d'hyperviseurs</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>Type 1</th><th>Type 2</th></tr></thead>
+        <tbody>
+          <tr><td>Nom</td><td><em>bare metal</em></td><td><em>hébergé</em></td></tr>
+          <tr><td>Position</td><td>Sur le <strong>matériel</strong></td><td>Sur un <strong>système hôte</strong></td></tr>
+          <tr><td>Exemples</td><td>Proxmox, ESXi, Hyper-V</td><td><strong>VirtualBox</strong>, VMware Workstation</td></tr>
+          <tr><td>Usage</td><td>Production</td><td>Poste de travail, TP</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo">
+      <h3>Vocabulaire</h3>
+      <ul>
+        <li><strong>Hôte</strong> — la machine physique</li>
+        <li><strong>VM</strong> — l'ordinateur simulé ; son disque est un fichier</li>
+        <li><strong>ISO</strong> — le support d'installation</li>
+        <li><strong>Snapshot</strong> — photo de l'état, retour en arrière instantané</li>
+      </ul>
+      <p style="margin:.4rem 0 0;font-size:13px">Prendre le snapshot <strong>après installation
+        propre + mises à jour</strong>, avant de configurer les services.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 3 modes réseau VirtualBox</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Mode</th><th>Sort ?</th><th>Joignable ?</th><th>Quand</th></tr></thead>
+        <tbody>
+          <tr><td><strong>NAT</strong></td><td class="rep-ok">Oui</td><td class="rep-non">Non</td>
+              <td>Simple accès Internet (défaut)</td></tr>
+          <tr><td><strong>Pont</strong></td><td class="rep-ok">Oui</td><td class="rep-ok">Oui</td>
+              <td>Serveur à joindre depuis le réseau</td></tr>
+          <tr><td><strong>Privé hôte</strong></td><td class="rep-non">Non</td><td class="rep-ok">Oui</td>
+              <td>Maquette isolée, <strong>test DHCP</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ Un <strong>DHCP en mode pont</strong> déconnecte
+        toute la salle. Toujours en réseau isolé.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Dimensionner</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>VM</th><th>RAM</th><th>vCPU</th><th>Disque</th></tr></thead>
+        <tbody>
+          <tr><td>Debian console</td><td>1 Go</td><td>1</td><td>10 Go</td></tr>
+          <tr><td><strong>Windows 11</strong></td><td><strong>4 Go</strong></td><td><strong>2</strong></td><td><strong>64 Go</strong></td></tr>
+          <tr><td>Windows Server</td><td>4 Go</td><td>2</td><td>60 Go</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Toujours laisser <strong>≥ 4 Go à l'hôte</strong>.
+        Disque <strong>dynamique</strong> en TP.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="install-rev">
+  <h2><span class="num">02</span>Installations</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Debian 12 « Bookworm » — les 6 choix</h3>
+      <ol>
+        <li><strong><code>Install</code></strong>, pas <em>Graphical install</em></li>
+        <li>Nom de domaine : <strong>vide</strong></li>
+        <li>Partitionnement <strong>assisté, disque entier</strong></li>
+        <li><strong>Tout dans une seule partition</strong></li>
+        <li>⚠️ <strong>DÉCOCHER « Environnement de bureau » et « GNOME »</strong> — cochés par
+            défaut</li>
+        <li>GRUB <strong>sur le disque principal</strong></li>
+      </ol>
+      <p style="margin:.4rem 0 0;font-size:13px">Pas de GUI sur un serveur :
+        <strong>ressources</strong>, <strong>sécurité</strong>, <strong>administration à
+        distance</strong>.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Windows 11 — les prérequis</h3>
+      <div class="formule" style="font-size:13px">64 bits · <strong>2 cœurs</strong> · <strong>4 Go</strong> · <strong>64 Go</strong> · <strong>UEFI</strong> · TPM 2.0</div>
+      <p style="margin:0;font-size:13.5px">Dans VirtualBox :</p>
+      <ul>
+        <li>Système → Carte mère → <strong>Activer UEFI</strong></li>
+        <li>Système → Carte mère → <strong>TPM v2.0</strong></li>
+        <li>Système → Processeur → <strong>2 vCPU</strong></li>
+        <li>Décocher <em>Proceed with Unattended Installation</em></li>
+      </ul>
+      <p style="margin:.35rem 0 0;font-size:13px">⚠️ <strong>Avant le premier démarrage</strong> —
+        après, il faut tout recommencer.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Partitionnement en production</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><code>/home</code></td><td>Réinstaller sans perdre les données</td></tr>
+          <tr><td><code>/var</code></td><td>Un journal qui s'emballe ne bloque pas le système</td></tr>
+          <tr><td><code>/tmp</code></td><td>Personne ne peut saturer le système</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">On sépare ce qui <strong>grossit sans
+        prévenir</strong> de ce qui doit <strong>rester fonctionnel</strong>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="srv-rev">
+  <h2><span class="num">03</span>Windows Server et diagnostic</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>SRVTECH — les 4 réglages</h3>
+<div class="bloc-code"><pre><code>a) IP STATIQUE
+   192.168.100.10 / 255.255.255.0
+   passerelle 192.168.100.1
+   DNS 127.0.0.1  ← car IL EST le serveur DNS
+
+b) Nom : SRVTECH
+c) Pare-feu désactivé  ← TP SEULEMENT
+d) Mot de passe administrateur</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>Serveur = IP statique</strong> : adresse
+        stable et prévisible.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Diagnostic — les 4 symptômes</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Symptôme</th><th>Cause</th></tr></thead>
+        <tbody>
+          <tr><td>Passerelle OK, nom KO<br><em>« hôte inconnu »</em></td><td><strong>DNS</strong></td></tr>
+          <tr><td>VM sort, mais on ne la joint pas</td><td>Mode <strong>NAT</strong></td></tr>
+          <tr><td><code>No bootable device</code></td><td><strong>GRUB</strong> ou ISO resté monté</td></tr>
+          <tr><td>VM et hôte rament</td><td><strong>Sur-allocation</strong> RAM</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="formule" style="font-size:12.5px">ping 8.8.8.8 OK + ping nom KO<br>= c'est TOUJOURS le DNS</div>
+    </div>
+
+    <div class="memo">
+      <h3>Après toute installation</h3>
+      <ol>
+        <li><strong>Adressage</strong> — statique serveur, DHCP poste</li>
+        <li><strong>Nom</strong> de machine explicite</li>
+        <li><strong>Mises à jour</strong></li>
+        <li><strong>Accès distant</strong> — SSH ou RDP</li>
+        <li><strong>Snapshot</strong></li>
+      </ol>
+<div class="bloc-code"><pre><code>sudo apt update &amp;&amp; sudo apt upgrade
+sudo apt install openssh-server
+hostnamectl set-hostname srv-debian</code></pre></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Windows 11 : UEFI + 2 vCPU</strong>, réglés <em>avant</em> le premier
+          démarrage.</li>
+      <li><strong>Debian : décocher GNOME.</strong> Un serveur n'a pas besoin d'écran.</li>
+      <li><strong>NAT sort mais ne reçoit pas.</strong> Pour joindre une VM : mode pont.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-TP-Installation_Debian12.pdf</li>
+      <li>4-TP-Installer Windows 11 avec VirtualBox.pdf</li>
+      <li>6-1-Installation_WinServer.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

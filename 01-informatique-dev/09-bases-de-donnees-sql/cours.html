@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bases de données & SQL | BTS CIEL</title>
+<meta name="description" content="Cours complet : SGBD, modèle relationnel, clés primaires et étrangères, MCD/MLD, CREATE, INSERT/UPDATE/DELETE, SELECT, jointures, agrégats, PDO et injections SQL.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#sgbd">1 · Base de données et SGBD</a></li>
+    <li><a href="#relationnel">2 · Le modèle relationnel</a></li>
+    <li><a href="#relations">3 · Les types de relations</a></li>
+    <li><a href="#mcd-mld">4 · Du MCD au MLD</a></li>
+    <li><a href="#creer">5 · Créer la base et les tables</a></li>
+    <li><a href="#modifier">6 · Modifier la structure</a></li>
+    <li><a href="#dml">7 · INSERT, UPDATE, DELETE</a></li>
+    <li><a href="#select">8 · SELECT et filtres</a></li>
+    <li><a href="#jointures">9 · Les jointures</a></li>
+    <li><a href="#agregats">10 · Agrégats et GROUP BY</a></li>
+    <li><a href="#pdo">11 · PHP et PDO</a></li>
+    <li><a href="#injection">12 · Les injections SQL</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Bases de données &amp; SQL</h1>
+  <p class="chapeau">Stocker des données <em>reliées entre elles</em>, les interroger — et ne pas
+     laisser un visiteur les lire toutes.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une base <strong>relationnelle</strong> range les données dans des <strong>tables</strong>
+         reliées par des <strong>clés</strong> : une <strong>clé primaire</strong> identifie chaque
+         ligne, une <strong>clé étrangère</strong> pointe vers une autre table. Le langage
+         <strong>SQL</strong> crée (<code>CREATE</code>), modifie (<code>INSERT</code>,
+         <code>UPDATE</code>, <code>DELETE</code>) et interroge (<code>SELECT</code>). Depuis PHP on
+         s'y connecte en <strong>PDO</strong> — et l'on utilise des <strong>requêtes
+         préparées</strong>, sous peine d'injection SQL.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#SGBD</code> <code>#MariaDB</code> <code>#table</code> <code>#PRIMARY-KEY</code>
+    <code>#FOREIGN-KEY</code> <code>#MCD</code> <code>#MLD</code> <code>#CREATE-TABLE</code>
+    <code>#SELECT</code> <code>#WHERE</code> <code>#JOIN</code> <code>#GROUP-BY</code>
+    <code>#PDO</code> <code>#prepare</code> <code>#injection-SQL</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="sgbd">
+  <h2><span class="num">01</span>Base de données et SGBD</h2>
+
+  <p>Une <strong>base de données</strong> stocke des informations de manière <strong>organisée</strong>,
+     pour les retrouver, les modifier et les exploiter facilement. Un CFA y stockera ses élèves,
+     ses professeurs, ses notes.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Exemples</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Relationnelle</strong></td><td>MariaDB, MySQL, PostgreSQL</td>
+          <td>données structurées, en tables reliées</td></tr>
+      <tr><td><strong>NoSQL</strong></td><td>MongoDB, Redis</td>
+          <td>données non structurées, gros volumes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Le <strong>SGBD</strong> (Système de Gestion de Base de Données) est le logiciel qui gère tout
+     cela : création des tables, manipulation des données, gestion des droits, et
+     <strong>intégrité référentielle</strong> — la garantie que les relations entre tables restent
+     cohérentes.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 170" role="img" aria-label="Architecture client-serveur d'une base de données">
+      <style>
+        .bc{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .bs{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .bt3{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .bd3{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .bq{font:600 10px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .ba{stroke:var(--accent);stroke-width:1.8;fill:none;marker-end:url(#bb)}
+      </style>
+      <defs><marker id="bb" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+      <rect class="bc" x="16" y="42" width="170" height="82" rx="9"/>
+      <text class="bt3" x="101" y="68">CLIENT</text>
+      <text class="bd3" x="101" y="88">phpMyAdmin, PHP</text>
+      <text class="bd3" x="101" y="106">ou un terminal SQL</text>
+
+      <rect class="bs" x="414" y="42" width="170" height="82" rx="9"/>
+      <text class="bt3" x="499" y="68">SERVEUR MariaDB</text>
+      <text class="bd3" x="499" y="88">analyse, exécute,</text>
+      <text class="bd3" x="499" y="106">renvoie le résultat</text>
+
+      <path class="ba" d="M190,72 H410"/>
+      <text class="bq" x="300" y="64">SELECT * FROM etudiants;</text>
+      <path class="ba" d="M410,102 H190"/>
+      <text class="bd3" x="300" y="120">← les lignes trouvées</text>
+    </svg>
+    <figcaption>Le client envoie une requête, le serveur la traite et renvoie le résultat. C'est la
+      même logique client/serveur qu'en <a href="../05-php/cours.html">PHP</a>.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="relationnel">
+  <h2><span class="num">02</span>Le modèle relationnel</h2>
+
+  <p>Les données sont organisées en <strong>tables</strong> : des <strong>lignes</strong>
+     (enregistrements) et des <strong>colonnes</strong> (attributs).</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Terme</th><th>Définition</th><th>Dans le projet Présences</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Entité</strong></td><td>un objet du monde réel que l'on veut stocker</td>
+          <td>un étudiant, un administrateur</td></tr>
+      <tr><td><strong>Attribut</strong></td><td>une caractéristique de l'entité</td>
+          <td><code>nom</code>, <code>prenom</code>, <code>classe</code></td></tr>
+      <tr><td><strong>Association</strong></td><td>un lien entre deux entités</td>
+          <td>un étudiant <em>a</em> des présences</td></tr>
+      <tr><td><strong>Clé primaire</strong> (PK)</td><td>identifie <strong>chaque ligne de façon
+          unique</strong></td><td><code>id</code></td></tr>
+      <tr><td><strong>Clé étrangère</strong> (FK)</td><td>pointe vers la clé primaire d'une
+          <strong>autre</strong> table</td><td><code>id_etudiant</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Le classeur et les intercalaires</div>
+    <p>Une <strong>table</strong>, c'est un tableau de type Excel : une ligne par étudiant, une
+       colonne par information. La différence décisive avec Excel, c'est la
+       <strong>clé étrangère</strong> : au lieu de recopier « Dupont Alice BTS1 » dans chaque ligne
+       de présence, on écrit juste son <strong>numéro</strong>.</p>
+    <p>Résultat : si Alice change de classe, on modifie <strong>une seule ligne</strong>. Sans clé,
+       il faudrait corriger les 200 lignes de présence — et en oublier une suffirait à rendre la
+       base incohérente.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Reconnaître une clé primaire</div>
+    <p>Trois propriétés, toujours : <strong>unique</strong> (deux lignes ne peuvent pas partager la
+       même), <strong>non nulle</strong>, et <strong>stable</strong> (elle ne change jamais).</p>
+    <p>C'est pourquoi on utilise presque toujours un <code>id INT AUTO_INCREMENT</code> plutôt que le
+       nom ou l'email : deux étudiants peuvent être homonymes, et un email peut changer.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="relations">
+  <h2><span class="num">03</span>Les types de relations</h2>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 230" role="img" aria-label="Les trois types de relations entre tables">
+      <style>
+        .rt{fill:var(--carte);stroke:var(--accent);stroke-width:1.4}
+        .rn{font:600 11px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .rl{stroke:var(--accent);stroke-width:1.6;fill:none}
+        .rc{font:700 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .rd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <!-- 1-1 -->
+      <text class="rc" x="100" y="16">1 — 1</text>
+      <rect class="rt" x="16" y="26" width="80" height="28" rx="5"/><text class="rn" x="56" y="45">Utilisateur</text>
+      <rect class="rt" x="104" y="26" width="80" height="28" rx="5"/><text class="rn" x="144" y="45">Compte</text>
+      <path class="rl" d="M96,40 H104"/>
+      <text class="rd" x="100" y="72">un pour un</text>
+
+      <!-- 1-N -->
+      <text class="rc" x="300" y="16">1 — N</text>
+      <rect class="rt" x="256" y="26" width="70" height="28" rx="5"/><text class="rn" x="291" y="45">Client</text>
+      <rect class="rt" x="350" y="12" width="80" height="24" rx="5"/><text class="rn" x="390" y="28">Commande</text>
+      <rect class="rt" x="350" y="42" width="80" height="24" rx="5"/><text class="rn" x="390" y="58">Commande</text>
+      <path class="rl" d="M326,40 H340 V24 H350"/>
+      <path class="rl" d="M326,40 H340 V54 H350"/>
+      <text class="rd" x="330" y="80">un client, plusieurs commandes</text>
+
+      <!-- N-N -->
+      <text class="rc" x="300" y="116">N — N</text>
+      <rect class="rt" x="140" y="128" width="80" height="28" rx="5"/><text class="rn" x="180" y="147">Etudiant</text>
+      <rect class="rt" x="264" y="128" width="90" height="28" rx="5" style="fill:var(--accent-pale)"/>
+      <text class="rn" x="309" y="147">Inscription</text>
+      <rect class="rt" x="398" y="128" width="80" height="28" rx="5"/><text class="rn" x="438" y="147">Cours</text>
+      <path class="rl" d="M220,142 H264"/><path class="rl" d="M354,142 H398"/>
+      <text class="rd" x="309" y="176">il FAUT une table intermédiaire</text>
+      <text class="rd" x="309" y="194">qui porte les deux clés étrangères</text>
+    </svg>
+    <figcaption>Le cas N–N ne peut pas se représenter avec deux tables seulement.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Relation</th><th>Exemple</th><th>Traduction en tables</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 — 1</strong></td><td>un utilisateur a un compte bancaire</td>
+          <td>une clé étrangère dans l'une des deux tables</td></tr>
+      <tr><td><strong>1 — N</strong></td><td>un client passe plusieurs commandes</td>
+          <td>la clé étrangère va <strong>du côté N</strong></td></tr>
+      <tr><td><strong>N — N</strong></td><td>des étudiants suivent des cours</td>
+          <td><strong>table intermédiaire</strong> avec les deux clés étrangères</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La clé étrangère va toujours du côté « N »</div>
+    <p>Dans « un client, plusieurs commandes », c'est la table <strong>commandes</strong> qui porte
+       <code>id_client</code> — jamais l'inverse. Mettre <code>id_commande</code> dans
+       <code>clients</code> forcerait à créer une ligne client par commande.</p>
+    <p>Le repère : <em>quelle ligne a besoin de pointer vers une seule autre ?</em> Une commande
+       appartient à <strong>un</strong> client ; un client a <strong>plusieurs</strong> commandes.
+       La flèche part donc de la commande.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="mcd-mld">
+  <h2><span class="num">04</span>Du MCD au MLD</h2>
+
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><strong>MCD</strong><br>Modèle Conceptuel de Données</td>
+          <td>la vue « métier » : les entités, leurs attributs, leurs associations. Indépendant de
+              tout SGBD</td></tr>
+      <tr><td><strong>MLD</strong><br>Modèle Logique de Données</td>
+          <td>la traduction en <strong>tables</strong>, prête à devenir du SQL</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les cinq règles de passage</h3>
+  <ol>
+    <li>chaque <strong>entité</strong> devient une <strong>table</strong> ;</li>
+    <li>chaque <strong>attribut</strong> devient une <strong>colonne</strong> ;</li>
+    <li>on définit la <strong>clé primaire</strong> de chaque table ;</li>
+    <li>on traduit les <strong>relations</strong> :
+        <strong>1–N</strong> → une clé étrangère du côté N ·
+        <strong>N–N</strong> → une <strong>table intermédiaire</strong> portant les deux clés ;</li>
+    <li>on choisit le <strong>type de données</strong> de chaque colonne.</li>
+  </ol>
+
+  <h3>Les cardinalités — ce qui décide de tout</h3>
+
+  <p>Sur un MCD, chaque branche d'une association porte deux nombres : le
+     <strong>minimum</strong> et le <strong>maximum</strong> de fois qu'une occurrence de
+     l'entité participe à l'association. Ce sont eux, et eux seuls, qui déterminent la
+     traduction en tables.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Cardinalité</th><th>Comment la lire</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>0,1</code></td><td>au plus une fois, éventuellement jamais</td>
+          <td>un employé <em>peut</em> avoir une place de parking</td></tr>
+      <tr><td><code>1,1</code></td><td>exactement une fois</td>
+          <td>un PC appartient à <strong>un seul</strong> utilisateur</td></tr>
+      <tr><td><code>0,N</code></td><td>autant de fois que l'on veut, zéro compris</td>
+          <td>un logiciel peut n'être installé nulle part</td></tr>
+      <tr><td><code>1,N</code></td><td>au moins une fois, sans maximum</td>
+          <td>un utilisateur possède <strong>au moins un</strong> PC</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Se lire à voix haute, dans les deux sens</div>
+    <p>Une association se lit <strong>deux fois</strong>, une fois par côté, et la cardinalité
+       se lit sur le côté <em>opposé</em> à l'entité dont on parle :</p>
+    <div class="formule">USER —(1,N)— <strong>Posséder</strong> —(1,1)— PC</div>
+    <ul>
+      <li>« un <strong>utilisateur</strong> possède <strong>1 à N</strong> PC » ;</li>
+      <li>« un <strong>PC</strong> est possédé par <strong>exactement un</strong>
+          utilisateur ».</li>
+    </ul>
+    <p class="rap">Si une des deux phrases sonne faux, la cardinalité est mal placée. C'est le
+       seul contrôle qui existe — et il suffit.</p>
+  </div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Les deux maximums</th><th>Type</th><th>Traduction en tables</th></tr></thead>
+    <tbody>
+      <tr><td><code>1</code> et <code>N</code></td><td><strong>1–N</strong></td>
+          <td><strong>une clé étrangère</strong>, placée dans la table du côté
+              <code>1,1</code></td></tr>
+      <tr><td><code>N</code> et <code>N</code></td><td><strong>N–N</strong></td>
+          <td><strong>une table intermédiaire</strong> portant les deux clés — et les
+              éventuels attributs de l'association</td></tr>
+      <tr><td><code>1</code> et <code>1</code></td><td><strong>1–1</strong></td>
+          <td>rare : soit on fusionne les deux entités, soit une clé étrangère
+              <strong>unique</strong> d'un côté</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La clé étrangère va du côté <code>1,1</code>, pas du côté <code>1,N</code></div>
+    <p>C'est l'erreur de MLD la plus fréquente, et elle se raisonne en une phrase :
+       <strong>une colonne ne contient qu'une seule valeur</strong>.</p>
+    <p>Un PC n'a qu'un propriétaire → <code>PC</code> peut porter une colonne
+       <code>#id_user</code>. Un utilisateur a plusieurs PC → mettre
+       <code>#id_pc</code> dans <code>USER</code> obligerait à y ranger plusieurs valeurs.
+       Impossible.</p>
+    <p class="rap">Formule à retenir : <strong>la clé étrangère descend du côté qui ne peut en
+       avoir qu'un.</strong></p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'exemple du tableau — USER, PC, Logiciel</div>
+<div class="bloc-code"><span class="langue">MCD</span><pre><code>USER —(1,N)— Posséder —(1,1)— PC
+PC   —(1,N)— Installer —(1,N)— LOGICIEL</code></pre></div>
+    <p>Première association, <strong>1–N</strong> : la clé étrangère part dans
+       <code>PC</code>. Seconde association, <strong>N–N</strong> — un PC porte plusieurs
+       logiciels, un logiciel est installé sur plusieurs PC : il faut une
+       <strong>table intermédiaire</strong>.</p>
+<div class="bloc-code"><span class="langue">MLD</span><pre><code>users      (id_user, nom, email, tel)
+pc         (id_pc, sn, marque, garantie, #id_user)
+logiciels  (id_app, nom, version, licence)
+installer  (#id_pc, #id_app, date_installation)
+            └────── clé primaire composée des deux clés étrangères</code></pre></div>
+    <p class="rap">C'est ici que la table intermédiaire prend tout son sens : elle peut porter
+       ses <strong>propres attributs</strong> — la date d'installation n'appartient ni au PC ni
+       au logiciel, mais bien au couple des deux.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le MLD du projet « Gestion des présences »</div>
+    <p>Trois entités, une relation 1–N (un étudiant a plusieurs présences) :</p>
+<div class="bloc-code"><span class="langue">MLD</span><pre><code>administrateurs (id, login, mot_de_passe)
+etudiants       (id, nom, prenom, classe)
+presences       (id, #id_etudiant, date_presence, statut)
+                     ↑
+                 le # note la clé étrangère → etudiants(id)</code></pre></div>
+    <p>Le soulignement marque la clé primaire, le <code>#</code> la clé étrangère. C'est la
+       notation attendue sur une copie.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="creer">
+  <h2><span class="num">05</span>Créer la base et les tables</h2>
+
+<div class="bloc-code"><span class="langue">sql</span><pre><code>CREATE DATABASE IF NOT EXISTS gestion_presence;
+USE gestion_presence;
+
+CREATE TABLE etudiants (
+    id     INT AUTO_INCREMENT PRIMARY KEY,
+    nom    VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    classe VARCHAR(50) NOT NULL
+);</code></pre></div>
+
+  <h3>Les types de données</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Pour</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>INT</code></td><td>un nombre entier</td><td>un identifiant, une quantité</td></tr>
+      <tr><td><code>VARCHAR(n)</code></td><td>du texte court, longueur variable</td>
+          <td><code>VARCHAR(50)</code> pour un nom</td></tr>
+      <tr><td><code>TEXT</code></td><td>du texte long</td><td>un commentaire</td></tr>
+      <tr><td><code>DATE</code></td><td>une date</td><td><code>2026-09-13</code></td></tr>
+      <tr><td><code>DATETIME</code></td><td>date et heure</td><td>un horodatage</td></tr>
+      <tr><td><code>DECIMAL(p,s)</code></td><td>un nombre décimal exact</td><td>un prix</td></tr>
+      <tr><td><code>BOOLEAN</code></td><td>vrai / faux</td><td>actif ou non</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les contraintes</h3>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>PRIMARY KEY</code></td><td>identifie la ligne — unique et non nulle</td></tr>
+      <tr><td><code>AUTO_INCREMENT</code></td><td>le SGBD numérote tout seul</td></tr>
+      <tr><td><code>NOT NULL</code></td><td>la colonne doit être renseignée</td></tr>
+      <tr><td><code>UNIQUE</code></td><td>pas deux fois la même valeur</td></tr>
+      <tr><td><code>DEFAULT</code></td><td>valeur par défaut si rien n'est fourni</td></tr>
+      <tr><td><code>FOREIGN KEY … REFERENCES</code></td><td>lie à une autre table</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">sql — la clé étrangère</span><pre><code>CREATE TABLE presences (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    id_etudiant   INT NOT NULL,
+    date_presence DATE NOT NULL,
+    statut        VARCHAR(20) NOT NULL,
+    FOREIGN KEY (id_etudiant) REFERENCES etudiants(id)
+);</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que la clé étrangère vous garantit</div>
+    <p>C'est <strong>l'intégrité référentielle</strong>. Une fois la contrainte posée, le SGBD
+       <strong>refuse</strong> :</p>
+    <ul>
+      <li>d'insérer une présence pour un <code>id_etudiant</code> qui n'existe pas ;</li>
+      <li>de supprimer un étudiant qui a encore des présences enregistrées.</li>
+    </ul>
+    <p>Ce n'est pas une gêne, c'est une protection : sans elle, la base accumulerait des présences
+       « orphelines », rattachées à personne.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>VARCHAR(50)</code> : 50 caractères, pas 50 octets de disque</div>
+    <p><code>VARCHAR</code> stocke une longueur <em>variable</em> : « Ali » n'occupe pas 50
+       caractères. Le nombre est un <strong>maximum</strong>, pas une réservation.</p>
+    <p>Le piège est ailleurs : un nom de 60 caractères sera <strong>tronqué</strong> (ou rejeté).
+       Prévoyez large sur les noms et les emails — <code>VARCHAR(100)</code> ne coûte rien de plus
+       si les valeurs sont courtes.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="modifier">
+  <h2><span class="num">06</span>Modifier la structure</h2>
+
+<div class="bloc-code"><span class="langue">sql</span><pre><code>ALTER TABLE etudiants ADD telephone VARCHAR(15);          -- ajouter une colonne
+ALTER TABLE etudiants MODIFY nom VARCHAR(100);            -- changer un type
+ALTER TABLE etudiants DROP COLUMN telephone;              -- supprimer une colonne
+ALTER TABLE etudiants RENAME TO eleves;                   -- renommer la table
+
+DROP TABLE presences;              -- supprimer la table ET ses données
+DROP DATABASE gestion_presence;    -- tout supprimer</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>DROP</code> ne demande aucune confirmation</div>
+    <p><code>DROP TABLE</code> supprime la structure <strong>et toutes les données</strong>,
+       instantanément et sans retour possible. Il n'y a ni corbeille, ni « êtes-vous sûr ? ».</p>
+    <div class="formule">Avant tout <code>DROP</code> : une <strong>sauvegarde</strong>
+      (export phpMyAdmin).</div>
+    <p>À ne pas confondre : <code>DROP TABLE</code> supprime la table ;
+       <code>DELETE FROM table</code> vide son contenu mais garde la structure.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="dml">
+  <h2><span class="num">07</span>INSERT, UPDATE, DELETE</h2>
+
+<div class="bloc-code"><span class="langue">sql — ajouter</span><pre><code>INSERT INTO etudiants (nom, prenom, classe)
+VALUES ('Dupont', 'Alice', 'BTS CIEL 1');
+
+-- plusieurs lignes d'un coup
+INSERT INTO etudiants (nom, prenom, classe) VALUES
+    ('Martin', 'Bob', 'BTS CIEL 1'),
+    ('Durand', 'Chloe', 'BTS CIEL 2');</code></pre></div>
+
+<div class="bloc-code"><span class="langue">sql — modifier</span><pre><code>UPDATE etudiants
+SET classe = 'BTS CIEL 2'
+WHERE id = 1;</code></pre></div>
+
+<div class="bloc-code"><span class="langue">sql — supprimer</span><pre><code>DELETE FROM etudiants
+WHERE id = 1;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le <code>WHERE</code> oublié — la catastrophe classique</div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code>UPDATE etudiants SET classe = 'BTS CIEL 2';    -- ✘ TOUS les étudiants changent de classe
+DELETE FROM etudiants;                          -- ✘ la table est VIDÉE</code></pre></div>
+    <p>SQL exécute sans broncher : il n'y a ni avertissement ni annulation. C'est l'accident le plus
+       fréquent en base de données, et il se produit en une seconde.</p>
+    <p><strong>Le réflexe qui sauve :</strong> écrire d'abord la requête en
+       <code>SELECT</code> pour voir ce qu'elle touche, puis remplacer par
+       <code>UPDATE</code> ou <code>DELETE</code> une fois le résultat vérifié.</p>
+<div class="bloc-code"><span class="langue">sql — la bonne méthode</span><pre><code>SELECT * FROM etudiants WHERE id = 1;      -- 1. je vérifie : une seule ligne ?
+DELETE  FROM etudiants WHERE id = 1;       -- 2. alors je supprime</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="select">
+  <h2><span class="num">08</span>SELECT et filtres</h2>
+
+<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT * FROM etudiants;                      -- toutes les colonnes
+SELECT nom, prenom FROM etudiants;            -- seulement certaines
+
+SELECT * FROM etudiants
+WHERE classe = 'BTS CIEL 1';                  -- filtrer
+
+SELECT * FROM presences
+WHERE date_presence &gt; '2026-01-01';
+
+SELECT * FROM etudiants
+ORDER BY nom ASC;                             -- trier (DESC pour l'inverse)
+
+SELECT * FROM etudiants
+LIMIT 10;                                     -- les 10 premiers</code></pre></div>
+
+  <h3>Les opérateurs du <code>WHERE</code></h3>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>=</code> <code>&lt;&gt;</code> <code>&gt;</code> <code>&lt;</code>
+          <code>&gt;=</code> <code>&lt;=</code></td><td>comparaisons</td></tr>
+      <tr><td><code>AND</code> · <code>OR</code> · <code>NOT</code></td><td>combinaisons</td></tr>
+      <tr><td><code>LIKE '%dup%'</code></td><td>contient — <code>%</code> remplace n'importe quoi</td></tr>
+      <tr><td><code>IN ('BTS1', 'BTS2')</code></td><td>fait partie de la liste</td></tr>
+      <tr><td><code>BETWEEN 1 AND 10</code></td><td>dans l'intervalle, bornes comprises</td></tr>
+      <tr><td><code>IS NULL</code> · <code>IS NOT NULL</code></td><td>valeur absente ou non</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>= NULL</code> ne fonctionne jamais</div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT * FROM etudiants WHERE classe = NULL;      -- ✘ renvoie TOUJOURS 0 ligne
+SELECT * FROM etudiants WHERE classe IS NULL;     -- ✔</code></pre></div>
+    <p><code>NULL</code> signifie « valeur inconnue ». Comparer deux inconnues ne donne ni vrai ni
+       faux, mais… inconnu — donc jamais « vrai ». D'où <code>IS NULL</code>, un opérateur à part.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le <code>LIKE</code> de la barre de recherche</div>
+    <p>Le projet demande de rechercher un étudiant par nom, prénom ou classe :</p>
+<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT * FROM etudiants
+WHERE nom    LIKE '%dup%'
+   OR prenom LIKE '%dup%'
+   OR classe LIKE '%dup%';</code></pre></div>
+    <p><code>'%dup%'</code> = « contient dup » · <code>'dup%'</code> = « commence par » ·
+       <code>'%dup'</code> = « finit par ».</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="jointures">
+  <h2><span class="num">09</span>Les jointures</h2>
+
+  <p>Une <strong>jointure</strong> rassemble les données de plusieurs tables en suivant les clés.
+     C'est ce qui rend le modèle relationnel utile.</p>
+
+<div class="bloc-code"><span class="langue">sql — le problème</span><pre><code>SELECT * FROM presences;
+
+-- id | id_etudiant | date_presence | statut
+--  1 |      3      |  2026-09-13   | present
+-- ↑ « 3 », d'accord… mais QUI est 3 ?</code></pre></div>
+
+<div class="bloc-code"><span class="langue">sql — la jointure</span><pre><code>SELECT etudiants.nom, etudiants.prenom, presences.date_presence, presences.statut
+FROM presences
+INNER JOIN etudiants ON presences.id_etudiant = etudiants.id;
+
+-- nom    | prenom | date_presence | statut
+-- Dupont | Alice  |  2026-09-13   | present</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Jointure</th><th>Renvoie</th></tr></thead>
+    <tbody>
+      <tr><td><code>INNER JOIN</code></td><td>uniquement les lignes présentes dans
+          <strong>les deux</strong> tables</td></tr>
+      <tr><td><code>LEFT JOIN</code></td><td><strong>toutes</strong> celles de la table de gauche,
+          + celles de droite quand elles existent (sinon <code>NULL</code>)</td></tr>
+      <tr><td><code>RIGHT JOIN</code></td><td>l'inverse : toutes celles de droite</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>INNER</code> ou <code>LEFT</code> : la question à se poser</div>
+    <p><em>« Veux-je voir aussi ceux qui n'ont rien ? »</em></p>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>« La liste des présences avec le nom de l'étudiant »</td>
+            <td><code>INNER JOIN</code> — une présence a forcément un étudiant</td></tr>
+        <tr><td>« Tous les étudiants, avec leur nombre d'absences »</td>
+            <td><code>LEFT JOIN</code> — sinon les étudiants <strong>jamais absents</strong>
+                disparaîtraient du tableau</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>C'est l'erreur d'analyse la plus fréquente : un <code>INNER JOIN</code> fait
+       <strong>disparaître silencieusement</strong> les lignes sans correspondance. Le rapport
+       paraît correct… mais il est incomplet.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Préfixez les colonnes ambiguës</div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT id FROM presences INNER JOIN etudiants ON …
+-- ✘ Error: Column 'id' in field list is ambiguous
+
+SELECT presences.id FROM …      -- ✔ on précise la table</code></pre></div>
+    <p>Les deux tables ont une colonne <code>id</code> : il faut dire laquelle. On peut aussi
+       raccourcir avec des alias : <code>FROM presences p INNER JOIN etudiants e ON
+       p.id_etudiant = e.id</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 10 -->
+<section id="agregats">
+  <h2><span class="num">10</span>Agrégats et GROUP BY</h2>
+
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>COUNT()</code></td><td>compter les lignes</td></tr>
+      <tr><td><code>SUM()</code></td><td>additionner</td></tr>
+      <tr><td><code>AVG()</code></td><td>moyenne</td></tr>
+      <tr><td><code>MIN()</code> · <code>MAX()</code></td><td>plus petit · plus grand</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">sql — le tableau de bord du projet</span><pre><code>SELECT COUNT(*) FROM etudiants;                                -- nb d'étudiants
+SELECT COUNT(*) FROM presences WHERE statut = 'present';       -- nb de présences
+SELECT COUNT(*) FROM presences WHERE statut = 'absent';        -- nb d'absences</code></pre></div>
+
+<div class="bloc-code"><span class="langue">sql — GROUP BY</span><pre><code>-- combien d'étudiants par classe ?
+SELECT classe, COUNT(*) AS nombre
+FROM etudiants
+GROUP BY classe;
+
+-- classe        | nombre
+-- BTS CIEL 1    |   18
+-- BTS CIEL 2    |   15
+
+-- seulement les classes de plus de 16 étudiants
+SELECT classe, COUNT(*) AS nombre
+FROM etudiants
+GROUP BY classe
+HAVING COUNT(*) &gt; 16;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>WHERE</code> avant, <code>HAVING</code> après</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>WHERE</code></td><td>filtre les <strong>lignes</strong>, <em>avant</em> le
+            regroupement</td></tr>
+        <tr><td><code>HAVING</code></td><td>filtre les <strong>groupes</strong>, <em>après</em></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>On ne peut pas écrire <code>WHERE COUNT(*) &gt; 16</code> : au moment du <code>WHERE</code>,
+       les groupes n'existent pas encore, donc le compte non plus.</p>
+    <div class="formule">FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY</div>
+    <p>Cet ordre d'exécution explique tout le reste — y compris pourquoi un alias défini dans le
+       <code>SELECT</code> n'est pas utilisable dans le <code>WHERE</code>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>COUNT(*)</code> ou <code>COUNT(colonne)</code> ?</div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code>COUNT(*)          -- compte TOUTES les lignes
+COUNT(telephone)  -- compte celles où telephone n'est PAS NULL</code></pre></div>
+    <p>La différence n'apparaît que s'il y a des <code>NULL</code> — mais alors elle est
+       importante. Pour « combien d'étudiants ? », c'est <code>COUNT(*)</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 11 -->
+<section id="pdo">
+  <h2><span class="num">11</span>PHP et PDO</h2>
+
+  <p><strong>PDO</strong> (<em>PHP Data Objects</em>) est l'interface standard de PHP pour parler à
+     une base. On écrit la connexion <strong>une seule fois</strong>, dans un fichier réutilisé
+     partout.</p>
+
+<div class="bloc-code"><span class="langue">php — db.php</span><pre><code>&lt;?php
+$hote = "localhost";
+$base = "gestion_presence";
+$user = "root";
+$mdp  = "root";
+
+try {
+    $pdo = new PDO(
+        "mysql:host=$hote;dbname=$base;charset=utf8mb4",
+        $user,
+        $mdp
+    );
+    $pdo-&gt;setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connexion échouée : " . $e-&gt;getMessage());
+}
+?&gt;</code></pre></div>
+
+<div class="bloc-code"><span class="langue">php — lire des données</span><pre><code>&lt;?php
+require 'db.php';
+
+$resultat = $pdo-&gt;query("SELECT * FROM etudiants");
+
+while ($ligne = $resultat-&gt;fetch()) {
+    echo $ligne['nom'] . " " . $ligne['prenom'] . "&lt;br&gt;";
+}
+?&gt;</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux réglages qui changent tout</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>charset=utf8mb4</code></td><td>sans lui, les accents et les emoji
+            s'abîment</td></tr>
+        <tr><td><code>ERRMODE_EXCEPTION</code></td><td>PDO <strong>lève une exception</strong> en cas
+            d'erreur SQL, au lieu d'échouer en silence</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Sans le second, une requête fautive renvoie simplement <code>false</code> — et le programme
+       continue comme si de rien n'était, jusqu'à planter beaucoup plus loin, sur une cause
+       introuvable.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Gardez le même nom de variable partout</div>
+    <p>Si <code>db.php</code> crée <code>$pdo</code> mais que les pages écrivent
+       <code>$connexion-&gt;query(…)</code>, le résultat est immédiat :</p>
+<div class="bloc-code"><span class="langue">erreur</span><pre><code>Fatal error: Uncaught Error: Call to a member function query() on null</code></pre></div>
+    <p>« on null » est l'indice : la variable n'existe pas. Choisissez un nom — <code>$pdo</code> ou
+       <code>$connexion</code> — et tenez-vous-y dans tout le projet.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 12 -->
+<section id="injection">
+  <h2><span class="num">12</span>Les injections SQL</h2>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — le cours annonce le sujet mais ne donne pas la parade</div>
+    <p>Le polycopié affiche parmi ses objectifs : « <em>assurer la sécurité basique des données et
+       éviter les erreurs courantes (redondances, <strong>injections SQL</strong>)</em> ». Pourtant
+       il n'enseigne que <code>$connexion-&gt;query($sql)</code> avec des variables
+       <strong>concaténées dans la chaîne</strong> — c'est-à-dire précisément ce qui rend l'injection
+       possible. Les <strong>requêtes préparées</strong>, seule vraie parade, n'apparaissent nulle
+       part.</p>
+    <p>Cette section comble ce manque. C'est le point le plus important du chapitre.</p>
+  </div>
+
+  <h3>Le problème, sur du vrai code</h3>
+  <p>Voici l'authentification telle qu'elle est écrite dans le projet « Gestion des présences » :</p>
+
+<div class="bloc-code"><span class="langue">php — vulnérable</span><pre><code>$login = $_POST['login'];
+$mdp   = $_POST['mot_de_passe'];
+
+$sql = "SELECT * FROM administrateurs
+        WHERE login = '$login' AND mot_de_passe = '$mdp'";
+
+$resultat = $connexion-&gt;query($sql);
+if ($resultat-&gt;fetch()) {
+    $_SESSION['admin_connecte'] = true;   // connecté !
+}</code></pre></div>
+
+  <p>Maintenant, un visiteur saisit ceci dans le champ <em>identifiant</em> :</p>
+<div class="bloc-code"><span class="langue">ce qu'il tape</span><pre><code>' OR '1'='1</code></pre></div>
+
+  <p>La requête réellement envoyée à la base devient :</p>
+<div class="bloc-code"><span class="langue">sql — ce que voit MariaDB</span><pre><code>SELECT * FROM administrateurs
+WHERE login = '' OR '1'='1' AND mot_de_passe = ''
+                  └──────┘
+             toujours vrai</code></pre></div>
+
+  <p>La condition est satisfaite, une ligne est renvoyée, et <strong>l'attaquant est connecté en
+     administrateur sans mot de passe</strong>. Il n'a eu besoin d'aucun outil : un clavier a
+     suffi.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi ça marche</div>
+    <p>Le serveur SQL ne reçoit pas « une requête <em>et</em> des données » : il reçoit
+       <strong>une seule chaîne de caractères</strong> qu'il analyse entièrement comme du code. Une
+       apostrophe saisie par l'utilisateur <strong>referme</strong> la chaîne SQL, et tout ce qui
+       suit devient de la <em>logique</em>.</p>
+    <p>C'est la même famille de failles que le <strong>XSS</strong> vu en
+       <a href="../05-php/cours.html">PHP</a> : du contenu utilisateur interprété comme du code.
+       Ici la victime n'est pas le navigateur, mais la base de données.</p>
+  </div>
+
+  <h3>La parade : les requêtes préparées</h3>
+  <p>Le principe : envoyer <strong>séparément</strong> la requête et les valeurs. Le SQL est analysé
+     d'abord, les données arrivent ensuite — elles ne peuvent donc plus en modifier le sens.</p>
+
+<div class="bloc-code"><span class="langue">php — sécurisé</span><pre><code>$requete = $pdo-&gt;prepare(
+    "SELECT * FROM administrateurs WHERE login = :login"
+);
+$requete-&gt;execute([':login' =&gt; $_POST['login']]);
+$admin = $requete-&gt;fetch();
+
+if ($admin &amp;&amp; password_verify($_POST['mot_de_passe'], $admin['mot_de_passe'])) {
+    $_SESSION['admin_connecte'] = true;
+}</code></pre></div>
+
+  <p>Avec <code>' OR '1'='1</code> saisi dans le champ, la base cherche désormais un administrateur
+     dont le login est <strong>littéralement</strong> la chaîne <code>' OR '1'='1</code>. Elle n'en
+     trouve aucun. L'attaque est neutralisée.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois écritures à connaître</div>
+<div class="bloc-code"><span class="langue">php</span><pre><code>// 1. marqueurs nommés — les plus lisibles
+$req = $pdo-&gt;prepare("INSERT INTO etudiants (nom, prenom, classe)
+                      VALUES (:nom, :prenom, :classe)");
+$req-&gt;execute([
+    ':nom'    =&gt; $_POST['nom'],
+    ':prenom' =&gt; $_POST['prenom'],
+    ':classe' =&gt; $_POST['classe']
+]);
+
+// 2. marqueurs positionnels — plus courts
+$req = $pdo-&gt;prepare("DELETE FROM etudiants WHERE id = ?");
+$req-&gt;execute([$_GET['id']]);
+
+// 3. lire plusieurs lignes
+$req = $pdo-&gt;prepare("SELECT * FROM etudiants WHERE classe = :classe");
+$req-&gt;execute([':classe' =&gt; $classe]);
+$liste = $req-&gt;fetchAll();</code></pre></div>
+    <div class="formule">Dès qu'une <strong>variable</strong> entre dans une requête :
+      <code>prepare()</code> + <code>execute()</code>.<br>
+      <code>query()</code> ne sert que pour une requête <strong>entièrement fixe</strong>.</div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — <code>htmlspecialchars()</code> ne protège PAS des injections SQL</div>
+    <p>Le projet contient ce commentaire : « <em>on sécurise les entrées avec
+       <code>htmlspecialchars()</code> comme vu en cours</em> ». C'est une confusion entre deux
+       protections qui n'ont rien à voir :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Fonction</th><th>Protège de</th><th>Quand</th></tr></thead>
+      <tbody>
+        <tr><td><code>htmlspecialchars()</code></td><td><strong>XSS</strong></td>
+            <td>à l'<strong>affichage</strong> dans la page</td></tr>
+        <tr><td><code>prepare()</code> / <code>execute()</code></td><td><strong>injection
+            SQL</strong></td><td>à l'<strong>envoi</strong> vers la base</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Pire : <code>htmlspecialchars()</code> avant l'insertion <strong>abîme les données</strong>.
+       Un étudiant nommé « O'Brien » sera stocké en base sous la forme
+       <code>O&amp;#039;Brien</code> — et ressortira ainsi dans tous les exports.</p>
+    <div class="formule">On <strong>prépare</strong> pour écrire en base.<br>
+      On <strong>échappe</strong> pour afficher dans la page.</div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — un mot de passe ne se stocke jamais en clair</div>
+    <p>Le script de création de la base insère le compte administrateur ainsi :</p>
+<div class="bloc-code"><span class="langue">sql — dans bdd.sql</span><pre><code>INSERT INTO administrateurs (login, mot_de_passe)
+VALUES ('admin', 'admin');           -- ✘ en clair dans la table</code></pre></div>
+    <p>Quiconque accède à la base — ou récupère une sauvegarde — lit tous les mots de passe. Comme vu
+       au <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
+       cybersécurité</a>, on stocke une <strong>empreinte</strong> :</p>
+<div class="bloc-code"><span class="langue">php</span><pre><code>// à l'inscription : on hache
+$hash = password_hash($motDePasse, PASSWORD_DEFAULT);
+// → $2y$10$K7Lm...   (60 caractères, non réversible)
+
+// à la connexion : on vérifie
+if (password_verify($saisie, $admin['mot_de_passe'])) {
+    // mot de passe correct
+}</code></pre></div>
+    <p>C'est aussi pour cela que la colonne est déclarée <code>VARCHAR(255)</code> et non
+       <code>VARCHAR(20)</code> : une empreinte est longue. La structure de la base était déjà
+       prête — il ne manquait que le hachage.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Cette page supprime un étudiant. Quelles sont les <strong>deux</strong> failles ?</p>
+<div class="bloc-code"><span class="langue">php — supprimer_etudiant.php</span><pre><code>&lt;?php
+require 'db.php';
+$id = $_GET['id'];
+$connexion-&gt;query("DELETE FROM etudiants WHERE id = $id");
+header("Location: etudiants.php");
+?&gt;</code></pre></div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>1. Injection SQL.</strong> <code>$id</code> vient de l'URL et entre directement
+         dans la requête. Il suffit d'appeler
+         <code>supprimer_etudiant.php?id=1 OR 1=1</code> pour supprimer
+         <strong>toute la table</strong>.</p>
+      <p><strong>2. Aucun contrôle de session.</strong> La page ne vérifie pas que l'utilisateur est
+         connecté : <em>n'importe qui</em> peut appeler cette URL, sans même passer par la page de
+         connexion.</p>
+<div class="bloc-code"><span class="langue">php — corrigé</span><pre><code>&lt;?php
+session_start();
+if (!isset($_SESSION['admin_connecte'])) {    // le garde
+    header("Location: login.php");
+    exit();
+}
+
+require 'db.php';
+
+$req = $pdo-&gt;prepare("DELETE FROM etudiants WHERE id = ?");
+$req-&gt;execute([$_GET['id']]);                 // requête préparée
+
+header("Location: etudiants.php");
+exit();
+?&gt;</code></pre></div>
+      <p class="rap">Les deux protections sont indissociables : une requête préparée sur une page
+         non gardée reste une page que tout le monde peut déclencher.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Table</strong> = lignes + colonnes. <strong>PK</strong> identifie,
+          <strong>FK</strong> relie.</li>
+      <li><strong>Relations</strong> : 1–1, 1–N (la FK va <strong>du côté N</strong>), N–N
+          (<strong>table intermédiaire</strong>).</li>
+      <li><strong>MCD → MLD</strong> : entités → tables, attributs → colonnes, relations →
+          clés.</li>
+      <li><strong>Créer</strong> : <code>CREATE TABLE</code>, types (<code>INT</code>,
+          <code>VARCHAR</code>, <code>DATE</code>), contraintes (<code>NOT NULL</code>,
+          <code>UNIQUE</code>, <code>FOREIGN KEY</code>).</li>
+      <li><strong>Manipuler</strong> : <code>INSERT</code> / <code>UPDATE</code> /
+          <code>DELETE</code> — <strong>jamais sans <code>WHERE</code></strong>.</li>
+      <li><strong>Interroger</strong> : <code>SELECT … WHERE … ORDER BY … LIMIT</code>.
+          <code>IS NULL</code>, pas <code>= NULL</code>.</li>
+      <li><strong>Jointures</strong> : <code>INNER</code> (l'intersection) ·
+          <code>LEFT</code> (tout à gauche, même sans correspondance).</li>
+      <li><strong>Agrégats</strong> : <code>COUNT</code>, <code>SUM</code>, <code>AVG</code> +
+          <code>GROUP BY</code>. <code>WHERE</code> avant, <code>HAVING</code> après.</li>
+      <li><strong>PDO</strong> : <code>utf8mb4</code> + <code>ERRMODE_EXCEPTION</code>.</li>
+      <li><strong>Toujours <code>prepare()</code> + <code>execute()</code></strong> dès qu'une
+          variable entre dans une requête. Et <code>password_hash()</code> pour les mots de
+          passe.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « Bases de données » (le professeur, BTS CIEL 2025-2026) —
+          séances du 10/04 au 29/05</li>
+      <li>TP7 et TP8 — requêtes SQL et conception</li>
+      <li>Photos de tableau — MCD USER / PC / Logiciel avec cardinalités, et son passage
+          au modèle relationnel</li>
+      <li>Projet E6 « Application web de gestion des présences » — sujet et réalisation d'élève (base <code>gestion_presence</code>, PDO, CRUD complet)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

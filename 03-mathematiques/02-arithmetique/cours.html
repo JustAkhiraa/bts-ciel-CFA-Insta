@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arithmétique &amp; division euclidienne | BTS CIEL</title>
+<meta name="description" content="Cours complet : multiples et diviseurs, ensembles de nombres, nombres premiers, théorème de la division euclidienne, quotient et reste à la calculatrice, compter les multiples d'un intervalle, démontrer une divisibilité.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#multiples">1 · Multiples et diviseurs</a></li>
+    <li><a href="#ensembles">2 · Les ensembles de nombres</a></li>
+    <li><a href="#premiers">3 · Les nombres premiers</a></li>
+    <li><a href="#euclide">4 · La division euclidienne</a></li>
+    <li><a href="#calculette">5 · Trouver q et r</a></li>
+    <li><a href="#compter">6 · Compter les multiples</a></li>
+    <li><a href="#demontrer">7 · Démontrer une divisibilité</a></li>
+    <li><a href="#ciel">8 · Le reste, outil du CIEL</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 02</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Arithmétique &amp; division euclidienne</h1>
+  <p class="chapeau">La division qu'on apprend à l'école primaire, écrite proprement une
+     fois pour toutes — et qui devient, en informatique, l'opérateur le plus utile du
+     clavier : le <strong>modulo</strong>.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>a est un multiple de b</strong> s'il existe un entier k tel que
+         <code>a = k × b</code> — on dit aussi que b <strong>divise</strong> a. La
+         <strong>division euclidienne</strong> de a par b donne un unique couple
+         <code>(q ; r)</code> tel que <code>a = b × q + r</code> avec
+         <strong><code>0 ⩽ r &lt; b</code></strong>. Quand <code>r = 0</code>, a est un
+         multiple de b. Tout le chapitre sert à répondre à une seule question :
+         <em>ce nombre est-il divisible par cet autre, et sinon, que reste-t-il ?</em></p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#multiple</code> <code>#diviseur</code> <code>#divisibilité</code>
+    <code>#division-euclidienne</code> <code>#quotient</code> <code>#reste</code>
+    <code>#nombre-premier</code> <code>#ℕ</code> <code>#ℤ</code> <code>#ℝ</code>
+    <code>#modulo</code> <code>#factorisation</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="multiples">
+  <h2><span class="num">01</span>Multiples et diviseurs</h2>
+
+  <p>Soient <strong>a</strong> et <strong>b</strong> deux entiers relatifs.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La définition, une fois pour toutes</div>
+    <div class="formule">a est un <strong>multiple</strong> de b<br>
+      ⟺ il existe un entier k tel que <strong>a = k × b</strong></div>
+    <p>Et c'est <em>la même phrase</em> lue dans l'autre sens : b est alors un
+       <strong>diviseur</strong> de a, et a est <strong>divisible</strong> par b.</p>
+  </div>
+
+  <p>Un seul exemple suffit à fixer le vocabulaire. Puisque <code>6 = 3 × 2</code>, les
+     trois phrases suivantes disent <strong>exactement la même chose</strong> :</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Formulation</th><th>Qui joue quel rôle</th></tr></thead>
+      <tbody>
+        <tr><td>6 est un <strong>multiple</strong> de 3</td>
+            <td>6 est le grand, 3 est le petit</td></tr>
+        <tr><td>3 est un <strong>diviseur</strong> de 6</td>
+            <td>même relation, énoncée depuis 3</td></tr>
+        <tr><td>6 est <strong>divisible</strong> par 3</td>
+            <td>même relation, au passif</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Multiple et diviseur, le sens compte</div>
+    <p>C'est la confusion n° 1 du chapitre, et elle ne pardonne pas dans une démonstration.
+       Le <strong>multiple est le plus grand</strong> des deux (ou égal), le
+       <strong>diviseur est le plus petit</strong> (ou égal).</p>
+    <p>Moyen mnémotechnique : <em>multiplier</em> agrandit, <em>diviser</em> réduit. Un
+       multiple de 3 s'obtient en multipliant 3 — il est donc au moins aussi grand que 3.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Deux cas limites qui tombent à l'examen</div>
+    <ul>
+      <li><strong>Tout entier p divise 0</strong>, car <code>0 = 0 × p</code>. Zéro est
+          multiple de tout le monde. En revanche 0 ne divise personne (sauf 0) : on ne
+          divise jamais par zéro.</li>
+      <li><strong>Tout entier a possède au moins deux diviseurs</strong> : <code>1</code>
+          et <code>a</code> lui-même, car <code>a = 1 × a</code>. Cette remarque anodine est
+          la porte d'entrée des nombres premiers (§&nbsp;3).</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 15 est-il un multiple de 5 ? Et de 4 ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>De 5, oui</strong> : <code>15 = 5 × 3</code>, k vaut 3. Donc 5 divise 15.</p>
+      <p><strong>De 4, non</strong> : il n'existe aucun entier k tel que <code>15 = 4 × k</code>
+         — on a 4 × 3 = 12 et 4 × 4 = 16, jamais 15. Il reste 3. C'est exactement ce que
+         la division euclidienne va formaliser : <code>15 = 4 × 3 + 3</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="ensembles">
+  <h2><span class="num">02</span>Les ensembles de nombres</h2>
+
+  <p>Trois symboles reviennent en permanence dans les énoncés. Les confondre, c'est se
+     tromper d'univers.</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Symbole</th><th>Nom</th><th>Contenu</th><th>Exemple typique</th></tr></thead>
+      <tbody>
+        <tr><td><code>ℕ</code></td><td>entiers <strong>naturels</strong></td>
+            <td>0, 1, 2, 3, … — <strong>positifs ou nuls</strong>, sans virgule</td>
+            <td>un nombre d'objets, un compteur, une adresse mémoire</td></tr>
+        <tr><td><code>ℤ</code></td><td>entiers <strong>relatifs</strong></td>
+            <td>… −3, −2, −1, 0, 1, 2, 3 … — avec le <strong>signe</strong></td>
+            <td>une température, un décalage, un solde</td></tr>
+        <tr><td><code>ℝ</code></td><td>nombres <strong>réels</strong></td>
+            <td>tous les nombres, virgule comprise : 0,5 · −3,14 · √2</td>
+            <td>une mesure, une tension, une probabilité</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Ils s'emboîtent : <code>ℕ ⊂ ℤ ⊂ ℝ</code>. Tout entier naturel est un entier relatif,
+     tout entier relatif est un réel.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — 𝕂 n'est pas un ensemble de nombres</div>
+    <p>Le cours d'origine liste « <code>𝕂</code> : un entier naturel » à la suite de ℕ, ℤ
+       et ℝ, comme s'il s'agissait d'un quatrième ensemble. Ce n'en est pas un.</p>
+    <p><strong>k</strong> (ou K) est simplement la <strong>lettre</strong> qu'on donne au
+       facteur entier dans <code>a = k × b</code> — une variable, pas une catégorie. Dire
+       « k ∈ ℕ » signifie « k est un entier naturel » : c'est l'<em>appartenance</em> qui
+       porte l'information, pas la lettre. En mathématiques supérieures, le symbole
+       <code>𝕂</code> désigne d'ailleurs tout autre chose : un <em>corps</em>
+       (ℝ ou ℂ, généralement).</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Il existe un entier k » : lequel ?</div>
+    <p>Dans <code>a = k × b</code>, l'énoncé ne demande pas de <em>trouver</em> k, seulement
+       de prouver qu'il <strong>existe</strong>. Sur une copie, il suffit donc d'aboutir à une
+       écriture de la forme « quelque chose × b, où ce quelque chose est visiblement entier ».
+       C'est toute la mécanique du §&nbsp;7.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="premiers">
+  <h2><span class="num">03</span>Les nombres premiers</h2>
+
+  <p>On a vu que tout entier a possède au moins les diviseurs 1 et a. La question naturelle
+     est : et s'il n'en avait <em>que</em> ceux-là ?</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Définition</div>
+    <p>Un entier <strong>strictement supérieur à 1</strong> qui n'a pour diviseurs que
+       <strong>1 et lui-même</strong> est un <strong>nombre premier</strong>.</p>
+    <div class="formule">2 · 3 · 5 · 7 · 11 · 13 · 17 · 19 · 23 · 29 · 31 · 37 …</div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ 1 n'est pas premier — et 2 est le seul premier pair</div>
+    <p><strong>1 n'est pas un nombre premier.</strong> Il n'a qu'un seul diviseur (lui-même),
+       pas deux distincts. C'est une convention, mais une convention nécessaire : sans elle,
+       la décomposition en facteurs premiers ne serait plus unique
+       (12 = 2×2×3 = 1×2×2×3 = 1×1×2×2×3…).</p>
+    <p><strong>2 est premier</strong>, et c'est le seul nombre pair à l'être : tout autre
+       nombre pair est divisible par 2, donc possède un troisième diviseur.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 On l'a déjà programmé</div>
+    <p>La même définition sert de sujet d'exercice en
+       <a href="../../01-informatique-dev/07-python/exercices.html">Python</a> (« afficher
+       tous les nombres premiers entre 2 et 50 ») et en
+       <a href="../../01-informatique-dev/04-javascript/exercices.html">JavaScript</a>.
+       L'algorithme y traduit la définition mot pour mot : on teste tous les diviseurs
+       possibles, et le test « d divise n » s'écrit <code>n % d == 0</code> —
+       c'est-à-dire <strong>reste nul</strong>. Le modulo du §&nbsp;8 est donc déjà en
+       service dans le pôle développement.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="euclide">
+  <h2><span class="num">04</span>La division euclidienne</h2>
+
+  <p>Quand b ne divise pas a, il reste quelque chose. Le théorème dit que ce « quelque
+     chose » est parfaitement déterminé.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Théorème de la division euclidienne</div>
+    <p>Pour tous entiers a et b (avec b ≠ 0), il existe un <strong>unique</strong> couple
+       d'entiers <code>(q ; r)</code> tel que :</p>
+    <div class="formule">a = b × q + r &nbsp;&nbsp;avec&nbsp;&nbsp; <strong>0 ⩽ r &lt; b</strong></div>
+    <ul>
+      <li><strong>a</strong> est le <em>dividende</em> — le nombre qu'on partage</li>
+      <li><strong>b</strong> est le <em>diviseur</em> — en combien de parts</li>
+      <li><strong>q</strong> est le <strong>quotient</strong> — combien de fois b tient dans a</li>
+      <li><strong>r</strong> est le <strong>reste</strong> — ce qui ne rentre pas</li>
+    </ul>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 214" role="img" aria-label="Une barre de longueur a découpée en 19 paquets de b, plus un reste plus court que b">
+      <style>
+        .dq{fill:none;stroke:var(--accent);stroke-width:1.5}
+        .drk{fill:none;stroke:var(--ambre);stroke-width:1.5}
+        .db{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.1}
+        .dr{fill:var(--ambre);fill-opacity:.42;stroke:var(--ambre);stroke-width:2}
+        .tq{font:700 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .tr{font:700 12px var(--mono);text-anchor:middle;fill:#7A5807}
+        .dd{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .dl{font:700 12.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+      </style>
+      <text class="dl" x="310" y="24">a = 99 &#160;·&#160; b = 5</text>
+      <text class="dd" x="310" y="44">99 unités, rangées par paquets de 5</text>
+
+        <rect class="db" x="60" y="70" width="22" height="34"/>
+        <rect class="db" x="82" y="70" width="22" height="34"/>
+        <rect class="db" x="104" y="70" width="22" height="34"/>
+        <rect class="db" x="126" y="70" width="22" height="34"/>
+        <rect class="db" x="148" y="70" width="22" height="34"/>
+        <rect class="db" x="170" y="70" width="22" height="34"/>
+        <rect class="db" x="192" y="70" width="22" height="34"/>
+        <rect class="db" x="214" y="70" width="22" height="34"/>
+        <rect class="db" x="236" y="70" width="22" height="34"/>
+        <rect class="db" x="258" y="70" width="22" height="34"/>
+        <rect class="db" x="280" y="70" width="22" height="34"/>
+        <rect class="db" x="302" y="70" width="22" height="34"/>
+        <rect class="db" x="324" y="70" width="22" height="34"/>
+        <rect class="db" x="346" y="70" width="22" height="34"/>
+        <rect class="db" x="368" y="70" width="22" height="34"/>
+        <rect class="db" x="390" y="70" width="22" height="34"/>
+        <rect class="db" x="412" y="70" width="22" height="34"/>
+        <rect class="db" x="434" y="70" width="22" height="34"/>
+        <rect class="db" x="456" y="70" width="22" height="34"/>
+        <rect class="dr" x="478" y="70" width="17.6" height="34"/>
+
+      <path class="dq"  d="M60,112 V121 H478 V112"/>
+      <path class="drk" d="M478,112 V121 H495.6 V112"/>
+
+      <text class="tq" x="269" y="142">19 paquets pleins</text>
+      <text class="tq" x="269" y="160">q = 19</text>
+
+      <path class="drk" d="M535,148 C518,142 504,134 493,124"/>
+      <text class="tr" x="560" y="164">r = 4</text>
+      <text class="dd" x="560" y="181">4 &lt; 5 ✔</text>
+
+      <text class="dl" x="269" y="196">99 = 5 × 19 + 4</text>
+    </svg>
+    <figcaption>Le reste est ce qui ne remplit pas un paquet de plus. S'il atteignait 5,
+      on ferait un paquet supplémentaire — c'est exactement ce qu'impose la condition
+      <strong>r &lt; b</strong>.</figcaption>
+  </figure>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la condition est <code>0 ⩽ r</code>, pas <code>0 &lt; r</code></div>
+    <p>Le cahier écrit le théorème sous la forme <code>0 &lt; r &lt; b</code>, avec une
+       inégalité <strong>stricte</strong> à gauche. C'est faux, et le cahier se contredit
+       lui-même deux pages plus haut : il y écrit <code>6 = 3 × 2 + 0</code> — un reste
+       <strong>nul</strong>.</p>
+    <div class="formule">a = b × q + r &nbsp;&nbsp;avec&nbsp;&nbsp; <strong>0 ⩽ r &lt; b</strong></div>
+    <p>Interdire <code>r = 0</code> reviendrait à interdire la divisibilité, c'est-à-dire
+       tout le reste du chapitre : <strong>« b divise a » signifie précisément « le reste de
+       la division de a par b est nul »</strong>. La borne de droite, elle, reste bien
+       stricte : <code>r &lt; b</code>, jamais <code>r = b</code>.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Les œufs et les boîtes</div>
+    <p>99 œufs, des boîtes de 5. On remplit 19 boîtes (<strong>q = 19</strong>) et il reste
+       4 œufs sur la table (<strong>r = 4</strong>). Deux évidences qui sont les deux
+       conditions du théorème :</p>
+    <ul>
+      <li>Il ne peut pas rester 5 œufs ou plus — on ferait une boîte de plus.
+          D'où <code>r &lt; b</code>.</li>
+      <li>Il peut très bien ne rien rester. D'où <code>r ⩾ 0</code>, et pas
+          <code>r &gt; 0</code>.</li>
+    </ul>
+    <p>Et l'<strong>unicité</strong> du théorème, c'est simplement qu'il n'y a qu'une seule
+       façon honnête de ranger ces œufs.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="calculette">
+  <h2><span class="num">05</span>Trouver q et r</h2>
+
+  <p>La calculatrice ne donne qu'une division décimale. Deux méthodes pour en tirer le
+     couple <code>(q ; r)</code>. Le cours présente les deux ; la seconde est plus rapide.</p>
+
+  <div class="encart methode">
+    <div class="titre">📐 Méthode 1 — soustraire</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Division euclidienne de 99 par 5 :
+
+  1.  99 ÷ 5 = 19,8
+  2.  q = partie entière = 19          ← on jette la virgule
+  3.  r = a − b × q = 99 − 5 × 19
+        = 99 − 95
+        = 4
+
+  Conclusion :  99 = 5 × 19 + 4       avec 0 ⩽ 4 &lt; 5  ✔</code></pre></div>
+    <p>C'est la méthode sûre : elle redonne la ligne du théorème, qui est exactement ce
+       qu'on doit écrire sur la copie.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 Méthode 2 — multiplier la partie décimale</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  99 ÷ 5 = 19,8
+           ↑  ↑
+           q  partie décimale
+
+  r = partie décimale × b = 0,8 × 5 = 4
+
+  Conclusion :  99 = 5 × 19 + 4</code></pre></div>
+    <p>Une ligne au lieu de trois. C'est la méthode « 19 → 4 → 5 » notée au cahier.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le raccourci du reste ne marche que pour b = 10</div>
+    <p>Le cahier note, à juste titre : <em>« dans une division euclidienne par 10, le reste
+       est le chiffre après la virgule »</em>. <code>1 076 ÷ 10 = 107,6</code> et le reste
+       est bien <strong>6</strong>.</p>
+    <p>Mais c'est une <strong>particularité de 10</strong>, pas une règle générale — il
+       faudra <em>toujours</em> remultiplier par b pour tout autre diviseur :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  99 ÷ 5 = 19,8    →   le reste n'est PAS 8
+                       r = 0,8 × 5 = 4     ✔
+
+  Contrôle : 8 serait supérieur à b = 5, donc impossible.</code></pre></div>
+    <p>Le contrôle de bon sens est gratuit : <strong>si votre reste dépasse le diviseur,
+       il est faux.</strong></p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Les quatre divisions euclidiennes du cours</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>99 par 5        99 ÷ 5 = 19,8       q = 19   r = 0,8 × 5 = 4
+                →  99 = 5 × 19 + 4
+
+1 076 par 10    1076 ÷ 10 = 107,6   q = 107  r = 6
+                →  1 076 = 10 × 107 + 6
+
+111 par 37      111 ÷ 37 = 3        q = 3    r = 0
+                →  111 = 37 × 3 + 0     ← reste nul : 37 divise 111
+
+14 523 par 23   14523 ÷ 23 = 631,43…  q = 631
+                r = 14 523 − 23 × 631 = 14 523 − 14 513 = 10
+                →  14 523 = 23 × 631 + 10</code></pre></div>
+      <p class="rap">Sur la dernière, la méthode 2 est piégeuse : 0,43… est un arrondi
+         d'écran, et 0,43 × 23 donne 9,89 — pas un entier. <strong>Dès que le quotient a
+         beaucoup de décimales, repassez à la méthode 1</strong>, qui ne fait intervenir
+         que des entiers. Et contrôlez : 10 &lt; 23 ✔</p>
+      <p>La troisième est la plus instructive : un reste nul, et on retombe sur le
+         §&nbsp;1 — <code>111 = 37 × 3</code>, donc 37 divise 111. Ce résultat sert
+         directement au §&nbsp;7.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="compter">
+  <h2><span class="num">06</span>Compter les multiples d'un intervalle</h2>
+
+  <p>Question classique : <em>combien y a-t-il de multiples de 13 entre 1 000 et 2 000 ?</em>
+     On ne les énumère pas — on encadre.</p>
+
+  <div class="encart methode">
+    <div class="titre">📐 La méthode en trois temps</div>
+    <ol>
+      <li>Diviser les <strong>deux bornes</strong> par le nombre.</li>
+      <li>Arrondir <strong>vers le haut</strong> en bas de l'intervalle, <strong>vers le
+          bas</strong> en haut : ce sont les deux rangs extrêmes.</li>
+      <li>Compter les rangs : <strong>dernier − premier + 1</strong>.</li>
+    </ol>
+  </div>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1 000 ÷ 13 = 76,9    →  76 × 13 = 988  &lt; 1 000, trop petit
+                        77 × 13 = 1 001 ⩾ 1 000  ✔
+                        le premier multiple est au rang 77
+
+2 000 ÷ 13 = 153,8   →  153 × 13 = 1 989 ⩽ 2 000  ✔
+                        154 × 13 = 2 002 &gt; 2 000, trop grand
+                        le dernier multiple est au rang 153
+
+Nombre de multiples :   153 − 77 + 1 = 77
+
+Il y a 77 multiples de 13 entre 1 000 et 2 000.</code></pre></div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 150" role="img" aria-label="Axe gradué montrant les multiples de 13 encadrant l'intervalle de 1000 à 2000">
+      <style>
+        .ma{stroke:var(--bord-fort);stroke-width:1.4}
+        .mz{fill:var(--accent-pale)}
+        .mp{fill:var(--accent)}
+        .mo{fill:var(--encre-tenue)}
+        .mt{font:600 10.5px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .mx{font:600 10.5px var(--mono);text-anchor:middle;fill:var(--encre-tenue)}
+        .md{font:11px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .ml{font:700 11.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+      </style>
+      <rect class="mz" x="150" y="62" width="330" height="26"/>
+      <line class="ma" x1="40" y1="88" x2="590" y2="88"/>
+      <line x1="150" y1="56" x2="150" y2="96" stroke="var(--accent)" stroke-width="1.6"/>
+      <line x1="480" y1="56" x2="480" y2="96" stroke="var(--accent)" stroke-width="1.6"/>
+      <circle class="mo" cx="90"  cy="88" r="4"/>
+      <circle class="mp" cx="172" cy="88" r="5"/>
+      <circle class="mp" cx="255" cy="88" r="3.5"/>
+      <circle class="mp" cx="338" cy="88" r="3.5"/>
+      <circle class="mp" cx="421" cy="88" r="3.5"/>
+      <circle class="mp" cx="458" cy="88" r="5"/>
+      <circle class="mo" cx="540" cy="88" r="4"/>
+      <text class="mx" x="90"  y="52">76×13</text>
+      <text class="mx" x="90"  y="40">988</text>
+      <text class="mt" x="172" y="52">77×13</text>
+      <text class="mt" x="172" y="40">1 001</text>
+      <text class="mt" x="458" y="52">153×13</text>
+      <text class="mt" x="458" y="40">1 989</text>
+      <text class="mx" x="540" y="52">154×13</text>
+      <text class="mx" x="540" y="40">2 002</text>
+      <text class="md" x="150" y="112">1 000</text>
+      <text class="md" x="480" y="112">2 000</text>
+      <text class="ml" x="315" y="138">on compte les rangs, pas les nombres : de 77 à 153, il y en a 77</text>
+    </svg>
+    <figcaption>Les deux points gris sont <strong>hors</strong> de l'intervalle : 988 est
+      trop petit, 2 002 trop grand. Seuls les rangs 77 à 153 comptent.</figcaption>
+  </figure>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le « + 1 » qu'on oublie toujours</div>
+    <p><code>153 − 77 = 76</code>, mais la réponse est <strong>77</strong>. La soustraction
+       compte les <em>intervalles</em> entre les rangs, pas les rangs eux-mêmes — et il y a
+       toujours un rang de plus que d'intervalles.</p>
+    <p><strong>Le contrôle sur un mini-exemple</strong> : combien d'entiers de 3 à 5 ? Trois
+       (3, 4 et 5), pas deux. Donc <code>5 − 3 + 1 = 3</code> ✔ En cas de doute en examen,
+       refaites ce test à trois nombres : il donne immédiatement la bonne formule.</p>
+    <p>C'est exactement le même « + 1 » que dans le calcul du nombre d'adresses d'un
+       sous-réseau, au
+       <a href="../../02-reseaux-systemes/04-adressage-ipv4-vlsm/cours.html">chapitre
+       d'adressage IPv4</a>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi arrondir dans deux sens opposés</div>
+    <p>En bas, on cherche le premier multiple <strong>qui entre</strong> dans l'intervalle :
+       on monte donc au rang supérieur (76,9 → 77). En haut, on cherche le dernier
+       <strong>qui y tient encore</strong> : on descend au rang inférieur (153,8 → 153).</p>
+    <p>Si les bornes tombent pile sur un multiple, elles comptent — la question dit
+       « entre 1 000 et 2 000 », <strong>bornes incluses</strong>. Une question qui dirait
+       « strictement entre » exclurait ces deux rangs.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="demontrer">
+  <h2><span class="num">07</span>Démontrer une divisibilité</h2>
+
+  <p>Montrer qu'un nombre est divisible par un autre, ce n'est pas le vérifier sur un
+     exemple : c'est aboutir à l'écriture <code>a = k × b</code> avec k entier. Le cours
+     en donne <strong>trois techniques</strong>, de la plus simple à la plus puissante.</p>
+
+  <h3>Technique 1 — factoriser en cascade</h3>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Tout nombre de trois chiffres identiques est divisible par 37</div>
+    <p>222, 333, 777… Pourquoi ? Parce qu'on peut les couper en deux facteurs.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Étape 1 — tout nombre de 3 chiffres identiques est un multiple de 111 :
+   222 = 2 × 111     777 = 7 × 111     999 = 9 × 111
+
+Étape 2 — or 111 est un multiple de 37 :
+   37 × 3 = 111
+
+Étape 3 — on enchaîne. Pour 777 :
+   777 = 7 × 111
+       = 7 × (3 × 37)
+       = (7 × 3) × 37
+       = 21 × 37
+       = 37 × k     avec k = 21 ∈ ℕ
+
+Donc 777 est divisible par 37.</code></pre></div>
+    <p>Le raisonnement vaut pour <strong>tous</strong> les nombres de trois chiffres
+       identiques d'un coup, puisqu'on n'a jamais utilisé la valeur 7 : pour le chiffre c,
+       <code>ccc = c × 111 = 37 × (3c)</code>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 La transitivité de la divisibilité</div>
+    <p>L'étape 3 repose sur une propriété qu'on utilise sans la nommer :</p>
+    <div class="formule">si <strong>c divise b</strong> et <strong>b divise a</strong>,
+      alors <strong>c divise a</strong></div>
+    <p>37 divise 111, 111 divise 777, donc 37 divise 777. C'est la même logique que les
+       poupées russes — et c'est ce qui permet de <em>chaîner</em> les factorisations au
+       lieu de calculer.</p>
+  </div>
+
+  <h3>Technique 2 — décomposer en puissances de 10</h3>
+
+  <p>Quand le nombre est plus gros, on l'écrit chiffre par chiffre, puis on regroupe. Le
+     cours traite <strong>717 171</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>717 171 = 700 000 + 10 000 + 7 000 + 100 + 70 + 1
+
+        = (7 × 100 000) + (1 × 10 000) + (7 × 1 000)
+          + (1 × 100) + (7 × 10) + (1 × 1)
+
+on regroupe les « 7 » d'un côté, les « 1 » de l'autre :
+
+        = 7 × (100 000 + 1 000 + 10) + 1 × (10 000 + 100 + 1)
+        = 7 × 101 010 + 1 × 10 101
+
+or   101 010 = 2 730 × 37
+      10 101 =   273 × 37
+
+        = 7 × 2 730 × 37 + 1 × 273 × 37
+        = 37 × (7 × 2 730 + 1 × 273)        ← on met 37 en facteur
+        = 37 × (19 110 + 273)
+        = 37 × 19 383
+
+Donc 717 171 est un multiple de 37.</code></pre></div>
+  <p class="rap">Contrôle : <code>37 × 19 383 = 717 171</code> ✔ — une multiplication de dix
+     secondes qui valide six lignes de calcul. Faites-la toujours.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Mettre en facteur, c'est la seule étape qui compte</div>
+    <p>Tout le calcul ne sert qu'à atteindre la ligne <code>= 37 × (…)</code>. Ce qu'il y a
+       dans la parenthèse importe peu : il suffit que ce soit <strong>visiblement un
+       entier</strong> (une somme et un produit d'entiers en est un). Beaucoup d'élèves
+       perdent du temps à calculer 19 383 alors que la démonstration est déjà finie à la
+       ligne précédente.</p>
+  </div>
+
+  <h3>Technique 3 — passer par l'algèbre</h3>
+
+  <p>La plus forte : elle démontre d'un coup une infinité de cas, en remplaçant les nombres
+     par une lettre.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La somme de trois entiers consécutifs est un multiple de 3</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Trois entiers consécutifs s'écrivent  n, n+1, n+2.
+
+n + (n + 1) + (n + 2) = n + n + n + 1 + 2
+                      = 3n + 3
+                      = 3 × (n + 1)
+                      = 3 × k     avec k = n + 1, entier
+
+Donc la somme est toujours divisible par 3.</code></pre></div>
+    <p>« Toujours » est ici littéral : la démonstration ne dépend d'aucune valeur de n.
+       12 + 13 + 14 = 39 = 3 × 13, et 100 + 101 + 102 = 303 = 3 × 101. On n'a pas eu à les
+       tester.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — un « n » en trop dans la somme</div>
+    <p>Le cahier écrit <code>n + (n+1) + n + (n+2)</code> : <strong>quatre</strong> termes
+       pour trois entiers consécutifs. Cette somme vaudrait <code>4n + 3</code>, qui n'est
+       pas un multiple de 3.</p>
+    <p>La suite de la ligne est juste (3n + 3, puis 3(n+1)), ce qui montre qu'il s'agit d'un
+       lapsus de recopie, pas d'une erreur de raisonnement. L'écriture correcte est
+       <code>n + (n+1) + (n+2)</code>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 (x − 1) divise x⁵ − 1</div>
+    <p>Même principe, avec un développement.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Développons (x − 1)(x⁴ + x³ + x² + x + 1) :
+
+  x × (x⁴ + x³ + x² + x + 1) = x⁵ + x⁴ + x³ + x² + x
+− 1 × (x⁴ + x³ + x² + x + 1) =    − x⁴ − x³ − x² − x − 1
+                               ─────────────────────────
+                             = x⁵                     − 1
+
+Tout se télescope au milieu : il ne reste que x⁵ − 1.
+
+Donc  x⁵ − 1 = (x − 1) × k   avec k = x⁴ + x³ + x² + x + 1
+
+Conclusion : (x − 1) divise x⁵ − 1, à condition que x − 1 ≠ 0,
+c'est-à-dire x ≠ 1.
+
+Cas particulier x = 1 :  x⁵ − 1 = 1 − 1 = 0
+et 0 est divisible par tout entier — la propriété reste vraie.</code></pre></div>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — des signes « − » devenus des exposants négatifs</div>
+    <p>Le cahier note la ligne de développement
+       <code>= x⁵ + x⁴ + x³ + x² + x + x⁻⁴ + x⁻³ + x⁻² − 1</code>. Les
+       <code>x⁻⁴</code>, <code>x⁻³</code>, <code>x⁻²</code> n'ont rien à faire là :
+       ce sont les termes <strong>soustraits</strong> <code>− x⁴</code>,
+       <code>− x³</code>, <code>− x²</code>, dont le signe moins a glissé en exposant en
+       recopiant.</p>
+    <p>La différence n'est pas cosmétique : <code>x⁻⁴</code> vaut <code>1/x⁴</code>, ce
+       qui ferait sortir du monde des polynômes. Le résultat final annoncé,
+       <code>x⁵ − 1</code>, confirme qu'il s'agit bien d'une erreur d'écriture — c'est
+       justement parce que les termes s'annulent deux à deux qu'il ne reste rien au milieu.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — l'application à 2011⁵ − 1</div>
+    <p>Le cahier conclut : <code>si x⁵ − 1 = x − 1 alors 2011⁵ = 2011 − 1 = 2010</code>.
+       Cette ligne est fausse telle quelle — <code>x⁵ − 1</code> n'est pas
+       <strong>égal</strong> à <code>x − 1</code>, il est <strong>divisible</strong>
+       par lui, et 2011⁵ ne vaut évidemment pas 2 010.</p>
+    <p>L'énoncé correct :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>On sait que (x − 1) divise x⁵ − 1, pour tout entier x.
+
+En prenant x = 2011 :   x − 1 = 2 010
+
+Donc 2 010 divise 2011⁵ − 1.
+
+Autrement dit :  2011⁵ − 1 = 2 010 × k, avec
+k = 2011⁴ + 2011³ + 2011² + 2011 + 1</code></pre></div>
+    <p>Tout l'intérêt de la méthode est là : on affirme quelque chose sur un nombre de
+       17 chiffres <strong>sans jamais le calculer</strong>. C'est ce qu'aucune
+       calculatrice de lycée ne saurait faire — elle afficherait un arrondi en notation
+       scientifique, inutilisable pour une divisibilité.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="ciel">
+  <h2><span class="num">08</span>Le reste, outil du CIEL</h2>
+
+  <p>Cette section n'est pas au cahier : elle explique pourquoi ce chapitre, le plus
+     élémentaire de l'année, est aussi celui dont on se sert le plus souvent en
+     informatique.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le reste s'appelle « modulo » en programmation</div>
+    <div class="formule">a = b × q + r &nbsp;⟶&nbsp;
+      <code>q = a // b</code> &nbsp;·&nbsp; <code>r = a % b</code></div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Langage</th><th>Quotient entier</th><th>Reste</th></tr></thead>
+        <tbody>
+          <tr><td>Python</td><td><code>a // b</code></td><td><code>a % b</code></td></tr>
+          <tr><td>JavaScript</td><td><code>Math.floor(a / b)</code></td><td><code>a % b</code></td></tr>
+          <tr><td>PHP · C · Java</td><td><code>intdiv(a, b)</code> / <code>a / b</code></td>
+              <td><code>a % b</code></td></tr>
+          <tr><td>Bash</td><td><code>$((a / b))</code></td><td><code>$((a % b))</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Cinq usages qu'on croise vraiment</div>
+    <ul>
+      <li><strong>Tester la divisibilité</strong> — <code>n % 2 == 0</code> : le nombre est
+          pair. <code>n % d == 0</code> : d divise n. C'est le cœur du test de primalité
+          écrit en <a href="../../01-informatique-dev/07-python/exercices.html">Python</a>.</li>
+      <li><strong>Boucler sur un intervalle</strong> — <code>(i + 1) % n</code> revient à 0
+          après le dernier élément : c'est le tampon circulaire, l'aiguille d'une horloge,
+          le tour de rôle d'un round-robin.</li>
+      <li><strong>Une ligne sur deux</strong> — <code>if (i % 2)</code> pour alterner la
+          couleur des lignes d'un tableau HTML, exactement ce que fait le sélecteur CSS
+          <code>:nth-child(odd)</code>.</li>
+      <li><strong>Clés de contrôle</strong> — la clé d'un numéro de Sécurité sociale,
+          d'un IBAN ou d'un code-barres EAN se <em>calcule</em> à partir d'un reste. Celle
+          de la Sécurité sociale tient sur <strong>deux chiffres</strong> et vaut
+          <code>97 − (numéro mod 97)</code> ; celle d'un EAN-13 est le dernier chiffre et
+          vaut <code>(10 − somme pondérée mod 10) mod 10</code>. Une faute de frappe change
+          le reste, donc la clé, et la saisie est rejetée avant même d'atteindre la base de
+          données.</li>
+      <li><strong>Répartir</strong> — une table de hachage range la clé k dans le seau
+          <code>k % nombre_de_seaux</code>. Le reste distribue, toujours dans les bornes.</li>
+    </ul>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le modulo des nombres négatifs diffère selon le langage</div>
+    <p>Le théorème mathématique impose <code>0 ⩽ r &lt; b</code> : un reste est toujours
+       <strong>positif</strong>. Tous les langages ne respectent pas cette convention.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>>>> -7 % 3
+2              # Python suit la convention mathématique</code></pre></div>
+<div class="bloc-code"><span class="langue">js</span><pre><code>&gt; -7 % 3
+-1             // JavaScript, C, Java : le reste prend le signe du dividende</code></pre></div>
+    <p>En Python, <code>−7 = 3 × (−3) + 2</code> — conforme au théorème. En JavaScript,
+       <code>−7 = 3 × (−2) − 1</code> — le reste est négatif, ce qui n'est pas une division
+       euclidienne au sens strict. La parade universelle, quand on a besoin d'un reste
+       positif : <code>((a % b) + b) % b</code>.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Un tampon circulaire de 8 cases : après l'index 7, que vaut le suivant ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>suivant = (index + 1) % 8
+
+index 6  →  7 % 8 = 7
+index 7  →  8 % 8 = 0      ← on revient au début
+index 0  →  1 % 8 = 1
+
+Division euclidienne :  8 = 8 × 1 + 0     q = 1 tour, r = 0 case</code></pre></div>
+      <p class="rap">Le quotient compte les <strong>tours complets</strong>, le reste donne
+         la <strong>position</strong> dans le tour en cours. C'est la lecture qu'il faut
+         retenir du théorème : q dit « combien de fois », r dit « où on en est ».</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>a multiple de b</strong> ⟺ il existe un entier k tel que
+          <code>a = k × b</code> ⟺ b divise a ⟺ a divisible par b. Trois phrases,
+          une seule idée.</li>
+      <li><strong>Le multiple est le grand</strong>, le diviseur est le petit.</li>
+      <li><strong>Tout entier p divise 0</strong> · <strong>tout entier a est divisible par
+          1 et par a</strong>.</li>
+      <li><strong>Nombre premier</strong> : entier &gt; 1 dont les seuls diviseurs sont 1 et
+          lui-même. <strong>1 n'est pas premier</strong> ; 2 est le seul premier pair.</li>
+      <li><code>ℕ</code> naturels (⩾ 0) ⊂ <code>ℤ</code> relatifs (avec signe) ⊂
+          <code>ℝ</code> réels (avec virgule). <code>k</code> est une lettre, pas un
+          ensemble.</li>
+      <li><strong>Théorème</strong> : <code>a = b × q + r</code> avec
+          <strong><code>0 ⩽ r &lt; b</code></strong>, couple (q ; r) unique. Le reste
+          <strong>peut</strong> être nul — c'est même ce qui définit la divisibilité.</li>
+      <li><strong>Trouver r</strong> : <code>r = a − b × q</code> (sûr), ou
+          <code>r = partie décimale × b</code> (rapide). Le raccourci « le chiffre après la
+          virgule » ne vaut que pour <strong>b = 10</strong>.</li>
+      <li><strong>Contrôle gratuit</strong> : un reste supérieur ou égal au diviseur est
+          faux.</li>
+      <li><strong>Compter les multiples</strong> : diviser les deux bornes, arrondir vers
+          l'intérieur, puis <code>dernier − premier <strong>+ 1</strong></code>.</li>
+      <li><strong>Démontrer une divisibilité</strong> = aboutir à <code>a = k × b</code>.
+          Trois techniques : <strong>factoriser</strong> en cascade ·
+          <strong>décomposer</strong> en puissances de 10 puis mettre en facteur ·
+          <strong>passer par une lettre</strong> pour traiter tous les cas d'un coup.</li>
+      <li><strong>Transitivité</strong> : c divise b et b divise a ⟹ c divise a.</li>
+      <li><strong>En code</strong> : <code>q = a // b</code>, <code>r = a % b</code>.
+          Divisibilité, tampon circulaire, alternance, clé de contrôle, hachage — c'est
+          toujours ce chapitre.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li><em>chap-2-arithmetique.pdf</em> (7 pages) — le cahier manuscrit de l'élève,
+          section II « Arithmétique (Division Euclidienne) », pages 17 à 23 : multiples et
+          diviseurs, ensembles de nombres, nombres premiers, théorème de la division
+          euclidienne, exercices 1 et 2, développement de 717 171, somme de trois entiers
+          consécutifs, factorisation de x⁵ − 1</li>
+      <li><em>arithmetique.pdf</em> (7 pages) — le même cahier, scanné en haute résolution ;
+          conservé comme original de meilleure qualité</li>
+      <li><em>arithmetique.docx</em> — transcription au propre du cahier, dont la formulation
+          du théorème (<code>0 ⩽ r &lt; b</code>) est la version correcte</li>
+      <li>Exercices de <a href="../../01-informatique-dev/07-python/exercices.html">Python</a>
+          et de <a href="../../01-informatique-dev/04-javascript/exercices.html">JavaScript</a>
+          sur les nombres premiers — le § 8 fait le pont, il ne figure pas au cahier</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

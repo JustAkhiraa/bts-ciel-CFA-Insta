@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage dynamique et RIP — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : comparer statique et dynamique, classifier les protocoles, calculer des métriques, configurer RIPv2 et dépanner.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#choisir">1 · Statique ou dynamique</a></li>
+    <li><a href="#classer">2 · Classer les protocoles</a></li>
+    <li><a href="#metrique-exo">3 · Métriques et meilleur chemin</a></li>
+    <li><a href="#config-exo">4 · Configurer RIPv2</a></li>
+    <li><a href="#lab">5 · Lab RIPv2 complet</a></li>
+    <li><a href="#dep">6 · Dépannage RIP</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 10</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Routage dynamique et RIP — exercices</h1>
+  <p class="chapeau">Choisir un protocole, calculer une métrique, configurer RIPv2 et comprendre
+     pourquoi il met trois minutes à réagir.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Ce qui distingue une bonne copie</h2>
+      <p>Tout le monde sait écrire <code>router rip</code>. Ce qui rapporte des points, c'est de
+         <strong>justifier par les chiffres</strong> : pourquoi 15 sauts, pourquoi 180 secondes,
+         pourquoi <code>version 2</code>. Ces valeurs ne sont pas arbitraires — elles expliquent le
+         comportement du protocole.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="choisir">
+  <h2><span class="num">01</span>Statique ou dynamique</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Quatre situations <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Pour chaque cas, choisissez routage statique, dynamique, ou les deux — et justifiez.</p>
+      <ol>
+        <li>Un réseau de 3 routeurs, stable, dans une PME qui ne compte pas s'agrandir.</li>
+        <li>Le réseau d'une entreprise de 40 sites, avec des liaisons de secours.</li>
+        <li>Le routeur d'une agence, relié uniquement au siège.</li>
+        <li>La sortie vers Internet du routeur principal d'une entreprise qui utilise OSPF en
+            interne.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Cas</th><th>Choix</th><th>Justification</th></tr></thead>
+          <tbody>
+            <tr><td>1 — PME, 3 routeurs, stable</td><td><strong>Statique</strong></td>
+                <td>Le cours le dit : « faciliter la maintenance des tables dans les réseaux de
+                    petite taille qui ne sont pas amenés à se développer ». Peu de routes, aucune
+                    consommation de ressources, comportement prévisible</td></tr>
+            <tr><td>2 — 40 sites + secours</td><td><strong>Dynamique</strong></td>
+                <td>Ingérable à la main, et surtout : le dynamique
+                    <strong>s'adapte automatiquement aux pannes</strong>. C'est tout l'intérêt des
+                    liaisons de secours</td></tr>
+            <tr><td>3 — Agence, une seule sortie</td><td><strong>Statique</strong> — route par
+                défaut</td><td><strong>Réseau d'extrémité</strong> : « un réseau avec une seule
+                route par défaut à la sortie et aucune connaissance des réseaux distants »</td></tr>
+            <tr><td>4 — Sortie Internet</td><td><strong>Statique</strong>, au milieu du
+                dynamique</td><td>« La route par défaut est presque toujours configurée en
+                statique, même dans un réseau qui utilise du routage dynamique partout
+                ailleurs »</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 La réponse générale attendue</div>
+          <p><strong>Les réseaux combinent généralement les deux.</strong> Ce n'est pas un choix
+             exclusif : on utilise le dynamique là où la topologie bouge, et le statique là où elle
+             est figée par construction — sorties Internet, réseaux d'extrémité.</p>
+          <p>Répondre « tout en dynamique » ou « tout en statique » à une question de conception est
+             presque toujours faux.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="classer">
+  <h2><span class="num">02</span>Classer les protocoles</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>IGP, EGP, vecteur, état de liens <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Complétez le tableau pour : <strong>RIPv2</strong>, <strong>OSPF</strong>,
+         <strong>EIGRP</strong>, <strong>IS-IS</strong>, <strong>BGP</strong>.</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Protocole</th><th>IGP ou EGP</th><th>Approche</th><th>Algorithme</th><th>Métrique</th><th>AD</th></tr></thead>
+        <tbody><tr><td colspan="6"><em>à compléter</em></td></tr></tbody>
+      </table>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Protocole</th><th>Famille</th><th>Approche</th><th>Algorithme</th><th>Métrique</th><th>AD</th></tr></thead>
+          <tbody>
+            <tr><td><strong>RIPv2</strong></td><td>IGP</td><td>Vecteur de distance</td>
+                <td>Bellman-Ford</td><td>Nombre de sauts (max 15)</td><td><strong>120</strong></td></tr>
+            <tr><td><strong>OSPF</strong></td><td>IGP</td><td><strong>État de liens</strong></td>
+                <td>Dijkstra (SPF)</td><td>Coût = 10⁸ / bande passante</td><td><strong>110</strong></td></tr>
+            <tr><td><strong>EIGRP</strong></td><td>IGP</td><td>Vecteur de distance avancé</td>
+                <td>DUAL</td><td>Composite : bande passante + délai</td><td><strong>90</strong></td></tr>
+            <tr><td><strong>IS-IS</strong></td><td>IGP</td><td>État de liens</td><td>Dijkstra</td>
+                <td>Coût</td><td>115</td></tr>
+            <tr><td><strong>BGP</strong></td><td><strong>EGP</strong></td><td>Vecteur de chemin</td>
+                <td>Best-path</td><td>Politique (attributs)</td><td>20 / 200</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Les valeurs à mémoriser en priorité</div>
+          <p>Pour le BTS, trois AD suffisent — et elles se retiennent dans l'ordre de fiabilité :</p>
+          <div class="formule" style="font-size:14px">Connecté 0 · Statique 1 · EIGRP 90 · OSPF 110 · RIP 120</div>
+          <p>Logique sous-jacente : plus le protocole est <em>récent et fiable</em>, plus sa
+             distance est faible. RIP est le plus ancien et le plus rudimentaire — il est donc le
+             moins crédible.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi BGP est à part</div>
+          <p>BGP ne cherche pas le chemin le plus court : il applique des
+             <strong>règles administratives et commerciales</strong>. Un opérateur peut préférer un
+             chemin plus long parce qu'il lui coûte moins cher en accords de transit.</p>
+          <p>C'est pour cela qu'on le classe en « vecteur de chemin » et non en vecteur de
+             distance : ce qu'il propage, c'est la <em>liste des AS traversés</em>, pas une
+             distance.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="metrique-exo">
+  <h2><span class="num">03</span>Métriques et meilleur chemin</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>RIP contre OSPF <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Depuis R1, deux chemins mènent au réseau <code>192.168.50.0/24</code> :</p>
+      <ul>
+        <li><strong>Chemin A</strong> — 2 routeurs traversés, toutes les liaisons en série
+            <strong>64 kbit/s</strong> ;</li>
+        <li><strong>Chemin B</strong> — 4 routeurs traversés, toutes les liaisons en
+            <strong>1 Gbit/s</strong>.</li>
+      </ul>
+      <ol>
+        <li>Quel chemin RIP choisit-il ? Pourquoi ?</li>
+        <li>Quel chemin OSPF choisit-il ? Calculez les coûts.</li>
+        <li>Que révèle cette différence ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Le choix de RIP</h4>
+        <p><strong>Le chemin A</strong>, parce que sa métrique est de <strong>2 sauts</strong>
+           contre 4. RIP ne connaît <em>que</em> le nombre de sauts : il ne regarde jamais le
+           débit.</p>
+
+        <h4>2. Le choix d'OSPF</h4>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>coût d'un lien = 10⁸ / bande passante en bit/s
+
+CHEMIN A — 2 liaisons à 64 kbit/s
+  coût par lien = 100 000 000 / 64 000  = 1562
+  coût total    = 1562 × 2              = 3124
+
+CHEMIN B — 4 liaisons à 1 Gbit/s
+  coût par lien = 100 000 000 / 1 000 000 000 = 0,1 → arrondi à 1 (minimum)
+  coût total    = 1 × 4                       = 4
+
+→ OSPF choisit le CHEMIN B  (coût 4 contre 3124)</code></pre></div>
+
+        <h4>3. Ce que cela révèle</h4>
+        <p>RIP choisit un chemin <strong>environ 15 000 fois plus lent</strong>. C'est la limite
+           fondamentale du comptage de sauts : <strong>un saut ne dit rien de la qualité du
+           lien</strong>.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ La réponse attendue à « pourquoi RIP est-il dépassé »</div>
+          <p>Deux arguments, à donner ensemble :</p>
+          <ol>
+            <li><strong>Sa métrique ignore la bande passante</strong> — il peut choisir un chemin
+                catastrophique, comme ici.</li>
+            <li><strong>Sa convergence est lente</strong> — 180 à 240 secondes pour réagir à une
+                panne.</li>
+          </ol>
+          <p>Le troisième argument, plus mineur : sa <strong>limite de 15 sauts</strong> le rend
+             inutilisable sur un grand réseau.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Le coût minimal de 1</div>
+          <p>La formule <code>10⁸ / bande passante</code> a été définie quand 100 Mbit/s était le
+             haut du panier — d'où le numérateur. Au-delà, le calcul donne une valeur inférieure à
+             1, arrondie au minimum de <strong>1</strong>.</p>
+          <p>Conséquence : OSPF ne distingue plus 1 Gbit/s de 10 Gbit/s, tous deux à coût 1. En
+             production, on corrige avec <code>auto-cost reference-bandwidth</code>. Ce n'est pas
+             au programme, mais savoir <em>pourquoi</em> montre qu'on a compris la formule.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="config-exo">
+  <h2><span class="num">04</span>Configurer RIPv2</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Deux commandes qu'on oublie <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un camarade a configuré RIP ainsi sur R1 :</p>
+<div class="bloc-code"><pre><code>R1(config)# router rip
+R1(config-router)# network 172.30.0.0
+R1(config-router)# network 10.0.0.0
+R1(config-router)# end</code></pre></div>
+      <p>Le réseau utilise des sous-réseaux en <code>/26</code>. Rien ne fonctionne correctement.</p>
+      <ol>
+        <li>Quelles sont les deux commandes manquantes ?</li>
+        <li>Que fait exactement la commande <code>network</code> ?</li>
+        <li>Pourquoi écrit-on <code>network 10.0.0.0</code> et non
+            <code>network 10.0.0.4 255.255.255.252</code> ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Les deux commandes manquantes</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# router rip
+R1(config-router)# version 2              ← ⚠ SANS ÇA, C'EST DU RIPv1
+R1(config-router)# no auto-summary        ← ⚠ désactive la récapitulation
+R1(config-router)# network 172.30.0.0
+R1(config-router)# network 10.0.0.0</code></pre></div>
+        <p><strong><code>version 2</code></strong> — par défaut, IOS émet du <strong>RIPv1</strong>,
+           qui <strong>n'envoie pas les masques</strong>. Avec des sous-réseaux en <code>/26</code>,
+           le routeur receveur applique le masque de classe et interprète tout de travers.</p>
+        <p><strong><code>no auto-summary</code></strong> — sans elle, RIP résume les réseaux à leur
+           frontière de classe. <code>172.30.1.0/26</code> et <code>172.30.2.0/26</code> seraient
+           tous deux annoncés comme <code>172.30.0.0/16</code> : impossible de les distinguer.</p>
+
+        <h4>2. Ce que fait <code>network</code></h4>
+        <p>Deux choses, et la première surprend :</p>
+        <ol>
+          <li><strong>Activer RIP sur toutes les interfaces</strong> dont l'adresse tombe dans ce
+              réseau — elles commencent à émettre et à écouter les mises à jour ;</li>
+          <li><strong>Annoncer</strong> ces réseaux aux voisins.</li>
+        </ol>
+        <p>Oublier un <code>network</code> ne fait donc pas seulement « manquer une annonce » : cela
+           <strong>désactive RIP sur l'interface concernée</strong>. Deux routeurs voisins
+           physiquement ne se parlent alors pas du tout.</p>
+
+        <h4>3. Pourquoi l'adresse <em>classful</em></h4>
+        <p>Parce que la commande <code>network</code> de RIP <strong>n'accepte pas de masque</strong> :
+           elle raisonne par classes. <code>network 10.0.0.0</code> désigne tout le réseau de
+           classe A, et active donc RIP sur <em>toutes</em> les interfaces en 10.x.x.x — y compris
+           celle en <code>10.0.0.4/30</code>.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ L'effet de bord à connaître</div>
+          <p><code>network 10.0.0.0</code> active RIP sur <strong>toutes</strong> les interfaces en
+             10.x.x.x — même celles qu'on ne voulait pas voir participer. Sur un lien vers un
+             partenaire ou vers Internet, cela revient à <strong>annoncer sa topologie interne à
+             l'extérieur</strong>.</p>
+          <p>La parade : <code>passive-interface</code>, qui laisse le réseau annoncé mais
+             <strong>empêche l'envoi de mises à jour</strong> sur cette interface.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config-router)# passive-interface fa0/0     ← pas de RIP vers le LAN
+R1(config-router)# passive-interface default   ← toutes, puis on rouvre au cas par cas
+R1(config-router)# no passive-interface s0/0/0</code></pre></div>
+          <p>Un LAN d'utilisateurs n'a aucune raison de recevoir des mises à jour RIP : c'est du
+             trafic inutile, et un cadeau à un attaquant qui découvrirait ainsi toute la topologie.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="lab">
+  <h2><span class="num">05</span>Lab RIPv2 complet</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Trois routeurs, RIPv2 de bout en bout <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Trois routeurs en ligne : R1 — R2 — R3.</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Routeur</th><th>LAN</th><th>Liaison gauche</th><th>Liaison droite</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R1</strong></td><td><code>192.168.1.0/24</code></td><td>—</td><td><code>10.0.0.0/30</code></td></tr>
+          <tr><td><strong>R2</strong></td><td><code>192.168.2.0/24</code></td><td><code>10.0.0.0/30</code></td><td><code>10.0.0.4/30</code></td></tr>
+          <tr><td><strong>R3</strong></td><td><code>192.168.3.0/24</code></td><td><code>10.0.0.4/30</code></td><td>—</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Écrivez la configuration RIP des trois routeurs, puis indiquez ce que
+         <code>show ip route rip</code> doit afficher sur R1 après convergence.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! ─────────── R1 ───────────
+R1(config)# router rip
+R1(config-router)# version 2
+R1(config-router)# no auto-summary
+R1(config-router)# network 192.168.1.0
+R1(config-router)# network 10.0.0.0
+R1(config-router)# passive-interface fa0/0        ← pas de RIP vers le LAN
+
+! ─────────── R2 ───────────
+R2(config)# router rip
+R2(config-router)# version 2
+R2(config-router)# no auto-summary
+R2(config-router)# network 192.168.2.0
+R2(config-router)# network 10.0.0.0                ← couvre LES DEUX liaisons
+R2(config-router)# passive-interface fa0/0
+
+! ─────────── R3 ───────────
+R3(config)# router rip
+R3(config-router)# version 2
+R3(config-router)# no auto-summary
+R3(config-router)# network 192.168.3.0
+R3(config-router)# network 10.0.0.0
+R3(config-router)# passive-interface fa0/0</code></pre></div>
+
+        <h4>Ce que R1 doit afficher après convergence</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip route rip
+
+R    192.168.2.0/24 [120/1] via 10.0.0.2, 00:00:14, Serial0/0/0
+R    192.168.3.0/24 [120/2] via 10.0.0.2, 00:00:14, Serial0/0/0
+R    10.0.0.4/30    [120/1] via 10.0.0.2, 00:00:14, Serial0/0/0</code></pre></div>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Réseau</th><th>Métrique</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.2.0/24</code></td><td><strong>1</strong></td>
+                <td>Le LAN de R2 : 1 routeur traversé</td></tr>
+            <tr><td><code>192.168.3.0/24</code></td><td><strong>2</strong></td>
+                <td>Le LAN de R3 : R2 l'annonce à 1 saut, R1 ajoute 1</td></tr>
+            <tr><td><code>10.0.0.4/30</code></td><td><strong>1</strong></td>
+                <td>La liaison R2–R3, annoncée par R2</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>Le réseau <code>10.0.0.0/30</code> n'apparaît pas</strong> dans cette liste : il
+           est <strong>directement connecté</strong> à R1, donc marqué <code>C</code> et non
+           <code>R</code>. Une route connectée (AD 0) l'emporte toujours sur une route RIP
+           (AD 120).</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Vérifier que la convergence est terminée</div>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>show ip protocols       version, réseaux, timers, voisins, interfaces passives
+show ip route rip       les routes apprises + leur métrique
+debug ip rip            les mises à jour EN DIRECT — puis undebug all</code></pre></div>
+          <p>Comptez <strong>une à deux minutes</strong> avant de conclure que quelque chose ne
+             marche pas : avec un cycle de 30 secondes, l'information doit franchir chaque routeur
+             l'un après l'autre.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="dep">
+  <h2><span class="num">06</span>Dépannage RIP</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Cinq symptômes <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <ol>
+        <li><code>show ip route rip</code> est vide sur R1, alors que RIP semble configuré.</li>
+        <li>R1 apprend le LAN de R2 mais pas celui de R3.</li>
+        <li>Les sous-réseaux en <code>/26</code> apparaissent en <code>/16</code> dans la table.</li>
+        <li>Un lien tombe ; les postes continuent d'envoyer dans le vide pendant trois minutes.</li>
+        <li>Un réseau distant est marqué <code>possibly down</code> avec une métrique de 16.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>#</th><th>Cause</th><th>Vérification / correction</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Convergence non atteinte · interfaces <code>down</code> ·
+                <code>network</code> manquant · versions différentes entre voisins</td>
+                <td><code>show ip protocols</code> · <code>show ip interface brief</code> ·
+                    attendre 1 à 2 min</td></tr>
+            <tr><td>2</td><td>R2 n'annonce pas le réseau de sa liaison vers R3, ou R3 n'a pas de
+                <code>network</code> pour son LAN</td>
+                <td><code>show ip protocols</code> sur R2 et R3</td></tr>
+            <tr><td>3</td><td><code>no auto-summary</code> <strong>manquant</strong>, ou on est
+                resté en <strong>RIPv1</strong></td>
+                <td>Ajouter <code>version 2</code> et <code>no auto-summary</code></td></tr>
+            <tr><td>4</td><td><strong>Comportement normal de RIP</strong> — timer
+                <em>invalid</em> à 180 s</td><td>Rien à corriger : c'est la limite du protocole</td></tr>
+            <tr><td>5</td><td>Le réseau est devenu <strong>inaccessible</strong> — métrique 16 =
+                infini</td><td>Vérifier le lien distant ; la route sera purgée à 240 s</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le cas n° 4 n'est pas une panne</div>
+          <p>C'est <strong>le</strong> défaut de RIP, et la question porte précisément là-dessus.
+             Quand un lien tombe, RIP attend <strong>180 secondes</strong> sans mise à jour avant de
+             marquer la route invalide, et <strong>240 secondes</strong> avant de la supprimer.
+             Pendant tout ce temps, les paquets partent dans le vide.</p>
+          <p>Ce n'est pas réparable : c'est <em>par construction</em>. La réponse attendue est
+             « passer à OSPF », qui détecte la panne en quelques secondes grâce aux messages
+             <em>hello</em> et à la diffusion immédiate des changements d'état.</p>
+        </div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 La métrique 16 — le code de l'inaccessible</div>
+          <p>RIP ne dispose d'aucun moyen de dire « cette route n'existe plus ». Il annonce donc la
+             route avec une métrique de <strong>16</strong>, valeur conventionnelle de
+             <strong>l'infini</strong>. Tout routeur qui la reçoit comprend que la destination est
+             injoignable.</p>
+          <p>C'est aussi la raison de la limite à 15 sauts : il fallait réserver une valeur pour
+             l'infini, et 16 devait rester atteignable rapidement pour éviter le
+             <em>comptage à l'infini</em>.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">🌍 Le comptage à l'infini, en une phrase</div>
+          <p>R1 perd un réseau. R2, qui n'est pas encore au courant, l'annonce à R1 comme joignable
+             « à 2 sauts par moi ». R1 le croit, l'annonce à 3, R2 le réapprend à 4… et ainsi de
+             suite jusqu'à 16.</p>
+          <p>C'est exactement contre cela que servent le <strong>holddown</strong> — ignorer les
+             nouvelles informations sur une route qui vient de tomber — et la limite à 15 sauts, qui
+             borne la durée du phénomène.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Oublier <code>version 2</code></strong> — on fait du RIPv1 sans le savoir, et le
+          VLSM ne marche pas.</li>
+      <li><strong>Oublier <code>no auto-summary</code></strong> — les sous-réseaux fusionnent.</li>
+      <li><strong>Croire que <code>network</code> ne fait qu'annoncer</strong> — il
+          <em>active</em> RIP sur l'interface.</li>
+      <li><strong>Écrire un masque après <code>network</code></strong> — RIP raisonne par
+          classes.</li>
+      <li><strong>Conclure trop vite</strong> — laissez 1 à 2 minutes de convergence.</li>
+      <li><strong>Confondre AD et métrique</strong> dans <code>[120/2]</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>4-cours_Routage_Dynamique.pdf — le professeur</li>
+      <li>4- Lab — Configuring Basic RIPv2.pdf</li>
+      <li>cours-routage-dynamique.html</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

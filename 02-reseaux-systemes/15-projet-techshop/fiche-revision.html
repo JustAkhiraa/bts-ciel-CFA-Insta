@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projet TechShop — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : plan d'adressage, VLAN et trunks, Router-on-a-Stick, ip helper-address, routage statique, NAT, ACL, commandes de vérification et questions d'oral.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux, Systèmes &amp; Cybersécurité</span>
+    <span class="sep">/</span><span>Chapitre 15</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Projet TechShop</h1>
+  <p class="chapeau">Recto-verso. À relire la veille de l'oral.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo large cle">
+    <h2>⚡ Du besoin métier à la technique</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Le sujet dit…</th><th>…donc</th><th>Où</th></tr></thead>
+      <tbody>
+        <tr><td>« broadcasts excessifs »</td><td><strong>VLAN</strong></td><td>commutateurs</td></tr>
+        <tr><td>« confidentialité », « RGPD »</td><td><strong>VLAN + ACL</strong></td><td>+ routeur</td></tr>
+        <tr><td>« accès contrôlé aux serveurs »</td><td><strong>ACL</strong></td><td>R-STICK</td></tr>
+        <tr><td>« site distant »</td><td><strong>routage statique</strong></td><td>les 2 routeurs</td></tr>
+        <tr><td>« publier le serveur »</td><td><strong>NAT statique</strong></td><td>R-STICK</td></tr>
+        <tr><td>« adressage dynamique »</td><td><strong>DHCP</strong> + <code>helper</code></td>
+            <td>serveur + R-STICK</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Les 3 critères d'acceptation :</strong> DHCP cohérent par VLAN · communication
+       inter-VLAN et entrepôt · serveur inventaire joignable via NAT.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Plan d'adressage</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>VLAN 10 VENTE</td><td><code>192.168.10.0/24</code></td></tr>
+        <tr><td>VLAN 20 ADMIN</td><td><code>192.168.20.0/24</code></td></tr>
+        <tr><td>VLAN 30 TECH</td><td><code>192.168.30.0/24</code></td></tr>
+        <tr><td>Entrepôt</td><td><code>192.168.50.0/24</code></td></tr>
+        <tr><td>WAN</td><td><code>10.0.0.0/30</code></td></tr>
+        <tr><td>Internet</td><td><code>203.0.113.0/24</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Passerelle en <code>.1</code> · serveurs <code>.2</code>–<code>.20</code> · DHCP à partir
+       de <code>.21</code> → <strong>234 adresses</strong>.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Le /30 des liens point à point</h2>
+    <div class="formule">hôtes = 2<sup>(32−préfixe)</sup> − 2</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>/30</code></td><td>255.255.255.252</td><td>2 hôtes</td></tr>
+        <tr><td><code>/29</code></td><td>255.255.255.248</td><td>6</td></tr>
+        <tr><td><code>/28</code></td><td>255.255.255.240</td><td>14</td></tr>
+        <tr><td><code>/27</code></td><td>255.255.255.224</td><td>30</td></tr>
+        <tr><td><code>/24</code></td><td>255.255.255.0</td><td>254</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><code>10.0.0.0/30</code> : réseau <code>.0</code>, hôtes <code>.1</code> et
+       <code>.2</code>, broadcast <code>.3</code>. Zéro adresse perdue.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les serveurs</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>192.168.20.10</code></td><td>fichiers (VLAN 20)</td></tr>
+        <tr><td><code>192.168.20.11</code></td><td><strong>DHCP + DNS</strong> (VLAN 20)</td></tr>
+        <tr><td><code>192.168.30.10</code></td><td>inventaire (VLAN 30)</td></tr>
+        <tr><td><code>203.0.113.20</code></td><td>façade publique de l'inventaire</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Adresse <strong>fixe</strong> sur la machine <em>et</em> <strong>exclue</strong> du pool
+       DHCP. Les deux, sinon conflit.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Access ou trunk</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>access</strong></td><td>un poste, un serveur<br>1 VLAN, sans étiquette</td></tr>
+        <tr><td><strong>trunk</strong></td><td>vers un switch ou le routeur<br>N VLAN, étiquetés 802.1Q</td></tr>
+      </tbody>
+    </table>
+    </div>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>interface range fa0/6-15
+ switchport mode access
+ switchport access vlan 10
+
+interface fa0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 10,20,99</code></pre></div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Un trunk se configure par paire</h2>
+    <p>La <strong>même</strong> liste <code>allowed</code> et le <strong>même</strong> VLAN natif
+       aux deux extrémités — VLAN natif inclus dans la liste.</p>
+    <p>Un VLAN autorisé d'un seul côté est <strong>élagué</strong> : il se comporte comme un VLAN
+       interdit, sans le moindre message d'erreur.</p>
+    <div class="formule">On ne termine jamais un côté<br>sans faire l'autre</div>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Lire <code>show interfaces trunk</code></h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>1<sup>er</sup> bloc</td><td>le lien est-il monté ? <code>trunking</code>, natif</td></tr>
+        <tr><td>2<sup>e</sup> bloc</td><td><em>Vlans allowed</em> = ce que <strong>j'ai
+            demandé</strong></td></tr>
+        <tr><td>3<sup>e</sup> bloc</td><td><em>…forwarding state and not pruned</em> = ce qui
+            <strong>circule vraiment</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>En dépannage, <strong>seul le 3<sup>e</sup> compte</strong>. La plupart des étudiants
+       s'arrêtent au premier.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Sécurité des commutateurs</h2>
+    <ul>
+      <li>VLAN natif en <strong>99</strong>, dédié et vide → contre le <em>VLAN hopping</em></li>
+      <li><code>allowed vlan</code> explicite (pruning) : un lien ne porte que le nécessaire</li>
+      <li>ports inutilisés → VLAN <strong>999 parking</strong> <em>et</em> <code>shutdown</code></li>
+      <li><code>enable secret</code> + <code>service password-encryption</code></li>
+      <li><code>line con 0</code> et <code>line vty 0 4</code> avec <code>login</code></li>
+      <li><code>copy running-config startup-config</code></li>
+    </ul>
+    <p>Un port laissé en <strong>VLAN 1</strong> est une porte d'entrée.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Router-on-a-Stick</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>interface g0/0
+ no shutdown          ← le PHYSIQUE d'abord
+
+interface g0/0.10
+ encapsulation dot1q 10
+ ip address 192.168.10.1 255.255.255.0</code></pre></div>
+    <p>Les 3 erreurs : interface physique éteinte · <code>encapsulation</code> oubliée · port d'en
+       face en <em>access</em>.</p>
+    <div class="formule">Un seul VLAN marche ?<br>→ le MODE du port en face</div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ <code>ip helper-address</code></h2>
+    <p>Un routeur <strong>bloque les broadcasts</strong>. Le <code>DHCPDISCOVER</code> d'un poste
+       sans adresse part vers <code>255.255.255.255</code> et meurt sur la sous-interface.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>interface g0/0.10
+ ip helper-address 192.168.20.11
+interface g0/0.30
+ ip helper-address 192.168.20.11
+!  g0/0.20 : RIEN — le serveur y est déjà</code></pre></div>
+    <p>Le relais fait <strong>deux</strong> choses : broadcast → unicast, <em>et</em> il inscrit
+       l'adresse de la sous-interface dans le champ <em>giaddr</em> — c'est lui qui dit au serveur
+       dans quel pool puiser.</p>
+    <div class="formule">Sur les VLAN <strong>sans</strong> serveur DHCP</div>
+  </article>
+
+  <article class="memo">
+    <h2>Routage : deux cas</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! siège : plusieurs sorties → précise
+ip route 192.168.50.0 255.255.255.0 10.0.0.2
+
+! entrepôt : une seule sortie → défaut
+ip route 0.0.0.0 0.0.0.0 10.0.0.1</code></pre></div>
+    <p>Réseau d'extrémité (<em>stub</em>) → route par défaut. Nœud à plusieurs sorties → routes
+       précises.</p>
+    <p><strong>Toujours vérifier le retour</strong> : un aller sans retour ne donne aucun ping.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Lire <code>show ip route</code></h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>C</code></td><td>Connected — interface active</td></tr>
+        <tr><td><code>L</code></td><td>Local — l'adresse du routeur, en /32</td></tr>
+        <tr><td><code>S</code></td><td>Static — écrite à la main</td></tr>
+        <tr><td><code>S*</code></td><td>route par défaut</td></tr>
+        <tr><td><code>[1/0]</code></td><td>distance admin. 1 (statique) / métrique 0</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Distances : direct <strong>0</strong> · statique <strong>1</strong> · RIP
+       <strong>120</strong>. Un <code>C</code> manquant = interface éteinte.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ NAT : trois blocs, pas un</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>ip nat inside source static 192.168.30.10 203.0.113.20
+
+interface g0/1
+ ip nat outside
+interface g0/0.30
+ ip nat inside</code></pre></div>
+    <p>Sans <code>inside</code>/<code>outside</code>, <strong>rien ne se passe</strong> — et
+       <code>show running-config</code> paraît correct.</p>
+    <div class="formule">Le diagnostic :<br><code>show ip nat statistics</code></div>
+  </article>
+
+  <article class="memo">
+    <h2>Statique ou PAT</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Statique</th><th>PAT (overload)</th></tr></thead>
+      <tbody>
+        <tr><td>1 privée ↔ 1 publique</td><td>N privées → 1 publique</td></tr>
+        <tr><td>flux <strong>entrant</strong></td><td>flux <strong>sortant</strong></td></tr>
+        <tr><td>permanente</td><td>durée de la session</td></tr>
+        <tr><td>publier un serveur</td><td>faire sortir des clients</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Table : <em>Inside local</em> = l'adresse privée réelle · <em>Inside global</em> = la façade
+       publique.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ ACL — l'ordre est la règle</h2>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>ip access-list extended PROTECT_ADMIN
+ permit ip 192.168.10.0 0.0.0.255 host 192.168.20.10
+ permit ip 192.168.10.0 0.0.0.255 host 192.168.20.11
+ deny   ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+ permit ip any any
+
+interface g0/0.20
+ ip access-group PROTECT_ADMIN out</code></pre></div>
+    <p>Lue de haut en bas, <strong>s'arrête à la première correspondance</strong>. Exceptions
+       (<code>host</code>) d'abord, refus large ensuite.</p>
+    <p>Le <code>permit ip any any</code> final contre le <strong>deny implicite</strong> —
+       sans lui, tout est bloqué.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Masques génériques</h2>
+    <div class="formule">générique =<br>255.255.255.255 − masque</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>/24</code></td><td><code>0.0.0.255</code></td></tr>
+        <tr><td><code>/26</code></td><td><code>0.0.0.63</code></td></tr>
+        <tr><td>une machine</td><td><code>host x.x.x.x</code></td></tr>
+        <tr><td>n'importe qui</td><td><code>any</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>0</strong> = ce bit doit correspondre · <strong>1</strong> = libre.
+       <code>in</code> = protéger l'émetteur · <code>out</code> = protéger la ressource.</p>
+  </article>
+
+  <article class="memo large">
+    <h2>Les commandes de vérification</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Commande</th><th>Où</th><th>Ce qu'on y lit</th></tr></thead>
+      <tbody>
+        <tr><td><code>show vlan brief</code></td><td>switch</td>
+            <td>VLAN actifs et ports affectés</td></tr>
+        <tr><td><code>show interfaces trunk</code></td><td>switch</td>
+            <td>trunk monté, natif, et le <strong>3<sup>e</sup> bloc</strong></td></tr>
+        <tr><td><code>show interfaces fa0/1 switchport</code></td><td>switch</td>
+            <td>access ou trunk — tranche le doute</td></tr>
+        <tr><td><code>show ip interface brief</code></td><td>routeur</td>
+            <td>interfaces up/up et leurs adresses</td></tr>
+        <tr><td><code>show ip route</code></td><td>routeur</td>
+            <td>les <code>C</code>, le <code>S</code>, la passerelle par défaut</td></tr>
+        <tr><td><code>show ip nat statistics</code></td><td>routeur</td>
+            <td><em>inside</em> / <em>outside</em> bien posés</td></tr>
+        <tr><td><code>show ip nat translation</code></td><td>routeur</td>
+            <td>la traduction, <strong>avant et après</strong> trafic</td></tr>
+        <tr><td><code>show access-lists</code></td><td>routeur</td>
+            <td>l'ordre réel, par numéros de séquence</td></tr>
+        <tr><td><code>show run | include excluded</code></td><td>routeur</td>
+            <td>les exclusions DHCP réellement en place</td></tr>
+        <tr><td><code>ipconfig /all</code></td><td>poste</td>
+            <td>IP, masque, passerelle, DHCP, DNS</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Diagnostiquer une adresse</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>169.254.x.x</code></td><td><strong>APIPA</strong> — aucune réponse DHCP :
+            port en mauvais VLAN, <code>helper</code> absent, serveur arrêté</td></tr>
+        <tr><td>bon format,<br>mauvais réseau</td><td>le port d'accès est dans le
+            <strong>mauvais VLAN</strong> — pas le serveur</td></tr>
+        <tr><td>adresse &lt; <code>.21</code></td><td>plage mal bornée, ou saisie manuelle →
+            risque de conflit</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo">
+    <h2>Lire un ping</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>Reply from</code> <em>la cible</em></td><td>ça marche dans les deux sens</td></tr>
+        <tr><td><code>Reply from</code> <em>la passerelle</em> :<br><code>host unreachable</code></td>
+            <td>un routeur <strong>refuse</strong> (ACL) ou ne sait pas router</td></tr>
+        <tr><td><code>Request timed out</code></td><td>perdu à l'aller, ou pas de route de retour</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>TTL</strong> : part de 128 (Windows), −1 par routeur traversé.
+       <strong>126 = deux routeurs</strong>.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Check-list « nouveau VLAN »</h2>
+    <ol>
+      <li>créer le VLAN sur <strong>chaque</strong> switch traversé</li>
+      <li>affecter les ports d'accès</li>
+      <li>l'ajouter aux listes <code>allowed</code> de <strong>tous</strong> les trunks —
+          <em>l'oubli n° 1</em></li>
+      <li>sous-interface routeur : <code>encapsulation dot1q</code> + IP</li>
+      <li>reporter <code>ip helper-address</code>, <code>ip nat inside</code>, ACL</li>
+      <li>créer le pool DHCP</li>
+    </ol>
+    <p>Trunk oublié = les postes se voient entre eux mais ne sortent pas du switch.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les pièges vus sur ce projet</h2>
+    <ul>
+      <li><code>no ip dhcp excluded-address</code> — le <code>no</code> <strong>supprime</strong>
+          l'exclusion : le pool peut distribuer la passerelle</li>
+      <li><code>dns-server</code> pointant vers une machine <strong>inexistante</strong> — les
+          pings par IP passent, les noms non</li>
+      <li>VLAN 99 absent de la liste <code>allowed</code> d'un côté du trunk</li>
+      <li>VLAN 999 <em>annoncé</em> dans le rapport, <strong>jamais créé</strong> sur le switch</li>
+      <li>rapport décrivant une version antérieure à la maquette livrée</li>
+    </ul>
+  </article>
+
+  <article class="memo large cle">
+    <h2>⚡ Prouver — une capture par critère</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Critère</th><th>La capture</th><th>Ce qu'elle démontre</th></tr></thead>
+      <tbody>
+        <tr><td>DHCP</td><td><code>ipconfig /all</code> d'un poste <strong>VLAN 30</strong></td>
+            <td>le bail <em>et</em> le relais, d'un coup</td></tr>
+        <tr><td>Inter-VLAN</td><td><code>ping</code> VLAN 10 → VLAN 30</td>
+            <td>le Router-on-a-Stick route</td></tr>
+        <tr><td>Site distant</td><td><code>ping</code> entrepôt → siège</td>
+            <td>les deux routes ; TTL 126 = 2 routeurs</td></tr>
+        <tr><td>NAT</td><td><code>show ip nat translation</code> <strong>avant / après</strong></td>
+            <td>la traduction est vivante</td></tr>
+        <tr><td>Ossature</td><td><code>show ip route</code> sur R-STICK</td>
+            <td>sous-interfaces montées, route statique posée</td></tr>
+        <tr><td>ACL</td><td>2 pings : <strong>un refus + un succès</strong></td>
+            <td>elle filtre sans tout couper</td></tr>
+        <tr><td>DNS</td><td><code>ping</code> par <strong>nom</strong></td>
+            <td>l'adresse entre crochets = résolution OK</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Un test qui réussit toujours ne prouve rien.</strong> Tous les pings du projet
+       visaient des adresses IP : la panne DNS y était invisible.</p>
+  </article>
+
+  <article class="memo large">
+    <h2>L'oral — quoi · pourquoi · limite</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Question</th><th>Le cœur de la réponse</th></tr></thead>
+      <tbody>
+        <tr><td>VLAN plutôt que réseaux physiques ?</td>
+            <td>même isolation, un seul matériel, réaffectation par commande.
+                <em>Limite : dépend de la configuration.</em></td></tr>
+        <tr><td>VLAN natif en 99 ?</td>
+            <td>le natif circule sans étiquette ; en VLAN 1 il ouvre au <em>VLAN hopping</em>.</td></tr>
+        <tr><td><code>ip helper-address</code> ?</td>
+            <td>un routeur bloque les broadcasts ; le relais convertit et renseigne
+                <em>giaddr</em>.</td></tr>
+        <tr><td>Deux types de routes ?</td>
+            <td>stub → défaut ; nœud à plusieurs sorties → précises.</td></tr>
+        <tr><td>Statique plutôt que PAT ?</td>
+            <td>le besoin est entrant. <em>Limite : aucun poste ne sort — il faudrait PAT + route
+                par défaut.</em></td></tr>
+        <tr><td>Votre faiblesse ?</td>
+            <td>SW-COEUR est un SPOF → EtherChannel + HSRP. Lien unique vers l'entrepôt, non
+                chiffré.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>C'est la troisième colonne — la limite — qui fait la différence.</strong> Savoir où
+       une solution cesse de convenir prouve qu'on l'a choisie.</p>
+  </article>
+
+</section>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

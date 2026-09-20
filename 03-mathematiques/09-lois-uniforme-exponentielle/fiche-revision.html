@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lois uniforme &amp; exponentielle — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : loi uniforme, fiabilité et défaillance, loi exponentielle, loi sans mémoire, MTBF, retrouver λ par le logarithme, opérations aX+b.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Lois uniforme &amp; exponentielle</h1>
+  <p class="chapeau">Recto-verso. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo large cle">
+    <h2>⚡ Discret (ch. 08) ≠ continu (ch. 09)</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Discret</th><th>Continu</th></tr></thead>
+      <tbody>
+        <tr><td>Description</td><td>un tableau</td><td>une <strong>densité</strong></td></tr>
+        <tr><td>P(X = valeur)</td><td>se calcule</td><td><strong>= 0</strong></td></tr>
+        <tr><td>Probabilité</td><td>une somme</td><td>une <strong>aire</strong></td></tr>
+        <tr><td>« &lt; » et « ⩽ »</td><td><strong>différents</strong> (glissement d'un cran)</td>
+            <td><strong>identiques</strong> — rien à décaler</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Ne transposez pas le réflexe du chapitre 08 : ici <code>P(T &lt; 3) = P(T ⩽ 3)</code>.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Loi uniforme U[a ; b]</h2>
+    <div class="formule">densité = <strong>1/(b − a)</strong></div>
+    <div class="formule">P(c ⩽ X ⩽ d) = <strong>(d − c)/(b − a)</strong><br>
+      E(X) = <strong>(a + b)/2</strong></div>
+    <p>Une probabilité est l'<strong>aire d'un rectangle</strong> : largeur × hauteur.</p>
+    <p>Aire totale = (b − a) × 1/(b − a) = <strong>1</strong> — c'est ce qui fixe la hauteur.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les bornes ne partent pas de 0</h2>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>T ↝ U[10 ; 60]
+
+densité = 1/(60−10) = 1/50   ← pas 1/60 !
+
+P(T &lt; 20) = 10/50 = 0,2      ← largeur 10, pas 20
+P(T &gt; 40) = 20/50 = 0,4
+E(T) = (10+60)/2 = 35</code></pre></div>
+    <p><strong>Dessinez le rectangle</strong> avec ses vraies bornes : la largeur se lit sur le
+       dessin.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Exemples types — U[0 ; 10]</h2>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(X &lt; 3)     = 3 × 1/10  = 0,3
+P(X ⩾ 6)     = 4 × 1/10  = 0,4
+P(3 &lt; X ⩽ 8) = 5 × 1/10  = 0,5</code></pre></div>
+    <p>Bus toutes les 12 min : <code>U[0;12]</code> → P(attendre &gt; 9 min) = 3/12 = 0,25,
+       attente moyenne 6 min.</p>
+  </article>
+
+  <article class="memo large">
+    <h2>Fiabilité et défaillance</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Fonction</th><th>Définition</th><th>Se lit</th><th>Sens</th><th>Origine</th></tr></thead>
+      <tbody>
+        <tr><td><strong>R(t)</strong></td><td>P(T &gt; t)</td>
+            <td>fonctionne <strong>encore</strong></td>
+            <td><strong>décroît</strong> de 1 vers 0</td><td><em>reliability</em></td></tr>
+        <tr><td><strong>F(t)</strong></td><td>P(T ⩽ t)</td>
+            <td>est <strong>tombé en panne</strong></td>
+            <td><strong>croît</strong> de 0 vers 1</td><td><em>failure</em></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">R(t) + F(t) = 1</div>
+    <p><strong>AFNOR</strong> : « la fiabilité est la caractéristique d'un dispositif qui s'exprime
+       par la <em>probabilité</em> d'accomplir une fonction requise, dans des <em>conditions
+       données</em>, pendant une <em>période donnée</em> ».</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ La loi exponentielle</h2>
+    <div class="formule">T ↝ E<sub>λ</sub> &nbsp;⟺&nbsp;
+      R(t) = <strong>e<sup>−λt</sup></strong></div>
+    <p>Le <strong>signe moins</strong> est ce qui fait décroître. Sans lui, avec λ &gt; 0 :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>e^(+0,5) = 1,65   ✘ probabilité &gt; 1
+e^(−0,5) = 0,61   ✔</code></pre></div>
+    <div class="formule">Contrôle : <strong>R(t) doit diminuer quand t augmente</strong></div>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Les trois calculs</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>« fonctionne encore après t »</td>
+            <td><code>e<sup>−λt</sup></code></td></tr>
+        <tr><td>« tombe en panne avant t »</td>
+            <td><code>1 − e<sup>−λt</sup></code></td></tr>
+        <tr><td>« panne entre t₁ et t₂ »</td>
+            <td><code>e<sup>−λt₁</sup> − e<sup>−λt₂</sup></code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>λt doit être sans unité</strong> : λ en h⁻¹ ⟹ t en heures.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Traduire l'énoncé</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>« fonctionne encore », « survit », « tient »</td><td>T &gt; t → R</td></tr>
+        <tr><td>« dure au moins »</td><td>T ⩾ t = T &gt; t → R</td></tr>
+        <tr><td>« tombe en panne », « périt », « grille »</td><td>T &lt; t → 1 − R</td></tr>
+        <tr><td>« durée de vie inférieure à »</td><td>T &lt; t → 1 − R</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Contrôle : pour un t grand, « fonctionne encore » doit être <strong>petit</strong>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Sans mémoire</h2>
+    <div class="formule">P<sub>(T&gt;t₁)</sub>(T &gt; t₁ + t₂) = P(T &gt; t₂)</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>e^(−0,75) / e^(−0,5) = e^(−0,25)
+
+tenir 500 h de plus a la même probabilité
+qu'elle sorte de sa boîte ou qu'elle ait
+déjà brûlé 1 000 h.</code></pre></div>
+    <p>Vient de <code>e<sup>a</sup>×e<sup>b</sup> = e<sup>a+b</sup></code>. La loi exponentielle est
+       la <strong>seule</strong> loi continue à l'avoir.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Électronique, pas mécanique</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Adapté</th><th>Mal adapté</th></tr></thead>
+      <tbody>
+        <tr><td>composants électroniques</td><td>pièces mécaniques</td></tr>
+        <tr><td>circuits, LED</td><td>roulements, courroies, pneus</td></tr>
+        <tr><td>panne <strong>accidentelle</strong></td>
+            <td>panne par <strong>usure</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>« Sans mémoire » = <strong>le matériel ne vieillit pas</strong>. Un roulement, lui, s'use :
+       son passé compte.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ MTBF</h2>
+    <div class="formule">E(T) = σ(T) = <strong>1/λ</strong></div>
+    <p><strong>M</strong>ean <strong>T</strong>ime <strong>B</strong>efore <strong>F</strong>ailure
+       — Moyenne des Temps de Bon Fonctionnement.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>λ = 0,0005 h⁻¹
+MTBF = 1/0,0005 = 2 000 heures</code></pre></div>
+    <p>λ grand → fragile · λ petit → fiable. Les deux sont <strong>inverses</strong>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Moyenne ≠ médiane</h2>
+    <div class="formule">R(1/λ) = e<sup>−1</sup> ≈ <strong>0,37</strong></div>
+    <p>Seuls <strong>37 %</strong> des exemplaires atteignent la durée de vie moyenne — quel que
+       soit λ. La loi est très asymétrique.</p>
+    <div class="formule">médiane = <strong>ln 2 / λ</strong> ≈ 0,693/λ</div>
+    <p>Monstre : moyenne 10 min, médiane <strong>6,93 min</strong>.</p>
+  </article>
+
+  <article class="memo large cle">
+    <h2>⚡ Retrouver λ — les trois cas</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>On donne</th><th>Méthode</th><th>Exemple</th></tr></thead>
+      <tbody>
+        <tr><td>la durée moyenne</td><td><code>λ = 1/E(T)</code></td>
+            <td>E(T) = 4 min → λ = 0,25</td></tr>
+        <tr><td>une probabilité</td><td><code>λ = −ln(p)/t</code></td>
+            <td>P(Y&gt;8) = 0,7 → λ = −ln(0,7)/8 ≈ 0,044 6</td></tr>
+        <tr><td>on cherche une durée</td><td><code>t = −ln(p)/λ</code></td>
+            <td>P(T&gt;t) = 0,1, λ = 0,25 → t = 9,21 min</td></tr>
+      </tbody>
+    </table>
+    </div>
+<div class="bloc-code"><span class="langue">calcul — la manipulation</span><pre><code>e^(−λt) = p
+   −λt  = ln(p)          ← ln(e^x) = x
+     λ  = −ln(p)/t
+
+⚠ ln(p) est NÉGATIF quand 0 &lt; p &lt; 1
+  → le « − » le rend positif</code></pre></div>
+    <p><strong>Vérifiez toujours en remontant</strong> : <code>e<sup>−λt</sup></code> doit
+       redonner p.</p>
+    <p><strong>Convertir les décimales</strong> : 9,210 3 min → 0,210 3 × 60 = 12,6 s →
+       <strong>9 min 13 s</strong>, et non 9 min 21 s.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Opérations aX + b</h2>
+    <div class="formule">E(aX + b) = <strong>a E(X) + b</strong><br>
+      V(aX + b) = <strong>a² V(X)</strong></div>
+    <p>Le <strong>« + b » disparaît</strong> dans la variance : décaler ne disperse pas.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>E(X)=17  V(X)=61   Y = 0,9X + 2
+
+E(Y) = 0,9×17 + 2  = 17,3
+V(Y) = 0,81 × 61   = 49,41</code></pre></div>
+    <p><code>σ(aX+b) = |a| σ(X)</code> — valeur absolue.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ La somme X + Y</h2>
+    <p><strong>Loi conjointe</strong> : un tableau à double entrée, une case par couple
+       (x ; y). Les cases totalisent 1.</p>
+    <p><strong>Lois marginales</strong> : additionner par colonne pour X, par ligne pour Y.</p>
+    <p><strong>Loi de X + Y</strong> : regrouper les cases qui donnent le même total.</p>
+    <div class="formule">E(X + Y) = E(X) + E(Y)&nbsp;&nbsp;<span class="sub">toujours</span><br>
+      V(X + Y) = V(X) + V(Y)&nbsp;&nbsp;<span class="sub">SI indépendantes</span></div>
+    <p><strong>Test d'indépendance</strong> : <code>P(X=x et Y=y) =? P(X=x) × P(Y=y)</code>.
+       Une seule case en défaut suffit à conclure que <strong>non</strong>.</p>
+    <p><strong>⚠️ Incompatibles ≠ indépendants</strong> : incompatibles → on
+       <strong>additionne</strong> (« ou ») · indépendants → on <strong>multiplie</strong>
+       (« et »).</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les valeurs à reconnaître</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>e<sup>−0,25</sup></td><td>0,778 8</td></tr>
+        <tr><td>e<sup>−0,5</sup></td><td>0,606 5</td></tr>
+        <tr><td>e<sup>−0,75</sup></td><td>0,472 4</td></tr>
+        <tr><td>e<sup>−1</sup></td><td><strong>0,367 9</strong></td></tr>
+        <tr><td>e<sup>−1,25</sup></td><td>0,286 5</td></tr>
+        <tr><td>e<sup>−2</sup></td><td>0,135 3</td></tr>
+        <tr><td>ln 2</td><td>0,693 1</td></tr>
+        <tr><td>ln 0,1</td><td>−2,302 6</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les 5 erreurs coûteuses</h2>
+    <ol>
+      <li><strong>Oublier le signe moins</strong> dans e<sup>−λt</sup> → résultat &gt; 1.</li>
+      <li><strong>Confondre R et F</strong> — le « 1 − » manquant.</li>
+      <li><strong>Mélanger les unités</strong> : λ en h⁻¹ avec un t en minutes.</li>
+      <li><strong>Perdre le signe de ln</strong> : ln(0,7) est négatif.</li>
+      <li><strong>Transposer le glissement d'un cran</strong> du chapitre 08 — inutile ici.</li>
+    </ol>
+  </article>
+
+  <article class="memo large">
+    <h2>La structure type d'un sujet</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Question</th><th>Attendu</th></tr></thead>
+      <tbody>
+        <tr><td>1. « Expliquer pourquoi λ = … »</td>
+            <td><strong>citer</strong> E(T) = 1/λ et poser l'équation — la valeur est donnée</td></tr>
+        <tr><td>2. Décrire (T &lt; 3) par une phrase</td><td>traduire en français, puis calculer</td></tr>
+        <tr><td>3. P(T &lt; t) ou P(T ⩾ t)</td><td>la bonne formule, l'arrondi demandé</td></tr>
+        <tr><td>4. t tel que P(T &gt; t) = p</td><td>équation avec <strong>ln</strong>, puis
+            conversion en secondes</td></tr>
+        <tr><td>5. MTBF</td><td>1/λ <strong>+ une phrase d'interprétation</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Toujours conclure par une phrase</strong> avec un pourcentage et les mots de
+       l'énoncé : « environ 52,8 % des clients sont servis en moins de 3 minutes ».</p>
+  </article>
+
+</section>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

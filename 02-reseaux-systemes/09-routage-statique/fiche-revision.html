@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage statique — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : configuration d'interface, table de routage, distance administrative, routes statiques et route par défaut.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Routage statique — l'essentiel</h1>
+  <p class="chapeau">Une page à imprimer (⌘P). Les commandes et la méthode de dépannage.</p>
+</header>
+
+<section class="section-revision" id="base-rs">
+  <h2><span class="num">01</span>Le routeur</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les 3 paramètres d'un hôte</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Adresse IP</strong></td><td>Identifie l'hôte</td></tr>
+          <tr><td><strong>Masque</strong></td><td>Identifie son <strong>sous-réseau</strong></td></tr>
+          <tr><td><strong>Passerelle</strong></td><td>Le routeur pour sortir du sous-réseau</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">C'est le <strong>masque</strong> qui décide si la
+        destination est locale ou distante.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Configurer une interface</h3>
+<div class="bloc-code"><pre><code>R1(config)# interface fa0/0
+R1(config-if)# ip address 192.168.1.1 255.255.255.0
+R1(config-if)# no shutdown        ← ⚠ OBLIGATOIRE
+
+! liaison série, côté DCE seulement
+R1(config-if)# clock rate 64000
+
+! bouclage : UP d'office, pas de no shutdown
+R1(config)# interface loopback 0
+R1(config-if)# ip address 10.1.1.1 255.255.255.255</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px">Sur un <strong>routeur</strong>, toutes les
+        interfaces sont éteintes par défaut. Sur un <strong>switch</strong>, elles sont actives.</p>
+    </div>
+
+    <div class="memo">
+      <h3>La loopback</h3>
+      <ul>
+        <li>Interface <strong>logique interne</strong>, sans port physique</li>
+        <li>Toujours à l'état <strong>UP</strong></li>
+        <li>Utile pour les <strong>tests</strong></li>
+        <li>Rôle important en <strong>OSPF</strong> (Router-ID)</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="table-rs">
+  <h2><span class="num">02</span>Table de routage</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Lire une ligne</h3>
+<div class="bloc-code"><pre><code>S    192.168.3.0/24 [1/0] via 192.168.2.2
+└┬┘  └─────┬──────┘ └─┬─┘     └────┬─────┘
+ │         │          │            └── tronçon suivant (next-hop)
+ │         │          └── [distance administrative / métrique]
+ │         └── réseau de destination
+ └── SOURCE :  L local · C connecté · S statique · R RIP · O OSPF · D EIGRP
+
+S*   0.0.0.0/0 [1/0] via 192.0.2.1        ← * = route candidate par défaut</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px">Chaque interface active produit
+        <strong>2 lignes</strong> : <code>C</code> le réseau, <code>L</code> l'adresse exacte en
+        /32.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Distance administrative</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td>Connecté</td><td><strong>0</strong></td></tr>
+          <tr><td><strong>Statique</strong></td><td><strong>1</strong></td></tr>
+          <tr><td>EIGRP</td><td>90</td></tr>
+          <tr><td>OSPF</td><td>110</td></tr>
+          <tr><td>RIP</td><td>120</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>AD la plus faible gagne.</strong>
+        AD = crédibilité de la <em>source</em>. Métrique = longueur du <em>chemin</em>.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Correspondance la plus longue</h3>
+      <p style="margin:0 0 .35rem;font-size:13.5px">Entre plusieurs routes qui correspondent, le
+        routeur retient celle dont le <strong>masque est le plus long</strong>.</p>
+      <div class="formule" style="font-size:12.5px">/26 &gt; /25 &gt; /24 &gt; … &gt; /0</div>
+      <p style="margin:0;font-size:13px">La route par défaut (/0) n'est donc utilisée qu'en
+        <strong>dernier recours</strong>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="routes-rs">
+  <h2><span class="num">03</span>Écrire les routes</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Les 3 méthodes + la route par défaut</h3>
+<div class="bloc-code"><pre><code>ip route &lt;réseau&gt; &lt;masque&gt; &lt;next-hop OU interface&gt;
+
+! 1 — next-hop seul          → liaisons ETHERNET (multi-accès)
+ip route 192.168.3.0 255.255.255.0 192.168.2.2
+
+! 2 — interface seule        → liaisons SÉRIE (point à point)
+ip route 192.168.3.0 255.255.255.0 s0/0/0
+
+! 3 — entièrement spécifiée
+ip route 192.168.3.0 255.255.255.0 s0/0/0 192.168.2.2
+
+! ROUTE PAR DÉFAUT — pour un réseau d'EXTRÉMITÉ (une seule sortie)
+ip route 0.0.0.0 0.0.0.0 192.168.2.2
+
+! ROUTE FLOTTANTE — secours, AD forcée plus haute
+ip route 0.0.0.0 0.0.0.0 172.16.0.1 10</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <strong>Toujours configurer l'ALLER ET LE
+        RETOUR.</strong> Une route statique se pose par paire.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Masques à connaître</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><code>/24</code></td><td><code>255.255.255.0</code></td></tr>
+          <tr><td><code>/25</code></td><td><code>255.255.255.128</code></td></tr>
+          <tr><td><code>/26</code></td><td><code>255.255.255.192</code></td></tr>
+          <tr><td><code>/30</code></td><td><code>255.255.255.252</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Le <code>/30</code> est le masque standard d'une
+        liaison inter-routeurs : exactement 2 adresses.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Statique — bilan</h3>
+      <p style="margin:0 0 .3rem;font-size:13.5px"><span class="rep-ok"><strong>+</strong></span>
+        Aucun CPU, RAM ni bande passante · prévisible · rien n'est diffusé sur le réseau</p>
+      <p style="margin:0;font-size:13.5px"><span class="rep-non"><strong>−</strong></span>
+        Tout à la main · <strong>ne s'adapte pas aux pannes</strong> · explose avec la taille</p>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>À utiliser :</strong> petits réseaux
+        stables · réseaux d'extrémité · route par défaut.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="dep-rs">
+  <h2><span class="num">04</span>Dépannage</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>L'ordre de test — du plus proche au plus lointain</h3>
+<div class="bloc-code"><pre><code>1. R1 → ping le VOISIN direct           échec ? physique ou adressage
+2. R1 → ping une interface DISTANTE     échec ? il manque une route
+3. PC  → ping sa PROPRE passerelle      échec ? PC mal configuré ou interface down
+4. PC  → ping un PC d'un autre réseau   échec seul ? c'est la route RETOUR
+5. tracert                              montre EXACTEMENT où ça s'arrête</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Un ping qui part sans revenir n'est jamais
+        un problème d'aller.</strong> Cherchez le retour.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Commandes de vérification</h3>
+<div class="bloc-code"><pre><code>show ip route              la table
+show ip interface brief    l'état des interfaces
+show ip route | include X  filtrer
+show controllers s0/0/0    DCE ou DTE ?
+ping / tracert</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 6 oublis classiques</h3>
+      <ol>
+        <li><code>no shutdown</code> sur les interfaces</li>
+        <li><code>clock rate</code> côté DCE</li>
+        <li>La <strong>route retour</strong></li>
+        <li>Le bon <strong>masque</strong> (/25, /26, /30)</li>
+        <li>La <strong>passerelle</strong> sur les postes</li>
+        <li><code>copy run start</code></li>
+      </ol>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Un routeur ne connaît que ses réseaux connectés.</strong> Le reste s'apprend,
+          route par route.</li>
+      <li><strong>Une route statique se configure par paire</strong> — aller et retour.</li>
+      <li><strong>AD la plus faible, puis correspondance la plus longue.</strong> Dans cet
+          ordre.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>3-cours_Routage statique.pdf — le professeur</li>
+      <li>A-2-TP-Note_Decouverte_RoutageCisco-01.pdf</li>
+      <li>Doc 3-Troubleshoot Static and Default Routes.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
