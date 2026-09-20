@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python POO — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés des TP3 et TP4 : classe Departement encapsulée, classe Entreprise gestionnaire, équipements réseau et héritage avec super().">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#departement">1 · La classe Departement</a></li>
+    <li><a href="#entreprise">2 · La classe Entreprise</a></li>
+    <li><a href="#equipement">3 · Équipement encapsulé</a></li>
+    <li><a href="#serveur">4 · Héritage : Serveur</a></li>
+    <li><a href="#debogage-poo">5 · Quatre bugs à trouver</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 08</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Python POO — exercices</h1>
+  <p class="chapeau">Les TP3 et TP4 corrigés : encapsuler des données, puis les faire hériter.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>La question à se poser à chaque fois</h2>
+      <p><strong>Qui a le droit de modifier cette donnée, et sous quelles conditions ?</strong>
+         Si la réponse est « n'importe qui, n'importe comment », l'attribut doit devenir privé et
+         passer par un setter qui contrôle.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="departement">
+  <h2><span class="num">01</span>La classe Departement (TP3 · ex. 1)</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Attributs privés et contrôles <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Créer une classe <code>Departement</code> avec les attributs <strong>privés</strong>
+            <code>nom</code> et <code>budget</code>.</li>
+        <li>Créer <code>get_nom()</code> et <code>get_budget()</code>.</li>
+        <li>Créer <code>ajouter_budget(montant)</code> et <code>retirer_budget(montant)</code>.</li>
+        <li>Créer <code>afficher()</code> qui affiche le nom et le budget.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Departement:
+
+    def __init__(self, nom, budget):
+        self.__nom    = nom
+        self.__budget = budget
+
+    # --- getters ---
+    def get_nom(self):
+        return self.__nom
+
+    def get_budget(self):
+        return self.__budget
+
+    # --- modifications contrôlées ---
+    def ajouter_budget(self, montant):
+        if montant &gt; 0:
+            self.__budget += montant
+        else:
+            print("Le montant doit être positif.")
+
+    def retirer_budget(self, montant):
+        if montant &lt;= 0:
+            print("Le montant doit être positif.")
+        elif montant &gt; self.__budget:
+            print("Budget insuffisant.")
+        else:
+            self.__budget -= montant
+
+    def afficher(self):
+        print(f"Département : {self.__nom} | Budget : {self.__budget} €")</code></pre></div>
+
+<div class="bloc-code"><span class="langue">test</span><pre><code>d = Departement("Informatique", 50000)
+d.afficher()                  # Département : Informatique | Budget : 50000 €
+
+d.ajouter_budget(10000)
+d.afficher()                  # Budget : 60000 €
+
+d.retirer_budget(80000)       # Budget insuffisant.
+d.retirer_budget(-5)          # Le montant doit être positif.
+d.afficher()                  # Budget : 60000 €   ← inchangé</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Tout l'intérêt est dans <code>retirer_budget</code></div>
+          <p>C'est là que l'encapsulation prend son sens. Si <code>budget</code> était public, on
+             écrirait <code>d.budget -= 80000</code> et le département se retrouverait avec un
+             budget <strong>négatif</strong> — un état absurde.</p>
+          <p>La méthode impose <strong>deux contrôles</strong> : montant positif, et budget
+             suffisant. L'objet ne peut plus devenir incohérent, quoi que fasse le reste du
+             programme.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le double souligné, dans <code>__init__</code> ET partout</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>def __init__(self, nom, budget):
+    self.__nom = nom          # privé
+
+def get_nom(self):
+    return self.nom           # ✘ AttributeError : « nom » n'existe pas</code></pre></div>
+          <p>L'attribut s'appelle <code>__nom</code>, pas <code>nom</code>. Toute méthode de la
+             classe doit écrire <code>self.__nom</code>. C'est l'oubli le plus courant quand on
+             passe du public au privé.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="entreprise">
+  <h2><span class="num">02</span>La classe Entreprise (TP3 · ex. 2)</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Un objet qui en contient d'autres <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <ol start="5">
+        <li>Créer une classe <code>Entreprise</code> avec un nom et une liste de départements.</li>
+        <li><code>ajouter_departement()</code> et <code>afficher_departements()</code>.</li>
+        <li><code>budget_total()</code> : la somme des budgets.</li>
+        <li><code>rechercher_departement(nom)</code> : retourne le département ou
+            <code>None</code>.</li>
+        <li><code>supprimer_departement(nom)</code>.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Entreprise:
+
+    def __init__(self, nom):
+        self.__nom          = nom
+        self.__departements = []        # une liste D'OBJETS Departement
+
+    def ajouter_departement(self, departement):
+        self.__departements.append(departement)
+
+    def afficher_departements(self):
+        print(f"=== {self.__nom} ===")
+        for d in self.__departements:
+            d.afficher()                # on appelle la méthode de CHAQUE département
+
+    def budget_total(self):
+        total = 0
+        for d in self.__departements:
+            total += d.get_budget()
+        return total
+
+    def rechercher_departement(self, nom):
+        for d in self.__departements:
+            if d.get_nom() == nom:
+                return d
+        return None                     # rien trouvé
+
+    def supprimer_departement(self, nom):
+        d = self.rechercher_departement(nom)    # on réutilise la recherche !
+        if d is not None:
+            self.__departements.remove(d)
+        else:
+            print(f"Département « {nom} » introuvable.")</code></pre></div>
+
+<div class="bloc-code"><span class="langue">test</span><pre><code>e = Entreprise("TechShop")
+e.ajouter_departement(Departement("Informatique", 50000))
+e.ajouter_departement(Departement("Commercial", 30000))
+e.ajouter_departement(Departement("Logistique", 20000))
+
+e.afficher_departements()
+print("Budget total :", e.budget_total())     # 100000
+
+d = e.rechercher_departement("Commercial")
+if d is not None:
+    d.ajouter_budget(5000)
+
+print("Budget total :", e.budget_total())     # 105000
+
+e.supprimer_departement("Logistique")
+print("Budget total :", e.budget_total())     # 85000</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 La composition : un objet fait d'objets</div>
+          <p><code>Entreprise</code> ne contient pas des chaînes ni des nombres, mais de
+             <strong>vrais objets <code>Departement</code></strong>. C'est ce qui rend
+             <code>budget_total()</code> si court : on demande à chaque département son budget, sans
+             savoir comment il le stocke.</p>
+          <p>Remarquez aussi que <code>supprimer_departement</code> <strong>réutilise</strong>
+             <code>rechercher_departement</code> plutôt que de reparcourir la liste. Une méthode
+             peut en appeler une autre du même objet via <code>self</code>.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>is not None</code>, pas <code>!= None</code></div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>if d is not None:      # ✔ la forme correcte en Python
+if d != None:          # fonctionne, mais non idiomatique
+if d:                  # ⚠ piège : faux si l'objet est « vide »</code></pre></div>
+          <p>La dernière forme est dangereuse : un objet peut être considéré comme <em>faux</em>
+             (liste vide, zéro), et l'on manquerait un résultat pourtant valide. Pour tester
+             l'absence, on compare <strong>à l'identité</strong> avec <code>is None</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="equipement">
+  <h2><span class="num">03</span>Équipement encapsulé (TP4 · partie 1)</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Protéger une adresse IP <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Contexte :</strong> dans une entreprise, tous les équipements réseau possèdent une
+         adresse IP, donnée sensible qui ne doit pas être accessible directement.</p>
+      <ol>
+        <li>Classe <code>Equipement</code> avec l'attribut privé <code>ip</code>, initialisé dans
+            <code>__init__</code>.</li>
+        <li><code>get_ip()</code> et <code>set_ip(nouvelle_ip)</code> — l'IP doit être une
+            <strong>chaîne non vide</strong>, sinon message d'erreur.</li>
+        <li><code>afficher_ip()</code>, qui utilise <code>get_ip()</code>.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+
+    def __init__(self, ip):
+        self.__ip = ip
+
+    def get_ip(self):
+        return self.__ip
+
+    def set_ip(self, nouvelle_ip):
+        if isinstance(nouvelle_ip, str) and nouvelle_ip.strip() != "":
+            self.__ip = nouvelle_ip
+        else:
+            print("Adresse IP invalide : elle doit être une chaîne non vide.")
+
+    def afficher_ip(self):
+        print(f"Adresse IP : {self.get_ip()}")</code></pre></div>
+
+<div class="bloc-code"><span class="langue">test</span><pre><code>e = Equipement("192.168.1.1")
+e.afficher_ip()             # Adresse IP : 192.168.1.1
+
+e.set_ip("10.0.0.1")
+e.afficher_ip()             # Adresse IP : 10.0.0.1
+
+e.set_ip("")                # Adresse IP invalide…
+e.set_ip(12345)             # Adresse IP invalide…
+e.afficher_ip()             # Adresse IP : 10.0.0.1   ← inchangée</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Deux contrôles, pas un</div>
+          <p>L'énoncé dit « une <strong>chaîne</strong> non vide » : cela fait deux vérifications.</p>
+          <div class="tableau">
+          <table>
+            <tbody>
+              <tr><td><code>isinstance(x, str)</code></td><td>est-ce bien une chaîne ?</td></tr>
+              <tr><td><code>x.strip() != ""</code></td><td>et n'est-elle pas vide, ni seulement des
+                  espaces ?</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Sans <code>isinstance</code>, <code>set_ip(12345)</code> passerait — et
+             <code>12345.strip()</code> planterait avec une <code>AttributeError</code>. L'ordre des
+             deux tests compte : <code>and</code> s'arrête au premier faux.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Pourquoi <code>afficher_ip()</code> passe par <code>get_ip()</code></div>
+          <p>L'énoncé l'exige, et ce n'est pas un caprice. Si demain l'affichage de l'IP doit être
+             partiellement masqué (<code>192.168.*.*</code> dans les journaux), on modifie
+             <strong>uniquement</strong> <code>get_ip()</code> — et tout ce qui l'utilise en
+             bénéficie.</p>
+          <p>C'est la règle générale : <strong>une classe passe par ses propres accesseurs</strong>
+             plutôt que d'aller lire l'attribut en direct.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="serveur">
+  <h2><span class="num">04</span>Héritage : Serveur (TP4 · parties 2 et 3)</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Une fille qui ajoute un attribut <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol start="4">
+        <li>Créer <code>Serveur</code> qui <strong>hérite</strong> de <code>Equipement</code> et
+            ajoute l'attribut <code>os</code>. Utiliser <code>super().__init__(ip)</code>.</li>
+        <li><code>afficher_infos()</code> : l'adresse IP (via <code>get_ip()</code>) et le système
+            d'exploitation.</li>
+        <li>Créer <code>Serveur("192.168.1.10", "Linux")</code> et tester.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Serveur(Equipement):
+
+    def __init__(self, ip, os):
+        super().__init__(ip)        # la partie « Equipement » de l'objet
+        self.os = os                # ce qui est propre au serveur
+
+    def afficher_infos(self):
+        print(f"IP : {self.get_ip()}")
+        print(f"OS : {self.os}")
+
+
+s = Serveur("192.168.1.10", "Linux")
+s.afficher_infos()
+# IP : 192.168.1.10
+# OS : Linux
+
+s.set_ip("192.168.1.20")     # méthode HÉRITÉE, rien à réécrire
+s.afficher_infos()           # IP : 192.168.1.20</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Ce que l'héritage a évité</div>
+          <p><code>Serveur</code> n'écrit <strong>aucune</strong> ligne concernant l'IP : ni
+             l'attribut, ni le getter, ni le setter et ses contrôles. Tout vient de
+             <code>Equipement</code>.</p>
+          <p>Ajoutez maintenant <code>Routeur</code>, <code>Switch</code>, <code>PointAcces</code> :
+             chacun n'écrit que ce qui lui est propre. Et le jour où la validation de l'IP doit
+             devenir plus stricte, on la corrige <strong>à un seul endroit</strong>.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>self.__ip</code> est inaccessible depuis la fille</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Serveur(Equipement):
+    def afficher_infos(self):
+        print(self.__ip)      # ✘ AttributeError</code></pre></div>
+          <p>Un attribut <strong>privé</strong> (<code>__ip</code>) n'est pas hérité de façon
+             utilisable : Python l'a renommé <code>_Equipement__ip</code>, et depuis
+             <code>Serveur</code> le <code>self.__ip</code> chercherait
+             <code>_Serveur__ip</code> — qui n'existe pas.</p>
+          <p>C'est bien pour cela que l'énoncé impose <code>get_ip()</code>. Si l'on veut qu'une
+             fille accède directement à l'attribut, on le déclare <strong>protégé</strong>
+             (<code>_ip</code>, un seul souligné) plutôt que privé.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="debogage-poo">
+  <h2><span class="num">05</span>Quatre bugs à trouver</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Diagnostic <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Ce code contient <strong>quatre</strong> erreurs. Trouvez-les.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+    def __init__(ip):
+        self.__ip = ip
+
+    def get_ip():
+        return self.__ip
+
+class Routeur(Equipement):
+    def __init__(self, ip, interfaces):
+        self.interfaces = interfaces
+
+r = Routeur("10.0.0.1", 4)
+print(r.__ip)</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>#</th><th>Erreur</th><th>Message obtenu</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>def __init__(ip):</code> — <strong><code>self</code>
+                manquant</strong></td>
+                <td><code>TypeError: __init__() takes 1 positional argument but 2 were
+                    given</code></td></tr>
+            <tr><td>2</td><td><code>def get_ip():</code> — <strong><code>self</code>
+                manquant</strong> ici aussi</td><td>idem</td></tr>
+            <tr><td>3</td><td><strong><code>super().__init__(ip)</code> oublié</strong> dans
+                <code>Routeur</code> : <code>__ip</code> n'est jamais créé</td>
+                <td><code>AttributeError</code> à la première lecture</td></tr>
+            <tr><td>4</td><td><code>r.__ip</code> — on lit un attribut
+                <strong>privé de l'extérieur</strong></td>
+                <td><code>AttributeError: 'Routeur' object has no attribute '__ip'</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+
+<div class="bloc-code"><span class="langue">python — version corrigée</span><pre><code>class Equipement:
+    def __init__(self, ip):
+        self.__ip = ip
+
+    def get_ip(self):
+        return self.__ip
+
+
+class Routeur(Equipement):
+    def __init__(self, ip, interfaces):
+        super().__init__(ip)
+        self.interfaces = interfaces
+
+    def afficher_infos(self):
+        print(f"Routeur {self.get_ip()} — {self.interfaces} interfaces")
+
+
+r = Routeur("10.0.0.1", 4)
+r.afficher_infos()        # Routeur 10.0.0.1 — 4 interfaces</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Lire les messages d'erreur de la POO</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Message</th><th>Cherchez…</th></tr></thead>
+            <tbody>
+              <tr><td><code>takes 0 positional arguments but 1 was given</code></td>
+                  <td><code>self</code> oublié dans la définition</td></tr>
+              <tr><td><code>object has no attribute '_Classe__x'</code></td>
+                  <td><code>super().__init__()</code> oublié</td></tr>
+              <tr><td><code>object has no attribute '__x'</code></td>
+                  <td>accès à un privé depuis l'extérieur</td></tr>
+              <tr><td><code>missing 1 required positional argument</code></td>
+                  <td>un argument manque à l'appel du constructeur</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Le nom mutilé <code>_Classe__attribut</code> dans un message est un <strong>indice
+             précieux</strong> : il vous dit à quelle classe appartenait vraiment l'attribut.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong><code>self</code> oublié</strong> dans la définition d'une méthode.</li>
+      <li><strong><code>super().__init__()</code> oublié</strong> dans le constructeur d'une
+          fille.</li>
+      <li><strong><code>self.nom</code> au lieu de <code>self.__nom</code></strong> après être
+          passé au privé.</li>
+      <li><strong>Lire un attribut privé de l'extérieur</strong> au lieu d'utiliser le getter.</li>
+      <li><strong>Un setter sans contrôle</strong> — il ne sert alors à rien.</li>
+      <li><strong>Oublier <code>return</code></strong> dans un getter (renvoie
+          <code>None</code>).</li>
+      <li><strong><code>if d:</code> au lieu de <code>if d is not None:</code></strong>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>TP3 — POO : classes Departement et Entreprise (le professeur)</li>
+      <li>TP4 — POO : encapsulation et héritage, gestion d'équipements réseau</li>
+      <li>comptes rendus d'élève</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

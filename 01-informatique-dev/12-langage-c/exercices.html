@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Langage C — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#e1">1 · Appréciation d'une note</a></li>
+    <li><a href="#e2">2 · Somme de 1 à N</a></li>
+    <li><a href="#e3">3 · Menu de gestion du serveur</a></li>
+    <li><a href="#e4">4 · Nombre inversé</a></li>
+    <li><a href="#e5">5 · Le jeu du nombre caché</a></li>
+    <li><a href="#e6">6 · Nombre presque parfait</a></li>
+    <li><a href="#e7">7 · Les nombres formés par trois chiffres</a></li>
+    <li><a href="#e8">8 · Six programmes à tracer</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 12</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+
+  <h1>Langage C — exercices</h1>
+  <p class="chapeau">Les huit exercices du TP2, corrigés — et chaque correction a été
+     <strong>compilée puis exécutée</strong> avant d'être écrite ici.</p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Comment travailler ce chapitre</div>
+    <p>Le C ne s'apprend pas en lisant. <strong>Ouvrez un compilateur</strong> — en ligne sur
+       <code>onlinegdb.com</code>, ou Code::Blocks sur le poste — et tapez chaque programme.
+       Vous ferez des erreurs de compilation : c'est le but. Apprendre à lire un message
+       d'erreur est la moitié du métier.</p>
+    <p class="rap">Cherchez d'abord seul, au moins dix minutes. La correction ne vaut que si
+       vous savez ce que vous n'avez pas trouvé.</p>
+  </div>
+</header>
+
+<!-- ===================================================== 1 -->
+<section id="e1">
+  <h2><span class="num">01</span>Appréciation d'une note</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Note sur 20 → appréciation <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Demander une note sur 20 et afficher une appréciation :</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Note</th><th>Appréciation</th></tr></thead>
+        <tbody>
+          <tr><td>note &lt; 10</td><td>Insuffisant</td></tr>
+          <tr><td>10 ⩽ note &lt; 12</td><td>Passable</td></tr>
+          <tr><td>12 ⩽ note &lt; 14</td><td>Assez bien</td></tr>
+          <tr><td>14 ⩽ note &lt; 16</td><td>Bien</td></tr>
+          <tr><td>note ⩾ 16</td><td>Très bien</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Le programme doit aussi vérifier que la note est comprise <strong>entre 0 et 20</strong>.
+         Sinon, afficher <code>Note invalide</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    float note;
+
+    printf("Entrez une note sur 20 : ");
+    scanf("%f", &amp;note);
+
+    if (note &lt; 0 || note &gt; 20) {
+        printf("Note invalide\n");
+    } else if (note &lt; 10) {
+        printf("Insuffisant\n");
+    } else if (note &lt; 12) {
+        printf("Passable\n");
+    } else if (note &lt; 14) {
+        printf("Assez bien\n");
+    } else if (note &lt; 16) {
+        printf("Bien\n");
+    } else {
+        printf("Tres bien\n");
+    }
+    return 0;
+}</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Pourquoi <code>else if</code> et pas cinq <code>if</code> séparés</div>
+          <p>Avec une chaîne <code>else if</code>, dès qu'une condition est vraie
+             <strong>toutes les suivantes sont ignorées</strong>. C'est ce qui permet d'écrire
+             <code>note &lt; 12</code> tout court : on sait déjà qu'elle n'est pas inférieure à
+             10, puisque la branche précédente n'a pas été prise.</p>
+          <p>Avec cinq <code>if</code> indépendants, il faudrait écrire
+             <code>if (note &gt;= 10 &amp;&amp; note &lt; 12)</code> — plus long, et plus facile
+             à rater.</p>
+          <p class="rap">Une chaîne <code>else if</code> se lit comme un escalier : on descend
+             jusqu'à la première marche qui tient.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le test de validité doit venir EN PREMIER</div>
+          <p>Si l'on place <code>if (note &lt; 0 || note &gt; 20)</code> en dernier, il ne sera
+             jamais atteint : une note de 25 aurait déjà déclenché <code>note &gt;= 16</code> →
+             <em>Très bien</em>. Une note de −5 aurait déclenché <code>note &lt; 10</code> →
+             <em>Insuffisant</em>.</p>
+          <p class="rap">Dans une chaîne <code>else if</code>, <strong>l'ordre est la
+             logique</strong>. Le cas d'erreur se teste avant les cas normaux.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 <code>float</code> plutôt que <code>int</code></div>
+          <p>Une note peut valoir 12,5. Avec <code>int note;</code>, <code>scanf("%d", …)</code>
+             lirait <code>12</code> et laisserait <code>,5</code> dans le tampon — la suite du
+             programme partirait en vrille. Le type doit correspondre à la réalité de la donnée,
+             pas à ce qui est le plus simple à écrire.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution pour 8 → Insuffisant, 11 → Passable, 13 → Assez
+           bien, 15 → Bien, 18 → Très bien, 25 → Note invalide.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 2 -->
+<section id="e2">
+  <h2><span class="num">02</span>Somme de 1 à N</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Accumuler dans une boucle <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Demander un entier N puis calculer la somme des nombres de 1 à N.</p>
+<div class="bloc-code"><span class="langue">exemple attendu</span><pre><code>N = 5
+1 + 2 + 3 + 4 + 5 = 15</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int n, i, somme = 0;
+
+    printf("Entrez N : ");
+    scanf("%d", &amp;n);
+
+    for (i = 1; i &lt;= n; i++) {
+        somme = somme + i;
+    }
+
+    printf("La somme de 1 a %d vaut %d\n", n, somme);
+    return 0;
+}</code></pre></div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>int somme = 0;</code> — le <code>= 0</code> n'est pas décoratif</div>
+          <p>Écrire <code>int somme;</code> puis <code>somme = somme + i;</code> additionne à une
+             valeur <strong>inconnue</strong> : celle qui traînait en mémoire. Le programme
+             compile, tourne, et donne un résultat différent d'une exécution à l'autre.</p>
+          <p class="rap">C'est <em>le</em> réflexe à prendre : <strong>tout accumulateur
+             s'initialise</strong>. À 0 pour une somme, à 1 pour un produit.</p>
+        </div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 La vérification qui ne coûte rien</div>
+          <p>Gauss a montré que la somme de 1 à n vaut <code>n × (n + 1) / 2</code>. Pour n = 5 :
+             <code>5 × 6 / 2 = 15</code> ✔</p>
+          <p>Un test rapide de votre programme : si la boucle et la formule ne donnent pas la
+             même chose, c'est la boucle qui a tort.</p>
+<div class="bloc-code"><span class="langue">C — contrôle</span><pre><code>printf("controle : %d\n", n * (n + 1) / 2);</code></pre></div>
+        </div>
+        <p class="rap">Vérifié à l'exécution : N = 5 donne bien 15.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 3 -->
+<section id="e3">
+  <h2><span class="num">03</span>Menu de gestion du serveur</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Un menu avec <code>switch</code> <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Afficher le menu suivant, lire un choix entre 1 et 5, et réagir en conséquence.</p>
+<div class="bloc-code"><span class="langue">affichage attendu</span><pre><code>===== GESTION DU SERVEUR =====
+1. Démarrer le serveur
+2. Arrêter le serveur
+3. Redémarrer le serveur
+4. Afficher l'état du serveur
+5. Quitter
+
+Votre choix :</code></pre></div>
+      <p>1 → <em>Le serveur démarre…</em> · 2 → <em>Le serveur s'arrête…</em> ·
+         3 → <em>Le serveur redémarre…</em> · 4 → <em>État du serveur : ACTIF</em> ·
+         5 → <em>Au revoir</em> · tout autre choix → <em>Choix invalide</em>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int choix;
+
+    printf("===== GESTION DU SERVEUR =====\n");
+    printf("1. Demarrer le serveur\n");
+    printf("2. Arreter le serveur\n");
+    printf("3. Redemarrer le serveur\n");
+    printf("4. Afficher l'etat du serveur\n");
+    printf("5. Quitter\n\n");
+    printf("Votre choix : ");
+    scanf("%d", &amp;choix);
+
+    switch (choix) {
+        case 1: printf("Le serveur demarre...\n");    break;
+        case 2: printf("Le serveur s'arrete...\n");   break;
+        case 3: printf("Le serveur redemarre...\n");  break;
+        case 4: printf("Etat du serveur : ACTIF\n");  break;
+        case 5: printf("Au revoir\n");                break;
+        default: printf("Choix invalide\n");
+    }
+    return 0;
+}</code></pre></div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Enlevez un <code>break</code> et observez</div>
+          <p>Supprimez celui du <code>case 1</code> puis choisissez 1 : le programme affiche
+             <em>Le serveur démarre…</em> <strong>puis</strong> <em>Le serveur s'arrête…</em>
+             Il ne s'arrête qu'au premier <code>break</code> rencontré.</p>
+          <p class="rap">Faites l'expérience une fois : vous n'oublierez plus jamais de
+             <code>break</code>.</p>
+        </div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Les accents dans un terminal</div>
+          <p>La correction écrit <em>Demarrer</em> sans accent. Ce n'est pas de la négligence :
+             selon l'encodage de la console — surtout sous Windows — un <code>é</code> peut
+             s'afficher <code>Ã©</code>. Tant que l'encodage n'est pas maîtrisé, mieux vaut un
+             texte sans accent qu'un affichage illisible.</p>
+          <p class="rap">Dans le rendu de votre TP, gardez les accents de l'énoncé et
+             signalez ce point : cela montre que vous l'avez compris.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 Aller plus loin : redemander tant que le choix est invalide</div>
+          <p>Un vrai menu ne s'arrête pas après un mauvais choix. C'est exactement le cas d'usage
+             du <code>do…while</code> :</p>
+<div class="bloc-code"><span class="langue">C</span><pre><code>do {
+    printf("Votre choix : ");
+    scanf("%d", &amp;choix);
+} while (choix &lt; 1 || choix &gt; 5);</code></pre></div>
+          <p>Il faut au moins une saisie : la condition se teste donc <strong>après</strong>.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution : 1 → Le serveur démarre…, 4 → État du serveur :
+           ACTIF, 9 → Choix invalide.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 4 -->
+<section id="e4">
+  <h2><span class="num">04</span>Nombre inversé</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Retourner un entier <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Demander un entier <strong>positif</strong> et afficher ce nombre à l'envers. Si le
+         nombre n'est pas positif, afficher
+         <code>Erreur : le nombre doit être positif.</code></p>
+<div class="bloc-code"><span class="langue">exemple attendu</span><pre><code>Entrez un nombre : 12345
+Nombre inversé : 54321</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int nombre, inverse = 0, chiffre;
+
+    printf("Entrez un nombre : ");
+    scanf("%d", &amp;nombre);
+
+    if (nombre &lt;= 0) {
+        printf("Erreur : le nombre doit etre positif.\n");
+        return 0;
+    }
+
+    while (nombre &gt; 0) {
+        chiffre = nombre % 10;            /* le dernier chiffre */
+        inverse = inverse * 10 + chiffre; /* on le pousse à gauche */
+        nombre  = nombre / 10;            /* on le retire du nombre */
+    }
+
+    printf("Nombre inverse : %d\n", inverse);
+    return 0;
+}</code></pre></div>
+
+        <div class="encart analogie">
+          <div class="titre">🔍 Le mécanisme : dépiler d'un côté, empiler de l'autre</div>
+          <p>Deux opérations font tout le travail, et ce sont exactement celles du chapitre
+             d'arithmétique de 1<sup>re</sup> année :</p>
+          <ul>
+            <li><code>nombre % 10</code> donne le <strong>dernier chiffre</strong> (le reste de
+                la division par 10) ;</li>
+            <li><code>nombre / 10</code> <strong>retire</strong> ce dernier chiffre (division
+                entière).</li>
+          </ul>
+          <p>Et <code>inverse * 10 + chiffre</code> décale ce qu'on a déjà d'un cran vers la
+             gauche pour faire de la place au nouveau chiffre.</p>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Tour</th><th><code>nombre</code></th><th><code>chiffre</code></th><th><code>inverse</code></th></tr></thead>
+            <tbody>
+              <tr><td>départ</td><td>12345</td><td>—</td><td>0</td></tr>
+              <tr><td>1</td><td>1234</td><td>5</td><td>5</td></tr>
+              <tr><td>2</td><td>123</td><td>4</td><td>54</td></tr>
+              <tr><td>3</td><td>12</td><td>3</td><td>543</td></tr>
+              <tr><td>4</td><td>1</td><td>2</td><td>5432</td></tr>
+              <tr><td>5</td><td>0</td><td>1</td><td>54321</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="rap">Quand <code>nombre</code> atteint 0, la condition devient fausse et la
+             boucle s'arrête d'elle-même. On n'a jamais eu besoin de compter les chiffres.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Pourquoi <code>while</code> et non <code>for</code></div>
+          <p>On ne sait pas combien de chiffres contient le nombre — c'est justement ce qu'on
+             refuse de compter. Le nombre de tours est donc inconnu : c'est la définition même
+             du <code>while</code>.</p>
+          <p class="rap">« Combien de tours ? » est toujours la bonne question pour choisir sa
+             boucle.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution : 12345 → 54321, et −3 → le message d'erreur.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 5 -->
+<section id="e5">
+  <h2><span class="num">05</span>Le jeu du nombre caché</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Deviner, avec compteur de coups <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le premier joueur saisit un entier ; le second doit le deviner, avec autant de
+         tentatives qu'il le souhaite. Après chaque échec, indiquer si le nombre cherché est
+         <strong>plus grand</strong> ou <strong>plus petit</strong>. Compter les tentatives et
+         afficher le score à la fin.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int secret, proposition, tentatives = 0;
+
+    printf("Joueur 1, entrez le nombre a deviner : ");
+    scanf("%d", &amp;secret);
+
+    do {
+        printf("Proposition : ");
+        scanf("%d", &amp;proposition);
+        tentatives++;
+
+        if (proposition &lt; secret) {
+            printf("  C'est plus grand.\n");
+        } else if (proposition &gt; secret) {
+            printf("  C'est plus petit.\n");
+        }
+    } while (proposition != secret);
+
+    printf("Bravo ! Trouve en %d coup(s).\n", tentatives);
+    return 0;
+}</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Trois décisions qui font tout l'exercice</div>
+          <ul>
+            <li><strong><code>do…while</code></strong> — il faut au moins une proposition avant
+                de pouvoir la comparer. Avec un <code>while</code>, il faudrait une première
+                saisie <em>en dehors</em> de la boucle : deux fois le même code.</li>
+            <li><strong>Pas de <code>else</code> pour le cas gagnant</strong> — quand la
+                proposition est juste, aucun des deux messages ne s'affiche, et la condition de
+                boucle suffit à sortir.</li>
+            <li><strong><code>tentatives++</code> dans la boucle</strong>, juste après la saisie :
+                on compte ce qui a été joué, y compris le coup gagnant.</li>
+          </ul>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ « Plus grand » : plus grand que quoi ?</div>
+          <p>Si la proposition est <strong>inférieure</strong> au secret, c'est le
+             <strong>nombre à trouver</strong> qui est plus grand. La tentation est d'écrire
+             « C'est plus petit » parce qu'on pense à la proposition.</p>
+          <p class="rap">Le message doit parler du nombre cherché, pas de la proposition. Faites
+             l'essai avec un nombre connu : on s'en rend compte tout de suite.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 Faire tirer le nombre par l'ordinateur</div>
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdlib.h&gt;
+#include &lt;time.h&gt;
+
+srand(time(NULL));              /* une seule fois, au début */
+int secret = rand() % 100 + 1;  /* entre 1 et 100 */</code></pre></div>
+          <p>Sans <code>srand(time(NULL))</code>, <code>rand()</code> donne <strong>la même
+             suite à chaque lancement</strong> : le secret serait toujours le même.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution : secret 42, propositions 50 puis 30 puis 42 →
+           « plus petit », « plus grand », « Trouvé en 3 coup(s) ».</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 6 -->
+<section id="e6">
+  <h2><span class="num">06</span>Nombre presque parfait</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Somme des diviseurs propres <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un <strong>nombre presque parfait</strong> est un entier naturel dont la somme des
+         diviseurs — lui-même exclu — est <strong>inférieure de 1</strong> à lui-même.</p>
+      <p>Exemple : 16 est presque parfait, car <code>1 + 2 + 4 + 8 = 15 = 16 − 1</code>.</p>
+      <p>Écrire un programme qui demande un nombre et dit s'il est presque parfait.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int n, i, somme = 0;
+
+    printf("Entrez un nombre : ");
+    scanf("%d", &amp;n);
+
+    for (i = 1; i &lt; n; i++) {      /* i &lt; n : on exclut n lui-même */
+        if (n % i == 0) {
+            somme = somme + i;
+        }
+    }
+
+    printf("Somme des diviseurs propres : %d\n", somme);
+
+    if (somme == n - 1) {
+        printf("%d est presque parfait.\n", n);
+    } else {
+        printf("%d n'est pas presque parfait.\n", n);
+    }
+    return 0;
+}</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Traduire l'énoncé, mot à mot</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>L'énoncé dit…</th><th>…qui s'écrit</th></tr></thead>
+            <tbody>
+              <tr><td>« <code>i</code> divise <code>n</code> »</td><td><code>n % i == 0</code></td></tr>
+              <tr><td>« hormis lui-même »</td><td><code>i &lt; n</code>, et non <code>i &lt;= n</code></td></tr>
+              <tr><td>« inférieure de 1 à lui-même »</td><td><code>somme == n - 1</code></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="rap">Un énoncé de maths se traduit ligne par ligne. Quand on bloque, c'est
+             presque toujours qu'une phrase n'a pas été traduite.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 Les presque parfaits sont les puissances de 2</div>
+          <p>Testez 8 : <code>1 + 2 + 4 = 7 = 8 − 1</code> ✔. Puis 32 :
+             <code>1 + 2 + 4 + 8 + 16 = 31</code> ✔. Puis 12 :
+             <code>1 + 2 + 3 + 4 + 6 = 16</code>, ce qui fait 4 <em>de trop</em> ✘.</p>
+          <p>Les diviseurs propres de 2<sup>k</sup> sont exactement
+             <code>1, 2, 4, …, 2<sup>k−1</sup></code>, et leur somme vaut
+             <code>2<sup>k</sup> − 1</code>. Aucun autre nombre presque parfait n'est connu.</p>
+          <p class="rap">Un bon jeu de tests : 8 et 16 doivent répondre oui, 12 doit répondre
+             non.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>i &lt;= n</code> casserait tout</div>
+          <p>Avec <code>i &lt;= n</code>, la somme inclurait <code>n</code> lui-même : pour 16
+             elle vaudrait 31 au lieu de 15, et <strong>aucun</strong> nombre ne serait jamais
+             déclaré presque parfait. Le programme tournerait sans erreur et répondrait toujours
+             non.</p>
+          <p class="rap">Le pire des bugs : celui qui donne une réponse plausible.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution : 16 → presque parfait, 8 → presque parfait,
+           12 → ne l'est pas.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 7 -->
+<section id="e7">
+  <h2><span class="num">07</span>Les nombres formés par trois chiffres</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Les six permutations <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Saisir un entier de trois chiffres non nuls, puis afficher tous les nombres que l'on
+         peut former avec ces chiffres.</p>
+<div class="bloc-code"><span class="langue">exemple attendu</span><pre><code>N = 578
+Les nombres formés par les chiffres de N sont : 578, 587, 785, 758, 857, 875.</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int n, c1, c2, c3;
+
+    printf("Entrez un entier de trois chiffres non nuls : ");
+    scanf("%d", &amp;n);
+
+    if (n &lt; 100 || n &gt; 999) {
+        printf("Erreur : il faut trois chiffres.\n");
+        return 0;
+    }
+
+    c1 = n / 100;          /* centaines */
+    c2 = (n / 10) % 10;    /* dizaines  */
+    c3 = n % 10;           /* unités    */
+
+    if (c1 == 0 || c2 == 0 || c3 == 0) {
+        printf("Erreur : les trois chiffres doivent etre non nuls.\n");
+        return 0;
+    }
+
+    printf("%d %d %d %d %d %d\n",
+           c1*100 + c2*10 + c3,  c1*100 + c3*10 + c2,
+           c2*100 + c1*10 + c3,  c2*100 + c3*10 + c1,
+           c3*100 + c1*10 + c2,  c3*100 + c2*10 + c1);
+    return 0;
+}</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Extraire les trois chiffres</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Chiffre</th><th>Calcul</th><th>Sur 578</th></tr></thead>
+            <tbody>
+              <tr><td>centaines</td><td><code>n / 100</code></td><td>578 / 100 = <strong>5</strong></td></tr>
+              <tr><td>dizaines</td><td><code>(n / 10) % 10</code></td><td>57 % 10 = <strong>7</strong></td></tr>
+              <tr><td>unités</td><td><code>n % 10</code></td><td>578 % 10 = <strong>8</strong></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="rap">Là encore, <code>/</code> et <code>%</code> sur des entiers : les deux
+             seules opérations dont on a besoin pour découper un nombre.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 Pourquoi exactement six, et pourquoi « non nuls »</div>
+          <p>Trois chiffres distincts donnent <code>3 × 2 × 1 = 6</code> arrangements : trois
+             choix pour la position des centaines, deux pour celle des dizaines, un pour le
+             reste.</p>
+          <p>La condition « <strong>non nuls</strong> » de l'énoncé s'explique ainsi : avec un 0
+             — disons 508 — la permutation <code>085</code> ne serait plus un nombre de trois
+             chiffres, elle vaudrait 85. La règle évite ce cas particulier.</p>
+          <p class="rap">Si les chiffres se répètent (515), les six résultats contiennent des
+             doublons. L'énoncé ne l'interdit pas ; on peut le signaler dans le compte rendu.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ L'ordre d'affichage n'est pas celui de l'énoncé</div>
+          <p>Ce programme affiche <code>578 587 758 785 857 875</code> ; l'énoncé annonce
+             <code>578, 587, 785, 758, 857, 875</code>. <strong>Les six nombres sont les
+             mêmes</strong> — seul l'ordre diffère, et l'énoncé ne fixe aucun ordre.</p>
+          <p class="rap">Avant de croire à une erreur, comparez les <em>ensembles</em>. Ici tout
+             est juste.</p>
+        </div>
+        <p class="rap">Vérifié à l'exécution : 578 donne bien ces six nombres.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ===================================================== 8 -->
+<section id="e8">
+  <h2><span class="num">08</span>Six programmes à tracer</h2>
+
+  <p>« Que vont afficher les programmes suivants ? » L'exercice le plus formateur du TP : il ne
+     demande pas d'écrire du code, mais de <strong>le lire exactement</strong>. Les six
+     résultats ci-dessous ont été obtenus <strong>en compilant et en exécutant</strong> chaque
+     programme.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — <code>main()</code> sans type ne compile plus</div>
+    <p>Les six programmes de l'énoncé commencent par <code>main()</code>, sans
+       <code>int</code>. C'était légal dans le C des origines : le type <code>int</code> était
+       sous-entendu. <strong>Depuis la norme C99, ce n'est plus accepté</strong> — un
+       compilateur d'aujourd'hui refuse les six programmes tels qu'imprimés :</p>
+<div class="bloc-code"><span class="langue">message du compilateur</span><pre><code>error: type specifier missing, defaults to 'int';
+       ISO C99 and later do not support implicit int</code></pre></div>
+    <p>Il manque aussi <code>#include &lt;stdio.h&gt;</code>, sans quoi <code>printf</code> n'est
+       pas déclarée. La diapositive « Structure simplifiée d'un programme C » écrit d'ailleurs
+       correctement <code>int main()</code> : c'est l'énoncé du TP qui n'a pas suivi.</p>
+    <p class="rap">Les corrections ci-dessous rétablissent <code>#include</code> et
+       <code>int main()</code>. Rien d'autre n'a été touché : les pièges restent entiers.</p>
+  </div>
+
+  <article class="exo">
+    <h3><span class="no">①</span>Le point-virgule qui vide la boucle <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{ int n=5, i;
+    for(i=2; i&lt;n; i++);
+    printf("%d\n",i);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>5</code></pre></div>
+        <p>Le <code>;</code> juste après <code>for(...)</code> <strong>est</strong> le corps de
+           la boucle : un corps vide. La boucle se contente donc de faire monter <code>i</code>
+           de 2 à 5, puis s'arrête quand <code>i &lt; 5</code> devient faux.</p>
+        <p>Le <code>printf</code>, qui n'a jamais appartenu à la boucle, s'exécute
+           <strong>une seule fois</strong> et affiche la valeur de sortie : <strong>5</strong>.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Sans ce point-virgule, la réponse serait 2 3 4</div>
+          <p>C'est toute la différence entre « la boucle affiche » et « la boucle compte, puis on
+             affiche ». Un caractère.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">②</span>Division entre entiers <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{  int n=6, m=7;
+   printf("%d", n/m);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>0</code></pre></div>
+        <p><code>6 / 7</code> vaudrait 0,857… mais <code>n</code> et <code>m</code> sont deux
+           <code>int</code> : la division est <strong>entière</strong>. Le quotient est 0, la
+           partie décimale est jetée — pas arrondie.</p>
+        <p>Noter aussi l'absence de <code>\n</code> : la sortie ne passe pas à la ligne.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Obtenir 0.857143</div>
+<div class="bloc-code"><span class="langue">C</span><pre><code>printf("%f", (float) n / m);   /* on convertit, puis on divise */</code></pre></div>
+          <p class="rap">Il suffit qu'<strong>une</strong> des deux valeurs soit réelle pour que
+             la division le devienne.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">③</span>Une boucle sans incrément <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{ int m=18, j, verif=0;
+   for(j=2; !verif;)
+   if(j==5)
+   verif=18;
+   else
+   printf("%d\n", ++j);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>3
+4
+5</code></pre></div>
+        <p>Trois choses à démêler :</p>
+        <ul>
+          <li><strong>La partie « modification » du <code>for</code> est vide</strong> —
+              <code>for(j=2; !verif;)</code>. Ce n'est pas une boucle infinie pour autant :
+              c'est le <code>++j</code> du <code>printf</code> qui fait avancer
+              <code>j</code>.</li>
+          <li><strong><code>!verif</code> est la condition</strong> : « tant que
+              <code>verif</code> vaut 0 ». Mettre <code>verif = 18</code> la rend fausse et
+              arrête la boucle. La valeur 18 n'a aucune importance — seul compte qu'elle soit
+              non nulle.</li>
+          <li><strong><code>++j</code> incrémente AVANT d'afficher</strong> : au premier tour
+              <code>j</code> vaut 2, et c'est <strong>3</strong> qui sort.</li>
+        </ul>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Tour</th><th><code>j</code> à l'entrée</th><th><code>j == 5</code> ?</th><th>affiché</th><th><code>j</code> à la sortie</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>2</td><td>non</td><td>3</td><td>3</td></tr>
+            <tr><td>2</td><td>3</td><td>non</td><td>4</td><td>4</td></tr>
+            <tr><td>3</td><td>4</td><td>non</td><td>5</td><td>5</td></tr>
+            <tr><td>4</td><td>5</td><td><strong>oui</strong></td><td>—</td><td><code>verif</code> = 18 → sortie</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>m = 18</code> ne sert à rien</div>
+          <p>La variable <code>m</code> est déclarée, initialisée… et jamais utilisée. Elle n'est
+             là que pour brouiller la lecture — et la valeur 18 réapparaît dans
+             <code>verif=18</code> pour renforcer l'illusion d'un lien.</p>
+          <p class="rap">Dans un exercice de trace, listez d'abord les variables réellement
+             utilisées. Celles qui restent sont du décor.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">④</span>Ternaire, dans le mauvais sens <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{ int a=15, b=23;
+   printf("%d\n",(a&gt;b)?b:a);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>15</code></pre></div>
+        <p><code>a &gt; b</code> s'écrit <code>15 &gt; 23</code> : <strong>faux</strong>. On prend
+           donc la branche de droite — <code>a</code> — qui vaut 15.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Ce n'est pas le maximum</div>
+          <p>La forme habituelle est <code>(a&gt;b) ? a : b</code>, qui donne le plus grand. Ici
+             les deux branches sont <strong>inversées</strong> : <code>? b : a</code>. Le
+             programme renvoie le <strong>minimum</strong>.</p>
+          <p class="rap">Lire un ternaire, c'est lire trois choses dans l'ordre : la condition,
+             puis ce qu'on fait si vrai, puis si faux. Ne jamais le reconnaître « de loin ».</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">⑤</span>Deux incréments par tour <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{ int n = 8, i ;
+   for ( i = 3 ; i&lt;n ; i+=3 )
+     printf ("%d - " , i++);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>3 - 7 - </code></pre></div>
+        <p><code>i</code> est modifié <strong>deux fois par tour</strong> : le <code>i++</code>
+           du <code>printf</code> ajoute 1, puis le <code>i += 3</code> de la boucle ajoute 3.
+           Soit <strong>+4 à chaque passage</strong>.</p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Tour</th><th><code>i</code> au test</th><th><code>i&lt;8</code> ?</th><th>affiché</th><th>après <code>i++</code></th><th>après <code>i+=3</code></th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>3</td><td>oui</td><td><code>3 - </code></td><td>4</td><td>7</td></tr>
+            <tr><td>2</td><td>7</td><td>oui</td><td><code>7 - </code></td><td>8</td><td>11</td></tr>
+            <tr><td>3</td><td>11</td><td><strong>non</strong></td><td colspan="3">la boucle s'arrête</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><code>i++</code> étant un <strong>post</strong>-incrément, c'est l'ancienne valeur qui
+           est affichée : 3 puis 7, et non 4 puis 8.</p>
+        <div class="encart savoir">
+          <div class="titre">💡 Ce que cet exercice enseigne vraiment</div>
+          <p>Modifier la variable de boucle <strong>à l'intérieur</strong> du corps rend le
+             programme imprévisible à la lecture. Ici c'est volontaire, pour l'exercice. Dans
+             votre code, ne le faites jamais : le <code>for</code> doit être le seul à toucher
+             son compteur.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">⑥</span>Encore le point-virgule <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+int main()
+{ int m=5, j;
+    for(j=3; j&lt;=m; ++j);
+    printf("%d-",j);
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>6-</code></pre></div>
+        <p>Même piège que le programme ①, avec une nuance : la condition est
+           <code>j &lt;= m</code>, c'est-à-dire <code>j &lt;= 5</code>. La boucle s'arrête donc
+           quand <code>j</code> vaut <strong>6</strong>, et non 5.</p>
+        <p><code>++j</code> ou <code>j++</code> ne change rien ici : personne n'utilise la valeur
+           renvoyée, seul l'effet compte.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 La règle générale des deux programmes</div>
+          <p>Après une boucle <code>for</code> terminée normalement, le compteur vaut
+             <strong>la première valeur qui rend la condition fausse</strong> :</p>
+          <ul>
+            <li><code>i &lt; 5</code> → <code>i</code> sort à <strong>5</strong></li>
+            <li><code>j &lt;= 5</code> → <code>j</code> sort à <strong>6</strong></li>
+          </ul>
+          <p class="rap">C'est aussi la raison pour laquelle un tableau de 5 cases se parcourt
+             avec <code>i &lt; 5</code> : à la sortie, <code>i</code> vaut 5, soit exactement
+             une case de trop — celle qui n'existe pas.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Ce que ce TP fait travailler</h2>
+    <ul>
+      <li><strong>Exercice 1</strong> — chaîne <code>else if</code>, et l'ordre des tests :
+          le cas d'erreur d'abord.</li>
+      <li><strong>Exercice 2</strong> — accumulateur initialisé à 0, boucle <code>for</code>
+          à nombre de tours connu.</li>
+      <li><strong>Exercice 3</strong> — <code>switch</code> sur des valeurs précises, un
+          <code>break</code> par <code>case</code>.</li>
+      <li><strong>Exercice 4</strong> — <code>%</code> et <code>/</code> pour découper un
+          nombre, <code>while</code> à nombre de tours inconnu.</li>
+      <li><strong>Exercice 5</strong> — <code>do…while</code>, parce qu'il faut au moins une
+          saisie.</li>
+      <li><strong>Exercice 6</strong> — traduire un énoncé mathématique ligne par ligne.</li>
+      <li><strong>Exercice 7</strong> — extraire les chiffres d'un entier, et compter les
+          arrangements.</li>
+      <li><strong>Exercice 8</strong> — lire du code <em>exactement</em> : le point-virgule
+          qui vide une boucle, la division entière, <code>++j</code> contre <code>j++</code>,
+          et la valeur du compteur à la sortie.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>TP2 — Langage C, le professeur, BTS CIEL 2026-2027 (version du 18/09/2026,
+          8 exercices)</li>
+      <li>Première version du même TP, du 18/09/2026 au matin (4 exercices) — conservée : les
+          énoncés 1 à 4 y sont identiques</li>
+      <li>Cours « Algorithmique et programmation », chapitres 2 et 3</li>
+    </ul>
+    <p class="rap">Les huit corrections ont été compilées avec <code>cc -std=c99 -Wall</code>
+       puis exécutées. Les sorties annoncées sont celles obtenues, pas celles attendues.</p>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

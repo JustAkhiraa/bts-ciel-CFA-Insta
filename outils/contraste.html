@@ -47,12 +47,20 @@
 </div>
 
 <script>
+/* Les 40 thèmes, y compris les quinze « jeux et écrans ». Le sélecteur
+   d'accent a disparu des réglages : il n'y a plus qu'un axe à croiser. */
 const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","frost",
   "peachlight","mintlight","marble","dark","emerald","ocean","mocha","nordic","carbon",
-  "rosewood","sunset","starry","aurora","midnight","amoled"];
+  "rosewood","sunset","starry","aurora","midnight","amoled",
+  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
+  "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige"];
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
-  "sunset","starry","aurora","midnight","amoled"]);
-const ACCENTS = ["","jade","saphir","rose","violet","braise","turquoise","or","perle"];
+  "sunset","starry","aurora","midnight","amoled",
+  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"]);
+/* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
+   interligne serré ne change pas le contraste, mais une largeur « pleine »
+   déplace les éléments, donc les fonds mesurés derrière eux. */
+const LARGEURS = ["normal","pleine"];
 
 /* Un analyseur qui sait lire color(srgb …) ET composer la transparence.
    Sans cela, un fond « 13 % d'accent » se lisait comme du noir pur. */
@@ -130,13 +138,13 @@ document.getElementById("go").addEventListener("click", async () => {
     d.dataset.anim = "0";   // sinon on mesure une couleur en pleine transition
     for (const a of AMB) {
       d.dataset.theme = a; d.dataset.sombre = SOMBRES.has(a) ? "1" : "0";
-      for (const ac of ACCENTS) {
-        if (ac) d.setAttribute("data-accent", ac); else d.removeAttribute("data-accent");
+      for (const lg of LARGEURS) {
+        d.dataset.largeur = lg;
         doc.body.offsetHeight;
         n++;
         for (const x of mesurer(doc, vue)) {
           const k = p.replace("../","") + " · " + x.sig + " — " + x.txt;
-          if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: a + (ac ? "+" + ac : "") };
+          if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: a + "/" + lg };
         }
       }
     }

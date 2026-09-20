@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La loi normale | BTS CIEL</title>
+<meta name="description" content="Cours complet : loi normale N(μ;σ), densité gaussienne, symétrie, intervalles de fluctuation à 1σ, 2σ et 3σ, calcul sans calculatrice par complémentarité et symétrie, réglages TI et Casio, recherche d'un seuil.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#cloche">1 · D'où vient la cloche</a></li>
+    <li><a href="#definition">2 · Définition : N(μ ; σ)</a></li>
+    <li><a href="#proprietes">3 · Les deux propriétés graphiques</a></li>
+    <li><a href="#fluctuation">4 · Les intervalles de fluctuation</a></li>
+    <li><a href="#sanscalc">5 · Calculer sans calculatrice</a></li>
+    <li><a href="#filrouge">6 · Le fil rouge : les pommes</a></li>
+    <li><a href="#calculatrice">7 · La calculatrice</a></li>
+    <li><a href="#ecarts">8 · Pourquoi 0,16 ≠ 0,158 7</a></li>
+    <li><a href="#lecture">9 · Traduire un énoncé</a></li>
+    <li><a href="#seuil">10 · Le problème inverse</a></li>
+    <li><a href="#examen">11 · À l'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 10</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>La loi normale</h1>
+  <p class="chapeau">La loi des mesures. Dès qu'une grandeur est le résultat d'une foule de
+     petites causes indépendantes — une machine qui remplit, un corps qui pousse, un capteur
+     qui bruite — elle se range d'elle-même en cloche autour de sa moyenne.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une loi normale s'écrit <code>X ↝ N(μ ; σ)</code> : <strong>μ</strong> est la moyenne,
+         <strong>σ</strong> l'écart-type. Sa densité est une <strong>gaussienne</strong>, une cloche
+         <strong>symétrique</strong> autour de <code>x = μ</code> dont l'aire totale vaut
+         <strong>1</strong>. Tout le chapitre tient dans trois nombres à savoir par cœur :
+         <code>P(μ−σ ⩽ X ⩽ μ+σ) = 0,68</code>, <code>P(μ−2σ ⩽ X ⩽ μ+2σ) = 0,95</code>,
+         <code>P(μ−3σ ⩽ X ⩽ μ+3σ) = 0,997</code>. À partir de là, la
+         <strong>symétrie</strong> et la <strong>complémentarité</strong> donnent tout le reste —
+         sans calculatrice.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#loi-normale</code> <code>#gaussienne</code> <code>#N(μ;σ)</code>
+    <code>#espérance</code> <code>#écart-type</code> <code>#symétrie</code>
+    <code>#intervalle-de-fluctuation</code> <code>#68-95-99,7</code>
+    <code>#complémentarité</code> <code>#NormalFRép</code> <code>#NormCD</code>
+    <code>#10^99</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="cloche">
+  <h2><span class="num">01</span>D'où vient la cloche</h2>
+
+  <p>Au <a href="../08-variables-aleatoires-loi-binomiale/cours.html">chapitre 08</a>, X
+     <strong>comptait</strong> : 0, 1, 2… 40 sacs défectueux. Au
+     <a href="../09-lois-uniforme-exponentielle/cours.html">chapitre 09</a>, X
+     <strong>mesurait</strong> une durée, et la probabilité est devenue une <strong>aire</strong>
+     sous une courbe de densité. Ce chapitre-ci est le troisième étage : la variable mesure
+     toujours, mais la densité prend une forme très particulière — et cette forme se retrouve
+     absolument partout.</p>
+
+  <p>Le cours part d'un verger. On récolte un très grand nombre de pommes, de la
+     <strong>même</strong> variété, de la <strong>même</strong> maturité, dans les
+     <strong>mêmes</strong> conditions de culture. En moyenne, ces pommes ont un diamètre de
+     <strong>8 cm</strong>. On les trie par diamètre et on empile les bâtons d'un histogramme.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 272" role="img" aria-label="Histogramme des diamètres de pommes épousant une courbe en cloche centrée sur 8 cm">
+      <style>
+        .ga{stroke:var(--bord-fort);stroke-width:1.3}
+        .gb{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1}
+        .gc{fill:none;stroke:var(--vert);stroke-width:3;stroke-linejoin:round}
+        .gt{font:700 11.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .gd{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .gm{font:600 11px var(--mono);text-anchor:middle;fill:var(--vert)}
+      </style>
+      <line class="ga" x1="55" y1="210" x2="600" y2="210"/>
+      <line x1="340" y1="210" x2="340" y2="54" stroke="var(--bord-fort)" stroke-width="1.2" stroke-dasharray="4 4"/>
+      <rect class="gb" x="92.0" y="208.3" width="16" height="1.7"/>
+      <rect class="gb" x="112.0" y="206.5" width="16" height="3.5"/>
+      <rect class="gb" x="132.0" y="203.3" width="16" height="6.7"/>
+      <rect class="gb" x="152.0" y="197.9" width="16" height="12.1"/>
+      <rect class="gb" x="172.0" y="189.4" width="16" height="20.6"/>
+      <rect class="gb" x="192.0" y="177.1" width="16" height="32.9"/>
+      <rect class="gb" x="212.0" y="160.7" width="16" height="49.3"/>
+      <rect class="gb" x="232.0" y="140.4" width="16" height="69.6"/>
+      <rect class="gb" x="252.0" y="117.8" width="16" height="92.2"/>
+      <rect class="gb" x="272.0" y="95.3" width="16" height="114.7"/>
+      <rect class="gb" x="292.0" y="75.9" width="16" height="134.1"/>
+      <rect class="gb" x="312.0" y="62.7" width="16" height="147.3"/>
+      <rect class="gb" x="332.0" y="58.0" width="16" height="152.0"/>
+      <rect class="gb" x="352.0" y="62.7" width="16" height="147.3"/>
+      <rect class="gb" x="372.0" y="75.9" width="16" height="134.1"/>
+      <rect class="gb" x="392.0" y="95.3" width="16" height="114.7"/>
+      <rect class="gb" x="412.0" y="117.8" width="16" height="92.2"/>
+      <rect class="gb" x="432.0" y="140.4" width="16" height="69.6"/>
+      <rect class="gb" x="452.0" y="160.7" width="16" height="49.3"/>
+      <rect class="gb" x="472.0" y="177.1" width="16" height="32.9"/>
+      <rect class="gb" x="492.0" y="189.4" width="16" height="20.6"/>
+      <rect class="gb" x="512.0" y="197.9" width="16" height="12.1"/>
+      <rect class="gb" x="532.0" y="203.3" width="16" height="6.7"/>
+      <rect class="gb" x="552.0" y="206.5" width="16" height="3.5"/>
+      <rect class="gb" x="572.0" y="208.3" width="16" height="1.7"/>
+      <path class="gc" d="M84.0,209.1 L91.1,208.8 L98.2,208.4 L105.3,207.9 L112.4,207.3 L119.6,206.6 L126.7,205.7 L133.8,204.5 L140.9,203.1 L148.0,201.5 L155.1,199.5 L162.2,197.1 L169.3,194.4 L176.4,191.2 L183.6,187.5 L190.7,183.4 L197.8,178.7 L204.9,173.5 L212.0,167.7 L219.1,161.5 L226.2,154.7 L233.3,147.5 L240.4,139.9 L247.6,132.0 L254.7,123.9 L261.8,115.8 L268.9,107.6 L276.0,99.6 L283.1,92.0 L290.2,84.8 L297.3,78.2 L304.4,72.3 L311.6,67.3 L318.7,63.3 L325.8,60.4 L332.9,58.6 L340.0,58.0 L347.1,58.6 L354.2,60.4 L361.3,63.3 L368.4,67.3 L375.6,72.3 L382.7,78.2 L389.8,84.8 L396.9,92.0 L404.0,99.6 L411.1,107.6 L418.2,115.8 L425.3,123.9 L432.4,132.0 L439.6,139.9 L446.7,147.5 L453.8,154.7 L460.9,161.5 L468.0,167.7 L475.1,173.5 L482.2,178.7 L489.3,183.4 L496.4,187.5 L503.6,191.2 L510.7,194.4 L517.8,197.1 L524.9,199.5 L532.0,201.5 L539.1,203.1 L546.2,204.5 L553.3,205.7 L560.4,206.6 L567.6,207.3 L574.7,207.9 L581.8,208.4 L588.9,208.8 L596.0,209.1"/>
+      <text class="gd" x="100" y="228">2</text>
+      <text class="gd" x="180" y="228">4</text>
+      <text class="gd" x="260" y="228">6</text>
+      <text class="gd" x="340" y="228">8</text>
+      <text class="gd" x="420" y="228">10</text>
+      <text class="gd" x="500" y="228">12</text>
+      <text class="gd" x="580" y="228">14</text>
+      <text class="gd" x="545" y="248">diamètre (cm)</text>
+      <text class="gm" x="470" y="72">la gaussienne</text>
+      <line x1="452" y1="78" x2="424" y2="104" stroke="var(--vert)" stroke-width="1.2"/>
+      <text class="gd" x="340" y="248">μ = 8 cm</text>
+      <text class="gt" x="330" y="266">plus il y a de pommes, plus les bâtons épousent la cloche</text>
+    </svg>
+    <figcaption>Ce n'est pas une coïncidence : quand une mesure résulte d'un grand nombre de
+      petites causes indépendantes, elle se range toujours ainsi. C'est le
+      <strong>théorème central limite</strong> — hors programme, mais c'est lui qui explique
+      pourquoi la loi normale est partout.</figcaption>
+  </figure>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi « normale » ?</div>
+    <p>Pas au sens de « correcte ». Au sens de « la norme », le cas ordinaire : c'est la loi
+       qu'on rencontre <em>normalement</em>. On l'appelle aussi <strong>loi de Gauss</strong>,
+       ou <strong>loi de Laplace-Gauss</strong> — et la courbe, une
+       <strong>gaussienne</strong>. En anglais, on parle volontiers de <em>bell curve</em>.</p>
+    <p>Quelques mesures qui la suivent : la taille des adultes d'un même sexe, le poids réel des
+       paquets sortis d'une même machine, le bruit thermique d'un composant, l'erreur d'un capteur,
+       le taux d'hématocrite dans le sang. Dans un BTS CIEL, elle sert surtout à un usage :
+       le <strong>contrôle qualité</strong> — quelle proportion de la production sort de la
+       tolérance ?</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="definition">
+  <h2><span class="num">02</span>Définition : N(μ ; σ)</h2>
+
+  <p>Une loi normale a <strong>deux paramètres</strong>, et deux seulement :</p>
+
+  <div class="tableau">
+    <table>
+      <thead>
+        <tr><th>Paramètre</th><th>Nom</th><th>Rôle</th><th>Notation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>μ</strong></td><td>moyenne, ou espérance</td>
+            <td>où la cloche est <strong>centrée</strong></td>
+            <td><code>μ = E(X)</code> — lire « mu », parfois noté <code>m</code></td></tr>
+        <tr><td><strong>σ</strong></td><td>écart-type</td>
+            <td>si la cloche est <strong>large ou serrée</strong></td>
+            <td><code>σ = σ(X)</code> — lire « sigma »</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>On écrit alors <code>X ↝ N(μ ; σ)</code> — « X suit la loi normale de moyenne μ et
+     d'écart-type σ ». Pour les pommes du verger, le cours conclut :</p>
+
+  <div class="formule">X ↝ N(8 ; 2)<br>
+    <span style="font-size:12px;font-weight:400">moyenne μ = 8 cm &nbsp;·&nbsp; écart-type σ = 2 cm</span></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La densité — à connaître, pas à utiliser</div>
+    <p>La formule de la courbe figure au tableau :</p>
+    <div class="formule">f(x) = (1 / (σ√(2π))) × e<sup>−½ ((x − μ)/σ)²</sup></div>
+    <p>On ne s'en sert <strong>jamais</strong> pour calculer : elle n'a pas de primitive
+       exprimable, donc aucune intégrale ne se calcule à la main. Elle est là pour montrer
+       d'où vient la cloche — et pour qu'on reconnaisse les deux paramètres à l'intérieur.
+       Tous les calculs passent par les <strong>intervalles de fluctuation</strong>
+       (§&nbsp;4) ou par la <strong>calculatrice</strong> (§&nbsp;7).</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ N(μ ; σ) ou N(μ ; σ²) ?</div>
+    <p>Les deux notations existent dans la nature. Au <strong>lycée et en BTS français</strong>,
+       le second paramètre est l'<strong>écart-type σ</strong> : <code>N(8 ; 2)</code> signifie
+       σ = 2. Dans la littérature anglo-saxonne et en statistiques supérieures, on écrit
+       <code>N(8 ; 4)</code> pour la même loi, le second paramètre étant la
+       <strong>variance σ²</strong>.</p>
+    <p><strong>Le réflexe qui tranche</strong> : lisez l'énoncé, il l'écrit toujours en toutes
+       lettres — « d'espérance 40 et d'écart-type 4 ». Et à l'examen, c'est
+       <strong>toujours l'écart-type</strong>.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 μ déplace, σ étale</div>
+    <p>Imaginez une tente de camping vue de face. <strong>μ</strong> décide où on plante la tente
+       sur le terrain — la déplacer ne change pas sa forme. <strong>σ</strong> décide de
+       l'écartement des sardines : serrées, la tente est haute et pointue ; écartées, elle
+       s'aplatit et s'élargit. Dans les deux cas la toile a la même surface —
+       l'aire sous la courbe vaut toujours 1.</p>
+    <p>Concrètement : un σ <strong>petit</strong> = une machine <strong>régulière</strong>,
+       une production homogène. Un σ <strong>grand</strong> = une machine qui part dans tous les
+       sens. C'est exactement ce qu'un contrôle qualité cherche à mesurer.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="proprietes">
+  <h2><span class="num">03</span>Les deux propriétés graphiques</h2>
+
+  <p>Le cours les encadre en rouge, parce que <em>tout</em> le reste en découle.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 À savoir par cœur</div>
+    <ol>
+      <li>La courbe est <strong>symétrique</strong> par rapport à l'axe vertical
+          <code>x = μ</code>.</li>
+      <li>L'<strong>aire totale</strong> sous la courbe vaut <strong>1</strong>.</li>
+    </ol>
+  </div>
+
+  <p>La première conséquence tombe immédiatement : si la courbe est symétrique autour de μ et
+     que l'aire totale vaut 1, alors chaque moitié vaut 0,5.</p>
+
+  <div class="formule">P(X &lt; μ) = P(X &gt; μ) = <strong>0,5</strong></div>
+
+  <p>Pour les pommes : <code>P(X &lt; 8) = 0,5</code>. La moitié des pommes fait moins de 8 cm —
+     ce qui est la définition même de la moyenne quand la distribution est symétrique. Aucun
+     calcul, aucune calculatrice : la question 4 du cours se répond en une ligne.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ P(X = k) = 0, donc « &lt; » et « ⩽ » sont interchangeables</div>
+    <p>La loi normale est <strong>continue</strong> : la probabilité d'une valeur isolée est
+       nulle. Une bouteille ne contient jamais <em>exactement</em> 1,000 000 0 L.</p>
+    <div class="formule">P(X = k) = 0 &nbsp;⟹&nbsp; P(X ⩽ k) = P(X &lt; k)
+       &nbsp;et&nbsp; P(X ⩾ k) = P(X &gt; k)</div>
+    <p>C'est la <strong>différence majeure avec la loi binomiale</strong>, où
+       <code>P(X ⩾ 3)</code> et <code>P(X &gt; 3)</code> ne sont pas du tout la même chose
+       — il fallait glisser d'un cran. Ici, plus jamais. Le piège est de continuer par
+       habitude à décaler.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Sans rien calculer : Y ↝ N(450 ; 15). Que vaut P(Y &lt; 450) ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>0,5.</strong> 450 est la moyenne, donc l'axe de symétrie. Il n'y a rien à
+         calculer, et surtout rien à taper sur une calculatrice. Beaucoup d'élèves perdent
+         deux minutes à saisir des bornes pour retrouver 0,5.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="fluctuation">
+  <h2><span class="num">04</span>Les intervalles de fluctuation</h2>
+
+  <p>Voici le cœur du chapitre. Trois résultats, trois nombres. Ils sont vrais pour
+     <strong>n'importe quelle</strong> loi normale, quels que soient μ et σ.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois intervalles — à savoir par cœur</div>
+    <div class="formule">
+      P(μ − σ ⩽ X ⩽ μ + σ) = <strong>0,68</strong> &nbsp;<span style="font-weight:400">à 10<sup>−2</sup></span><br>
+      P(μ − 2σ ⩽ X ⩽ μ + 2σ) = <strong>0,95</strong> &nbsp;<span style="font-weight:400">à 10<sup>−2</sup></span><br>
+      P(μ − 3σ ⩽ X ⩽ μ + 3σ) = <strong>0,997</strong> &nbsp;<span style="font-weight:400">à 10<sup>−3</sup></span>
+    </div>
+    <p>On les appelle règle des <strong>68 – 95 – 99,7</strong>. Le cours note aussi la
+       formulation par appartenance : <code>μ − σ ⩽ x ⩽ μ + σ</code> s'écrit
+       <code>x ∈ [μ − σ ; μ + σ]</code>.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 400" role="img" aria-label="Trois cloches montrant les aires 0,68 à un sigma, 0,95 à deux sigmas et 0,997 à trois sigmas">
+      <style>
+        .fa{stroke:var(--bord-fort);stroke-width:1.2}
+        .fc{fill:none;stroke:var(--encre);stroke-width:1.9}
+        .f1{fill:var(--vert-pale);stroke:var(--vert);stroke-width:1.2}
+        .f2{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.2}
+        .f3{fill:var(--ambre-pale);stroke:var(--ambre);stroke-width:1.2}
+        .fv{font:700 13px var(--mono);text-anchor:middle}
+        .fd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .fl{font:700 12px var(--sans);text-anchor:start;fill:var(--encre)}
+        .fs{font:10.5px var(--sans);text-anchor:start;fill:var(--encre-douce)}
+      </style>
+
+      <g transform="translate(0,0)">
+        <path class="f1" d="M85.0,110 L85.0,62.7 L86.7,59.5 L88.3,56.4 L90.0,53.4 L91.7,50.4 L93.3,47.5 L95.0,44.8 L96.7,42.3 L98.3,40.0 L100.0,38.0 L101.7,36.2 L103.3,34.7 L105.0,33.5 L106.7,32.7 L108.3,32.2 L110.0,32.0 L111.7,32.2 L113.3,32.7 L115.0,33.5 L116.7,34.7 L118.3,36.2 L120.0,38.0 L121.7,40.0 L123.3,42.3 L125.0,44.8 L126.7,47.5 L128.3,50.4 L130.0,53.4 L131.7,56.4 L133.3,59.5 L135.0,62.7 L135.0,110 Z"/>
+        <path class="fc" d="M20.0,109.9 L27.5,109.7 L35.0,109.1 L42.5,108.0 L50.0,105.6 L57.5,101.4 L65.0,94.6 L72.5,84.7 L80.0,72.0 L87.5,58.0 L95.0,44.8 L102.5,35.4 L110.0,32.0 L117.5,35.4 L125.0,44.8 L132.5,58.0 L140.0,72.0 L147.5,84.7 L155.0,94.6 L162.5,101.4 L170.0,105.6 L177.5,108.0 L185.0,109.1 L192.5,109.7 L200.0,109.9"/>
+        <line class="fa" x1="14" y1="110" x2="206" y2="110"/>
+        <text class="fv" x="110" y="80" fill="var(--vert)">0,68</text>
+        <text class="fd" x="85" y="124">μ−σ</text>
+        <text class="fd" x="110" y="124">μ</text>
+        <text class="fd" x="135" y="124">μ+σ</text>
+        <text class="fl" x="228" y="70">Intervalle à 1σ</text>
+        <text class="fs" x="228" y="90">environ <tspan font-weight="700">2 valeurs sur 3</tspan> tombent là</text>
+      </g>
+
+      <g transform="translate(0,130)">
+        <path class="f2" d="M60.0,110 L60.0,99.4 L63.3,96.3 L66.7,92.6 L70.0,88.3 L73.3,83.4 L76.7,77.9 L80.0,72.0 L83.3,65.8 L86.7,59.5 L90.0,53.4 L93.3,47.5 L96.7,42.3 L100.0,38.0 L103.3,34.7 L106.7,32.7 L110.0,32.0 L113.3,32.7 L116.7,34.7 L120.0,38.0 L123.3,42.3 L126.7,47.5 L130.0,53.4 L133.3,59.5 L136.7,65.8 L140.0,72.0 L143.3,77.9 L146.7,83.4 L150.0,88.3 L153.3,92.6 L156.7,96.3 L160.0,99.4 L160.0,110 Z"/>
+        <path class="fc" d="M20.0,109.9 L27.5,109.7 L35.0,109.1 L42.5,108.0 L50.0,105.6 L57.5,101.4 L65.0,94.6 L72.5,84.7 L80.0,72.0 L87.5,58.0 L95.0,44.8 L102.5,35.4 L110.0,32.0 L117.5,35.4 L125.0,44.8 L132.5,58.0 L140.0,72.0 L147.5,84.7 L155.0,94.6 L162.5,101.4 L170.0,105.6 L177.5,108.0 L185.0,109.1 L192.5,109.7 L200.0,109.9"/>
+        <line class="fa" x1="14" y1="110" x2="206" y2="110"/>
+        <text class="fv" x="110" y="80" fill="var(--accent)">0,95</text>
+        <text class="fd" x="60" y="124">μ−2σ</text>
+        <text class="fd" x="110" y="124">μ</text>
+        <text class="fd" x="160" y="124">μ+2σ</text>
+        <text class="fl" x="228" y="70">Intervalle à 2σ</text>
+        <text class="fs" x="228" y="90">le <tspan font-weight="700">plus utilisé</tspan> — « environ 95 % de la production »</text>
+      </g>
+
+      <g transform="translate(0,260)">
+        <path class="f3" d="M35.0,110 L35.0,109.1 L40.0,108.5 L45.0,107.3 L50.0,105.6 L55.0,103.1 L60.0,99.4 L65.0,94.6 L70.0,88.3 L75.0,80.7 L80.0,72.0 L85.0,62.7 L90.0,53.4 L95.0,44.8 L100.0,38.0 L105.0,33.5 L110.0,32.0 L115.0,33.5 L120.0,38.0 L125.0,44.8 L130.0,53.4 L135.0,62.7 L140.0,72.0 L145.0,80.7 L150.0,88.3 L155.0,94.6 L160.0,99.4 L165.0,103.1 L170.0,105.6 L175.0,107.3 L180.0,108.5 L185.0,109.1 L185.0,110 Z"/>
+        <path class="fc" d="M20.0,109.9 L27.5,109.7 L35.0,109.1 L42.5,108.0 L50.0,105.6 L57.5,101.4 L65.0,94.6 L72.5,84.7 L80.0,72.0 L87.5,58.0 L95.0,44.8 L102.5,35.4 L110.0,32.0 L117.5,35.4 L125.0,44.8 L132.5,58.0 L140.0,72.0 L147.5,84.7 L155.0,94.6 L162.5,101.4 L170.0,105.6 L177.5,108.0 L185.0,109.1 L192.5,109.7 L200.0,109.9"/>
+        <line class="fa" x1="14" y1="110" x2="206" y2="110"/>
+        <text class="fv" x="110" y="80" fill="#7A5807">0,997</text>
+        <text class="fd" x="35" y="124">μ−3σ</text>
+        <text class="fd" x="110" y="124">μ</text>
+        <text class="fd" x="185" y="124">μ+3σ</text>
+        <text class="fl" x="228" y="70">Intervalle à 3σ</text>
+        <text class="fs" x="228" y="90">quasiment tout — au-delà, <tspan font-weight="700">3 chances sur 1 000</tspan></text>
+      </g>
+    </svg>
+    <figcaption>Le même dessin, trois fois, avec une zone de plus en plus large. Les trois
+      nombres ne dépendent <strong>ni de μ ni de σ</strong> : c'est ce qui les rend si
+      puissants.</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Retenir 68 – 95 – 99,7</div>
+    <p>Trois images, de la plus courante à la plus rare :</p>
+    <ul>
+      <li><strong>1σ → 0,68</strong> — « les <em>deux tiers</em> » : c'est le gros de la troupe.</li>
+      <li><strong>2σ → 0,95</strong> — « les <em>19 sur 20</em> » : c'est la norme du contrôle
+          qualité, et c'est celui qui tombe le plus souvent à l'examen.</li>
+      <li><strong>3σ → 0,997</strong> — « <em>tout le monde sauf 3 pour mille</em> » : au-delà
+          de 3σ, un événement devient sérieusement suspect.</li>
+    </ul>
+    <p>Un moyen mnémotechnique qui marche : <strong>68</strong>, puis on ajoute
+       <strong>27</strong> (→ 95), puis on ajoute <strong>4,7</strong> (→ 99,7). Chaque
+       « anneau » supplémentaire rapporte de moins en moins.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="sanscalc">
+  <h2><span class="num">05</span>Calculer sans calculatrice</h2>
+
+  <p>Les énoncés de BTS demandent très souvent une probabilité
+     <strong>« sans calculatrice »</strong>. Ce n'est pas une brimade : c'est le contrôle
+     qu'on a compris la structure de la loi. Deux outils suffisent, et ils reviennent dans
+     chaque exercice.</p>
+
+  <div class="encart methode">
+    <div class="titre">📐 Outil 1 — la complémentarité</div>
+    <p>L'aire totale vaut 1. Donc le contraire d'un événement, c'est « 1 moins ».</p>
+    <div class="formule">P(X &gt; a) = 1 − P(X ⩽ a) &nbsp;&nbsp;·&nbsp;&nbsp;
+      P(a &lt; X &lt; b) = 1 − P(X &lt; a) − P(X &gt; b)</div>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 Outil 2 — la symétrie</div>
+    <p>Un intervalle de fluctuation laisse <strong>deux queues</strong> hors de lui, et
+       la symétrie impose qu'elles soient <strong>égales</strong>. Chacune vaut donc la moitié
+       de ce qui reste :</p>
+    <div class="formule">P(X &lt; μ − kσ) = P(X &gt; μ + kσ) = <strong>(1 − p) / 2</strong></div>
+    <p>où <code>p</code> est 0,68, 0,95 ou 0,997 selon l'intervalle. Les trois valeurs de queue
+       à connaître :</p>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Intervalle</th><th>Aire dedans</th><th>Ce qui reste</th><th>Une queue</th></tr></thead>
+        <tbody>
+          <tr><td>1σ</td><td>0,68</td><td>0,32</td><td><strong>0,16</strong></td></tr>
+          <tr><td>2σ</td><td>0,95</td><td>0,05</td><td><strong>0,025</strong></td></tr>
+          <tr><td>3σ</td><td>0,997</td><td>0,003</td><td><strong>0,001 5</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 250" role="img" aria-label="Une cloche avec la zone centrale à deux sigmas et les deux queues symétriques de 0,025 chacune">
+      <style>
+        .sa{stroke:var(--bord-fort);stroke-width:1.3}
+        .sc{fill:none;stroke:var(--encre);stroke-width:2.1}
+        .sz{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.3}
+        .sq{fill:var(--rouge-pale);stroke:var(--rouge);stroke-width:1.3}
+        .st{font:700 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .sr{font:700 11px var(--mono);text-anchor:middle;fill:var(--rouge)}
+        .sd{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .sl{font:700 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+      </style>
+      <path class="sz" d="M185.6,210 L185.6,189.7 L195.2,183.7 L204.8,176.6 L214.4,168.3 L224.1,158.8 L233.7,148.3 L243.3,137.0 L253.0,125.1 L262.6,113.0 L272.2,101.1 L281.9,89.9 L291.5,79.9 L301.1,71.5 L310.7,65.2 L320.4,61.3 L330.0,60.0 L339.6,61.3 L349.3,65.2 L358.9,71.5 L368.5,79.9 L378.1,89.9 L387.8,101.1 L397.4,113.0 L407.0,125.1 L416.7,137.0 L426.3,148.3 L435.9,158.8 L445.6,168.3 L455.2,176.6 L464.8,183.7 L474.4,189.7 L474.4,210 Z"/>
+      <path class="sq" d="M70.0,210 L70.0,209.8 L77.7,209.7 L85.4,209.5 L93.1,209.3 L100.8,209.0 L108.5,208.6 L116.2,208.1 L123.9,207.4 L131.6,206.5 L139.3,205.4 L147.0,203.9 L154.7,202.1 L162.4,199.8 L170.1,197.0 L177.9,193.7 L185.6,189.7 L185.6,210 Z"/>
+      <path class="sq" d="M474.4,210 L474.4,189.7 L482.1,193.7 L489.9,197.0 L497.6,199.8 L505.3,202.1 L513.0,203.9 L520.7,205.4 L528.4,206.5 L536.1,207.4 L543.8,208.1 L551.5,208.6 L559.2,209.0 L566.9,209.3 L574.6,209.5 L582.3,209.7 L590.0,209.8 L590.0,210 Z"/>
+      <path class="sc" d="M70.0,209.8 L91.7,209.4 L113.3,208.3 L135.0,206.1 L156.7,201.6 L178.3,193.5 L200.0,180.3 L221.7,161.3 L243.3,137.0 L265.0,110.0 L286.7,84.7 L308.3,66.6 L330.0,60.0 L351.7,66.6 L373.3,84.7 L395.0,110.0 L416.7,137.0 L438.3,161.3 L460.0,180.3 L481.7,193.5 L503.3,201.6 L525.0,206.1 L546.7,208.3 L568.3,209.4 L590.0,209.8"/>
+      <line class="sa" x1="60" y1="210" x2="600" y2="210"/>
+      <line x1="330" y1="210" x2="330" y2="56" stroke="var(--bord-fort)" stroke-width="1.2" stroke-dasharray="4 4"/>
+      <text class="st" x="330" y="130">0,95</text>
+      <text class="sr" x="140" y="180">0,025</text>
+      <text class="sr" x="520" y="180">0,025</text>
+      <line x1="150" y1="188" x2="168" y2="202" stroke="var(--rouge)" stroke-width="1.1"/>
+      <line x1="510" y1="188" x2="492" y2="202" stroke="var(--rouge)" stroke-width="1.1"/>
+      <text class="sd" x="185.6" y="228">μ−2σ</text>
+      <text class="sd" x="330" y="228">μ</text>
+      <text class="sd" x="474.4" y="228">μ+2σ</text>
+      <text class="sl" x="330" y="245">les deux queues sont égales : chacune vaut (1 − 0,95) / 2</text>
+    </svg>
+    <figcaption>C'est <em>tout</em> le raisonnement « sans calculatrice » : on place l'intervalle
+      connu, et ce qui dépasse se partage en deux parts égales.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="filrouge">
+  <h2><span class="num">06</span>Le fil rouge : les pommes du verger</h2>
+
+  <p>Reprenons <code>X ↝ N(8 ; 2)</code> — le diamètre d'une pomme, en centimètres. Le cours
+     enchaîne cinq questions. Chacune illustre un mécanisme différent. Il faut savoir les
+     refaire toutes les cinq, de tête.</p>
+
+  <div class="quiz">
+    <div class="titre">① Probabilité qu'une pomme mesure entre 4 et 12 cm ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Les bornes 4 et 12 ne sont pas là par hasard : on les teste.
+
+μ − 2σ = 8 − 2 × 2 = 4
+μ + 2σ = 8 + 2 × 2 = 12          ← c'est exactement l'intervalle à 2σ
+
+Selon l'intervalle à 2σ :
+P(4 ⩽ X ⩽ 12) = 0,95   à 10⁻²</code></pre></div>
+      <p class="rap">Le réflexe qui déclenche tout : devant des bornes, on calcule
+         <code>μ ± σ</code>, <code>μ ± 2σ</code>, <code>μ ± 3σ</code> et on regarde si ça
+         tombe juste. Si oui — et à l'examen ça tombe juste — la réponse est immédiate.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">② Probabilité qu'une pomme ait un diamètre inférieur à 4 cm ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>4 = μ − 2σ : c'est la borne gauche de l'intervalle précédent.
+Il reste 1 − 0,95 = 0,05 à répartir de part et d'autre.
+Par complémentarité et par symétrie, les deux queues sont égales :
+
+P(X &lt; 4) = (1 − 0,95) / 2
+         = 0,05 / 2
+P(X &lt; 4) = 0,025</code></pre></div>
+      <p class="rap">Une pomme sur 40 environ. Remarquez qu'on n'a pas eu besoin de savoir
+         ce que valait <code>P(X &lt; 4)</code> « en vrai » : la symétrie a fait tout le travail.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">③ Probabilité qu'une pomme ait un diamètre supérieur à 10 cm ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>10 = 8 + 2 = μ + σ          ← cette fois c'est l'intervalle à 1σ
+
+P(6 ⩽ X ⩽ 10) = 0,68
+il reste 1 − 0,68 = 0,32, à partager en deux queues égales
+
+P(X &gt; 10) = (1 − 0,68) / 2
+          = 0,32 / 2
+P(X &gt; 10) = 0,16</code></pre></div>
+      <p class="rap">16 % des pommes dépassent 10 cm. Même mécanisme que la question ②, mais
+         sur l'autre intervalle et de l'autre côté — c'est bien la <em>même</em> méthode.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">④ Probabilité qu'une pomme ait un diamètre inférieur à 8 cm ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>8 = μ. C'est l'axe de symétrie.
+
+P(X &lt; 8) = 0,5</code></pre></div>
+      <p class="rap">Question piège : elle ressemble aux précédentes, mais il n'y a rien
+         à calculer. La moitié gauche de la cloche, c'est une demi-aire.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">⑤ Probabilité qu'une pomme mesure entre 6 et 12 cm, sans calculatrice ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Ici les deux bornes n'appartiennent <strong>pas au même intervalle</strong> :
+         6 = μ − σ, mais 12 = μ + 2σ. Impossible de lire la réponse directement. On passe
+         par le <strong>complémentaire</strong> : ce qui n'est pas entre 6 et 12, c'est
+         « en dessous de 6 » ou « au-dessus de 12 », deux morceaux qu'on sait calculer.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(X &lt; 6)  = (1 − 0,68) / 2 = 0,16      ← 6 = μ − σ
+P(X &gt; 12) = (1 − 0,95) / 2 = 0,025     ← 12 = μ + 2σ
+
+Par complémentarité :
+P(6 &lt; X &lt; 12) = 1 − P(X &lt; 6) − P(X &gt; 12)
+              = 1 − 0,16 − 0,025
+              = 0,815     à 10⁻³</code></pre></div>
+      <p class="rap">Trois contrôles : le résultat est entre 0 et 1 ✔ ; l'intervalle
+         [6 ; 12] contient la moyenne et couvre presque tout le corps de la cloche, donc une
+         valeur proche de 0,8 est plausible ✔ ; il est logiquement plus grand que 0,68
+         (l'intervalle à 1σ) et plus petit que 0,95 (l'intervalle à 2σ), car [6 ; 12] contient
+         le premier et est contenu dans le second ✔</p>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 L'encadrement, ce contrôle gratuit</div>
+    <p>Le dernier contrôle vaut d'être systématisé. <strong>[6 ; 12] ⊃ [6 ; 10]</strong> et
+       <strong>[6 ; 12] ⊂ [4 ; 12]</strong>, donc forcément :</p>
+    <div class="formule">0,68 &lt; P(6 &lt; X &lt; 12) &lt; 0,95</div>
+    <p>0,815 y est. Si vous aviez trouvé 0,34 ou 1,12, l'encadrement l'aurait dit tout de
+       suite — sans refaire un seul calcul. À l'examen, dix secondes bien investies.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="calculatrice">
+  <h2><span class="num">07</span>La calculatrice</h2>
+
+  <p>Quand les bornes ne tombent pas sur <code>μ ± kσ</code>, la méthode précédente ne
+     s'applique plus. La calculatrice calcule alors directement
+     <code>P(borne inf ⩽ X ⩽ borne sup)</code> — et elle le fait pour n'importe quelles bornes.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les quatre valeurs à saisir</div>
+    <div class="tableau">
+      <table>
+        <thead>
+          <tr><th>Machine</th><th>Fonction</th><th>Ordre des champs</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>TI</strong> (TI-82, TI-83)</td>
+            <td><code>normalFRép</code> / <code>normalcdf</code><br>
+                <span style="font-size:12.5px">2nde → distrib → 2 : normalFRép</span></td>
+            <td><code>Low</code> (borne inf) → <code>Up</code> (borne sup) →
+                <strong><code>μ</code></strong> → <strong><code>σ</code></strong></td>
+          </tr>
+          <tr>
+            <td><strong>Casio</strong> (Graph 35/90)</td>
+            <td><code>NormCD</code><br>
+                <span style="font-size:12.5px">MENU Statistiques → DIST → NORM → Ncd</span></td>
+            <td><code>Lower</code> → <code>Upper</code> →
+                <strong><code>σ</code></strong> → <strong><code>μ</code></strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Casio inverse μ et σ — le piège n° 1 du chapitre</div>
+    <p>Le tableau du cours porte un gros point d'exclamation sur cette ligne, et pour cause :
+       sur <strong>TI c'est μ puis σ</strong>, sur <strong>Casio c'est σ puis μ</strong>.
+       Intervertir les deux ne provoque aucun message d'erreur — la machine rend
+       tranquillement un nombre <em>faux</em>.</p>
+    <p><strong>Le contrôle qui sauve</strong> : la réponse doit être cohérente avec la cloche.
+       Pour <code>X ↝ N(8 ; 2)</code>, si vous demandez <code>P(6 &lt; X &lt; 12)</code> et que
+       la machine affiche 0,02, c'est que μ et σ sont inversés : [6 ; 12] encadre la moyenne,
+       la réponse ne peut pas être minuscule.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 L'infini se tape 10^99</div>
+    <p>Une calculatrice n'a pas de touche « ∞ ». Les énoncés, eux, demandent en permanence
+       <code>P(X &gt; a)</code> ou <code>P(X &lt; b)</code>, c'est-à-dire un intervalle dont une
+       borne est infinie. La convention du cours :</p>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>On cherche</th><th>Équivaut à</th><th>Low</th><th>Up</th></tr></thead>
+        <tbody>
+          <tr><td><code>P(X &gt; a)</code></td><td><code>X ∈ [a ; +∞[</code></td>
+              <td><code>a</code></td><td><strong><code>10^99</code></strong></td></tr>
+          <tr><td><code>P(X &lt; b)</code></td><td><code>X ∈ ]−∞ ; b]</code></td>
+              <td><strong><code>−10^99</code></strong></td><td><code>b</code></td></tr>
+          <tr><td><code>P(a &lt; X &lt; b)</code></td><td><code>X ∈ [a ; b]</code></td>
+              <td><code>a</code></td><td><code>b</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>10<sup>99</sup> n'est pas l'infini, mais il est si loin au-delà de la cloche que la
+       différence est indétectable. Sur TI, la touche est <code>EE</code> : on tape
+       <code>1 EE 99</code>. Certains manuels utilisent 10<sup>9</sup> ou 10<sup>12</sup> —
+       ça marche tout aussi bien, tant que la borne dépasse largement μ + 10σ.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 X ↝ N(8 ; 2). Régler la machine pour P(X &gt; 10), puis pour P(6 &lt; X &lt; 12).</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">méthode — sur TI</span><pre><code>P(X &gt; 10)                        P(6 &lt; X &lt; 12)
+  Low : 10                         Low : 6
+  Up  : 10^99                      Up  : 12
+  μ   : 8                          μ   : 8
+  σ   : 2                          σ   : 2
+
+  → 0,158 655   à 10⁻⁶             → 0,818 6   à 10⁻⁴</code></pre></div>
+      <p class="rap">Comparez avec les réponses « sans calculatrice » du §&nbsp;6 : 0,16 et
+         0,815. Les écarts sont minuscules mais réels — c'est précisément l'objet de la
+         section suivante.</p>
+    </div>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — un écart-type ne peut pas valoir 0</div>
+    <p>Sur la photo du tableau, l'un des réglages de <code>P(X &gt; 10)</code> porte
+       <code>σ = 0</code> au lieu de <code>σ = 2</code> — un lapsus de feutre : le résultat
+       affiché juste en dessous, 0,158 655, ne peut être obtenu qu'avec σ = 2. Le réglage
+       correct est <strong>μ = 8, σ = 2</strong>.</p>
+    <p>C'est l'occasion de noter la règle : <strong>σ &gt; 0 toujours</strong>. Un écart-type
+       nul décrirait une machine parfaite, produisant à l'atome près la même valeur — la
+       cloche se réduirait à un trait vertical, et aucune calculatrice ne saurait quoi en
+       faire. La plupart affichent d'ailleurs une erreur de domaine.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="ecarts">
+  <h2><span class="num">08</span>Pourquoi 0,16 ≠ 0,158 7</h2>
+
+  <p>Le cours le signale explicitement au tableau : <em>« légèrement différent de notre
+     résultat car la calculatrice prend des valeurs plus précises que 0,68 et 0,95 »</em>.
+     Il vaut la peine de comprendre exactement d'où vient l'écart, parce que la question
+     tombe à l'oral.</p>
+
+  <p>Les trois nombres célèbres sont des <strong>arrondis</strong>. Les valeurs exactes sont :</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Intervalle</th><th>Valeur du cours</th><th>Valeur exacte</th><th>Écart</th></tr></thead>
+      <tbody>
+        <tr><td>1σ</td><td>0,68</td><td>0,682 689…</td><td>+0,002 7</td></tr>
+        <tr><td>2σ</td><td>0,95</td><td>0,954 500…</td><td>+0,004 5</td></tr>
+        <tr><td>3σ</td><td>0,997</td><td>0,997 300…</td><td>+0,000 3</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Un écart de quelques millièmes sur l'intervalle se répercute — divisé par deux — sur
+     chaque queue. D'où, pour les pommes :</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(X &gt; 10)     « à la main » (1 − 0,68)/2      = 0,16
+              exact                            = 0,158 655        écart : 0,001 3
+
+P(X &lt; 4)      « à la main » (1 − 0,95)/2      = 0,025
+              exact                            = 0,022 75         écart : 0,002 3
+
+P(6 &lt; X &lt; 12) « à la main » 1 − 0,16 − 0,025  = 0,815
+              exact                            = 0,818 6          écart : 0,003 6</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Lequel écrire sur la copie ?</div>
+    <p><strong>Celui que l'énoncé demande.</strong> Lisez la consigne, elle le dit toujours :</p>
+    <ul>
+      <li>« <strong>sans calculatrice</strong> », « arrondir au <strong>centième</strong> »,
+          « à 10<sup>−2</sup> » → méthode des intervalles, on répond
+          <strong>0,16</strong> et le correcteur l'attend.</li>
+      <li>« arrondir à <strong>10<sup>−4</sup></strong> », « à <strong>0,01 % près</strong> »,
+          « au <strong>millième</strong> » → calculatrice obligatoire, on répond
+          <strong>0,158 7</strong>.</li>
+    </ul>
+    <p>Répondre 0,158 655 à une question « au centième » n'est pas faux, mais répondre 0,16 à
+       une question « à 10<sup>−4</sup> » l'est. Le niveau de précision demandé
+       <strong>est</strong> la consigne de méthode.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi la machine sait, et pas nous</div>
+    <p>La densité gaussienne n'a <strong>pas de primitive</strong> exprimable avec les
+       fonctions usuelles. Aucune formule ne donne l'aire exacte : ni à la main, ni à la
+       calculatrice. La machine ne « calcule » donc pas l'intégrale — elle l'approche
+       numériquement, avec une dizaine de chiffres significatifs. Avant les calculatrices
+       graphiques, on lisait ces valeurs dans une <strong>table de la loi normale centrée
+       réduite</strong> : deux pages de nombres à quatre décimales, qu'il fallait
+       apprendre à interpoler.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="lecture">
+  <h2><span class="num">09</span>Traduire un énoncé</h2>
+
+  <p>L'erreur la plus fréquente n'est pas mathématique : c'est une erreur de
+     <strong>lecture</strong>. Voici le dictionnaire.</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>L'énoncé dit…</th><th>On écrit</th><th>Réglage machine</th></tr></thead>
+      <tbody>
+        <tr><td>« inférieur à <em>a</em> », « moins de <em>a</em> »</td>
+            <td><code>P(X &lt; a)</code></td><td>Low = −10^99, Up = a</td></tr>
+        <tr><td>« supérieur à <em>a</em> », « plus de <em>a</em> », « dépasse <em>a</em> »</td>
+            <td><code>P(X &gt; a)</code></td><td>Low = a, Up = 10^99</td></tr>
+        <tr><td>« au moins <em>a</em> »</td>
+            <td><code>P(X ⩾ a)</code> = <code>P(X &gt; a)</code></td><td>Low = a, Up = 10^99</td></tr>
+        <tr><td>« au plus <em>a</em> », « ne dépasse pas <em>a</em> »</td>
+            <td><code>P(X ⩽ a)</code> = <code>P(X &lt; a)</code></td><td>Low = −10^99, Up = a</td></tr>
+        <tr><td>« compris entre <em>a</em> et <em>b</em> »</td>
+            <td><code>P(a &lt; X &lt; b)</code></td><td>Low = a, Up = b</td></tr>
+        <tr><td>« supérieur à <em>a</em> sans dépasser <em>b</em> »</td>
+            <td><code>P(a &lt; X ⩽ b)</code></td><td>Low = a, Up = b</td></tr>
+        <tr><td>« exactement <em>a</em> »</td>
+            <td><code>P(X = a) = 0</code></td><td>— aucun calcul —</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 La méthode en quatre temps</div>
+    <ol>
+      <li><strong>Identifier μ et σ</strong> dans l'énoncé, et écrire
+          <code>X ↝ N(μ ; σ)</code>. L'énoncé les donne toujours en toutes lettres.</li>
+      <li><strong>Traduire</strong> la question en une probabilité, avec le tableau ci-dessus.</li>
+      <li><strong>Tester les bornes</strong> : calculer <code>μ ± σ</code>,
+          <code>μ ± 2σ</code>, <code>μ ± 3σ</code>. Si une borne y tombe, la méthode « à la
+          main » s'applique — et l'énoncé demandera un arrondi au centième.</li>
+      <li><strong>Conclure par une phrase</strong>, en revenant au contexte : « environ 16 %
+          des batteries dépassent 44 minutes ». Un résultat nu ne vaut jamais tous les points.</li>
+    </ol>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un schéma, toujours</div>
+    <p>Sur toutes les photos du tableau, le professeur dessine la cloche <em>avant</em> de
+       calculer, et il hachure la zone cherchée. Ce n'est pas décoratif : c'est ce qui évite
+       de confondre une queue avec son complémentaire, ou de soustraire 0,68 quand il fallait
+       soustraire 0,16. Trente secondes de croquis, et la moitié des erreurs disparaît.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 X ↝ N(1 ; 0,02) : « est-il probable que la bouteille contienne plus de 1,1 L ? »</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Où se situe 1,1 par rapport à la cloche ?
+
+μ + 3σ = 1 + 3 × 0,02 = 1,06
+
+1,1 &gt; 1,06 : la valeur est au-delà de 3σ.
+Or  P(X &gt; μ + 3σ) = (1 − 0,997) / 2 = 0,001 5
+
+Donc P(X &gt; 1,1) &lt; 0,001 5 : non, ce n'est pas probable.
+(Avec la calculatrice : P(X &gt; 1,1) = 2,9 × 10⁻⁷, soit 0,000 000 29.)</code></pre></div>
+      <p class="rap">Une question « est-il probable… ? » ne réclame pas toujours un nombre
+         exact : <strong>situer la valeur par rapport à 3σ suffit à conclure</strong>, et c'est
+         un raisonnement qui rapporte des points. Environ trois chances sur dix millions
+         ici — autant dire jamais.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 10 -->
+<section id="seuil">
+  <h2><span class="num">10</span>Le problème inverse : trouver un seuil</h2>
+
+  <p>Jusqu'ici on partait d'une borne pour trouver une probabilité. Les énoncés de BTS
+     retournent régulièrement la question : <em>on impose une probabilité, quelle borne
+     faut-il prendre ?</em> C'est le problème du <strong>stock de sécurité</strong>, du
+     <strong>seuil de garantie</strong>, de la <strong>tolérance</strong>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'exemple du cours — PNEUTOP, Métropole 2019</div>
+    <p>Le nombre de pneus 4 saisons vendus par mois suit <code>Y ↝ N(450 ; 15)</code>. Combien
+       de pneus faut-il avoir en stock en début de mois pour que la probabilité d'être en
+       rupture en cours de mois soit <strong>inférieure à 0,05</strong> ?</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>« être en rupture » = la demande dépasse le stock n, soit Y &gt; n.
+On cherche donc n tel que  P(Y &gt; n) &lt; 0,05.
+
+Or 0,05, c'est exactement ce qui reste hors de l'intervalle à 2σ :
+
+μ − 2σ = 450 − 2 × 15 = 420
+μ + 2σ = 450 + 2 × 15 = 480      →  P(420 &lt; Y &lt; 480) = 0,95
+
+Par complémentarité et par symétrie :
+P(Y ⩾ 480) = (1 − 0,95) / 2
+P(Y ⩾ 480) = 0,025               ← bien inférieur à 0,05
+
+donc  n = 480 convient.</code></pre></div>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — 480 convient, mais ce n'est pas <em>la plus petite</em> valeur</div>
+    <p>L'énoncé demande précisément « la <strong>plus petite</strong> valeur de <em>n</em>
+       remplissant cette condition ». Or la méthode des 2σ ne cherche pas le minimum : elle
+       trouve le premier seuil <em>commode</em>, celui qui tombe pile sur un intervalle connu.
+       Comme 0,025 est deux fois plus petit que le 0,05 demandé, on a pris beaucoup trop de
+       marge.</p>
+<div class="bloc-code"><span class="langue">calcul — à la calculatrice</span><pre><code>P(Y &gt; 474) = 0,054 8      &gt; 0,05   ✗ insuffisant
+P(Y &gt; 475) = 0,047 8      &lt; 0,05   ✔ convient
+
+La plus petite valeur entière est donc n = 475.</code></pre></div>
+    <p><strong>La réponse à la question posée est 475.</strong> L'énoncé demande la plus
+       petite valeur ; 480 remplit la condition mais n'est pas minimal, donc il ne répond pas
+       à la question. Le sujet ajoute d'ailleurs « <em>expliquer la démarche, toute trace de
+       recherche même non aboutie sera prise en compte</em> » : c'est le signe d'une question
+       où l'on attend un <strong>tâtonnement à la calculatrice</strong>, pas une formule
+       toute faite.</p>
+    <p class="rap">Le corrigé du tableau s'arrête à 480 : la méthode des 2σ trouve un seuil
+       <em>commode</em>, pas le plus petit. <strong>Écrivez 475, et montrez l'encadrement</strong>
+       — P(Y &gt; 474) = 0,054 8 et P(Y &gt; 475) = 0,047 8. Un encadrement écrit vaut mieux
+       qu'une réponse nue, quel que soit le barème.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 Reconnaître un problème inverse</div>
+    <p>Trois signaux : l'énoncé contient une <strong>probabilité imposée</strong> (0,05, 0,01,
+       95 %), il demande une <strong>valeur</strong> (un stock, une durée, une masse), et il
+       emploie « <em>déterminer la plus petite / la plus grande valeur de…</em> ».</p>
+    <p>La démarche : traduire la condition en <code>P(X &gt; n) &lt; p</code> ou
+       <code>P(X &lt; n) &lt; p</code>, regarder si <em>p</em> vaut 0,16, 0,025 ou 0,001 5 —
+       auquel cas la borne est un <code>μ ± kσ</code> — sinon
+       <strong>tâtonner à la calculatrice</strong> en encadrant, comme ci-dessus.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 11 -->
+<section id="examen">
+  <h2><span class="num">11</span>À l'examen</h2>
+
+  <p>Le chapitre est un fournisseur régulier de sujets. Trois formats reviennent.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois formats de question</div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Format</th><th>Indice dans l'énoncé</th><th>Ce qu'on attend</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Direct, sans calculatrice</strong></td>
+              <td>« sans calculatrice », « au centième », bornes en <code>μ ± kσ</code></td>
+              <td>Le calcul de <code>μ ± kσ</code>, la citation de l'intervalle,
+                  complémentarité et symétrie</td></tr>
+          <tr><td><strong>Direct, à la calculatrice</strong></td>
+              <td>« à 10<sup>−4</sup> », « à 0,01 % près », bornes quelconques</td>
+              <td>Les quatre réglages écrits sur la copie, puis le résultat et
+                  <strong>la phrase de conclusion</strong></td></tr>
+          <tr><td><strong>Inverse</strong></td>
+              <td>« la plus petite valeur de <em>n</em> telle que… »</td>
+              <td>La traduction en inéquation, puis un encadrement par essais</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les six erreurs qui coûtent des points</div>
+    <ol>
+      <li><strong>Confondre N(μ ; σ) et N(μ ; σ²)</strong> — relire « d'écart-type… » dans
+          l'énoncé.</li>
+      <li><strong>Inverser μ et σ sur Casio</strong> — l'ordre y est σ puis μ.</li>
+      <li><strong>Oublier de diviser par 2</strong> — une queue vaut
+          <code>(1 − p)/2</code>, pas <code>1 − p</code>.</li>
+      <li><strong>Glisser d'un cran comme en binomiale</strong> — en continu,
+          <code>⩽</code> et <code>&lt;</code> sont identiques.</li>
+      <li><strong>Répondre un nombre nu</strong> — la phrase de conclusion dans le contexte
+          fait partie du barème.</li>
+      <li><strong>Utiliser la calculatrice quand l'énoncé l'interdit</strong> — la démarche
+          par intervalles est ce qui est noté, pas le résultat.</li>
+    </ol>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le lien avec la loi binomiale</div>
+    <p>Le tableau du cours porte, juste à côté de la loi normale, une révision de la
+       <a href="../08-variables-aleatoires-loi-binomiale/cours.html">loi binomiale</a>
+       (Métropole 2015, <code>B(40 ; 0,049 4)</code>). Ce voisinage n'est pas fortuit : un
+       sujet de BTS enchaîne très souvent une <strong>Partie B — loi binomiale</strong> et une
+       <strong>Partie C — loi normale</strong> sur le même contexte industriel.</p>
+    <p>La frontière est simple : <strong>on compte</strong> des objets défectueux → binomiale ;
+       <strong>on mesure</strong> une grandeur (masse, durée, diamètre, taux) → normale.
+       Et l'histogramme d'une binomiale <code>B(n ; p)</code> avec un <em>n</em> assez grand
+       ressemble déjà à une cloche — c'est ce qui a historiquement fait découvrir la loi
+       normale.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 Le réflexe de sortie</div>
+    <p>Avant de rendre, trois vérifications de dix secondes chacune :</p>
+    <ul>
+      <li>Toutes mes probabilités sont-elles <strong>entre 0 et 1</strong> ?</li>
+      <li>Une probabilité autour de la moyenne est-elle <strong>grande</strong>, une
+          probabilité de queue <strong>petite</strong> ? (sinon, μ et σ sont inversés)</li>
+      <li>Ai-je <strong>encadré</strong> mes résultats par les valeurs connues 0,5, 0,68,
+          0,95, 0,997 ?</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Notation</strong> : <code>X ↝ N(μ ; σ)</code> — μ = moyenne = E(X),
+          σ = écart-type. En France, le second paramètre est bien
+          <strong>l'écart-type</strong>, pas la variance.</li>
+      <li><strong>Densité</strong> : <code>f(x) = 1/(σ√(2π)) · e<sup>−½((x−μ)/σ)²</sup></code>
+          — la <em>gaussienne</em>. À reconnaître, jamais à utiliser.</li>
+      <li><strong>Deux propriétés</strong> : courbe <strong>symétrique</strong> autour de
+          <code>x = μ</code> · aire totale = <strong>1</strong>.</li>
+      <li><strong>Conséquence immédiate</strong> : <code>P(X &lt; μ) = P(X &gt; μ) = 0,5</code>.</li>
+      <li><strong>Loi continue</strong> : <code>P(X = k) = 0</code>, donc <code>⩽</code> et
+          <code>&lt;</code> sont interchangeables — contrairement à la binomiale.</li>
+      <li><strong>Les trois intervalles</strong> : <code>1σ → 0,68</code> ·
+          <code>2σ → 0,95</code> · <code>3σ → 0,997</code>. Vrais pour toute loi normale.</li>
+      <li><strong>Les trois queues</strong> : <code>0,16</code> · <code>0,025</code> ·
+          <code>0,001 5</code>. Une queue = <strong>(1 − p) / 2</strong>.</li>
+      <li><strong>Sans calculatrice</strong> : tester <code>μ ± kσ</code>, puis
+          <strong>complémentarité</strong> (<code>1 − …</code>) et <strong>symétrie</strong>
+          (<code>÷ 2</code>).</li>
+      <li><strong>Calculatrice</strong> : TI <code>normalFRép</code> = Low, Up,
+          <strong>μ, σ</strong> · Casio <code>NormCD</code> = Lower, Upper,
+          <strong>σ, μ</strong>. L'infini se tape <code>10^99</code>.</li>
+      <li><strong>Écarts</strong> : 0,68 / 0,95 / 0,997 sont des arrondis de 0,682 7 /
+          0,954 5 / 0,997 3 — d'où 0,16 « à la main » contre 0,158 7 à la machine.
+          <strong>La précision demandée dicte la méthode.</strong></li>
+      <li><strong>Au-delà de 3σ</strong> : moins de 3 chances sur 1 000 — l'événement devient
+          <em>suspect</em>. Argument utilisable tel quel dans une question ouverte.</li>
+      <li><strong>Problème inverse</strong> : probabilité imposée → chercher la borne. Si le
+          seuil vaut 0,16 / 0,025 / 0,001 5, c'est un <code>μ ± kσ</code> ; sinon,
+          on encadre par essais.</li>
+      <li><strong>Toujours</strong> : un schéma hachuré, puis une phrase de conclusion dans le
+          contexte.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Tableau numérique « LOI NORMALE » (Microsoft Whiteboard, 19/03/2026) — définition,
+          densité, les deux propriétés graphiques, les trois intervalles de fluctuation,
+          réglages TI et Casio, et l'intégralité des calculs du fil rouge N(8 ; 2)</li>
+      <li>Photos de séance <em>img-2273</em> et <em>img-2274</em> — énoncé des cinq questions
+          sur les pommes, et sujet Métropole du 13 mai 2019, Partie C (PNEUTOP)</li>
+      <li>Tableau « CG2 2526 LOI NORMALE 2 » (<em>img-2405</em>) — taux d'hématocrite
+          N(45,5 ; 3), intervalle à 2σ détaillé</li>
+      <li>Photos d'exercices <em>img-2406</em> à <em>img-2408</em> — paquets de pâtes
+          N(500 ; 2), bouteille d'eau N(1 ; 0,02)</li>
+      <li>Photo <em>img-2472</em> — autonomie des batteries de drones N(40 ; 4)</li>
+      <li>Capture du serveur Discord de la classe (26/03/2026) — énoncés de la température
+          d'octobre N(15 ; 3) et du taux d'hématocrite, avec les pistes du professeur</li>
+      <li>Anciennes fiches générées <em>cours-maths-loi-normale</em> (3 versions),
+          <em>entrainement-loi-normale</em> (2 versions) et <em>loi-normale-bts-ciel</em>,
+          reprises comme matière première puis entièrement réécrites et vérifiées</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

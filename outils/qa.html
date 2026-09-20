@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banc de test — rendu, débordement, cibles tactiles</title>
+<style>
+  body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         margin: 0; padding: 1.4rem; background: #FDF5E6; color: #2F2F2F; }
+  h1 { font-size: 1.3rem; margin: 0 0 .3rem; }
+  p.sous { margin: 0 0 1.2rem; color: #6B6257; font-size: 13.5px; max-width: 72ch; }
+  button { font: inherit; font-weight: 650; padding: .55rem 1rem; border-radius: 9px;
+           border: 1px solid #D8CBB8; background: #fff; cursor: pointer; }
+  #etat { margin: 1rem 0; font-size: 13px; color: #6B6257; font-family: ui-monospace, monospace; }
+  #journal p { margin: .18rem 0; font-size: 13px; font-family: ui-monospace, Menlo, monospace; }
+  .ok { color: #2D5A27; font-weight: 700; }
+  .ko { color: #A32E2E; font-weight: 700; }
+  iframe { width: 375px; height: 700px; border: 1px solid #E6DCCE; position: fixed;
+           right: 12px; bottom: 12px; opacity: .25; pointer-events: none; }
+</style>
+</head>
+<body>
+<h1>Banc de test — rendu réel</h1>
+<p class="sous">Lire le code ne dit rien de la mise en page : un titre ne déborde qu'une fois
+calculé. Cette page mesure, dans un vrai moteur de rendu, trois choses que le regard
+rate&nbsp;: le <b>débordement horizontal</b> (la page qui se décale au doigt),
+les <b>cibles tactiles sous 40&nbsp;px</b>, et les <b>textes tronqués</b>. Elle croise
+toutes les pages aux deux largeurs de référence, puis un échantillon sur les 40 thèmes.</p>
+<button id="go">Lancer le contrôle</button>
+<div id="etat"></div>
+<div id="journal"></div>
+<iframe id="f" title="banc"></iframe>
+
+<script>
+const THEMES = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","frost",
+  "peachlight","mintlight","marble","dark","emerald","ocean","mocha","nordic","carbon",
+  "rosewood","sunset","starry","aurora","midnight","amoled",
+  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
+  "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige"];
+const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
+  "sunset","starry","aurora","midnight","amoled",
+  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"]);
+const LARGEURS = [375, 768, 1440];
+
+const f = document.getElementById("f"),
+      etat = document.getElementById("etat"),
+      journal = document.getElementById("journal");
+
+function dire(txt, classe) {
+  const p = document.createElement("p");
+  if (classe) p.className = classe;
+  p.textContent = txt;
+  journal.appendChild(p);
+}
+
+function charger(url) {
+  return new Promise(res => {
+    f.onload = () => setTimeout(() => res(f), 60);
+    f.src = url;
+  });
+}
+
+/* Le crawl part de l'accueil et suit les liens internes : ajouter un chapitre
+   suffit à l'inclure, sans toucher à cette page. `cache:no-store` est
+   indispensable — la version en cache avait fait rater 18 pages neuves. */
+async function pages() {
+  const vues = new Set(["index.html"]), file = ["index.html"], sortie = [];
+  while (file.length) {
+    const u = file.shift(); sortie.push(u);
+    let t;
+    try { t = await (await fetch("../" + u, {cache:"no-store"})).text(); } catch (e) { continue; }
+    const doc = new DOMParser().parseFromString(t, "text/html");
+    const base = u.includes("/") ? u.slice(0, u.lastIndexOf("/") + 1) : "";
+    for (const a of doc.querySelectorAll("a[href]")) {
+      let h = a.getAttribute("href");
+      if (!h || h.startsWith("#") || h.startsWith("http") || h.startsWith("mailto")) continue;
+      h = new URL(base + h, "http://x/").pathname.slice(1).split("#")[0];
+      if (h.endsWith(".html") && !vues.has(h)) { vues.add(h); file.push(h); }
+    }
+  }
+  return sortie;
+}
+
+/* Un débordement se voit au scrollWidth de la racine. On remonte ensuite au
+   coupable : le plus large élément qui dépasse réellement le cadre. */
+function deborde(doc, w) {
+  const d = doc.documentElement;
+  if (d.scrollWidth <= w + 1) return null;
+  let pire = null;
+  for (const el of doc.body.querySelectorAll("*")) {
+    const r = el.getBoundingClientRect();
+    if (r.width > w + 1 || r.right > w + 1) {
+      if (!pire || r.right > pire.r) pire = { r: Math.round(r.right), w: Math.round(r.width),
+        q: el.tagName.toLowerCase() + (el.className && typeof el.className === "string"
+             ? "." + el.className.trim().split(/\s+/).slice(0,2).join(".") : "") };
+    }
+  }
+  return { total: d.scrollWidth, coupable: pire };
+}
+
+function ciblesTrop_petites(doc) {
+  const mauvais = [];
+  for (const el of doc.querySelectorAll("a, button, select, input, summary")) {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) continue;         // masqué : hors sujet
+    if (getComputedStyle(el).display === "inline") continue; // lien dans un paragraphe
+    if (r.height < 34 || r.width < 26) {
+      mauvais.push((el.textContent || el.getAttribute("aria-label") || el.tagName)
+                   .trim().slice(0, 28) + " " + Math.round(r.width) + "×" + Math.round(r.height));
+    }
+  }
+  return mauvais;
+}
+
+document.getElementById("go").onclick = async () => {
+  journal.innerHTML = ""; etat.textContent = "recensement des pages…";
+  const liste = await pages();
+  let n = 0, fautes = 0;
+
+  // ── 1. toutes les pages, thème par défaut, trois largeurs ──────────────
+  for (const u of liste) {
+    await charger("../" + u);
+    for (const w of LARGEURS) {
+      f.style.width = w + "px";
+      const doc = f.contentDocument;
+      doc.documentElement.dataset.anim = "0";
+      doc.body.offsetHeight;
+      n++;
+      const d = deborde(doc, w);
+      if (d) { fautes++; dire("DÉBORDE  " + u + "  @" + w + "px → " + d.total + "px  ("
+                 + (d.coupable ? d.coupable.q + " " + d.coupable.w + "px" : "?") + ")", "ko"); }
+      if (w === 375) {
+        const c = ciblesTrop_petites(doc);
+        if (c.length) { fautes++; dire("CIBLE <34px  " + u + "  → " + c.slice(0,4).join(" | "), "ko"); }
+      }
+    }
+    etat.textContent = n + " mesures — " + u;
+  }
+
+  // ── 2. échantillon × 40 thèmes ────────────────────────────────────────
+  const echantillon = liste.filter(u => /index\.html$|cours\.html$|exercices\.html$|fiche-revision\.html$/.test(u))
+                           .filter((_, i) => i % Math.ceil(liste.length / 8) === 0).slice(0, 8);
+  for (const u of echantillon) {
+    await charger("../" + u);
+    const doc = f.contentDocument, d = doc.documentElement;
+    d.dataset.anim = "0";
+    for (const t of THEMES) {
+      d.dataset.theme = t; d.dataset.sombre = SOMBRES.has(t) ? "1" : "0";
+      for (const w of [375, 1440]) {
+        f.style.width = w + "px"; doc.body.offsetHeight; n++;
+        const x = deborde(doc, w);
+        if (x) { fautes++; dire("DÉBORDE  " + u + "  thème " + t + " @" + w + "px → "
+                   + x.total + "px  (" + (x.coupable ? x.coupable.q : "?") + ")", "ko"); }
+      }
+    }
+    etat.textContent = n + " mesures — thèmes sur " + u;
+  }
+
+  f.style.width = "375px";
+  etat.textContent = n + " mesures terminées.";
+  dire(fautes ? fautes + " anomalie(s) de rendu." : "OK — aucun débordement, aucune cible sous 34 px, sur "
+       + liste.length + " pages et " + THEMES.length + " thèmes.", fautes ? "ko" : "ok");
+};
+</script>
+</body>
+</html>

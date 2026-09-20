@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python — les bases | BTS CIEL</title>
+<meta name="description" content="Cours complet : modes d'exécution, variables et typage, input/print et f-strings, opérateurs, conditions, boucles, listes, dictionnaires, fonctions, fichiers et exceptions.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#modes">1 · Deux modes d'exécution</a></li>
+    <li><a href="#indentation">2 · L'indentation fait la loi</a></li>
+    <li><a href="#variables">3 · Variables et typage</a></li>
+    <li><a href="#entrees-sorties">4 · Entrées et sorties</a></li>
+    <li><a href="#operateurs">5 · Opérateurs et priorités</a></li>
+    <li><a href="#conditions">6 · Les conditions</a></li>
+    <li><a href="#boucles">7 · Les boucles</a></li>
+    <li><a href="#listes">8 · Listes et ensembles</a></li>
+    <li><a href="#dictionnaires">9 · Les dictionnaires</a></li>
+    <li><a href="#fonctions">10 · Fonctions</a></li>
+    <li><a href="#fichiers">11 · Fichiers et exceptions</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Python — les bases</h1>
+  <p class="chapeau">Un langage où l'<em>indentation</em> n'est pas une question de style : c'est
+     la syntaxe elle-même.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>Python</strong> est un langage à <strong>typage dynamique</strong> : on n'y déclare
+         pas le type, il se devine. Les blocs ne sont pas délimités par des accolades mais par
+         l'<strong>indentation</strong>. On y manipule surtout deux structures :
+         les <strong>listes</strong> (ordonnées, modifiables) et les
+         <strong>dictionnaires</strong> (clé → valeur). <code>input()</code> renvoie
+         <strong>toujours du texte</strong> — à convertir avant tout calcul.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#indentation</code> <code>#typage-dynamique</code> <code>#input</code>
+    <code>#print</code> <code>#f-string</code> <code>#if-elif-else</code> <code>#for-range</code>
+    <code>#while</code> <code>#break</code> <code>#liste</code> <code>#append</code>
+    <code>#dictionnaire</code> <code>#items</code> <code>#def</code> <code>#with-open</code>
+    <code>#try-except</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="modes">
+  <h2><span class="num">01</span>Deux modes d'exécution</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mode</th><th>Comment</th><th>Pour quoi</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Interactif</strong></td>
+          <td>on dialogue directement avec Python, ligne par ligne</td>
+          <td>tester une idée, vérifier une syntaxe — « une calculatrice intelligente »</td></tr>
+      <tr><td><strong>Script</strong></td>
+          <td>on écrit un fichier <code>.py</code> que l'on exécute</td>
+          <td>un vrai programme, réexécutable à volonté</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">mode interactif</span><pre><code>&gt;&gt;&gt; 2 + 3
+5
+&gt;&gt;&gt; a = 6
+&gt;&gt;&gt; a
+6</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les chevrons <code>&gt;&gt;&gt;</code> ne se recopient pas</div>
+    <p>Dans tous les cours, <code>&gt;&gt;&gt;</code> signale le <em>prompt</em> du mode interactif
+       et la ligne qui suit sans chevrons est la <strong>réponse</strong> de Python. Dans un fichier
+       <code>.py</code>, on n'écrit ni les chevrons ni les réponses.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="indentation">
+  <h2><span class="num">02</span>L'indentation fait la loi</h2>
+
+  <p>C'est <strong>la</strong> particularité de Python, et la première source d'erreurs. Là où
+     JavaScript et PHP utilisent des accolades, Python utilise <strong>le décalage</strong> pour
+     savoir ce qui appartient à quoi.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 180" role="img" aria-label="Accolades en PHP contre indentation en Python">
+      <style>
+        .cb{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.4}
+        .cm2{font:12px var(--mono);fill:var(--encre)}
+        .ck{font:12px var(--mono);fill:#C05621}
+        .cl2{font:600 11px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .zon{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 3}
+      </style>
+      <text class="cl2" x="145" y="18">PHP / JavaScript — accolades</text>
+      <rect class="cb" x="14" y="26" width="262" height="134" rx="7"/>
+      <text class="ck" x="28" y="52">if ($age &gt;= 18) {</text>
+      <text class="cm2" x="52" y="74">echo "majeur";</text>
+      <text class="cm2" x="52" y="94">echo "bienvenue";</text>
+      <text class="ck" x="28" y="116">}</text>
+      <text class="cm2" x="28" y="140">echo "suite";</text>
+
+      <text class="cl2" x="430" y="18">Python — indentation</text>
+      <rect class="cb" x="300" y="26" width="266" height="134" rx="7"/>
+      <text class="ck" x="314" y="52">if age &gt;= 18:</text>
+      <rect class="zon" x="330" y="60" width="220" height="44" rx="4"/>
+      <text class="cm2" x="342" y="76">print("majeur")</text>
+      <text class="cm2" x="342" y="96">print("bienvenue")</text>
+      <text class="cm2" x="314" y="140">print("suite")</text>
+    </svg>
+    <figcaption>Le bloc, c'est ce qui est décalé. Revenir à gauche, c'est sortir du bloc.</figcaption>
+  </figure>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les deux erreurs d'indentation</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>if age &gt;= 18:
+print("majeur")            # ✘ IndentationError: expected an indented block
+
+if age &gt;= 18:
+    print("majeur")
+        print("bienvenue")  # ✘ IndentationError: unexpected indent</code></pre></div>
+    <p><strong>Ne mélangez jamais espaces et tabulations</strong> : visuellement identiques, elles
+       produisent un <code>TabError</code> incompréhensible. La convention est de
+       <strong>4 espaces</strong>, et tout éditeur sérieux les insère à la place de la tabulation.</p>
+    <p>Et n'oubliez pas les <strong>deux-points</strong> en fin de ligne : <code>if …:</code>,
+       <code>for …:</code>, <code>while …:</code>, <code>def …:</code>. C'est eux qui annoncent le
+       bloc.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="variables">
+  <h2><span class="num">03</span>Variables et typage</h2>
+
+  <h3>Les identificateurs</h3>
+  <ul>
+    <li>commencent par une lettre ou <code>_</code> ;</li>
+    <li>ne contiennent que lettres, chiffres et <code>_</code> ;</li>
+    <li>ne sont pas un mot réservé de Python ;</li>
+    <li>sont <strong>sensibles à la casse</strong> : <code>ma_var</code> ≠ <code>Ma_Var</code>.</li>
+  </ul>
+<div class="bloc-code"><span class="langue">python</span><pre><code>valides    : toto, proch_val, max1, MA_VALEUR, r2d2, bb8, _mavar
+non valides : 2be, C-3PO, ma var</code></pre></div>
+  <p><strong>Convention</strong> : minuscules, mots séparés par <code>_</code>, pas d'accent.</p>
+
+  <h3>L'affectation</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code>n    = 33
+a    = 42 + 25          # l'expression est évaluée d'abord
+ch   = "bonjour"
+euro = 6.55957</code></pre></div>
+  <p>La première affectation s'appelle l'<strong>initialisation</strong>. Une nouvelle affectation
+     <strong>écrase</strong> la valeur précédente, qui est perdue.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>=</code> affecte, <code>==</code> compare</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>&gt;&gt;&gt; a = 6          # j'affecte
+&gt;&gt;&gt; b = 9
+&gt;&gt;&gt; a == b        # je demande : sont-ils égaux ?
+False</code></pre></div>
+    <p>C'est le même piège qu'en <a href="../04-javascript/cours.html">JavaScript</a> et en
+       <a href="../05-php/cours.html">PHP</a>. Bonne nouvelle : Python <strong>refuse</strong>
+       <code>if a = 6:</code> avec une <code>SyntaxError</code>. Le langage vous protège d'une
+       erreur que le C laisse passer silencieusement.</p>
+  </div>
+
+  <h3>Le typage dynamique</h3>
+  <p>Le type d'une variable n'est <strong>pas déclaré</strong> : Python le détermine tout seul,
+     à l'exécution.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>x = 5             # int    — entier
+y = 2.5           # float  — réel
+nom = "Alice"     # str    — chaîne
+ok = True         # bool   — booléen
+
+type(x)           # &lt;class 'int'&gt;</code></pre></div>
+  <p>Une même variable peut même changer de type en cours de route — souple, mais à manier avec
+     prudence.</p>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="entrees-sorties">
+  <h2><span class="num">04</span>Entrées et sorties</h2>
+
+  <h3><code>input()</code> — lire au clavier</h3>
+  <p>Le programme s'interrompt, affiche éventuellement un message, et attend une saisie suivie
+     d'Entrée.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>input()</code> renvoie TOUJOURS une chaîne</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>&gt;&gt;&gt; age = input("Quel âge as-tu ? ")
+Quel âge as-tu ? 66
+&gt;&gt;&gt; age
+'66'                     ← des guillemets : c'est du TEXTE
+
+&gt;&gt;&gt; texte = input()
+234
+&gt;&gt;&gt; texte + 1
+TypeError: can only concatenate str (not "int") to str
+
+&gt;&gt;&gt; val = int(texte)      ← conversion explicite
+&gt;&gt;&gt; val + 1
+235</code></pre></div>
+    <p>D'où l'écriture habituelle, qui convertit au moment même de la saisie :</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>age = int(input("Quel âge as-tu ? "))
+x   = float(input("Entrez un nombre : "))</code></pre></div>
+    <p>C'est <strong>exactement</strong> le piège de <code>.value</code> en JavaScript et de
+       <code>$_POST</code> en PHP : tout ce qui vient de l'utilisateur est du texte.</p>
+  </div>
+
+  <h3><code>print()</code> — afficher</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code>print("Bonjour", "le", "monde")               # Bonjour le monde
+print("Bonjour", "le", "monde", sep="-")      # Bonjour-le-monde
+
+print("Bonjour", end=" ")                      # pas de retour à la ligne
+print("tout le monde")                         # Bonjour tout le monde
+
+print("Ligne1\nLigne2\tavec tabulation")       # \n saut de ligne, \t tabulation
+print()                                        # une ligne vide</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les f-strings, à préférer</div>
+    <p>Le polycopié présente l'ancien formatage avec <code>%</code> :</p>
+<div class="bloc-code"><span class="langue">python — ancienne écriture</span><pre><code>print("Je m'appelle %s et je suis en classe %d de %s" % (prenom, classe, matiere))</code></pre></div>
+    <p>Python moderne offre les <strong>f-strings</strong> : un <code>f</code> devant les
+       guillemets, et les variables s'écrivent directement entre accolades.</p>
+<div class="bloc-code"><span class="langue">python — à préférer</span><pre><code>print(f"Je m'appelle {prenom} et je suis en classe {classe} de {matiere}")
+
+nom, quantite = "switch", 5
+print(f"Matériel : {nom} | Quantité : {quantite}")</code></pre></div>
+    <p>Plus court, plus lisible, et <strong>sans risque de se tromper</strong> dans l'ordre des
+       variables ou dans le code <code>%s</code>/<code>%d</code>. C'est d'ailleurs cette écriture
+       que vous avez utilisée dans le TP3.</p>
+  </div>
+
+  <h3>Les commentaires</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code># commentaire sur une ligne
+print("Bonjour")     # ou en fin de ligne
+
+"""
+Commentaire sur plusieurs lignes.
+En réalité une chaîne non assignée, que Python ignore.
+"""</code></pre></div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="operateurs">
+  <h2><span class="num">05</span>Opérateurs et priorités</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Priorité</th><th>Catégorie</th><th>Opérateurs</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Parenthèses</td><td><code>()</code></td>
+          <td><code>(2 + 3) * 4</code> → 20</td></tr>
+      <tr><td>2</td><td>Exponentiation</td><td><code>**</code></td>
+          <td><code>2 ** 3</code> → 8</td></tr>
+      <tr><td>3</td><td>Multiplication, division</td>
+          <td><code>*</code> <code>/</code> <code>//</code> <code>%</code></td>
+          <td><code>7 % 3</code> → 1</td></tr>
+      <tr><td>4</td><td>Addition, soustraction</td><td><code>+</code> <code>-</code></td>
+          <td><code>5 + 3 - 2</code> → 6</td></tr>
+      <tr><td>5</td><td>Comparaisons</td>
+          <td><code>==</code> <code>!=</code> <code>&gt;</code> <code>&lt;</code>
+              <code>&gt;=</code> <code>&lt;=</code></td>
+          <td><code>5 &gt; 3</code> → True</td></tr>
+      <tr><td>6</td><td>Logique</td><td><code>not</code></td><td><code>not True</code> → False</td></tr>
+      <tr><td>7</td><td>Logique</td><td><code>and</code></td><td>évalué après <code>not</code></td></tr>
+      <tr><td>8</td><td>Logique</td><td><code>or</code></td><td>priorité la plus faible</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>/</code> et <code>//</code> ne font pas la même chose</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>7 / 2      # 3.5   ← division réelle, donne TOUJOURS un float
+7 // 2     # 3     ← division ENTIÈRE, on garde le quotient
+7 % 2      # 1     ← le RESTE
+
+# même quand ça tombe juste :
+6 / 2      # 3.0   ← et non 3</code></pre></div>
+    <p>C'est une différence de Python 3 par rapport à beaucoup d'autres langages : en C ou en Java,
+       <code>7 / 2</code> entre deux entiers vaut 3. Ici il faut <code>//</code> pour obtenir un
+       entier.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 En Python, <code>and</code>, <code>or</code>, <code>not</code> s'écrivent
+      en toutes lettres</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Python</th><th>JavaScript / PHP</th></tr></thead>
+      <tbody>
+        <tr><td><code>and</code></td><td><code>&amp;&amp;</code></td></tr>
+        <tr><td><code>or</code></td><td><code>||</code></td></tr>
+        <tr><td><code>not</code></td><td><code>!</code></td></tr>
+        <tr><td><code>True</code> · <code>False</code></td>
+            <td><code>true</code> · <code>false</code> (minuscules !)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Attention à la <strong>majuscule</strong> de <code>True</code> et <code>False</code> :
+       <code>true</code> en minuscules provoque une <code>NameError</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="conditions">
+  <h2><span class="num">06</span>Les conditions</h2>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>age = 20
+
+if age &lt; 18:
+    print("Vous êtes mineur.")
+elif age == 18:
+    print("Vous venez d'atteindre la majorité.")
+else:
+    print("Vous êtes majeur.")</code></pre></div>
+
+<div class="bloc-code"><span class="langue">python — conditions combinées</span><pre><code>age = 20
+a_passe_test = True
+
+if age &gt;= 18 and a_passe_test:
+    print("Accès autorisé")
+else:
+    print("Accès refusé")</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — <code>Else</code> avec une majuscule ne compile pas</div>
+    <p>Le polycopié écrit, dans l'un de ses exemples :</p>
+<div class="bloc-code"><span class="langue">erreur de syntaxe</span><pre><code>if age &gt;= 18:
+    print("Vous êtes majeur.")
+Else:                       ← majuscule
+    print("Vous êtes mineur.")</code></pre></div>
+    <p>Python est <strong>sensible à la casse</strong> : <code>Else</code> n'est pas un mot-clé,
+       c'est un nom de variable inconnu. Le programme s'arrête net sur une
+       <code>SyntaxError</code>. Tous les mots-clés de Python s'écrivent en
+       <strong>minuscules</strong> : <code>if</code>, <code>elif</code>, <code>else</code>,
+       <code>for</code>, <code>while</code>, <code>def</code>, <code>and</code>, <code>or</code>,
+       <code>not</code>.</p>
+    <p>Les seules exceptions à retenir : <code>True</code>, <code>False</code> et
+       <code>None</code>, qui prennent une majuscule.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>elif</code>, et non <code>else if</code></div>
+    <p>Python contracte les deux mots. Écrire <code>else if</code> passerait pour un
+       <code>else</code> contenant un nouveau <code>if</code> — ce qui exigerait une indentation
+       supplémentaire et rendrait le code illisible dès trois cas.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="boucles">
+  <h2><span class="num">07</span>Les boucles</h2>
+
+  <div class="formule">Nombre d'itérations <strong>connu</strong> → <code>for</code><br>
+    Nombre <strong>inconnu</strong> → <code>while</code></div>
+
+  <h3><code>for</code> — parcourir une séquence</h3>
+  <p>La boucle <code>for</code> de Python ne compte pas : elle <strong>parcourt</strong>. La
+     variable prend successivement chaque valeur d'une liste, d'une chaîne, d'un tuple, d'un
+     dictionnaire ou d'un <code>range()</code>.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>for i in range(1, 11):      # i prend les valeurs de 1 à 10
+    print(i)
+
+for poste in ["PC01", "PC02", "PC03"]:    # directement sur une liste
+    print(poste)
+
+for lettre in "réseau":                    # même sur une chaîne
+    print(lettre)</code></pre></div>
+
+  <h3><code>range()</code>, ses trois formes</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Écriture</th><th>Produit</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>range(stop)</code></td><td>de <strong>0</strong> à <code>stop − 1</code></td>
+          <td><code>range(5)</code> → 0 1 2 3 4</td></tr>
+      <tr><td><code>range(start, stop)</code></td><td>de <code>start</code> à
+          <code>stop − 1</code></td><td><code>range(1, 6)</code> → 1 2 3 4 5</td></tr>
+      <tr><td><code>range(start, stop, step)</code></td><td>avec un pas</td>
+          <td><code>range(10, 0, -2)</code> → 10 8 6 4 2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La borne de fin est TOUJOURS exclue</div>
+    <p><code>range(1, 11)</code> s'arrête à <strong>10</strong>, pas à 11. C'est la source d'erreur
+       n° 1 des débutants.</p>
+    <div class="formule">Pour aller de 1 à <em>n</em> : <code>range(1, n + 1)</code></div>
+    <p>Et <code>range(5)</code> commence à <strong>0</strong> — ce qui tombe bien, puisque les
+       indices de liste commencent aussi à 0.</p>
+  </div>
+
+  <h3><code>while</code> — tant que</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code>i = 1
+while i &lt;= 5:
+    print(i)
+    i += 1          # ← sans cette ligne : boucle infinie</code></pre></div>
+
+  <h3><code>break</code> et <code>continue</code></h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code>for i in range(1, 11):
+    if i == 5:
+        break              # sort complètement de la boucle
+    print(i)
+print("Boucle arrêtée.")
+
+# affiche : 1 2 3 4 puis « Boucle arrêtée. »</code></pre></div>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>break</code></td><td><strong>quitte</strong> la boucle et passe à la suite.
+          Dans des boucles imbriquées, ne sort que de la <strong>plus interne</strong></td></tr>
+      <tr><td><code>continue</code></td><td><strong>saute</strong> le reste du tour et passe
+          directement à l'itération suivante</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="listes">
+  <h2><span class="num">08</span>Listes et ensembles</h2>
+
+  <p>Une <strong>liste</strong> est une collection <strong>ordonnée</strong> et
+     <strong>modifiable</strong>. Les indices commencent à <strong>0</strong>.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>postes = ["PC01", "PC02", "PC03", "PC04", "PC05"]
+
+postes[0]        # "PC01"      ← premier
+postes[-1]       # "PC05"      ← dernier (indice négatif !)
+len(postes)      # 5
+
+postes.append("PC06")     # ajoute à la fin
+postes.remove("PC03")     # supprime PAR VALEUR
+del postes[0]             # supprime PAR INDICE
+
+for poste in postes:      # parcours
+    print(poste)</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les indices négatifs, une commodité de Python</div>
+    <p><code>postes[-1]</code> donne le dernier élément, <code>postes[-2]</code> l'avant-dernier.
+       Nul besoin de calculer <code>len(postes) - 1</code>. Peu de langages offrent cela.</p>
+  </div>
+
+  <h3>Les ensembles — <code>set()</code></h3>
+  <p>Un <strong>ensemble</strong> ne contient <strong>aucun doublon</strong>. C'est la façon la plus
+     courte de dédupliquer une liste.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>connexions = ["192.168.0.10", "192.168.0.12", "10.0.0.5", "192.168.0.10"]
+
+uniques = set(connexions)
+for ip in uniques:
+    print("IP :", ip)
+
+# IP : 10.0.0.5
+# IP : 192.168.0.12
+# IP : 192.168.0.10       ← une seule fois</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un <code>set</code> perd l'ordre</div>
+    <p>Regardez la sortie ci-dessus : les IP ne sortent <strong>pas</strong> dans l'ordre de la
+       liste d'origine. Un ensemble n'est pas ordonné — c'est le prix de la déduplication.</p>
+    <p>Si l'ordre compte, on revient à une liste et on la trie :</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>uniques = sorted(set(connexions))    # dédoublonné ET trié</code></pre></div>
+  </div>
+
+  <h3>Les tuples</h3>
+  <p>Un <strong>tuple</strong> ressemble à une liste mais s'écrit avec des parenthèses et
+     <strong>ne peut pas être modifié</strong>.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>coordonnees = (192, 168, 0, 1)
+coordonnees[0] = 10      # ✘ TypeError: 'tuple' object does not support item assignment</code></pre></div>
+  <p>On l'emploie pour des données qui ne doivent pas changer — une configuration, un couple de
+     valeurs.</p>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="dictionnaires">
+  <h2><span class="num">09</span>Les dictionnaires</h2>
+
+  <p>Un <strong>dictionnaire</strong> associe une <strong>clé</strong> à une
+     <strong>valeur</strong>. Au lieu d'un indice numérique, on accède par un nom — bien plus
+     parlant.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>materiel = {
+    "switch": 5,
+    "routeur": 2,
+    "point_acces": 7
+}
+
+materiel["switch"]           # 5
+materiel["firewall"] = 3     # ajoute une entrée
+del materiel["routeur"]      # supprime une entrée
+len(materiel)                # nombre d'entrées</code></pre></div>
+
+  <h3>Deux façons de le parcourir</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code># 1. avec .items() : la clé ET la valeur — la plus lisible
+for nom, quantite in materiel.items():
+    print(f"Matériel : {nom} | Quantité : {quantite}")
+
+# 2. sur les clés seules, en allant chercher la valeur
+for nom in materiel:
+    print(nom, materiel[nom])</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Méthode</th><th>Donne</th></tr></thead>
+    <tbody>
+      <tr><td><code>.keys()</code></td><td>les clés</td></tr>
+      <tr><td><code>.values()</code></td><td>les valeurs</td></tr>
+      <tr><td><code>.items()</code></td><td>les <strong>couples</strong> (clé, valeur)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Liste ou dictionnaire ?</div>
+    <p>Une <strong>liste</strong>, c'est une file d'attente : ce qui compte, c'est la
+       <em>position</em>. Un <strong>dictionnaire</strong>, c'est un annuaire : ce qui compte, c'est
+       le <em>nom</em>.</p>
+    <p>Pour « les postes du réseau » → une liste. Pour « combien de chaque matériel » → un
+       dictionnaire. Si vous vous surprenez à retenir qu'« à l'indice 3 se trouve le nombre de
+       routeurs », c'est qu'il vous fallait un dictionnaire.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Une clé absente lève une erreur</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>materiel["antenne"]          # ✘ KeyError: 'antenne'
+
+materiel.get("antenne")      # None     ← pas d'erreur
+materiel.get("antenne", 0)   # 0        ← avec une valeur par défaut
+
+if "antenne" in materiel:    # tester avant
+    print(materiel["antenne"])</code></pre></div>
+    <p><code>.get()</code> est l'équivalent Python du <code>??</code> de PHP : il évite de planter
+       sur une clé manquante.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 10 -->
+<section id="fonctions">
+  <h2><span class="num">10</span>Fonctions</h2>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>def addition(a, b):
+    somme = a + b
+    return somme
+
+resultat = addition(5, 3)
+print(resultat)          # 8
+
+
+def saluer(nom="Invité"):        # valeur par défaut
+    print(f"Bonjour {nom} !")
+
+saluer()                 # Bonjour Invité !
+saluer("Alice")          # Bonjour Alice !</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>def</code></td><td>déclare la fonction — suivi de <strong>deux-points</strong></td></tr>
+      <tr><td>le corps</td><td><strong>indenté</strong> de 4 espaces</td></tr>
+      <tr><td><code>return</code></td><td>renvoie une valeur et <strong>arrête</strong> la fonction</td></tr>
+      <tr><td>sans <code>return</code></td><td>la fonction renvoie <code>None</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>print()</code> n'est pas <code>return</code></div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>def carre_affiche(n):
+    print(n * n)          # affiche, mais ne rend rien
+
+def carre(n):
+    return n * n          # rend une valeur exploitable
+
+x = carre_affiche(5)      # affiche 25, puis x vaut None
+y = carre(5)              # y vaut 25 — on peut s'en servir
+print(y * 2)              # 50</code></pre></div>
+    <p>Même principe qu'en <a href="../05-php/cours.html">PHP</a> et en
+       <a href="../04-javascript/cours.html">JavaScript</a> : <strong>afficher</strong> est pour
+       l'humain, <strong>retourner</strong> est pour le programme.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 11 -->
+<section id="fichiers">
+  <h2><span class="num">11</span>Fichiers et exceptions</h2>
+
+  <h3>Ouvrir, lire, écrire</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mode</th><th>Effet</th></tr></thead>
+    <tbody>
+      <tr><td><code>"r"</code></td><td>lecture seule (défaut). <strong>Erreur</strong> si le fichier
+          n'existe pas</td></tr>
+      <tr><td><code>"w"</code></td><td>écriture : <strong>efface</strong> le contenu, ou crée le
+          fichier</td></tr>
+      <tr><td><code>"a"</code></td><td>ajout à la fin, contenu conservé</td></tr>
+      <tr><td><code>"x"</code></td><td>création — échoue si le fichier existe</td></tr>
+      <tr><td><code>"b"</code> · <code>"t"</code></td><td>binaire · texte (défaut)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">python — la forme à retenir</span><pre><code>with open("data.txt", "r") as f:
+    contenu = f.read()
+# ici, le fichier est AUTOMATIQUEMENT fermé
+
+with open("journal.txt", "a") as f:
+    f.write("Nouvelle connexion\n")</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Toujours <code>with</code>, jamais <code>open</code> seul</div>
+    <p>La forme sans <code>with</code> existe, mais impose de penser au <code>close()</code> :</p>
+<div class="bloc-code"><span class="langue">python — à éviter</span><pre><code>f = open("data.txt", "r")
+contenu = f.read()
+f.close()             # si une erreur survient avant, le fichier reste ouvert</code></pre></div>
+    <p><code>with</code> ferme le fichier <strong>même si une erreur se produit</strong>. Plus
+       court, plus sûr : c'est la façon recommandée, et celle qu'on attend de vous.</p>
+  </div>
+
+  <h3>Les exceptions</h3>
+  <p>Une <strong>exception</strong> est l'objet que Python crée quand une erreur survient. Sans
+     traitement, elle interrompt le programme.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>&gt;&gt;&gt; x = 10 / 0
+ZeroDivisionError: division by zero</code></pre></div>
+
+<div class="bloc-code"><span class="langue">python — try / except</span><pre><code>try:
+    x = 10 / 0
+except ZeroDivisionError:
+    print("Impossible de diviser par zéro.")
+
+# 1. Python exécute le try
+# 2. une erreur survient → il saute au except
+# 3. le programme continue normalement</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Exception</th><th>Quand</th></tr></thead>
+    <tbody>
+      <tr><td><code>ValueError</code></td><td>conversion impossible —
+          <code>int("abc")</code></td></tr>
+      <tr><td><code>TypeError</code></td><td>opération entre types incompatibles —
+          <code>"abc" + 5</code></td></tr>
+      <tr><td><code>ZeroDivisionError</code></td><td>division par zéro</td></tr>
+      <tr><td><code>KeyError</code></td><td>clé absente d'un dictionnaire</td></tr>
+      <tr><td><code>IndexError</code></td><td>indice hors de la liste</td></tr>
+      <tr><td><code>FileNotFoundError</code></td><td>fichier introuvable en lecture</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'usage le plus utile : sécuriser une saisie</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>while True:
+    try:
+        age = int(input("Votre âge : "))
+        break                       # saisie valide → on sort
+    except ValueError:
+        print("Ce n'est pas un nombre entier, réessayez.")</code></pre></div>
+    <p>Sans <code>try</code>, taper « abc » plante le programme avec une <code>ValueError</code>.
+       Avec, on redemande poliment. C'est le <code>Répéter…Jusqu'à</code> de l'algorithmique, en
+       version Python.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Ce programme doit afficher la moyenne de trois notes saisies. Il affiche
+       <code>TypeError</code>. Pourquoi, et comment le corriger ?</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>n1 = input("Note 1 : ")
+n2 = input("Note 2 : ")
+n3 = input("Note 3 : ")
+print("Moyenne :", (n1 + n2 + n3) / 3)</code></pre></div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><code>input()</code> renvoie des <strong>chaînes</strong>. Le <code>+</code> les
+         <strong>concatène</strong> au lieu de les additionner — on obtient par exemple
+         <code>"121415"</code> — puis diviser un texte par 3 déclenche la
+         <code>TypeError</code>.</p>
+<div class="bloc-code"><span class="langue">python — corrigé</span><pre><code>n1 = float(input("Note 1 : "))
+n2 = float(input("Note 2 : "))
+n3 = float(input("Note 3 : "))
+print("Moyenne :", (n1 + n2 + n3) / 3)</code></pre></div>
+      <p class="rap"><code>float</code> plutôt que <code>int</code> : une note peut valoir 12,5.
+         Et pour être vraiment robuste, on enveloppe le tout dans un <code>try / except
+         ValueError</code>.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>L'indentation est la syntaxe</strong> : 4 espaces, jamais de tabulations mêlées,
+          et les <strong>deux-points</strong> en fin de ligne.</li>
+      <li><strong>Typage dynamique</strong> : pas de déclaration. <code>type(x)</code> pour
+          vérifier.</li>
+      <li><strong><code>input()</code> rend du texte</strong> → <code>int()</code> ou
+          <code>float()</code> avant tout calcul.</li>
+      <li><strong>f-strings</strong> : <code>f"Bonjour {nom}"</code>.</li>
+      <li><strong>Mots-clés en minuscules</strong> (<code>else</code>, <code>and</code>…) sauf
+          <code>True</code>, <code>False</code>, <code>None</code>.</li>
+      <li><strong><code>elif</code></strong>, pas <code>else if</code>.</li>
+      <li><strong><code>range(1, 11)</code></strong> s'arrête à 10 : la borne est exclue.</li>
+      <li><strong><code>/</code> donne un float</strong>, <code>//</code> l'entier,
+          <code>%</code> le reste.</li>
+      <li><strong>Liste</strong> = position, <code>append</code>/<code>remove</code>.
+          <strong>Dictionnaire</strong> = nom, <code>.items()</code>, <code>.get()</code>.
+          <strong>set()</strong> déduplique mais perd l'ordre.</li>
+      <li><strong><code>with open(…)</code></strong> ferme tout seul.
+          <strong><code>try/except</code></strong> pour survivre aux erreurs.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « Programmation en Python » (le professeur, BTS CIEL 2025-2026) —
+          séances du 19/12, 09/01, 23/01, 06/02 et 20/02</li>
+      <li>Support d'exercices Python</li>
+      <li>comptes rendus d'élève (TP3 listes et dictionnaires, TP6 fonctions)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

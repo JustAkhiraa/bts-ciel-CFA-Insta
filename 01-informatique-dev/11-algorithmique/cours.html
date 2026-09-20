@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithmique — raisonner avant de coder | BTS CIEL</title>
+<meta name="description" content="Cours complet : structure d'un algorithme, analyse d'un problème, variables et types, opérateurs, conditions, boucles, tableaux et fonctions.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#quoi">1 · Qu'est-ce qu'un algorithme</a></li>
+    <li><a href="#structure">2 · La structure type</a></li>
+    <li><a href="#analyser">3 · Analyser un problème</a></li>
+    <li><a href="#variables">4 · Variables et types</a></li>
+    <li><a href="#operateurs">5 · Les opérateurs</a></li>
+    <li><a href="#conditions">6 · Les conditions</a></li>
+    <li><a href="#boucles">7 · Les boucles</a></li>
+    <li><a href="#tableaux">8 · Les tableaux</a></li>
+    <li><a href="#fonctions">9 · Les fonctions</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 11</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 2<sup>e</sup> année</span>
+  </div>
+
+  <h1>Algorithmique — raisonner avant de coder</h1>
+  <p class="chapeau">Décrire la solution d'un problème pas à pas, indépendamment de tout langage.
+     Le raisonnement reste le même ; seule la syntaxe change.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un <strong>algorithme</strong> est une suite <strong>finie, ordonnée et précise</strong>
+         d'instructions qui résout un problème. On l'écrit en <strong>pseudo-code</strong>, avant et
+         indépendamment du langage. Tout tient en cinq briques :
+         <strong>variables</strong> (stocker), <strong>conditions</strong> (choisir),
+         <strong>boucles</strong> (répéter), <strong>tableaux</strong> (regrouper) et
+         <strong>fonctions</strong> (réutiliser). Le même algorithme se traduit ensuite en C,
+         Python ou Java.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#pseudo-code</code> <code>#variable</code> <code>#affectation</code> <code>#type</code>
+    <code>#condition</code> <code>#Si-Alors-Sinon</code> <code>#boucle</code> <code>#Pour</code>
+    <code>#TantQue</code> <code>#Répéter</code> <code>#tableau</code> <code>#indice</code>
+    <code>#fonction</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="quoi">
+  <h2><span class="num">01</span>Qu'est-ce qu'un algorithme</h2>
+
+  <p>Un <strong>algorithme</strong> est une suite <strong>finie</strong>, <strong>ordonnée</strong>
+     et <strong>précise</strong> d'instructions permettant de résoudre un problème ou d'effectuer
+     une tâche. Il décrit la <em>méthode</em> de résolution, <strong>indépendamment du langage de
+     programmation</strong>.</p>
+
+  <h3>Pourquoi ne pas coder directement ?</h3>
+  <p>Parce qu'écrire du code, c'est résoudre deux problèmes à la fois : <em>quoi faire</em> et
+     <em>comment l'écrire dans ce langage</em>. L'algorithme sépare les deux. Il permet de :</p>
+  <ul>
+    <li><strong>décomposer</strong> un problème complexe ;</li>
+    <li><strong>organiser</strong> les étapes de résolution ;</li>
+    <li><strong>éviter</strong> les erreurs de raisonnement ;</li>
+    <li><strong>faciliter</strong> la programmation et la maintenance ;</li>
+    <li><strong>traduire</strong> la même solution dans plusieurs langages.</li>
+  </ul>
+
+  <div class="encart analogie">
+    <div class="titre">💡 La recette de cuisine</div>
+    <p>Un algorithme, c'est la recette ; le langage de programmation, c'est la langue dans laquelle
+       on l'écrit. « Faire revenir l'oignon 5 minutes » se traduit en français, en anglais ou en
+       japonais : <strong>le plat est le même</strong>. De même, un algorithme se traduit en
+       <strong>C</strong>, <strong>Python</strong>, <strong>Java</strong> ou <strong>C++</strong> —
+       le raisonnement ne bouge pas, seule la syntaxe change.</p>
+    <p>Et comme une recette : il doit être <em>fini</em> (elle se termine), <em>ordonné</em> (on ne
+       cuit pas avant d'éplucher) et <em>précis</em> (« un peu de sel » n'est pas une instruction).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="structure">
+  <h2><span class="num">02</span>La structure type</h2>
+
+  <p>Tout algorithme suit le même squelette.</p>
+
+<div class="bloc-code"><span class="langue">algorithme — le squelette</span><pre><code>Algorithme nom_algorithme
+
+Constantes
+    Constante1 = valeur
+
+Variables
+    Variable1 : type
+    Variable2 : type
+
+Début
+    instructions
+Fin</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Élément</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>Algorithme</code></td><td>ouvre la déclaration</td></tr>
+      <tr><td><em>nom_algorithme</em></td><td>le nom qu'on lui donne</td></tr>
+      <tr><td><code>Constantes</code></td><td>les valeurs qui <strong>ne changent pas</strong></td></tr>
+      <tr><td><code>Variables</code></td><td>les données utilisées, avec leur <strong>type</strong></td></tr>
+      <tr><td><code>Début</code> … <code>Fin</code></td><td>encadrent les instructions</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Un premier exemple complet</h3>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Algorithme Somme
+
+Variables
+    a : entier
+    b : entier
+    somme : entier
+
+Début
+    Lire a
+    Lire b
+    somme ← a + b
+    Afficher somme
+Fin</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — les déclarations vont AVANT <code>Début</code></div>
+    <p>Le polycopié se contredit : la syntaxe générale place <code>Variables</code>
+       <em>au-dessus</em> de <code>Début</code>, mais le corrigé de l'exercice « surveillance
+       d'équipement » les écrit <em>à l'intérieur</em> :</p>
+<div class="bloc-code"><span class="langue">à ne pas recopier</span><pre><code>Début
+    Variables :
+        temperature : réel
+    Lire temperature</code></pre></div>
+    <p>La forme correcte, celle qu'on attend à l'examen, est la première : on
+       <strong>déclare d'abord</strong>, on <strong>exécute ensuite</strong>. C'est aussi ce que
+       fera le C, où les variables se déclarent en tête de bloc.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="analyser">
+  <h2><span class="num">03</span>Analyser un problème</h2>
+
+  <p>Avant d'écrire la moindre ligne, on analyse. La méthode tient en trois questions, toujours les
+     mêmes.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 140" role="img" aria-label="Entrées, traitements, sorties">
+      <style>
+        .ets{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .etm{fill:var(--accent);opacity:.9}
+        .ett{font:700 13px var(--sans);text-anchor:middle;fill:var(--accent-sombre)}
+        .etw{font:700 13px var(--sans);text-anchor:middle;fill:#fff}
+        .etd{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .eta{stroke:var(--accent);stroke-width:2;fill:none;marker-end:url(#fl)}
+      </style>
+      <defs><marker id="fl" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+      <rect class="ets" x="14" y="34" width="150" height="62" rx="9"/>
+      <text class="ett" x="89" y="60">ENTRÉES</text>
+      <text class="etd" x="89" y="80">ce dont j'ai besoin</text>
+
+      <rect class="etm" x="225" y="34" width="150" height="62" rx="9"/>
+      <text class="etw" x="300" y="60">TRAITEMENTS</text>
+      <text class="etd" x="300" y="80" style="fill:#EDE7DC">ce que je calcule</text>
+
+      <rect class="ets" x="436" y="34" width="150" height="62" rx="9"/>
+      <text class="ett" x="511" y="60">SORTIES</text>
+      <text class="etd" x="511" y="80">ce que je produis</text>
+
+      <line class="eta" x1="168" y1="65" x2="219" y2="65"/>
+      <line class="eta" x1="379" y1="65" x2="430" y2="65"/>
+      <text class="etd" x="300" y="122">puis seulement : écrire les étapes</text>
+    </svg>
+    <figcaption>La méthode d'analyse. Tant que les trois cases ne sont pas remplies, on n'écrit
+      rien.</figcaption>
+  </figure>
+
+  <ol>
+    <li><strong>Les entrées</strong> — les informations nécessaires au programme.</li>
+    <li><strong>Les traitements</strong> — les opérations réalisées sur ces données.</li>
+    <li><strong>Les sorties</strong> — les résultats produits.</li>
+    <li><strong>L'algorithme</strong> — la description des étapes.</li>
+  </ol>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Sur un sujet d'examen</div>
+    <p>Les énoncés demandent presque toujours, dans cet ordre : <em>« identifier les données
+       d'entrée »</em>, <em>« identifier la sortie recherchée »</em>, <em>« déterminer les étapes de
+       calcul »</em>, <em>« écrire l'algorithme »</em>, <em>« le tester »</em>. Les quatre premières
+       questions rapportent des points <strong>même si l'algorithme final est raté</strong> : ne
+       les sautez jamais pour « gagner du temps ».</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="variables">
+  <h2><span class="num">04</span>Variables et types</h2>
+
+  <p>Une <strong>variable</strong> est une zone de mémoire qui stocke une donnée dont la valeur
+     <em>peut changer</em> pendant l'exécution.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 420 130" role="img" aria-label="Une variable vue comme une boîte étiquetée">
+      <style>
+        .bte{fill:var(--carte);stroke:var(--accent);stroke-width:2}
+        .btl{font:600 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .btv{font:700 24px var(--mono);text-anchor:middle;fill:var(--encre)}
+        .btc{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <text class="btl" x="120" y="24">temperature</text>
+      <rect class="bte" x="60" y="34" width="120" height="62" rx="7"/>
+      <text class="btv" x="120" y="76">65</text>
+      <text class="btc" x="120" y="116">la boîte porte un nom…</text>
+
+      <text class="btl" x="300" y="24">temperature</text>
+      <rect class="bte" x="240" y="34" width="120" height="62" rx="7"/>
+      <text class="btv" x="300" y="76">72</text>
+      <text class="btc" x="300" y="116">…son contenu peut changer</text>
+      <path d="M192,65 H228" stroke="var(--accent)" stroke-width="2" fill="none"
+            marker-end="url(#fl2)"/>
+      <defs><marker id="fl2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+    </svg>
+    <figcaption>Une variable est une boîte étiquetée : le nom ne change pas, le contenu si.</figcaption>
+  </figure>
+
+  <h3>L'affectation</h3>
+  <p>Donner une valeur à une variable s'écrit avec une <strong>flèche</strong> :</p>
+  <div class="formule"><code>variable ← valeur</code></div>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>temperature ← 65
+temperature ← 72            La variable contient maintenant 72.
+
+debit1 ← 100
+debit2 ← 100
+debit_total ← debit1 + debit2        debit_total vaut 200</code></pre></div>
+
+  <h3>Les types</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Description</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>entier</code></td><td>nombre sans décimale</td><td><code>25</code></td></tr>
+      <tr><td><code>réel</code></td><td>nombre avec décimale</td><td><code>72.5</code></td></tr>
+      <tr><td><code>caractère</code></td><td>un seul caractère</td><td><code>'A'</code></td></tr>
+      <tr><td><code>chaîne</code></td><td>du texte</td><td><code>"Serveur01"</code></td></tr>
+      <tr><td><code>booléen</code></td><td>vrai ou faux</td><td><code>Vrai</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les constantes</h3>
+  <p>Une <strong>constante</strong> ne change <em>jamais</em> pendant l'exécution. Par convention on
+     l'écrit en <strong>majuscules</strong>.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>MAX_EQUIPEMENTS ← 50
+SEUIL_TEMPERATURE ← 70</code></pre></div>
+  <p>L'intérêt : si le seuil passe un jour à 75, on modifie <strong>une seule ligne</strong> au lieu
+     de chasser le nombre 70 dans tout le programme.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La flèche <code>←</code> n'est pas le signe égal</div>
+    <p>En pseudo-code, on distingue soigneusement deux choses que beaucoup de langages confondent :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Pseudo-code</th><th>En langage C</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Affecter</strong> (ranger une valeur)</td><td><code>x ← 5</code></td>
+            <td><code>x = 5;</code></td></tr>
+        <tr><td><strong>Comparer</strong> (poser une question)</td><td><code>Si x = 5</code></td>
+            <td><code>if (x == 5)</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>C'est <strong>le</strong> piège du passage au C : écrire <code>if (x = 5)</code> ne compare
+       pas — cela <em>affecte</em> 5 à x, et la condition est toujours vraie. Le compilateur ne dit
+       rien. En pseudo-code la flèche rend l'erreur impossible : profitez-en pour ancrer la
+       distinction <strong>maintenant</strong>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="operateurs">
+  <h2><span class="num">05</span>Les opérateurs</h2>
+
+  <h3>Arithmétiques</h3>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>+</code></td><td>addition</td></tr>
+      <tr><td><code>-</code></td><td>soustraction</td></tr>
+      <tr><td><code>*</code></td><td>multiplication</td></tr>
+      <tr><td><code>/</code></td><td>division</td></tr>
+      <tr><td><code>%</code></td><td><strong>reste</strong> de la division (modulo)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>De comparaison</h3>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>=</code></td><td>égal</td></tr>
+      <tr><td><code>≠</code></td><td>différent</td></tr>
+      <tr><td><code>&gt;</code> · <code>&lt;</code></td><td>supérieur · inférieur</td></tr>
+      <tr><td><code>≥</code> · <code>≤</code></td><td>supérieur ou égal · inférieur ou égal</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Logiques</h3>
+  <p>Ils combinent plusieurs conditions.</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opérateur</th><th>Vrai quand…</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><code>ET</code></td><td>les <strong>deux</strong> conditions sont vraies</td>
+          <td><code>temperature &gt; 70 ET serveur_actif = Vrai</code></td></tr>
+      <tr><td><code>OU</code></td><td><strong>au moins une</strong> est vraie</td>
+          <td><code>serveur_actif = Faux OU connexion = Faux</code></td></tr>
+      <tr><td><code>NON</code></td><td>la condition est <strong>fausse</strong> (elle s'inverse)</td>
+          <td><code>NON serveur_actif</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Une expression, c'est une combinaison</div>
+    <p>Une <strong>expression</strong> combine variables, constantes et opérateurs pour produire une
+       valeur :</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>debit_moyen ← (debit1 + debit2) / 2</code></pre></div>
+    <p><code>debit1</code> et <code>debit2</code> sont les variables, <code>+</code> et
+       <code>/</code> les opérateurs, et le résultat est affecté à <code>debit_moyen</code>. Les
+       <strong>parenthèses</strong> ne sont pas décoratives : sans elles,
+       <code>debit1 + debit2 / 2</code> ne divise que <code>debit2</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="conditions">
+  <h2><span class="num">06</span>Les conditions</h2>
+
+  <p>Une <strong>structure conditionnelle</strong> n'exécute des instructions que si une condition
+     est vraie.</p>
+
+<div class="bloc-code"><span class="langue">algorithme — Si simple</span><pre><code>Si condition Alors
+    instructions
+FinSi
+
+Si temperature &gt; 70 Alors
+    Afficher "Alerte : température élevée"
+FinSi</code></pre></div>
+
+<div class="bloc-code"><span class="langue">algorithme — Si…Sinon</span><pre><code>Si serveur_actif = Vrai Alors
+    Afficher "Serveur disponible"
+Sinon
+    Afficher "Serveur indisponible"
+FinSi</code></pre></div>
+
+  <h3>Conditions imbriquées</h3>
+  <p>Une condition peut en contenir une autre — c'est ainsi qu'on traite plus de deux cas.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Si serveur_actif = Vrai Alors
+    Si temperature &gt; 70 Alors
+        Afficher "Serveur actif mais température élevée"
+    Sinon
+        Afficher "Serveur opérationnel"
+    FinSi
+Sinon
+    Afficher "Serveur arrêté"
+FinSi</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Trois cas ou plus : la cascade <code>Sinon Si</code></div>
+    <p>Pour classer une valeur en plusieurs tranches, on enchaîne les tests — et l'ordre compte :</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Si temperature ≤ 60 Alors
+    Afficher "fonctionnement normal"
+Sinon Si temperature ≤ 70 Alors
+    Afficher "température élevée"
+Sinon
+    Afficher "alerte : température critique"
+FinSi</code></pre></div>
+    <p>Remarquez qu'on n'écrit pas <code>temperature &gt; 60 ET temperature ≤ 70</code> : inutile.
+       Si l'on atteint le deuxième test, c'est que le premier était faux, donc que
+       <code>temperature</code> dépasse déjà 60. <strong>Chaque branche hérite du contraire des
+       précédentes</strong> — c'est ce qui rend la cascade lisible.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'ordre des tranches n'est pas libre</div>
+    <p>Si l'on met la tranche la plus large en premier, elle avale tout le reste :</p>
+<div class="bloc-code"><span class="langue">faux</span><pre><code>Si temperature ≤ 70 Alors        ← attrape aussi 60, 50, 20…
+    Afficher "température élevée"
+Sinon Si temperature ≤ 60 Alors  ← jamais atteint
+    Afficher "fonctionnement normal"
+FinSi</code></pre></div>
+    <p>On teste toujours <strong>du plus restrictif au plus large</strong>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="boucles">
+  <h2><span class="num">07</span>Les boucles</h2>
+
+  <p>Une <strong>boucle</strong> (ou structure répétitive) répète des instructions. Il en existe
+     trois, et le choix se fait sur une seule question : <strong>sait-on combien de fois ?</strong></p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 165" role="img" aria-label="Comparaison des trois boucles">
+      <style>
+        .bx{fill:var(--carte);stroke-width:1.6}
+        .bt{font:700 12px var(--mono);text-anchor:middle}
+        .bd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .bq{font:11px var(--sans);text-anchor:middle;fill:var(--encre)}
+      </style>
+      <text class="bq" x="300" y="16" style="font-weight:700">Sait-on combien de fois ?</text>
+      <rect class="bx" x="14" y="34" width="180" height="112" rx="9" stroke="#2D8A34"/>
+      <text class="bt" x="104" y="60" fill="#2D8A34">Pour</text>
+      <text class="bd" x="104" y="82">OUI — nombre connu</text>
+      <text class="bd" x="104" y="100">« pour chaque port </text>
+      <text class="bd" x="104" y="115">de 1 à 5 »</text>
+      <text class="bd" x="104" y="136" style="font-style:italic">compteur automatique</text>
+
+      <rect class="bx" x="210" y="34" width="180" height="112" rx="9" stroke="#B08900"/>
+      <text class="bt" x="300" y="60" fill="#B08900">Tant que</text>
+      <text class="bd" x="300" y="82">NON — dépend d'un test</text>
+      <text class="bd" x="300" y="100">test AVANT</text>
+      <text class="bd" x="300" y="115">→ peut ne jamais tourner</text>
+      <text class="bd" x="300" y="136" style="font-style:italic">0 fois ou plus</text>
+
+      <rect class="bx" x="406" y="34" width="180" height="112" rx="9" stroke="#B00020"/>
+      <text class="bt" x="496" y="60" fill="#B00020">Répéter…Jusqu'à</text>
+      <text class="bd" x="496" y="82">NON — dépend d'un test</text>
+      <text class="bd" x="496" y="100">test APRÈS</text>
+      <text class="bd" x="496" y="115">→ tourne toujours 1 fois</text>
+      <text class="bd" x="496" y="136" style="font-style:italic">1 fois ou plus</text>
+    </svg>
+    <figcaption>La différence décisive entre <code>Tant que</code> et <code>Répéter</code> :
+      la position du test.</figcaption>
+  </figure>
+
+  <h3>La boucle <code>Pour</code></h3>
+  <p>Quand on <strong>connaît</strong> le nombre de répétitions.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Pour variable allant de valeur_depart à valeur_fin
+    instructions
+FinPour
+
+Pour port allant de 1 à 5
+    Afficher port
+FinPour
+
+Résultat :  1  2  3  4  5</code></pre></div>
+
+  <h3>La boucle <code>Tant que</code></h3>
+  <p>Répète <strong>tant que</strong> la condition est vraie. Le test a lieu <strong>avant</strong>
+     chaque tour : si la condition est fausse dès le départ, le corps n'est jamais exécuté.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Tant que condition
+    instructions
+FinTantQue</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — l'exemple du cours boucle à l'infini</div>
+    <p>Le polycopié donne cet exemple pour surveiller un serveur :</p>
+<div class="bloc-code"><span class="langue">boucle infinie</span><pre><code>Tant que serveur_actif = Vrai
+    Afficher "Surveillance du serveur..."
+FinTantQue</code></pre></div>
+    <p>Le commentaire annonce que le message s'affichera <em>« jusqu'à ce que le serveur ne soit plus
+       actif »</em>. C'est <strong>faux</strong> : <em>rien, à l'intérieur de la boucle, ne modifie
+       <code>serveur_actif</code></em>. Si la variable vaut <code>Vrai</code> au départ, elle
+       vaudra <code>Vrai</code> éternellement — le programme se fige.</p>
+    <p>Toute boucle <code>Tant que</code> doit contenir une instruction qui <strong>fait évoluer sa
+       condition</strong> vers la sortie :</p>
+<div class="bloc-code"><span class="langue">algorithme — correct</span><pre><code>Tant que serveur_actif = Vrai
+    Afficher "Surveillance du serveur..."
+    Lire serveur_actif          ← on relit l'état : la condition peut devenir Faux
+FinTantQue</code></pre></div>
+    <p><strong>Le réflexe :</strong> après avoir écrit un <code>Tant que</code>, cherchez des yeux
+       la ligne qui permettra d'en sortir. Si vous ne la trouvez pas, elle manque.</p>
+  </div>
+
+  <h3>La boucle <code>Répéter…Jusqu'à</code></h3>
+  <p>Répète <strong>jusqu'à</strong> ce qu'une condition devienne vraie. Le test est
+     <strong>à la fin</strong> : le corps s'exécute donc <strong>au moins une fois</strong>.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Répéter
+    Lire port
+Jusqu'à port ≥ 1 ET port ≤ 65535</code></pre></div>
+  <p>C'est la structure idéale pour une <strong>saisie contrôlée</strong> : il faut bien demander la
+     valeur une première fois avant de pouvoir la juger.</p>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="tableaux">
+  <h2><span class="num">08</span>Les tableaux</h2>
+
+  <p>Un <strong>tableau</strong> stocke plusieurs valeurs <strong>du même type</strong> sous un seul
+     nom. On accède à chaque case par son <strong>indice</strong>.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 120" role="img" aria-label="Un tableau et ses indices">
+      <style>
+        .tc{fill:var(--carte);stroke:var(--accent);stroke-width:1.5}
+        .tv{font:600 12px var(--mono);text-anchor:middle;fill:var(--encre)}
+        .ti{font:700 11px var(--mono);text-anchor:middle;fill:var(--accent)}
+        .tl{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <text class="tl" x="290" y="18" style="font-weight:700;fill:var(--encre)">equipements</text>
+      <rect class="tc" x="30"  y="30" width="128" height="40" rx="5"/><text class="tv" x="94"  y="55">"SW-01"</text>
+      <rect class="tc" x="166" y="30" width="128" height="40" rx="5"/><text class="tv" x="230" y="55">"SW-02"</text>
+      <rect class="tc" x="302" y="30" width="128" height="40" rx="5"/><text class="tv" x="366" y="55">"RTR-01"</text>
+      <rect class="tc" x="438" y="30" width="128" height="40" rx="5"/><text class="tv" x="502" y="55">"SRV-01"</text>
+      <text class="ti" x="94"  y="88">[0]</text><text class="ti" x="230" y="88">[1]</text>
+      <text class="ti" x="366" y="88">[2]</text><text class="ti" x="502" y="88">[3]</text>
+      <text class="tl" x="290" y="110">4 cases, mais les indices vont de 0 à 3</text>
+    </svg>
+    <figcaption>L'indice commence à <strong>0</strong>. Un tableau de taille <em>n</em> a donc pour
+      dernier indice <em>n − 1</em>.</figcaption>
+  </figure>
+
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>equipements ← ["SW-01", "SW-02", "RTR-01", "SRV-01"]
+
+equipements[0]        vaut "SW-01"
+equipements[3]        vaut "SRV-01"</code></pre></div>
+
+  <h3>Parcourir un tableau</h3>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Pour i allant de 0 à taille - 1
+    Afficher tableau[i]
+FinPour
+
+Pour i allant de 0 à 3
+    Afficher equipements[i]
+FinPour
+
+Résultat :  SW-01  SW-02  RTR-01  SRV-01</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'erreur d'un cran (<em>off-by-one</em>)</div>
+    <p>C'est l'erreur la plus fréquente de toute la programmation. Un tableau de
+       <strong>4</strong> éléments se parcourt <strong>de 0 à 3</strong>, jamais de 0 à 4 ni de 1 à
+       4. D'où la formule à retenir :</p>
+    <div class="formule">Pour i allant de <strong>0</strong> à <strong>taille − 1</strong></div>
+    <p>Accéder à <code>equipements[4]</code> lit une case qui n'existe pas. En pseudo-code c'est une
+       faute de raisonnement ; en C, cela lit de la mémoire au hasard — sans message d'erreur, et
+       parfois sans planter tout de suite. C'est ainsi que naissent les bugs les plus difficiles à
+       trouver.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="fonctions">
+  <h2><span class="num">09</span>Les fonctions</h2>
+
+  <p>Une <strong>fonction</strong> est un bloc d'instructions qui réalise une tâche précise et que
+     l'on peut <strong>réutiliser</strong>. Elle reçoit des <strong>paramètres</strong> et
+     <strong>retourne</strong> un résultat.</p>
+
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Fonction nom_fonction(paramètres)
+    instructions
+    Retourner résultat
+FinFonction</code></pre></div>
+
+<div class="bloc-code"><span class="langue">algorithme — exemple</span><pre><code>Fonction calculerDebitMoyen(debit1, debit2)
+    moyenne ← (debit1 + debit2) / 2
+    Retourner moyenne
+FinFonction
+
+debit ← calculerDebitMoyen(100, 100)      debit vaut 100</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 La machine à café</div>
+    <p>Vous mettez une pièce (le <strong>paramètre</strong>), la machine fait son travail
+       (les <strong>instructions</strong>), un café sort (le <strong>retour</strong>). Vous n'avez
+       pas besoin de savoir comment elle chauffe l'eau : c'est tout l'intérêt. Une fonction bien
+       écrite s'utilise <em>sans relire son contenu</em>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Quand créer une fonction</div>
+    <p>Dès qu'une vérification revient à plusieurs endroits. Écrire trois fois « le port est-il
+       entre 0 et 65535 ? », c'est trois occasions de se tromper — et trois lignes à corriger le
+       jour où la règle change.</p>
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Fonction EstPortValide(port)
+    Si port ≥ 0 ET port ≤ 65535 Alors
+        Retourner Vrai
+    Sinon
+        Retourner Faux
+    FinSi
+FinFonction</code></pre></div>
+    <p>Une fonction qui répond par <code>Vrai</code> ou <code>Faux</code> s'appelle un
+       <strong>prédicat</strong>. Par convention, on la nomme comme une question :
+       <code>EstPortValide</code>, <code>EstLent</code>, <code>EstVide</code>.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Cette fonction est correcte, mais un développeur expérimenté l'écrirait en
+       <strong>une seule ligne</strong>. Comment ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">algorithme</span><pre><code>Fonction EstPortValide(port)
+    Retourner (port ≥ 0 ET port ≤ 65535)
+FinFonction</code></pre></div>
+      <p>L'expression <code>port ≥ 0 ET port ≤ 65535</code> <em>est déjà</em> un booléen : elle vaut
+         <code>Vrai</code> ou <code>Faux</code>. Écrire <code>Si (c'est vrai) Alors retourner Vrai
+         Sinon retourner Faux</code> revient à dire « si c'est vrai, alors c'est vrai » — on peut
+         retourner la condition directement.</p>
+      <p class="rap">Les deux versions sont justes ; la seconde montre que vous avez compris qu'une
+         comparaison <strong>produit une valeur</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Algorithme</strong> : suite finie, ordonnée, précise — indépendante du langage.</li>
+      <li><strong>Structure</strong> : <code>Algorithme</code> → <code>Constantes</code> →
+          <code>Variables</code> → <code>Début</code> … <code>Fin</code>. On déclare
+          <em>avant</em>.</li>
+      <li><strong>Analyse</strong> : entrées → traitements → sorties, <em>puis</em> les étapes.</li>
+      <li><strong>Affectation</strong> <code>←</code> ≠ <strong>comparaison</strong> <code>=</code>.
+          En C : <code>=</code> et <code>==</code>.</li>
+      <li><strong>Types</strong> : entier, réel, caractère, chaîne, booléen.</li>
+      <li><strong>Conditions</strong> : <code>Si…Alors…Sinon…FinSi</code> ; cascade du plus
+          restrictif au plus large ; <code>ET</code>, <code>OU</code>, <code>NON</code>.</li>
+      <li><strong>Boucles</strong> : <code>Pour</code> (nombre connu) · <code>Tant que</code> (test
+          avant, 0 fois possible) · <code>Répéter…Jusqu'à</code> (test après, 1 fois minimum).
+          Toujours faire évoluer la condition.</li>
+      <li><strong>Tableaux</strong> : indices de <strong>0 à taille − 1</strong>.</li>
+      <li><strong>Fonctions</strong> : paramètres → traitement → <code>Retourner</code>. À créer dès
+          qu'on se répète.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « Algorithmique et programmation » — Chapitre 1 (le professeur,
+          BTS CIEL 2<sup>e</sup> année, 2026-2027)</li>
+      <li>TP1 — Algorithmique (5 exercices en contexte réseau)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
