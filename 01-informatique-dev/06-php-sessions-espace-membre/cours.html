@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHP — sessions et espace membre | BTS CIEL</title>
+<meta name="description" content="Cours complet : HTTP sans mémoire, cycle d'une session, GET vs POST, validation serveur, compteur de visites, authentification, page protégée et déconnexion.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#sans-memoire">1 · HTTP ne se souvient de rien</a></li>
+    <li><a href="#cycle">2 · Le cycle d'une session</a></li>
+    <li><a href="#get-post">3 · GET contre POST</a></li>
+    <li><a href="#valider">4 · Valider côté serveur</a></li>
+    <li><a href="#compteur">5 · Le compteur de visites</a></li>
+    <li><a href="#authentification">6 · L'authentification</a></li>
+    <li><a href="#garde">7 · Protéger une page privée</a></li>
+    <li><a href="#deconnexion">8 · La déconnexion</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 06</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>PHP — sessions et espace membre</h1>
+  <p class="chapeau">Comment un site peut vous « reconnaître » d'une page à l'autre, alors que le
+     protocole qui le porte n'a aucune mémoire.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>HTTP est sans mémoire</strong> : chaque requête ignore les précédentes. La
+         <strong>session</strong> résout cela — le serveur garde les données, le navigateur ne
+         transporte qu'un <strong>jeton</strong>. Quatre gestes suffisent :
+         <code>session_start()</code> en toute première ligne, écrire dans
+         <code>$_SESSION</code>, lire, puis <code>session_destroy()</code>. Un espace membre, c'est
+         ça plus un <strong>garde</strong> en tête de chaque page privée.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#sans-état</code> <code>#session_start</code> <code>#$_SESSION</code>
+    <code>#cookie</code> <code>#$_POST</code> <code>#$_GET</code> <code>#header-Location</code>
+    <code>#exit</code> <code>#session_destroy</code> <code>#htmlspecialchars</code>
+    <code>#garde</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="sans-memoire">
+  <h2><span class="num">01</span>HTTP ne se souvient de rien</h2>
+
+  <p>Le protocole HTTP est <strong>sans état</strong> (<em>stateless</em>) : chaque requête est
+     traitée <strong>indépendamment</strong> des autres. Le serveur qui vous répond à la page 2 n'a
+     aucun souvenir de la page 1 — même si vous venez de vous y connecter.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Le guichet amnésique</div>
+    <p>Imaginez un guichetier qui oublie tout dès que vous vous éloignez d'un pas. Vous revenez :
+       il vous redemande qui vous êtes. Impossible de tenir un panier d'achat, encore moins une
+       connexion.</p>
+    <p>La parade du vestiaire : il vous remet un <strong>jeton numéroté</strong> et range vos
+       affaires derrière lui. Vous ne transportez que le numéro ; lui garde le contenu. C'est
+       <strong>exactement</strong> le mécanisme d'une session.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 200" role="img" aria-label="Le mécanisme d'une session">
+      <style>
+        .sn{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .ss{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .st2{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .sd2{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .sm{font:600 10px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .sa{stroke:var(--accent);stroke-width:1.8;fill:none;marker-end:url(#sf)}
+      </style>
+      <defs><marker id="sf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+
+      <rect class="sn" x="16" y="46" width="170" height="96" rx="9"/>
+      <text class="st2" x="101" y="70">NAVIGATEUR</text>
+      <text class="sd2" x="101" y="92">ne garde que</text>
+      <text class="sm"  x="101" y="112">PHPSESSID=a7f3…</text>
+      <text class="sd2" x="101" y="130">(un cookie)</text>
+
+      <rect class="ss" x="414" y="46" width="170" height="96" rx="9"/>
+      <text class="st2" x="499" y="70">SERVEUR</text>
+      <text class="sd2" x="499" y="92">garde les données</text>
+      <text class="sm"  x="499" y="112">$_SESSION["user"]</text>
+      <text class="sm"  x="499" y="128">= "Paul"</text>
+
+      <path class="sa" d="M190,78 H410"/>
+      <text class="sd2" x="300" y="70">j'envoie mon jeton →</text>
+      <path class="sa" d="M410,120 H190"/>
+      <text class="sd2" x="300" y="138">← voici ta page personnalisée</text>
+      <text class="sd2" x="300" y="180" style="font-weight:700;fill:var(--encre)">Les données ne quittent jamais le serveur.</text>
+    </svg>
+    <figcaption>Le cookie ne contient <strong>pas</strong> vos informations : juste un numéro qui
+      permet de les retrouver.</figcaption>
+  </figure>
+
+  <p>C'est précisément pour cela qu'une session est bien plus sûre qu'un cookie qui contiendrait
+     directement le nom de l'utilisateur : un cookie est modifiable par le visiteur, le contenu de
+     <code>$_SESSION</code> ne l'est pas.</p>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="cycle">
+  <h2><span class="num">02</span>Le cycle d'une session</h2>
+
+<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
+session_start();                    // 1. ouvrir — TOUTE PREMIÈRE LIGNE
+
+$_SESSION["user"] = "Paul";         // 2. écrire
+
+echo $_SESSION["user"];             // 3. lire        → Paul
+
+session_destroy();                  // 4. détruire
+?&gt;</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Étape</th><th>Instruction</th><th>Quand</th></tr></thead>
+    <tbody>
+      <tr><td>Ouvrir</td><td><code>session_start()</code></td>
+          <td>en tête de <strong>chaque</strong> page qui utilise la session</td></tr>
+      <tr><td>Écrire</td><td><code>$_SESSION["clé"] = valeur;</code></td><td>à la connexion</td></tr>
+      <tr><td>Lire</td><td><code>$_SESSION["clé"]</code></td><td>partout ensuite</td></tr>
+      <tr><td>Détruire</td><td><code>session_destroy()</code></td><td>à la déconnexion</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>session_start()</code> avant le moindre caractère</div>
+    <p>Pas seulement avant un <code>echo</code> : avant <strong>tout</strong> ce qui part vers le
+       navigateur. Une ligne vide ou une simple espace <em>avant</em> le <code>&lt;?php</code>
+       suffit à tout casser :</p>
+<div class="bloc-code"><span class="langue">l'erreur classique</span><pre><code>Warning: session_start(): Cannot send session cookie -
+headers already sent by (output started at login.php:1)</code></pre></div>
+    <p><strong>Pourquoi ?</strong> La session repose sur un <strong>cookie</strong>, et un cookie
+       voyage dans les <em>en-têtes</em> HTTP, qui partent <strong>avant</strong> le contenu. Une
+       fois le contenu commencé, les en-têtes sont déjà envoyés : trop tard.</p>
+    <p>La même règle vaut pour <code>header("Location: …")</code> — pour exactement la même
+       raison.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>session_start()</code> sur chaque page, sans exception</div>
+    <p>C'est l'oubli n° 1 du TP : on démarre la session sur <code>login.php</code>, on la lit sur
+       <code>accueil.php</code>… mais on a oublié <code>session_start()</code> sur cette
+       deuxième page. Résultat : <code>$_SESSION</code> y est <strong>vide</strong>, et
+       l'utilisateur semble déconnecté sans raison.</p>
+    <p>La session <em>existe</em> bien côté serveur ; c'est la page qui n'a pas demandé à y
+       accéder.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="get-post">
+  <h2><span class="num">03</span>GET contre POST</h2>
+
+  <p>Le premier exercice du TP demande de faire la <strong>même chose</strong> avec les deux
+     méthodes, puis de comparer. Le résultat est le même, la façon dont il voyage ne l'est pas.</p>
+
+<div class="bloc-code"><span class="langue">html — en POST</span><pre><code>&lt;form action="traitement.php" method="post"&gt;
+    &lt;input type="text" name="nom"&gt;
+    &lt;input type="text" name="prenom"&gt;
+    &lt;input type="submit"&gt;
+&lt;/form&gt;</code></pre></div>
+
+<div class="bloc-code"><span class="langue">php — traitement.php</span><pre><code>$nom    = htmlspecialchars($_POST["nom"]);
+$prenom = htmlspecialchars($_POST["prenom"]);
+echo "Bonjour $nom $prenom";</code></pre></div>
+
+  <p>En <strong>GET</strong>, il suffit de changer <code>method="get"</code> et
+     <code>$_POST</code> en <code>$_GET</code>. Mais l'URL devient :</p>
+<div class="bloc-code"><span class="langue">l'URL en GET</span><pre><code>traitement.php?nom=Dupont&amp;prenom=Marc</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>GET</th><th>POST</th></tr></thead>
+    <tbody>
+      <tr><td>Données</td><td>dans l'<strong>URL</strong></td><td>dans le <strong>corps</strong></td></tr>
+      <tr><td>Visibles</td><td>oui</td><td>non</td></tr>
+      <tr><td>Dans l'historique / les favoris</td><td class="rep-non">oui</td><td class="rep-ok">non</td></tr>
+      <tr><td>Peut être partagée par lien</td><td>oui — c'est son intérêt</td><td>non</td></tr>
+      <tr><td>Taille</td><td>limitée</td><td>très large</td></tr>
+      <tr><td>Pour</td><td>rechercher, filtrer, paginer</td><td>envoyer, modifier, connecter</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « POST est sécurisé » — non, il est juste discret</div>
+    <p>POST met les données hors de l'URL : elles n'apparaissent ni dans l'historique, ni dans les
+       favoris, ni dans les journaux du serveur. C'est déjà beaucoup. Mais elles circulent en
+       <strong>clair</strong> comme le reste.</p>
+    <p>Ce qui chiffre, c'est <strong>HTTPS</strong>. Un mot de passe en POST sur du HTTP simple se
+       lit dans Wireshark aussi facilement qu'un mot de passe Telnet — voir le
+       <a href="../../02-reseaux-systemes/13-depannage-wireshark/cours.html">chapitre
+       Dépannage</a>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="valider">
+  <h2><span class="num">04</span>Valider côté serveur</h2>
+
+  <p>Le deuxième exercice : un email non vide, un mot de passe d'au moins 6 caractères, et des
+     messages d'erreur.</p>
+
+<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
+$erreurs = [];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    if (!isset($_POST["email"]) || trim($_POST["email"]) === "") {
+        $erreurs[] = "L'email est obligatoire.";
+    }
+
+    if (!isset($_POST["password"]) || strlen($_POST["password"]) &lt; 6) {
+        $erreurs[] = "Le mot de passe doit faire au moins 6 caractères.";
+    }
+
+    if (count($erreurs) === 0) {
+        echo "&lt;p class='success'&gt;Connexion réussie&lt;/p&gt;";
+    } else {
+        foreach ($erreurs as $e) {
+            echo "&lt;p class='error'&gt;" . htmlspecialchars($e) . "&lt;/p&gt;";
+        }
+    }
+}
+?&gt;</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>$_SERVER["REQUEST_METHOD"]</code> : le bon garde-fou</div>
+    <p>Sans ce test, le script se déclenche <strong>au premier affichage</strong> de la page —
+       avant que l'utilisateur ait rien saisi — et affiche toutes les erreurs d'entrée de jeu.</p>
+    <p>Ce test répond à la question : « suis-je là parce qu'on vient de m'envoyer un formulaire, ou
+       parce qu'on affiche simplement la page ? »</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>strlen()</code> et non <code>empty()</code> pour un mot de passe</div>
+    <p>La longueur se mesure avec <code>strlen()</code>. Et surtout : on n'applique
+       <strong>jamais</strong> <code>trim()</code> à un mot de passe — une espace peut en faire
+       légitimement partie, et la retirer changerait silencieusement ce que l'utilisateur a
+       tapé.</p>
+    <p>Pour le nom et l'email en revanche, <code>trim()</code> est indispensable : sans lui, un
+       champ ne contenant qu'une espace passe pour rempli.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="compteur">
+  <h2><span class="num">05</span>Le compteur de visites</h2>
+
+  <p>Première vraie utilisation de la mémoire : compter les passages sur la page.</p>
+
+<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
+session_start();
+
+if (!isset($_SESSION["visites"])) {
+    $_SESSION["visites"] = 1;        // première visite
+} else {
+    $_SESSION["visites"]++;          // les suivantes
+}
+
+echo "Vous avez visité cette page " . $_SESSION["visites"] . " fois.";
+?&gt;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le test <code>isset()</code> n'est pas optionnel</div>
+    <p>Sans lui, la première visite incrémenterait une variable qui n'existe pas encore. PHP 8
+       émet alors un <em>Warning: Undefined array key</em>, et le compteur démarre à 1 par
+       accident plutôt que par décision.</p>
+    <p>La forme condensée, courante en PHP moderne :</p>
+<div class="bloc-code"><span class="langue">php</span><pre><code>$_SESSION["visites"] = ($_SESSION["visites"] ?? 0) + 1;</code></pre></div>
+    <p><code>??</code> signifie « ou, si ça n'existe pas, alors… ». Une ligne au lieu de cinq.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="authentification">
+  <h2><span class="num">06</span>L'authentification</h2>
+
+  <p>Identifiants attendus : <code>admin</code> / <code>1234</code>, vérifiés <strong>sans base de
+     données</strong>.</p>
+
+<div class="bloc-code"><span class="langue">php — login.php</span><pre><code>&lt;?php
+session_start();
+$erreur = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $login = trim($_POST["login"] ?? "");
+    $mdp   = $_POST["password"] ?? "";
+
+    if (strtolower($login) === "admin" &amp;&amp; $mdp === "1234") {
+        $_SESSION["user"] = $login;           // on mémorise
+        header("Location: accueil.php");      // on redirige
+        exit();                               // ← ET ON S'ARRÊTE
+    } else {
+        $erreur = "Identifiants incorrects";
+    }
+}
+?&gt;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>exit()</code> après <code>header("Location: …")</code></div>
+    <p><code>header()</code> se contente d'<strong>ajouter un en-tête</strong> à la réponse : il
+       n'interrompt pas le script. Sans <code>exit()</code>, <strong>tout le code qui suit
+       s'exécute quand même</strong> — et peut afficher ou modifier des choses avant que le
+       navigateur ne suive la redirection.</p>
+    <p>Sur une page protégée, l'oubli est une <strong>faille</strong> : le contenu privé est envoyé
+       au visiteur non connecté, même si son navigateur change ensuite de page. Il lui suffit de
+       regarder la réponse pour tout lire.</p>
+    <div class="formule"><code>header("Location: …");</code> est <strong>toujours</strong> suivi de
+      <code>exit();</code></div>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>strtolower()</code> sur l'identifiant, jamais sur le mot de passe</div>
+    <p>Accepter « Admin », « ADMIN » ou « admin » est un confort légitime : un identifiant n'est pas
+       censé être sensible à la casse.</p>
+    <p>Un <strong>mot de passe</strong>, si. Le passer en minuscules diviserait massivement le
+       nombre de combinaisons possibles — exactement ce qu'on cherche à éviter (voir les calculs de
+       force brute du
+       <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
+       cybersécurité</a>).</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Ce qu'on ferait vraiment</div>
+    <p>Un identifiant et un mot de passe écrits <em>en dur</em> dans le code conviennent à un
+       exercice, pas à un vrai site. En production :</p>
+    <ul>
+      <li>les utilisateurs sont en <strong>base de données</strong> ;</li>
+      <li>le mot de passe n'est <strong>jamais</strong> stocké en clair mais
+          <strong>haché</strong> — <code>password_hash()</code> pour l'enregistrer,
+          <code>password_verify()</code> pour le contrôler ;</li>
+      <li>même haché, il n'est jamais mis dans <code>$_SESSION</code> : on n'y garde que
+          l'identifiant.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="garde">
+  <h2><span class="num">07</span>Protéger une page privée</h2>
+
+  <p>Une page réservée doit vérifier, <strong>avant tout affichage</strong>, que l'utilisateur est
+     bien connecté. On appelle cela un <strong>garde</strong>.</p>
+
+<div class="bloc-code"><span class="langue">php — accueil.php (page privée)</span><pre><code>&lt;?php
+session_start();
+
+if (!isset($_SESSION["user"])) {          // le garde
+    header("Location: login.php");
+    exit();
+}
+
+// À partir d'ici, on est certain que l'utilisateur est connecté.
+include "header.php";
+echo "&lt;h2&gt;Bonjour " . htmlspecialchars($_SESSION["user"]) . " !&lt;/h2&gt;";
+?&gt;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — le garde ne va PAS sur la page de connexion</div>
+    <p>C'est l'erreur la plus instructive du TP, et elle est vicieuse. Placer le garde sur
+       <code>login.php</code> lui-même donne :</p>
+<div class="bloc-code"><span class="langue">login.php — boucle infinie</span><pre><code>&lt;?php
+session_start();
+if (!isset($_SESSION["user"])) {
+    header("Location: login.php");   // ← on redirige vers SOI-MÊME
+    exit();
+}</code></pre></div>
+    <p>Un visiteur non connecté arrive sur <code>login.php</code>, n'est pas connecté, donc est
+       redirigé vers <code>login.php</code>, où il n'est toujours pas connecté… Le navigateur
+       s'arrête au bout de quelques dizaines de tours :</p>
+<div class="bloc-code"><span class="langue">dans le navigateur</span><pre><code>ERR_TOO_MANY_REDIRECTS
+La page ne cesse de rediriger vers elle-même.</code></pre></div>
+    <p><strong>La règle :</strong> le garde va sur les pages <strong>privées</strong>. La page de
+       connexion doit rester accessible <em>justement parce qu'</em>on n'est pas connecté.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 180" role="img" aria-label="Où placer le garde de session">
+      <style>
+        .pg{fill:var(--carte);stroke-width:1.6}
+        .pt{font:700 12px var(--mono);text-anchor:middle;fill:var(--encre)}
+        .pd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .pa{stroke:var(--accent);stroke-width:1.6;fill:none;marker-end:url(#pf)}
+      </style>
+      <defs><marker id="pf" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+      <rect class="pg" x="20" y="50" width="150" height="70" rx="8" stroke="#2D8A34"/>
+      <text class="pt" x="95" y="76">login.php</text>
+      <text class="pd" x="95" y="96">PAS de garde</text>
+      <text class="pd" x="95" y="110">(accessible à tous)</text>
+
+      <rect class="pg" x="390" y="50" width="150" height="70" rx="8" stroke="#B00020"/>
+      <text class="pt" x="465" y="76">accueil.php</text>
+      <text class="pd" x="465" y="96">GARDE ici</text>
+      <text class="pd" x="465" y="110">(page privée)</text>
+
+      <path class="pa" d="M174,72 H386"/>
+      <text class="pd" x="280" y="64">connexion réussie →</text>
+      <path class="pa" d="M386,102 H174"/>
+      <text class="pd" x="280" y="120">← non connecté : retour au login</text>
+      <text class="pd" x="280" y="160" style="font-weight:700;fill:var(--encre)">Le garde protège l'arrivée, pas le départ.</text>
+    </svg>
+    <figcaption>Une page qui redirige vers elle-même quand la condition est fausse tourne en
+      boucle.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="deconnexion">
+  <h2><span class="num">08</span>La déconnexion</h2>
+
+<div class="bloc-code"><span class="langue">php — logout.php</span><pre><code>&lt;?php
+session_start();
+
+$_SESSION = [];        // 1. on vide le tableau
+session_destroy();     // 2. on détruit la session côté serveur
+
+header("Location: login.php");
+exit();
+?&gt;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>session_destroy()</code> seul ne vide pas <code>$_SESSION</code></div>
+    <p>C'est une subtilité que le polycopié ne mentionne pas. <code>session_destroy()</code>
+       supprime la session <em>stockée sur le serveur</em>, mais le tableau <code>$_SESSION</code>
+       <strong>reste rempli jusqu'à la fin du script en cours</strong>.</p>
+    <p>Tant qu'on redirige immédiatement, cela ne se voit pas. Mais si la page continue et lit
+       <code>$_SESSION["user"]</code>, elle trouvera encore l'utilisateur — et affichera du contenu
+       privé à quelqu'un qui vient de se déconnecter. D'où le <code>$_SESSION = [];</code> d'abord,
+       par sécurité.</p>
+  </div>
+
+  <h3>L'organisation des fichiers</h3>
+<div class="bloc-code"><span class="langue">arborescence</span><pre><code>/projet
+├── login.php        formulaire de connexion   — PAS de garde
+├── traitement.php   vérification des identifiants
+├── accueil.php      page privée               — GARDE
+├── logout.php       déconnexion
+├── header.php       en-tête commun
+└── footer.php       pied de page commun</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Nommez vos fichiers avec soin</div>
+    <p>Une faute de frappe dans un nom de fichier se paie cher : <code>traintement.php</code> au
+       lieu de <code>traitement.php</code>, et l'<code>include</code> échoue. Le pire, c'est que
+       PHP se contente d'un <em>warning</em> et <strong>continue</strong> — la page s'affiche, mais
+       incomplète, sans message clair.</p>
+    <p>C'est exactement le cas où <code>require</code> vaut mieux qu'<code>include</code> : il
+       s'arrête net et vous dit quel fichier manque.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un utilisateur se connecte, tout fonctionne. Il clique sur un lien vers
+       <code>profil.php</code> : le site le croit déconnecté et le renvoie au login. Pourtant sa
+       session existe toujours. Que manque-t-il ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong><code>session_start()</code> en tête de <code>profil.php</code>.</strong></p>
+      <p>La session existe bel et bien côté serveur, et le navigateur envoie correctement son
+         cookie. Mais une page qui n'appelle pas <code>session_start()</code> ne demande jamais à y
+         accéder : pour elle, <code>$_SESSION</code> est un tableau <strong>vide</strong>. Le garde
+         conclut logiquement que personne n'est connecté.</p>
+      <p class="rap"><strong>La règle :</strong> <code>session_start()</code> en première ligne de
+         <em>chaque</em> page qui lit ou écrit la session — pas seulement celle qui l'a
+         ouverte.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>HTTP est sans mémoire</strong> : la session ajoute cette mémoire. Le navigateur
+          garde un <strong>jeton</strong>, le serveur garde les données.</li>
+      <li><strong><code>session_start()</code></strong> en toute première ligne de
+          <strong>chaque</strong> page concernée — avant le moindre caractère affiché.</li>
+      <li><strong>GET</strong> = dans l'URL, partageable, pour chercher. <strong>POST</strong> = dans
+          le corps, discret, pour envoyer. Ni l'un ni l'autre n'est chiffré : c'est HTTPS.</li>
+      <li><strong>Valider</strong> : <code>$_SERVER["REQUEST_METHOD"]</code>, <code>isset</code>,
+          <code>trim</code> (pas sur un mot de passe), <code>strlen</code>.</li>
+      <li><strong>Compteur</strong> : <code>$_SESSION["x"] = ($_SESSION["x"] ?? 0) + 1;</code></li>
+      <li><strong>Connexion</strong> : écrire dans <code>$_SESSION</code>, rediriger,
+          <strong><code>exit()</code></strong>.</li>
+      <li><strong>Le garde</strong> va sur les pages <strong>privées</strong>, jamais sur
+          <code>login.php</code> — sinon boucle de redirection infinie.</li>
+      <li><strong>Déconnexion</strong> : <code>$_SESSION = [];</code> puis
+          <code>session_destroy()</code>, puis redirection.</li>
+      <li><strong>Toujours <code>htmlspecialchars()</code></strong> avant d'afficher une donnée de
+          session.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>TP3 — Formulaires, validation et espace membre avec sessions
+          (le professeur, BTS CIEL 2025-2026)</li>
+      <li>Cours « PHP — Développement côté serveur », partie sessions</li>
+      <li>Fichiers rendus — l'élève : <code>login.php</code>, <code>traitement.php</code>,
+          <code>accueil.php</code>, <code>session.php</code></li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

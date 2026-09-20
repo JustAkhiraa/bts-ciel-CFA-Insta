@@ -1,7 +1,7 @@
 # BTS CIEL — fiches de révision
 
 Cours, exercices corrigés et fiches de révision pour le **BTS CIEL option A**
-(Cybersécurité, Informatique et réseaux, Électronique), 1re et 2e année.
+(Cybersécurité, Informatique et réseaux, Électronique).
 
 **→ [Consulter le site](https://justakhiraa.github.io/bts-ciel-CFA-Insta/)**
 
@@ -15,7 +15,7 @@ Les notes d'un étudiant, remises au propre. Pour chaque chapitre :
 | `exercices.html` | les exercices, énoncé et correction repliable |
 | `fiche-revision.html` | recto-verso dense, à imprimer, à relire la veille |
 
-**53 chapitres · 159 fiches · 5 matières.**
+**52 chapitres · 156 fiches · 5 matières.**
 
 ## Ce que ce n'est pas
 
@@ -45,7 +45,7 @@ python3 outils/verifier.py
 ## Technique
 
 Aucune dépendance, aucune étape de construction, aucun appel réseau. Du HTML, du
-CSS et du JavaScript écrits à la main. Thème clair et sombre, installable comme
+CSS et du JavaScript écrits à la main. Trente-neuf thèmes, installable comme
 application, fonctionne hors-ligne.
 
 Pour le consulter en local :

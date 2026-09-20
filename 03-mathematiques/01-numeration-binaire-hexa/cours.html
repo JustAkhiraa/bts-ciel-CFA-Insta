@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systèmes de numération | BTS CIEL</title>
+<meta name="description" content="Cours complet : principe de position, binaire, poids des bits, conversions décimal/binaire/hexadécimal, opérations binaires, nombres signés et complément à deux, partie fractionnaire.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#position">1 · Le principe de position</a></li>
+    <li><a href="#binaire">2 · Le système binaire</a></li>
+    <li><a href="#vers-decimal">3 · Binaire → décimal</a></li>
+    <li><a href="#vers-binaire">4 · Décimal → binaire</a></li>
+    <li><a href="#addition">5 · Addition et soustraction</a></li>
+    <li><a href="#signe">6 · Quand A est plus petit que B</a></li>
+    <li><a href="#multiplication">7 · Multiplication et division</a></li>
+    <li><a href="#fractionnaire">8 · La partie fractionnaire</a></li>
+    <li><a href="#hexa">9 · L'hexadécimal</a></li>
+    <li><a href="#conversions-hexa">10 · Les conversions hexa</a></li>
+    <li><a href="#ciel">11 · À quoi ça sert en CIEL</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 01</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Systèmes de numération</h1>
+  <p class="chapeau">Une machine ne sait dire que « courant » ou « pas de courant ».
+     Tout le reste — vos photos, vos adresses IP, ce texte — n'est qu'une façon d'écrire
+     des nombres avec deux chiffres.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Dans <strong>toute</strong> base, la position d'un chiffre fixe son
+         <strong>poids</strong> : une puissance de la base. En <strong>base 10</strong> ce sont
+         les puissances de 10, en <strong>base 2</strong> celles de 2, en <strong>base 16</strong>
+         celles de 16. Convertir, c'est passer d'un jeu de poids à un autre — par
+         <strong>soustractions</strong> (on retire les poids du plus grand au plus petit) ou par
+         <strong>divisions successives</strong> (on lit les restes à l'envers). Et l'hexadécimal
+         n'existe que pour une raison : <strong>un chiffre hexa = exactement quatre bits</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#base</code> <code>#poids</code> <code>#binaire</code> <code>#bit</code>
+    <code>#quartet</code> <code>#octet</code> <code>#hexadécimal</code>
+    <code>#méthode-soustractive</code> <code>#divisions-successives</code>
+    <code>#retenue</code> <code>#emprunt</code> <code>#complément-à-deux</code>
+    <code>#partie-fractionnaire</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="position">
+  <h2><span class="num">01</span>Le principe de position</h2>
+
+  <p>On écrit <code>247</code> depuis l'école primaire sans jamais se demander pourquoi cela vaut
+     deux cent quarante-sept. La réponse tient en un mot : <strong>la position</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>247₁₀ = 2 centaines + 4 dizaines + 7 unités
+
+      = 2 × 100  +  4 × 10  +  7 × 1
+
+      = 2 × 10²  +  4 × 10¹ +  7 × 10⁰</code></pre></div>
+
+  <p>Le chiffre <code>2</code> ne vaut pas « deux » : il vaut « deux fois cent », parce qu'il
+     occupe la <strong>troisième position</strong> en partant de la droite. C'est la position qui
+     porte le poids, pas le chiffre.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La règle, dans n'importe quelle base</div>
+    <div class="formule">base <em>b</em> → <em>b</em> chiffres, de 0 à <em>b</em> − 1<br>
+      poids de la position <em>n</em> (à partir de 0, à droite) = <em>b</em><sup><em>n</em></sup></div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Base</th><th>Nom</th><th>Chiffres disponibles</th><th>Poids</th></tr></thead>
+      <tbody>
+        <tr><td><strong>10</strong></td><td>décimal</td><td>0 1 2 3 4 5 6 7 8 9</td>
+            <td>1, 10, 100, 1000…</td></tr>
+        <tr><td><strong>2</strong></td><td>binaire</td><td>0 1</td>
+            <td>1, 2, 4, 8, 16, 32…</td></tr>
+        <tr><td><strong>16</strong></td><td>hexadécimal</td><td>0…9 puis A B C D E F</td>
+            <td>1, 16, 256, 4096…</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Et une règle qui sert partout : <strong><em>x</em><sup>0</sup> = 1</strong>, quel que soit
+       <em>x</em> non nul. C'est pourquoi la colonne de droite vaut toujours 1, dans toutes les
+       bases.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Le compteur kilométrique</div>
+    <p>Sur un compteur, chaque roue affiche 0 à 9. Quand la roue des unités passe de 9 à 0, elle
+       <strong>entraîne</strong> celle des dizaines. La base 10 tient entièrement dans ce
+       mécanisme : dix positions par roue, et une retenue quand on fait le tour.</p>
+    <p>Un compteur binaire aurait des roues à <strong>deux</strong> positions : 0, 1, puis retour
+       à 0 en entraînant la voisine. C'est exactement pourquoi <code>1 + 1 = 10</code> en binaire —
+       la roue a fait le tour.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi la machine compte en base 2</div>
+    <p>Un transistor n'a que deux états stables : il laisse passer le courant, ou non. Construire
+       un composant qui distingue <em>deux</em> niveaux de tension est simple et fiable ; en
+       distinguer <em>dix</em> demanderait des seuils serrés, sensibles à la température et au
+       bruit. La base 2 n'a pas été choisie pour ses qualités mathématiques : elle a été choisie
+       parce qu'elle est <strong>la plus facile à fabriquer</strong>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="binaire">
+  <h2><span class="num">02</span>Le système binaire</h2>
+
+  <p>Deux chiffres : <strong>0</strong> et <strong>1</strong>. Les poids sont les puissances de 2.
+     Le tableau ci-dessous est l'outil unique de tout le chapitre — c'est lui qu'il faut savoir
+     réécrire de mémoire.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 700 190" role="img" aria-label="Tableau des poids binaires de 2⁰ à 2¹⁰ appliqué au nombre 1011">
+      <style>
+        .pg{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.2}
+        .pc{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1}
+        .pe{font:600 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .pv{font:11px var(--mono);text-anchor:middle;fill:var(--encre-douce)}
+        .pb{font:700 15px var(--mono);text-anchor:middle;fill:var(--encre)}
+        .pl{font:10.5px var(--sans);text-anchor:start;fill:var(--encre-douce)}
+        .pa{font:700 11px var(--sans);text-anchor:middle;fill:var(--rouge)}
+      </style>
+      <text class="pl" x="6" y="30">exposant</text>
+      <text class="pl" x="6" y="56">valeur</text>
+      <text class="pl" x="6" y="92">1011₂</text>
+      <g>
+        <!-- 11 colonnes de 2^10 à 2^0 -->
+        <g transform="translate(96,14)">
+          <rect class="pg" x="0"   y="0" width="52" height="22"/><text class="pe" x="26"  y="16">2¹⁰</text>
+          <rect class="pg" x="52"  y="0" width="52" height="22"/><text class="pe" x="78"  y="16">2⁹</text>
+          <rect class="pg" x="104" y="0" width="52" height="22"/><text class="pe" x="130" y="16">2⁸</text>
+          <rect class="pg" x="156" y="0" width="52" height="22"/><text class="pe" x="182" y="16">2⁷</text>
+          <rect class="pg" x="208" y="0" width="52" height="22"/><text class="pe" x="234" y="16">2⁶</text>
+          <rect class="pg" x="260" y="0" width="52" height="22"/><text class="pe" x="286" y="16">2⁵</text>
+          <rect class="pg" x="312" y="0" width="52" height="22"/><text class="pe" x="338" y="16">2⁴</text>
+          <rect class="pg" x="364" y="0" width="52" height="22"/><text class="pe" x="390" y="16">2³</text>
+          <rect class="pg" x="416" y="0" width="52" height="22"/><text class="pe" x="442" y="16">2²</text>
+          <rect class="pg" x="468" y="0" width="52" height="22"/><text class="pe" x="494" y="16">2¹</text>
+          <rect class="pg" x="520" y="0" width="52" height="22"/><text class="pe" x="546" y="16">2⁰</text>
+
+          <rect class="pc" x="0"   y="22" width="52" height="24"/><text class="pv" x="26"  y="39">1024</text>
+          <rect class="pc" x="52"  y="22" width="52" height="24"/><text class="pv" x="78"  y="39">512</text>
+          <rect class="pc" x="104" y="22" width="52" height="24"/><text class="pv" x="130" y="39">256</text>
+          <rect class="pc" x="156" y="22" width="52" height="24"/><text class="pv" x="182" y="39">128</text>
+          <rect class="pc" x="208" y="22" width="52" height="24"/><text class="pv" x="234" y="39">64</text>
+          <rect class="pc" x="260" y="22" width="52" height="24"/><text class="pv" x="286" y="39">32</text>
+          <rect class="pc" x="312" y="22" width="52" height="24"/><text class="pv" x="338" y="39">16</text>
+          <rect class="pc" x="364" y="22" width="52" height="24"/><text class="pv" x="390" y="39">8</text>
+          <rect class="pc" x="416" y="22" width="52" height="24"/><text class="pv" x="442" y="39">4</text>
+          <rect class="pc" x="468" y="22" width="52" height="24"/><text class="pv" x="494" y="39">2</text>
+          <rect class="pc" x="520" y="22" width="52" height="24"/><text class="pv" x="546" y="39">1</text>
+
+          <rect class="pc" x="364" y="58" width="52" height="26" fill="var(--accent-pale)"/>
+          <text class="pb" x="390" y="77">1</text>
+          <rect class="pc" x="416" y="58" width="52" height="26"/><text class="pb" x="442" y="77">0</text>
+          <rect class="pc" x="468" y="58" width="52" height="26" fill="var(--accent-pale)"/>
+          <text class="pb" x="494" y="77">1</text>
+          <rect class="pc" x="520" y="58" width="52" height="26" fill="var(--accent-pale)"/>
+          <text class="pb" x="546" y="77">1</text>
+        </g>
+      </g>
+      <text class="pa" x="350" y="130">on additionne les poids des colonnes qui portent un 1</text>
+      <text class="pb" x="350" y="158" style="font-size:16px">8 + 0 + 2 + 1 = 11₁₀</text>
+      <text class="pv" x="350" y="178">les colonnes à 0 ne comptent pas — on peut les ignorer</text>
+    </svg>
+    <figcaption>Le tableau des poids : la seule chose à retenir par cœur. Chaque valeur est le
+      double de sa voisine de droite.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le vocabulaire, à employer juste</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Terme</th><th>Taille</th><th>Ce qu'il représente</th></tr></thead>
+      <tbody>
+        <tr><td><strong>bit</strong></td><td>1 chiffre binaire</td>
+            <td>0 ou 1 — de l'anglais <em>binary digit</em></td></tr>
+        <tr><td><strong>quartet</strong></td><td>4 bits</td>
+            <td>0 à 15 — soit <strong>exactement un chiffre hexadécimal</strong></td></tr>
+        <tr><td><strong>octet</strong></td><td>8 bits</td>
+            <td>0 à 255 — l'unité de base de la mémoire et des adresses IP</td></tr>
+        <tr><td><strong>mot</strong></td><td>16, 32 ou 64 bits</td>
+            <td>ce que le processeur traite d'un coup</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — un chiffre hexadécimal n'est pas un « bit »</div>
+    <p>Le cours d'origine présente l'hexadécimal ainsi : « 16 chiffres (digits, <em>bits</em>) de
+       0 à 9 puis de A à F ». Le mot <strong>bit</strong> y est employé à tort.</p>
+    <div class="formule">bit = <strong>b</strong>inary dig<strong>it</strong> = un chiffre
+      <strong>binaire</strong><br>il ne vaut que 0 ou 1, jamais A ni F</div>
+    <p>Un chiffre hexadécimal vaut 0 à 15 : il lui faut <strong>4 bits</strong>. Dire qu'un
+       <code>F</code> est un bit revient à dire qu'un chiffre décimal en est un. La confusion est
+       sans conséquence sur les calculs, mais elle gêne exactement là où l'on en a besoin — pour
+       comprendre que <code>8B7₁₆</code> fait 12 bits, soit un octet et demi.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — 2⁸ vaut 256, mais un octet s'arrête à 255</div>
+    <div class="formule">8 bits → 2⁸ = <strong>256 valeurs</strong><br>
+      de <strong>0</strong> à <strong>255</strong></div>
+    <p>256 valeurs différentes, mais la plus grande vaut 255 — parce qu'on commence à compter à
+       zéro. C'est l'erreur d'un cran (<em>off-by-one</em>), et elle revient à chaque chapitre :
+       en adressage IP, un octet va de 0 à 255 ; un sous-réseau /24 offre 2⁸ − 2 = 254 adresses
+       utilisables.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Sans calculatrice : combien vaut <code>2¹⁰</code> ? Et pourquoi ce nombre revient-il
+       partout en informatique ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>2¹⁰ = 1024.</strong> On double dix fois à partir de 1 :
+         1, 2, 4, 8, 16, 32, 64, 128, 256, 512, <strong>1024</strong>.</p>
+      <p>Il revient partout parce que 1024 est <em>presque</em> mille. Les informaticiens ont donc
+         détourné les préfixes du système métrique : 1 kio = 1024 octets, 1 Mio = 1024 kio,
+         1 Gio = 1024 Mio. D'où l'écart qui étonne tout le monde : un disque vendu « 500 Go »
+         (500 × 10⁹ octets, la définition commerciale) affiche 465 Gio dans le système
+         d'exploitation. Personne n'a triché — ce sont deux unités différentes.</p>
+      <p class="rap">Apprenez les puissances de 2 jusqu'à 2¹⁰ comme on apprend les tables de
+         multiplication. Tout le chapitre en dépend, et l'adressage IP aussi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="vers-decimal">
+  <h2><span class="num">03</span>Binaire → décimal</h2>
+
+  <p>C'est le sens facile : on décompose, on additionne. Une seule chose à ne pas rater —
+     <strong>l'alignement des exposants</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1011₂ = 1 × 2³ + 0 × 2² + 1 × 2¹ + 1 × 2⁰
+      = 1 × 8  + 0 × 4  + 1 × 2  + 1 × 1
+      = 8 + 0 + 2 + 1
+      = 11₁₀</code></pre></div>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1011101₂ = 1×2⁶ + 0×2⁵ + 1×2⁴ + 1×2³ + 1×2² + 0×2¹ + 1×2⁰
+         = 64 + 0 + 16 + 8 + 4 + 0 + 1
+         = 93₁₀</code></pre></div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 La méthode sûre, en trois gestes</div>
+    <ol>
+      <li><strong>Compter les bits.</strong> <code>1011101</code> en compte 7, donc l'exposant le
+          plus à gauche est <strong>7 − 1 = 6</strong>. C'est là que se jouent la moitié des
+          erreurs.</li>
+      <li><strong>Écrire les poids au-dessus</strong>, de gauche à droite : 64, 32, 16, 8, 4, 2, 1.</li>
+      <li><strong>N'additionner que les colonnes qui portent un 1.</strong> Les zéros ne servent
+          qu'à tenir la place.</li>
+    </ol>
+    <div class="formule">64 + 16 + 8 + 4 + 1 = 93 — trois termes de moins à écrire</div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'exposant de droite est 0, pas 1</div>
+    <p>Sur <code>1011</code>, le bit le plus à droite porte <strong>2⁰ = 1</strong>, pas 2¹. On
+       numérote les positions <strong>à partir de zéro</strong>. Un décalage d'un cran sur toute
+       la ligne double le résultat — et le calcul paraît pourtant impeccable.</p>
+    <p>Le contrôle en deux secondes : <strong>un nombre binaire qui finit par 1 est impair</strong>,
+       puisque seul <code>2⁰</code> apporte une unité. <code>1011</code> finit par 1 → 11, impair.
+       Si vous trouvez un nombre pair, l'alignement est faux.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Un espace tous les quatre bits</div>
+    <p>Le cours écrit <code>101 0100 0111</code> plutôt que <code>101010001112</code>. Ce
+       découpage en <strong>quartets, depuis la droite</strong>, n'est pas décoratif : il évite de
+       perdre le compte, et chaque groupe de quatre se traduit ensuite directement en un chiffre
+       hexadécimal (<a href="#conversions-hexa">section 10</a>).</p>
+    <p>Prenez l'habitude dès maintenant : <code>10101000111</code> devient
+       <code>101 0100 0111</code>, et l'erreur d'alignement disparaît presque toujours d'elle-même.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="vers-binaire">
+  <h2><span class="num">04</span>Décimal → binaire</h2>
+
+  <p>Deux méthodes, enseignées toutes les deux. Elles donnent le même résultat ; mieux vaut en
+     maîtriser une parfaitement et connaître l'autre pour vérifier.</p>
+
+  <h3>Méthode 1 — les soustractions successives</h3>
+
+  <p>On part du plus gros poids qui tient dans le nombre, et on le retire. Le chiffre écrit est
+     <strong>1 si le poids tient, 0 sinon</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul — 392 en binaire</span><pre><code>392 − 1 × 256 = 136      ← 256 tient       → 1
+136 − 1 × 128 =   8      ← 128 tient       → 1
+  8 − 0 ×  64 =   8      ← 64 ne tient pas → 0
+  8 − 0 ×  32 =   8                        → 0
+  8 − 0 ×  16 =   8                        → 0
+  8 − 1 ×   8 =   0      ← 8 tient         → 1
+  0 − 0 ×   4 =   0                        → 0
+  0 − 0 ×   2 =   0                        → 0
+  0 − 0 ×   1 =   0                        → 0
+
+392₁₀ = 1 1000 1000₂</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le reste se reporte, même quand il ne change pas</div>
+    <p>Une fois <code>8 − 1 × 8 = 0</code>, les lignes suivantes partent de <strong>0</strong>, pas
+       de 8. Le cours d'origine recopie <code>8</code> sur les trois dernières lignes : le résultat
+       final reste bon, mais la colonne de gauche devient fausse — et si l'on s'y fie pour
+       vérifier, on croit avoir encore 8 à placer.</p>
+    <p>Le contrôle : la dernière ligne doit <strong>toujours</strong> aboutir à 0. Si vous
+       terminez sur autre chose, il reste un poids à placer.</p>
+  </div>
+
+  <h3>Méthode 2 — les divisions successives par 2</h3>
+
+  <p>On divise par 2, encore et encore, et l'on note les restes. Le résultat se lit
+     <strong>de bas en haut</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul — 251 en binaire</span><pre><code>251 │ 2
+  1 │ 125 │ 2
+      1 │ 62 │ 2
+           0 │ 31 │ 2
+                1 │ 15 │ 2
+                     1 │ 7 │ 2
+                         1 │ 3 │ 2
+                             1 │ 1 │ 2
+                                 1 │ 0
+
+on lit les restes du DERNIER au PREMIER :  1 1 1 1 1 0 1 1
+
+251₁₀ = 1111 1011₂</code></pre></div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Laquelle choisir</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Soustractions</th><th>Divisions par 2</th></tr></thead>
+      <tbody>
+        <tr><td>Prérequis</td><td>connaître les puissances de 2 par cœur</td>
+            <td>savoir diviser par 2</td></tr>
+        <tr><td>Sens de lecture</td><td>de gauche à droite, dans l'ordre d'écriture</td>
+            <td><strong>de bas en haut</strong> — le piège</td></tr>
+        <tr><td>Grands nombres</td><td>rapide si l'on connaît ses poids</td>
+            <td>long mais mécanique, sans réflexion</td></tr>
+        <tr><td>Risque</td><td>oublier une colonne à 0</td>
+            <td>lire les restes à l'endroit</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>En examen : faites-en une, <strong>vérifiez avec l'autre sens</strong> (reconvertissez en
+       décimal, section 3). Deux minutes de plus, et l'erreur ne passe pas.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Convertissez <code>397₁₀</code> en binaire par la méthode qui vous paraît la plus sûre,
+       puis vérifiez par l'autre sens.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul — soustractions</span><pre><code>397 − 1 × 256 = 141    → 1
+141 − 1 × 128 =  13    → 1
+ 13 − 0 ×  64 =  13    → 0
+ 13 − 0 ×  32 =  13    → 0
+ 13 − 0 ×  16 =  13    → 0
+ 13 − 1 ×   8 =   5    → 1
+  5 − 1 ×   4 =   1    → 1
+  1 − 0 ×   2 =   1    → 0
+  1 − 1 ×   1 =   0    → 1
+
+397₁₀ = 1 1000 1101₂</code></pre></div>
+      <p><strong>Vérification</strong> — on repart du binaire :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1 1000 1101₂ = 256 + 128 + 8 + 4 + 1 = 397 ✔</code></pre></div>
+      <p class="rap">Deux contrôles gratuits : le nombre finit par <strong>1</strong> donc il est
+         impair — 397 l'est ✔ ; et 397 est entre 256 et 512, donc il lui faut
+         <strong>9 bits</strong> — on en a bien 9 ✔.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="addition">
+  <h2><span class="num">05</span>Addition et soustraction</h2>
+
+  <h3>L'addition</h3>
+
+  <p>Quatre cas, et c'est tout. Le quatrième est le seul qui demande de l'attention.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opération</th><th>Résultat</th><th>Ce qui se passe</th></tr></thead>
+    <tbody>
+      <tr><td><code>0 + 0</code></td><td><code>0</code></td><td>—</td></tr>
+      <tr><td><code>0 + 1</code></td><td><code>1</code></td><td>—</td></tr>
+      <tr><td><code>1 + 0</code></td><td><code>1</code></td><td>—</td></tr>
+      <tr><td><code>1 + 1</code></td><td><code>10</code></td>
+          <td>on écrit <strong>0</strong>, on retient <strong>1</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>C'est le compteur qui fait le tour : <code>1₂ + 1₂ = 10₂</code>, et en décimal
+     <code>1 + 1 = 2</code>. Les deux disent la même chose.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>     ¹
+   1 0 0 1        1001₂ = 9₁₀
++    1 0 1        0101₂ = 5₁₀
+─────────
+   1 1 1 0        1110₂ = 14₁₀     et 9 + 5 = 14 ✔</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Additionner plus de deux 1 à la fois</div>
+    <p>Dans une colonne, on peut se retrouver avec trois ou quatre 1 (les bits plus les retenues).
+       On ne devine pas le résultat : on additionne <strong>deux par deux</strong>.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1 + 1 + 1        1 + 1 + 1 + 1
+
+  1               1       10      11
++ 1              +1      + 1     + 1
+────             ───     ────    ────
+ 10               10      11     100
+
+1+1+1 = 11₂ = 3₁₀        1+1+1+1 = 100₂ = 4₁₀</code></pre></div>
+    <p>On retrouve le décimal : <code>11₂ = 3</code> et <code>100₂ = 4</code>. La retenue d'une
+       colonne peut donc valoir <strong>2</strong> — c'est le cas où l'on se trompe.</p>
+  </div>
+
+  <h3>La soustraction</h3>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opération</th><th>Résultat</th><th>Ce qui se passe</th></tr></thead>
+    <tbody>
+      <tr><td><code>0 − 0</code></td><td><code>0</code></td><td>—</td></tr>
+      <tr><td><code>1 − 0</code></td><td><code>1</code></td><td>—</td></tr>
+      <tr><td><code>1 − 1</code></td><td><code>0</code></td><td>—</td></tr>
+      <tr><td><code>0 − 1</code></td><td><code>1</code></td>
+          <td><strong>emprunt de 2</strong> à la colonne de gauche</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 L'emprunt, comme à l'école — mais on emprunte 2</div>
+    <p>En décimal, pour faire <code>3 − 7</code> on emprunte <strong>10</strong> au voisin :
+       13 − 7 = 6, et le voisin perd 1. En binaire, on emprunte <strong>2</strong> :
+       <code>0 − 1</code> devient <code>2 − 1 = 1</code>, et le voisin perd 1.</p>
+    <p>C'est le même geste, avec une autre valeur de prêt. Rien de neuf — seulement la base qui
+       change.</p>
+  </div>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>   1 0 1 0 1 0 0 1        10101001₂ = 169₁₀
+ −   0 1 0 1 0 0 1 1   →  01010011₂ =  19₁₀   (sur 8 bits)
+ ─────────────────────
+   1 0 0 1 0 1 1 0        10010110₂ = 150₁₀
+
+vérification en décimal :  169 − 19 = 150 ✔</code></pre></div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Vérifier <em>toujours</em> en repassant par le décimal</div>
+    <p>C'est la méthode que le cours applique systématiquement, et c'est la bonne : on convertit
+       les deux opérandes et le résultat, puis on refait l'opération en base 10. Trois conversions
+       de plus, mais une certitude.</p>
+    <div class="formule">poser en binaire → convertir les trois nombres →<br>
+      refaire l'opération en décimal → comparer</div>
+    <p>En examen, cette vérification <strong>rapporte des points par elle-même</strong> : elle
+       montre que le résultat est maîtrisé, pas trouvé au hasard.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="signe">
+  <h2><span class="num">06</span>Quand A est plus petit que B</h2>
+
+  <p>Poser <code>A − B</code> avec A &lt; B produit un résultat aberrant. Le cours traite le cas
+     de front, et c'est l'un des passages les plus utiles du chapitre.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>A = 1001 1101₂ = 157₁₀
+B = 1010 0001₂ = 161₁₀
+
+   1 0 0 1 1 1 0 1        ← A
+ − 1 0 1 0 0 0 0 1        ← B
+ ─────────────────
+   1 1 1 1 1 1 0 0        ← ??? un nombre PLUS GRAND que A</code></pre></div>
+
+  <p>Le résultat est plus grand que le nombre de départ : c'est impossible pour une soustraction de
+     nombres positifs. Le signal est net.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La règle : on inverse, puis on met le signe</div>
+    <div class="formule">Si A &lt; B : calculer <strong>B − A</strong>,<br>
+      puis écrire A − B = − (B − A)</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>   1 0 1 0 0 0 0 1        ← B
+ − 1 0 0 1 1 1 0 1        ← A
+ ─────────────────
+   0 0 0 0 0 1 0 0        ← B − A = 100₂ = 4₁₀
+
+donc  A − B = − 100₂ = − 4₁₀
+
+contrôle : 157 − 161 = − 4 ✔</code></pre></div>
+    <p>C'est la propriété <code>a − b = −(b − a)</code>, qu'on utilise sans y penser en base 10 :
+       pour calculer 3 − 7, on fait 7 − 3 = 4 et l'on écrit −4.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Ce résultat « aberrant » n'en est pas un</div>
+    <p>Le premier calcul avait donné <code>1111 1100</code>. Converti bêtement, cela fait
+       <strong>252</strong>. Or 252 = 256 − 4, et le résultat attendu était −4. Ce n'est pas une
+       coïncidence : c'est le <strong>complément à deux</strong>, la façon dont tous les
+       processeurs représentent les nombres négatifs.</p>
+    <div class="formule">sur <em>n</em> bits : −x s'écrit 2<sup><em>n</em></sup> − x</div>
+    <p>Sur 8 bits, le bit de gauche devient un <strong>bit de signe</strong> : 0 pour positif,
+       1 pour négatif. La plage n'est plus 0…255 mais <strong>−128…+127</strong>. Et le circuit
+       qui additionne sait alors soustraire sans rien changer — il additionne le complément.</p>
+    <p>Le cours ne va pas jusque-là, mais le DST de novembre comportait un exercice intitulé
+       « Nombres binaires signés » : la notion est attendue. Retenez au moins ceci —
+       <strong>un résultat plus grand que l'opérande de départ signale un nombre négatif en
+       complément à deux</strong>, pas une erreur de calcul.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Calculez <code>W = X − Y</code> avec <code>X = 0101 1001₂</code> et
+       <code>Y = 0101 1111₂</code>, puis vérifiez en décimal.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>1. Comparer d'abord.</strong> Les deux nombres commencent par
+         <code>0101</code> ; ils diffèrent sur le second quartet : <code>1001</code> (9) contre
+         <code>1111</code> (15). Donc <strong>X &lt; Y</strong> : le résultat sera négatif.</p>
+<div class="bloc-code"><span class="langue">calcul — on pose Y − X</span><pre><code>   0 1 0 1 1 1 1 1        ← Y
+ − 0 1 0 1 1 0 0 1        ← X
+ ─────────────────
+   0 0 0 0 0 1 1 0        ← Y − X = 110₂ = 6₁₀
+
+donc  W = X − Y = − 110₂ = − 6₁₀</code></pre></div>
+      <p><strong>2. Vérification en décimal.</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>X = 0101 1001₂ = 64 + 16 + 8 + 1 = 89₁₀
+Y = 0101 1111₂ = 64 + 16 + 8 + 4 + 2 + 1 = 95₁₀
+
+89 − 95 = − 6  ✔</code></pre></div>
+      <p class="rap">Le réflexe qui fait gagner du temps : <strong>comparer avant de poser</strong>.
+         Deux nombres de même longueur se comparent quartet par quartet, de gauche à droite — le
+         premier qui diffère décide.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="multiplication">
+  <h2><span class="num">07</span>Multiplication et division</h2>
+
+  <h3>La multiplication</h3>
+
+  <p>La table est ridiculement simple — plus simple que celle de la base 10, qu'il faut apprendre
+     par cœur pendant des années.</p>
+
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>0 × 0 = 0</code></td><td><code>0 × 1 = 0</code></td>
+          <td><code>1 × 0 = 0</code></td><td><code>1 × 1 = 1</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Multiplier par <code>0</code> donne une ligne de zéros, par <code>1</code> recopie le nombre.
+     Toute la difficulté est dans le <strong>décalage</strong> des lignes.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>       1 0 1 1          1011₂ = 11₁₀
+   ×     1 0 1          0101₂ =  5₁₀
+   ───────────
+       1 0 1 1          ← × 1 (unités)
+     0 0 0 0 ·          ← × 0, décalé d'un rang
+   1 0 1 1 · ·          ← × 1, décalé de deux rangs
+   ───────────
+   1 1 0 1 1 1          110111₂ = 55₁₀     et 11 × 5 = 55 ✔</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Multiplier par 2, c'est décaler d'un cran</div>
+    <p>Ajouter un <code>0</code> à droite d'un nombre binaire le <strong>double</strong> — comme
+       ajouter un 0 à droite d'un nombre décimal le multiplie par 10.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1011₂  = 11₁₀
+10110₂ = 22₁₀        ← un 0 ajouté : ×2
+101100₂ = 44₁₀       ← deux 0 : ×4</code></pre></div>
+    <p>C'est le fondement des opérateurs <code>&lt;&lt;</code> et <code>&gt;&gt;</code> qu'on
+       retrouve en <a href="../../01-informatique-dev/07-python/cours.html">Python</a> et en C :
+       <code>x &lt;&lt; 3</code> multiplie par 8, et c'est bien plus rapide qu'une vraie
+       multiplication.</p>
+  </div>
+
+  <h3>La division euclidienne</h3>
+
+  <p>La division binaire repose sur la même identité qu'en base 10 — celle qu'on retrouvera au
+     chapitre arithmétique :</p>
+
+  <div class="formule"><strong>a = b × q + r</strong><br>
+    dividende = diviseur × quotient + reste &nbsp;·&nbsp; avec 0 ⩽ r &lt; b</div>
+
+<div class="bloc-code"><span class="langue">calcul — en base 10 d'abord</span><pre><code>340 ÷ 32 = 10,6…      on ne garde que le quotient ENTIER : 10
+
+r = 340 − 32 × 10 = 20
+
+340 = 32 × 10 + 20        ← a = b × q + r  ✔</code></pre></div>
+
+<div class="bloc-code"><span class="langue">calcul — la même chose en binaire</span><pre><code>  1 0 1 1 1 │ 1 0 1
+− 1 0 1     │ ───────
+ ─────────  │  1 0 0
+      1 1   │
+
+10111₂ = 101₂ × 100₂ + 11₂
+
+contrôle en décimal :  23 = 5 × 4 + 3  ✔</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le reste est toujours plus petit que le diviseur</div>
+    <p>Si vous obtenez <code>r ⩾ b</code>, le quotient est trop petit : le diviseur tient encore
+       une fois de plus. C'est le contrôle le plus rapide d'une division, dans n'importe quelle
+       base.</p>
+    <p>Exemple : <code>111010₂ ÷ 11₂</code> donne <code>q = 10011₂</code> et <code>r = 1₂</code>.
+       En décimal, 58 = 3 × 19 + 1, et 1 &lt; 3 ✔.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="fractionnaire">
+  <h2><span class="num">08</span>La partie fractionnaire</h2>
+
+  <p>À droite de la virgule, les poids <strong>continuent</strong> — avec des exposants négatifs.
+     Rien de nouveau : la règle de position ne s'arrête pas à la virgule.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>2³</th><th>2²</th><th>2¹</th><th>2⁰</th><th>,</th>
+      <th>2⁻¹</th><th>2⁻²</th><th>2⁻³</th><th>2⁻⁴</th></tr></thead>
+    <tbody>
+      <tr><td>8</td><td>4</td><td>2</td><td>1</td><td><strong>,</strong></td>
+          <td>0,5</td><td>0,25</td><td>0,125</td><td>0,0625</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="formule"><em>x</em><sup>−<em>n</em></sup> = 1 / <em>x</em><sup><em>n</em></sup></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — <code>2²</code> ne vaut pas 0,25</div>
+    <p>Le cours écrit, à la suite :</p>
+<div class="bloc-code"><span class="langue">calcul — ce qui était écrit</span><pre><code>2⁻¹ = 1/2  = 0,5           ✔
+2²  = 1/2² = 1/4 = 0,25    ✘  l'exposant a perdu son signe</code></pre></div>
+    <p>Il fallait lire <strong>2⁻²</strong>. <code>2²</code> vaut 4, pas 0,25 — ce sont même deux
+       nombres inverses l'un de l'autre. La suite du calcul est juste ; seul l'exposant a sauté à
+       la recopie. Mais relu tel quel, ce passage installe une confusion durable.</p>
+    <div class="formule">exposant <strong>positif</strong> → on multiplie → le nombre grandit<br>
+      exposant <strong>négatif</strong> → on divise → le nombre rapetisse</div>
+  </div>
+
+  <h3>Convertir un nombre à virgule</h3>
+
+  <p>On traite les <strong>deux parties séparément</strong>, puis on recolle.</p>
+
+<div class="bloc-code"><span class="langue">calcul — 21,625 en binaire</span><pre><code>PARTIE ENTIÈRE                  PARTIE FRACTIONNAIRE
+21 = 16 + 4 + 1                 méthode soustractive :
+   = 10101₂                     0,625 − 1 × 0,5   = 0,125   → 1
+                                0,125 − 0 × 0,25  = 0,125   → 0
+                                0,125 − 1 × 0,125 = 0       → 1
+                                              → 0,101₂
+
+21,625₁₀ = 10101,101₂</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'autre méthode : multiplications successives par 2</div>
+    <p>Plus mécanique, et sans avoir à connaître 0,5 / 0,25 / 0,125 par cœur. On multiplie la
+       partie fractionnaire par 2 et l'on <strong>ramasse la partie entière</strong> à chaque
+       tour.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>0,625 × 2 = 1,25    → on prend 1, il reste 0,25
+0,25  × 2 = 0,5     → on prend 0, il reste 0,5
+0,5   × 2 = 1       → on prend 1, il reste 0  → on s'arrête
+
+on lit dans l'ORDRE d'obtention :  0,101₂</code></pre></div>
+    <div class="formule">Partie entière → on lit les restes <strong>à l'envers</strong><br>
+      Partie fractionnaire → on lit les retenues <strong>à l'endroit</strong></div>
+    <p>Les deux sens opposés sont la source d'erreur numéro un. Retenez-les <em>ensemble</em>,
+       jamais séparément.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — 0,1 n'existe pas en binaire</div>
+    <p>Essayez de convertir <code>0,1</code> : 0,1 × 2 = 0,2 → 0 ; 0,2 × 2 = 0,4 → 0 ;
+       0,4 × 2 = 0,8 → 0 ; 0,8 × 2 = 1,6 → 1 ; 0,6 × 2 = 1,2 → 1 ; 0,2 × 2 = 0,4 → <em>et l'on
+       revient au deuxième tour</em>. Le motif <code>0011</code> se répète à l'infini.</p>
+    <div class="formule">0,1₁₀ = 0,0001100110011…₂ — <strong>périodique</strong></div>
+    <p>La machine doit couper quelque part : elle stocke une valeur <em>approchée</em>. C'est pour
+       cela qu'en Python <code>0.1 + 0.2</code> affiche <code>0.30000000000000004</code>. Ce n'est
+       pas un bug, c'est cette impossibilité. Et c'est pourquoi on ne compare jamais deux nombres à
+       virgule par <code>==</code>, et qu'on ne stocke jamais un montant en euros dans un
+       <em>float</em> — on compte en centimes, avec des entiers.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="hexa">
+  <h2><span class="num">09</span>L'hexadécimal</h2>
+
+  <p>Seize chiffres : <code>0</code> à <code>9</code>, puis <code>A</code> à <code>F</code> pour
+     représenter 10 à 15 — parce qu'il n'existe pas de chiffre unique pour « dix ».</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Déc.</th><th>Binaire</th><th>Hexa</th>
+      <th>Déc.</th><th>Binaire</th><th>Hexa</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td><code>0000</code></td><td><code>0</code></td>
+          <td>8</td><td><code>1000</code></td><td><code>8</code></td></tr>
+      <tr><td>1</td><td><code>0001</code></td><td><code>1</code></td>
+          <td>9</td><td><code>1001</code></td><td><code>9</code></td></tr>
+      <tr><td>2</td><td><code>0010</code></td><td><code>2</code></td>
+          <td>10</td><td><code>1010</code></td><td><strong><code>A</code></strong></td></tr>
+      <tr><td>3</td><td><code>0011</code></td><td><code>3</code></td>
+          <td>11</td><td><code>1011</code></td><td><strong><code>B</code></strong></td></tr>
+      <tr><td>4</td><td><code>0100</code></td><td><code>4</code></td>
+          <td>12</td><td><code>1100</code></td><td><strong><code>C</code></strong></td></tr>
+      <tr><td>5</td><td><code>0101</code></td><td><code>5</code></td>
+          <td>13</td><td><code>1101</code></td><td><strong><code>D</code></strong></td></tr>
+      <tr><td>6</td><td><code>0110</code></td><td><code>6</code></td>
+          <td>14</td><td><code>1110</code></td><td><strong><code>E</code></strong></td></tr>
+      <tr><td>7</td><td><code>0111</code></td><td><code>7</code></td>
+          <td>15</td><td><code>1111</code></td><td><strong><code>F</code></strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Pourquoi l'hexadécimal existe — la seule raison</div>
+    <div class="formule">16 = 2⁴ &nbsp;→&nbsp; <strong>1 chiffre hexa = exactement 4 bits</strong>
+      <br>1 octet = 8 bits = <strong>exactement 2 chiffres hexa</strong></div>
+    <p>L'hexadécimal n'apporte rien de nouveau : c'est du binaire <strong>écrit plus court</strong>,
+       et surtout <em>sans perte d'alignement</em>. Comparez :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>binaire      1101 0110 1010 1111     ← 16 caractères, et on perd le compte
+hexadécimal  D    6    A    F        ← 4 caractères, chacun = 1 quartet
+décimal      54959                   ← court, mais AUCUN lien avec les bits</code></pre></div>
+    <p>Le décimal est plus court encore — mais il est inutilisable ici : rien dans
+       « 54959 » ne dit quels bits sont à 1. L'hexadécimal garde la structure binaire visible tout
+       en divisant la longueur par quatre. C'est la raison de sa présence dans les adresses MAC,
+       les couleurs du web, les vidages mémoire et les adresses IPv6.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Toujours écrire la base en indice</div>
+    <p><code>10</code> vaut <strong>dix</strong> en décimal, <strong>deux</strong> en binaire et
+       <strong>seize</strong> en hexadécimal. Sans indication de base, une copie est ambiguë — et
+       une ambiguïté coûte le point.</p>
+    <div class="formule">10₁₀ = 10 &nbsp;·&nbsp; 10₂ = 2 &nbsp;·&nbsp; 10₁₆ = 16</div>
+    <p>Les conventions équivalentes en programmation : <code>0b1010</code> pour le binaire,
+       <code>0x1A</code> ou <code>1Ah</code> pour l'hexadécimal, et en CSS <code>#FF0000</code>.
+       Elles disent toutes la même chose : <em>attention, ce n'est pas du décimal</em>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>A</code> est un chiffre, pas une lettre</div>
+    <p>Dans <code>2A3₁₆</code>, le <code>A</code> occupe une position et porte un poids, exactement
+       comme le <code>2</code> et le <code>3</code>. Il se comporte comme un chiffre, il
+       s'additionne comme un chiffre : <code>A + 1 = B</code>, et <code>F + 1 = 10₁₆</code> —
+       la retenue, comme <code>9 + 1 = 10</code> en décimal.</p>
+    <p>Le déclic vient quand on cesse de lire « A » comme une lettre pour le lire comme « le
+       chiffre qui vaut dix ».</p>
+  </div>
+</section>
+
+<!-- ================================================================ 10 -->
+<section id="conversions-hexa">
+  <h2><span class="num">10</span>Les conversions hexadécimales</h2>
+
+  <h3>Hexa ↔ binaire : la conversion gratuite</h3>
+
+  <p>Un chiffre hexa ↔ un quartet. <strong>Aucun calcul</strong> : on remplace, terme à terme.</p>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>8 B 7₁₆
+
+8 → 1000        B → 1011        7 → 0111
+
+8B7₁₆ = 1000 1011 0111₂
+
+et dans l'autre sens, on regroupe par 4 EN PARTANT DE LA DROITE :
+
+1 1010 1111₂  →  0001 1010 1111  →  1 A F  →  1AF₁₆
+                 ↑ on complète avec des zéros à gauche</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le regroupement part de la <strong>droite</strong></div>
+    <p>Pour <code>110101111₂</code> (9 bits), grouper depuis la gauche donnerait
+       <code>1101 0111 1</code> — et le dernier groupe, incomplet, serait lu <code>1</code> au lieu
+       de <code>0001</code>. Le résultat serait faux d'un facteur 8.</p>
+    <p>On part toujours de la droite et l'on <strong>complète à gauche par des zéros</strong>.
+       C'est la même raison qui fait écrire les nombres binaires par quartets depuis le début du
+       chapitre.</p>
+  </div>
+
+  <h3>Décimal → hexa : méthode soustractive</h3>
+
+  <p>Mêmes gestes qu'en binaire, avec les poids <strong>1, 16, 256, 4096, 65 536</strong>.</p>
+
+<div class="bloc-code"><span class="langue">calcul — 3151 en hexadécimal</span><pre><code>combien de fois 256 dans 3151 ?   3151 ÷ 256 = 12,3…  → 12  (soit C)
+
+3151 − 12 × 256 = 3151 − 3072 =  79      → C
+  79 −  4 ×  16 =   79 −   64 =  15      → 4
+  15 − 15 ×   1 =              =   0     → F
+
+3151₁₀ = C4F₁₆
+
+contrôle :  12 × 256 + 4 × 16 + 15 = 3072 + 64 + 15 = 3151 ✔</code></pre></div>
+
+  <h3>Décimal → hexa : divisions successives</h3>
+
+<div class="bloc-code"><span class="langue">calcul — 3167 en hexadécimal</span><pre><code>3167 │ 16
+  15 │ 197 │ 16          3167 = 16 × 197 + 15     ← a = b × q + r
+        5  │ 12 │ 16      197 = 16 ×  12 +  5
+             12 │  0       12 = 16 ×   0 + 12
+
+restes lus de bas en haut :  12 , 5 , 15  →  C , 5 , F
+
+3167₁₀ = C5F₁₆
+
+contrôle :  12 × 256 + 5 × 16 + 15 = 3072 + 80 + 15 = 3167 ✔</code></pre></div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Le chemin le plus court passe par le binaire</div>
+    <p>Pour convertir un décimal en hexadécimal, beaucoup d'étudiants gagnent du temps en passant
+       par le binaire, qu'ils maîtrisent mieux :</p>
+    <div class="formule">décimal → binaire → regrouper par quartets → hexadécimal</div>
+<div class="bloc-code"><span class="langue">calcul — 219 par les deux chemins</span><pre><code>DIRECT                          PAR LE BINAIRE
+219 │ 16                        219 = 128 + 64 + 16 + 8 + 2 + 1
+ 11 │ 13 │ 16                       = 1101 1011₂
+      13 │  0
+                                1101 → D      1011 → B
+restes : 13 , 11  →  D , B
+                                219₁₀ = DB₁₆
+219₁₀ = DB₁₆                    ✔ même résultat</code></pre></div>
+    <p>Choisissez le chemin où vous faites le moins d'erreurs — les deux sont acceptés. Le passage
+       par le binaire a un avantage : il donne <strong>deux écritures</strong> du nombre, et si
+       l'énoncé demande les deux, le travail est déjà fait.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Complétez la ligne du tableau : <code>210,5₁₀</code> en binaire. (Question réellement posée
+       au test de novembre.)</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Partie entière — 210 :</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>210 − 1 × 128 = 82    → 1
+ 82 − 1 ×  64 = 18    → 1
+ 18 − 0 ×  32 = 18    → 0
+ 18 − 1 ×  16 =  2    → 1
+  2 − 0 ×   8 =  2    → 0
+  2 − 0 ×   4 =  2    → 0
+  2 − 1 ×   2 =  0    → 1
+  0 − 0 ×   1 =  0    → 0
+
+210₁₀ = 1101 0010₂</code></pre></div>
+      <p><strong>Partie fractionnaire — 0,5 :</strong> c'est exactement <code>2⁻¹</code>, donc
+         <code>0,1₂</code>. En une ligne.</p>
+      <div class="formule">210,5₁₀ = <strong>1101 0010,1₂</strong></div>
+      <p>On peut écrire <code>1101 0010,1000₂</code> pour compléter le quartet — même valeur, les
+         zéros de droite d'une partie fractionnaire ne changent rien, comme 0,5 = 0,500 en
+         décimal.</p>
+      <p class="rap">Contrôle : 128 + 64 + 16 + 2 = 210 ✔, et le nombre finit par 0 avant la
+         virgule, donc il est pair — 210 l'est ✔.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 11 -->
+<section id="ciel">
+  <h2><span class="num">11</span>À quoi ça sert en CIEL</h2>
+
+  <p>Ce chapitre n'est pas une curiosité mathématique : c'est l'outillage de presque tous les
+     autres cours de la formation. Voici où il ressort, concrètement.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Où</th><th>Ce qu'on y voit</th><th>Ce qu'il faut savoir lire</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Adresses IPv4</strong></td><td><code>192.168.10.1</code></td>
+          <td>4 octets, chacun de 0 à 255 — soit 32 bits</td></tr>
+      <tr><td><strong>Masques de sous-réseau</strong></td><td><code>255.255.255.0</code> = /24</td>
+          <td><code>255</code> = <code>1111 1111</code> ; le /24 compte les bits à 1</td></tr>
+      <tr><td><strong>Adresses MAC</strong></td><td><code>00:60:70:41:C1:D4</code></td>
+          <td>6 octets en hexadécimal, 12 chiffres hexa = 48 bits</td></tr>
+      <tr><td><strong>Couleurs web</strong></td><td><code>#2D5A27</code></td>
+          <td>3 octets : rouge 2D (45), vert 5A (90), bleu 27 (39)</td></tr>
+      <tr><td><strong>IPv6</strong></td><td><code>fe80::260:70ff:fe41:c1d4</code></td>
+          <td>128 bits, écrits en hexadécimal — impossibles à lire autrement</td></tr>
+      <tr><td><strong>Capacités mémoire</strong></td><td>1 kio = 1024 octets</td>
+          <td>2¹⁰, et non 1000</td></tr>
+      <tr><td><strong>Permissions Linux</strong></td><td><code>chmod 755</code></td>
+          <td>base 8 : chaque chiffre = 3 bits (lire, écrire, exécuter)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Un masque de sous-réseau n'est rien d'autre qu'un nombre binaire</div>
+    <p>C'est l'application la plus directe du chapitre, et celle qui tombe à l'épreuve E5 :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>255.255.255.0  →  1111 1111 . 1111 1111 . 1111 1111 . 0000 0000
+                  └────────── 24 bits à 1 ──────────┘
+
+                  d'où la notation /24
+
+il reste 32 − 24 = 8 bits pour les machines
+→ 2⁸ = 256 combinaisons, moins l'adresse réseau et le broadcast
+→ 254 adresses utilisables</code></pre></div>
+    <p>Et <code>255.255.255.192</code> ? <code>192 = 128 + 64 = 1100 0000</code> : deux bits de
+       plus à 1, donc <strong>/26</strong>. Il reste 6 bits, soit 2⁶ − 2 = 62 adresses. Tout
+       l'adressage IP tient dans ce chapitre — voir
+       <a href="../../02-reseaux-systemes/04-adressage-ipv4-vlsm/cours.html">Adressage IPv4 et
+       VLSM</a>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les valeurs à reconnaître d'un coup d'œil</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Décimal</th><th>Binaire</th><th>Hexa</th><th>Où on le croise</th></tr></thead>
+      <tbody>
+        <tr><td>15</td><td><code>1111</code></td><td><code>F</code></td><td>un quartet plein</td></tr>
+        <tr><td>16</td><td><code>1 0000</code></td><td><code>10</code></td><td>la base elle-même</td></tr>
+        <tr><td>128</td><td><code>1000 0000</code></td><td><code>80</code></td>
+            <td>le bit de poids fort d'un octet</td></tr>
+        <tr><td>192</td><td><code>1100 0000</code></td><td><code>C0</code></td>
+            <td>masque /26, et le 192 de 192.168.x.x</td></tr>
+        <tr><td>255</td><td><code>1111 1111</code></td><td><code>FF</code></td>
+            <td>un octet plein — masque, couleur, broadcast</td></tr>
+        <tr><td>256</td><td><code>1 0000 0000</code></td><td><code>100</code></td>
+            <td>le nombre de valeurs d'un octet</td></tr>
+        <tr><td>1024</td><td><code>100 0000 0000</code></td><td><code>400</code></td>
+            <td>1 kio</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Ces sept lignes couvrent la grande majorité des conversions rencontrées en examen. Les
+       connaître dispense de poser le calcul — et le temps gagné sert à vérifier le reste.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>La position porte le poids</strong> : en base <em>b</em>, la position
+          <em>n</em> vaut <em>b</em><sup><em>n</em></sup>, en comptant depuis 0, à droite.</li>
+      <li><strong>Poids binaires</strong> : 1, 2, 4, 8, 16, 32, 64, 128, 256, 512,
+          <strong>1024</strong>. À savoir par cœur.</li>
+      <li><strong>Vocabulaire</strong> : bit = 1 chiffre binaire · quartet = 4 bits =
+          1 chiffre hexa · octet = 8 bits = 2 chiffres hexa = 0 à 255.</li>
+      <li><strong>Binaire → décimal</strong> : écrire les poids au-dessus, additionner les
+          colonnes à 1.</li>
+      <li><strong>Décimal → binaire</strong> : soustractions (du plus grand poids) ou divisions
+          par 2 — restes lus <strong>de bas en haut</strong>.</li>
+      <li><strong>Addition</strong> : <code>1 + 1 = 10</code>, on pose 0 et on retient 1.
+          <strong>Soustraction</strong> : <code>0 − 1</code> → emprunt de <strong>2</strong>.</li>
+      <li><strong>Si A &lt; B</strong> : calculer B − A, puis écrire le signe moins. Un résultat
+          plus grand que l'opérande signale un négatif en <strong>complément à deux</strong>.</li>
+      <li><strong>Division</strong> : <code>a = b × q + r</code> avec <strong>r &lt; b</strong> —
+          le contrôle le plus rapide.</li>
+      <li><strong>Partie fractionnaire</strong> : poids 0,5 · 0,25 · 0,125… Par soustractions, ou
+          par multiplications par 2 — retenues lues <strong>à l'endroit</strong>.</li>
+      <li><strong>Hexadécimal</strong> : 0–9 puis A–F. <code>16 = 2⁴</code>, donc
+          <strong>1 chiffre hexa = 4 bits</strong> : la conversion avec le binaire est gratuite,
+          en regroupant <strong>depuis la droite</strong>.</li>
+      <li><strong>Toujours indiquer la base</strong> : <code>10₂</code>, <code>10₁₀</code> et
+          <code>10₁₆</code> sont trois nombres différents.</li>
+      <li><strong>Vérifier</strong> : repasser par le décimal, contrôler la parité, compter les
+          bits attendus.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours manuscrit « Chapitre 1 — Système de numération : décimal, binaire, hexadécimal »,
+          20 pages (scan) — dont la page 1 qui fixe le programme de l'année</li>
+      <li>Second jeu de notes du même cours, 14 pages (scan d'un cahier de la promotion)</li>
+      <li>Feuille d'exercices corrigés, pages 17 à 20 du cours</li>
+      <li>Test de mathématiques du 13/11/2025, corrigé — conversions, opérations binaires et
+          <em>nombres binaires signés</em></li>
+      <li>Exercices « Systèmes de numération » (fiche de révision de la promotion)</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
