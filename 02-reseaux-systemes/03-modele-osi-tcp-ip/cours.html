@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modèle OSI et TCP/IP — les couches et l'encapsulation | BTS CIEL</title>
+<meta name="description" content="Cours complet : normalisation, les 7 couches OSI, l'encapsulation et les PDU, le modèle TCP/IP et la comparaison des deux modèles.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#normalisation">1 · Normalisation et ISO</a></li>
+    <li><a href="#couches">2 · Le principe du modèle en couches</a></li>
+    <li><a href="#osi">3 · Les 7 couches du modèle OSI</a></li>
+    <li><a href="#encapsulation">4 · L'encapsulation et les PDU</a></li>
+    <li><a href="#tcpip">5 · Le modèle TCP/IP</a></li>
+    <li><a href="#comparaison">6 · Comparer les deux modèles</a></li>
+    <li><a href="#equipements">7 · Les équipements par couche</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 03</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Modèle OSI et modèle TCP/IP</h1>
+  <p class="chapeau">Le découpage en couches qui permet à deux machines conçues par deux
+     fabricants différents, à dix mille kilomètres l'une de l'autre, de se comprendre.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Pour rendre les réseaux <strong>compatibles</strong>, l'ISO a découpé le problème en
+         <strong>7 couches</strong> (modèle OSI, 1984), chacune ne s'occupant que d'une chose et ne
+         parlant qu'à ses voisines. En descendant, chaque couche ajoute son <strong>en-tête</strong> :
+         c'est l'<strong>encapsulation</strong>, et l'unité change de nom à chaque étage —
+         <em>données, segment, paquet, trame, bits</em>. Le modèle <strong>TCP/IP</strong>, plus
+         ancien et réellement utilisé, fait la même chose en <strong>4 couches</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#ISO</code> <code>#norme</code> <code>#standard</code> <code>#OSI</code>
+    <code>#7-couches</code> <code>#encapsulation</code> <code>#PDU</code>
+    <code>#segment</code> <code>#paquet</code> <code>#trame</code> <code>#TCP-IP</code>
+    <code>#ARPANET</code> <code>#protocole</code> <code>#service</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="normalisation">
+  <h2><span class="num">01</span>Normalisation et ISO</h2>
+
+  <p>La <strong>normalisation</strong> désigne le procédé de standardisation d'un système. C'est
+     l'activité qui a pour objet d'établir des documents de référence : les <strong>normes</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Norme</th><th>Standard</th></tr></thead>
+    <tbody>
+      <tr><td>Origine</td><td>Un <strong>organisme de normalisation reconnu</strong> — ISO, CEI,
+          UIT-T, ETSI, AFNOR</td>
+          <td>Le plus souvent <strong>industrielle</strong> — un consensus du marché autour d'une
+              innovation</td></tr>
+      <tr><td>Élaboration</td><td>Par <strong>consensus</strong>, puis approbation officielle</td>
+          <td>Par adoption spontanée du marché</td></tr>
+      <tr><td>Publication</td><td>Document détaillé et publié</td>
+          <td><strong>Ne fait pas l'objet</strong> d'une publication détaillant son contenu</td></tr>
+      <tr><td>Exemples</td><td><code>ISO 9000</code>, <code>IEEE 802.3</code></td>
+          <td>VHS, CD, DVD, le standard IBM PC, le standard Unix</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Une norme comporte des solutions à des problèmes techniques et commerciaux qui se posent de
+     façon répétée dans les relations entre partenaires économiques, scientifiques, techniques et
+     sociaux.</p>
+
+  <h3>L'ISO</h3>
+  <p><strong>ISO</strong> — <em>International Organization for Standardization</em>, Organisation
+     internationale de normalisation — regroupe les instituts nationaux de normalisation de plus de
+     cent pays : <strong>AFNOR</strong> pour la France, <strong>BSI</strong> pour la Grande-Bretagne,
+     <strong>ANSI</strong> pour les États-Unis, <strong>DIN</strong> pour l'Allemagne.</p>
+  <p>Ses travaux concernent tous les domaines industriels, <strong>à l'exception de l'électronique
+     et de l'électricité</strong>, du ressort de la Commission électrotechnique internationale
+     (<strong>CEI</strong>). Pour l'informatique et les télécommunications, ISO et CEI ont formé un
+     comité technique commun, <strong>ISO-IEC/JTC 1</strong>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>« ISO » n'est pas un sigle. En anglais l'acronyme donnerait IOS, en français OIN — l'organisme
+       a donc choisi un nom court identique dans toutes les langues, tiré du grec <em>isos</em>,
+       « égal ». Cohérent, pour une institution qui met tout le monde d'accord.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="couches">
+  <h2><span class="num">02</span>Le principe du modèle en couches</h2>
+
+  <p>Le but d'un système en couches est de <strong>séparer le problème en différentes
+     parties</strong> selon leurs niveaux d'abstraction.</p>
+
+  <h3>Les quatre avantages</h3>
+  <ol>
+    <li><strong>Aide à la conception</strong> d'un protocole : les protocoles d'une couche donnée
+        disposent d'informations définies à partir desquelles ils agissent, ainsi que d'une
+        interface définie avec les couches supérieures et inférieures.</li>
+    <li><strong>Encourage la concurrence</strong> : les produits de fournisseurs différents peuvent
+        fonctionner ensemble.</li>
+    <li><strong>Isole les changements</strong> : une évolution technologique ou fonctionnelle dans
+        une couche ne se répercute pas sur les autres.</li>
+    <li><strong>Fournit un langage commun</strong> pour décrire les fonctions et fonctionnalités
+        réseau.</li>
+  </ol>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Envoyer un colis : vous écrivez une lettre, vous la mettez dans une enveloppe, La Poste la
+       met dans un sac, le sac part en camion. <strong>Chaque acteur ne connaît que sa
+       tâche</strong> — le chauffeur ignore le contenu de la lettre, vous ignorez la marque du
+       camion. Si La Poste remplace ses camions par des trains, votre façon d'écrire ne change
+       pas. C'est exactement l'<strong>isolation des changements</strong> entre couches.</p>
+  </div>
+
+  <h3>Le vocabulaire à maîtriser</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Terme</th><th>Définition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Couche</strong></td>
+          <td>Spécialisée dans un ensemble de fonctions particulières. Elle <strong>utilise</strong>
+              les fonctionnalités de la couche inférieure et <strong>propose</strong> les siennes à
+              la couche supérieure</td></tr>
+      <tr><td><strong>Entité</strong></td><td>L'élément <strong>actif</strong> d'une couche dans un
+          système</td></tr>
+      <tr><td><strong>Entités homologues</strong> (ou paires)</td>
+          <td>Entités de <strong>même couche</strong> situées dans des <strong>systèmes
+              distants</strong></td></tr>
+      <tr><td><strong>Protocole</strong> de la couche N</td>
+          <td>L'ensemble des <strong>règles</strong>, formats et significations des objets échangés
+              qui régissent la communication <strong>entre entités de la couche N</strong>
+              (horizontalement)</td></tr>
+      <tr><td><strong>Service</strong> de la couche N</td>
+          <td>L'ensemble des fonctionnalités possédées par la couche N et <strong>fournies aux
+              entités de la couche N+1</strong> à l'interface N/N+1 (verticalement)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Protocole et service : la confusion classique</div>
+    <p>Ce sont deux directions différentes.<br>
+       Le <strong>protocole</strong> est <strong>horizontal</strong> : il fait dialoguer la couche 3
+       de la machine A avec la couche 3 de la machine B.<br>
+       Le <strong>service</strong> est <strong>vertical</strong> : c'est ce que la couche 3 offre à
+       la couche 4 <em>de la même machine</em>.</p>
+    <p>Le principe de structuration en couches stipule que <em>les logiciels réalisant la couche n
+       sur la machine destination reçoivent des informations identiques à celles émises par la
+       couche n de la machine source</em>. Chaque couche a donc l'illusion de parler directement à
+       son homologue.</p>
+  </div>
+
+  <p>L'<strong>architecture</strong> d'un réseau est définie par l'ensemble des couches et la
+     description des protocoles et des services de chacune d'elles.</p>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="osi">
+  <h2><span class="num">03</span>Les 7 couches du modèle OSI</h2>
+
+  <p>Au cours des dernières décennies, le nombre et la taille des réseaux ont augmenté
+     considérablement. Beaucoup ont été bâtis sur des plates-formes matérielles et logicielles
+     différentes : il en a résulté une <strong>incompatibilité</strong>. Pour la résoudre, l'ISO a
+     étudié des structures existantes — DECNET, SNA, TCP/IP — afin d'en dégager un ensemble de
+     règles.</p>
+  <p>Le modèle de référence <strong>OSI</strong> (<em>Open System Interconnection</em>,
+     interconnexion de systèmes ouverts), <strong>diffusé en 1984</strong>, a ainsi été créé comme
+     <strong>architecture descriptive</strong>. Il apporte aux fournisseurs un ensemble de normes
+     assurant compatibilité et interopérabilité entre les technologies de réseau produites partout
+     dans le monde.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 330" role="img" aria-label="Les sept couches du modèle OSI">
+      <style>
+        .cH{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .cM{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.4}
+        .nn{font:700 13px var(--mono);fill:var(--accent);text-anchor:middle}
+        .tt{font:700 13px var(--sans);fill:var(--encre)}
+        .pd{font:11px var(--mono);fill:var(--encre-tenue);text-anchor:end}
+        .gr{font:600 10.5px var(--sans);fill:var(--encre-tenue);letter-spacing:.08em}
+      </style>
+      <text class="gr" x="14" y="18" transform="rotate(-90 14 18)"></text>
+      <g>
+        <rect class="cH" x="60" y="14"  width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="38">7</text><text class="tt" x="106" y="38">Application</text>
+        <text class="pd" x="450" y="38">Données</text>
+
+        <rect class="cH" x="60" y="56"  width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="80">6</text><text class="tt" x="106" y="80">Présentation</text>
+        <text class="pd" x="450" y="80">Données</text>
+
+        <rect class="cH" x="60" y="98"  width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="122">5</text><text class="tt" x="106" y="122">Session</text>
+        <text class="pd" x="450" y="122">Données</text>
+
+        <rect class="cH" x="60" y="140" width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="164">4</text><text class="tt" x="106" y="164">Transport</text>
+        <text class="pd" x="450" y="164">Segment</text>
+
+        <rect class="cM" x="60" y="182" width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="206">3</text><text class="tt" x="106" y="206">Réseau</text>
+        <text class="pd" x="450" y="206">Paquet</text>
+
+        <rect class="cM" x="60" y="224" width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="248">2</text><text class="tt" x="106" y="248">Liaison de données</text>
+        <text class="pd" x="450" y="248">Trame</text>
+
+        <rect class="cM" x="60" y="266" width="400" height="36" rx="6"/>
+        <text class="nn" x="82" y="290">1</text><text class="tt" x="106" y="290">Physique</text>
+        <text class="pd" x="450" y="290">Bits</text>
+      </g>
+      <path d="M50 14 L44 14 L44 176 L50 176" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+      <text class="gr" x="36" y="99" transform="rotate(-90 36 99)" text-anchor="middle" fill="var(--accent)">COUCHES HÔTE</text>
+      <path d="M50 182 L44 182 L44 302 L50 302" fill="none" stroke="var(--bord-fort)" stroke-width="1.4"/>
+      <text class="gr" x="36" y="244" transform="rotate(-90 36 244)" text-anchor="middle">COUCHES MÉDIA</text>
+      <text class="gr" x="470" y="14" fill="var(--encre-tenue)"></text>
+      <text style="font:600 10.5px var(--sans);fill:var(--encre-tenue)" text-anchor="end" x="552" y="322">unité de données (PDU)</text>
+    </svg>
+    <figcaption>Sept couches numérotées de bas en haut. On les cite du haut vers le bas, ou l'inverse — mais toujours dans l'ordre.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux moyens mnémotechniques</div>
+<div class="bloc-code"><span class="langue">à retenir</span><pre><code>De 7 vers 1 (haut → bas) :
+   All      People      Seem     To     Need     Data    Processing
+   Application Présentation Session Transport Réseau Données  Physique
+
+De 1 vers 7 (bas → haut) :
+   Pour   Le      Réseau   Tout       Se       Passe        Automatiquement
+   Physique Liaison Réseau Transport Session Présentation Application</code></pre></div>
+    <p>Choisissez-en un et tenez-vous-y. L'erreur la plus fréquente en examen n'est pas d'oublier
+       une couche, c'est d'en <strong>inverser deux</strong>.</p>
+  </div>
+
+  <h3>Couche 7 — Application</h3>
+  <p>C'est la couche <strong>la plus proche de l'utilisateur</strong>. Elle fournit des services
+     réseau <strong>aux applications de l'utilisateur</strong>. Elle se distingue des autres en ce
+     qu'elle <strong>ne fournit pas de services aux autres couches OSI</strong>, mais seulement aux
+     applications situées <em>à l'extérieur</em> du modèle : tableurs, traitement de texte,
+     logiciels de terminaux bancaires.</p>
+  <p>Elle détermine la disponibilité des partenaires de communication voulus, assure la
+     synchronisation et établit une entente sur les procédures de reprise sur incident et de
+     contrôle de l'intégrité des données.</p>
+
+  <h3>Couche 6 — Présentation</h3>
+  <p>Elle s'assure que l'information envoyée par la couche application d'un système est
+     <strong>lisible par la couche application d'un autre système</strong>. Au besoin, elle
+     <strong>traduit</strong> différents formats de représentation des données en utilisant un
+     format commun.</p>
+
+  <h3>Couche 5 — Session</h3>
+  <p>Elle <strong>ouvre, gère et ferme les sessions</strong> entre deux systèmes hôtes en
+     communication. Elle fournit des services à la couche de présentation, <strong>synchronise le
+     dialogue</strong> entre les couches de présentation des deux hôtes et gère l'échange des
+     données. Elle assure également le transfert efficace des données, la classe de service, et la
+     signalisation des écarts des couches session, présentation et application.</p>
+
+  <h3>Couche 4 — Transport</h3>
+  <p>Elle <strong>segmente</strong> les données envoyées par l'hôte émetteur et les
+     <strong>rassemble en flot de données</strong> chez l'hôte récepteur. Elle fournit un service de
+     transport qui <strong>protège les couches supérieures des détails d'implantation</strong> du
+     transport. C'est à elle que revient la question de la <strong>fiabilité</strong> entre deux
+     hôtes : elle établit, maintient et raccorde les circuits virtuels, et fait appel à des
+     contrôles de <strong>détection des erreurs</strong>, de <strong>reprise sur incident</strong>
+     et de <strong>contrôle de flux</strong>.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le polycopié écrit : « la frontière entre la couche session et la couche de transport peut
+       être vue comme la frontière entre les protocoles de couche média et les protocoles de couche
+       hôte. Alors que les couches <em>application, de présentation et de transport</em> se
+       rapportent aux applications… ».</p>
+    <p>Il y a contradiction interne : si la frontière passe entre session et transport, le groupe
+       supérieur est <strong>application, présentation et session</strong>. La mention « de
+       transport » est un lapsus pour « <strong>de session</strong> ». On retient donc :</p>
+    <ul>
+      <li><strong>Couches hôte</strong> (orientées application) : 7, 6, 5 — et 4 selon la
+          convention Cisco, qui place le transport côté hôte ;</li>
+      <li><strong>Couches média</strong> (orientées transport de données) : 3, 2, 1.</li>
+    </ul>
+    <p>Retenez la logique plutôt que la formule : <strong>en dessous de la couche 4, on ne
+       s'occupe plus de ce que les données veulent dire, seulement de les faire circuler.</strong></p>
+  </div>
+
+  <h3>Couche 3 — Réseau</h3>
+  <p>Couche complexe qui assure la <strong>connectivité</strong> et la <strong>sélection du
+     trajet</strong> entre deux systèmes hôtes pouvant être situés sur des réseaux géographiquement
+     éloignés. C'est la couche de l'<strong>adressage logique</strong> (IP) et du
+     <strong>routage</strong>.</p>
+
+  <h3>Couche 2 — Liaison de données</h3>
+  <p>Elle assure un <strong>transit fiable des données sur une liaison physique</strong>. Elle
+     s'occupe de l'<strong>adressage physique</strong> — et non logique —, de la topologie du
+     réseau, de l'accès au réseau, de la notification des erreurs, de la <strong>livraison ordonnée
+     des trames</strong> et du <strong>contrôle de flux</strong>.</p>
+
+  <h3>Couche 1 — Physique</h3>
+  <p>Elle définit les spécifications <strong>électriques, mécaniques, procédurales et
+     fonctionnelles</strong> pour activer, maintenir et désactiver la liaison physique entre les
+     systèmes d'extrémité : niveaux de tension, synchronisation des changements de tension, débits
+     physiques, distances maximales de transmission, connecteurs physiques.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Adressage physique ou logique ?</div>
+    <p><strong>Couche 2 = adresse physique = adresse MAC</strong>, gravée dans la carte réseau,
+       valable uniquement sur le lien local.<br>
+       <strong>Couche 3 = adresse logique = adresse IP</strong>, attribuée par configuration,
+       valable de bout en bout.</p>
+    <p>Moyen mnémotechnique : le <strong>M</strong> de MAC comme <strong>M</strong>atériel — c'est
+       l'adresse du matériel, et elle ne bouge pas. L'IP, elle, change dès qu'on change de réseau.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="encapsulation">
+  <h2><span class="num">04</span>L'encapsulation et les PDU</h2>
+
+  <p>Lorsque les données d'application <strong>descendent la pile de protocoles</strong> en vue de
+     leur transmission sur le support réseau, différents protocoles <strong>ajoutent des
+     informations à chaque niveau</strong>. C'est le processus d'<strong>encapsulation</strong>.</p>
+
+  <h3>Les cinq étapes de conversion</h3>
+  <ol>
+    <li><strong>Construction des données.</strong> Lorsqu'un utilisateur envoie un message
+        électronique, les caractères alphanumériques qu'il contient sont convertis en données
+        pouvant circuler dans l'inter-réseau.</li>
+    <li><strong>Préparation pour le transport de bout en bout.</strong> En utilisant des
+        <strong>segments</strong>, la fonction de transport s'assure que les hôtes situés à chaque
+        extrémité peuvent communiquer de façon fiable.</li>
+    <li><strong>Ajout de l'adresse IP à l'en-tête.</strong> Les données sont organisées en
+        <strong>paquets</strong> (ou datagrammes) contenant un en-tête avec les <strong>adresses
+        logiques d'origine et de destination</strong>. Ces adresses aident les unités réseau à
+        acheminer les paquets suivant un chemin déterminé.</li>
+    <li><strong>Ajout de l'en-tête et de l'en-queue de liaison de données.</strong> Chaque unité
+        réseau place le paquet dans une <strong>trame</strong>. La trame permet d'établir la
+        connexion avec la <strong>prochaine unité directement connectée</strong>. Chaque unité sur
+        le chemin doit effectuer un verrouillage de trame pour se connecter à la suivante.</li>
+    <li><strong>Conversion en bits.</strong> La trame est convertie en une série de uns et de zéros
+        pour la transmission sur le média. Une fonction de <strong>synchronisation</strong> permet
+        aux unités de distinguer ces bits. Tout au long du trajet, le média peut varier : le
+        message peut provenir d'un LAN, traverser le backbone d'un campus, sortir par une liaison
+        WAN et atteindre un autre LAN éloigné.</li>
+  </ol>
+
+  <h3>Les unités de données de protocole</h3>
+  <p>La forme qu'emprunte une donnée à une couche donnée est appelée <strong>unité de données de
+     protocole</strong> (PDU). Au cours de l'encapsulation, chaque couche encapsule la PDU reçue de
+     la couche supérieure ; à chaque étape, elle change de nom pour refléter sa nouvelle
+     apparence.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 250" role="img" aria-label="Encapsulation des données couche par couche">
+      <style>
+        .dt{fill:var(--accent);stroke:none}
+        .h4{fill:#7FB2D4;stroke:none} .h3{fill:#B8860B;stroke:none}
+        .h2{fill:#8FA98C;stroke:none} .q2{fill:#8FA98C;stroke:none}
+        .lb{font:700 11px var(--sans);fill:#fff;text-anchor:middle}
+        .cn{font:600 12px var(--sans);fill:var(--encre)}
+        .pn{font:700 12px var(--mono);fill:var(--accent-sombre);text-anchor:end}
+        .ar{stroke:var(--bord-fort);stroke-width:1.4;fill:none;marker-end:url(#a2)}
+      </style>
+      <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 z" fill="var(--bord-fort)"/></marker></defs>
+
+      <text class="cn" x="20" y="26">Application</text>
+      <rect class="dt" x="180" y="12" width="200" height="26" rx="4"/>
+      <text class="lb" x="280" y="30">DONNÉES</text>
+      <text class="pn" x="562" y="30">Données</text>
+
+      <path class="ar" d="M280 42 L280 54"/>
+      <text class="cn" x="20" y="80">Transport</text>
+      <rect class="h4" x="140" y="66" width="40" height="26" rx="4"/><text class="lb" x="160" y="84">TCP</text>
+      <rect class="dt" x="180" y="66" width="200" height="26" rx="4"/><text class="lb" x="280" y="84">DONNÉES</text>
+      <text class="pn" x="562" y="84">Segment</text>
+
+      <path class="ar" d="M280 96 L280 108"/>
+      <text class="cn" x="20" y="134">Réseau</text>
+      <rect class="h3" x="100" y="120" width="40" height="26" rx="4"/><text class="lb" x="120" y="138">IP</text>
+      <rect class="h4" x="140" y="120" width="40" height="26" rx="4"/><text class="lb" x="160" y="138">TCP</text>
+      <rect class="dt" x="180" y="120" width="200" height="26" rx="4"/><text class="lb" x="280" y="138">DONNÉES</text>
+      <text class="pn" x="562" y="138">Paquet</text>
+
+      <path class="ar" d="M280 150 L280 162"/>
+      <text class="cn" x="20" y="188">Liaison</text>
+      <rect class="h2" x="60"  y="174" width="40" height="26" rx="4"/><text class="lb" x="80"  y="192">MAC</text>
+      <rect class="h3" x="100" y="174" width="40" height="26" rx="4"/><text class="lb" x="120" y="192">IP</text>
+      <rect class="h4" x="140" y="174" width="40" height="26" rx="4"/><text class="lb" x="160" y="192">TCP</text>
+      <rect class="dt" x="180" y="174" width="200" height="26" rx="4"/><text class="lb" x="280" y="192">DONNÉES</text>
+      <rect class="q2" x="380" y="174" width="40" height="26" rx="4"/><text class="lb" x="400" y="192">FCS</text>
+      <text class="pn" x="562" y="192">Trame</text>
+
+      <path class="ar" d="M280 204 L280 216"/>
+      <text class="cn" x="20" y="240">Physique</text>
+      <text style="font:600 12px var(--mono);fill:var(--encre-tenue)" x="60" y="240">1 0 1 1 0 0 1 0 1 1 0 1 0 0 1 1 0 1 0 1 1 0 0 1 0 1 1 0</text>
+      <text class="pn" x="562" y="240">Bits</text>
+    </svg>
+    <figcaption>Chaque couche ajoute son en-tête. La couche 2 ajoute en plus un <em>en-queue</em> (FCS), pour vérifier l'intégrité de la trame.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les 5 PDU — à connaître sans hésiter</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Couche OSI</th><th>PDU</th><th>Ce qui est ajouté</th></tr></thead>
+      <tbody>
+        <tr><td>7 · 6 · 5 — Application, Présentation, Session</td><td><strong>Données</strong></td>
+            <td>Terme générique</td></tr>
+        <tr><td>4 — Transport</td><td><strong>Segment</strong></td>
+            <td>Ports source et destination, numéro de séquence</td></tr>
+        <tr><td>3 — Réseau</td><td><strong>Paquet</strong></td>
+            <td>Adresses <strong>IP</strong> source et destination</td></tr>
+        <tr><td>2 — Liaison</td><td><strong>Trame</strong></td>
+            <td>Adresses <strong>MAC</strong> + en-queue de contrôle (FCS)</td></tr>
+        <tr><td>1 — Physique</td><td><strong>Bits</strong></td><td>Signal sur le support</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Il n'existe <strong>aucune convention universelle</strong> de nommage des PDU : ces noms sont
+       ceux de la suite TCP/IP, adoptés par convention dans le cours.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Une lettre (<strong>données</strong>) → dans une enveloppe avec le numéro d'appartement
+       (<strong>segment</strong>, les ports) → dans un colis avec l'adresse complète
+       (<strong>paquet</strong>, les IP) → dans le sac du facteur pour la tournée du jour
+       (<strong>trame</strong>, les MAC du prochain saut) → sur la route (<strong>bits</strong>).</p>
+    <p>Le point clé : <strong>le sac change à chaque relais de tri, pas le colis</strong>. C'est
+       exactement ce qui se passe à chaque routeur traversé — la trame est refaite, le paquet reste
+       le même. Les adresses MAC changent à chaque saut, les adresses IP restent identiques de bout
+       en bout.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Un paquet part d'un PC, traverse trois routeurs et arrive sur un serveur.
+       Combien de fois les adresses IP changent-elles ? Et les adresses MAC ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Les adresses IP : jamais.</strong> Source et destination restent celles du PC et du
+         serveur d'un bout à l'autre du trajet. C'est le principe même de l'adressage
+         <em>logique</em> : il identifie les extrémités de la communication.</p>
+      <p><strong>Les adresses MAC : à chaque saut</strong>, soit quatre fois ici (PC→R1, R1→R2,
+         R2→R3, R3→serveur). Chaque routeur <strong>désencapsule</strong> la trame, lit le paquet,
+         décide de la sortie, puis <strong>réencapsule</strong> dans une nouvelle trame avec sa
+         propre MAC en source et celle du prochain saut en destination.</p>
+      <p><strong>Ce que cela révèle :</strong> l'adresse MAC ne sert qu'à traverser <em>un</em>
+         lien. L'adresse IP sert à traverser <em>le monde</em>. C'est la question la plus
+         discriminante du chapitre.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="tcpip">
+  <h2><span class="num">05</span>Le modèle TCP/IP</h2>
+
+  <p>TCP/IP désigne une <strong>architecture réseau</strong>. Ce sont en fait deux protocoles
+     étroitement liés : un protocole de transport, <strong>TCP</strong> (<em>Transmission Control
+     Protocol</em>), utilisé « par-dessus » un protocole réseau, <strong>IP</strong> (<em>Internet
+     Protocol</em>). Le modèle TCP/IP est une architecture en <strong>4 couches</strong> dans
+     laquelle ces deux protocoles jouent un rôle prédominant, car ils en constituent
+     l'implémentation la plus courante.</p>
+
+  <h3>L'origine : ARPANET</h3>
+  <p>TCP/IP remonte au réseau <strong>ARPANET</strong>, conçu par l'<strong>ARPA</strong>
+     (<em>Advanced Research Projects Agency</em>), l'agence de recherche du ministère américain de
+     la défense (<strong>DoD</strong>). Outre la possibilité de connecter des <strong>réseaux
+     hétérogènes</strong>, ce réseau devait <strong>résister à une éventuelle guerre
+     nucléaire</strong> — contrairement au réseau téléphonique, jugé trop vulnérable. Il fut donc
+     convenu qu'ARPANET utiliserait la <strong>commutation par paquets</strong> (mode datagramme).
+     C'est dans cet objectif que les protocoles TCP et IP furent inventés en <strong>1974</strong>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi la commutation par paquets résiste</div>
+    <p>Dans le réseau téléphonique classique (<em>commutation de circuits</em>), on réserve un
+       chemin unique pour toute la durée de l'appel : détruisez un central, la communication tombe.
+       En <strong>commutation par paquets</strong>, chaque paquet est autonome et choisit sa route :
+       détruisez un nœud, les paquets suivants passent ailleurs. La robustesse ne vient pas d'un
+       chemin protégé, mais de <strong>l'absence de chemin fixe</strong>.</p>
+  </div>
+
+  <h3>Les quatre critères de conception</h3>
+  <p>Conçue à l'origine dans un but militaire, la suite TCP/IP répond à quatre exigences :</p>
+  <ol>
+    <li>le <strong>fractionnement des messages en paquets</strong> ;</li>
+    <li>l'utilisation d'un <strong>système d'adresses</strong> ;</li>
+    <li>l'<strong>acheminement des données</strong> sur le réseau — le routage ;</li>
+    <li>le <strong>contrôle des erreurs</strong> de transmission.</li>
+  </ol>
+
+  <h3>Les quatre couches</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>N°</th><th>Couche</th><th>Rôle</th><th>Protocoles</th><th>PDU</th></tr></thead>
+    <tbody>
+      <tr><td><strong>4</strong></td><td><strong>Application</strong></td>
+          <td>Représente les données pour l'utilisateur, gère le codage et le dialogue</td>
+          <td><code>HTTP</code> <code>DNS</code> <code>SMTP</code> <code>FTP</code></td>
+          <td>Données</td></tr>
+      <tr><td><strong>3</strong></td><td><strong>Transport</strong></td>
+          <td>Prend en charge la communication entre périphériques à travers divers réseaux</td>
+          <td><code>TCP</code> <code>UDP</code></td><td>Segment</td></tr>
+      <tr><td><strong>2</strong></td><td><strong>Internet</strong></td>
+          <td>Détermine le meilleur chemin à travers le réseau — le routage</td>
+          <td><code>IP</code></td><td>Paquet</td></tr>
+      <tr><td><strong>1</strong></td><td><strong>Accès réseau</strong></td>
+          <td>Contrôle les périphériques matériels et les supports physiques</td>
+          <td><code>Ethernet</code> <code>Wi-Fi</code></td><td>Trame / Bits</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Moyen mnémotechnique — de bas en haut</div>
+<div class="bloc-code"><span class="langue">à retenir</span><pre><code>Arh !     Il         Tient       Aussi
+Accès rx  Internet   Transport   Application</code></pre></div>
+    <p>Attention : la couche <strong>Internet</strong> de TCP/IP correspond à la couche
+       <strong>Réseau</strong> d'OSI. Le nom change, pas la fonction.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="comparaison">
+  <h2><span class="num">06</span>Comparer les deux modèles</h2>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 300" role="img" aria-label="Correspondance OSI TCP/IP">
+      <style>
+        .o{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.3}
+        .t{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .lo{font:600 12px var(--sans);fill:var(--encre);text-anchor:middle}
+        .lt{font:700 12.5px var(--sans);fill:var(--accent-sombre);text-anchor:middle}
+        .hd{font:700 11px var(--sans);fill:var(--encre-tenue);text-anchor:middle;letter-spacing:.09em}
+      </style>
+      <text class="hd" x="120" y="20">MODÈLE OSI</text>
+      <text class="hd" x="390" y="20">MODÈLE TCP/IP</text>
+
+      <rect class="o" x="20" y="32"  width="200" height="32" rx="5"/><text class="lo" x="120" y="53">7 · Application</text>
+      <rect class="o" x="20" y="68"  width="200" height="32" rx="5"/><text class="lo" x="120" y="89">6 · Présentation</text>
+      <rect class="o" x="20" y="104" width="200" height="32" rx="5"/><text class="lo" x="120" y="125">5 · Session</text>
+      <rect class="t" x="290" y="32" width="200" height="104" rx="5"/><text class="lt" x="390" y="90">Application</text>
+
+      <rect class="o" x="20" y="146" width="200" height="32" rx="5"/><text class="lo" x="120" y="167">4 · Transport</text>
+      <rect class="t" x="290" y="146" width="200" height="32" rx="5"/><text class="lt" x="390" y="167">Transport</text>
+
+      <rect class="o" x="20" y="188" width="200" height="32" rx="5"/><text class="lo" x="120" y="209">3 · Réseau</text>
+      <rect class="t" x="290" y="188" width="200" height="32" rx="5"/><text class="lt" x="390" y="209">Internet</text>
+
+      <rect class="o" x="20" y="230" width="200" height="32" rx="5"/><text class="lo" x="120" y="251">2 · Liaison</text>
+      <rect class="o" x="20" y="266" width="200" height="32" rx="5"/><text class="lo" x="120" y="287">1 · Physique</text>
+      <rect class="t" x="290" y="230" width="200" height="68" rx="5"/><text class="lt" x="390" y="268">Accès réseau</text>
+
+      <g fill="none" stroke="var(--bord-fort)" stroke-width="1.2" stroke-dasharray="3 3">
+        <path d="M222 84  L288 84"/>
+        <path d="M222 162 L288 162"/>
+        <path d="M222 204 L288 204"/>
+        <path d="M222 264 L288 264"/>
+      </g>
+    </svg>
+    <figcaption>TCP/IP fusionne le haut (7-6-5) et le bas (2-1). Les couches 4 et 3 se correspondent une pour une.</figcaption>
+  </figure>
+
+  <h3>Les similitudes</h3>
+  <ul>
+    <li>Tous deux comportent des <strong>couches</strong>.</li>
+    <li>Tous deux comportent une <strong>couche application</strong>, bien que chacune fournisse des
+        services très différents.</li>
+    <li>Tous deux comportent des <strong>couches réseau et transport comparables</strong>.</li>
+    <li>Les professionnels des réseaux doivent connaître <strong>les deux modèles</strong>.</li>
+    <li>Tous deux supposent que les <strong>paquets sont commutés</strong> : chaque paquet peut
+        prendre un chemin différent pour atteindre la même destination — à la différence des réseaux
+        à <em>commutation de circuits</em>, où tous les paquets suivent le même chemin.</li>
+  </ul>
+
+  <h3>Les différences</h3>
+  <ul>
+    <li>TCP/IP intègre les couches <strong>présentation et session dans sa couche
+        application</strong>.</li>
+    <li>TCP/IP regroupe les couches <strong>physique et liaison de données dans sa couche d'accès
+        réseau</strong>.</li>
+    <li>TCP/IP <strong>paraît plus simple</strong> car il comporte moins de couches.</li>
+    <li>Les protocoles TCP/IP constituent <strong>la norme sur laquelle s'est développé
+        Internet</strong> : le modèle TCP/IP a bâti sa réputation sur ses protocoles. En revanche,
+        les réseaux ne sont généralement <strong>pas architecturés autour du protocole OSI</strong>,
+        même si le modèle peut servir de guide.</li>
+  </ul>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Alors pourquoi enseigner OSI, s'il n'est pas utilisé ?</div>
+    <p>Le cours donne trois raisons explicites, et elles tombent en question de cours :</p>
+    <ol>
+      <li>C'est une norme <strong>générique et indépendante du protocole</strong>.</li>
+      <li>Il comporte <strong>davantage de détails</strong>, ce qui le rend plus utile pour
+          l'enseignement et l'étude.</li>
+      <li>Cette richesse de détails s'avère <strong>fort utile au moment du dépannage</strong>.</li>
+    </ol>
+    <p>Formule à retenir : <strong>on construit en TCP/IP, on raisonne et on dépanne en OSI.</strong></p>
+  </div>
+
+  <p>L'accent est mis sur trois correspondances à connaître :</p>
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois équivalences imposées</div>
+<div class="bloc-code"><span class="langue">à retenir</span><pre><code>TCP      → protocole de COUCHE 4 OSI  (transport)
+IP       → protocole de COUCHE 3 OSI  (réseau)
+Ethernet → technologie de COUCHE 2 et COUCHE 1</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="equipements">
+  <h2><span class="num">07</span>Les équipements par couche</h2>
+
+  <p>Chaque équipement d'interconnexion « travaille » à un niveau précis : c'est ce niveau qui
+     détermine <strong>ce qu'il sait lire</strong>, et donc ce qu'il sait faire.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Équipement</th><th>Couche OSI</th><th>Ce qu'il lit</th><th>Ce qu'il en fait</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Répéteur</strong></td><td>1 — Physique</td><td>Rien</td>
+          <td>Régénère le signal bit à bit</td></tr>
+      <tr><td><strong>Hub</strong></td><td>1 — Physique</td><td>Rien</td>
+          <td>Recopie sur tous les ports — répéteur multiport</td></tr>
+      <tr><td><strong>Carte réseau</strong></td><td>1 et 2</td><td>Sa propre adresse MAC</td>
+          <td>Émet et reçoit ; ne garde que ce qui lui est destiné</td></tr>
+      <tr><td><strong>Pont</strong></td><td>2 — Liaison</td><td>Adresses MAC</td>
+          <td>Filtre entre deux segments</td></tr>
+      <tr><td><strong>Switch</strong></td><td>2 — Liaison</td><td>Adresses MAC</td>
+          <td>Commute vers le seul port concerné</td></tr>
+      <tr><td><strong>Routeur</strong></td><td>3 — Réseau</td><td>Adresses IP</td>
+          <td>Choisit le meilleur chemin entre réseaux</td></tr>
+      <tr><td><strong>Pare-feu</strong></td><td>3, 4 et jusqu'à 7</td><td>IP, ports, applications</td>
+          <td>Autorise ou rejette selon des règles</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Le <strong>hub</strong> est un porte-voix : il répète tout à tout le monde sans rien
+       comprendre. Le <strong>switch</strong> est un huissier : il lit le nom sur l'enveloppe (MAC)
+       et la porte à la bonne personne <em>dans le bâtiment</em>. Le <strong>routeur</strong> est un
+       centre de tri postal : il lit la ville et le pays (IP) et décide par quelle route le courrier
+       part. Chacun ne lit que ce que sa couche lui permet de lire.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une carte réseau apparaît dans le TD comme travaillant sur deux couches.
+       Lesquelles, et pourquoi deux ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Les couches 1 et 2.</strong></p>
+      <ul>
+        <li><strong>Couche 1</strong> — elle convertit les bits en signal électrique ou lumineux et
+            inversement, gère le connecteur, les niveaux de tension, la synchronisation.</li>
+        <li><strong>Couche 2</strong> — elle porte l'<strong>adresse MAC</strong>, construit et
+            décode les trames, vérifie le FCS et ne remonte au système que les trames qui lui sont
+            destinées.</li>
+      </ul>
+      <p>C'est pour cela qu'on parle de <em>technologie Ethernet de couche 2 et de couche 1</em> :
+         Ethernet définit à la fois le format des trames (couche 2) et le câblage avec la
+         signalisation (couche 1). Une carte réseau est la mise en œuvre matérielle de ces deux
+         couches.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Norme</strong> = organisme officiel, publiée. <strong>Standard</strong> =
+          consensus du marché, non publié. ISO 9000 contre VHS.</li>
+      <li><strong>OSI = 7 couches, 1984, ISO, descriptif.</strong>
+          <em>Pour Le Réseau Tout Se Passe Automatiquement.</em></li>
+      <li><strong>Protocole = horizontal</strong> (entre machines),
+          <strong>service = vertical</strong> (entre couches d'une même machine).</li>
+      <li><strong>PDU :</strong> Données → <strong>Segment</strong> (4) →
+          <strong>Paquet</strong> (3) → <strong>Trame</strong> (2) → <strong>Bits</strong> (1).</li>
+      <li><strong>MAC = couche 2, change à chaque saut. IP = couche 3, ne change jamais.</strong></li>
+      <li><strong>TCP/IP = 4 couches, 1974, ARPANET.</strong> Application (7-6-5) · Transport (4) ·
+          Internet (3) · Accès réseau (2-1).</li>
+      <li><strong>On construit en TCP/IP, on dépanne en OSI.</strong></li>
+      <li><strong>Équipements :</strong> hub 1 · switch 2 · routeur 3 · carte réseau 1 et 2.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>3-Modele OSI.pdf — le professeur, chap. 2</li>
+      <li>3-TD2-OSI.pdf</li>
+      <li>Modèle TCP_IP.docx · Modèles OSI_.docx</li>
+      <li>Quiz OSI Commando.html</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

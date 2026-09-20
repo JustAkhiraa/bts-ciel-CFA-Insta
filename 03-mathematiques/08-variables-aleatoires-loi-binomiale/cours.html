@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variables aléatoires &amp; loi binomiale | BTS CIEL</title>
+<meta name="description" content="Cours complet : variable aléatoire discrète, loi de probabilité, espérance, variance et écart-type, épreuve de Bernoulli, loi binomiale, calculatrice et probabilités d'intervalles.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#variable">1 · La variable aléatoire</a></li>
+    <li><a href="#loi">2 · La loi de probabilité</a></li>
+    <li><a href="#esperance">3 · L'espérance</a></li>
+    <li><a href="#variance">4 · Variance et écart-type</a></li>
+    <li><a href="#bernoulli">5 · L'épreuve de Bernoulli</a></li>
+    <li><a href="#binomiale">6 · La loi binomiale</a></li>
+    <li><a href="#justifier">7 · Justifier — la phrase par cœur</a></li>
+    <li><a href="#calculatrice">8 · À la calculatrice</a></li>
+    <li><a href="#intervalles">9 · Les probabilités d'intervalles</a></li>
+    <li><a href="#examen">10 · À l'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 08</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Variables aléatoires &amp; loi binomiale</h1>
+  <p class="chapeau">On ne demande plus « quelle est la probabilité de cet événement ? » mais
+     « <em>combien</em> de fois va-t-il se produire ? » — et l'on met un nombre sur le hasard.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une <strong>variable aléatoire</strong> associe un nombre à chaque résultat. Sa
+         <strong>loi</strong> est le tableau des <code>P(X = x<sub>i</sub>)</code>, dont la somme
+         vaut 1. Son <strong>espérance</strong> <code>E(X) = Σ p<sub>i</sub>x<sub>i</sub></code> est
+         la moyenne sur un très grand nombre de répétitions. Quand on répète <strong>n fois</strong>
+         la même épreuve à deux issues, de façon <strong>indépendante</strong>, X suit une
+         <strong>loi binomiale</strong> <code>B(n ; p)</code> — et alors
+         <code>E(X) = np</code>, <code>σ = √(np(1−p))</code>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#variable-aléatoire</code> <code>#loi-de-probabilité</code> <code>#espérance</code>
+    <code>#variance</code> <code>#écart-type</code> <code>#Bernoulli</code>
+    <code>#loi-binomiale</code> <code>#B(n;p)</code> <code>#binomFdp</code>
+    <code>#binomFRép</code> <code>#complémentarité</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="variable">
+  <h2><span class="num">01</span>La variable aléatoire</h2>
+
+  <p>Jusqu'ici, on parlait d'<em>événements</em> : « le sac est défectueux ». Maintenant on
+     <strong>compte</strong> : « combien de sacs défectueux dans le lot ? ». Le résultat est un
+     nombre, et ce nombre dépend du hasard.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Définition</div>
+    <p>Une <strong>variable aléatoire</strong> X associe un <strong>nombre</strong> à chaque
+       résultat d'une expérience aléatoire. Elle est <strong>discrète</strong> quand elle ne peut
+       prendre qu'un nombre <em>fini</em> de valeurs.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Expérience</th><th>X compte…</th><th>Valeurs possibles</th></tr></thead>
+      <tbody>
+        <tr><td>Prélever 40 sacs</td><td>le nombre de sacs défectueux</td><td>0, 1, 2, …, 40</td></tr>
+        <tr><td>Lancer 10 fois une pièce</td><td>le nombre de « pile »</td><td>0, 1, …, 10</td></tr>
+        <tr><td>Piocher une boule de loterie</td><td>le gain en euros</td>
+            <td>−90, +5, +10</td></tr>
+        <tr><td>Mesurer une durée de vie</td><td>le temps en heures</td>
+            <td><em>toutes</em> les valeurs — <strong>continue</strong>, pas discrète</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>La dernière ligne annonce le chapitre suivant : quand X peut prendre <em>toutes</em> les
+       valeurs d'un intervalle, le tableau ne suffit plus et l'on passe aux
+       <a href="../09-lois-uniforme-exponentielle/cours.html">lois continues</a>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 X en majuscule, x en minuscule</div>
+    <p>La notation est codifiée et le jury y tient :</p>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>X</strong></td><td>la variable — ce qu'on ne connaît pas encore</td></tr>
+        <tr><td><strong>x<sub>i</sub></strong></td><td>une valeur particulière qu'elle peut prendre</td></tr>
+        <tr><td><strong>(X = x<sub>i</sub>)</strong></td><td>l'<em>événement</em> « X vaut
+            x<sub>i</sub> »</td></tr>
+        <tr><td><strong>P(X = x<sub>i</sub>)</strong></td><td>sa probabilité</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Écrire « P(x = 2) » avec un x minuscule n'est pas une faute grave, mais montrer qu'on
+       distingue la variable de sa valeur est exactement ce qu'on attend d'un élève qui a
+       compris.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="loi">
+  <h2><span class="num">02</span>La loi de probabilité</h2>
+
+  <p>Donner la <strong>loi</strong> de X, c'est donner la liste de toutes ses valeurs possibles avec
+     leur probabilité. Cela tient dans un tableau à deux lignes.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>x<sub>i</sub></th><th>x<sub>1</sub></th><th>x<sub>2</sub></th>
+      <th>x<sub>3</sub></th><th>…</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr><td><strong>P(X = x<sub>i</sub>)</strong></td><td>p<sub>1</sub></td><td>p<sub>2</sub></td>
+          <td>p<sub>3</sub></td><td>…</td><td><strong>1</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Deux règles de forme qui rapportent des points</div>
+    <ol>
+      <li><strong>Les valeurs se rangent dans l'ordre croissant.</strong> C'est une convention,
+          mais elle rend le tableau lisible et évite les oublis.</li>
+      <li><strong>La somme des probabilités vaut exactement 1.</strong> C'est le contrôle
+          systématique : si le total ne fait pas 1, une valeur manque ou une probabilité est
+          fausse.</li>
+    </ol>
+    <div class="formule">Σ p<sub>i</sub> = 1 — toujours</div>
+  </div>
+
+  <h3>L'exemple de la loterie</h3>
+
+  <p>Une urne contient <strong>8 boules</strong> qu'on pioche à l'aveugle. Une boule fait perdre
+     90 €, trois boules font gagner 5 €, et quatre boules font gagner 10 €. X est le gain du
+     joueur.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>x<sub>i</sub> (gain en €)</th><th>−90</th><th>+5</th><th>+10</th>
+      <th>Total</th></tr></thead>
+    <tbody>
+      <tr><td><strong>P(X = x<sub>i</sub>)</strong></td>
+          <td>1/8</td><td>3/8</td><td>4/8</td><td><strong>8/8 = 1</strong> ✔</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi 4/8 et non deux fois 2/8</div>
+    <p>L'énoncé distingue « 2 boules notées 2 » et « 2 boules notées 1 », toutes avec un gain de
+       10 €. Mais la variable aléatoire X est le <strong>gain</strong>, pas le numéro de la boule :
+       ces quatre boules donnent <em>la même valeur de X</em>, donc elles se regroupent.</p>
+    <div class="formule">P(X = 10) = 2/8 + 2/8 = <strong>4/8</strong></div>
+    <p>C'est la règle générale : dans le tableau de loi, <strong>chaque valeur n'apparaît
+       qu'une fois</strong>, et sa probabilité cumule tous les résultats qui y mènent.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="esperance">
+  <h2><span class="num">03</span>L'espérance</h2>
+
+  <div class="formule">E(X) = Σ p<sub>i</sub> × x<sub>i</sub><br>
+    = p<sub>1</sub>x<sub>1</sub> + p<sub>2</sub>x<sub>2</sub> + p<sub>3</sub>x<sub>3</sub> + …</div>
+
+  <p>C'est une <strong>moyenne pondérée</strong> : chaque valeur compte à hauteur de sa
+     probabilité.</p>
+
+<div class="bloc-code"><span class="langue">calcul — la loterie</span><pre><code>E(X) = (1/8) × (−90)  +  (3/8) × 5  +  (4/8) × 10
+
+     = −11,25  +  1,875  +  5
+
+     = − 4,375 €</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que l'espérance signifie vraiment</div>
+    <p>Ce n'est <strong>pas</strong> le gain d'une partie : on ne gagnera jamais −4,375 €, puisque
+       les seules issues sont −90, +5 et +10. C'est le gain <strong>moyen par partie</strong> sur
+       un très grand nombre de parties.</p>
+    <div class="formule">sur 1 000 parties : 1 000 × (−4,375) = <strong>−4 375 €</strong></div>
+    <p>Autrement dit : le joueur perd en moyenne 4,375 € à chaque partie, et sur mille parties sa
+       perte sera très proche de 4 375 €. C'est la loi des grands nombres — et le modèle
+       économique de tous les casinos.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « −4,375 » et « −4 375 » ne sont pas le même nombre</div>
+    <p>En français, la virgule sépare les décimales et l'espace sépare les milliers. Écrits à la
+       main, <code>−4,375 €</code> (l'espérance) et <code>−4 375 €</code> (la perte sur mille
+       parties) se ressemblent dangereusement.</p>
+    <p>Le réflexe : <strong>toujours accompagner le nombre de son unité et de son échelle</strong>
+       — « 4,375 € <em>par partie</em> », « 4 375 € <em>sur mille parties</em> ». Une copie qui
+       précise cela ne peut pas être mal comprise.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Un jeu équitable est un jeu d'espérance nulle</div>
+    <div class="formule">jeu <strong>équitable</strong> ⟺ E(X) = 0</div>
+    <p>E(X) &gt; 0 : le jeu est favorable au joueur. E(X) &lt; 0 : il est favorable à
+       l'organisateur. Ici E(X) = −4,375 € : le jeu est nettement défavorable au joueur, et c'est
+       précisément ce qui finance la loterie.</p>
+    <p>À l'oral, la question tombe souvent sous la forme : <em>« quel devrait être le prix du
+       ticket pour que le jeu soit équitable ? »</em> — on résout alors E(X) = 0.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="variance">
+  <h2><span class="num">04</span>Variance et écart-type</h2>
+
+  <p>L'espérance dit <em>où</em> se situe le centre. La variance dit à quel point les valeurs
+     s'en <strong>écartent</strong>.</p>
+
+  <div class="formule">V(X) = E(X²) − E(X)²<br>
+    σ<sub>X</sub> = √<span style="text-decoration:overline">V(X)</span></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Comment on calcule E(X²)</div>
+    <p>On <strong>élève les valeurs au carré</strong>, on garde les mêmes probabilités :</p>
+<div class="bloc-code"><span class="langue">calcul — la loterie</span><pre><code>E(X²) = (1/8) × (−90)²  +  (3/8) × 5²  +  (4/8) × 10²
+      = (1/8) × 8100     +  (3/8) × 25  +  (4/8) × 100
+      = 1012,5           +  9,375       +  50
+      = 1071,875
+
+V(X)  = E(X²) − E(X)²
+      = 1071,875 − (−4,375)²
+      = 1071,875 − 19,140 625
+      ≈ 1052,73
+
+σ_X   = √1052,73 ≈ 32,4 €</code></pre></div>
+    <p>L'<strong>écart-type</strong> σ s'exprime dans la même unité que X — ici des euros — et se
+       lit comme une « distance moyenne au centre ». Ici il vaut 32,4 € pour une espérance de
+       −4,4 € : le jeu est très <strong>volatil</strong>, ce que l'espérance seule ne disait pas.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ E(X²) n'est pas E(X)²</div>
+    <div class="formule">E(X²) = 1 071,875 &nbsp;·&nbsp; E(X)² = 19,14</div>
+    <p>Le premier élève <em>chaque valeur</em> au carré avant de moyenner ; le second moyenne
+       d'abord, puis élève au carré. Les deux ne coïncident jamais (sauf si X est constante) — et
+       leur différence <em>est</em> la variance.</p>
+    <p>C'est d'ailleurs pourquoi <strong>V(X) est toujours positive</strong> : si vous trouvez une
+       variance négative, vous avez interverti les deux termes.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi passer par l'écart-type</div>
+    <p>La variance s'exprime en « euros au carré » — une unité qui ne veut rien dire. La racine
+       carrée la ramène en euros, et rend le nombre interprétable : on peut le comparer à
+       l'espérance, le placer sur un axe, dire « la plupart des résultats tombent à ± σ du
+       centre ».</p>
+    <p>C'est cette lecture qui devient centrale au
+       <a href="../10-loi-normale/cours.html">chapitre de la loi normale</a>, avec la règle des
+       intervalles à 1σ, 2σ et 3σ.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="bernoulli">
+  <h2><span class="num">05</span>L'épreuve de Bernoulli</h2>
+
+  <p>C'est la brique élémentaire du chapitre : une expérience à <strong>deux issues</strong>
+     seulement, qu'on appelle <em>succès</em> et <em>échec</em>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>x<sub>i</sub></th><th>0 <em>(échec)</em></th><th>1 <em>(succès)</em></th>
+      <th>Total</th></tr></thead>
+    <tbody>
+      <tr><td><strong>P(X = x<sub>i</sub>)</strong></td><td>q = 1 − p</td><td>p</td>
+          <td><strong>1</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">calcul — espérance et variance</span><pre><code>E(X) = (1 − p) × 0  +  p × 1
+     = p
+
+V(X) = p q = p (1 − p)
+
+σ_X  = √(pq) = √(p(1 − p))</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 « Succès » ne veut pas dire « bonne nouvelle »</div>
+    <p>Le succès est simplement <strong>l'issue que l'on compte</strong>. Dans l'exercice des sacs,
+       le succès est « le sac est <em>défectueux</em> » — parce que c'est cela que X dénombre.</p>
+    <p>C'est un choix de modélisation, pas un jugement. Mais il doit être
+       <strong>explicite dans la copie</strong> : « on appelle succès l'événement <em>le sac est
+       défectueux</em>, de probabilité p = 0,049 4 ». Sans cette phrase, le correcteur ne sait pas
+       ce que compte X.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Pile ou face : le cas particulier</div>
+    <p>Lancer une pièce équilibrée est une épreuve de Bernoulli avec <code>p = 0,5</code>, donc
+       <code>q = 0,5</code>. C'est le seul cas où succès et échec sont aussi probables — et c'est
+       pour cela qu'il sert d'exemple partout.</p>
+    <div class="formule">p = q = 0,5 &nbsp;→&nbsp; E(X) = 0,5 · σ = √0,25 = 0,5</div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="binomiale">
+  <h2><span class="num">06</span>La loi binomiale</h2>
+
+  <p>On répète <strong>n fois</strong> la même épreuve de Bernoulli, de manière
+     <strong>indépendante</strong>, et l'on compte les succès. C'est tout.</p>
+
+  <div class="formule">X = nombre de succès sur n épreuves &nbsp;→&nbsp;
+    X suit la loi <strong>B(n ; p)</strong></div>
+
+  <p>La notation se lit « X suit la loi binomiale de paramètres n et p ». Le symbole
+     <code>↝</code> signifie « suit la loi de ».</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 660 250" role="img" aria-label="Histogramme de la loi binomiale B(10 ; 0,5)">
+      <style>
+        .bh{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.2}
+        .bx{font:10px var(--mono);text-anchor:middle;fill:var(--encre-douce)}
+        .by{font:9.5px var(--mono);text-anchor:end;fill:var(--encre-douce)}
+        .bt{font:700 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .bm{font:600 10.5px var(--sans);text-anchor:middle;fill:var(--rouge)}
+        .ax{stroke:var(--bord-fort);stroke-width:1.2}
+      </style>
+      <line class="ax" x1="60" y1="200" x2="620" y2="200"/>
+      <line class="ax" x1="60" y1="200" x2="60" y2="30"/>
+      <text class="by" x="55" y="34">0,25</text>
+      <text class="by" x="55" y="118">0,125</text>
+      <text class="by" x="55" y="204">0</text>
+
+      <!-- 11 barres, hauteur = p * 660 -->
+      <g>
+        <rect class="bh" x="72"  y="199.3" width="42" height="0.7"/><text class="bx" x="93"  y="216">0</text>
+        <rect class="bh" x="120" y="193.4" width="42" height="6.6"/><text class="bx" x="141" y="216">1</text>
+        <rect class="bh" x="168" y="171"   width="42" height="29"/> <text class="bx" x="189" y="216">2</text>
+        <rect class="bh" x="216" y="122.7" width="42" height="77.3"/><text class="bx" x="237" y="216">3</text>
+        <rect class="bh" x="264" y="64.7"  width="42" height="135.3"/><text class="bx" x="285" y="216">4</text>
+        <rect class="bh" x="312" y="37.6"  width="42" height="162.4"/><text class="bx" x="333" y="216">5</text>
+        <rect class="bh" x="360" y="64.7"  width="42" height="135.3"/><text class="bx" x="381" y="216">6</text>
+        <rect class="bh" x="408" y="122.7" width="42" height="77.3"/><text class="bx" x="429" y="216">7</text>
+        <rect class="bh" x="456" y="171"   width="42" height="29"/> <text class="bx" x="477" y="216">8</text>
+        <rect class="bh" x="504" y="193.4" width="42" height="6.6"/><text class="bx" x="525" y="216">9</text>
+        <rect class="bh" x="552" y="199.3" width="42" height="0.7"/><text class="bx" x="573" y="216">10</text>
+      </g>
+      <line x1="333" y1="30" x2="333" y2="205" stroke="var(--rouge)" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <text class="bm" x="333" y="242">E(X) = np = 10 × 0,5 = 5</text>
+      <text class="bt" x="340" y="20">B(10 ; 0,5) — nombre de « pile » sur 10 lancers</text>
+    </svg>
+    <figcaption>La loi binomiale est <strong>symétrique</strong> quand p = 0,5, et centrée sur son
+      espérance. Avec p ≠ 0,5, l'histogramme penche du côté le plus probable.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Espérance et écart-type d'une binomiale</div>
+    <div class="formule">E(X) = <strong>n p</strong><br>
+      σ<sub>X</sub> = <strong>√(n p q)</strong> = √(n p (1 − p))</div>
+    <p>Ces deux formules sont à connaître <em>par cœur</em> : elles se déduisent des formules de
+       Bernoulli (E = p, V = pq) en les multipliant par n, mais on n'a jamais le temps de les
+       redémontrer en examen.</p>
+<div class="bloc-code"><span class="langue">calcul — les 40 sacs</span><pre><code>X ↝ B(40 ; 0,049 4)
+
+E(X) = n p = 40 × 0,049 4 = 1,976
+
+Interprétation : en moyenne, un lot de 40 sacs contient
+environ 2 sacs défectueux.
+
+σ_X = √(40 × 0,049 4 × 0,950 6) = √1,878 ≈ 1,37</code></pre></div>
+    <p>L'interprétation de E(X) est demandée à chaque fois, et elle ne s'improvise pas : c'est
+       « <strong>en moyenne, un lot de n contient E(X) succès</strong> ».</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'espérance n'est presque jamais une valeur possible</div>
+    <p>E(X) = 1,976 sacs défectueux. Or X ne prend que des valeurs entières : 1,976 n'arrivera
+       jamais. Ce n'est pas une contradiction — une moyenne n'a pas à être une valeur observable,
+       comme les « 1,8 enfant par famille » des statistiques.</p>
+    <p>Ne jamais arrondir E(X) à l'entier dans la copie : on donne la valeur exacte et l'on
+       interprète en français (« environ 2 sacs »).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="justifier">
+  <h2><span class="num">07</span>Justifier — la phrase par cœur</h2>
+
+  <p>La première question de tout exercice est <em>« Justifier que X suit une loi binomiale dont on
+     donnera les paramètres »</em>. Elle vaut un point et demi, et la réponse est
+     <strong>toujours la même</strong>. Le cours la présente d'ailleurs sous un titre sans
+     ambiguïté : <em>« apprends cette phrase par cœur »</em>.</p>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Les trois points, dans l'ordre</div>
+<div class="bloc-code"><span class="langue">rédaction attendue</span><pre><code>★ L'expérience aléatoire consiste à répéter n = 40 fois de suite
+  la même épreuve de Bernoulli.
+
+★ Chaque épreuve n'a que deux issues contraires :
+   – le sac observé est défectueux : SUCCÈS, de probabilité p = 0,049 4
+   – sinon : ÉCHEC, de probabilité q = 1 − 0,049 4 = 0,950 6
+
+★ Les épreuves sont mutuellement indépendantes
+  (tirage avec remise).
+
+Conclusion :  X ↝ B(40 ; 0,049 4)</code></pre></div>
+    <p>Trois étoiles, trois idées, une conclusion. Chaque point du barème correspond à une
+       étoile — et la conclusion avec les paramètres chiffrés est indispensable.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le troisième point est celui qu'on oublie</div>
+    <p>L'indépendance est la condition la plus facile à omettre, et c'est celle que le sujet
+       <strong>autorise</strong> par une phrase précise :</p>
+    <div class="formule">« le stock est assez important pour assimiler ce prélèvement<br>
+      à un tirage <strong>avec remise</strong> »</div>
+    <p>Cette phrase n'est pas du remplissage : sans elle, prélever 40 sacs modifierait la
+       composition du stock à chaque tirage, les épreuves ne seraient plus indépendantes, et la loi
+       ne serait <em>pas</em> binomiale. Il faut donc la <strong>citer</strong> dans la copie.</p>
+    <p>Formules équivalentes à repérer : « tirage avec remise », « la population est
+       suffisamment grande », « le stock est important », « on remet la boule dans l'urne ».</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Une urne contient 10 boules dont 3 rouges. On en tire 4 <strong>sans remise</strong> et l'on
+       compte les rouges. Peut-on utiliser la loi binomiale ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Non.</strong> Sans remise, la composition de l'urne change à chaque tirage : la
+         probabilité de tirer une rouge au 2ᵉ coup dépend du résultat du 1ᵉʳ. Les épreuves ne sont
+         <strong>pas indépendantes</strong>, la troisième condition tombe.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1ᵉʳ tirage : P(rouge) = 3/10 = 0,30
+
+2ᵉ tirage, si la 1ʳᵉ était rouge : P(rouge) = 2/9  ≈ 0,22
+2ᵉ tirage, si la 1ʳᵉ ne l'était pas : P(rouge) = 3/9 ≈ 0,33
+
+→ p n'est pas constant : ce n'est pas une loi binomiale.</code></pre></div>
+      <p class="rap">C'est exactement pour éviter ce cas que les énoncés écrivent « le stock est
+         assez important pour assimiler ce prélèvement à un tirage avec remise ». Quand la
+         population est très grande devant l'échantillon, retirer 40 sacs d'un stock de 100 000 ne
+         change presque rien : <strong>on approche</strong> par une binomiale, et l'énoncé
+         l'autorise explicitement.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="calculatrice">
+  <h2><span class="num">08</span>À la calculatrice</h2>
+
+  <p>On ne calcule pas <code>P(X = 40)</code> à la main sur une loi <code>B(100 ; 0,37)</code>. La
+     calculatrice est <strong>autorisée et attendue</strong> — encore faut-il choisir la bonne
+     fonction.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux fonctions, et leur différence</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Fonction</th><th>Calcule</th><th>Le mot-clé</th></tr></thead>
+      <tbody>
+        <tr><td><strong>binomFdp</strong> <em>(A)</em></td><td><code>P(X = k)</code></td>
+            <td><strong>exactement</strong> k succès</td></tr>
+        <tr><td><strong>binomFRép</strong> <em>(B)</em></td><td><code>P(X ⩽ k)</code></td>
+            <td><strong>au plus</strong> k — c'est un cumul</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">Fdp = <strong>f</strong>onction de <strong>d</strong>ensité de
+      <strong>p</strong>robabilité → une seule valeur<br>
+      FRép = <strong>f</strong>onction de <strong>rép</strong>artition → tout ce qui est en dessous</div>
+  </div>
+
+<div class="bloc-code"><span class="langue">Texas Instruments — une valeur exacte</span><pre><code>X ↝ B(10 ; 0,5) ,  calculer P(X = 4)
+
+2nde + var  →  Distrib
+              └→ A : binomFdp
+                 └→ nbre Essais : 10
+                    p : 0,5
+                    valeur de x : 4
+
+                 →  P(X = 4) = 0,205</code></pre></div>
+
+<div class="bloc-code"><span class="langue">Texas Instruments — un cumul</span><pre><code>X ↝ B(10 ; 0,5) ,  calculer P(X ⩽ 2)
+
+2nde + var  →  Distrib
+              └→ B : binomFRép
+                 └→ nbre Essais : 10
+                    p : 0,5
+                    valeur de x : 2
+
+                 →  P(X ⩽ 2) = 0,055</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le contrôle à la main</div>
+    <p>La calculatrice donne 0,055 pour <code>P(X ⩽ 2)</code>. On peut le vérifier sur le tableau
+       de la loi :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(X ⩽ 2) = P(X = 0) + P(X = 1) + P(X = 2)
+         = 0,001 + 0,010 + 0,044
+         = 0,055        ✔</code></pre></div>
+    <p>C'est ce que fait <code>binomFRép</code> : une somme de <code>binomFdp</code>. Sur un petit
+       cumul, faire les deux prend dix secondes et garantit qu'on n'a pas confondu les fonctions.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le mode examen efface les programmes, pas les fonctions</div>
+    <p>Les calculatrices autorisées en BTS CIEL sont la <strong>Casio Graph 35+</strong>, la
+       <strong>TI-82 (mode examen)</strong> et la <strong>NumWorks</strong>. Le mode examen bloque
+       les programmes et les mémoires, mais <code>binomFdp</code> et <code>binomFRép</code>
+       restent disponibles : ce sont des fonctions natives.</p>
+    <p>En revanche, les <strong>menus diffèrent</strong> d'une marque à l'autre. Vérifiez votre
+       chemin <em>avant</em> l'épreuve, pas pendant : sur Casio c'est
+       <code>MENU → STAT → DIST → BINM</code>, sur NumWorks une application
+       <em>Probabilités</em> dédiée.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="intervalles">
+  <h2><span class="num">09</span>Les probabilités d'intervalles</h2>
+
+  <p>La calculatrice ne sait faire que deux choses : <code>P(X = k)</code> et
+     <code>P(X ⩽ k)</code>. Tout le reste doit s'y ramener — et c'est là que se joue la difficulté
+     du chapitre.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le dictionnaire des expressions</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>L'énoncé dit</th><th>Inégalité</th><th>Équivalents</th></tr></thead>
+      <tbody>
+        <tr><td><strong>au plus</strong> 2</td><td><code>X ⩽ 2</code></td>
+            <td>maximum 2 · inférieur ou égal à 2 · 2 ou moins</td></tr>
+        <tr><td><strong>plus de</strong> 2</td><td><code>X &gt; 2</code></td>
+            <td>strictement supérieur à 2 · au moins 3</td></tr>
+        <tr><td><strong>au moins</strong> 2</td><td><code>X ⩾ 2</code></td>
+            <td>minimum 2 · 2 ou plus · supérieur ou égal à 2</td></tr>
+        <tr><td><strong>moins de</strong> 2</td><td><code>X &lt; 2</code></td>
+            <td>strictement inférieur à 2 · au plus 1</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">Les couples contraires :<br>
+      (X ⩽ 2) et (X &gt; 2) &nbsp;·&nbsp; (X ⩾ 2) et (X &lt; 2)</div>
+  </div>
+
+  <h3>Les deux transformations qui servent toujours</h3>
+
+  <div class="encart methode">
+    <div class="titre">🧭 1. Passer au contraire — pour les « ⩾ » et les « &gt; »</div>
+    <div class="formule">P(X &gt; k) = 1 − P(X ⩽ k)</div>
+<div class="bloc-code"><span class="langue">calcul — B(10 ; 0,5)</span><pre><code>P(X > 2) = 1 − P(X ⩽ 2)
+         = 1 − 0,055
+         = 0,945
+
+La probabilité d'obtenir plus de 2 fois pile est de 0,945.</code></pre></div>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 2. Glisser d'un cran — parce que X est entière</div>
+    <p>X ne prend que des valeurs entières. Dire « X &lt; 3 » revient donc exactement à dire
+       « X ⩽ 2 » : il n'y a rien entre 2 et 3.</p>
+    <div class="formule">X &lt; k &nbsp;⟺&nbsp; X ⩽ k − 1<br>
+      X ⩾ k &nbsp;⟺&nbsp; X &gt; k − 1</div>
+<div class="bloc-code"><span class="langue">calcul — « au moins 3 succès »</span><pre><code>P(X ⩾ 3) = 1 − P(X &lt; 3)        ← par complémentarité
+         = 1 − P(X ⩽ 2)        ← car X est ENTIÈRE : « &lt; 3 » = « ⩽ 2 »
+         = 1 − 0,055
+         = 0,945   à 10⁻³
+
+La probabilité d'obtenir au moins 3 fois pile est de 0,945.</code></pre></div>
+    <p>Ces deux transformations s'enchaînent presque toujours dans cet ordre : on passe au
+       contraire, <em>puis</em> on glisse d'un cran pour tomber sur un <code>⩽</code> que la
+       calculatrice sait traiter.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — une chaîne d'égalités fausse dans le cours</div>
+    <p>La dernière page du cours propose cet enchaînement :</p>
+<div class="bloc-code"><span class="langue">calcul — ce qui est écrit</span><pre><code>P(X > 3) = 1 − P(X ⩽ 3)
+         = 1 − P(X &lt; 2)       ← ✘
+         = 1 − P(X ⩽ 1)       ← ✘</code></pre></div>
+    <p>La <strong>première</strong> ligne est juste, et la <strong>troisième</strong> égalité
+       (<code>P(X &lt; 2) = P(X ⩽ 1)</code>) est juste elle aussi. Mais elles ne se suivent pas :
+       on ne peut pas passer de <code>P(X ⩽ 3)</code> à <code>P(X &lt; 2)</code>.</p>
+<div class="bloc-code"><span class="langue">calcul — vérification sur B(10 ; 0,5)</span><pre><code>P(X ⩽ 3) = 0,001 + 0,010 + 0,044 + 0,117 = 0,171 9
+P(X ⩽ 1) = 0,001 + 0,010                 = 0,010 7
+
+0,171 9 ≠ 0,010 7   →  la chaîne est fausse d'un facteur 16</code></pre></div>
+    <p>Ce sont deux règles <strong>correctes</strong> mais appliquées au même endroit, comme si
+       elles étaient interchangeables. Voici les deux écritures justes, séparées :</p>
+<div class="bloc-code"><span class="langue">calcul — corrigé</span><pre><code>P(X > 3) = 1 − P(X ⩽ 3)          ← complémentarité, rien de plus
+         = 1 − P(X &lt; 4)          ← glissement : « ⩽ 3 » = « &lt; 4 »
+
+P(X > 1) = 1 − P(X ⩽ 1)          ← autre exercice
+         = 1 − P(X &lt; 2)          ← ici « ⩽ 1 » = « &lt; 2 »</code></pre></div>
+    <div class="formule">Le glissement d'un cran se fait <strong>à l'intérieur</strong> d'une même
+      probabilité,<br>jamais entre deux seuils différents.</div>
+    <p class="rap">La parade est mécanique : après chaque transformation,
+       <strong>relire le seuil</strong>. Si le nombre a changé sans que le symbole d'inégalité ait
+       changé de nature, il y a une erreur.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Reformuler un événement dans l'autre sens</div>
+    <p>Le cours traite un cas subtil : sur 10 lancers, <em>« obtenir moins de 4 fois face »</em>.
+       Or X compte les <strong>piles</strong>, pas les faces.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>« moins de 4 fois FACE »  ⟺  « plus de 6 fois PILE »
+        (car face + pile = 10 : si face ⩽ 3, alors pile ⩾ 7)
+
+P(X > 6) = 1 − P(X ⩽ 6)
+         = 1 − 0,828 1
+         = 0,171 9   à 10⁻⁴</code></pre></div>
+    <p>La traduction se fait par la relation <code>face = 10 − pile</code>. Le réflexe :
+       <strong>tout ramener à la variable que l'énoncé a définie</strong> — ici X = nombre de
+       piles — au lieu d'inventer une seconde variable en cours de route.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un lot de 40 sacs, X ↝ B(40 ; 0,049 4). On demande : « la probabilité que le lot contienne
+       <strong>plus de 34 sacs sans défaut</strong> ». Traduisez, puis calculez.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Le piège est dans « sans défaut ».</strong> X compte les sacs
+         <em>défectueux</em> : il faut retourner l'énoncé.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Relation entre les deux comptages :   sains + défectueux = 40
+
+« plus de 34 sacs SANS défaut »
+   ⟺  sains &gt; 34,  soit  sains ⩾ 35    car un nombre de sacs est entier
+   ⟺  40 − X ⩾ 35
+   ⟺  X ⩽ 5
+
+P(X ⩽ 5) = 0,987   (binomFRép : 40 ; 0,0494 ; 5)</code></pre></div>
+      <p><strong>Conclusion :</strong> la probabilité que le lot contienne plus de 34 sacs sans
+         défaut est d'environ <strong>0,987</strong>.</p>
+      <p>Contrôle de vraisemblance : E(X) ≈ 2 sacs défectueux par lot. Avoir 5 défectueux ou moins
+         est donc très probable — 0,987 est cohérent ✔ Un résultat proche de 0 aurait signalé une
+         inversion.</p>
+      <p class="rap">La méthode générale pour ces retournements : écrire la
+         <strong>relation entre les deux comptages</strong> (défectueux + sains = 40), la
+         substituer, puis appliquer le glissement d'un cran. Trois lignes, et aucune place pour
+         l'intuition.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ 10 -->
+<section id="examen">
+  <h2><span class="num">10</span>À l'examen</h2>
+
+  <p>La loi binomiale est presque toujours la <strong>partie B</strong> d'un exercice de
+     probabilités, après une partie A sur les probabilités conditionnelles. Elle apporte 5 à
+     6 points.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La structure type</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Question</th><th>Ce qui est attendu</th><th>L'outil</th></tr></thead>
+      <tbody>
+        <tr><td>1. Justifier que X suit une loi binomiale</td>
+            <td>les <strong>trois étoiles</strong> + les paramètres</td>
+            <td>la phrase par cœur</td></tr>
+        <tr><td>2. P(X = k)</td><td>une valeur exacte</td><td><code>binomFdp</code></td></tr>
+        <tr><td>3. P(X ⩾ k)</td><td>complémentarité <strong>rédigée</strong></td>
+            <td>1 − <code>binomFRép</code>(k−1)</td></tr>
+        <tr><td>4. E(X) et interpréter</td><td>np + <strong>une phrase</strong></td>
+            <td>de tête</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les trois sujets réellement posés cette année</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Contexte</th><th>Loi</th><th>Résultats</th></tr></thead>
+      <tbody>
+        <tr><td>40 sacs de sable, p = 0,049 4</td><td>B(40 ; 0,049 4)</td>
+            <td>P(X=2) = 0,278 · P(X⩾3) = 0,317 · E(X) = 1,976</td></tr>
+        <tr><td>100 flacons de parfum, p = 0,37</td><td>B(100 ; 0,37)</td>
+            <td>P(X=40) = 0,067 · P(X⩾30) = 0,942 · E(X) = 37</td></tr>
+        <tr><td>20 produits, p = 0,09</td><td>B(20 ; 0,09)</td>
+            <td>P(X=2) = 0,28 · P(X⩽1) = 0,45 · E(X) = 1,8</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Trois habillages, <strong>un seul enchaînement</strong> : justifier, une valeur exacte, un
+       cumul par complémentarité, l'espérance. Le contexte change, la méthode jamais.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ce qui coûte des points sans que le calcul soit faux</div>
+    <ul>
+      <li><strong>Ne pas justifier l'indépendance</strong> en citant le « tirage avec remise » du
+          sujet.</li>
+      <li><strong>Oublier la conclusion chiffrée</strong> : écrire « X suit une loi binomiale »
+          sans donner <code>B(40 ; 0,049 4)</code>.</li>
+      <li><strong>Ne pas rédiger la complémentarité</strong> : donner 0,317 sans écrire
+          <code>P(X ⩾ 3) = 1 − P(X ⩽ 2)</code>.</li>
+      <li><strong>Ne pas interpréter E(X)</strong> : le nombre seul ne vaut rien, la phrase
+          « en moyenne, un lot de 40 sacs contient environ 2 sacs défectueux » vaut le point.</li>
+      <li><strong>Arrondir trop tôt</strong> : on garde toutes les décimales dans les calculs
+          intermédiaires, on n'arrondit qu'au résultat final, au format demandé.</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un employé prélève 100 flacons parmi des parfums à la rose ou au jasmin. La probabilité
+       qu'un flacon contienne du jasmin est 0,37. X compte les flacons au jasmin. Justifiez la loi,
+       puis calculez P(X = 40), P(X ⩾ 30) et E(X).</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">rédaction — 1. justification</span><pre><code>★ L'expérience consiste à répéter n = 100 fois de suite
+  la même épreuve de Bernoulli.
+
+★ Chaque épreuve n'a que deux issues contraires :
+   – le flacon contient du jasmin : SUCCÈS, p = 0,37
+   – sinon : ÉCHEC, q = 1 − 0,37 = 0,63
+
+★ Les épreuves sont mutuellement indépendantes, le nombre de
+  flacons étant très grand (tirage assimilé à un tirage avec remise).
+
+Conclusion :  X ↝ B(100 ; 0,37)</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 2, 3 et 4</span><pre><code>2)  P(X = 40) = 0,067   à 10⁻³        (binomFdp : 100 ; 0,37 ; 40)
+
+3)  P(X ⩾ 30) = 1 − P(X &lt; 30)         par complémentarité
+              = 1 − P(X ⩽ 29)         car X est entière
+              = 1 − 0,058
+              = 0,942   à 10⁻³
+
+4)  E(X) = n p = 100 × 0,37 = 37
+
+    En moyenne, un lot de 100 flacons contient 37 flacons au jasmin.</code></pre></div>
+      <p class="rap">Deux contrôles : E(X) = 37 est cohérent avec un taux de 37 % ✔ Et P(X ⩾ 30)
+         doit être <strong>grande</strong>, puisque 30 est en dessous de la moyenne — 0,942 est
+         cohérent ✔ Si vous aviez trouvé 0,058, vous auriez oublié le « 1 − ».</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Variable aléatoire</strong> : un <em>nombre</em> associé à chaque résultat.
+          <strong>Discrète</strong> = un nombre fini de valeurs.</li>
+      <li><strong>Loi de probabilité</strong> : le tableau des <code>P(X = x<sub>i</sub>)</code>,
+          valeurs <strong>croissantes</strong>, somme = <strong>1</strong>.</li>
+      <li><strong>Espérance</strong> : <code>E(X) = Σ p<sub>i</sub>x<sub>i</sub></code> — la
+          moyenne sur un très grand nombre de répétitions, pas une valeur possible.</li>
+      <li><strong>Jeu équitable</strong> ⟺ <code>E(X) = 0</code>.</li>
+      <li><strong>Variance</strong> : <code>V(X) = E(X²) − E(X)²</code> ·
+          <code>σ = √V(X)</code>, dans l'unité de X. Et <code>E(X²) ≠ E(X)²</code>.</li>
+      <li><strong>Bernoulli</strong> : deux issues. <code>E(X) = p</code>,
+          <code>V(X) = pq</code>.</li>
+      <li><strong>Binomiale</strong> : n épreuves de Bernoulli <strong>indépendantes</strong>,
+          X compte les succès → <code>X ↝ B(n ; p)</code>.</li>
+      <li><strong>À savoir par cœur</strong> : <code>E(X) = np</code> ·
+          <code>σ = √(np(1−p))</code>.</li>
+      <li><strong>Justifier</strong> : trois étoiles — répétition de n épreuves · deux issues avec
+          p et q · indépendance (<strong>citer le « tirage avec remise »</strong>) — puis la
+          conclusion chiffrée.</li>
+      <li><strong>Calculatrice</strong> : <code>binomFdp</code> = <code>P(X = k)</code> ·
+          <code>binomFRép</code> = <code>P(X ⩽ k)</code>.</li>
+      <li><strong>Tout ramener à « ⩽ »</strong> : <code>P(X &gt; k) = 1 − P(X ⩽ k)</code>, et
+          <code>X &lt; k ⟺ X ⩽ k − 1</code> parce que X est entière.</li>
+      <li><strong>Interpréter</strong> E(X) par une phrase : « en moyenne, un lot de n contient
+          E(X) succès ».</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Chapitre 4 — partie 3 : variables aléatoires discrètes », cours manuscrit (3 pages) —
+          loi de probabilité, espérance, variance, exemple de la loterie à 8 boules</li>
+      <li>« Chapitre 4 — partie 4 : la loi binomiale », cours manuscrit (7 pages) — Bernoulli,
+          B(n ; p), calculatrice, table des expressions d'intervalles</li>
+      <li>Photo intitulée « apprends cette phrase par cœur » — la justification en trois points</li>
+      <li>Photos de tableau : justification et corrigé du sujet des 40 sacs (CG2 2425)</li>
+      <li>Sujets d'examen : 40 sacs de sable (p = 0,049 4), 100 flacons de parfum (p = 0,37),
+          20 produits (p = 0,09)</li>
+      <li>Copies corrigées de la promotion</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

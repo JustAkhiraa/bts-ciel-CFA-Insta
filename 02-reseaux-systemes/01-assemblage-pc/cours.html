@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assemblage d'un PC — architecture matérielle | BTS CIEL</title>
+<meta name="description" content="Cours complet : composants d'un PC, CPU, bus, chipset, RAM, montage, BIOS/UEFI et sécurisation.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#architecture">1 · L'architecture d'un PC</a></li>
+    <li><a href="#boitier-carte-mere">2 · Boîtier et carte mère</a></li>
+    <li><a href="#cpu">3 · Le microprocesseur</a></li>
+    <li><a href="#bus">4 · Les bus et le chipset</a></li>
+    <li><a href="#ram">5 · La mémoire vive</a></li>
+    <li><a href="#extension-stockage">6 · Extensions et stockage</a></li>
+    <li><a href="#demarrage">7 · Le démarrage : POST, BIOS, UEFI</a></li>
+    <li><a href="#securisation">8 · Sécuriser la machine</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 01</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Assemblage d'un PC</h1>
+  <p class="chapeau">Reconnaître chaque composant, comprendre comment ils dialoguent, monter une
+     machine sans rien casser et savoir la démarrer proprement.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un PC est <strong>modulaire</strong> depuis l'IBM PC de 1981 : chaque pièce se remplace.
+         Le <strong>CPU</strong> calcule, la <strong>RAM</strong> retient ce qui sert
+         maintenant, le <strong>bus</strong> les relie et le <strong>chipset</strong> orchestre
+         le tout. Le montage n'exige qu'une chose : ne jamais forcer, les
+         <strong>détrompeurs</strong> sont là pour ça. Au démarrage, le
+         <strong>POST</strong> teste le matériel avant de passer la main au système.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#carte-mère</code> <code>#ATX</code> <code>#socket</code> <code>#CPU</code>
+    <code>#cœurs</code> <code>#cache-L1-L2-L3</code> <code>#bus</code> <code>#FSB</code>
+    <code>#chipset</code> <code>#RAM</code> <code>#DDR</code> <code>#SATA</code>
+    <code>#PCIe</code> <code>#POST</code> <code>#BIOS</code> <code>#UEFI</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="architecture">
+  <h2><span class="num">01</span>L'architecture d'un PC</h2>
+
+  <p>Une grande partie des micro-ordinateurs utilisés par les entreprises et les particuliers sont
+     de type <strong>PC</strong> (<em>Personal Computer</em>). Ce nom est celui du premier
+     ordinateur du genre, l'<strong>IBM PC de 1981</strong>. L'architecture de cette machine était
+     d'une grande <strong>modularité</strong> : des composants pouvaient être ajoutés ou retirés
+     suivant les besoins. Ce principe est toujours d'actualité — et c'est précisément ce qui rend
+     le métier de technicien possible.</p>
+
+  <h3>Les onze composants à reconnaître</h3>
+  <p>C'est l'exercice d'ouverture du cours, et il tombe régulièrement en évaluation sous forme de
+     schéma à légender.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Composant</th><th>Rôle en une phrase</th><th>Interne / externe</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Carte mère</strong></td><td>Support sur lequel tout vient se connecter</td><td>Interne</td></tr>
+      <tr><td><strong>Microprocesseur (CPU)</strong></td><td>Exécute les instructions, fait les calculs</td><td>Interne</td></tr>
+      <tr><td><strong>Mémoire vive (RAM)</strong></td><td>Contient les programmes et données <em>en cours</em></td><td>Interne</td></tr>
+      <tr><td><strong>Alimentation</strong></td><td>Transforme le 230 V en tensions continues</td><td>Interne</td></tr>
+      <tr><td><strong>Disque dur</strong></td><td>Stockage permanent des fichiers et du système</td><td>Interne</td></tr>
+      <tr><td><strong>Unité de disque optique</strong></td><td>Lecture/gravure CD, DVD, Blu-ray</td><td>Interne</td></tr>
+      <tr><td><strong>Cartes d'extension</strong></td><td>Ajoutent des interfaces (vidéo, réseau, son)</td><td>Interne</td></tr>
+      <tr><td><strong>Ports d'entrées-sorties</strong></td><td>Connectique accessible à l'arrière du boîtier</td><td>Interface</td></tr>
+      <tr><td><strong>Moniteur</strong></td><td>Affichage</td><td>Externe</td></tr>
+      <tr><td><strong>Clavier</strong></td><td>Saisie</td><td>Externe</td></tr>
+      <tr><td><strong>Souris</strong></td><td>Pointage</td><td>Externe</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Le trio fondamental</h3>
+  <p>Tout le reste est périphérique. Le cœur d'un ordinateur, c'est trois choses reliées par un
+     canal de communication :</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 200" role="img" aria-label="Architecture CPU, bus, RAM et chipset">
+      <style>
+        .bx{fill:var(--carte);stroke:var(--accent);stroke-width:1.8}
+        .bx2{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .tt{font:700 13px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .st{font:11px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .bus{fill:none;stroke:var(--accent);stroke-width:9;stroke-linecap:round}
+        .bl{font:600 10.5px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+      </style>
+      <rect class="bx" x="30" y="30" width="150" height="62" rx="8"/>
+      <text class="tt" x="105" y="56">CPU</text>
+      <text class="st" x="105" y="76">calcule</text>
+
+      <rect class="bx" x="380" y="30" width="150" height="62" rx="8"/>
+      <text class="tt" x="455" y="56">RAM</text>
+      <text class="st" x="455" y="76">retient temporairement</text>
+
+      <path class="bus" d="M186 61 L374 61"/>
+      <rect x="238" y="46" width="84" height="30" rx="6" fill="var(--papier)" stroke="var(--accent)" stroke-width="1.2"/>
+      <text class="bl" x="280" y="65">BUS — FSB</text>
+
+      <rect class="bx2" x="180" y="128" width="200" height="48" rx="8"/>
+      <text class="tt" x="280" y="150">CHIPSET</text>
+      <text class="st" x="280" y="167">orchestre tous les échanges</text>
+      <path d="M105 92 L105 152 L178 152" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3"/>
+      <path d="M455 92 L455 152 L382 152" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="4 3"/>
+    </svg>
+    <figcaption>Processeur et mémoire sont deux entités distinctes mais indissociables, reliées
+      par le bus. Le chipset arbitre la circulation.</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Un cuisinier (le <strong>CPU</strong>) travaille sur son plan de travail (la
+       <strong>RAM</strong>) : il n'y pose que ce dont il se sert à l'instant. Le garde-manger
+       (le <strong>disque dur</strong>) garde tout le reste, mais il faut s'y déplacer. Le
+       <strong>bus</strong>, c'est le passage entre les deux, et le <strong>chipset</strong> le
+       chef de rang qui évite que tout le monde s'y bouscule en même temps.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="boitier-carte-mere">
+  <h2><span class="num">02</span>Boîtier et carte mère</h2>
+
+  <h3>Le boîtier</h3>
+  <p>Le critère décisif est la <strong>taille et la disposition</strong>, car elles conditionnent
+     les possibilités d'extension : nombre d'emplacements pour les disques, longueur de carte
+     graphique acceptée, hauteur de ventirad, format d'alimentation.</p>
+
+  <h3>La carte mère</h3>
+  <p>Une carte mère constitue l'<strong>élément fondateur</strong> du PC : tous les composants,
+     internes comme externes, viennent s'y connecter. De son choix dépendent grandement les
+     possibilités d'évolution.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le premier critère de choix</div>
+    <p>Ce n'est pas la marque ni le prix, c'est le <strong>microprocesseur visé</strong>. Les
+       cartes mères pour Intel sont différentes de celles pour AMD, et chez un même fabricant, la
+       carte mère est encore spécifique à la <strong>génération</strong> du processeur. On choisit
+       donc CPU et carte mère ensemble, jamais l'un après l'autre.</p>
+  </div>
+
+  <h3>Le format</h3>
+  <p>Il existe de très nombreux formats, même si l'<strong>ATX</strong> est le plus répandu.
+     Le format détermine à la fois les dimensions de la carte, l'emplacement des trous de fixation
+     et le nombre de connecteurs d'extension disponibles.</p>
+
+  <h3>Le montage</h3>
+  <p>La carte mère se place et se visse au fond du boîtier sur une <strong>plaque qui se
+     dissocie</strong> généralement du boîtier — ce qui permet de la préparer à plat, hors du
+     boîtier, bien plus confortablement.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ordre de montage recommandé</div>
+    <ol>
+      <li>Sortir la plaque support et y visser les <strong>entretoises</strong> aux bons
+          emplacements.</li>
+      <li>Poser le CPU sur la carte mère <strong>hors du boîtier</strong>, puis la pâte thermique
+          et le ventirad.</li>
+      <li>Insérer les barrettes de RAM.</li>
+      <li>Fixer l'ensemble dans le boîtier.</li>
+      <li>Brancher l'alimentation (ATX 24 broches + connecteur CPU), puis les disques SATA.</li>
+      <li>Insérer en dernier les cartes d'extension.</li>
+    </ol>
+    <p>Monter CPU et RAM hors du boîtier évite d'appuyer sur une carte mère déjà vissée, ce qui la
+       ferait fléchir.</p>
+  </div>
+
+  <h3>Les connecteurs à l'arrière</h3>
+  <p>La plupart des cartes mères proposent, à l'arrière du PC, tout ou partie de la connectique
+     suivante. Savoir l'identifier fait partie des attendus.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Connecteur</th><th>Sert à brancher</th><th>Statut</th></tr></thead>
+    <tbody>
+      <tr><td><code>USB</code></td><td>Périphériques : clavier, souris, disque externe, clé</td><td>Standard actuel</td></tr>
+      <tr><td><code>PS/2</code></td><td>Clavier et souris</td><td>Ancienne connectique</td></tr>
+      <tr><td><code>VGA</code></td><td>Moniteur — analogique</td><td>Ancienne connectique</td></tr>
+      <tr><td><code>DVI</code></td><td>Moniteur — numérique</td><td>En retrait</td></tr>
+      <tr><td><code>HDMI</code></td><td>Moniteur, téléviseur — vidéo + audio</td><td>Standard actuel</td></tr>
+      <tr><td><code>DisplayPort</code></td><td>Moniteur — haute résolution, plusieurs écrans</td><td>Standard actuel</td></tr>
+      <tr><td>Optique (S/PDIF)</td><td>Amplificateur audio</td><td>Spécialisé</td></tr>
+      <tr><td><code>RJ45</code></td><td>Réseau Ethernet</td><td>Standard actuel</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Un client vous apporte un processeur Intel de 12<sup>e</sup> génération et
+       une carte mère qu'il a achetée en promotion. Que vérifiez-vous en premier, et sur quel
+       élément précis ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Le <strong>socket</strong> — l'emplacement physique du CPU sur la carte mère. Il doit
+         correspondre exactement à celui du processeur (LGA 1700 pour une 12<sup>e</sup>
+         génération Intel).</p>
+      <p>Deux vérifications suivent immédiatement : le <strong>chipset</strong> de la carte doit
+         supporter cette génération, et le <strong>BIOS/UEFI</strong> doit être à jour — une carte
+         du bon socket mais avec un firmware ancien peut refuser de démarrer avec un CPU sorti
+         après elle.</p>
+      <p>Enfin : une carte Intel n'accepte <strong>jamais</strong> un CPU AMD, et
+         réciproquement.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="cpu">
+  <h2><span class="num">03</span>Le microprocesseur</h2>
+
+  <p>Le processeur (<strong>CPU</strong>, <em>Central Processing Unit</em>) est le composant qui
+     effectue les calculs. C'est lui qui traite les instructions des programmes stockés dans la
+     mémoire centrale, car il n'intègre qu'une toute petite quantité de mémoire, utilisée
+     temporairement pour les calculs. Il y a donc un <strong>échange incessant</strong> entre le
+     CPU et la RAM via le bus : plusieurs milliards de fois par seconde, le CPU exécute la
+     séquence appelée <strong>cycle d'instruction</strong>.</p>
+
+  <h3>Les familles</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Famille</th><th>Architecture</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Intel / AMD</strong></td><td>x86 / AMD64</td><td>PC et serveurs</td></tr>
+      <tr><td><strong>ARM</strong></td><td>ARM</td><td>Embarqué, smartphones, tablettes, Raspberry — et désormais PC et serveurs</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Intel et AMD fabriquent des CPU <strong>compatibles entre eux</strong> car ils partagent la
+     même architecture x86/AMD64 — un même système d'exploitation tourne sur les deux. En
+     revanche, ils ne sont <strong>pas compatibles avec l'architecture ARM</strong> : c'est un jeu
+     d'instructions différent, qui exige des logiciels compilés spécifiquement.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>« Compatibles » veut dire que le <em>logiciel</em> passe de l'un à l'autre, pas le
+       matériel : un CPU Intel ne rentre pas dans une carte mère AMD, les sockets sont physiquement
+       différents. La compatibilité x86 concerne le jeu d'instructions, pas la mécanique.</p>
+  </div>
+
+  <h3>32 bits ou 64 bits</h3>
+  <p>Deux générations cohabitent. En 64 bits, les bus, les registres et les unités de calcul
+     traitent des données sur 64 bits : certaines opérations sont donc réalisées en moins de temps,
+     et surtout l'<strong>espace mémoire adressable</strong> devient bien plus grand — en théorie
+     2<sup>64</sup> cases mémoire au lieu de 2<sup>32</sup>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ce que 2<sup>32</sup> signifie concrètement</div>
+    <p>2<sup>32</sup> cases d'un octet = <strong>4 Gio</strong>. C'est la raison pour laquelle un
+       Windows 32 bits ne voit jamais plus de 4 Go de RAM, même si la machine en contient 8 : il ne
+       sait pas écrire une adresse plus grande. C'est la réponse attendue quand on demande
+       « pourquoi passer en 64 bits ? ».</p>
+  </div>
+
+  <h3>Cœurs physiques et cœurs logiques</h3>
+  <p>La plupart des CPU actuels possèdent plusieurs cœurs (<em>dual core</em>, <em>quad core</em>…).
+     Un cœur est en pratique un CPU : on a donc une architecture multi-processeur, mais intégrée
+     dans une <strong>puce unique</strong>.</p>
+  <p>La technologie <strong>Hyperthreading</strong> (HT) simule <strong>2 cœurs logiques pour
+     chaque cœur physique</strong>. L'idée est d'optimiser le fonctionnement du CPU en diminuant
+     ses temps d'inactivité : pendant qu'un fil d'exécution attend une donnée, l'autre occupe les
+     unités de calcul laissées libres.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 180" role="img" aria-label="Cœurs physiques et hyperthreading">
+      <style>
+        .ph{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .lo{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.2;stroke-dasharray:4 3}
+        .l1{font:600 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .l2{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <text class="l1" x="260" y="16" style="font-size:12px">Un CPU « quad core » avec Hyperthreading</text>
+      <g>
+        <rect class="ph" x="20"  y="32" width="110" height="54" rx="7"/><text class="l1" x="75"  y="63">Cœur physique 1</text>
+        <rect class="ph" x="140" y="32" width="110" height="54" rx="7"/><text class="l1" x="195" y="63">Cœur physique 2</text>
+        <rect class="ph" x="260" y="32" width="110" height="54" rx="7"/><text class="l1" x="315" y="63">Cœur physique 3</text>
+        <rect class="ph" x="380" y="32" width="110" height="54" rx="7"/><text class="l1" x="435" y="63">Cœur physique 4</text>
+      </g>
+      <g>
+        <rect class="lo" x="20"  y="96" width="52" height="30" rx="5"/><text class="l2" x="46"  y="115">log. 1</text>
+        <rect class="lo" x="78"  y="96" width="52" height="30" rx="5"/><text class="l2" x="104" y="115">log. 2</text>
+        <rect class="lo" x="140" y="96" width="52" height="30" rx="5"/><text class="l2" x="166" y="115">log. 3</text>
+        <rect class="lo" x="198" y="96" width="52" height="30" rx="5"/><text class="l2" x="224" y="115">log. 4</text>
+        <rect class="lo" x="260" y="96" width="52" height="30" rx="5"/><text class="l2" x="286" y="115">log. 5</text>
+        <rect class="lo" x="318" y="96" width="52" height="30" rx="5"/><text class="l2" x="344" y="115">log. 6</text>
+        <rect class="lo" x="380" y="96" width="52" height="30" rx="5"/><text class="l2" x="406" y="115">log. 7</text>
+        <rect class="lo" x="438" y="96" width="52" height="30" rx="5"/><text class="l2" x="464" y="115">log. 8</text>
+      </g>
+      <text class="l2" x="260" y="150">4 cœurs physiques → 8 cœurs logiques vus par le système</text>
+      <text class="l2" x="260" y="168">Le gestionnaire des tâches affiche « 4 cœurs, 8 processeurs logiques »</text>
+    </svg>
+    <figcaption>L'Hyperthreading ne double pas la puissance : il remplit les trous d'inactivité.</figcaption>
+  </figure>
+
+  <h3>La mémoire cache</h3>
+  <p>Entre deux calculs, le CPU ne fait que chercher et envoyer des données ou des instructions à
+     la RAM. Comparativement à sa vitesse de calcul, les accès à la RAM sont <strong>lents</strong>
+     et génèrent des temps d'attente, donc du temps perdu. Or un programme tourne bien souvent en
+     boucle, et travaille donc sur les mêmes séquences d'instructions ou les mêmes données. L'idée
+     est de garder ces dernières dans le CPU, en <strong>mémoire cache</strong>, pour les retrouver
+     plus vite.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Niveau</th><th>Capacité</th><th>Vitesse</th><th>Emplacement</th><th>Partage</th></tr></thead>
+    <tbody>
+      <tr><td><strong>L1</strong></td><td>Quelques dizaines de Ko</td><td>Très rapide</td>
+          <td>Intégrée au cœur</td><td>Propre au cœur</td></tr>
+      <tr><td><strong>L2</strong></td><td>Quelques centaines de Ko</td><td>Un peu moins rapide</td>
+          <td>Souvent intégrée au CPU, parfois externe</td><td>Dédiée à un cœur</td></tr>
+      <tr><td><strong>L3</strong></td><td>Plusieurs Mo</td><td>La plus lente des trois</td>
+          <td>Sur la puce, à l'extérieur des cœurs</td><td><strong>Partagée entre les cœurs</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Le <strong>L1</strong>, c'est ce que le cuisinier a dans la main. Le <strong>L2</strong>,
+       c'est son plan de travail personnel. Le <strong>L3</strong>, c'est la desserte commune au
+       milieu de la cuisine, où tous les cuisiniers piochent. La <strong>RAM</strong>, c'est la
+       réserve au fond du couloir. Plus on s'éloigne, plus il y a de place — et plus ça prend du
+       temps.</p>
+  </div>
+
+  <h3>La fréquence</h3>
+  <p>La fréquence d'un CPU est celle de l'<strong>horloge</strong> à laquelle il est relié et qui
+     cadence le traitement des instructions. Elle est un <strong>multiple de la fréquence du
+     bus</strong> et s'exprime en gigahertz.</p>
+
+  <h3>Le montage du CPU</h3>
+  <ol>
+    <li>Relever le levier du socket.</li>
+    <li>Insérer le processeur <strong>selon le sens indiqué par les détrompeurs</strong> — sans
+        jamais forcer.</li>
+    <li>Abaisser le levier pour verrouiller.</li>
+    <li>Déposer la <strong>pâte thermique</strong> sur le dessus du processeur.</li>
+    <li>Installer le <strong>ventirad</strong> (ensemble ventilateur + dissipateur), indispensable
+        car le processeur chauffe énormément.</li>
+    <li>Brancher le connecteur du ventilateur sur la prise <code>CPU_FAN</code> de la carte mère.</li>
+  </ol>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La pâte thermique n'est pas de la colle</div>
+    <p>Elle ne sert ni à fixer, ni à conduire l'électricité. Son rôle est de <strong>combler les
+       micro-aspérités</strong> entre le dessus du CPU et la base du ventirad, car l'air y est un
+       très mauvais conducteur de chaleur. Trop peu : le CPU chauffe. Beaucoup trop : elle déborde
+       et isole. Une quantité de la taille d'un grain de riz suffit.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="bus">
+  <h2><span class="num">04</span>Les bus et le chipset</h2>
+
+  <p>Un <strong>bus</strong> est un canal de communication entre deux ou plusieurs composants.
+     Le cadencement des échanges se fait grâce à une horloge.</p>
+
+  <h3>Série ou parallèle</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Principe</th><th>Limite</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Parallèle</strong></td>
+          <td>À un instant donné, <strong>plusieurs bits</strong> circulent, chacun sur son fil</td>
+          <td>Problèmes de synchronisation quand la fréquence augmente : les bits n'arrivent plus
+              exactement ensemble</td></tr>
+      <tr><td><strong>Série</strong></td>
+          <td>À un instant donné, <strong>un seul bit</strong> circule</td>
+          <td>Aucun problème de synchronisation → on peut monter très haut en fréquence.
+              <strong>C'est le mode préféré aujourd'hui</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Contre-intuitif mais vrai</div>
+    <p>On pourrait croire que « plusieurs bits à la fois » bat forcément « un bit à la fois ». C'est
+       faux en pratique : le série monte tellement plus haut en fréquence qu'il dépasse largement le
+       parallèle. C'est exactement l'histoire du remplacement de l'<strong>IDE (parallèle)</strong>
+       par le <strong>SATA (série)</strong> — le S de SATA signifie <em>Serial</em>.</p>
+  </div>
+
+  <h3>Les modes de communication</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mode</th><th>Sens</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Simplex</strong></td><td>Sens unique</td><td>Un capteur qui ne fait qu'émettre</td></tr>
+      <tr><td><strong>Half-duplex</strong></td><td>Double sens, mais <strong>alternativement</strong></td><td>Un talkie-walkie</td></tr>
+      <tr><td><strong>Full-duplex</strong></td><td>Double sens <strong>simultané</strong></td><td>Une conversation téléphonique</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Le FSB et le chipset</h3>
+  <p>Dans un PC, il existe de nombreux bus aux fonctions particulières. Celui qui relie le CPU à la
+     RAM s'appelle le <strong>FSB</strong> (<em>Front Side Bus</em>).</p>
+  <p>Sous le CPU se trouve un second composant essentiel : le <strong>chipset</strong>. C'est un jeu
+     de composants électroniques, inclus dans un circuit intégré préprogrammé, permettant de
+     <strong>gérer les flux de données numériques</strong> entre le ou les processeurs, la mémoire
+     et les périphériques. Dans les architectures de type PC, il joue un rôle central dans
+     l'orchestration des différents bus.</p>
+
+  <h3>Le débit</h3>
+  <p>Le débit d'un bus représente la quantité de données qui peuvent circuler en une seconde. Il
+     dépend de deux facteurs : la <strong>fréquence</strong> et la <strong>largeur du bus en
+     bits</strong>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Formule</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>débit (bit/s) = fréquence (Hz) × largeur (bits)
+
+exemple : bus de 64 bits cadencé à 800 MHz
+          800 000 000 × 64 = 51,2 Gbit/s  soit  6,4 Go/s</code></pre></div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Pourquoi le SATA, qui ne transmet qu'un bit à la fois, est-il beaucoup plus
+       rapide que l'IDE, qui en transmettait 16 en parallèle ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que le débit ne dépend pas seulement de la largeur, mais aussi de la
+         <strong>fréquence</strong> — et le parallèle plafonne en fréquence.</p>
+      <p>Sur un bus parallèle, les bits partent ensemble mais n'arrivent pas exactement ensemble :
+         les fils n'ont pas rigoureusement la même longueur électrique. Plus la fréquence monte,
+         plus ce décalage (le <em>skew</em>) devient ingérable, et il faut ralentir pour rester
+         fiable.</p>
+      <p>Le série n'a qu'un seul chemin, donc aucun décalage à corriger : on peut monter à des
+         fréquences bien supérieures. Le gain en fréquence dépasse très largement la perte en
+         largeur.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="ram">
+  <h2><span class="num">05</span>La mémoire vive</h2>
+
+  <p>Schématiquement, une mémoire vive (<strong>RAM</strong>, <em>Random Access Memory</em>) est
+     une suite continue de <strong>cellules mémoire d'un octet</strong>. Chaque cellule a une
+     <strong>adresse</strong> et un <strong>contenu</strong>.</p>
+
+  <p>La mémoire vive contient les programmes en cours d'exécution et les données en cours
+     d'utilisation. Son contenu est <strong>volatile</strong> : il s'efface lorsque l'ordinateur
+     est éteint.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé pour exactitude technique</div>
+    <p>Le polycopié indique qu'« une barrette de 4 Gio contient <em>232</em> cellules mémoire d'un
+       octet ». Il s'agit d'une perte de mise en forme à l'impression : la valeur correcte est
+       <strong>2<sup>32</sup></strong> cellules, soit 4 294 967 296 octets = 4 Gio. Le même
+       accident touche les puissances de 2 dans le paragraphe sur le 32/64 bits.</p>
+  </div>
+
+  <h3>Les caractéristiques d'une barrette</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Caractéristique</th><th>Détail</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Usage</strong></td>
+          <td><code>SODIMM</code> pour portable · <code>DIMM</code> pour PC fixe ·
+              <code>DIMM + ECC</code> pour serveur (contrôle et correction d'erreurs)</td></tr>
+      <tr><td><strong>Capacité</strong></td>
+          <td>En Gio. Toutes les cartes mères proposent plusieurs emplacements, les capacités se
+              cumulent</td></tr>
+      <tr><td><strong>Génération</strong></td>
+          <td>DDR, DDR2, DDR3, DDR4, DDR5… <em>Double Data Rate</em> : à fréquence équivalente,
+              le débit théorique d'échange avec le CPU est doublé</td></tr>
+      <tr><td><strong>Fréquence</strong></td>
+          <td>Codée sous la forme <code>PCxxxx</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Deux règles de compatibilité à ne pas confondre</div>
+    <ul>
+      <li>Les barrettes de <strong>générations différentes ne sont pas compatibles</strong> :
+          une DDR4 ne rentre pas dans un emplacement DDR3, le détrompeur n'est pas au même endroit.</li>
+      <li>Les barrettes d'une <strong>même génération mais de débits différents sont
+          compatibles</strong> — le système fonctionnera simplement à la
+          <strong>fréquence la plus faible</strong> des barrettes installées.</li>
+    </ul>
+    <p>La RAM dédiée aux cartes graphiques est notée <strong>GDDR</strong> et n'est pas
+       interchangeable avec la RAM système.</p>
+  </div>
+
+  <h3>Décoder une référence DDR4</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Nom</th><th>Fréquence interne</th><th>Fréquence du bus</th><th>Débit théorique</th></tr></thead>
+    <tbody>
+      <tr><td><code>PC4-12800</code></td><td>200 MHz</td><td>800 MHz</td><td>12 800 Mo/s</td></tr>
+      <tr><td><code>PC4-19200</code></td><td>300 MHz</td><td>1 200 MHz</td><td>19 200 Mo/s</td></tr>
+      <tr><td><code>PC4-25600</code></td><td>400 MHz</td><td>1 600 MHz</td><td>25 600 Mo/s</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Le <strong>4</strong> de <code>PC4</code> désigne la génération (DDR4) ; le nombre qui suit est
+     directement le <strong>débit en Mo/s</strong>. C'est la lecture la plus rapide d'une étiquette.</p>
+
+  <h3>Le montage</h3>
+  <p>Un <strong>détrompeur</strong> situé en bas de la barrette évite de mal l'insérer ou d'utiliser
+     une barrette incompatible. Deux petits <strong>leviers</strong> latéraux permettent de la
+     verrouiller et de la sortir. <strong>Ne surtout pas forcer</strong> : si la barrette résiste,
+     c'est qu'elle est à l'envers ou qu'elle n'est pas de la bonne génération.</p>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une machine contient une barrette <code>PC4-25600</code>. On lui ajoute une
+       <code>PC4-12800</code>. Que se passe-t-il ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>La machine <strong>fonctionne</strong> : les deux barrettes sont de la même génération
+         (DDR4), donc compatibles. La capacité totale est bien la somme des deux.</p>
+      <p>Mais l'ensemble tourne à la <strong>fréquence la plus faible</strong>, soit celle de la
+         PC4-12800. La barrette rapide est bridée : on perd la moitié du débit sur les deux.</p>
+      <p><strong>En pratique :</strong> pour ajouter de la RAM, on prend la même référence que
+         l'existante, ou on remplace tout.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="extension-stockage">
+  <h2><span class="num">06</span>Extensions et stockage</h2>
+
+  <h3>Les cartes d'extension</h3>
+  <p>Des emplacements sont prévus sur la carte mère pour les cartes d'extension. Elles permettent
+     d'ajouter des <strong>interfaces</strong> à l'ordinateur, sur lesquelles on pourra brancher
+     des périphériques. Les plus répandues sont les cartes <strong>vidéo</strong>,
+     <strong>réseau</strong> et <strong>son</strong>.</p>
+  <p>Le montage : retirer d'abord le <strong>cache</strong> correspondant à l'arrière du boîtier,
+     puis insérer la carte dans le connecteur de bus (aujourd'hui <strong>PCI Express</strong>) et
+     la visser au socle.</p>
+
+  <h3>Les unités de disque SATA</h3>
+  <p><strong>SATA</strong> est le standard actuel pour les disques durs et les lecteurs/graveurs
+     optiques (CD, DVD, Blu-ray). Chaque unité reçoit <strong>deux câbles</strong> : un câble de
+     <strong>données</strong> vers la carte mère, et un câble d'<strong>alimentation</strong> vers
+     le bloc d'alimentation.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les connecteurs d'alimentation à reconnaître</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Connecteur</th><th>Destination</th></tr></thead>
+      <tbody>
+        <tr><td><strong>ATX 24 broches</strong></td><td>Alimentation principale de la carte mère</td></tr>
+        <tr><td><strong>Connecteur CPU</strong> (4 ou 8 broches)</td><td>Alimentation dédiée au processeur</td></tr>
+        <tr><td><strong>SATA</strong> (plat, en L)</td><td>Disques durs, SSD, lecteurs optiques</td></tr>
+        <tr><td><strong>Molex</strong> (4 broches : +12 V, COM, COM, +5 V)</td><td>Ancienne connectique IDE, ventilateurs</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>Repérer les emplacements sur la carte mère</h3>
+  <p>Les sérigraphies imprimées sur la carte mère indiquent la destination de chaque connecteur.
+     Savoir les lire évite de chercher la documentation.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Sérigraphie</th><th>Accueille</th></tr></thead>
+    <tbody>
+      <tr><td><code>LGA1151</code></td><td>Le microprocesseur — le nombre est celui des contacts du socket</td></tr>
+      <tr><td><code>DDR4_1</code></td><td>Une barrette mémoire (emplacement n° 1)</td></tr>
+      <tr><td><code>ATX</code></td><td>L'alimentation principale</td></tr>
+      <tr><td><code>CPU_FAN</code></td><td>Le ventilateur du microprocesseur</td></tr>
+      <tr><td><code>SATA3</code></td><td>Un disque dur ou un lecteur optique</td></tr>
+      <tr><td><code>PCIEX16</code></td><td>La carte graphique (16 lignes PCI Express)</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="demarrage">
+  <h2><span class="num">07</span>Le démarrage : POST, BIOS, UEFI</h2>
+
+  <p>Après avoir démarré, la LED d'alimentation sur la face avant du boîtier s'allume, ainsi que le
+     moniteur. Le système exécute alors les <strong>tests de démarrage</strong> — le
+     <strong>POST</strong> (<em>Power-On Self-Test</em>). Pendant ces tests, le BIOS peut émettre
+     des <strong>bips</strong>, mais cela dépend de la carte mère.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Le POST, c'est le tour d'inspection du pilote avant le décollage : il vérifie que chaque
+       organe répond avant de lancer les moteurs. Les bips sont son code de détresse — un langage
+       de secours pour dire ce qui ne va pas quand l'écran, lui, ne peut encore rien afficher.</p>
+  </div>
+
+  <h3>Le BIOS</h3>
+  <p>Il s'agit d'un <strong>logiciel intégré à la carte mère</strong> qui permet le démarrage de la
+     machine et la configuration de la carte mère. On accède à son écran de configuration au
+     démarrage, par une touche particulière selon la carte : <kbd>Échap</kbd>, <kbd>F1</kbd>,
+     <kbd>F10</kbd>, <kbd>Suppr</kbd>…</p>
+
+  <h3>L'UEFI</h3>
+  <p>Le BIOS vit ses derniers moments, étant limité en fonctionnalités. Un PC récent utilise
+     <strong>UEFI</strong> — et la différence n'est pas que visuelle.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>BIOS</th><th>UEFI</th></tr></thead>
+    <tbody>
+      <tr><td>Interface</td><td>Texte, au clavier</td><td>Graphique, souris utilisable</td></tr>
+      <tr><td>Taille de disque</td><td>Limité à ~2,2 To (partitionnement MBR)</td><td>Bien au-delà (partitionnement GPT)</td></tr>
+      <tr><td>Partitions</td><td>4 partitions principales maximum</td><td>128 partitions</td></tr>
+      <tr><td>Démarrage</td><td>Plus lent</td><td>Plus rapide, initialisation en parallèle</td></tr>
+      <tr><td>Sécurité</td><td>Aucun contrôle</td><td><strong>Secure Boot</strong> : vérifie la signature du chargeur</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le saviez-vous ?</div>
+    <p>On dit encore « aller dans le BIOS » sur une machine qui n'en a plus depuis dix ans.
+       L'habitude a survécu à la technologie — comme « composer un numéro » sur un téléphone qui
+       n'a plus de cadran. En évaluation, employez le terme exact : <strong>UEFI</strong> sur une
+       machine récente.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="securisation">
+  <h2><span class="num">08</span>Sécuriser la machine</h2>
+
+  <h3>L'accès physique</h3>
+  <p>Il faut sécuriser les ordinateurs avec un <strong>antivol</strong>. Il en existe de nombreux
+     modèles : choisissez ceux qui <strong>bloquent aussi l'accès à l'intérieur</strong> de la
+     machine, et pas seulement son déplacement.</p>
+  <p>Cela limite trois risques :</p>
+  <ul>
+    <li>le <strong>vol de composants</strong> — une barrette de RAM ou un SSD disparaît vite ;</li>
+    <li>la <strong>modification de la configuration matérielle</strong> ;</li>
+    <li>le <strong>reset du BIOS/UEFI</strong>, qui annule le mot de passe (voir ci-dessous).</li>
+  </ul>
+
+  <h3>L'accès au BIOS/UEFI</h3>
+  <p>Le <em>setup</em> contient des paramètres importants. On peut en limiter l'accès par un
+     <strong>mot de passe</strong>. Cela limite quatre risques :</p>
+  <ul>
+    <li>la modification de la configuration ;</li>
+    <li>la modification de l'<strong>ordre de démarrage</strong> — démarrer sur une clé USB permet
+        de contourner entièrement le système installé et de lire le disque ;</li>
+    <li>la modification du BIOS par <strong>flashage</strong> ;</li>
+    <li>l'activation de la <strong>virtualisation matérielle</strong>.</li>
+  </ul>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pourquoi les deux verrous vont ensemble</div>
+    <p>Un mot de passe UEFI seul ne sert à rien si l'attaquant peut ouvrir le boîtier : il lui
+       suffit de retirer la <strong>pile de la carte mère</strong> quelques minutes, ou de
+       déplacer le <em>cavalier</em> de <em>clear CMOS</em>, pour tout réinitialiser. La sécurité
+       logicielle du firmware ne tient que si l'<strong>accès physique</strong> est bloqué. C'est
+       la réponse attendue quand on demande de justifier l'antivol qui condamne le capot.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Dans une salle en libre accès, quel réglage UEFI empêche un utilisateur de
+       démarrer sur sa propre clé USB pour lire le disque dur, et pourquoi ce réglage ne suffit-il
+       pas ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Le réglage :</strong> fixer l'<strong>ordre de démarrage</strong> sur le disque
+         interne uniquement, désactiver le démarrage USB, et surtout protéger le setup par un
+         <strong>mot de passe administrateur</strong> — sans quoi n'importe qui rétablit l'ordre
+         de boot en trente secondes.</p>
+      <p><strong>Pourquoi ça ne suffit pas :</strong> un accès physique au boîtier permet de
+         réinitialiser le firmware (pile, cavalier CMOS) ou, plus simplement, de
+         <strong>débrancher le disque et de l'emporter</strong>. Il faut donc y ajouter un antivol
+         qui condamne l'ouverture, et — pour protéger réellement les données — le
+         <strong>chiffrement du disque</strong> (BitLocker, LUKS), seule mesure qui résiste au vol
+         du support lui-même.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Modularité</strong> depuis 1981 : chaque composant se remplace indépendamment.</li>
+      <li><strong>CPU + bus + RAM</strong> = le cœur. Le disque n'est qu'un entrepôt, la RAM est le
+          plan de travail, et elle s'efface à l'extinction.</li>
+      <li><strong>Carte mère et CPU se choisissent ensemble</strong> : socket, chipset, génération
+          — et jamais Intel dans une carte AMD.</li>
+      <li><strong>Cache L1 / L2 / L3</strong> : de plus en plus gros, de plus en plus lent, de plus
+          en plus partagé.</li>
+      <li><strong>Série &gt; parallèle</strong> aujourd'hui, parce que la fréquence l'emporte sur la
+          largeur.</li>
+      <li><strong>RAM :</strong> générations incompatibles, débits différents compatibles mais
+          alignés sur le plus lent.</li>
+      <li><strong>Ne jamais forcer</strong> — les détrompeurs disent le sens, et une bonne pièce
+          entre sans effort.</li>
+      <li><strong>POST → BIOS/UEFI → système.</strong> Sécuriser l'UEFI ne vaut que si le boîtier
+          est verrouillé.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-Cours-TD-Assemblage_PC.pdf — CNED, fiche savoirs B1.1</li>
+      <li>1-fichesavoirscpubusram.pdf — CPU, bus et RAM</li>
+      <li>1-AssemblagePC_correction.pdf — corrigés des exercices 1 à 5</li>
+      <li>1-QCM Assemblage d'un PC.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

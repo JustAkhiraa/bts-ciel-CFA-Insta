@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAT et PAT — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : vocabulaire NAT, les trois types, configurations Cisco, lecture de table et dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 12</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>NAT et PAT — l'essentiel</h1>
+  <p class="chapeau">Une page à imprimer (⌘P). Le vocabulaire, les trois configurations, les
+     pannes.</p>
+</header>
+
+<section class="section-revision" id="voc-rev">
+  <h2><span class="num">01</span>Vocabulaire et types</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>La grille à deux axes</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th><strong>Local</strong><br>privée</th><th><strong>Global</strong><br>publique</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Inside</strong><br>mon réseau</td>
+              <td>Inside Local<br><code>192.168.1.20</code></td>
+              <td>Inside Global<br><code>209.165.200.225</code></td></tr>
+          <tr><td><strong>Outside</strong><br>Internet</td>
+              <td>Outside Local<br><code>192.31.7.1</code></td>
+              <td>Outside Global<br><code>192.31.7.1</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">La NAT traduit <strong>Inside Local → Inside
+        Global</strong>.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Adresses privées — RFC 1918</h3>
+      <div class="formule" style="font-size:13px">10.0.0.0/8<br>172.16.0.0/12<br>192.168.0.0/16</div>
+      <p style="margin:0;font-size:13px"><strong>Non routables</strong> sur Internet. Tout le reste
+        est public.</p>
+      <p style="margin:.35rem 0 0;font-size:13px">IPv4 : ~4,3 milliards d'adresses (2³²).
+        IPv6 : 3,4 × 10³⁸.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 3 types</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Statique</strong></td><td><strong>1 ↔ 1</strong> fixe</td><td>Serveur joignable de l'extérieur</td></tr>
+          <tr><td><strong>Dynamique</strong></td><td>Plusieurs ↔ plusieurs (pool)</td><td>Premier arrivé, premier servi</td></tr>
+          <tr><td><strong>PAT</strong></td><td><strong>Plusieurs → 1</strong> par les ports</td><td>La plus utilisée</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>La question qui tranche :</strong>
+        « doit-on pouvoir contacter cette machine depuis Internet ? » Oui → <strong>statique</strong>
+        obligatoire.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="conf-nat-rev">
+  <h2><span class="num">02</span>Les configurations</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Les trois, côte à côte</h3>
+<div class="bloc-code"><pre><code>! ══ STATIQUE ══
+R2(config)# ip nat inside source static 192.168.10.254 209.165.201.5
+
+! ══ DYNAMIQUE ══
+R2(config)# ip nat pool NAT-POOL1 209.165.200.226 209.165.200.240 netmask 255.255.255.224
+R2(config)# access-list 1 permit 192.168.0.0 0.0.255.255     ← masque GÉNÉRIQUE
+R2(config)# ip nat inside source list 1 pool NAT-POOL1
+
+! ══ PAT ══
+R2(config)# access-list 1 permit 192.168.0.0 0.0.255.255
+R2(config)# ip nat inside source list 1 interface s0/1/0 overload
+!  ou :     ip nat inside source list 1 pool NAT-POOL1 overload
+
+! ══ OBLIGATOIRE dans les 3 cas ══
+R2(config)# interface fa0/0
+R2(config-if)# ip nat inside          ← côté LAN
+R2(config)# interface s0/1/0
+R2(config-if)# ip nat outside         ← côté INTERNET</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 3 pièges de syntaxe</h3>
+      <ol>
+        <li><strong>Masque générique</strong> dans l'ACL : <code>0.0.255.255</code>, pas
+            <code>255.255.0.0</code>. 0 = doit correspondre, 1 = peu importe</li>
+        <li><strong>Nom du pool sensible à la casse</strong> — <code>NAT-POOL1</code> ≠
+            <code>nat-pool1</code></li>
+        <li><strong><code>netmask</code> obligatoire</strong> dans <code>ip nat pool</code></li>
+      </ol>
+    </div>
+
+    <div class="memo">
+      <h3>Redirection de port</h3>
+<div class="bloc-code"><pre><code>ip nat inside source static tcp \
+  192.168.10.254 80 209.165.200.225 80</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px">C'est l'« ouverture de port » d'une box : exposer
+        <strong>un seul service</strong> quand on n'a qu'une adresse publique.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="verif-rev">
+  <h2><span class="num">03</span>Vérifier et dépanner</h2>
+  <div class="grille">
+
+    <div class="memo large">
+      <h3>Lire <code>show ip nat translations</code></h3>
+<div class="bloc-code"><pre><code>Pro   Inside global          Inside local        Outside local    Outside global
+---   209.165.201.5          192.168.10.254      ---              ---
+      ↑ Pro vide + Outside vides = NAT STATIQUE (entrée permanente)
+
+tcp   209.165.200.225:1444   192.168.1.10:1444   192.31.7.1:80    192.31.7.1:80
+tcp   209.165.200.225:1445   192.168.1.11:1444   192.31.7.1:80    192.31.7.1:80
+      ↑ même adresse publique, ports DIFFÉRENTS = PAT
+        les 2 postes avaient le port 1444 : le second est incrémenté en 1445</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Symptôme → cause</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Symptôme</th><th>Cause</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Table vide</strong></td><td><code>ip nat inside/outside</code> manquant ou <strong>inversé</strong></td></tr>
+          <tr><td>3 postes sortent, pas les autres</td><td><strong><code>overload</code> manquant</strong></td></tr>
+          <tr><td>Serveur injoignable de l'extérieur</td><td>Pas de <strong>NAT statique</strong></td></tr>
+          <tr><td><em>Misses</em> sans <em>hits</em></td><td>ACL ou nom de pool erroné</td></tr>
+          <tr><td>Adresse bloquée</td><td>Entrée résiduelle → <code>clear ip nat translation *</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo">
+      <h3>Commandes</h3>
+<div class="bloc-code"><pre><code>show ip nat translations       la table ★
+show ip nat statistics         hits / misses
+show ip nat translations verbose
+show run | include nat
+show access-lists              compteurs
+clear ip nat translation *
+clear ip nat statistics</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>Test propre :</strong>
+        <code>clear ip nat statistics</code> → trafic → <code>show ip nat statistics</code>.
+        Les <strong>Hits</strong> montent = ça marche.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Avantages / inconvénients</h3>
+      <p style="margin:0 0 .3rem;font-size:13.5px"><span class="rep-ok"><strong>+</strong></span>
+        Conserve les adresses publiques · souplesse · cohérence interne · sécurité</p>
+      <p style="margin:0;font-size:13.5px"><span class="rep-non"><strong>−</strong></span>
+        Performances · <strong>fin du bout en bout</strong> · perte de <strong>traçabilité</strong> ·
+        tunneling complexe · connexions TCP perturbées</p>
+      <p style="margin:.35rem 0 0;font-size:13px">⚠️ <strong>La NAT n'est pas un pare-feu.</strong>
+        Elle masque, elle ne filtre pas.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Inside/Outside = quel côté. Local/Global = privée ou publique.</strong></li>
+      <li><strong><code>ip nat inside</code> + <code>ip nat outside</code></strong> — sans elles,
+          rien ne se traduit, et rien ne le dit.</li>
+      <li><strong><code>overload</code> = PAT.</strong> Sans ce mot, le pool s'épuise.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-cours_NAT.pdf — le professeur</li>
+      <li>5-1-TP-Config Dynamic and Static NAT.pdf</li>
+      <li>5-2 et 5-3 Packet Tracer — PAT et dépannage NAT</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

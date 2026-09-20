@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commutation et VLAN — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : table MAC, VLAN, trunk 802.1Q, VLAN natif, router-on-a-stick et commandes de dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 08</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Commutation et VLAN — l'essentiel</h1>
+  <p class="chapeau">Deux pages à imprimer (⌘P). Les commandes, les valeurs, les pièges.</p>
+</header>
+
+<section class="section-revision" id="comm-rev">
+  <h2><span class="num">01</span>Commutation</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les 2 étapes</h3>
+      <ol>
+        <li><strong>APPRENDRE</strong> — adresse MAC <strong>source</strong> → ajoutée à la table
+            avec son port. Délai remis à <strong>5 min</strong></li>
+        <li><strong>TRANSFÉRER</strong> — adresse MAC <strong>destination</strong> :
+          <ul>
+            <li>connue → le <strong>seul</strong> port</li>
+            <li>inconnue → <strong>inondation</strong>, sauf le port d'entrée</li>
+          </ul>
+        </li>
+      </ol>
+      <p style="margin:.4rem 0 0;font-size:13px">Table MAC = <strong>table CAM</strong>.
+        Jamais de renvoi sur le port d'entrée.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Méthodes de transmission</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>Store &amp; forward</th><th>Cut-through</th></tr></thead>
+        <tbody>
+          <tr><td>Attend</td><td>Trame <strong>entière</strong></td><td>La MAC dest.</td></tr>
+          <tr><td>Vérifie</td><td class="rep-ok">Oui (FCS)</td><td class="rep-non">Non</td></tr>
+          <tr><td>Cisco</td><td class="rep-ok"><strong>La méthode principale</strong></td><td>—</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Ingress</strong> = entrée ·
+        <strong>Egress</strong> = sortie</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Un VLAN, c'est…</h3>
+      <div class="formule" style="font-size:13px">1 VLAN = 1 domaine de diffusion<br>= 1 sous-réseau IP</div>
+      <p style="margin:0;font-size:13.5px"><strong>6 avantages :</strong> domaines de diffusion
+        plus petits · sécurité · efficacité IT · coûts · performances · gestion simplifiée</p>
+      <p style="margin:.35rem 0 0;font-size:13px">Sans équipement de <strong>couche 3</strong>,
+        deux VLAN ne communiquent <strong>pas</strong>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="types-rev">
+  <h2><span class="num">02</span>Types, plages, configuration</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Le VLAN 1 — 4 rôles</h3>
+      <ul>
+        <li>VLAN <strong>par défaut</strong></li>
+        <li>VLAN <strong>natif</strong> par défaut</li>
+        <li>VLAN de <strong>gestion</strong> par défaut</li>
+        <li><strong>Non supprimable, non renommable</strong></li>
+      </ul>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <strong>Recommandation : tout déplacer
+        ailleurs.</strong> Le TP utilise le <strong>VLAN 99</strong> pour la gestion.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Les 4 types de VLAN</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Données</strong></td><td>Trafic utilisateur (mail, web)</td></tr>
+          <tr><td><strong>Natif</strong></td><td>Trunk uniquement — <strong>non étiqueté</strong></td></tr>
+          <tr><td><strong>Gestion</strong></td><td>SSH/Telnet, le SVI. Séparé du trafic utilisateur</td></tr>
+          <tr><td><strong>Voix</strong></td><td>Bande passante + <strong>QoS élevée</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo">
+      <h3>Les plages</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>Normale</th><th>Étendue</th></tr></thead>
+        <tbody>
+          <tr><td>Numéros</td><td><strong>1–1005</strong></td><td>1006–4095</td></tr>
+          <tr><td>Pour</td><td>PME</td><td>Opérateurs</td></tr>
+          <tr><td>Stockée</td><td><strong><code>vlan.dat</code></strong> (flash)</td><td><code>running-config</code></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <code>erase startup-config</code>
+        <strong>n'efface pas</strong> les VLAN → <code>delete vlan.dat</code> + <code>reload</code></p>
+    </div>
+
+    <div class="memo large cle">
+      <h3>Configuration type — VLAN et ports</h3>
+<div class="bloc-code"><pre><code>! ── créer ──                              ! ── port d'ACCÈS ──
+S1(config)# vlan 20                        S1(config)# interface range fa0/4 - 18
+S1(config-vlan)# name Student              S1(config-if-range)# switchport mode access
+S1(config-vlan)# exit                      S1(config-if-range)# switchport access vlan 20
+
+! ── SVI de gestion ──                     ! ── port TRUNK ──
+S1(config)# interface vlan 99              S1(config)# interface fa0/1
+S1(config-if)# ip address 172.17.99.11 255.255.255.0   S1(config-if)# switchport mode trunk
+S1(config-if)# no shutdown                 S1(config-if)# switchport trunk native vlan 99
+S1(config)# ip default-gateway 172.17.99.1 S1(config-if)# switchport trunk allowed vlan 10,20,99
+
+! ── modifier / supprimer ──
+S1(config-if)# no switchport access vlan    → remet sur le VLAN 1
+S1(config)# no vlan 20                      → ⚠ réaffecter les ports AVANT</code></pre></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="trunk-rev">
+  <h2><span class="num">03</span>Trunk, 802.1Q et inter-VLAN</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>L'étiquette 802.1Q</h3>
+      <div class="formule" style="font-size:13px">4 octets insérés dans la trame</div>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>TPID</strong></td><td>2 o · <code>0x8100</code></td></tr>
+          <tr><td><strong>Priorité</strong></td><td>3 bits · CoS</td></tr>
+          <tr><td><strong>CFI</strong></td><td>1 bit · Token Ring</td></tr>
+          <tr><td><strong>VID</strong></td><td>12 bits → <strong>4094 VLAN utilisables</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Le <strong>FCS est recalculé 2 fois</strong> :
+        à l'ajout et au retrait de l'étiquette.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Le VLAN natif</h3>
+      <div class="formule" style="font-size:12.5px">Tout est étiqueté sur un trunk<br>SAUF le VLAN natif</div>
+      <p style="margin:0;font-size:13.5px">⚠️ <strong>Doit être identique des deux côtés</strong> —
+        sinon le trafic change de VLAN en traversant le câble.</p>
+      <p style="margin:.35rem 0 0;font-size:13px">Message Cisco :
+        <code>%CDP-4-NATIVE_VLAN_MISMATCH</code></p>
+      <p style="margin:.35rem 0 0;font-size:13px">Le déplacer hors du VLAN 1 protège de l'attaque
+        par <strong>double étiquetage</strong>.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Les 3 solutions inter-VLAN</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Hérité</strong></td><td>1 interface physique par VLAN — <span class="rep-non">ne passe pas à l'échelle</span></td></tr>
+          <tr><td><strong>Router-on-a-stick</strong></td><td>1 trunk + sous-interfaces — <span class="rep-ok">petite à moyenne taille</span></td></tr>
+          <tr><td><strong>Switch L3 (SVI)</strong></td><td><span class="rep-ok">Le plus évolutif</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo large cle">
+      <h3>Router-on-a-stick — la configuration complète</h3>
+<div class="bloc-code"><pre><code>! ── SWITCH : le port vers le routeur ──
+S1(config)# interface fa0/2
+S1(config-if)# switchport mode trunk
+S1(config-if)# switchport trunk native vlan 99
+S1(config-if)# switchport trunk allowed vlan 10,20,99
+
+! ── ROUTEUR : une sous-interface par VLAN ──
+R1(config)# interface g0/0.10
+R1(config-subif)# encapsulation dot1q 10
+R1(config-subif)# ip address 172.17.10.1 255.255.255.0
+
+R1(config)# interface g0/0.99
+R1(config-subif)# encapsulation dot1q 99 native      ← ⚠ « native » pour le VLAN NATIF
+R1(config-subif)# ip address 172.17.99.1 255.255.255.0
+
+R1(config)# interface g0/0
+R1(config-if)# no shutdown                           ← ⚠ SANS ÇA, RIEN NE MARCHE</code></pre></div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Les 7 étapes :</strong> créer les VLAN →
+        SVI de gestion → ports d'accès → ports trunk → sous-interfaces → activer l'interface
+        physique → tester.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="dep-rev">
+  <h2><span class="num">04</span>Vérifier et dépanner</h2>
+  <div class="grille">
+
+    <div class="memo">
+      <h3>Les commandes <code>show</code></h3>
+<div class="bloc-code"><pre><code>show vlan brief              VLAN + ports ★
+show interfaces trunk        trunks, natif, autorisés ★
+show interfaces fa0/18 switchport
+show ip interface brief
+show ip route                sur le routeur
+show mac address-table</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>La méthode en 3 questions</h3>
+      <ol>
+        <li><strong>Même VLAN → ping OK ?</strong><br>Non → <strong>couche 2</strong> : port mal
+            affecté, trunk absent, VLAN non autorisé, pare-feu</li>
+        <li><strong>VLAN différents → ping OK ?</strong><br>Non → <strong>couche 3</strong> :
+            sous-interface, <code>no shutdown</code>, <strong>passerelle sur les postes</strong></li>
+        <li><strong>Gestion joignable ?</strong><br>Non → SVI sans <code>no shutdown</code>,
+            <code>ip default-gateway</code>, ou <strong>VLAN natif</strong></li>
+      </ol>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 6 oublis classiques</h3>
+      <ol>
+        <li><code>switchport mode access</code></li>
+        <li><code>no shutdown</code> sur l'interface physique du routeur</li>
+        <li><code>native</code> sur la sous-interface du VLAN natif</li>
+        <li>Passerelle par défaut sur les postes</li>
+        <li>Réaffecter les ports avant de supprimer un VLAN</li>
+        <li><code>delete vlan.dat</code> pour une vraie remise à zéro</li>
+      </ol>
+    </div>
+
+    <div class="memo">
+      <h3>VLAN voix — un port, 2 VLAN</h3>
+<div class="bloc-code"><pre><code>S1(config-if)# switchport mode access
+S1(config-if)# switchport access vlan 20   ← PC
+S1(config-if)# switchport voice vlan 150   ← tél.
+S1(config-if)# mls qos trust cos</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px">Le téléphone = <strong>switch à 3 ports</strong>.
+        Voix <strong>étiquetée</strong>, données <strong>non étiquetées</strong>. CDP informe le
+        téléphone.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Un VLAN = un domaine de diffusion = un sous-réseau IP.</strong> Tout découle de
+          là.</li>
+      <li><strong>Le trunk étiquette tout, sauf le VLAN natif.</strong> Et le natif doit être
+          identique des deux côtés.</li>
+      <li><strong>Deux VLAN ne se parlent jamais sans couche 3.</strong> Router-on-a-stick :
+          une sous-interface par VLAN, et <code>no shutdown</code> sur le port physique.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>2-1 et 2-2 Cours-Commutation_vlan.pdf — le professeur</li>
+      <li>vlan_Router_on_a_stick_feb_2026.pdf</li>
+      <li>Exolab_Exercice_VLAN-01.pdf · Exolab_Decouverte_InterVlan.pdf</li>
+      <li>9-Atelier_Configuring VLANs and Trunking.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

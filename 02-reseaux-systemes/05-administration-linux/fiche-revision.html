@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration Linux — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : commandes, arborescence, APT, processus, utilisateurs, permissions et configuration réseau sous Linux.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 05</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Administration Linux — l'essentiel</h1>
+  <p class="chapeau">Deux pages à imprimer (⌘P). Les commandes, les droits, les pièges.</p>
+</header>
+
+<section class="section-revision" id="socle-linux">
+  <h2><span class="num">01</span>Le socle</h2>
+  <div class="grille">
+
+    <div class="memo">
+      <h3>Repères historiques</h3>
+      <ul>
+        <li><strong>1969</strong> — Unix, labos Bell, Thompson &amp; Ritchie</li>
+        <li><strong>1973</strong> — réécrit en <strong>C</strong> → portabilité</li>
+        <li><strong>Noyau</strong> Linux = Linus <strong>Torvalds</strong></li>
+        <li><strong>Distribution</strong> = noyau + outils d'installation et d'administration</li>
+      </ul>
+      <p style="margin:.4rem 0 0;font-size:13px">Debian · Ubuntu (dérivée de Debian) · Red Hat ·
+        Fedora (libre de Red Hat) · SuSE · Mandriva</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 4 principes Unix</h3>
+      <ul>
+        <li><strong>Tout est fichier</strong></li>
+        <li><strong>Multi-tâches</strong> en temps partagé</li>
+        <li><strong>Multi-utilisateurs</strong></li>
+        <li><strong>Shell</strong> comme interpréteur</li>
+      </ul>
+      <p style="margin:.4rem 0 0;font-size:13px">Noms <strong>sensibles à la casse</strong>,
+        255 caractères max, point initial = <strong>fichier caché</strong>.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Lire l'invite</h3>
+      <div class="formule" style="font-size:13px">contact@debian:~$</div>
+      <p style="margin:0;font-size:13.5px"><code>$</code> = utilisateur simple ·
+        <strong><code>#</code> = root</strong> · <code>~</code> = répertoire personnel</p>
+      <div class="formule" style="font-size:12.5px">commande [option] [paramètres]</div>
+      <p style="margin:0;font-size:13px">Séparés par des <strong>espaces</strong>. Plusieurs
+        commandes sur une ligne : <code>;</code></p>
+    </div>
+
+    <div class="memo cle">
+      <h3>L'arborescence</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><code>/</code></td><td>La <strong>racine</strong></td></tr>
+          <tr><td><code>.</code> <code>..</code> <code>~</code></td><td>Courant · parent · personnel</td></tr>
+          <tr><td><code>/etc</code></td><td><strong>Configuration</strong> du système et des services</td></tr>
+          <tr><td><code>/home</code></td><td>Utilisateurs simples</td></tr>
+          <tr><td><code>/root</code></td><td>Personnel de <strong>root</strong> (≠ <code>/</code>)</td></tr>
+          <tr><td><code>/bin</code></td><td>Commandes de base</td></tr>
+          <tr><td><code>/sbin</code></td><td>Commandes <strong>admin</strong></td></tr>
+          <tr><td><code>/boot</code></td><td>Démarrage</td></tr>
+          <tr><td><code>/dev</code></td><td>Périphériques</td></tr>
+          <tr><td><code>/usr</code></td><td>Programmes et logiciels</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="cmd-rev">
+  <h2><span class="num">02</span>Les commandes</h2>
+  <div class="grille">
+
+    <div class="memo large">
+      <h3>Fichiers et déplacements</h3>
+<div class="bloc-code"><pre><code>pwd                    répertoire courant       ls -a      fichiers cachés
+ls -l                  détail + permissions     ls -la     les deux
+cd /                   la RACINE                cd ..      le PARENT
+cd ~  ou  cd           son répertoire perso     cd -       le précédent
+
+mkdir rep              crée un répertoire       touch f    crée un fichier vide
+mkdir -p a/b           crée TOUTE l'arborescence
+cp f /dest             copie                    cp -r d1 d2   copie un dossier
+mv f1 f2               RENOMME                  mv f1 dossier deplace
+rm f                   supprime un fichier      rmdir d    supprime un dossier VIDE
+rm -r d                supprime dossier+contenu rm -rf d   sans confirmation ⚠
+
+man cmd                l'AIDE                   clear      efface l'écran
+who / whoami / id      qui est connecté, qui suis-je, mes UID/GID/groupes
+uname -a               le noyau                 cat /etc/debian_version</code></pre></div>
+    </div>
+
+    <div class="memo">
+      <h3>Raccourcis clavier</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><kbd>TAB</kbd></td><td><strong>Autocomplétion</strong></td></tr>
+          <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Historique</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Arrête la commande</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td><strong>Suspend</strong> (ne tue pas)</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>E</kbd></td><td>Début / fin de ligne</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Ferme la session</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo cle">
+      <h3>APT — le piège classique</h3>
+      <div class="formule" style="font-size:13px">update = le CATALOGUE<br>upgrade = l'INSTALLATION</div>
+<div class="bloc-code"><pre><code>sudo apt update        rafraîchit la liste
+sudo apt upgrade       met à jour les paquets
+sudo apt full-upgrade  MAJ complète (peut retirer)
+sudo apt install php
+sudo apt purge php     désinstalle + config</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px">Formats : <strong>DPKG/apt</strong> (Debian,
+        Ubuntu) · <strong>RPM</strong> (Red Hat, Fedora, SuSE)</p>
+    </div>
+
+    <div class="memo">
+      <h3>Processus</h3>
+<div class="bloc-code"><pre><code>ps -ef / ps aux    tous les processus
+pstree             l'arborescence
+top / htop         temps réel
+cmd &              lance en ARRIÈRE-plan
+jobs               les tâches
+fg %1 / bg %1      avant / arrière-plan
+kill 1234          termine (TERM)
+kill -9 1234       tue (KILL)</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>PID</strong> unique ·
+        <strong>PPID</strong> = père · <strong>daemon</strong> = processus système sans terminal</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="droits-rev">
+  <h2><span class="num">03</span>Comptes et permissions</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Utilisateurs et groupes</h3>
+<div class="bloc-code"><pre><code>sudo adduser bob            crée (interactif)
+sudo deluser --remove-home bob
+sudo addgroup projet
+sudo usermod -aG projet bob    ⚠ -a OBLIGATOIRE
+passwd  /  sudo passwd bob
+groups  /  id</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>root a toujours l'UID 0.</strong>
+        <code>sudo</code> = 1 commande · <code>su</code> = session root entière.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Les 4 fichiers système</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><code>/etc/passwd</code></td><td>Comptes : UID, GID, /home, shell.
+              <strong>Pas de mot de passe</strong></td></tr>
+          <tr><td><code>/etc/shadow</code></td><td>Mots de passe <strong>chiffrés</strong></td></tr>
+          <tr><td><code>/etc/group</code></td><td>Groupes et membres</td></tr>
+          <tr><td><code>/etc/sudoers</code></td><td>Qui peut <code>sudo</code> — éditer avec
+              <strong><code>visudo</code></strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les droits — r=4 w=2 x=1</h3>
+<div class="bloc-code"><pre><code>-rwxr-xr--   1 la copie A projet ... script.sh
+│└┬┘└┬┘└┬┘     └─┬─┘ └─┬──┘
+│ u   g   o      prop.  groupe
+└ type : - fichier · d répertoire · l lien
+
+rwx=7  rw-=6  r-x=5  r--=4  -wx=3  -w-=2  --x=1
+
+755  script, dossier      644  fichier de données
+770  travail d'équipe     600  privé (clé SSH)</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Sur un RÉPERTOIRE, ça change tout</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Droit</th><th>Sur un fichier</th><th>Sur un répertoire</th></tr></thead>
+        <tbody>
+          <tr><td><code>r</code></td><td>Lire</td><td><strong>Lister</strong> les noms</td></tr>
+          <tr><td><code>w</code></td><td>Modifier</td><td>Créer / <strong>supprimer</strong></td></tr>
+          <tr><td><code>x</code></td><td>Exécuter</td><td><strong>Traverser</strong> (entrer)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Sans <code>x</code>, rien n'est possible</strong>
+        dans un répertoire. <code>x</code> sans <code>r</code> : on ouvre un fichier dont on connaît
+        le nom, sans voir la liste.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Modifier les droits</h3>
+<div class="bloc-code"><pre><code>chmod g+w f        symbolique : + - =
+chmod u-r f                    u g o a
+chmod 755 f        octal : on RÉÉCRIT tout
+
+chown alice:projet f    proprio + groupe
+chgrp projet f          groupe seul
+chmod g+s dossier       SetGID : héritage
+                        du groupe</code></pre></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="reseau-rev">
+  <h2><span class="num">04</span>Réseau et pièges</h2>
+  <div class="grille">
+
+    <div class="memo">
+      <h3>Configuration IP statique</h3>
+<div class="bloc-code"><pre><code>ip a                voir les interfaces
+ip route            la passerelle
+
+# /etc/network/interfaces
+auto ens33                 ⚠ NE PAS OUBLIER
+iface ens33 inet static
+    address 10.0.0.10      ⚠ sans /24
+    netmask 255.255.255.0  ⚠ ligne à part
+    gateway 10.0.0.1
+
+sudo systemctl restart networking
+sudo ifup ens33</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>Serveur = IP statique</strong>, pour une
+        adresse stable et prévisible.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 6 pièges du test</h3>
+      <ol>
+        <li><code>usermod <strong>-aG</strong></code> et jamais <code>-G</code> seul</li>
+        <li><code>update</code> ≠ <code>upgrade</code></li>
+        <li><code>rm *</code> supprime les fichiers, <strong>échoue</strong> sur les dossiers</li>
+        <li><code>x</code> sur un répertoire = <strong>traverser</strong>, pas lister</li>
+        <li><code>/etc/passwd</code> ne contient <strong>aucun</strong> mot de passe</li>
+        <li><code>chown</code> change proprio <strong>et</strong> groupe ; <code>chgrp</code> le
+            groupe seul</li>
+      </ol>
+    </div>
+
+    <div class="memo">
+      <h3>Sécuriser un partage</h3>
+<div class="bloc-code"><pre><code>sudo addgroup projet
+sudo usermod -aG projet alice
+sudo chgrp projet /srv/projet
+sudo chmod 770 /srv/projet
+sudo chmod g+s /srv/projet</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>Jamais 777.</strong> Jamais de compte
+        partagé. Principe du <strong>moindre privilège</strong>.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>Tout est fichier, tout part de <code>/</code>, tout est sensible à la
+          casse.</strong></li>
+      <li><strong>r=4, w=2, x=1</strong> — et sur un répertoire, <code>x</code> veut dire
+          « traverser ».</li>
+      <li><strong>Le moindre privilège :</strong> <code>sudo</code> pour une commande,
+          un groupe pour un partage, jamais <code>777</code> ni le mot de passe root.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-Cours-Administration des systèmes Linux.pdf — le professeur</li>
+      <li>1-1-Memo-Commande_base.pdf</li>
+      <li>1-2-TP-Permission.pdf · 1-2-TP_accès_Sécurité_linux.pdf</li>
+      <li>Test Linux.pdf · Adresse IP statique sur Linux.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

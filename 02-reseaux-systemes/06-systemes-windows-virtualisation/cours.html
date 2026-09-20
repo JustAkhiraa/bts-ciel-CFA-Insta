@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtualisation et installation de systèmes — Debian, Windows 11, Windows Server | BTS CIEL</title>
+<meta name="description" content="Cours complet : principes de la virtualisation, installation de Debian 12 en console, Windows 11 sous VirtualBox et Windows Server 2019.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#virtualisation">1 · Les principes de la virtualisation</a></li>
+    <li><a href="#creer-vm">2 · Créer une machine virtuelle</a></li>
+    <li><a href="#debian">3 · Installer Debian 12 en console</a></li>
+    <li><a href="#windows11">4 · Installer Windows 11 sous VirtualBox</a></li>
+    <li><a href="#winserver">5 · Installer Windows Server 2019</a></li>
+    <li><a href="#apres">6 · Les réglages d'après-installation</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 06</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Virtualisation et installation de systèmes</h1>
+  <p class="chapeau">Monter un parc entier — client Linux, client Windows, serveur — sur une seule
+     machine, sans acheter un seul câble.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un <strong>hyperviseur</strong> — VirtualBox, Proxmox — fait tourner plusieurs
+         <strong>machines virtuelles</strong> sur un seul matériel physique. Chaque VM démarre sur
+         une <strong>image ISO</strong> et se comporte comme un vrai ordinateur. Debian s'installe
+         <strong>en mode console</strong>, sans interface graphique, parce qu'un serveur n'en a pas
+         besoin. Windows 11 exige <strong>UEFI et deux processeurs virtuels</strong>. Un serveur se
+         configure toujours en <strong>IP statique</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#virtualisation</code> <code>#hyperviseur</code> <code>#VirtualBox</code>
+    <code>#Proxmox</code> <code>#ISO</code> <code>#UEFI</code> <code>#Debian12</code>
+    <code>#Bookworm</code> <code>#GRUB</code> <code>#partitionnement</code>
+    <code>#Windows-Server</code> <code>#snapshot</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="virtualisation">
+  <h2><span class="num">01</span>Les principes de la virtualisation</h2>
+
+  <p>Virtualiser, c'est faire croire à un système d'exploitation qu'il dispose d'un ordinateur à
+     lui seul, alors qu'il partage en réalité le matériel d'une machine physique avec d'autres.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Terme</th><th>Définition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Machine hôte</strong></td><td>La machine <em>physique</em> réelle, avec son
+          processeur, sa RAM et ses disques</td></tr>
+      <tr><td><strong>Hyperviseur</strong></td><td>Le logiciel qui crée et pilote les machines
+          virtuelles, et répartit les ressources entre elles</td></tr>
+      <tr><td><strong>Machine virtuelle</strong> (VM)</td><td>Un ordinateur <em>simulé</em> : son
+          disque est un simple fichier sur l'hôte</td></tr>
+      <tr><td><strong>Image ISO</strong></td><td>Le fichier qui contient le support d'installation,
+          l'équivalent d'un DVD gravé</td></tr>
+      <tr><td><strong>Instantané</strong> (<em>snapshot</em>)</td><td>Une photographie de l'état
+          complet de la VM, à laquelle on peut revenir en quelques secondes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les deux types d'hyperviseurs</h3>
+  <figure class="schema">
+    <svg viewBox="0 0 580 220" role="img" aria-label="Hyperviseur de type 1 et de type 2">
+      <style>
+        .mat{fill:#C9BFAE;stroke:none}
+        .hyp{fill:var(--accent);stroke:none}
+        .os {fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.3}
+        .vm {fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.3}
+        .l  {font:600 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .lw {font:700 11px var(--sans);text-anchor:middle;fill:#fff}
+        .t  {font:700 12.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .s  {font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <g>
+        <text class="t" x="140" y="18">Type 1 — « bare metal »</text>
+        <text class="s" x="140" y="34">Proxmox, ESXi, Hyper-V</text>
+        <rect class="vm"  x="30"  y="44" width="66" height="34" rx="5"/><text class="l" x="63"  y="65">VM 1</text>
+        <rect class="vm"  x="104" y="44" width="66" height="34" rx="5"/><text class="l" x="137" y="65">VM 2</text>
+        <rect class="vm"  x="178" y="44" width="66" height="34" rx="5"/><text class="l" x="211" y="65">VM 3</text>
+        <rect class="hyp" x="30"  y="86" width="214" height="34" rx="5"/><text class="lw" x="137" y="107">HYPERVISEUR</text>
+        <rect class="mat" x="30"  y="128" width="214" height="34" rx="5"/><text class="l" x="137" y="149">MATÉRIEL</text>
+        <text class="s" x="137" y="184">L'hyperviseur EST le système</text>
+        <text class="s" x="137" y="200">→ performances maximales, en production</text>
+      </g>
+      <g transform="translate(300,0)">
+        <text class="t" x="140" y="18">Type 2 — « hébergé »</text>
+        <text class="s" x="140" y="34">VirtualBox, VMware Workstation</text>
+        <rect class="vm"  x="30"  y="44" width="100" height="34" rx="5"/><text class="l" x="80"  y="65">VM 1</text>
+        <rect class="vm"  x="138" y="44" width="100" height="34" rx="5"/><text class="l" x="188" y="65">VM 2</text>
+        <rect class="hyp" x="30"  y="86" width="208" height="26" rx="5"/><text class="lw" x="134" y="103">HYPERVISEUR</text>
+        <rect class="os"  x="30"  y="118" width="208" height="26" rx="5"/><text class="l" x="134" y="135">SYSTÈME HÔTE (Windows, macOS…)</text>
+        <rect class="mat" x="30"  y="150" width="208" height="26" rx="5"/><text class="l" x="134" y="167">MATÉRIEL</text>
+        <text class="s" x="134" y="196">Une couche de plus → un peu plus lent, mais</text>
+        <text class="s" x="134" y="212">on garde son PC habituel. C'est celui du TP.</text>
+      </g>
+    </svg>
+    <figcaption>Type 1 en production, type 2 sur un poste de travail. Le TP Debian mentionne Proxmox (type 1), le TP Windows 11 utilise VirtualBox (type 2).</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Un hyperviseur de <strong>type 1</strong>, c'est un immeuble construit dès l'origine en
+       appartements : chaque locataire a ses murs, tout est optimisé pour ça. Un hyperviseur de
+       <strong>type 2</strong>, c'est une grande maison où l'on a aménagé des chambres d'hôtes :
+       ça marche très bien, mais tout le monde passe par le couloir du propriétaire.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi tout est virtualisé aujourd'hui</div>
+    <p>Un serveur physique dédié à un seul service utilise en moyenne 10 à 15 % de son processeur :
+       le reste est payé, refroidi et alimenté pour rien. La virtualisation permet d'en faire
+       tourner dix sur la même machine. S'y ajoutent l'<strong>instantané</strong> — revenir en
+       arrière après une manipulation ratée — et la <strong>migration à chaud</strong>, qui déplace
+       une VM d'un serveur à l'autre sans l'éteindre. C'est ce qui rend les centres de données
+       modernes possibles.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="creer-vm">
+  <h2><span class="num">02</span>Créer une machine virtuelle</h2>
+
+  <p>La démarche est la même quel que soit le système à installer.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les cinq étapes, dans l'ordre</div>
+    <ol>
+      <li><strong>Télécharger l'ISO</strong> du système voulu.</li>
+      <li><strong>Créer la VM</strong> : nom, dossier de stockage, type et version du système.</li>
+      <li><strong>Dimensionner</strong> : mémoire vive, nombre de processeurs virtuels, taille du
+          disque.</li>
+      <li><strong>Régler les options</strong> : UEFI, réseau, dossiers partagés.</li>
+      <li><strong>Démarrer</strong> sur l'ISO et dérouler l'installation.</li>
+    </ol>
+  </div>
+
+  <h3>Les paramètres à ne pas rater</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Paramètre</th><th>Ce qu'il détermine</th><th>Erreur classique</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Mémoire vive</strong></td><td>Prise sur celle de l'hôte pendant que la VM
+          tourne</td><td>Tout allouer à la VM et étouffer la machine hôte</td></tr>
+      <tr><td><strong>Processeurs virtuels</strong></td><td>Nombre de cœurs vus par le système
+          invité</td><td>En laisser 1 alors que Windows 11 en exige 2</td></tr>
+      <tr><td><strong>Disque</strong></td><td>Un fichier sur l'hôte, à taille fixe ou
+          dynamique</td><td>Sous-dimensionner : 10 Go suffisent pour Debian console, pas pour
+          Windows</td></tr>
+      <tr><td><strong>UEFI</strong></td><td>Mode de démarrage moderne, avec table GPT</td>
+          <td>L'oublier : Windows 11 refuse de s'installer</td></tr>
+      <tr><td><strong>Mode réseau</strong></td><td>Comment la VM voit le réseau</td>
+          <td>Rester en NAT alors qu'on veut joindre la VM depuis l'hôte</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les trois modes réseau de VirtualBox</div>
+    <ul>
+      <li><strong>NAT</strong> — la VM sort vers Internet, mais <strong>personne ne peut la
+          joindre</strong>, pas même l'hôte. C'est le mode par défaut, et c'est celui qui fait
+          échouer la moitié des TP.</li>
+      <li><strong>Accès par pont</strong> (<em>bridge</em>) — la VM reçoit une adresse
+          <strong>sur le réseau physique</strong>, comme une vraie machine. C'est le mode à choisir
+          pour un serveur que l'on veut atteindre.</li>
+      <li><strong>Réseau privé hôte</strong> — un réseau isolé entre l'hôte et ses VM, sans accès
+          Internet. Parfait pour une maquette de laboratoire.</li>
+    </ul>
+    <p>Symptôme typique : « je ping Internet depuis la VM, mais je n'arrive pas à joindre la VM
+       depuis mon PC ». Vous êtes en NAT.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="debian">
+  <h2><span class="num">03</span>Installer Debian 12 en console</h2>
+
+  <p>Debian 12 porte le nom de code <strong>Bookworm</strong>. Le TP l'installe sur une machine
+     virtuelle paramétrée sous Proxmox, avec un disque de <strong>10 Go</strong>, en
+     <strong>mode console</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Install », pas « Graphical install »</div>
+    <p>Au premier écran, sélectionnez bien <strong><code>Install</code></strong> et non
+       <code>Graphical install</code>. Le mode console est plus simple et plus rapide, et surtout
+       on n'aura <strong>pas besoin d'installer une interface graphique</strong> qui alourdirait
+       inutilement le système.</p>
+    <p>C'est un principe d'administration, pas une préférence : sur un serveur, chaque paquet
+       installé est une surface d'attaque supplémentaire et de la mémoire consommée pour rien.</p>
+  </div>
+
+  <h3>Le déroulé de l'installation</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>#</th><th>Étape</th><th>Choix du TP</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Mode d'installation</td><td><strong><code>Install</code></strong> (console)</td></tr>
+      <tr><td>2</td><td>Langue du système</td><td>French</td></tr>
+      <tr><td>3</td><td>Situation géographique</td><td>France — détermine le <strong>fuseau horaire</strong></td></tr>
+      <tr><td>4</td><td>Disposition du clavier</td><td>Français (AZERTY)</td></tr>
+      <tr><td>5</td><td>Nom de la machine</td><td><code>debian</code></td></tr>
+      <tr><td>6</td><td>Nom de domaine</td><td>Laissé <strong>vide</strong> — non obligatoire</td></tr>
+      <tr><td>7</td><td>Mot de passe <strong>root</strong></td><td>Saisi deux fois pour confirmation</td></tr>
+      <tr><td>8</td><td>Création d'un utilisateur</td><td>Nom, puis mot de passe confirmé</td></tr>
+      <tr><td>9</td><td>Partitionnement</td><td><strong>Assisté — utiliser un disque entier</strong></td></tr>
+      <tr><td>10</td><td>Schéma de partitions</td><td><strong>Tout dans une seule partition</strong>
+          (recommandé pour les débutants)</td></tr>
+      <tr><td>11</td><td>Miroir réseau</td><td>France, puis <code>deb.debian.org</code> par défaut</td></tr>
+      <tr><td>12</td><td>Mandataire proxy</td><td>Laissé vide</td></tr>
+      <tr><td>13</td><td>Statistiques d'usage</td><td>Non</td></tr>
+      <tr><td>14</td><td>Logiciels à installer</td><td><strong>Utilitaires usuels du système
+          uniquement</strong></td></tr>
+      <tr><td>15</td><td>GRUB</td><td>Installé sur le disque principal</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'étape 14 est celle qui compte</div>
+    <p>À l'écran « choix des logiciels », il faut <strong>décocher « Environnement de bureau
+       Debian » et « GNOME »</strong>. Ils sont sélectionnés par défaut, et beaucoup passent
+       l'écran sans regarder : on se retrouve alors avec une interface graphique complète, inutile
+       et lourde, sur un serveur censé être minimal.</p>
+    <p>On ne conserve que les <strong>utilitaires usuels du système</strong> — et le
+       <strong>serveur SSH</strong> si l'on veut administrer la machine à distance, ce qui est
+       presque toujours souhaitable.</p>
+  </div>
+
+  <h3>Comprendre le partitionnement</h3>
+  <p>Le TP retient « <strong>tout dans une seule partition</strong> », le choix le plus simple. En
+     production, on sépare souvent les partitions pour éviter qu'un répertoire qui se remplit ne
+     bloque tout le système.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Schéma</th><th>Principe</th><th>Quand l'utiliser</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Tout dans une partition</strong></td><td>Une seule partition pour
+          <code>/</code>, plus le <em>swap</em></td><td>Débutants, TP, VM jetable</td></tr>
+      <tr><td>Partition <code>/home</code> séparée</td><td>Les données des utilisateurs isolées du
+          système</td><td>Poste de travail — permet de réinstaller sans perdre les données</td></tr>
+      <tr><td><code>/home</code>, <code>/var</code> et <code>/tmp</code> séparés</td>
+          <td>Les journaux et fichiers temporaires isolés</td>
+          <td>Serveur — un <code>/var</code> saturé n'empêche plus le système de démarrer</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 GRUB, le programme d'amorçage</div>
+    <p><strong>GRUB</strong> (<em>GRand Unified Bootloader</em>) est le premier programme lancé au
+       démarrage : il affiche le menu, charge le noyau Linux en mémoire et lui passe la main.
+       L'installer « sur le disque principal » signifie l'écrire dans le secteur d'amorçage. Un
+       GRUB manquant ou abîmé donne le message d'erreur le plus décourageant qui soit :
+       <code>No bootable device</code> — alors que le système est parfaitement installé sur le
+       disque.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="windows11">
+  <h2><span class="num">04</span>Installer Windows 11 sous VirtualBox</h2>
+
+  <p><strong>Objectif :</strong> installer Windows 11 à partir d'un ISO sur une machine virtuelle,
+     et créer un utilisateur local.</p>
+
+  <h3>Les prérequis de Windows 11</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Ressource</th><th>Minimum exigé</th></tr></thead>
+    <tbody>
+      <tr><td>Processeur</td><td><strong>64 bits</strong>, 1 GHz, au moins <strong>2 cœurs</strong></td></tr>
+      <tr><td>Mémoire vive</td><td><strong>4 Go</strong> (4096 Mo)</td></tr>
+      <tr><td>Stockage</td><td><strong>64 Go</strong></td></tr>
+      <tr><td>Micrologiciel</td><td>Machine hôte compatible <strong>UEFI</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>La procédure</h3>
+  <ol>
+    <li><strong>Télécharger l'ISO</strong> de Windows 11.</li>
+    <li><strong>Installer VirtualBox</strong> — en s'assurant de disposer d'une version à jour.</li>
+    <li><strong>Créer la VM</strong> : menu <em>Machine</em> → <em>Nouvelle</em>.</li>
+    <li><strong>Renseigner</strong> : nom de la VM, dossier de stockage, image ISO téléchargée,
+        type <em>Microsoft Windows</em>, version <em>Windows 11 (64 bits)</em>.
+        <strong>Décocher <em>Proceed with Unattended Installation</em></strong>.</li>
+    <li><strong>Mémoire</strong> : au minimum 4096 Mo. <strong>Disque</strong> : au minimum
+        64 Go.</li>
+    <li><strong>Configuration</strong> : sélectionner la VM créée, bouton <em>Configuration</em>,
+        puis passer en <strong>mode Expert</strong>.</li>
+    <li><strong>Activer UEFI</strong> : onglet <em>Système</em> → <em>Carte mère</em> → cocher
+        <strong>Activer UEFI</strong>.</li>
+    <li><strong>Processeurs</strong> : onglet <em>Processeur</em> → au minimum
+        <strong>2 processeurs virtuels</strong>.</li>
+    <li><strong>Démarrer</strong> la VM et dérouler l'installation de Windows.</li>
+  </ol>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les deux réglages sans lesquels rien ne marche</div>
+    <p><strong>UEFI désactivé</strong> → l'installation s'interrompt avec
+       <em>« Ce PC ne peut pas exécuter Windows 11 »</em>. Windows 11 impose un démarrage UEFI et
+       une table de partitions GPT ; le mode BIOS hérité est refusé.</p>
+    <p><strong>Un seul processeur virtuel</strong> → même message. Le prérequis « 2 cœurs » est
+       vérifié à l'installation, pas seulement recommandé.</p>
+    <p>Ces deux réglages se font <strong>avant</strong> le premier démarrage, dans la
+       configuration de la VM. Les changer après coup oblige à tout recommencer.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Et le TPM 2.0 ?</div>
+    <p>Windows 11 exige aussi une puce <strong>TPM 2.0</strong> (module de plateforme sécurisée)
+       pour le chiffrement. VirtualBox sait l'émuler : dans <em>Système</em> → <em>Carte mère</em>,
+       réglez <em>TPM</em> sur <strong>v2.0</strong>. Si l'ISO refuse malgré tout, c'est
+       généralement ce paramètre qui manque — pensez-y avant de chercher des contournements
+       hasardeux.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="winserver">
+  <h2><span class="num">05</span>Installer Windows Server 2019</h2>
+
+  <p>Le serveur du projet <strong>TechShop</strong> s'appelle <code>SRVTECH</code> et se trouve
+     dans le <strong>VLAN Administration</strong>.</p>
+
+  <h3>La procédure</h3>
+  <ol>
+    <li><strong>Télécharger l'image ISO</strong> de Windows Server 2019 ou 2022.</li>
+    <li>Vérifier les <strong>prérequis</strong> et dérouler les étapes d'installation.</li>
+    <li><strong>Après l'installation</strong>, effectuer quatre réglages.</li>
+  </ol>
+
+  <h3>Les quatre réglages d'après-installation</h3>
+
+  <h4>a. Fixer l'adresse IP du serveur</h4>
+<div class="bloc-code"><span class="langue">configuration</span><pre><code>Adresse IP           192.168.100.10      ← VLAN Administration
+Masque de sous-réseau 255.255.255.0      ← /24
+Passerelle par défaut 192.168.100.1      ← l'interface du routeur dans ce VLAN
+DNS                  127.0.0.1           ← le serveur est SON PROPRE serveur DNS</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Pourquoi <code>127.0.0.1</code> en DNS</div>
+    <p><code>127.0.0.1</code> est l'adresse de <strong>bouclage</strong> : le serveur se désigne
+       lui-même. Ce réglage n'a de sens que parce que <code>SRVTECH</code> héberge lui-même le
+       service DNS — ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
+    <p>Sur un serveur <em>quelconque</em>, indiquer <code>127.0.0.1</code> en DNS le priverait de
+       toute résolution de noms. Ce n'est donc pas une règle générale : c'est la conséquence du
+       rôle joué par cette machine.</p>
+  </div>
+
+  <h4>b. Nommer le serveur</h4>
+  <p>Le nom est <strong><code>SRVTECH</code></strong>. Un serveur porte toujours un nom explicite :
+     on ne retient pas une adresse IP, on retient un nom.</p>
+
+  <h4>c. Désactiver le pare-feu Windows</h4>
+  <div class="encart piege">
+    <div class="titre">⚠️ À faire en TP, jamais en production</div>
+    <p>Désactiver le pare-feu supprime d'un coup tous les blocages qui empêcheraient les tests de
+       fonctionner. C'est commode <strong>dans une maquette isolée</strong>, le temps de vérifier
+       que le reste de la configuration est correct.</p>
+    <p><strong>En production, c'est une faute grave.</strong> La bonne pratique est d'<em>ouvrir
+       les ports nécessaires</em> — et uniquement ceux-là. Si la question tombe à l'oral, dites que
+       vous savez pourquoi on le fait en TP, et ce qu'il faudrait faire à la place :</p>
+<div class="bloc-code"><span class="langue">PowerShell</span><pre><code># au lieu de tout désactiver, ouvrir précisément ce qui est nécessaire
+New-NetFirewallRule -DisplayName "HTTP entrant" -Direction Inbound `
+                    -Protocol TCP -LocalPort 80 -Action Allow
+
+# et vérifier l'état, plutôt que de le supprimer
+Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
+  </div>
+
+  <h4>d. Définir un mot de passe administrateur</h4>
+  <p>Windows Server impose un mot de passe respectant sa politique de complexité : au moins
+     8 caractères, avec majuscules, minuscules et chiffres.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Pourquoi une IP statique sur un serveur</div>
+    <p>Un serveur, c'est une boutique : ses clients doivent la retrouver à la même adresse tous les
+       jours. Un poste de travail, c'est un client : peu importe où il se gare. Le DHCP est
+       parfait pour les clients, catastrophique pour une boutique qui déménagerait chaque
+       matin.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Vous installez <code>SRVTECH</code> avec l'adresse <code>192.168.100.10</code>,
+       masque <code>255.255.255.0</code>, passerelle <code>192.168.100.1</code>. Depuis le serveur,
+       le <code>ping</code> vers <code>192.168.100.1</code> répond, mais
+       <code>ping www.google.fr</code> échoue avec « hôte inconnu ». D'où vient le problème ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Le DNS.</strong> Le message « hôte inconnu » — et non « délai d'attente dépassé » —
+         indique que la machine n'arrive pas à <em>traduire le nom</em> en adresse IP. La couche
+         réseau fonctionne : la passerelle répond.</p>
+      <p><strong>La cause :</strong> le serveur est configuré avec <code>DNS : 127.0.0.1</code>,
+         c'est-à-dire lui-même. Or le rôle <strong>Serveur DNS</strong> n'a pas encore été installé
+         et configuré. Il s'interroge lui-même et n'obtient rien.</p>
+      <p><strong>Deux solutions :</strong> installer et configurer le rôle DNS — ce qui est prévu
+         puisque ce serveur doit le rendre —, ou indiquer temporairement un DNS externe
+         (<code>8.8.8.8</code>) le temps de télécharger ce qui est nécessaire.</p>
+      <p><strong>Le réflexe de diagnostic :</strong> <code>ping 8.8.8.8</code> répond mais
+         <code>ping google.fr</code> échoue → le problème est <strong>toujours</strong> le DNS,
+         jamais le routage.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="apres">
+  <h2><span class="num">06</span>Les réglages d'après-installation</h2>
+
+  <p>Quel que soit le système, une installation ne s'arrête pas au dernier redémarrage. Cinq
+     vérifications reviennent systématiquement.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>#</th><th>Vérification</th><th>Pourquoi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Adressage réseau</strong> — statique sur un serveur, DHCP sur un
+          poste</td><td>Sans cela, rien d'autre ne peut être testé</td></tr>
+      <tr><td>2</td><td><strong>Nom de machine</strong> explicite</td>
+          <td>Indispensable dès qu'il y a plus de trois machines</td></tr>
+      <tr><td>3</td><td><strong>Mises à jour</strong> du système</td>
+          <td>Une machine fraîchement installée est une machine en retard de correctifs</td></tr>
+      <tr><td>4</td><td><strong>Accès distant</strong> — SSH sous Linux, RDP sous Windows</td>
+          <td>Pour ne plus avoir à s'asseoir devant la machine</td></tr>
+      <tr><td>5</td><td><strong>Instantané</strong> de la VM</td>
+          <td>Pour revenir à un état sain après une manipulation ratée</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">bash</span><pre><code># Debian — les commandes d'après-installation
+sudo apt update &amp;&amp; sudo apt upgrade      # mettre à jour
+sudo apt install openssh-server           # accès distant
+ip a                                      # vérifier l'adressage
+hostnamectl set-hostname srv-debian       # nommer la machine</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Prenez l'instantané au bon moment</div>
+    <p>Le meilleur moment pour créer un <em>snapshot</em> est <strong>juste après l'installation
+       propre et les mises à jour</strong>, avant de commencer à configurer les services. Vous
+       disposez alors d'un point de retour « système sain » auquel revenir en quelques secondes,
+       au lieu de tout réinstaller.</p>
+    <p>C'est le principal avantage pratique de la virtualisation en TP : on peut se permettre de
+       casser.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Pourquoi installe-t-on Debian « en mode console » alors que l'interface
+       graphique est plus confortable ? Donnez trois arguments.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <ol>
+        <li><strong>Ressources.</strong> Une interface graphique consomme plusieurs centaines de
+            mégaoctets de RAM et des cycles processeur, en permanence, pour afficher un bureau que
+            personne ne regarde. Sur un serveur, ces ressources doivent aller aux services.</li>
+        <li><strong>Sécurité.</strong> Chaque paquet installé est une <strong>surface d'attaque</strong>
+            supplémentaire : serveur graphique, gestionnaire de fenêtres, navigateur… autant de
+            logiciels à maintenir à jour et susceptibles d'être vulnérables. Le principe est celui
+            de la <em>surface minimale</em>.</li>
+        <li><strong>Administration à distance.</strong> Un serveur se pilote en SSH, depuis son
+            poste, sans se déplacer. L'interface graphique n'apporte rien puisque personne ne
+            s'assoit devant la machine.</li>
+      </ol>
+      <p>Le cours le formule directement : « nous n'aurons pas besoin d'installer une interface
+         graphique qui alourdirait le système inutilement ».</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Type 1</strong> (Proxmox, ESXi) = directement sur le matériel, en production.
+          <strong>Type 2</strong> (VirtualBox) = par-dessus un système hôte, sur un poste.</li>
+      <li><strong>Debian : mode <code>Install</code></strong>, pas <em>Graphical install</em>, et
+          <strong>décocher GNOME</strong> à l'écran des logiciels.</li>
+      <li><strong>Windows 11 : UEFI + 2 processeurs virtuels + 4 Go + 64 Go.</strong> Sans quoi
+          l'installation refuse de démarrer.</li>
+      <li><strong>Serveur = IP statique.</strong> <code>SRVTECH</code> :
+          <code>192.168.100.10/24</code>, passerelle <code>.1</code>.</li>
+      <li><strong>DNS <code>127.0.0.1</code></strong> uniquement parce que le serveur héberge
+          lui-même le DNS.</li>
+      <li><strong>Pare-feu désactivé = TP seulement.</strong> En production, on ouvre les ports
+          nécessaires.</li>
+      <li><strong>NAT ≠ accès par pont.</strong> Pour joindre une VM depuis l'hôte, il faut le
+          mode pont.</li>
+      <li><strong>Snapshot après installation propre</strong> — c'est votre filet.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-TP-Installation_Debian12.pdf — tutos-info.fr, Debian 12.1 Bookworm</li>
+      <li>4-TP-Installer Windows 11 avec VirtualBox.pdf</li>
+      <li>6-1-Installation_WinServer.pdf — Windows Server 2019, projet TechShop</li>
+      <li>lien_iso.docx</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

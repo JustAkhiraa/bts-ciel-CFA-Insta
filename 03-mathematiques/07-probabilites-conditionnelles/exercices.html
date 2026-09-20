@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probabilités conditionnelles — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : tableau de contingence, arbres pondérés, probabilités totales, renversement du conditionnement et événements indépendants — d'après les DST de l'année.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#traduire">1 · Traduire un énoncé</a></li>
+    <li><a href="#tableau-exo">2 · Le tableau de contingence</a></li>
+    <li><a href="#arbre-exo">3 · Construire l'arbre</a></li>
+    <li><a href="#totales-exo">4 · Les probabilités totales</a></li>
+    <li><a href="#bayes">5 · Renverser le conditionnement</a></li>
+    <li><a href="#indep-exo">6 · Événements indépendants</a></li>
+    <li><a href="#dst">7 · Sujets de DST</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Probabilités conditionnelles — exercices</h1>
+  <p class="chapeau">Les trois DST de l'année, refaits pas à pas — plus les pièges qu'ils tendent.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>La règle d'or</h2>
+      <p><strong>Dessinez l'arbre avant de calculer.</strong> Toujours. Même quand l'énoncé ne le
+         demande pas, même quand vous croyez pouvoir faire de tête. L'arbre coûte deux minutes et
+         supprime la quasi-totalité des erreurs — parce qu'il vous force à décider, pour chaque
+         donnée, si elle est simple ou conditionnelle.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="traduire">
+  <h2><span class="num">01</span>Traduire un énoncé</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Simple ou conditionnelle ? <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Pour chaque phrase, écrivez la probabilité correspondante avec les événements
+         <strong>M</strong> (« la facture vient de l'atelier mécanique ») et <strong>D</strong>
+         (« la facture est erronée ») :</p>
+      <ol>
+        <li>« 65 % des factures proviennent de l'atelier de mécanique. »</li>
+        <li>« 2 % des factures provenant de la mécanique sont erronées. »</li>
+        <li>« 1,3 % des factures sont issues de la mécanique et erronées. »</li>
+        <li>« Parmi les factures erronées, 79 % viennent de la mécanique. »</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Phrase</th><th>Traduction</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>P(M) = 0,65</code></td>
+                <td>porte sur <strong>toutes</strong> les factures — simple</td></tr>
+            <tr><td>2</td><td><code>P<sub>M</sub>(D) = 0,02</code></td>
+                <td>« provenant de la mécanique » restreint la population</td></tr>
+            <tr><td>3</td><td><code>P(M ∩ D) = 0,013</code></td>
+                <td>le « et » sans restriction : une intersection</td></tr>
+            <tr><td>4</td><td><code>P<sub>D</sub>(M) = 0,79</code></td>
+                <td>« parmi les erronées » : conditionnelle <strong>renversée</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="formule">Le test unique : ce pourcentage porte-t-il sur <em>tout le monde</em><br>
+          ou sur <em>une sous-population</em> ?</div>
+        <p class="rap">Remarquez que 2 et 4 concernent la même case (mécanique ET erronée) mais
+           donnent des nombres très différents — 2 % contre 79 %. C'est l'écart entre
+           <code>P<sub>M</sub>(D)</code> et <code>P<sub>D</sub>(M)</code>, et il n'a rien
+           d'anormal.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Repérer l'événement contraire <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Un lot de 30 cartes est prélevé. <strong>X</strong> compte les cartes défectueuses.
+         Traduisez :</p>
+      <ol>
+        <li>« aucune carte n'est défectueuse »</li>
+        <li>« au moins une carte présente un défaut »</li>
+        <li>« au plus deux cartes sont défectueuses »</li>
+        <li>« plus de deux cartes sont défectueuses »</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Français</th><th>Symboles</th><th>Se calcule par…</th></tr></thead>
+          <tbody>
+            <tr><td>aucune</td><td><code>X = 0</code></td><td>directement</td></tr>
+            <tr><td><strong>au moins une</strong></td><td><code>X ⩾ 1</code></td>
+                <td><strong>1 − P(X = 0)</strong></td></tr>
+            <tr><td>au plus deux</td><td><code>X ⩽ 2</code></td>
+                <td>P(X=0) + P(X=1) + P(X=2)</td></tr>
+            <tr><td>plus de deux</td><td><code>X ⩾ 3</code></td>
+                <td><strong>1 − P(X ⩽ 2)</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Plus de 2 » ne contient pas 2</div>
+          <p>« Plus de deux » signifie <strong>strictement</strong> plus : X ⩾ 3. « Au moins
+             deux » signifie X ⩾ 2. Un cran d'écart, et le résultat change.</p>
+          <p>Le contraire de « X ⩾ 3 » est « X &lt; 3 », c'est-à-dire « X ⩽ 2 » — car X ne prend
+             que des valeurs entières. C'est ce glissement que le corrigé du DST note « par
+             complémentarité ».</p>
+        </div>
+        <p class="rap">Dès qu'une phrase contient « au moins » ou « plus de », écrivez
+           <code>1 − …</code> avant même de savoir par quoi le compléter.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="tableau-exo">
+  <h2><span class="num">02</span>Le tableau de contingence</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Compléter et interpréter <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Un assureur a 1 000 dossiers. 800 clients sont français, dont 720 n'ont eu aucun
+         incident de paiement. Au total, 120 clients ont eu un incident.</p>
+      <ol>
+        <li>Complétez le tableau.</li>
+        <li>Quel pourcentage de clients sont français <em>et</em> ont eu un incident ?</li>
+        <li>Quel pourcentage de clients <em>français</em> ont eu un incident ?</li>
+        <li>Quel pourcentage de clients <em>ayant eu un incident</em> sont français ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th></th><th>Incident</th><th>Pas d'incident</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Français</strong></td><td><strong>80</strong></td><td>720</td><td>800</td></tr>
+            <tr><td><strong>Étrangers</strong></td><td><strong>40</strong></td><td><strong>160</strong></td><td><strong>200</strong></td></tr>
+            <tr><td><strong>Total</strong></td><td>120</td><td><strong>880</strong></td><td>1 000</td></tr>
+          </tbody>
+        </table>
+        </div>
+<div class="bloc-code"><span class="langue">calcul — l'ordre des déductions</span><pre><code>français avec incident   = 800 − 720 = 80
+étrangers (total)        = 1000 − 800 = 200
+étrangers avec incident  = 120 − 80  = 40
+étrangers sans incident  = 200 − 40  = 160
+total sans incident      = 1000 − 120 = 880
+
+CONTRÔLE CROISÉ : 720 + 160 = 880   ✔</code></pre></div>
+        <p><strong>Les trois pourcentages :</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>2)  français ET incident :   80 / 1000 =  8 %     ← on divise par TOUT LE MONDE
+3)  incident parmi les français : 80 / 800 = 10 % ← on divise par les français
+4)  français parmi les incidents : 80 / 120 ≈ 67 % ← on divise par les incidents</code></pre></div>
+        <div class="formule">Même numérateur (80), trois dénominateurs.<br>
+          C'est <em>toute</em> la difficulté du chapitre.</div>
+        <p class="rap">Le contrôle croisé de la dernière ligne est gratuit : si 720 + 160 ne
+           faisait pas 880, une soustraction serait fausse. Faites-le systématiquement — il coûte
+           cinq secondes.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="arbre-exo">
+  <h2><span class="num">03</span>Construire l'arbre</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Des pourcentages à l'arbre <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Reprendre l'énoncé sous forme probabiliste : <em>80 % des clients sont français ; 10 % des
+         clients français ont eu un incident ; 20 % des clients étrangers ont eu un incident.</em></p>
+      <p>Placez les six probabilités de l'arbre, puis calculez les quatre chemins.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>1ᵉʳ niveau</strong> — <code>P(F) = 0,8</code> et
+           <code>P(F̄) = 1 − 0,8 = 0,2</code>.</p>
+        <p><strong>2ᵉ niveau</strong> — toutes conditionnelles :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P_F(I)  = 0,10        P_F(Ī)  = 1 − 0,10 = 0,90
+P_F̄(I) = 0,20        P_F̄(Ī) = 1 − 0,20 = 0,80</code></pre></div>
+        <p><strong>Les quatre chemins</strong> — on multiplie :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(F ∩ I)  = 0,8 × 0,10 = 0,08      ← français ET incident
+P(F ∩ Ī)  = 0,8 × 0,90 = 0,72
+P(F̄ ∩ I) = 0,2 × 0,20 = 0,04
+P(F̄ ∩ Ī) = 0,2 × 0,80 = 0,16
+
+CONTRÔLE : 0,08 + 0,72 + 0,04 + 0,16 = 1,00   ✔</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Deux contrôles qui ne coûtent rien</div>
+          <ol>
+            <li><strong>Chaque nœud somme à 1</strong> : 0,8 + 0,2 ✔ · 0,10 + 0,90 ✔ ·
+                0,20 + 0,80 ✔</li>
+            <li><strong>Les quatre chemins somment à 1</strong> — c'est la vérification globale.
+                Si le total n'est pas 1, une multiplication est fausse.</li>
+          </ol>
+          <p>Et une comparaison au tableau de l'exercice 3 : 0,08 × 1000 = 80 dossiers, 0,04 × 1000
+             = 40. Les deux approches donnent bien le même tableau.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Trois branches au premier niveau <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un poissonnier se fournit chez trois grossistes : 20 % chez A, 35 % chez B, le reste chez
+         C. Parmi les crabes de A, 5 % sont invendables ; 10 % pour ceux de B ; 20 % pour ceux de C.</p>
+      <p>Construisez l'arbre et calculez P(M), où M : « le crabe est invendable ».</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>« Le reste »</strong> : P(C) = 1 − 0,20 − 0,35 = <strong>0,45</strong>.
+           Contrôle : 0,20 + 0,35 + 0,45 = 1 ✔</p>
+<div class="bloc-code"><span class="langue">calcul — l'arbre</span><pre><code>              0,05   M        chemin : 0,20 × 0,05 = 0,010
+      ┌── A ──┤
+      │ 0,20   0,95   M̄       chemin : 0,20 × 0,95 = 0,190
+      │
+      │        0,10   M        chemin : 0,35 × 0,10 = 0,035
+  ●───┼── B ──┤
+      │ 0,35   0,90   M̄       chemin : 0,35 × 0,90 = 0,315
+      │
+      │        0,20   M        chemin : 0,45 × 0,20 = 0,090
+      └── C ──┤
+        0,45   0,80   M̄       chemin : 0,45 × 0,80 = 0,360
+
+CONTRÔLE : 0,010+0,190+0,035+0,315+0,090+0,360 = 1,000   ✔</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — probabilités totales</span><pre><code>P(M) = P(A∩M) + P(B∩M) + P(C∩M)
+     = 0,010 + 0,035 + 0,090
+     = 0,135
+
+13,5 % des crabes du poissonnier sont invendables.</code></pre></div>
+        <p class="rap">Contrôle de vraisemblance : P(M) est une <strong>moyenne pondérée</strong>
+           des trois taux (5 %, 10 %, 20 %). Elle doit donc tomber entre 5 % et 20 % — et pencher
+           vers le haut, puisque C, le plus mauvais fournisseur, représente presque la moitié des
+           achats. 13,5 % est cohérent ✔</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="totales-exo">
+  <h2><span class="num">04</span>Les probabilités totales</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>« Montrer que » <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Une entreprise produit des cartes mères sur deux sites. A produit 65 % des cartes, le
+         reste vient de B. 0,8 % des cartes de A sont défectueuses, contre 0,5 % pour celles de B.</p>
+      <p><strong>Montrer que P(D) = 0,006 95</strong>, où D : « la carte est défectueuse ».
+         Interpréter.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">rédaction attendue</span><pre><code>Données :  P(A) = 0,65    P(B) = 1 − 0,65 = 0,35
+           P_A(D) = 0,008  P_B(D) = 0,005
+
+Les événements A et B forment une partition de l'univers
+(une carte vient de A ou de B, et pas des deux).
+D'après la formule des probabilités totales :
+
+P(D) = P(A ∩ D) + P(B ∩ D)
+     = P(A) × P_A(D)  +  P(B) × P_B(D)
+     = 0,65 × 0,008   +  0,35 × 0,005
+     = 0,005 2        +  0,001 75
+     = 0,006 95                          ✔ conforme à l'énoncé
+
+Interprétation : 0,695 % des cartes produites sont défectueuses,
+soit environ 7 cartes sur 1 000.</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Montrer que » impose de dérouler le calcul</div>
+          <p>La valeur est donnée dans l'énoncé : écrire « P(D) = 0,006 95 » ne rapporte
+             <strong>rien</strong>. Le point porte sur la démarche — citer la formule des
+             probabilités totales, justifier la partition, poser les produits.</p>
+          <p>L'avantage : vous savez immédiatement si vous vous êtes trompé. Et si le calcul ne
+             tombe pas juste, <strong>continuez l'exercice avec la valeur de l'énoncé</strong> —
+             les questions suivantes restent accessibles.</p>
+        </div>
+        <p class="rap">Le « environ 7 cartes sur 1 000 » est un bonus : convertir une probabilité
+           minuscule en effectif parlant montre qu'on comprend le résultat.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="bayes">
+  <h2><span class="num">05</span>Renverser le conditionnement</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>D'où vient la carte défectueuse ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Suite de l'exercice 6. Une carte défectueuse est prélevée au hasard dans le lot. Quelle
+         est la probabilité qu'elle provienne du site A ? Arrondir au millième.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p>On cherche <code>P<sub>D</sub>(A)</code> : le conditionnement est
+           <strong>renversé</strong> par rapport à l'arbre.</p>
+<div class="bloc-code"><span class="langue">calcul — la méthode en 3 temps</span><pre><code>1. le NUMÉRATEUR : un seul chemin de l'arbre
+   P(A ∩ D) = 0,65 × 0,008 = 0,005 2
+
+2. le DÉNOMINATEUR : déjà calculé à la question précédente
+   P(D) = 0,006 95
+
+3. on divise
+   P_D(A) = P(A ∩ D) / P(D)
+          = 0,005 2 / 0,006 95
+          ≈ 0,748
+
+Conclusion : parmi les cartes défectueuses, environ 74,8 %
+proviennent du site A.</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 Deux contrôles sur ce résultat</div>
+          <ol>
+            <li><strong>Il doit dépasser P(A) = 0,65.</strong> A est le site le plus défaillant :
+                apprendre que la carte est défectueuse rend A <em>plus</em> probable.
+                0,748 &gt; 0,65 ✔</li>
+            <li><strong>Remultiplier.</strong> 0,006 95 × 0,748 = 0,005 199 ≈ 0,005 2 ✔</li>
+          </ol>
+          <p>Et pour comprendre le 74,8 % : sur 100 000 cartes, A en produit 65 000 dont 520
+             défectueuses, B en produit 35 000 dont 175. Total 695 défauts, dont 520 de A —
+             soit 74,8 % ✔ Le raisonnement en effectifs confirme toujours la formule.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Les factures du garage <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Les factures d'un garage viennent de deux ateliers : 65 % de la mécanique, le reste de la
+         carrosserie. 2 % des factures de mécanique sont erronées, contre 1 % pour la carrosserie.</p>
+      <ol>
+        <li>Déduire de l'énoncé P(M), P(C), P<sub>M</sub>(D) et P<sub>C</sub>(D).</li>
+        <li>Calculer P(D ∩ M) et P(D ∩ C), puis en déduire P(D).</li>
+        <li>Calculer la probabilité qu'une facture erronée provienne de la carrosserie.
+            Arrondir à 10⁻⁴.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul — 1. lecture de l'énoncé</span><pre><code>P(M)    = 0,65          « 65 % des factures proviennent de la mécanique »
+P(C)    = 0,35          « le reste » → 1 − 0,65
+P_M(D)  = 0,02          « 2 % DES FACTURES DE MÉCANIQUE » → conditionnelle
+P_C(D)  = 0,01          idem pour la carrosserie</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 2. intersections et total</span><pre><code>P(D ∩ M) = P(M) × P_M(D) = 0,65 × 0,02 = 0,013
+P(D ∩ C) = P(C) × P_C(D) = 0,35 × 0,01 = 0,003 5
+
+P(D) = 0,013 + 0,003 5 = 0,016 5
+
+1,65 % des factures du garage sont erronées.</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 3. on renverse</span><pre><code>P_D(C) = P(D ∩ C) / P(D)
+       = 0,003 5 / 0,016 5
+       = 0,212121…
+       ≈ 0,2121   (à 10⁻⁴)
+
+Conclusion : parmi les factures erronées, environ 21,21 %
+proviennent de l'atelier de carrosserie.</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le contrôle par le complémentaire</div>
+          <p>On peut vérifier sans refaire le calcul : la facture erronée vient
+             <strong>forcément</strong> de l'un des deux ateliers, donc</p>
+          <div class="formule">P<sub>D</sub>(M) + P<sub>D</sub>(C) = 1</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P_D(M) = 0,013 / 0,016 5 ≈ 0,7879
+0,7879 + 0,2121 = 1,0000    ✔</code></pre></div>
+          <p>Ce contrôle marche à chaque fois qu'il n'y a que deux branches : c'est la
+             complémentarité appliquée à l'univers réduit.</p>
+        </div>
+        <p class="rap">Notez l'ordre de grandeur : la carrosserie ne produit que 35 % des factures
+           <em>et</em> commet deux fois moins d'erreurs — elle ne pèse donc que 21 % des erreurs.
+           Les deux effets se cumulent.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="indep-exo">
+  <h2><span class="num">06</span>Événements indépendants</h2>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Les deux défauts <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Une pièce peut présenter deux défauts. A : « défaut <em>a</em> », <code>P(A) = 0,02</code>.
+         B : « défaut <em>b</em> », <code>P(B) = 0,01</code>. A et B sont indépendants. Calculez :</p>
+      <ol>
+        <li>E₁ : « la pièce présente les deux défauts »</li>
+        <li>E₂ : « la pièce est défectueuse », c'est-à-dire présente au moins un défaut</li>
+        <li>E₃ : « la pièce ne présente aucun défaut » — par deux méthodes</li>
+        <li>la probabilité que la pièce ait les deux défauts sachant qu'elle est défectueuse
+            (à 10⁻⁴)</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul — 1 et 2</span><pre><code>E₁ = A ∩ B
+P(E₁) = P(A) × P(B)              ← licite : A et B indépendants
+      = 0,02 × 0,01 = 0,000 2
+
+E₂ = A ∪ B
+P(E₂) = P(A) + P(B) − P(A ∩ B)
+      = 0,02 + 0,01 − 0,000 2
+      = 0,029 8                  soit 2,98 % de pièces défectueuses</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 3, deux méthodes</span><pre><code>méthode 1 : E₃ = Ā ∩ B̄, et Ā, B̄ sont indépendants
+P(E₃) = P(Ā) × P(B̄) = 0,98 × 0,99 = 0,970 2
+
+méthode 2 : E₃ est le contraire de E₂
+P(E₃) = 1 − P(A ∪ B) = 1 − 0,029 8 = 0,970 2      ✔ identique
+
+97,02 % des pièces sont saines.</code></pre></div>
+        <div class="encart corrige">
+          <div class="titre">🔧 Corrigé — la question 4 du corrigé est fausse d'un facteur 10</div>
+          <p>La mise en place du corrigé d'origine est juste :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P_A∪B(A ∩ B) = P((A∪B) ∩ (A∩B)) / P(A∪B)
+             = P(A ∩ B) / P(A ∪ B)        ← A∩B est inclus dans A∪B
+             = 0,000 2 / 0,029 8</code></pre></div>
+          <p>Mais la division est mal conduite. Le corrigé annonce <strong>0,067</strong> et conclut
+             « 6,7 % des pièces défectueuses ont les deux défauts ». Le vrai résultat :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>0,000 2 / 0,029 8 = 0,006 711…
+
+arrondi à 10⁻⁴ :  0,006 7     →  0,67 %,  et non 6,7 %</code></pre></div>
+          <p><strong>La vérification par remultiplication :</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>0,029 8 × 0,067   = 0,001 997     ✘ on attendait 0,000 2
+0,029 8 × 0,006 7 = 0,000 200     ✔</code></pre></div>
+          <p>Et le contrôle de vraisemblance suffisait : 0,029 8 / 0,000 2 = <strong>149</strong>,
+             donc une pièce défectueuse sur 149 environ a les deux défauts. Une sur 149, c'est
+             0,67 % — pas 6,7 % (qui serait une sur quinze).</p>
+        </div>
+        <p class="rap">Règle générale : <strong>après avoir divisé deux petits nombres,
+           remultipliez</strong>. C'est le seul contrôle qui attrape les erreurs d'un facteur 10,
+           et ce sont les plus fréquentes.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Indépendants ou incompatibles ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pour chaque couple d'événements, dites s'ils sont incompatibles, indépendants, ou ni l'un
+         ni l'autre :</p>
+      <ol>
+        <li>Lancer un dé : A « le résultat est 2 », B « le résultat est 5 ».</li>
+        <li>Lancer deux fois une pièce : A « pile au 1ᵉʳ lancer », B « pile au 2ᵉ lancer ».</li>
+        <li>Tirer une carte : A « c'est un roi », B « c'est un cœur ».</li>
+        <li>Assurance : F « le client est français », I « le client a eu un incident »,
+            avec P(F) = 0,8, P(I) = 0,12, P(F ∩ I) = 0,08.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>1. Incompatibles.</strong> Un dé ne peut pas afficher 2 <em>et</em> 5 au même
+           lancer : <code>A ∩ B = ∅</code>, donc <code>P(A ∩ B) = 0</code>. Ils ne sont
+           <strong>pas</strong> indépendants — savoir que le résultat est 2 garantit qu'il n'est
+           pas 5, c'est une information maximale.</p>
+        <p><strong>2. Indépendants.</strong> Deux lancers successifs ne s'influencent pas.
+           <code>P(A ∩ B) = 0,5 × 0,5 = 0,25</code> ✔ Et ils ne sont pas incompatibles : « pile,
+           pile » existe.</p>
+        <p><strong>3. Indépendants</strong> — et c'est contre-intuitif :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(A) = 4/52 = 1/13        (quatre rois)
+P(B) = 13/52 = 1/4        (treize cœurs)
+P(A ∩ B) = 1/52           (le roi de cœur, une seule carte)
+
+test :  P(A) × P(B) = 1/13 × 1/4 = 1/52    ✔ égal à P(A ∩ B)
+
+→ indépendants</code></pre></div>
+        <p>Savoir que la carte est un cœur ne change pas la probabilité que ce soit un roi : il y a
+           un roi parmi les 13 cœurs, comme il y a 4 rois parmi 52 cartes. C'est parce que le jeu
+           est un <em>rectangle parfait</em> 4 × 13.</p>
+        <p><strong>4. Ni l'un ni l'autre.</strong></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>incompatibles ?  P(F ∩ I) = 0,08 ≠ 0    →  NON
+indépendants ?   P(F) × P(I) = 0,8 × 0,12 = 0,096
+                 or P(F ∩ I) = 0,08 ≠ 0,096   →  NON
+
+→ les deux événements sont DÉPENDANTS</code></pre></div>
+        <p>Et le sens de la dépendance se lit : <code>P<sub>F</sub>(I) = 0,10</code> est
+           <strong>inférieur</strong> à <code>P(I) = 0,12</code>. Être français fait légèrement
+           <em>baisser</em> le risque d'incident.</p>
+        <div class="formule">Le test d'indépendance, toujours le même :<br>
+          P(A ∩ B) = P(A) × P(B) ?</div>
+        <p class="rap">Ne <em>supposez</em> jamais l'indépendance : soit l'énoncé la donne
+           (« on suppose les deux événements indépendants »), soit vous la démontrez par le test.
+           L'utiliser sans justification fait perdre le point.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="dst">
+  <h2><span class="num">07</span>Sujets de DST</h2>
+
+  <article class="exo">
+    <h3><span class="no">11</span>Les crabes du poissonnier <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Sujet complet, tel que posé. Un poissonnier se fournit chez trois grossistes A, B et C.
+         20 % des crabes viennent de A, 35 % de B, le reste de C. Parmi les crabes de A, 5 % ne
+         peuvent être vendus ; 10 % pour B ; 20 % pour C. M : « le crabe ne peut être vendu ».</p>
+      <ol>
+        <li>Calculer la probabilité que le crabe provienne de A et ne puisse être vendu.</li>
+        <li>Montrer que P(M) = 0,135.</li>
+        <li>Un crabe invendable est trouvé. Quelle est la probabilité qu'il vienne de C ?</li>
+        <li>Le poissonnier veut réduire ses pertes. Sur quel grossiste agir en priorité ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul — 1 et 2</span><pre><code>P(C) = 1 − 0,20 − 0,35 = 0,45
+
+1)  P(A ∩ M) = P(A) × P_A(M) = 0,20 × 0,05 = 0,010
+    1 % des crabes viennent de A et sont invendables.
+
+2)  P(M) = P(A∩M) + P(B∩M) + P(C∩M)
+         = 0,20×0,05 + 0,35×0,10 + 0,45×0,20
+         = 0,010 + 0,035 + 0,090
+         = 0,135                              ✔</code></pre></div>
+<div class="bloc-code"><span class="langue">calcul — 3</span><pre><code>P_M(C) = P(C ∩ M) / P(M)
+       = 0,090 / 0,135
+       = 0,666…  ≈  0,667
+
+Parmi les crabes invendables, deux tiers proviennent du grossiste C.</code></pre></div>
+        <p><strong>4. Sur quel grossiste agir ?</strong></p>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Grossiste</th><th>Part des achats</th><th>Taux d'invendables</th>
+            <th>Part des pertes</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>20 %</td><td>5 %</td><td>0,010 / 0,135 = 7,4 %</td></tr>
+            <tr><td>B</td><td>35 %</td><td>10 %</td><td>0,035 / 0,135 = 25,9 %</td></tr>
+            <tr><td><strong>C</strong></td><td>45 %</td><td><strong>20 %</strong></td>
+                <td><strong>0,090 / 0,135 = 66,7 %</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>C, sans hésiter</strong> — et pour deux raisons qui se cumulent : c'est le plus
+           gros fournisseur (45 %) <em>et</em> le plus mauvais (20 % d'invendables). Il concentre
+           les deux tiers des pertes. Négocier la qualité avec C, ou basculer une partie des achats
+           vers A, aurait l'effet le plus fort.</p>
+        <p class="rap">Contrôle : les trois parts de pertes doivent totaliser 100 % —
+           7,4 + 25,9 + 66,7 = 100 ✔ C'est la complémentarité sur l'univers réduit aux crabes
+           invendables.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">12</span>Le piège du taux et de l'effectif <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Dans l'exemple de l'assureur : seulement 10 % des clients français ont eu un incident,
+         contre 20 % des étrangers. Pourtant, 67 % des incidents viennent de clients français.
+         Expliquez ce paradoxe apparent — et dites ce qu'il faut regarder pour comparer les deux
+         populations.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>Il n'y a pas de paradoxe : les deux chiffres répondent à deux questions
+           différentes.</strong></p>
+<div class="bloc-code"><span class="langue">calcul — en effectifs</span><pre><code>français  : 800 clients × 10 % =  80 incidents
+étrangers : 200 clients × 20 % =  40 incidents
+                                 ───
+                                 120 incidents
+
+part des français dans les incidents : 80 / 120 ≈ 67 %</code></pre></div>
+        <p>Les français sont <strong>quatre fois plus nombreux</strong>. Un taux deux fois plus
+           faible appliqué à une population quatre fois plus grande donne un effectif deux fois
+           plus grand. Les deux affirmations sont vraies en même temps.</p>
+        <div class="encart savoir">
+          <div class="titre">💡 Quel chiffre regarder, et pour quoi faire</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>La question</th><th>Le bon indicateur</th></tr></thead>
+            <tbody>
+              <tr><td>« Quel groupe est le plus à risque ? »</td>
+                  <td>le <strong>taux</strong> : P<sub>F</sub>(I) contre P<sub>F̄</sub>(I) —
+                      10 % contre 20 %</td></tr>
+              <tr><td>« D'où viennent mes pertes ? »</td>
+                  <td>l'<strong>effectif</strong> : P<sub>I</sub>(F) — 67 % des incidents</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Confondre les deux est l'erreur de raisonnement la plus répandue hors des maths. En
+             médecine : « 99 % des malades ont ce symptôme » ne dit rien sur la probabilité d'être
+             malade quand on a le symptôme. En sécurité : un détecteur fiable à 99 % noie les
+             analystes sous les fausses alertes, parce que les attaques sont rares.</p>
+        </div>
+        <p class="rap">C'est <strong>l'effet de base</strong> (<em>base rate fallacy</em>), et
+           c'est la vraie raison d'être de ce chapitre : une probabilité conditionnelle ne se lit
+           jamais sans savoir sur quelle population elle porte.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Probabilités conditionnelles » : tableau de contingence de l'assureur et arbre pondéré</li>
+      <li>« Chapitre 4 — partie 2 : événements indépendants », exemple des deux défauts</li>
+      <li>Sujets de DST : cartes mères (sites A et B), crabes et grossistes, factures de garage</li>
+      <li>Copies corrigées notées 19,5/20 et 20/20 (un élève, Firas Ben Ammar)</li>
+      <li>Le cours du chapitre : <a href="cours.html">Probabilités conditionnelles</a></li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

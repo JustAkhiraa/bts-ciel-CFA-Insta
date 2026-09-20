@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration Linux — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Test Linux noté sur 20, exercices d'application, TP permissions et TP accès et privilèges, entièrement corrigés.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#test">1 · Test Linux noté /20</a></li>
+    <li><a href="#fichiers">2 · Manipuler fichiers et dossiers</a></li>
+    <li><a href="#apt">3 · Paquets et processus</a></li>
+    <li><a href="#comptes">4 · Utilisateurs et groupes</a></li>
+    <li><a href="#tp-perm">5 · TP permissions</a></li>
+    <li><a href="#tp-acces">6 · TP accès et privilèges</a></li>
+    <li><a href="#synthese">7 · Cas de synthèse</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 05</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Administration Linux — exercices</h1>
+  <p class="chapeau">Le test noté, les exercices d'application et les deux TP, corrigés avec les
+     commandes exactes et les pièges qui coûtent des points.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Comment travailler ce chapitre</h2>
+      <p>Linux ne s'apprend pas en lisant. <strong>Ouvrez une VM Debian</strong> et tapez chaque
+         commande. Les corrections donnent la commande <em>et</em> la raison — c'est la raison qui
+         est notée, parce que c'est elle qui vous permettra de retrouver la commande le jour où
+         vous l'aurez oubliée.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="test">
+  <h2><span class="num">01</span>Test Linux noté /20</h2>
+
+  <p>L'évaluation, en 30 minutes. Répondez d'abord entièrement, puis ouvrez la correction.</p>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Commandes et permissions — questions 1 à 5 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Quelle commande affiche les informations détaillées, <strong>y compris les
+            permissions</strong>, pour tous les fichiers d'un répertoire ?</li>
+        <li>Que signifie la lettre <code>x</code> dans le bloc de permissions d'un fichier
+            régulier, par exemple <code>-rwxr-x---</code> ?</li>
+        <li>Quelle commande permet de créer un nouvel utilisateur ?</li>
+        <li>Quel fichier système contient la liste principale des comptes utilisateurs locaux, avec
+            leur UID, GID principal et répertoire personnel ?<br>
+            <code>A</code> <code>/etc/shadow</code> · <code>B</code> <code>/etc/passwd</code> ·
+            <code>C</code> <code>/etc/group</code> · <code>D</code> <code>/etc/login.defs</code></li>
+        <li>Vous exécutez <code>chmod 640 fichier.txt</code>. Quels droits obtient le
+            <strong>groupe</strong> ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Réponse</th><th>Commentaire</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>ls -l</code></td>
+                <td><code>ls -la</code> pour inclure les fichiers cachés. <code>ll</code> existe
+                    sur certaines distributions, mais c'est un <em>alias</em>, pas une commande —
+                    ne le citez pas seul</td></tr>
+            <tr><td>2</td><td><strong>Exécution</strong> (<em>execute</em>)</td>
+                <td>Sur un <strong>fichier</strong> : permet de le lancer comme un programme.
+                    Attention, sur un <strong>répertoire</strong>, <code>x</code> signifie
+                    « traverser » — c'est la question 15</td></tr>
+            <tr><td>3</td><td><code>useradd</code> ou <code>adduser</code></td>
+                <td>Ex. <code>sudo useradd marc</code>. Sous Debian, <code>adduser</code> est
+                    préférable : il est interactif et crée le répertoire personnel</td></tr>
+            <tr><td>4</td><td class="rep-ok"><strong>B</strong> — <code>/etc/passwd</code></td>
+                <td><code>/etc/shadow</code> contient les <strong>mots de passe chiffrés</strong>.
+                    Malgré son nom, <code>passwd</code> n'en contient plus depuis longtemps</td></tr>
+            <tr><td>5</td><td><strong>Lecture seule</strong> (<code>r--</code>)</td>
+                <td><code>640</code> = <code>rw-</code> <code>r--</code> <code>---</code>.
+                    Le 4 du milieu correspond au groupe : <code>r</code> seul</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Question 4 — le piège du nom</div>
+          <p><code>/etc/passwd</code> ne contient <strong>aucun mot de passe</strong>, alors que
+             c'est ce que son nom suggère. Historiquement il en contenait, mais comme il doit
+             rester <strong>lisible par tous</strong> — pour que le système puisse traduire un UID
+             en nom d'utilisateur — les mots de passe ont été déplacés dans
+             <code>/etc/shadow</code>, lisible par root seul. Le nom est resté.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Groupes, suppression, sécurité — questions 6 à 10 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol start="6">
+        <li>Quelle commande ajoute un utilisateur au groupe <code>developpeurs</code>
+            <strong>sans le retirer de ses autres groupes</strong> ?<br>
+            <code>A</code> <code>groupadd developpeurs utilisateur</code> ·
+            <code>B</code> <code>usermod -aG developpeurs utilisateur</code> ·
+            <code>C</code> <code>usermod -G developpeurs utilisateur</code> ·
+            <code>D</code> <code>gpasswd -d developpeurs utilisateur</code></li>
+        <li>Que se passe-t-il si vous exécutez <code>rm -r /home/utilisateur</code> ?</li>
+        <li>Sur un système multi-utilisateurs, quel est le meilleur moyen de permettre à plusieurs
+            utilisateurs d'écrire dans un même répertoire de projet, sans leur donner un accès
+            complet au système ?<br>
+            <code>A</code> permission 777 · <code>B</code> mot de passe root pour tous ·
+            <code>C</code> groupe commun et <code>rwxrwx---</code> · <code>D</code> compte unique
+            partagé</li>
+        <li>Quelle commande change le propriétaire <strong>ET</strong> le groupe d'un fichier en
+            une seule opération ?<br>
+            <code>A</code> <code>chown</code> · <code>B</code> <code>passwd</code> ·
+            <code>C</code> <code>chmod</code> · <code>D</code> <code>chgrp</code></li>
+        <li>Donner à un utilisateur le droit d'exécuter <code>systemctl restart apache2</code>
+            sans lui ouvrir un shell root complet : quel mécanisme ?<br>
+            <code>A</code> modifier <code>/etc/shadow</code> UID 0 · <code>B</code> <code>sudo</code>
+            avec une règle dans <code>/etc/sudoers</code> · <code>C</code> donner le mot de passe
+            root · <code>D</code> changer le propriétaire de <code>/usr/bin/systemctl</code></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Réponse</th><th>Commentaire</th></tr></thead>
+          <tbody>
+            <tr><td>6</td><td class="rep-ok"><strong>B</strong> — <code>usermod -aG</code></td>
+                <td>L'option <code>-a</code> (<em>append</em>) est <strong>indispensable</strong>.
+                    La réponse C, sans <code>-a</code>, remplace <em>toute</em> la liste des
+                    groupes secondaires</td></tr>
+            <tr><td>7</td><td>Suppression <strong>récursive</strong></td>
+                <td>Supprime <code>/home/utilisateur</code> et <strong>tout son contenu</strong> :
+                    fichiers, sous-dossiers. Très destructeur, et sans corbeille</td></tr>
+            <tr><td>8</td><td class="rep-ok"><strong>C</strong> — groupe commun, <code>770</code></td>
+                <td>Sécurisé et propre. <code>777</code> ouvrirait à tout le système</td></tr>
+            <tr><td>9</td><td class="rep-ok"><strong>A</strong> — <code>chown</code></td>
+                <td>Syntaxe : <code>chown alice:projet fichier</code>. <code>chgrp</code> ne change
+                    que le groupe</td></tr>
+            <tr><td>10</td><td class="rep-ok"><strong>B</strong> — <code>sudoers</code></td>
+                <td>Sécurisé et <strong>granulaire</strong> : on autorise une commande précise, pas
+                    tout le système</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Question 10 — la règle sudoers exacte</div>
+<div class="bloc-code"><span class="langue">/etc/sudoers</span><pre><code>sudo visudo          # TOUJOURS visudo : il vérifie la syntaxe avant d'enregistrer
+
+# autoriser bob à redémarrer apache2, et rien d'autre, sans mot de passe
+bob ALL=(root) NOPASSWD: /usr/bin/systemctl restart apache2</code></pre></div>
+          <p><strong>Pourquoi les autres réponses sont dangereuses :</strong> mettre l'UID 0 à un
+             compte en fait un second root. Donner le mot de passe root supprime toute traçabilité.
+             Changer le propriétaire de <code>systemctl</code> lui donnerait le droit de
+             <em>tout</em> redémarrer, pas seulement Apache.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Fichiers, réseau, noyau — questions 11 à 20 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol start="11">
+        <li>Commande pour aller dans son répertoire personnel, <strong>sans spécifier de
+            chemin</strong> ?</li>
+        <li>Vous exécutez <code>rm *</code> dans un répertoire contenant fichiers et
+            sous-répertoires. Que se passe-t-il ?<br>
+            <code>A</code> rien sans <code>-r</code> · <code>B</code> seuls les fichiers sont
+            supprimés, les sous-répertoires restent · <code>C</code> tout est supprimé
+            récursivement · <code>D</code> seuls les sous-répertoires sont supprimés</li>
+        <li>Différence la plus significative entre <code>cp</code> et <code>mv</code> ?</li>
+        <li>Commande pour changer le mot de passe d'un utilisateur ?</li>
+        <li>Quelle action nécessite la permission <code>x</code> sur un <strong>répertoire</strong> ?<br>
+            <code>A</code> lister le contenu · <code>B</code> modifier les fichiers ·
+            <code>C</code> accéder (traverser) · <code>D</code> supprimer le répertoire</li>
+        <li>Commande pour afficher l'adresse IP d'une machine Linux ?</li>
+        <li>Sous Debian, commande pour redémarrer proprement le service réseau principal ?<br>
+            <code>A</code> <code>ifconfig restart</code> · <code>B</code>
+            <code>/etc/init.d/network restart</code> · <code>C</code>
+            <code>systemctl restart networking</code> · <code>D</code>
+            <code>service network restart</code></li>
+        <li>Configuration correcte dans <code>/etc/network/interfaces</code> pour
+            <code>ens33</code> en IP statique <code>10.0.0.10/24</code>, passerelle
+            <code>10.0.0.1</code> ?</li>
+        <li>Sur un serveur accessible en permanence, quel adressage et pourquoi ?</li>
+        <li>Rôle principal du noyau dans un système Linux, en une phrase ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Réponse</th><th>Commentaire</th></tr></thead>
+          <tbody>
+            <tr><td>11</td><td><code>cd</code> tout seul, ou <code>cd ~</code></td>
+                <td>Les deux sont acceptés</td></tr>
+            <tr><td>12</td><td class="rep-ok"><strong>B</strong></td>
+                <td>Les fichiers sont supprimés ; <code>rm</code> <strong>échoue</strong> sur les
+                    dossiers et affiche une erreur pour chacun, sauf avec <code>-r</code></td></tr>
+            <tr><td>13</td><td><code>cp</code> <strong>duplique</strong>, <code>mv</code>
+                <strong>déplace ou renomme</strong></td>
+                <td>Avec <code>cp</code> l'original reste ; avec <code>mv</code> il disparaît de
+                    son emplacement d'origine</td></tr>
+            <tr><td>14</td><td><code>passwd</code></td>
+                <td>Pour soi-même. <code>sudo passwd bob</code> pour un autre utilisateur</td></tr>
+            <tr><td>15</td><td class="rep-ok"><strong>C</strong> — traverser</td>
+                <td>Pour <strong>lister</strong> il faut <code>r</code> ; pour modifier un fichier
+                    il faut <code>w</code> <em>sur le fichier</em></td></tr>
+            <tr><td>16</td><td><code>ip addr</code> ou <code>ip a</code></td>
+                <td><code>ifconfig</code> est l'ancienne commande, souvent absente des Debian
+                    récentes</td></tr>
+            <tr><td>17</td><td class="rep-ok"><strong>C</strong> — <code>systemctl restart networking</code></td>
+                <td>Debian récente utilise <strong>systemd</strong>. Les réponses B et D sont les
+                    anciennes syntaxes SysVinit</td></tr>
+            <tr><td>18</td><td class="rep-ok"><strong>B</strong></td>
+                <td>Syntaxe classique avec <code>netmask</code> sur une ligne
+                    <strong>séparée</strong></td></tr>
+            <tr><td>19</td><td class="rep-ok"><strong>Statique</strong></td>
+                <td>Pour garantir une IP <strong>stable et prévisible</strong> : les clients et le
+                    DNS doivent pouvoir retrouver le serveur à la même adresse</td></tr>
+            <tr><td>20</td><td>Gérer les ressources</td>
+                <td>Le noyau gère le <strong>matériel, la mémoire et les processus</strong>, et
+                    fournit l'<strong>interface entre le matériel et les logiciels</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Question 18 — la configuration correcte, ligne à ligne</div>
+<div class="bloc-code"><span class="langue">/etc/network/interfaces</span><pre><code>auto ens33                      ← indispensable : active l'interface au démarrage
+iface ens33 inet static         ← « static » et non « dhcp »
+    address 10.0.0.10           ← SANS le /24 dans ce fichier
+    netmask 255.255.255.0       ← le masque sur sa PROPRE ligne
+    gateway 10.0.0.1</code></pre></div>
+          <p><strong>Pourquoi A est faux :</strong> il manque <code>auto</code>, et l'adresse est
+             écrite en CIDR (<code>10.0.0.10/24</code>), ce que cette syntaxe n'accepte pas.<br>
+             <strong>Pourquoi C est faux :</strong> <code>dhcp</code> au lieu de
+             <code>static</code> — c'est exactement l'inverse de ce qui est demandé.<br>
+             <strong>Pourquoi D est faux :</strong> <code>iface ens33 inet address</code> n'est pas
+             une syntaxe valide ; il faut le mot-clé <code>static</code>.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Question 12 — l'erreur de raisonnement</div>
+          <p>Beaucoup répondent A (« rien sans <code>-r</code> ») ou C (« tout est supprimé »). Les
+             deux sont faux, et pour la même raison : <code>rm *</code> traite les entrées
+             <strong>une par une</strong>. Les fichiers partent, les dossiers provoquent une erreur
+             — <em>et la commande continue</em>. Le résultat est donc <strong>partiel</strong> :
+             c'est le pire des cas, car on croit que rien ne s'est passé alors que tous les
+             fichiers ont disparu.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="fichiers">
+  <h2><span class="num">02</span>Manipuler fichiers et dossiers</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Exercice d'application du cours <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Depuis votre répertoire personnel, écrivez les commandes pour :</p>
+      <ol>
+        <li>Lister les fichiers et dossiers <strong>cachés</strong></li>
+        <li>Créer un fichier <code>fich</code></li>
+        <li>Créer un dossier <code>rep</code></li>
+        <li>Créer un dossier et un sous-dossier à l'intérieur : <code>dossier1/dossier2</code></li>
+        <li>Afficher le répertoire de travail</li>
+        <li>Retourner à la <strong>racine</strong></li>
+        <li>Effacer l'écran</li>
+        <li>Afficher l'aide de la commande <code>date</code></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>1.  ls -a                    # ou ls -la pour le détail en plus
+2.  touch fich
+3.  mkdir rep
+4.  mkdir -p dossier1/dossier2
+5.  pwd
+6.  cd /
+7.  clear
+8.  man date                 # ou date --help pour un résumé court</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les trois pièges de cet exercice</div>
+          <ul>
+            <li><strong>Question 4 — l'option <code>-p</code>.</strong> Sans elle,
+                <code>mkdir dossier1/dossier2</code> échoue :
+                <em>« impossible de créer le répertoire : aucun fichier ou dossier de ce type »</em>,
+                parce que <code>dossier1</code> n'existe pas encore. <code>-p</code> crée toute la
+                chaîne.</li>
+            <li><strong>Question 6 — la racine, pas le parent.</strong> C'est <code>cd /</code>.
+                <code>cd ..</code> remonterait d'un seul niveau, vers <code>/home</code>.</li>
+            <li><strong>Question 1 — <code>-a</code> et non <code>-l</code>.</strong> C'est
+                <code>-a</code> (<em>all</em>) qui révèle les fichiers cachés, ceux dont le nom
+                commence par un point. <code>-l</code> ne fait qu'ajouter le détail.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="apt">
+  <h2><span class="num">03</span>Paquets et processus</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Gestion des paquets APT <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Mettre à jour la <strong>base locale</strong> APT</li>
+        <li>Mettre à jour <strong>l'intégralité de la distribution</strong> avec les éventuels
+            nouveaux paquets disponibles dans les dépôts</li>
+        <li>Installer le paquet <code>php</code></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>1.  sudo apt update           # rafraîchit le CATALOGUE des paquets disponibles
+2.  sudo apt full-upgrade     # met à jour TOUT, y compris en retirant des paquets
+                              # (sudo apt upgrade suffit si rien ne doit être retiré)
+3.  sudo apt install php</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ La distinction que l'énoncé teste</div>
+          <p>La question 1 dit « <strong>base locale</strong> » : c'est <code>apt update</code>,
+             qui ne met <em>aucun logiciel</em> à jour — il télécharge seulement la liste de ce qui
+             est disponible.</p>
+          <p>La question 2 dit « <strong>l'intégralité de la distribution</strong> » : c'est
+             <code>full-upgrade</code> (anciennement <code>dist-upgrade</code>), qui accepte de
+             retirer des paquets devenus incompatibles, là où <code>upgrade</code> refuse de
+             supprimer quoi que ce soit.</p>
+          <p>Et l'ordre compte : <code>upgrade</code> sans <code>update</code> préalable travaille
+             sur un catalogue périmé.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Gestion des processus <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Comment afficher une <strong>arborescence</strong> de tous les processus ?</li>
+        <li>Lancez le processus <code>sleep 1000</code> en <strong>arrière-plan</strong>. Récupérez
+            son PID.</li>
+        <li>Replacez ce processus en <strong>avant-plan</strong>, puis <strong>stoppez-le (ne le
+            tuez pas)</strong> et replacez-le en arrière-plan.</li>
+        <li>Indiquez les <strong>détails</strong> de ce processus.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>1.  pstree                    # l'arborescence père → fils
+    pstree -p                 # avec les PID affichés
+
+2.  sleep 1000 &amp;
+    [1] 4271                  ← le shell répond : [n° de tâche] PID
+    echo $!                   # affiche le PID du dernier processus lancé en arrière-plan
+    jobs -l                   # liste les tâches AVEC leur PID
+
+3.  fg %1                     # ramène la tâche 1 en AVANT-plan
+    Ctrl + Z                  # la STOPPE (suspend) — elle n'est PAS tuée
+    bg %1                     # la relance en ARRIÈRE-plan
+
+4.  ps -f -p 4271             # les détails du processus
+    ps -f -p $(pgrep -f "sleep 1000")   # sans avoir noté le PID</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ « Stoppez-le, ne le tuez pas »</div>
+          <p>L'énoncé insiste, et c'est là que se joue la question. <strong>Stopper</strong>, c'est
+             <kbd>Ctrl</kbd>+<kbd>Z</kbd> : le processus est <em>suspendu</em>, il reste en mémoire
+             dans l'état <code>T</code> (<em>stopped</em>) et peut repartir.
+             <strong>Tuer</strong>, c'est <code>kill</code> ou <kbd>Ctrl</kbd>+<kbd>C</kbd> : il
+             disparaît définitivement.</p>
+          <p>Répondre <code>kill</code> à la question 3 fait perdre le point, même si la commande
+             est juste par ailleurs.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi <code>sleep 1000</code> pour cet exercice</div>
+          <p>Parce qu'il ne fait <em>rien</em> pendant mille secondes : c'est le processus idéal
+             pour observer les états sans risque. On peut le suspendre, le relancer, le tuer — rien
+             ne se casse. C'est le « cobaye » standard des TP sur les processus.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="comptes">
+  <h2><span class="num">04</span>Utilisateurs et groupes</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Créer des comptes et un groupe <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Créer deux utilisateurs : <strong>Bob</strong> et <strong>Alice</strong></li>
+        <li>Créer un groupe <strong><code>Projet</code></strong> et y ajouter les deux
+            utilisateurs</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>sudo adduser bob                  # interactif : demande le mot de passe, crée /home/bob
+sudo adduser alice
+
+sudo addgroup projet              # ou : sudo groupadd projet
+
+sudo usermod -aG projet bob       # -aG : AJOUTE sans écraser les groupes existants
+sudo usermod -aG projet alice
+
+# vérification
+groups bob                        # doit afficher :  bob : bob projet
+cat /etc/group | grep projet      # projet:x:1002:bob,alice
+id alice</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Deux réflexes à prendre</div>
+          <ul>
+            <li><strong>Toujours <code>-aG</code>, jamais <code>-G</code> seul.</strong> Sans
+                <code>-a</code>, vous retirez l'utilisateur de tous ses autres groupes — y compris
+                <code>sudo</code>. Sur votre propre compte, vous perdez l'administration de la
+                machine.</li>
+            <li><strong>Noms en minuscules.</strong> L'énoncé écrit « Bob », « Alice » et
+                « Projet » avec des majuscules, mais l'usage sous Linux est le tout-minuscule : les
+                noms sont sensibles à la casse et les majuscules provoquent des surprises dans les
+                scripts. Créez <code>bob</code>, <code>alice</code>, <code>projet</code>.</li>
+          </ul>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 <code>adduser</code> ou <code>useradd</code> ?</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th></th><th><code>adduser</code></th><th><code>useradd</code></th></tr></thead>
+            <tbody>
+              <tr><td>Nature</td><td>Script convivial (Debian)</td><td>Commande bas niveau, universelle</td></tr>
+              <tr><td>Mot de passe</td><td><strong>Demandé</strong> interactivement</td><td>Aucun — compte inutilisable tel quel</td></tr>
+              <tr><td>Répertoire personnel</td><td><strong>Créé</strong> automatiquement</td><td>Seulement avec <code>-m</code></td></tr>
+              <tr><td>Recommandation</td><td class="rep-ok">En TP et en pratique</td><td>Dans les scripts d'automatisation</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="tp-perm">
+  <h2><span class="num">05</span>TP permissions</h2>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Droits symboliques et octaux <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur votre répertoire personnel :</p>
+      <ol>
+        <li>Créer le fichier <code>fichier</code></li>
+        <li>Lister les permissions</li>
+        <li>Enlever tous les droits en <strong>écriture et en lecture pour le groupe</strong>,
+            avec les <strong>symboles</strong></li>
+        <li>Ajouter le droit en <strong>exécution pour le propriétaire et les autres</strong>,
+            avec les <strong>numéros</strong></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>1.  touch fichier
+
+2.  ls -l fichier
+    -rw-r--r--  1 la copie A la copie A  0  9 sep 10:12 fichier     ← 644 par défaut
+
+3.  chmod g-rw fichier          # retire r ET w au groupe
+    ls -l fichier
+    -rw----r--                                             ← 604
+
+4.  chmod 705 fichier           # u = 7 (rwx), g = 0 (---), o = 5 (r-x)
+    ls -l fichier
+    -rwx---r-x                                             ← 705</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le raisonnement de la question 4, pas à pas</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>état après l'étape 3 :   rw- --- r--        =  6 0 4
+
+on ajoute x au propriétaire :   6 + 1 = 7   →  rwx
+le groupe ne change pas :             0     →  ---
+on ajoute x aux autres :        4 + 1 = 5   →  r-x
+
+                                            =  705</code></pre></div>
+          <p><strong>L'énoncé impose la méthode</strong> : symboles à la question 3, numéros à la
+             question 4. Utiliser <code>chmod u+x,o+x</code> à la question 4 donne le bon résultat
+             mais ne répond pas à la consigne.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le piège du calcul octal</div>
+          <p>En octal, on ne « modifie » pas : on <strong>réécrit les trois chiffres en entier</strong>.
+             Il faut donc connaître l'état actuel avant de calculer. C'est pourquoi la question 2
+             — lister les permissions — n'est pas décorative : sans elle, la question 4 est
+             infaisable.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Le fichier exécutable <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Créez un répertoire <code>test</code>, puis un fichier <code>essai</code> dans ce
+            répertoire, et écrivez-y une phrase de votre choix. Listez les permissions du répertoire
+            et du fichier.</li>
+        <li>Retirez-vous le droit en <strong>lecture et en écriture</strong> sur <code>essai</code>,
+            puis essayez d'afficher son contenu et de le remplacer.</li>
+        <li>Rétablissez la lecture. Remplacez le contenu de <code>essai</code> par le texte
+            <code>echo "Ceci est un essai"</code>. Ajoutez-vous le droit en exécution et lancez
+            <code>./essai</code>. <strong>Quel est le problème ?</strong></li>
+        <li>Placez-vous dans <code>test</code> et retirez-vous le droit en <strong>lecture sur le
+            répertoire</strong>. Listez le contenu avec <code>ls</code>, puis affichez le contenu de
+            <code>essai</code>. <strong>Qu'en déduisez-vous ?</strong></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Mise en place</h4>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>mkdir test
+cd test
+echo "une phrase" > essai
+ls -l
+ls -ld .                        # -d : les droits du RÉPERTOIRE lui-même, pas de son contenu
+
+drwxr-xr-x  2 la copie A la copie A  4096 ... .        ← 755 pour le répertoire
+-rw-r--r--  1 la copie A la copie A    11 ... essai    ← 644 pour le fichier</code></pre></div>
+
+        <h4>2. Sans lecture ni écriture</h4>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>chmod u-rw essai
+cat essai
+  cat: essai: Permission non accordée      ← la LECTURE est refusée
+
+echo "autre phrase" > essai
+  bash: essai: Permission non accordée      ← l'ÉCRITURE est refusée</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Vous êtes propriétaire, et pourtant bloqué</div>
+          <p>Résultat contre-intuitif : le fichier vous appartient, mais vous ne pouvez plus le
+             lire. <strong>Les droits s'appliquent aussi au propriétaire.</strong> La seule
+             différence est que vous pouvez, vous, <code>chmod</code> pour vous les redonner —
+             ce que personne d'autre ne peut faire. Le propriétaire n'est pas au-dessus des droits,
+             il est <em>maître</em> des droits. <code>root</code>, lui, ignore tout cela.</p>
+        </div>
+
+        <h4>3. Le fichier exécutable — et son problème</h4>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>chmod u+rw essai
+echo 'echo "Ceci est un essai"' > essai
+chmod u+x essai
+./essai
+  Ceci est un essai                          ← ça fonctionne</code></pre></div>
+        <p><strong>Le problème :</strong> le fichier ne comporte <strong>aucune ligne
+           <em>shebang</em></strong> — la première ligne <code>#!/bin/bash</code> qui indique au
+           système <em>quel interpréteur</em> doit lire ce fichier.</p>
+        <p>Ici cela fonctionne quand même, parce que le shell, ne trouvant pas de shebang, se
+           rabat sur lui-même pour exécuter le contenu. Mais ce comportement n'est pas garanti : un
+           script Python ou Perl sans shebang échouerait. Et si l'utilisateur travaille sous un
+           shell différent, le résultat peut varier.</p>
+<div class="bloc-code"><span class="langue">bash</span><pre><code># la version correcte
+printf '#!/bin/bash\necho "Ceci est un essai"\n' > essai
+chmod u+x essai
+./essai</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi <code>./essai</code> et pas <code>essai</code></div>
+          <p>Le shell ne cherche les commandes que dans les répertoires listés dans la variable
+             <code>PATH</code> — <code>/bin</code>, <code>/usr/bin</code>… Le répertoire courant
+             n'y figure <strong>pas</strong>, délibérément : si c'était le cas, il suffirait de
+             déposer un fichier nommé <code>ls</code> dans un dossier partagé pour piéger quiconque
+             y taperait <code>ls</code>. Le <code>./</code> est donc une mesure de sécurité : il
+             dit explicitement « exécute <em>ce</em> fichier-ci, celui du répertoire où je suis ».</p>
+        </div>
+
+        <h4>4. Sans droit de lecture sur le répertoire</h4>
+<div class="bloc-code"><span class="langue">bash</span><pre><code>cd ~/test
+chmod u-r .            # on retire r sur le RÉPERTOIRE (x est conservé)
+
+ls
+  ls: impossible d'ouvrir le répertoire '.': Permission non accordée
+
+cat essai
+  Ceci est un essai                          ← ça marche encore !</code></pre></div>
+        <p><strong>Ce qu'on en déduit</strong> — et c'est tout l'objet du TP :</p>
+        <ul>
+          <li>Sur un répertoire, <code>r</code> autorise à <strong>lire la liste des noms</strong>
+              qu'il contient.</li>
+          <li><code>x</code> autorise à le <strong>traverser</strong>, donc à accéder à un fichier
+              <em>dont on connaît déjà le nom</em>.</li>
+        </ul>
+        <p>Sans <code>r</code> mais avec <code>x</code>, le répertoire devient une pièce plongée
+           dans le noir : on ne voit pas ce qu'il y a dedans, mais si l'on sait exactement où
+           tendre la main, on attrape l'objet. C'est un mécanisme réellement utilisé — par exemple
+           sur <code>/home</code>, pour que chacun atteigne son propre dossier sans pouvoir énumérer
+           ceux des autres.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Le tableau complet des droits sur un répertoire</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Droits</th><th>Lister les noms</th><th>Ouvrir un fichier connu</th><th>Créer / supprimer</th></tr></thead>
+            <tbody>
+              <tr><td><code>r-x</code></td><td class="rep-ok">Oui</td><td class="rep-ok">Oui</td><td class="rep-non">Non</td></tr>
+              <tr><td><code>--x</code></td><td class="rep-non">Non</td><td class="rep-ok">Oui</td><td class="rep-non">Non</td></tr>
+              <tr><td><code>r--</code></td><td>Les noms seulement</td><td class="rep-non">Non</td><td class="rep-non">Non</td></tr>
+              <tr><td><code>rwx</code></td><td class="rep-ok">Oui</td><td class="rep-ok">Oui</td><td class="rep-ok">Oui</td></tr>
+              <tr><td><code>-wx</code></td><td class="rep-non">Non</td><td class="rep-ok">Oui</td><td class="rep-ok">Oui</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>À retenir : <strong>sans <code>x</code>, rien n'est possible</strong> dans un
+             répertoire, quels que soient les autres droits. Et <code>w</code> sur un répertoire
+             permet de <strong>supprimer un fichier même si l'on n'a aucun droit sur ce
+             fichier</strong> — car supprimer, c'est modifier le <em>répertoire</em>, pas le
+             fichier.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="tp-acces">
+  <h2><span class="num">06</span>TP accès et privilèges</h2>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Groupes HR et DIR <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur une VM Debian, dans le cadre de la mise en œuvre de la sécurité d'un serveur :</p>
+      <ol>
+        <li>Ajoutez deux groupes nommés <code>HR</code> et <code>DIR</code>.</li>
+        <li>Vérifiez que les nouveaux groupes ont bien été ajoutés.</li>
+        <li>Ajoutez l'utilisateur <code>jenny</code> (mot de passe <code>lasocial</code>), puis
+            intégrez-la au groupe <code>HR</code>.</li>
+        <li>Ajoutez <code>joe</code> (mot de passe <code>tooth</code>) et intégrez-le à
+            <code>HR</code>.</li>
+        <li>Ajoutez <code>john</code>, sans l'intégrer à <code>HR</code>.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">bash</span><pre><code>1.  sudo groupadd HR
+    sudo groupadd DIR
+
+2.  cat /etc/group                 # les nouveaux groupes apparaissent en BAS du fichier
+    cat /etc/group | tail -5       # plus lisible
+    getent group HR                # affiche uniquement la ligne du groupe HR
+
+3.  sudo adduser jenny             # mot de passe : lasocial, nom complet : Jenny
+    sudo usermod -aG HR jenny
+
+4.  sudo adduser joe               # mot de passe : tooth
+    sudo usermod -aG HR joe
+
+5.  sudo adduser john              # mot de passe : john
+
+# vérifications
+groups jenny        →  jenny : jenny HR
+groups john         →  john : john
+cat /etc/passwd | tail -3          # les trois comptes, avec UID, GID et /home</code></pre></div>
+        <div class="encart corrige">
+          <div class="titre">🔧 Corrigé — l'énoncé du TP contient un piège</div>
+          <p>Le sujet écrit <code>usermod –G HR jenny</code>, <strong>sans le <code>-a</code></strong>.
+             Sur ce TP précis, cela fonctionne par chance : les comptes viennent d'être créés et
+             n'ont encore aucun groupe secondaire à perdre.</p>
+          <p>Mais c'est une <strong>très mauvaise habitude</strong>. Appliquée à un compte existant,
+             la même commande le retirerait de tous ses autres groupes. Le test noté pose
+             d'ailleurs exactement cette question (n° 6) et attend <code>usermod -aG</code>.
+             <strong>Prenez le réflexe <code>-aG</code> dès maintenant</strong> — y compris quand
+             l'énoncé ne le fait pas.</p>
+          <p>Second détail : le sujet affiche des invites du type <code>cisco@ubuntu:~$#</code>,
+             qui mélangent le <code>$</code> de l'utilisateur simple et le <code>#</code> de root.
+             C'est une coquille de copier-coller ; la commande, elle, est bien à lancer avec
+             <code>sudo</code>.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Lire une ligne de <code>/etc/group</code></div>
+<div class="bloc-code"><span class="langue">/etc/group</span><pre><code>HR:x:1004:jenny,joe
+│  │   │      └──── la liste des membres SECONDAIRES du groupe
+│  │   └─────────── le GID
+│  └─────────────── x = le mot de passe de groupe est dans /etc/gshadow (quasi jamais utilisé)
+└────────────────── le nom du groupe</code></pre></div>
+          <p>Le <strong>groupe principal</strong> d'un utilisateur n'apparaît pas dans cette liste :
+             il est inscrit dans <code>/etc/passwd</code>. C'est pourquoi <code>groups jenny</code>
+             affiche <code>jenny HR</code> — son groupe personnel <em>et</em> son groupe
+             secondaire.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="synthese">
+  <h2><span class="num">07</span>Cas de synthèse</h2>
+
+  <article class="exo">
+    <h3><span class="no">11</span>Sécuriser un partage de service <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Le service <strong>Ressources humaines</strong> (<code>HR</code>) doit disposer d'un
+         répertoire de travail <code>/srv/rh</code> :</p>
+      <ul>
+        <li>les membres de <code>HR</code> peuvent y lire, écrire et créer des fichiers ;</li>
+        <li>la <strong>direction</strong> (<code>DIR</code>) doit pouvoir <strong>lire</strong>,
+            sans rien modifier ;</li>
+        <li><strong>personne d'autre</strong> ne doit pouvoir y entrer, ni même voir ce qu'il
+            contient ;</li>
+        <li>les fichiers créés dans ce répertoire doivent <strong>automatiquement</strong>
+            appartenir au bon groupe.</li>
+      </ul>
+      <p>Rédigez la suite de commandes, puis expliquez pourquoi les droits classiques
+         <code>u/g/o</code> ne suffisent pas ici.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>Pourquoi les droits classiques ne suffisent pas</h4>
+        <p>Le modèle <code>u/g/o</code> ne connaît qu'<strong>un seul groupe</strong> par fichier.
+           Or l'énoncé demande <strong>deux groupes avec des droits différents</strong> :
+           <code>HR</code> en écriture, <code>DIR</code> en lecture. Impossible à exprimer avec
+           trois chiffres octaux.</p>
+        <p>Il faut donc des <strong>ACL</strong> (<em>Access Control Lists</em>), qui permettent
+           d'accorder des droits à des utilisateurs ou groupes supplémentaires.</p>
+
+        <h4>La solution complète</h4>
+<div class="bloc-code"><span class="langue">bash</span><pre><code># 1. le répertoire, avec HR comme groupe propriétaire
+sudo mkdir -p /srv/rh
+sudo chgrp HR /srv/rh
+sudo chmod 770 /srv/rh              # rwx pour u et g, RIEN pour les autres
+
+# 2. les fichiers créés héritent du groupe HR  →  le bit SetGID
+sudo chmod g+s /srv/rh              # devient  drwxrws---
+
+# 3. droits de LECTURE pour la direction  →  ACL
+sudo apt install acl                # si nécessaire
+sudo setfacl -m g:DIR:rx /srv/rh            # r et x : lister et traverser
+sudo setfacl -d -m g:DIR:r /srv/rh          # -d : par DÉFAUT sur les futurs fichiers
+sudo setfacl -d -m g:HR:rwx /srv/rh
+
+# 4. vérification
+getfacl /srv/rh
+ls -ld /srv/rh                      # drwxrws---+   ← le + signale la présence d'ACL</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Le bit SetGID sur un répertoire</div>
+          <p>Sans lui, un fichier créé dans <code>/srv/rh</code> appartient au <strong>groupe
+             principal de son créateur</strong> — <code>jenny</code>, par exemple. Ses collègues du
+             groupe <code>HR</code> ne peuvent alors pas le modifier, alors que c'était tout
+             l'objectif du dossier partagé.</p>
+          <p>Avec <code>chmod g+s</code>, tout fichier créé hérite du groupe du
+             <strong>répertoire</strong> — donc <code>HR</code>. Il apparaît dans
+             <code>ls -l</code> sous la forme d'un <strong><code>s</code> à la place du
+             <code>x</code> du groupe</strong> : <code>drwxrws---</code>.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Ne pas oublier le <code>x</code> pour DIR</div>
+          <p>Donner <code>r</code> seul à <code>DIR</code> ne sert à rien : sans <code>x</code>, le
+             répertoire ne peut pas être <em>traversé</em>, donc aucun fichier ne peut être ouvert.
+             C'est l'application directe de ce qu'a montré le TP permissions. Sur un répertoire, on
+             accorde presque toujours <code>r</code> et <code>x</code> ensemble.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">🌍 Si les ACL ne sont pas au programme</div>
+          <p>Une solution acceptable sans ACL : créer un <strong>second répertoire en lecture
+             seule</strong> pour la direction, alimenté par une copie ou un lien. C'est moins
+             élégant, mais cela se raisonne entièrement avec <code>u/g/o</code>. Si vous rencontrez
+             ce cas en épreuve, <strong>expliquez la limite du modèle à trois catégories</strong> :
+             c'est cette analyse qui est valorisée, plus que la connaissance de
+             <code>setfacl</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong><code>usermod -G</code> au lieu de <code>-aG</code></strong> — l'utilisateur perd
+          tous ses autres groupes.</li>
+      <li><strong>Confondre <code>apt update</code> et <code>apt upgrade</code></strong> — le
+          premier ne met aucun logiciel à jour.</li>
+      <li><strong>Tuer au lieu de stopper</strong> — <kbd>Ctrl</kbd>+<kbd>Z</kbd> suspend,
+          <code>kill</code> termine.</li>
+      <li><strong>Oublier <code>mkdir -p</code></strong> pour créer une arborescence.</li>
+      <li><strong>Croire que <code>r</code> suffit sur un répertoire</strong> — sans <code>x</code>,
+          on ne peut rien ouvrir.</li>
+      <li><strong>Écrire <code>address 10.0.0.10/24</code></strong> dans
+          <code>/etc/network/interfaces</code> — le masque va sur sa propre ligne.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Test Linux.pdf — évaluation notée /20</li>
+      <li>1-2-TP-Permission.pdf</li>
+      <li>1-2-TP_accès_Sécurité_linux.pdf — U6 Cybersécurité</li>
+      <li>1-Cours-Administration des systèmes Linux.pdf — exercices d'application</li>
+      <li>1-1-Memo-Commande_base.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

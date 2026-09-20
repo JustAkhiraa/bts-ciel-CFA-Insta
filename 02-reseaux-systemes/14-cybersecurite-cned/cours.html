@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cybersécurité — les fondamentaux (CNED Bloc 1) | BTS CIEL</title>
+<meta name="description" content="Cours complet : types d'attaquants, triade CID, RGPD et CNIL, ransomware et gestion de crise ANSSI, reconnaissance OSINT (Maltego, Google Dorks, Shodan), robustesse des mots de passe et bonnes pratiques.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#contexte">1 · Le fil rouge des missions</a></li>
+    <li><a href="#attaquants">2 · Qui sont les attaquants</a></li>
+    <li><a href="#cid">3 · La triade CID</a></li>
+    <li><a href="#rgpd">4 · RGPD et CNIL</a></li>
+    <li><a href="#ransomware">5 · Ransomware et gestion de crise</a></li>
+    <li><a href="#osint">6 · La reconnaissance du hacker</a></li>
+    <li><a href="#motsdepasse">7 · Les mots de passe</a></li>
+    <li><a href="#pratiques">8 · Bonnes pratiques et veille</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 14</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  <span class="bonus">bonus CNED — hors programme</span>
+  </div>
+
+  <h1>Cybersécurité — les fondamentaux</h1>
+  <p class="chapeau">Les huit missions du Bloc 1 du CNED, regroupées : le vocabulaire, les réflexes
+     et les outils qu'on attend d'un apprenti au service informatique.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>La cybersécurité repose sur trois piliers — <strong>Confidentialité, Intégrité,
+         Disponibilité</strong> (la triade <strong>CID</strong>). Les attaquants se rangent en
+         trois « chapeaux » selon leur intention et leur autorisation. Un cadre légal, le
+         <strong>RGPD</strong>, protège les données personnelles ; la <strong>CNIL</strong> le fait
+         respecter. Face à une attaque — souvent un <strong>ransomware</strong> — on
+         <strong>déconnecte sans éteindre</strong> et on suit la procédure ANSSI. Et l'essentiel
+         de la défense tient dans l'<strong>hygiène numérique</strong> : mots de passe robustes,
+         mises à jour, sauvegardes, prudence.</p>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Ce chapitre est un complément, pas un cours de vos professeurs</div>
+    <p>Les huit missions du Bloc 1 viennent du <strong>CNED</strong> — une ressource
+       supplémentaire procurée en dehors du cours. Elles ne font pas partie du programme
+       dispensé en classe : <strong>rien ici ne sera demandé par vos professeurs au titre de
+       leur cours</strong>.</p>
+    <p>Le chapitre reste dans le dépôt, pour deux raisons : la cybersécurité <em>est</em> au
+       programme du BTS CIEL option A, et ce contenu est solide — triade CID, RGPD, procédure
+       ANSSI, hygiène numérique. C'est de la culture professionnelle utile en entretien comme
+       en entreprise.</p>
+    <p class="rap">Dans les index il porte la mention <strong>bonus — hors programme</strong>,
+       et il <strong>n'entre pas dans le décompte d'avancement</strong>. À réviser en dernier,
+       quand le reste est acquis.</p>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#CID</code> <code>#White-Grey-Black-Hat</code> <code>#RGPD</code> <code>#CNIL</code>
+    <code>#ransomware</code> <code>#ANSSI</code> <code>#OSINT</code> <code>#footprinting</code>
+    <code>#Maltego</code> <code>#Google-Dorks</code> <code>#Shodan</code> <code>#hachage</code>
+    <code>#John-the-Ripper</code> <code>#hygiène-numérique</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="contexte">
+  <h2><span class="num">01</span>Le fil rouge des missions</h2>
+
+  <p>Tout le module de cybersécurité du CNED se déroule dans une même entreprise fictive,
+     <strong>« Le nouveau pêcheur de l'Aude »</strong>, qui vend du matériel de pêche en ligne. On y
+     joue un <strong>apprenti au service informatique</strong>, encadré par une responsable, Élisa,
+     et par un <strong>RSI</strong> — le <em>Responsable du Système d'Information</em>, qui dirige
+     l'informatique de l'entreprise.</p>
+
+  <p>Chaque mission ajoute une pierre : découvrir l'entreprise et le <strong>Helpdesk</strong>,
+     vérifier la conformité <strong>RGPD</strong>, apprendre le vocabulaire de la sécurité, réagir à
+     une <strong>cyberattaque</strong>, organiser une <strong>veille</strong>, se mettre
+     <strong>dans la peau d'un hacker</strong>, et enfin installer les <strong>bonnes
+     pratiques</strong>. Ce chapitre reprend l'essentiel de ces huit missions dans un ordre logique
+     de cours.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le Helpdesk et ses niveaux</div>
+    <p>Le <strong>Helpdesk</strong> (« bureau d'aide ») est le service qui reçoit et traite les
+       demandes des utilisateurs. Il est organisé en <strong>niveaux</strong>, du plus simple au
+       plus expert — une demande monte d'un niveau à l'autre tant qu'elle n'est pas résolue :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Niveau</th><th>Rôle</th></tr></thead>
+      <tbody>
+        <tr><td><strong>N0</strong></td><td>Prise d'appel, création du <strong>ticket</strong>
+            — le poste de l'apprenti dans le scénario</td></tr>
+        <tr><td><strong>N1</strong></td><td>Résolution des problèmes courants (mot de passe oublié,
+            imprimante…)</td></tr>
+        <tr><td><strong>N2</strong></td><td>Problèmes techniques plus poussés</td></tr>
+        <tr><td><strong>N3</strong></td><td>Forte expertise, souvent l'éditeur ou le
+            constructeur</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="attaquants">
+  <h2><span class="num">02</span>Qui sont les attaquants</h2>
+
+  <p>On classe les <strong>cybercriminels</strong> par une métaphore de western : la couleur du
+     chapeau. Ce qui les distingue n'est pas la compétence — elle est comparable — mais
+     l'<strong>intention</strong> et surtout l'<strong>autorisation</strong>.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 180" role="img" aria-label="Les trois types de hackers selon leur chapeau">
+      <style>
+        .box{fill:var(--carte);stroke-width:1.6;rx:9}
+        .ttl4{font:700 13px var(--sans);text-anchor:middle}
+        .txt4{font:11px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .hat{stroke:none}
+      </style>
+      <rect x="14"  y="30" width="172" height="130" rx="10" fill="var(--carte)" stroke="#2D8A34" stroke-width="1.6"/>
+      <rect x="204" y="30" width="172" height="130" rx="10" fill="var(--carte)" stroke="#B08900" stroke-width="1.6"/>
+      <rect x="394" y="30" width="172" height="130" rx="10" fill="var(--carte)" stroke="#B00020" stroke-width="1.6"/>
+
+      <ellipse cx="100" cy="60" rx="34" ry="9"  fill="#2D8A34"/><rect x="83"  y="42" width="34" height="20" rx="4" fill="#2D8A34"/>
+      <ellipse cx="290" cy="60" rx="34" ry="9"  fill="#B08900"/><rect x="273" y="42" width="34" height="20" rx="4" fill="#B08900"/>
+      <ellipse cx="480" cy="60" rx="34" ry="9"  fill="#222"/>   <rect x="463" y="42" width="34" height="20" rx="4" fill="#222"/>
+
+      <text class="ttl4" x="100" y="92"  fill="#2D8A34">White Hat</text>
+      <text class="ttl4" x="290" y="92"  fill="#B08900">Grey Hat</text>
+      <text class="ttl4" x="480" y="92"  fill="#B00020">Black Hat</text>
+
+      <text class="txt4" x="100" y="114">éthique,</text>
+      <text class="txt4" x="100" y="129">avec autorisation</text>
+      <text class="txt4" x="100" y="146">— le pentester</text>
+
+      <text class="txt4" x="290" y="114">sans autorisation,</text>
+      <text class="txt4" x="290" y="129">mais sans</text>
+      <text class="txt4" x="290" y="146">intention de nuire</text>
+
+      <text class="txt4" x="480" y="114">malveillant,</text>
+      <text class="txt4" x="480" y="129">pour le gain</text>
+      <text class="txt4" x="480" y="146">ou le vol</text>
+    </svg>
+    <figcaption>La frontière décisive : ai-je le droit d'être là ? Le White Hat, oui ; le Black
+      Hat, jamais.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Chapeau</th><th>Autorisation</th><th>Intention</th><th>Exemple</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Blanc</strong> (White Hat)</td><td class="rep-ok">Oui</td>
+          <td>Aider, sécuriser</td>
+          <td>« Avec l'autorisation du RSI, je recherche les failles du réseau de mon
+              entreprise »</td></tr>
+      <tr><td><strong>Gris</strong> (Grey Hat)</td><td>Non</td>
+          <td>Le défi, pas la nuisance</td>
+          <td>« Je cherche des vulnérabilités sur des serveurs pour le challenge et pour
+              aider »</td></tr>
+      <tr><td><strong>Noir</strong> (Black Hat)</td><td>Non</td>
+          <td>Nuire, s'enrichir</td>
+          <td>« Mon but est de revendre des données sur le <em>dark web</em> » · « J'ai exploité
+              l'ordinateur de mon collègue pour dérober ses mots de passe »</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le gris n'est pas « à moitié gentil »</div>
+    <p>Ce qui range un hacker en <strong>gris</strong> et non en blanc, ce n'est pas la gentillesse
+       de ses motifs : c'est l'<strong>absence d'autorisation</strong>. Chercher des failles « pour
+       aider », mais <em>sans qu'on le lui ait demandé</em>, reste illégal. Le blanc agit toujours
+       dans un cadre — un <strong>mandat</strong>, un contrat de test d'intrusion.</p>
+    <p>C'est exactement pour cela que, dans la mission « dans la peau d'un hacker », le sujet précise
+       chaque fois : <em>« vous êtes un pentester mandaté par votre entreprise »</em>. Le mandat
+       fait toute la différence entre un métier et un délit.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Pourquoi une entreprise a besoin d'experts en cybersécurité</div>
+    <p>Parce que la question n'est plus <em>si</em> mais <em>quand</em>. Une attaque réussie coûte
+       de l'argent (rançon, arrêt d'activité), des données, et la <strong>réputation</strong> de
+       l'entreprise. Avoir en interne des gens capables d'anticiper, de détecter et de réagir, c'est
+       transformer une catastrophe potentielle en incident maîtrisé.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="cid">
+  <h2><span class="num">03</span>La triade CID — la clé de voûte</h2>
+
+  <p>Tout, en sécurité, se ramène à trois objectifs. On les appelle la <strong>triade CID</strong>
+     — <strong>C</strong>onfidentialité, <strong>I</strong>ntégrité, <strong>D</strong>isponibilité
+     (en anglais <em>CIA</em> : Confidentiality, Integrity, Availability). Une bonne mesure de
+     sécurité sert toujours au moins l'un de ces trois piliers.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 420 250" role="img" aria-label="Le triangle CID : confidentialité, intégrité, disponibilité">
+      <style>
+        .tri{fill:var(--accent-pale);stroke:var(--accent);stroke-width:2}
+        .cid-l{font:700 14px var(--sans);text-anchor:middle;fill:var(--accent-sombre)}
+        .cid-s{font:11px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .cid-c{font:700 15px var(--sans);text-anchor:middle;fill:var(--accent)}
+      </style>
+      <polygon class="tri" points="210,26 384,214 36,214"/>
+      <text class="cid-c" x="210" y="130">SÉCURITÉ</text>
+      <text class="cid-c" x="210" y="150">DE L'INFO</text>
+
+      <text class="cid-l" x="210" y="18">Confidentialité</text>
+      <text class="cid-s" x="210" y="242">on garde secret ce qui doit l'être — chiffrement</text>
+
+      <text class="cid-l" x="36"  y="232" style="text-anchor:start">Disponibilité</text>
+      <text class="cid-l" x="384" y="232" style="text-anchor:end">Intégrité</text>
+    </svg>
+    <figcaption>Les trois piliers. Retirez-en un, et la sécurité s'écroule.</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Pilier</th><th>Question</th><th>Menace</th><th>On l'obtient par…</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Confidentialité</strong></td>
+          <td>Qui a le droit de <em>lire</em> ?</td>
+          <td>Lecture non autorisée (vol de fiche de paie, de mots de passe, de fichier client)</td>
+          <td>le <strong>chiffrement</strong>, le contrôle d'accès</td></tr>
+      <tr><td><strong>Intégrité</strong></td>
+          <td>La donnée a-t-elle été <em>modifiée</em> ?</td>
+          <td>Écriture ou modification non autorisée</td>
+          <td>le <strong>CRC</strong>, le condensé <strong>MD5</strong>, la signature numérique
+              (données) ; les anti-malwares (système)</td></tr>
+      <tr><td><strong>Disponibilité</strong></td>
+          <td>Le service est-il <em>accessible</em> ?</td>
+          <td>Panne, attaque par déni de service (DDoS)</td>
+          <td>la <strong>redondance</strong> matérielle/logicielle, le <strong>Plan de Reprise
+              d'Activité</strong> (PRA)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux visages de l'intégrité</div>
+    <p>Le cours distingue deux niveaux :</p>
+    <ul>
+      <li><strong>Data Integrity</strong> — protège les <em>données</em> des modifications non
+          autorisées. On vérifie qu'une donnée n'a pas été altérée grâce à un <strong>condensé</strong>
+          (MD5), un <strong>CRC</strong> ou une <strong>signature numérique</strong>.</li>
+      <li><strong>System Integrity</strong> — protège le <em>système</em> (Linux, Windows…) des
+          modifications non autorisées, pour qu'il fonctionne comme attendu. On s'appuie sur les
+          <strong>anti-malwares</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 La triade, version coffre-fort</div>
+    <p><strong>Confidentialité</strong> : seul vous connaissez la combinaison.
+       <strong>Intégrité</strong> : personne n'a pu remplacer vos lingots par du plomb sans que ça
+       se voie. <strong>Disponibilité</strong> : la banque est ouverte quand vous voulez récupérer
+       votre bien. Un coffre inviolable mais dont la porte est bloquée pour toujours a
+       <em>parfaitement</em> échoué sur la disponibilité.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un ransomware chiffre tous les fichiers de l'entreprise. <strong>Quels piliers de la triade
+       sont touchés ?</strong></p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Principalement la <strong>disponibilité</strong> — les données existent mais sont
+         inaccessibles. Et si l'attaquant a d'abord <em>exfiltré</em> les données avant de les
+         chiffrer (technique de « double extorsion »), la <strong>confidentialité</strong> tombe
+         aussi. L'intégrité, elle, n'est pas nécessairement violée : les fichiers ne sont pas
+         falsifiés, ils sont verrouillés.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="rgpd">
+  <h2><span class="num">04</span>RGPD et CNIL — le cadre légal</h2>
+
+  <p>Dès qu'une entreprise collecte des <strong>données personnelles</strong> — ici, les comptes
+     clients du site de vente — elle entre dans le champ du <strong>RGPD</strong>, le Règlement
+     Général sur la Protection des Données. En France, l'autorité qui veille à son respect est la
+     <strong>CNIL</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><strong>RGPD</strong></td>
+          <td>Règlement européen encadrant la collecte et le traitement des données personnelles.
+              Toute opération sur ces données — collecte, enregistrement, <strong>consultation</strong>,
+              stockage — est un <em>traitement</em>.</td></tr>
+      <tr><td><strong>CNIL</strong></td>
+          <td>Commission Nationale de l'Informatique et des Libertés. Créée par la loi Informatique
+              et Libertés du <strong>6 janvier 1978</strong>, c'est une <strong>autorité
+              administrative indépendante</strong> qui veille à ce que l'informatique ne porte
+              atteinte ni à la vie privée, ni aux libertés.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Dans le scénario, l'entreprise stocke des données <strong>directement identifiantes</strong>
+     sur ses clients : le RGPD <strong>s'applique donc pleinement</strong>.</p>
+
+  <h3>Les droits des personnes sur leurs données</h3>
+  <p>Toute personne dispose, sur ses propres données, d'un ensemble de droits que l'entreprise doit
+     pouvoir honorer :</p>
+  <ul>
+    <li>droit d'<strong>accès</strong> — savoir quelles données sont détenues ;</li>
+    <li>droit de <strong>rectification</strong> — corriger une donnée fausse ;</li>
+    <li>droit à l'<strong>effacement</strong> (« droit à l'oubli ») ;</li>
+    <li>droit d'<strong>opposition</strong> et de limitation du traitement ;</li>
+    <li>droit à la <strong>portabilité</strong> — récupérer ses données pour les transférer.</li>
+  </ul>
+
+  <h3>L'obligation de sécurité</h3>
+  <p>Le responsable de traitement doit mettre en place des <strong>mesures de sécurité</strong> :
+     contrôle des accès, <strong>chiffrement</strong>, sauvegardes, mises à jour, traçabilité,
+     mots de passe robustes. La sécurité n'est pas une option, c'est une obligation légale.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les sanctions ne sont pas symboliques</div>
+    <p>En cas de manquement, la CNIL peut prononcer des sanctions financières lourdes — jusqu'à
+       <strong>20 millions d'euros</strong> ou <strong>4 % du chiffre d'affaires annuel
+       mondial</strong>, le montant le plus élevé étant retenu. S'y ajoutent des sanctions
+       administratives (mise en demeure, rappel à l'ordre) et un coût de réputation. Pour une PME
+       comme « Le nouveau pêcheur de l'Aude », c'est potentiellement fatal.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Le MOOC de la CNIL</div>
+    <p>La CNIL propose un cours en ligne gratuit — un <strong>MOOC</strong> (<em>Massive Open Online
+       Course</em>) — sur l'atelier RGPD. La mission 2 demande de le suivre pour vérifier que le
+       formulaire d'inscription du site respecte bien la réglementation : mentions d'information,
+       recueil du <strong>consentement</strong>, finalité déclarée, durée de conservation.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="ransomware">
+  <h2><span class="num">05</span>Ransomware et gestion de crise</h2>
+
+  <p>Un jour, l'écran d'un poste affiche un message exigeant une rançon : l'entreprise subit une
+     <strong>cyberattaque</strong>. Une cyberattaque est un <em>acte volontaire et malveillant sur
+     un réseau informatique</em>, dont le but est de porter atteinte à l'information et à ceux qui
+     la traitent.</p>
+
+  <h3>Le ransomware (rançongiciel)</h3>
+  <p>Un <strong>ransomware</strong> est un logiciel malveillant qui prend en otage les données ou le
+     système, et réclame une <strong>rançon</strong> pour les libérer. Il se propage souvent par une
+     <strong>pièce jointe piégée</strong> ou un lien frauduleux (hameçonnage). On distingue deux
+     familles :</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Ce qu'il fait</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Bloquant</strong> (locker)</td>
+          <td>Verrouille l'<strong>accès</strong> à l'appareil (écran figé), sans nécessairement
+              toucher aux fichiers eux-mêmes</td></tr>
+      <tr><td><strong>Chiffrant</strong> (crypto)</td>
+          <td><strong>Chiffre</strong> les fichiers : ils sont toujours là, mais illisibles sans la
+              clé. C'est le plus répandu et le plus destructeur</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — le message ne suffit pas à trancher</div>
+    <p>La mission demande « quel type de ransomware s'est retrouvé sur l'ordinateur de Brice ? ».
+       Un message de rançon plein écran ressemble d'abord à un <em>bloquant</em>. Mais dans le
+       scénario, le poste est « complètement effacé et réinstallé, les documents perdus » : cette
+       perte irréversible des fichiers est la signature d'un <strong>ransomware chiffrant</strong>.
+       Ne concluez pas sur la seule apparence de l'écran — regardez ce qui est arrivé
+       <em>aux données</em>.</p>
+  </div>
+
+  <h3>La réaction immédiate — les réflexes ANSSI</h3>
+  <p>Le guide de l'ANSSI <em>« Cyberattaque, comment réagir ? »</em> donne des gestes simples, à la
+     portée de tout utilisateur, qui limitent énormément l'impact.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 120" role="img" aria-label="Procédure de réaction à une cyberattaque">
+      <style>
+        .step{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .sn{font:700 15px var(--sans);text-anchor:middle;fill:var(--accent)}
+        .st{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .ar4{stroke:var(--accent);stroke-width:1.8;fill:none;marker-end:url(#a4)}
+      </style>
+      <defs><marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+      <circle class="step" cx="70"  cy="45" r="34"/><text class="sn" x="70"  y="50">1</text>
+      <circle class="step" cx="220" cy="45" r="34"/><text class="sn" x="220" y="50">2</text>
+      <circle class="step" cx="370" cy="45" r="34"/><text class="sn" x="370" y="50">3</text>
+      <circle class="step" cx="510" cy="45" r="34"/><text class="sn" x="510" y="50">4</text>
+      <line class="ar4" x1="108" y1="45" x2="182" y2="45"/>
+      <line class="ar4" x1="258" y1="45" x2="332" y2="45"/>
+      <line class="ar4" x1="408" y1="45" x2="472" y2="45"/>
+      <text class="st" x="70"  y="98">déconnecter</text>
+      <text class="st" x="70"  y="112">du réseau</text>
+      <text class="st" x="220" y="98">ne PAS</text>
+      <text class="st" x="220" y="112">éteindre</text>
+      <text class="st" x="370" y="98">rien ne</text>
+      <text class="st" x="370" y="112">rebrancher</text>
+      <text class="st" x="510" y="98">alerter le</text>
+      <text class="st" x="510" y="112">service info</text>
+    </svg>
+    <figcaption>Les quatre gestes d'urgence. Le plus contre-intuitif : ne pas éteindre.</figcaption>
+  </figure>
+
+  <ol>
+    <li><strong>Déconnecter</strong> immédiatement les équipements suspects du réseau — retirer le
+        câble, couper le Wi-Fi — pour <strong>éviter la propagation</strong>.</li>
+    <li><strong>Laisser allumé</strong>, ne rien modifier : on préserve les traces techniques
+        nécessaires à la compréhension de l'incident et à l'enquête.</li>
+    <li><strong>Ne plus connecter</strong> aucun appareil au réseau.</li>
+    <li><strong>Alerter</strong> immédiatement le service ou le prestataire informatique.</li>
+  </ol>
+  <p>Côté <strong>responsable</strong> de l'organisation, s'ajoutent : <strong>notifier</strong> la
+     CNIL, <strong>déposer plainte</strong>, constituer une <strong>cellule de crise</strong> et
+     préparer une <strong>communication de crise</strong>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le réflexe naturel est le mauvais</div>
+    <p>Devant un écran de rançon, on a envie d'<strong>éteindre</strong> la machine — c'est
+       précisément l'erreur. Éteindre efface la mémoire vive, où se trouvent souvent les traces
+       vivantes de l'attaque (processus en cours, clés de chiffrement encore présentes). On
+       <strong>isole</strong> sans couper l'alimentation. Et on ne paie <strong>jamais</strong> la
+       rançon : rien ne garantit la restitution, et cela finance le crime.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Gérer la crise et en tirer les leçons — le guide ANSSI</div>
+    <p>Pour une crise majeure, l'ANSSI propose un guide en <strong>18 fiches</strong>, organisé en
+       deux temps : <strong>se préparer</strong> (fiches 1 à 7) et <strong>réagir</strong> (fiches
+       8 à 18, en quatre phases : alerter/endiguer, comprendre, relancer, capitaliser). Deux fiches
+       reviennent dans les missions :</p>
+    <ul>
+      <li><strong>Fiche 13 — Conduire l'investigation numérique</strong> : reconstituer le scénario
+          de l'attaque (comment le ransomware est entré). Ici, très probablement une pièce jointe
+          ou un lien piégé ouvert par mégarde.</li>
+      <li><strong>Fiche 18 — Tirer les leçons de la crise</strong> : le <strong>RETEX</strong>
+          (retour d'expérience), pour que cela ne se reproduise pas. Trois axes : sensibiliser et
+          former, sécuriser techniquement, soigner la politique de sauvegarde.</li>
+    </ul>
+    <p>Une crise cyber n'est pas qu'une affaire technique : elle mobilise une <strong>cellule
+       stratégique</strong> (direction, communication, juridique, RH) et une <strong>cellule
+       opérationnelle</strong> (cyber et IT).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="osint">
+  <h2><span class="num">06</span>La reconnaissance du hacker</h2>
+
+  <p>Pour se défendre, il faut comprendre l'attaquant. Une attaque organisée suit toujours des
+     <strong>étapes incontournables</strong> — le <em>cyber kill chain</em>, version simplifiée :</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 74" role="img" aria-label="Les cinq étapes d'une attaque">
+      <style>
+        .kc{font:700 10px var(--sans);text-anchor:middle;fill:#fff}
+        .kn{font:700 11px var(--sans);text-anchor:middle;fill:var(--accent)}
+      </style>
+      <polygon points="8,14 150,14 168,34 150,54 8,54 26,34"   fill="var(--accent)"/>
+      <polygon points="120,14 262,14 280,34 262,54 120,54 138,34" fill="var(--accent-sombre)"/>
+      <polygon points="232,14 374,14 392,34 374,54 232,54 250,34" fill="var(--accent)"/>
+      <polygon points="344,14 486,14 504,34 486,54 344,54 362,34" fill="var(--accent-sombre)"/>
+      <polygon points="456,14 566,14 566,54 456,54 474,34"       fill="var(--accent)"/>
+      <text class="kc" x="88"  y="38">Reconnaissance</text>
+      <text class="kc" x="205" y="38">Analyse trafic</text>
+      <text class="kc" x="318" y="38">Accès</text>
+      <text class="kc" x="425" y="38">Escalade</text>
+      <text class="kc" x="518" y="38">Effacer</text>
+      <text class="kc" x="518" y="50" style="font-size:8px">les traces</text>
+    </svg>
+    <figcaption>Le hacking suit un ordre. La première étape, la reconnaissance, est la plus longue —
+      et la plus décisive.</figcaption>
+  </figure>
+
+  <p>La mission « dans la peau d'un hacker » se concentre sur la première étape, la
+     <strong>reconnaissance passive</strong>, aussi appelée <strong>footprinting</strong> (« prise
+     d'empreinte »). « Passive » signifie qu'on n'attaque pas encore la cible : on se contente de
+     récolter tout ce qui est <strong>déjà public</strong>. C'est lent, discret, et c'est le socle
+     de tout le reste.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 OSINT — le renseignement en source ouverte</div>
+    <p>L'<strong>OSINT</strong> (<em>Open Source INTelligence</em>) est le recueil et l'analyse
+       d'informations issues de <strong>sources publiques</strong> : le site de l'entreprise, les
+       réseaux sociaux (LinkedIn, Facebook), les forums, les dépôts de code (GitHub), les offres
+       d'emploi, la commande <code>whois</code>, les enregistrements <strong>DNS</strong>.</p>
+    <p><strong>L'exemple le plus parlant : une offre d'emploi.</strong> Une annonce cherchant un
+       administrateur système révèle, sans le vouloir, toute l'architecture : « maîtrise de Windows
+       Server, VMware, Active Directory, Azure », « pare-feu Stormshield », « sauvegarde Veeam »,
+       « GLPI »… Autant d'indices sur les technologies à cibler. Le hacker n'a même pas eu à toucher
+       au réseau.</p>
+  </div>
+
+  <h3>Trois outils du footprinting</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Outil</th><th>À quoi il sert</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Maltego</strong></td>
+          <td>Cartographie graphique d'une cible. À partir d'un <em>domaine</em>, ses
+              « <strong>transforms</strong> » remontent le site web, les <strong>adresses IP</strong>
+              (To IP Address), les <strong>serveurs DNS</strong> (To DNS Name), les
+              <strong>adresses e-mail</strong>, les autres extensions du domaine (Find Other TLD).
+              On obtient un schéma de l'infrastructure publique</td></tr>
+      <tr><td><strong>Google Dorks</strong></td>
+          <td>Recherches Google avancées à l'aide d'<strong>opérateurs</strong>, pour dénicher des
+              fichiers ou équipements mal protégés et indexés par erreur</td></tr>
+      <tr><td><strong>Shodan</strong></td>
+          <td>Moteur de recherche des <strong>objets connectés à Internet</strong> (serveurs,
+              routeurs, caméras…). Affiche l'équipement, ses services et ses
+              <strong>vulnérabilités</strong> connues</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les opérateurs Google Dorks</h3>
+  <div class="bloc-code"><span class="langue">Google Dorks</span><pre><code>site:it-connect.fr              limite la recherche à un site
+filetype:pdf CV                 ne renvoie que des fichiers d'un type donné
+intitle:"GLPI - Authentification"   cherche un mot dans le TITRE de la page
+inurl:/login.rsp                cherche un mot dans l'URL (interfaces de connexion)
+after:2021-05-01                résultats postérieurs à une date
+"texte exact"                   les guillemets imposent la correspondance exacte
+
+# on combine :
+prenom nom filetype:docx OR filetype:pdf
+inurl:/wp-admin/ site:it-connect.fr    la page d'admin d'un WordPress est-elle exposée ?</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le double tranchant du footprinting</div>
+    <p>Ces techniques sont neutres : le <strong>même outil</strong> sert à l'attaquant (repérer une
+       faille) et au défenseur (vérifier qu'on n'expose rien). La <strong>« bonne démarche »</strong>
+       du cours : prendre <em>sa propre</em> IP publique et vérifier que ses équipements ne sont pas
+       référencés ni vulnérables. La <strong>Google Hacking Database</strong>
+       (exploit-db.com) recense les dorks connus — à consulter pour se tester, pas pour attaquer
+       autrui. Et faire ces recherches en <strong>navigation privée</strong> ou via
+       <strong>TOR</strong>.</p>
+    <p>Rappel juridique : lancer ces recherches contre une organisation <strong>sans mandat</strong>
+       vous fait basculer du côté du chapeau noir. Dans les missions, vous êtes toujours
+       <em>mandaté</em>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="motsdepasse">
+  <h2><span class="num">07</span>Les mots de passe</h2>
+
+  <p>Le maillon faible reste presque toujours le <strong>mot de passe</strong>. Le premier exemple
+     du guide ANSSI est resté célèbre : un comptable choisit <code>123456</code> par simplicité, et
+     son compte bancaire d'entreprise est vidé. Comprendre <em>pourquoi</em> un mot de passe est
+     faible passe par la notion de <strong>hachage</strong>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le hachage, en une image</div>
+    <p>Un <strong>hachage</strong> (ou <em>condensé</em>) est une fonction mathématique qui prend un
+       mot de passe et produit une <strong>empreinte</strong> de taille fixe, unique et
+       <strong>non réversible</strong>. Un fichier ZIP protégé ne stocke <em>pas</em> le mot de
+       passe : il stocke son empreinte. À l'ouverture, il recalcule l'empreinte de ce que vous
+       tapez et la compare. Identiques → accès ; différentes → refus.</p>
+    <p>Comme on ne peut pas « inverser » une empreinte, la seule façon de retrouver le mot de passe
+       est d'en <strong>essayer</strong> des millions et de comparer les empreintes : c'est le
+       <strong>cassage par force brute ou par dictionnaire</strong>.</p>
+  </div>
+
+  <h3>Casser un mot de passe — John the Ripper</h3>
+  <p>Le TP de la mission 8 fait déchiffrer des fichiers <code>challenge.zip</code> avec
+     <strong>John the Ripper</strong>, un cracker qui s'appuie sur Python :</p>
+  <div class="bloc-code"><span class="langue">démarche John the Ripper</span><pre><code>1.  Installer Python, vérifier :   python --version   →   Python 3.XX.X
+2.  Télécharger John the Ripper, se placer dans son dossier "run"
+3.  Extraire l'empreinte du ZIP dans un fichier :
+       zip2john  challenge1.zip  &gt;  challenge1hash.txt
+4.  (réencoder le fichier hash en UTF-8 si besoin)
+5.  Lancer l'attaque par dictionnaire :
+       john  challenge1hash.txt
+       # john essaie la liste "password.lst" (petite)
+
+    Pour une liste bien plus grande (des millions de mots de passe réels) :
+       john  --wordlist=rockyou.txt  challenge1hash.txt
+6.  Vérifier en décompressant le ZIP avec le mot de passe trouvé</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 rockyou.txt, le dictionnaire des mots de passe</div>
+    <p><code>rockyou.txt</code> est une liste de <strong>~14 millions</strong> de mots de passe
+       réels, issus d'une fuite de 2009. Si votre mot de passe y figure, il tombe en
+       <strong>quelques secondes</strong>, quelle que soit sa longueur : une attaque par
+       dictionnaire ne teste pas toutes les combinaisons, elle teste les mots de passe que
+       <em>les gens utilisent vraiment</em>. C'est pourquoi <code>Motdepasse123!</code> est faible
+       malgré ses 14 caractères, majuscule, chiffre et caractère spécial.</p>
+  </div>
+
+  <h3>Ce qui fait la force d'un mot de passe</h3>
+  <p>La force se mesure au nombre de combinaisons à essayer : <code>(taille de l'alphabet) ^
+     (longueur)</code>. Chaque caractère ajouté <strong>multiplie</strong>, chaque type de caractère
+     en plus <strong>élargit</strong> l'alphabet.</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Mot de passe</th><th>Combinaisons</th>
+               <th>Temps à 10 milliards d'essais/s</th></tr></thead>
+    <tbody>
+      <tr><td><code>azertyui</code> (8 minuscules)</td><td>26⁸ ≈ 2,1 × 10¹¹</td>
+          <td class="rep-non">≈ 21 secondes</td></tr>
+      <tr><td>8 car., tous types</td><td>95⁸ ≈ 6,6 × 10¹⁵</td><td>≈ 8 jours</td></tr>
+      <tr><td>10 car., tous types</td><td>95¹⁰ ≈ 6,0 × 10¹⁹</td><td>≈ 190 ans</td></tr>
+      <tr><td>12 car., tous types</td><td>95¹² ≈ 5,4 × 10²³</td>
+          <td class="rep-ok">≈ 1,7 million d'années</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="font-size:.85em;color:var(--encre-tenue)">Estimations sur une attaque par force brute
+     exhaustive. Un mot de passe présent dans un dictionnaire tombe en quelques secondes,
+     <em>indépendamment</em> de ce tableau.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les recommandations retenues</div>
+    <ul>
+      <li>Au moins <strong>12 caractères</strong>, avec <strong>majuscule, minuscule, chiffre et
+          caractère spécial</strong>.</li>
+      <li>Ni mot du dictionnaire, ni date, ni information devinable (nom, prénom, entreprise).</li>
+      <li>Une bonne astuce : la <strong>phrase de passe</strong> — une longue phrase facile à
+          retenir, difficile à casser (la longueur prime).</li>
+      <li><strong>Unique</strong> par service : un mot de passe réutilisé compromet tous les comptes
+          d'un coup.</li>
+      <li><strong>Personnel</strong> — jamais partagé, jamais stocké en clair dans le
+          navigateur.</li>
+      <li>Utiliser un <strong>gestionnaire de mots de passe</strong> pour tous les retenir.</li>
+    </ul>
+    <p>Des outils comme l'évaluateur de la <strong>CNIL</strong> ou de l'ANSSI calculent la « force »
+       d'un mot de passe et aident à définir la politique de l'entreprise.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Entre <code>Tr0ub4dor&amp;3</code> (11 caractères, tous types) et <code>cheval correct
+       agrafe pile</code> (une phrase de 4 mots simples), <strong>lequel est le plus
+       robuste ?</strong></p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>La <strong>phrase</strong>, et de loin. Sa longueur (28 caractères) fait exploser le nombre
+         de combinaisons, alors qu'elle reste facile à mémoriser. Le premier, plus court et bâti sur
+         un mot connu (« troubadour ») avec des substitutions prévisibles (<code>0</code> pour o,
+         <code>4</code> pour a), résiste bien moins aux attaques modernes. C'est tout le principe de
+         la <strong>phrase de passe</strong> : la longueur bat la complexité.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="pratiques">
+  <h2><span class="num">08</span>Bonnes pratiques et veille</h2>
+
+  <p>La sécurité ne repose pas d'abord sur des outils coûteux, mais sur l'<strong>hygiène
+     numérique</strong> quotidienne. Le <em>Guide des bonnes pratiques de l'informatique</em> de la
+     <strong>CPME</strong> et de l'ANSSI la résume en <strong>12 règles</strong>, chacune illustrée
+     d'un incident réel.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>#</th><th>Règle</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Choisir avec soin ses <strong>mots de passe</strong></td></tr>
+      <tr><td>2</td><td><strong>Mettre à jour</strong> régulièrement ses logiciels</td></tr>
+      <tr><td>3</td><td>Bien <strong>connaître ses utilisateurs et prestataires</strong></td></tr>
+      <tr><td>4</td><td>Effectuer des <strong>sauvegardes</strong> régulières</td></tr>
+      <tr><td>5</td><td>Sécuriser l'accès <strong>Wi-Fi</strong> (jamais de WEP)</td></tr>
+      <tr><td>6</td><td>Être aussi prudent avec son <strong>smartphone</strong> qu'avec son
+          ordinateur</td></tr>
+      <tr><td>7</td><td>Protéger ses données lors des <strong>déplacements</strong></td></tr>
+      <tr><td>8</td><td>Être prudent avec sa <strong>messagerie</strong> (hameçonnage)</td></tr>
+      <tr><td>9</td><td>Télécharger sur les <strong>sites officiels</strong> des éditeurs</td></tr>
+      <tr><td>10</td><td>Être vigilant lors d'un <strong>paiement</strong> en ligne</td></tr>
+      <tr><td>11</td><td><strong>Séparer</strong> usages personnels et professionnels</td></tr>
+      <tr><td>12</td><td>Prendre soin de ses <strong>informations personnelles</strong> (ingénierie
+          sociale)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La règle de sauvegarde 3-2-1, version ANSSI</div>
+    <p>Les sauvegardes ne servent qu'à condition d'être bien faites. Les critères du guide :</p>
+    <ul>
+      <li><strong>Fréquentes</strong> — idéalement journalières.</li>
+      <li><strong>Conservées</strong> plus d'un mois (pour survivre à un ransomware resté discret).</li>
+      <li><strong>Délocalisées</strong> — à plus de 3 km, pour survivre à un incendie.</li>
+      <li><strong>Déconnectées</strong> (hors ligne) — un ransomware ne peut pas chiffrer ce qu'il
+          ne voit pas.</li>
+      <li><strong>Testées</strong> — une sauvegarde jamais restaurée n'est pas une sauvegarde.</li>
+      <li><strong>Chiffrées</strong> — surtout si elles sont déplacées.</li>
+    </ul>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 ANSSI, CNIL, cybermalveillance : qui fait quoi</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>ANSSI</strong></td>
+            <td>Agence Nationale de la Sécurité des Systèmes d'Information — l'autorité nationale de
+                cyberdéfense. Édite les guides, gère le <strong>CERT-FR</strong> (veille et alertes)
+                et le MOOC <strong>SecNumAcadémie</strong></td></tr>
+        <tr><td><strong>CNIL</strong></td>
+            <td>Protège les <strong>données personnelles</strong> (RGPD)</td></tr>
+        <tr><td><strong>cybermalveillance.gouv.fr</strong></td>
+            <td>Assistance aux victimes (particuliers, PME, collectivités)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>La veille technologique</h3>
+  <p>Le métier évolue en permanence : nouvelles attaques, nouvelles défenses. Rester à jour demande
+     une <strong>veille</strong> — s'informer <em>systématiquement</em> sur l'actualité des
+     cybermenaces, à la manière d'une revue de presse. La méthode du cours :</p>
+  <ol>
+    <li>Définir clairement ses <strong>objectifs</strong> (que cherche-t-on à suivre ?).</li>
+    <li>Choisir des <strong>sources</strong> variées : revues, blogs d'experts, chaînes YouTube,
+        LinkedIn, forums, GitHub — dont <strong>au moins une en anglais</strong>.</li>
+    <li>Utiliser les <strong>bons outils</strong> : flux <strong>RSS</strong>, newsletters,
+        <strong>alertes Google</strong>, abonnements.</li>
+    <li><strong>Trier et organiser</strong> — par date et par thème, pour retrouver l'info.</li>
+    <li><strong>Aménager des créneaux</strong> réguliers (le guide suggère 30 min par jour, le matin
+        au calme) et <strong>partager</strong> avec ses pairs.</li>
+  </ol>
+
+  <div class="encart analogie">
+    <div class="titre">💡 La veille, comme un sportif de haut niveau</div>
+    <p>Un footballeur professionnel ne s'entraîne pas « quand il a le temps » : il a un rythme
+       imposé, régulier, même léger. La veille, c'est pareil — 30 minutes chaque matin valent mieux
+       que 4 heures un dimanche par mois. La régularité crée l'habitude, l'habitude crée
+       l'expertise.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Triade CID</strong> : Confidentialité (chiffrement), Intégrité (MD5, CRC,
+          signature), Disponibilité (redondance, PRA).</li>
+      <li><strong>Chapeaux</strong> : blanc = mandaté ; gris = sans autorisation mais sans nuire ;
+          noir = malveillant. La frontière, c'est l'<strong>autorisation</strong>.</li>
+      <li><strong>RGPD / CNIL</strong> : données personnelles → droits d'accès, rectification,
+          effacement… ; sanctions jusqu'à 4 % du CA mondial.</li>
+      <li><strong>Attaque</strong> : déconnecter sans éteindre, préserver les traces, alerter.
+          Ransomware chiffrant = données prises en otage.</li>
+      <li><strong>Reconnaissance</strong> : footprinting passif via OSINT — Maltego, Google Dorks,
+          Shodan. Une offre d'emploi en dit trop.</li>
+      <li><strong>Mots de passe</strong> : ≥ 12 caractères, uniques, jamais dans un dictionnaire ;
+          la <strong>longueur</strong> prime. Hachés, cassables par John the Ripper + rockyou.</li>
+      <li><strong>Hygiène</strong> : 12 règles CPME/ANSSI. Sauvegardes déconnectées et testées.
+          Veille régulière.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>CNED Bloc 1 — Missions 1 à 8 « Vos premiers pas dans la cybersécurité » (L. Peyrac, 2024)</li>
+      <li>Tutoriels CNED — Installation de Maltego · Déchiffrer le mot de passe d'un ZIP</li>
+      <li>ANSSI — « Cyberattaque, comment réagir ? »</li>
+      <li>ANSSI — « Crise d'origine cyber : les clés d'une gestion opérationnelle et stratégique »
+          (fiches 13 et 18)</li>
+      <li>CPME / ANSSI — « Guide des bonnes pratiques de l'informatique » (12 règles)</li>
+      <li>Rapport d'auto-évaluation Fit4Cybersecurity (NC3) — travail personnel</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML — structurer une page web | BTS CIEL</title>
+<meta name="description" content="Cours complet : le Web (client/serveur/HTTP), la structure d'un document HTML, texte, liens, images, listes, tableaux et formulaires.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#le-web">1 · Le Web : client &amp; serveur</a></li>
+    <li><a href="#trois-langages">2 · HTML, CSS, JavaScript</a></li>
+    <li><a href="#balises">3 · Balises et structure</a></li>
+    <li><a href="#texte">4 · Le texte</a></li>
+    <li><a href="#liens">5 · Les liens</a></li>
+    <li><a href="#images">6 · Les images</a></li>
+    <li><a href="#listes">7 · Les listes</a></li>
+    <li><a href="#tableaux">8 · Les tableaux</a></li>
+    <li><a href="#formulaires">9 · Les formulaires</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 01</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>HTML — structurer une page web</h1>
+  <p class="chapeau">Le squelette de toute page web : un langage de <em>balises</em> qui décrit le
+     <strong>sens</strong> du contenu, pas son apparence.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p><strong>HTML</strong> (HyperText Markup Language) est un langage de
+         <strong>balisage</strong>, pas de programmation : il <strong>structure</strong> le
+         contenu (titres, paragraphes, listes, images, liens, tableaux, formulaires). Un document
+         a toujours quatre piliers — <code>&lt;!DOCTYPE html&gt;</code>, <code>&lt;html&gt;</code>,
+         <code>&lt;head&gt;</code> (les métadonnées, invisibles), <code>&lt;body&gt;</code> (le
+         visible). Le style, c'est le rôle du <strong>CSS</strong> ; l'interactivité, celui de
+         <strong>JavaScript</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#balise</code> <code>#DOCTYPE</code> <code>#head</code> <code>#body</code>
+    <code>#meta</code> <code>#sémantique</code> <code>#a-href</code> <code>#img-alt</code>
+    <code>#ul-ol-dl</code> <code>#table</code> <code>#form</code> <code>#input</code>
+    <code>#HTML5</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="le-web">
+  <h2><span class="num">01</span>Le Web : client &amp; serveur</h2>
+
+  <p>Le <strong>Web</strong> est un système qui permet d'accéder à des pages et documents sur
+     Internet à l'aide d'un <strong>navigateur</strong>. Son fonctionnement repose sur trois
+     acteurs.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 170" role="img" aria-label="Échange entre le client et le serveur via HTTP">
+      <style>
+        .cli{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .srv{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .lbw{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .sbw{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .req{font:600 10px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .arrw{stroke:var(--accent);stroke-width:1.6;fill:none}
+      </style>
+      <defs><marker id="mw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+      <rect class="cli" x="20"  y="52" width="150" height="66" rx="9"/>
+      <text class="lbw" x="95" y="80">CLIENT</text>
+      <text class="sbw" x="95" y="98">navigateur</text>
+      <text class="sbw" x="95" y="112">(Chrome, Firefox…)</text>
+
+      <rect class="srv" x="430" y="52" width="150" height="66" rx="9"/>
+      <text class="lbw" x="505" y="80">SERVEUR</text>
+      <text class="sbw" x="505" y="98">stocke les fichiers</text>
+      <text class="sbw" x="505" y="112">HTML, CSS, images…</text>
+
+      <text class="sbw" x="300" y="42" style="font-weight:700;letter-spacing:.05em">INTERNET</text>
+      <path class="arrw" marker-end="url(#mw)" d="M172,74 H428"/>
+      <text class="req" x="300" y="68">requête HTTP  →</text>
+      <path class="arrw" marker-end="url(#mw)" d="M428,100 H172"/>
+      <text class="req" x="300" y="118">←  réponse (HTML / CSS / JS)</text>
+    </svg>
+    <figcaption>Le client demande, le serveur répond. Le protocole qui règle cet échange est
+      <strong>HTTP</strong> (ou HTTPS, sa version chiffrée).</figcaption>
+  </figure>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Acteur</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Le client</strong></td>
+          <td>L'appareil de l'utilisateur. Son navigateur <strong>envoie des requêtes HTTP</strong>
+              et <strong>affiche</strong> le contenu reçu</td></tr>
+      <tr><td><strong>Le serveur</strong></td>
+          <td>Machine distante qui <strong>stocke</strong> les fichiers du site et
+              <strong>renvoie</strong> ceux qu'on lui demande</td></tr>
+      <tr><td><strong>Internet</strong></td>
+          <td>Le réseau mondial qui relie les deux et <strong>transporte</strong> requêtes et
+              réponses, via HTTP/HTTPS</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Ce qui se passe quand vous tapez une adresse</div>
+    <ol>
+      <li>Vous tapez <code>www.exemple.com</code> dans le navigateur.</li>
+      <li>Le navigateur (client) envoie une <strong>requête HTTP</strong> au serveur.</li>
+      <li>Le serveur reçoit la requête et renvoie le <strong>code HTML</strong> correspondant.</li>
+      <li>Le navigateur reçoit ce code et <strong>affiche</strong> la page.</li>
+    </ol>
+    <p>Tout ce chapitre concerne l'étape 3 : le <em>langage</em> dans lequel le serveur répond.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="trois-langages">
+  <h2><span class="num">02</span>HTML, CSS, JavaScript</h2>
+
+  <p>Une page web complète s'écrit avec <strong>trois langages</strong> qui se répartissent le
+     travail. On ne les oppose pas : on les combine.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Le corps humain</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Langage</th><th>Rôle</th><th>Analogie</th></tr></thead>
+      <tbody>
+        <tr><td><strong>HTML</strong></td><td>structure le contenu</td>
+            <td>le <strong>squelette</strong></td></tr>
+        <tr><td><strong>CSS</strong></td><td>met en forme</td>
+            <td>la <strong>peau, les vêtements</strong></td></tr>
+        <tr><td><strong>JavaScript</strong></td><td>rend interactif</td>
+            <td>les <strong>muscles, le mouvement</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Une page en HTML seul fonctionne — comme un squelette tient debout — mais elle est nue et
+       immobile. C'est déjà suffisant pour ce chapitre : on structure d'abord, on habillera
+       (CSS) et on animera (JS) ensuite.</p>
+  </div>
+
+  <p>Le HTML (HyperText Markup Language) est un <strong>langage de balisage</strong>, pas un langage
+     de programmation. Il ne calcule rien : il <em>décrit</em>. Son rôle est de structurer le
+     contenu (titres, paragraphes, images, liens…), d'en <strong>définir la signification</strong>
+     (ceci est un titre, ceci est un bouton…) et de permettre au navigateur de l'afficher
+     correctement.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Du premier HTML à HTML5</div>
+    <p>HTML est le pilier du Web depuis <strong>1990</strong>. Il a évolué (2.0, 3.2, 4.0…) jusqu'à
+       <strong>HTML5</strong>, la version actuelle : elle intègre nativement l'audio, la vidéo, les
+       graphiques et l'interactivité, tout en <strong>simplifiant</strong> la structure des pages.
+       C'est HTML5 qu'on écrit aujourd'hui.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="balises">
+  <h2><span class="num">03</span>Balises et structure du document</h2>
+
+  <p>En HTML, tout le contenu est rangé dans des <strong>éléments</strong>, délimités par des
+     <strong>balises</strong> (<em>tags</em>) écrites entre <code>&lt;</code> et <code>&gt;</code>.
+     La liste des balises est <strong>limitée</strong> et fixée par la spécification du langage —
+     on ne les invente pas.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 130" role="img" aria-label="Anatomie d'un élément HTML">
+      <style>
+        .code0{font:700 17px var(--mono);fill:var(--encre)}
+        .op{fill:var(--accent)}
+        .cap{font:11px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .gl{stroke:var(--accent);stroke-width:1.2;fill:none}
+      </style>
+      <text class="code0" x="130" y="60">&lt;p&gt;<tspan fill="var(--encre-douce)">contenu du paragraphe</tspan>&lt;/p&gt;</text>
+      <path class="gl" d="M150,68 V88 H180"/>
+      <path class="gl" d="M395,68 V88 H365"/>
+      <text class="cap" x="150" y="104">balise ouvrante</text>
+      <text class="cap" x="405" y="104">balise fermante</text>
+      <text class="cap" x="270" y="24">un élément = ouverture + contenu + fermeture</text>
+    </svg>
+    <figcaption>La plupart des éléments vont par paire : <code>&lt;balise&gt;</code> …
+      <code>&lt;/balise&gt;</code>. Quelques-uns sont <strong>auto-fermants</strong>
+      (<code>&lt;img&gt;</code>, <code>&lt;br&gt;</code>, <code>&lt;meta&gt;</code>).</figcaption>
+  </figure>
+
+  <h3>Les quatre piliers obligatoires</h3>
+  <p>Tout document HTML comporte au minimum quatre éléments :</p>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>&lt;!DOCTYPE html&gt;</code></td>
+          <td>Tout en haut. Indique la version (ici HTML5) pour que le navigateur interprète
+              correctement le code</td></tr>
+      <tr><td><code>&lt;html&gt;</code></td>
+          <td>L'élément <strong>racine</strong>. Il n'a que deux enfants : <code>&lt;head&gt;</code>
+              et <code>&lt;body&gt;</code></td></tr>
+      <tr><td><code>&lt;head&gt;</code></td>
+          <td>L'<strong>en-tête</strong> : les métadonnées, <em>invisibles</em> dans la page</td></tr>
+      <tr><td><code>&lt;body&gt;</code></td>
+          <td>Le <strong>corps</strong> : tout ce qui est <em>visible</em> à l'écran</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 460 210" role="img" aria-label="Arborescence d'un document HTML">
+      <style>
+        .nd{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .ndb{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.4}
+        .ndt{font:600 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .lk{stroke:var(--bord-fort);stroke-width:1.4;fill:none}
+        .cp{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+      </style>
+      <rect class="nd" x="180" y="12" width="100" height="30" rx="6"/><text class="ndt" x="230" y="32">&lt;html&gt;</text>
+      <path class="lk" d="M230,42 V60 H120 V74"/>
+      <path class="lk" d="M230,42 V60 H340 V74"/>
+      <rect class="nd" x="60" y="74" width="120" height="30" rx="6"/><text class="ndt" x="120" y="94">&lt;head&gt;</text>
+      <rect class="nd" x="280" y="74" width="120" height="30" rx="6"/><text class="ndt" x="340" y="94">&lt;body&gt;</text>
+      <text class="cp" x="120" y="120">invisible</text>
+      <text class="cp" x="340" y="120">visible</text>
+      <path class="lk" d="M120,104 V132 H70 V146"/>
+      <path class="lk" d="M120,104 V132 H170 V146"/>
+      <path class="lk" d="M340,104 V150"/>
+      <rect class="ndb" x="24" y="146" width="92" height="26" rx="6"/><text class="ndt" x="70" y="163" style="font-size:10px">&lt;title&gt;</text>
+      <rect class="ndb" x="126" y="146" width="92" height="26" rx="6"/><text class="ndt" x="172" y="163" style="font-size:10px">&lt;meta&gt;</text>
+      <rect class="ndb" x="286" y="150" width="108" height="46" rx="6"/>
+      <text class="ndt" x="340" y="170" style="font-size:10px">h1, p, img,</text>
+      <text class="ndt" x="340" y="186" style="font-size:10px">a, ul, table…</text>
+    </svg>
+    <figcaption>La page est un arbre : <code>&lt;html&gt;</code> est la racine, <code>&lt;head&gt;</code>
+      et <code>&lt;body&gt;</code> ses deux branches.</figcaption>
+  </figure>
+
+  <h3>Dans le <code>&lt;head&gt;</code></h3>
+  <ul>
+    <li><code>&lt;title&gt;</code> — le titre affiché dans l'onglet. <strong>Seule balise
+        obligatoire</strong> de l'en-tête.</li>
+    <li><code>&lt;meta charset="utf-8"&gt;</code> — l'<strong>encodage</strong> des caractères
+        (indispensable pour les accents).</li>
+    <li><code>&lt;meta name="viewport" …&gt;</code> — l'adaptation à l'écran (mobile).</li>
+    <li><code>&lt;link&gt;</code> — relie un fichier externe (feuille de style CSS, icône…).</li>
+    <li><code>&lt;style&gt;</code> — du CSS écrit directement dans la page.</li>
+    <li><code>&lt;script&gt;</code> — du JavaScript, interne ou lié via <code>src</code>.</li>
+    <li><code>&lt;base&gt;</code> — l'URL de base des liens relatifs de la page.</li>
+  </ul>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La structure minimale à savoir écrire de mémoire</div>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+    &lt;title&gt;Titre de la page&lt;/title&gt;
+    &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;!-- contenu visible ici --&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+    <p>L'attribut <code>lang="fr"</code> sur <code>&lt;html&gt;</code> annonce la langue ;
+       <code>dir="rtl"</code> servirait pour un texte de droite à gauche (arabe, hébreu).</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le commentaire, et la casse</div>
+    <p>Un <strong>commentaire</strong> s'écrit <code>&lt;!-- … --&gt;</code> : tout ce qui est
+       entre les deux est <strong>ignoré</strong> par le navigateur. Utile pour s'annoter le
+       code.</p>
+    <p>Enfin, HTML est <em>insensible à la casse</em> (<code>&lt;IMG&gt;</code> =
+       <code>&lt;img&gt;</code>), mais la convention moderne est d'écrire <strong>tout en
+       minuscules</strong>. Les cours plus anciens écrivent en majuscules — on s'en tient aux
+       minuscules.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="texte">
+  <h2><span class="num">04</span>Le texte</h2>
+
+  <h3>Les titres</h3>
+  <p>Six niveaux, de <code>&lt;h1&gt;</code> (le plus important) à <code>&lt;h6&gt;</code>. Ils
+     structurent la page en sections hiérarchisées — et les <strong>moteurs de recherche</strong>
+     s'en servent pour comprendre le contenu.</p>
+  <div class="encart piege">
+    <div class="titre">⚠️ Un seul <code>&lt;h1&gt;</code> par page</div>
+    <p>Le <code>&lt;h1&gt;</code> est le titre principal : il doit être <strong>unique</strong>. Et
+       on ne saute pas de niveau (pas de <code>&lt;h3&gt;</code> juste après un
+       <code>&lt;h1&gt;</code>) — la hiérarchie doit être continue, pour l'accessibilité comme pour
+       le référencement. Les titres ne servent <em>pas</em> à « faire du gros texte » : ça, c'est le
+       rôle du CSS.</p>
+  </div>
+
+  <h3>Paragraphes et sauts</h3>
+  <p>Le paragraphe <code>&lt;p&gt;</code> est l'unité de texte de base ; le navigateur ajoute
+     automatiquement un espace avant et après. <code>&lt;br&gt;</code> force un retour à la ligne,
+     <code>&lt;hr&gt;</code> trace une ligne de séparation.</p>
+
+  <h3>Mettre en valeur : le sens avant l'apparence</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Balise</th><th>Effet</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;strong&gt;</code></td><td>gras</td><td>texte <strong>important</strong></td></tr>
+      <tr><td><code>&lt;em&gt;</code></td><td>italique</td><td><strong>emphase</strong>, accentuation</td></tr>
+      <tr><td><code>&lt;mark&gt;</code></td><td>surligné</td><td>passage à mettre en évidence</td></tr>
+      <tr><td><code>&lt;u&gt;</code> · <code>&lt;s&gt;</code></td><td>souligné · barré</td><td>usage purement visuel</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="demo" data-apercu="html">
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;p&gt;Un mot &lt;strong&gt;important&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Un mot &lt;em&gt;accentué&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Un passage &lt;mark&gt;surligné&lt;/mark&gt;.&lt;/p&gt;
+&lt;p&gt;Du texte &lt;u&gt;souligné&lt;/u&gt; et &lt;s&gt;barré&lt;/s&gt;.&lt;/p&gt;</code></pre></div>
+</div>
+
+  <p>HTML5 privilégie les balises <strong>sémantiques</strong> <code>&lt;strong&gt;</code> et
+     <code>&lt;em&gt;</code> (qui portent un <em>sens</em>) plutôt que les anciennes
+     <code>&lt;b&gt;</code> et <code>&lt;i&gt;</code> (purement visuelles). Un lecteur d'écran
+     insistera sur un <code>&lt;strong&gt;</code>, pas sur un <code>&lt;b&gt;</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — la balise <code>&lt;font&gt;</code> n'existe plus</div>
+    <p>Le polycopié présente <code>&lt;font color&gt;</code>, <code>&lt;font size&gt;</code> et
+       <code>&lt;font face&gt;</code> pour colorer, dimensionner et changer la police du texte. Ces
+       balises sont <strong>obsolètes et supprimées de HTML5</strong> : il ne faut plus les
+       utiliser. Tout ce qui touche à l'<em>apparence</em> — couleur, taille, police — se fait
+       désormais en <strong>CSS</strong>.</p>
+<div class="bloc-code"><span class="langue">à ne plus faire → à faire</span><pre><code>&lt;font color="blue" size="5"&gt;Texte&lt;/font&gt;        &lt;!-- obsolète --&gt;
+
+&lt;p style="color:blue; font-size:1.4em"&gt;Texte&lt;/p&gt;   &lt;!-- CSS, correct --&gt;</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="liens">
+  <h2><span class="num">05</span>Les liens</h2>
+
+  <p>Le lien hypertexte est l'élément fondateur du Web. La balise <code>&lt;a&gt;</code> (pour
+     <em>anchor</em>, ancre) et son attribut <code>href</code> ne servent pas qu'à « changer de
+     page » : ils font sept choses.</p>
+
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;!-- 1. vers une autre page (interne ou externe) --&gt;
+&lt;a href="page2.html"&gt;Aller à la page 2&lt;/a&gt;
+&lt;a href="https://www.exemple.com"&gt;Site externe&lt;/a&gt;
+
+&lt;!-- 2. vers une section précise (ancre via un id) --&gt;
+&lt;a href="page2.html#section3"&gt;Aller à la section 3&lt;/a&gt;
+
+&lt;!-- 3. ouvrir dans un nouvel onglet --&gt;
+&lt;a href="https://exemple.com" target="_blank" rel="noopener noreferrer"&gt;Nouvel onglet&lt;/a&gt;
+
+&lt;!-- 4. télécharger un fichier --&gt;
+&lt;a href="brochure.pdf" download&gt;Télécharger la brochure&lt;/a&gt;
+
+&lt;!-- 5. envoyer un e-mail --&gt;
+&lt;a href="mailto:contact@cfa.fr"&gt;Nous écrire&lt;/a&gt;
+
+&lt;!-- 6. appeler un numéro (sur mobile) --&gt;
+&lt;a href="tel:+33123456789"&gt;Appeler&lt;/a&gt;
+
+&lt;!-- 7. déclencher du JavaScript --&gt;
+&lt;a href="javascript:alert('Bonjour !')"&gt;Clique&lt;/a&gt;</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'ancre interne, en deux temps</div>
+    <p>Pour sauter à un endroit précis d'une page, on pose une <strong>cible</strong> avec un
+       <code>id</code>, puis on la vise avec un <code>#</code> :</p>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;h2 id="tarifs"&gt;Nos tarifs&lt;/h2&gt;      &lt;!-- la cible --&gt;
+...
+&lt;a href="#tarifs"&gt;Voir les tarifs&lt;/a&gt;   &lt;!-- le lien --&gt;</code></pre></div>
+    <p>C'est exactement le mécanisme du sommaire de cette fiche.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>target="_blank"</code> va avec <code>rel="noopener"</code></div>
+    <p>Ouvrir un lien externe dans un nouvel onglet sans <code>rel="noopener noreferrer"</code>
+       laisse la page ouverte manipuler la vôtre (faille <em>tabnabbing</em>) et fuiter l'adresse de
+       provenance. Le réflexe : les deux ensemble, toujours, pour un lien externe.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="images">
+  <h2><span class="num">06</span>Les images</h2>
+
+  <p>La balise <code>&lt;img&gt;</code> est <strong>auto-fermante</strong> (pas de
+     <code>&lt;/img&gt;</code>). Ses deux attributs essentiels :</p>
+  <ul>
+    <li><code>src</code> — le chemin vers le fichier image ;</li>
+    <li><code>alt</code> — le <strong>texte alternatif</strong>, affiché si l'image ne charge pas et
+        lu par les lecteurs d'écran.</li>
+  </ul>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>alt</code> n'est pas optionnel</div>
+    <p>Un <code>&lt;img&gt;</code> sans <code>alt</code> est invalide et inaccessible : une personne
+       malvoyante n'a alors <em>aucune</em> information sur l'image. Toujours décrire l'image — ou,
+       si elle est purement décorative, mettre un <code>alt=""</code> vide (jamais l'omettre).</p>
+  </div>
+
+  <h3>Quatre types d'images</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Type</th><th>Ce que c'est</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Normale</strong></td><td>affichage simple :
+          <code>&lt;img src="photo.jpg" alt="Photo"&gt;</code></td></tr>
+      <tr><td><strong>Cliquable</strong></td><td>une image dans un lien :
+          <code>&lt;a href="…"&gt;&lt;img …&gt;&lt;/a&gt;</code></td></tr>
+      <tr><td><strong>Mappée</strong></td><td>plusieurs zones cliquables via
+          <code>&lt;map&gt;</code> et <code>&lt;area&gt;</code> (plans interactifs)</td></tr>
+      <tr><td><strong>Responsive</strong></td><td>plusieurs versions via <code>srcset</code> ;
+          le navigateur choisit selon l'écran</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>La légende : <code>figure</code> et <code>figcaption</code></h3>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;figure&gt;
+  &lt;img src="schema.png" alt="Schéma du réseau"&gt;
+  &lt;figcaption&gt;Topologie en étoile du réseau TechShop&lt;/figcaption&gt;
+&lt;/figure&gt;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — dimensionner et espacer, c'est du CSS</div>
+    <p>Le polycopié règle la taille avec <code>width</code>/<code>height</code> et l'espacement avec
+       <code>hspace</code>/<code>vspace</code>. <code>hspace</code> et <code>vspace</code> sont
+       <strong>obsolètes</strong> ; <code>width</code>/<code>height</code> restent tolérés (utiles
+       pour réserver la place et éviter les sauts de mise en page), mais l'ajustement fin et
+       l'espacement relèvent du <strong>CSS</strong> (<code>margin</code>, <code>width</code> en
+       %…).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="listes">
+  <h2><span class="num">07</span>Les listes</h2>
+
+  <p>Trois familles de listes, selon le besoin.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Liste</th><th>Balises</th><th>Quand</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Ordonnée</strong></td><td><code>&lt;ol&gt;</code> + <code>&lt;li&gt;</code></td>
+          <td>l'ordre compte (étapes, classement)</td></tr>
+      <tr><td><strong>Non ordonnée</strong></td><td><code>&lt;ul&gt;</code> + <code>&lt;li&gt;</code></td>
+          <td>l'ordre est indifférent (options, courses)</td></tr>
+      <tr><td><strong>De définitions</strong></td>
+          <td><code>&lt;dl&gt;</code> · <code>&lt;dt&gt;</code> · <code>&lt;dd&gt;</code></td>
+          <td>terme + définition (glossaire, FAQ)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="demo" data-apercu="html">
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;ol&gt;
+  &lt;li&gt;Premier&lt;/li&gt;
+  &lt;li&gt;Deuxième&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Pommes&lt;/li&gt;
+  &lt;li&gt;Bananes&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;dl&gt;
+  &lt;dt&gt;HTML&lt;/dt&gt;
+  &lt;dd&gt;Langage de balisage.&lt;/dd&gt;
+  &lt;dt&gt;CSS&lt;/dt&gt;
+  &lt;dd&gt;Langage de style.&lt;/dd&gt;
+&lt;/dl&gt;</code></pre></div>
+</div>
+
+  <h3>Attributs de <code>&lt;ol&gt;</code> et imbrication</h3>
+  <p><code>&lt;ol&gt;</code> accepte <code>start</code> (démarrer à un autre numéro),
+     <code>type</code> (chiffres, lettres, romains) et <code>reversed</code> (numérotation
+     décroissante). On peut <strong>imbriquer</strong> une liste dans un <code>&lt;li&gt;</code>
+     pour créer des sous-niveaux.</p>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — ce que fait vraiment <code>reversed</code></div>
+    <p>Le polycopié donne, pour <code>&lt;ol type="A" start="3" reversed&gt;</code> avec les items
+       « Item un / Item deux / Item trois », l'affichage :</p>
+<div class="bloc-code"><pre><code>C. Item trois     ← annoncé par le cours
+B. Item deux
+A. Item un</code></pre></div>
+    <p>C'est <strong>inexact</strong>. L'attribut <code>reversed</code> inverse la
+       <em>numérotation</em>, pas l'<em>ordre des éléments</em>. Avec <code>start="3"</code>, le
+       premier item porte le 3, le suivant 2, puis 1 → en <code>type="A"</code> : C, B, A. Mais les
+       items restent dans l'ordre du code. L'affichage réel est donc :</p>
+<div class="bloc-code"><pre><code>C. Item un       ← résultat réel dans le navigateur
+B. Item deux
+A. Item trois</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="tableaux">
+  <h2><span class="num">08</span>Les tableaux</h2>
+
+  <p>Un tableau présente des <strong>données</strong> en lignes et colonnes. On le décrit
+     <strong>ligne par ligne</strong>, et dans chaque ligne, <strong>cellule par cellule</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Balise</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>&lt;table&gt;</code></td><td>le tableau entier</td></tr>
+      <tr><td><code>&lt;caption&gt;</code></td><td>sa légende</td></tr>
+      <tr><td><code>&lt;tr&gt;</code></td><td>une ligne (<em>table row</em>)</td></tr>
+      <tr><td><code>&lt;th&gt;</code></td><td>une cellule d'<strong>en-tête</strong></td></tr>
+      <tr><td><code>&lt;td&gt;</code></td><td>une cellule de <strong>données</strong></td></tr>
+      <tr><td><code>&lt;thead&gt;</code> · <code>&lt;tbody&gt;</code> · <code>&lt;tfoot&gt;</code></td>
+          <td>en-tête, corps, pied du tableau</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;table&gt;
+  &lt;caption&gt;Gestion des budgets&lt;/caption&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th&gt;Poste&lt;/th&gt;&lt;th&gt;Voiture&lt;/th&gt;&lt;th&gt;Maison&lt;/th&gt;&lt;th&gt;Charges&lt;/th&gt;&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;th&gt;Tarif (€)&lt;/th&gt;&lt;td&gt;2000&lt;/td&gt;&lt;td&gt;3000&lt;/td&gt;&lt;td&gt;7000&lt;/td&gt;&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre></div>
+
+  <h3>Fusionner des cellules</h3>
+  <ul>
+    <li><code>colspan="2"</code> — la cellule s'étend sur <strong>2 colonnes</strong>
+        (fusion horizontale) ;</li>
+    <li><code>rowspan="2"</code> — sur <strong>2 lignes</strong> (fusion verticale).</li>
+  </ul>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — <code>align</code>, <code>valign</code>, <code>border</code> :
+      obsolètes</div>
+    <p>Le polycopié aligne le contenu avec <code>align</code>/<code>valign</code> et trace les
+       bordures avec <code>border="1"</code>. Ces attributs de présentation sont
+       <strong>obsolètes en HTML5</strong>. Le tableau HTML porte la <em>structure</em> ; son
+       apparence (bordures, alignement, centrage) se règle en <strong>CSS</strong>
+       (<code>border</code>, <code>text-align</code>, <code>margin:auto</code>).</p>
+    <p class="rap">À retenir : les tableaux servent à présenter des <strong>données</strong>, jamais
+       à faire la <em>mise en page</em> d'une page (ça, c'est le rôle de CSS — Flexbox, Grid).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="formulaires">
+  <h2><span class="num">09</span>Les formulaires</h2>
+
+  <p>Un <strong>formulaire</strong> est une zone interactive où l'utilisateur saisit des
+     informations envoyées à un serveur : inscription, connexion, contact, commande… Tout ce qui
+     implique l'<strong>envoi de données</strong> passe par un <code>&lt;form&gt;</code>.</p>
+
+  <h3>La balise <code>&lt;form&gt;</code> et ses deux attributs</h3>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;form method="POST" action="/traitement.php"&gt;
+    &lt;!-- les champs ici --&gt;
+    &lt;button type="submit"&gt;Envoyer&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>action</code></td><td>l'URL qui <strong>traite</strong> les données.
+          Vide (<code>action=""</code>) → la même page</td></tr>
+      <tr><td><code>method</code></td>
+          <td><code>GET</code> : données visibles dans l'URL (<code>?nom=Dupont</code>) ·
+              <code>POST</code> : données dans le corps de la requête, <strong>plus sûr</strong>
+              pour les informations sensibles</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un mot de passe ne passe jamais en GET</div>
+    <p>Avec <code>GET</code>, tout se retrouve <strong>dans l'URL</strong> — donc dans l'historique,
+       les journaux du serveur, les favoris. Pour un mot de passe ou toute donnée sensible, c'est
+       <code>POST</code>. Règle simple : <code>GET</code> pour <em>lire</em> (une recherche),
+       <code>POST</code> pour <em>envoyer</em> (une inscription).</p>
+  </div>
+
+  <h3>Les champs courants</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Champ</th><th>Balise</th></tr></thead>
+    <tbody>
+      <tr><td>Texte simple</td><td><code>&lt;input type="text"&gt;</code></td></tr>
+      <tr><td>Mot de passe</td><td><code>&lt;input type="password"&gt;</code></td></tr>
+      <tr><td>E-mail (vérifié)</td><td><code>&lt;input type="email"&gt;</code></td></tr>
+      <tr><td>Nombre</td><td><code>&lt;input type="number"&gt;</code></td></tr>
+      <tr><td>Texte long</td><td><code>&lt;textarea&gt;&lt;/textarea&gt;</code></td></tr>
+      <tr><td>Un seul choix</td><td><code>&lt;input type="radio"&gt;</code></td></tr>
+      <tr><td>Choix multiples</td><td><code>&lt;input type="checkbox"&gt;</code></td></tr>
+      <tr><td>Liste déroulante</td><td><code>&lt;select&gt;&lt;option&gt;…&lt;/select&gt;</code></td></tr>
+      <tr><td>Fichier</td><td><code>&lt;input type="file"&gt;</code></td></tr>
+      <tr><td>Envoi</td><td><code>&lt;button type="submit"&gt;</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Le <code>&lt;button&gt;</code> a trois types : <code>submit</code> (envoie),
+     <code>reset</code> (réinitialise les champs) et <code>button</code> (générique, piloté par
+     JavaScript).</p>
+
+  <h3>Les attributs booléens</h3>
+  <p>Certains attributs n'ont pas de valeur : leur simple présence suffit.</p>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><code>required</code></td><td>champ obligatoire avant l'envoi</td></tr>
+      <tr><td><code>autofocus</code></td><td>curseur placé ici au chargement</td></tr>
+      <tr><td><code>placeholder="…"</code></td><td>texte indicatif grisé (prend une valeur)</td></tr>
+      <tr><td><code>readonly</code> · <code>multiple</code></td><td>lecture seule · sélection multiple</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 <code>&lt;label&gt;</code> : le réflexe accessibilité</div>
+    <p>Le <code>&lt;label&gt;</code> associe un texte à un champ. On peut cliquer le texte pour
+       activer le champ, et les lecteurs d'écran l'annoncent. Deux écritures :</p>
+<div class="bloc-code"><span class="langue">html</span><pre><code>&lt;!-- avec for = id --&gt;
+&lt;label for="email"&gt;E-mail :&lt;/label&gt;
+&lt;input type="email" id="email" name="email"&gt;
+
+&lt;!-- ou en englobant le champ --&gt;
+&lt;label&gt;E-mail : &lt;input type="email" name="email"&gt;&lt;/label&gt;</code></pre></div>
+    <p>Et pour regrouper des champs : <code>&lt;fieldset&gt;</code> avec un
+       <code>&lt;legend&gt;</code> comme titre du groupe.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 HTML5 a musclé les formulaires</div>
+    <p>Avant, tout se validait en JavaScript. HTML5 apporte des types et attributs qui valident et
+       assistent <strong>nativement</strong> : <code>type="email"</code> vérifie le format,
+       <code>type="color"</code> ouvre un sélecteur de couleur, <code>type="date"</code> un
+       calendrier, <code>&lt;datalist&gt;</code> propose des suggestions, <code>minlength</code>/
+       <code>maxlength</code> bornent la saisie. Moins de code, plus de fiabilité.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Pourquoi ce champ est-il mal fichu ? <code>&lt;input type="text" placeholder="Nom"&gt;</code>
+       (seul, sans rien d'autre)</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Il manque le <strong><code>name</code></strong> : sans lui, la valeur saisie
+         <em>n'est pas envoyée</em> au serveur (c'est le <code>name</code> qui nomme la donnée). Il
+         manque aussi un <strong><code>&lt;label&gt;</code></strong> associé : un
+         <code>placeholder</code> n'est pas une étiquette (il disparaît dès qu'on tape et n'est pas
+         un vrai substitut pour l'accessibilité).</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Web</strong> : le client (navigateur) demande, le serveur répond, via
+          <strong>HTTP</strong>.</li>
+      <li><strong>Trois langages</strong> : HTML structure, CSS habille, JS anime.</li>
+      <li><strong>Structure</strong> : <code>&lt;!DOCTYPE html&gt;</code>, <code>&lt;html&gt;</code>,
+          <code>&lt;head&gt;</code> (invisible), <code>&lt;body&gt;</code> (visible). Toujours
+          <code>charset</code>, <code>viewport</code>, <code>title</code>.</li>
+      <li><strong>Texte</strong> : un seul <code>&lt;h1&gt;</code>, hiérarchie continue ;
+          <code>&lt;strong&gt;</code>/<code>&lt;em&gt;</code> sémantiques ; <code>&lt;font&gt;</code>
+          n'existe plus.</li>
+      <li><strong>Liens</strong> : <code>&lt;a href&gt;</code> — page, ancre <code>#</code>, nouvel
+          onglet, download, mailto, tel, JS.</li>
+      <li><strong>Images</strong> : auto-fermantes, <code>alt</code> obligatoire ;
+          <code>figure</code>/<code>figcaption</code> pour la légende.</li>
+      <li><strong>Listes</strong> : <code>ol</code> / <code>ul</code> / <code>dl</code> ;
+          <code>reversed</code> inverse les numéros, pas les items.</li>
+      <li><strong>Tableaux</strong> : <code>table/tr/th/td</code>, <code>colspan</code>/
+          <code>rowspan</code> ; l'apparence en CSS.</li>
+      <li><strong>Formulaires</strong> : <code>&lt;form&gt;</code> (<code>POST</code> pour le
+          sensible), champs nommés par <code>name</code>, <code>&lt;label&gt;</code> systématique.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « Développement web — HTML » (le professeur, BTS CIEL 2025-2026)</li>
+      <li>TP 1 à 4 — HTML (première page, films, plans de villes, tableaux, formulaires)</li>
+      <li>Comptes rendus de TD/TP personnels — l'élève</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

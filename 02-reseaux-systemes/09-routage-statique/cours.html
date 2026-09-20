@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage statique — table de routage et route par défaut | BTS CIEL</title>
+<meta name="description" content="Cours complet : rôle du routeur, configuration des interfaces, table de routage, distance administrative, routes statiques et route par défaut.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#pourquoi">1 · Pourquoi le routage</a></li>
+    <li><a href="#routeur">2 · Configurer un routeur</a></li>
+    <li><a href="#table">3 · La table de routage</a></li>
+    <li><a href="#ad">4 · La distance administrative</a></li>
+    <li><a href="#statique">5 · Les routes statiques</a></li>
+    <li><a href="#defaut">6 · La route par défaut</a></li>
+    <li><a href="#cheminement">7 · Le cheminement d'un paquet</a></li>
+    <li><a href="#bilan">8 · Avantages et limites</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 09</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Routage statique</h1>
+  <p class="chapeau">Apprendre à un routeur des chemins qu'il ne peut pas deviner — et comprendre
+     pourquoi il ne les devine pas.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un routeur ne connaît d'emblée que ses <strong>réseaux directement connectés</strong>.
+         Tout le reste doit lui être appris — manuellement (<strong>routage statique</strong>) ou
+         par un protocole. Une route statique s'écrit
+         <code>ip route &lt;réseau&gt; &lt;masque&gt; &lt;suivant&gt;</code>, et la
+         <strong>route par défaut</strong> <code>0.0.0.0 0.0.0.0</code> attrape tout ce qui n'a
+         aucune autre correspondance. Quand plusieurs chemins existent, c'est la
+         <strong>distance administrative la plus faible</strong> qui gagne.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#routeur</code> <code>#passerelle-par-défaut</code> <code>#table-de-routage</code>
+    <code>#ip-route</code> <code>#next-hop</code> <code>#interface-de-sortie</code>
+    <code>#route-par-défaut</code> <code>#distance-administrative</code>
+    <code>#loopback</code> <code>#no-shutdown</code> <code>#clock-rate</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="pourquoi">
+  <h2><span class="num">01</span>Pourquoi le routage</h2>
+
+  <p>Les routeurs sont des <strong>ordinateurs</strong> — avec un processeur, de la mémoire, un
+     système d'exploitation — spécialisés dans une seule tâche : <strong>interconnecter des
+     réseaux</strong>.</p>
+
+  <h3>Ce que fait un routeur</h3>
+  <ul>
+    <li>Il utilise des <strong>routes statiques</strong> et des <strong>protocoles de routage
+        dynamique</strong> pour découvrir les réseaux distants.</li>
+    <li>Il crée sa <strong>table de routage</strong> pour déterminer le meilleur chemin d'envoi
+        des paquets.</li>
+    <li>Il <strong>encapsule</strong> le paquet et le transmet à l'interface indiquée dans la
+        table.</li>
+  </ul>
+
+  <h3>La passerelle par défaut</h3>
+  <p>Pour assurer l'accès réseau, un appareil doit être configuré avec trois informations :</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Paramètre</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Adresse IP</strong></td><td>Identifie un <strong>hôte unique</strong> sur un
+          réseau local</td></tr>
+      <tr><td><strong>Masque de sous-réseau</strong></td><td>Identifie le <strong>sous-réseau</strong>
+          auquel appartient l'hôte</td></tr>
+      <tr><td><strong>Passerelle par défaut</strong></td><td>Identifie le <strong>routeur</strong>
+          auquel un paquet est envoyé lorsque la destination <strong>n'est pas sur le même
+          sous-réseau</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Vous postez une lettre. Si le destinataire habite votre rue, vous la déposez vous-même —
+       c'est la communication <em>intra</em>-réseau, gérée par le masque. Sinon, vous la mettez
+       dans la <strong>boîte aux lettres du quartier</strong> : c'est la
+       <strong>passerelle par défaut</strong>. Vous ne savez pas comment la lettre ira jusqu'au
+       Japon, et ce n'est pas votre problème : vous savez seulement à qui la confier.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le rôle exact du masque</div>
+    <p>C'est le masque, et lui seul, qui décide si la destination est « chez moi » ou « ailleurs ».
+       L'hôte compare l'adresse de destination à la sienne à travers le masque :</p>
+    <ul>
+      <li><strong>Même réseau</strong> → il envoie directement, en cherchant la MAC du destinataire
+          par ARP.</li>
+      <li><strong>Réseau différent</strong> → il envoie à la <strong>passerelle</strong>, en
+          cherchant la MAC <em>de la passerelle</em>.</li>
+    </ul>
+    <p>Un masque erroné produit donc des symptômes déroutants : la machine croit que tout le monde
+       est sur son réseau et n'utilise jamais la passerelle, ou l'inverse.</p>
+  </div>
+
+  <h3>Documenter le réseau</h3>
+  <p>La documentation doit inclure au minimum, dans une <strong>table d'adressage</strong> et un
+     <strong>schéma de topologie</strong> : les <strong>noms des périphériques</strong>, les
+     <strong>interfaces</strong>, les <strong>adresses IP et masques</strong>, et les
+     <strong>passerelles par défaut</strong>.</p>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="routeur">
+  <h2><span class="num">02</span>Configurer un routeur</h2>
+
+  <h3>Les paramètres de base</h3>
+  <p>Identiques à ceux d'un commutateur :</p>
+  <ol>
+    <li><strong>Attribuer un nom</strong> — pour le distinguer des autres routeurs.</li>
+    <li><strong>Sécuriser l'accès à la gestion</strong> — mode privilégié, mode utilisateur,
+        Telnet, et chiffrer les mots de passe.</li>
+    <li><strong>Configurer une bannière</strong> — mention légale concernant les accès non
+        autorisés.</li>
+    <li><strong>Sauvegarder la configuration</strong>.</li>
+  </ol>
+
+  <h3>Configurer une interface IPv4</h3>
+  <p>Pour qu'une interface soit disponible, elle doit être :</p>
+  <ul>
+    <li>configurée avec une <strong>adresse</strong> et un <strong>masque</strong> ;</li>
+    <li><strong>activée</strong> par <code>no shutdown</code> — <strong>par défaut, les interfaces
+        LAN et WAN ne sont pas activées</strong> ;</li>
+    <li>configurée avec la commande de <strong>fréquence d'horloge</strong> à l'extrémité
+        <strong>DCE</strong> du câble série ;</li>
+    <li>éventuellement dotée d'une <strong>description</strong> (facultatif).</li>
+  </ul>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# configure terminal
+R1(config)# interface fa0/0
+R1(config-if)# description LAN service Administratif
+R1(config-if)# ip address 192.168.1.1 255.255.255.0
+R1(config-if)# no shutdown                     ← INDISPENSABLE sur un routeur
+R1(config-if)# exit
+
+! ── interface série, côté DCE uniquement ──
+R1(config)# interface s0/0/0
+R1(config-if)# ip address 192.168.2.1 255.255.255.252
+R1(config-if)# clock rate 64000                ← fréquence d'horloge, côté DCE
+R1(config-if)# no shutdown
+R1(config-if)# end
+
+R1# show ip interface brief                    ← vérifier : toutes en up/up</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La différence routeur / commutateur qui piège tout le monde</div>
+    <p>Sur un <strong>commutateur</strong>, les ports sont <strong>actifs par défaut</strong> :
+       on branche, ça marche.</p>
+    <p>Sur un <strong>routeur</strong>, <strong>toutes les interfaces sont éteintes</strong>
+       (<code>administratively down</code>) tant qu'on n'a pas tapé <code>no shutdown</code>. C'est
+       délibéré : un routeur mal configuré qui s'activerait tout seul pourrait perturber un réseau
+       entier.</p>
+    <p>C'est l'oubli n° 1 en TP de routage — et il ne produit aucun message d'erreur.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 DCE, DTE et <code>clock rate</code></div>
+    <p>Sur une liaison série, un côté doit cadencer la transmission : c'est le
+       <strong>DCE</strong> (<em>Data Communication Equipment</em>), historiquement le modem de
+       l'opérateur. L'autre côté, le <strong>DTE</strong>, se contente de suivre le rythme.</p>
+    <p>En laboratoire, le câble série est un câble croisé DCE/DTE : un seul des deux routeurs a le
+       côté DCE, et c'est <em>lui</em> qui doit recevoir <code>clock rate</code>. Sans horloge,
+       l'interface reste <code>down</code> côté protocole même si la couche physique est
+       <code>up</code>.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show controllers s0/0/0 | include DCE|DTE     ← quel côté suis-je ?</code></pre></div>
+  </div>
+
+  <h3>L'interface de bouclage</h3>
+  <p>L'interface de <strong>bouclage</strong> (<em>loopback</em>) est une interface
+     <strong>logique interne</strong> au routeur. Elle n'est <strong>pas attribuée à un port
+     physique</strong> et est considérée comme une interface logicielle, réglée
+     <strong>automatiquement sur l'état UP</strong>.</p>
+  <p>Elle est utile <strong>à des fins de test</strong>, et joue un <strong>rôle important dans le
+     routage OSPF</strong>.</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# interface loopback 0
+R1(config-if)# ip address 10.0.0.1 255.255.255.255
+R1(config-if)# end
+! aucune commande no shutdown : elle est UP dès sa création</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 À quoi sert vraiment une loopback</div>
+    <p>Elle <strong>ne tombe jamais</strong>, puisqu'elle ne dépend d'aucun câble. On l'utilise
+       donc pour :</p>
+    <ul>
+      <li><strong>simuler un réseau</strong> supplémentaire en TP, sans matériel ;</li>
+      <li>donner au routeur une <strong>identité stable</strong> — l'adresse d'administration reste
+          joignable même si une interface physique tombe, à condition qu'un autre chemin
+          existe ;</li>
+      <li>servir de <strong>Router-ID</strong> en OSPF.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="table">
+  <h2><span class="num">03</span>La table de routage</h2>
+
+  <p>La commande <code>show ip route</code> affiche le contenu de la table. Quatre sources
+     l'alimentent :</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Source</th><th>Quand elle est ajoutée</th><th>Code</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Interfaces de routage locales</strong></td>
+          <td>Lorsqu'elles sont <strong>configurées</strong></td><td><code>L</code></td></tr>
+      <tr><td><strong>Interfaces connectées directement</strong></td>
+          <td>Lorsqu'elles sont configurées <strong>et actives</strong></td><td><code>C</code></td></tr>
+      <tr><td><strong>Routes statiques</strong></td>
+          <td>Lors de leur <strong>configuration manuelle</strong>, et quand l'interface de sortie
+              est active</td><td><code>S</code></td></tr>
+      <tr><td><strong>Protocole de routage dynamique</strong></td>
+          <td>Lorsque le protocole apprend la route</td>
+          <td><code>R</code> (RIP), <code>O</code> (OSPF), <code>D</code> (EIGRP)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Lire une table de routage</h3>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip route
+
+Codes: L - local, C - connected, S - static, R - RIP, O - OSPF
+
+     192.168.1.0/24 is variably subnetted, 2 subnets, 2 masks
+C       192.168.1.0/24 is directly connected, FastEthernet0/0
+L       192.168.1.1/32 is directly connected, FastEthernet0/0
+     192.168.2.0/30 is subnetted, 1 subnets
+C       192.168.2.0/30 is directly connected, Serial0/0/0
+S    192.168.3.0/24 [1/0] via 192.168.2.2
+     └┬┘ └────┬────┘ └┬┘      └────┬─────┘
+      │       │       │            └── le TRONÇON SUIVANT (next-hop)
+      │       │       └── [distance administrative / métrique]
+      │       └── le réseau de DESTINATION
+      └── la SOURCE de la route : S = statique
+S*   0.0.0.0/0 [1/0] via 192.168.2.2        ← la route PAR DÉFAUT (l'étoile)</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>C</code> et <code>L</code> — deux lignes pour une interface</div>
+    <p>Chaque interface active produit <strong>deux entrées</strong> :</p>
+    <ul>
+      <li><code>C</code> — le <strong>réseau</strong> auquel elle appartient
+          (<code>192.168.1.0/24</code>) ;</li>
+      <li><code>L</code> — l'<strong>adresse exacte de l'interface</strong> elle-même, en
+          <code>/32</code> (<code>192.168.1.1/32</code>).</li>
+    </ul>
+    <p>La ligne <code>L</code> sert au routeur à reconnaître les paquets qui lui sont
+       <em>personnellement</em> destinés. Ce n'est pas un doublon.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="ad">
+  <h2><span class="num">04</span>La distance administrative</h2>
+
+  <p>Si <strong>plusieurs chemins</strong> pour une même destination sont configurés sur un
+     routeur, celui qui entre dans la table de routage est celui dont la <strong>distance
+     administrative (AD) est la plus faible</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Source de la route</th><th>Distance administrative</th></tr></thead>
+    <tbody>
+      <tr><td>Interface <strong>directement connectée</strong></td><td class="rep-ok"><strong>0</strong></td></tr>
+      <tr><td><strong>Route statique</strong></td><td><strong>1</strong></td></tr>
+      <tr><td>EIGRP</td><td>90</td></tr>
+      <tr><td>OSPF</td><td>110</td></tr>
+      <tr><td>RIP</td><td>120</td></tr>
+      <tr><td>Route inconnue / inutilisable</td><td>255</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Trois personnes vous indiquent le chemin. Celle qui habite la rue (AD 0) est plus fiable que
+       votre ami qui y est allé une fois (AD 1), elle-même plus fiable qu'un passant qui a
+       « entendu dire » (AD 120). La distance administrative mesure la <strong>crédibilité de la
+       source</strong>, pas la longueur du trajet.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ne pas confondre AD et métrique</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Distance administrative</th><th>Métrique</th></tr></thead>
+      <tbody>
+        <tr><td>Compare</td><td>Des <strong>protocoles différents</strong></td>
+            <td>Des <strong>routes du même protocole</strong></td></tr>
+        <tr><td>Répond à</td><td>« À qui dois-je faire confiance ? »</td>
+            <td>« Lequel de ces chemins est le plus court ? »</td></tr>
+        <tr><td>Exemple</td><td>Statique (1) l'emporte sur RIP (120)</td>
+            <td>Entre deux routes RIP : 2 sauts l'emporte sur 4 sauts</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Dans <code>[1/0]</code>, le <strong>1</strong> est la distance administrative et le
+       <strong>0</strong> la métrique. Une route statique a toujours une métrique de 0 : elle ne
+       « coûte » rien puisqu'elle a été décidée, pas calculée.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="statique">
+  <h2><span class="num">05</span>Les routes statiques</h2>
+
+  <p>La commande est <strong><code>ip route</code></strong>, et il existe
+     <strong>trois méthodes</strong> pour l'écrire.</p>
+
+<div class="bloc-code"><span class="langue">syntaxe</span><pre><code>ip route  &lt;réseau destination&gt;  &lt;masque&gt;  &lt;tronçon suivant OU interface de sortie&gt;</code></pre></div>
+
+  <h3>Méthode 1 — l'adresse du tronçon suivant</h3>
+  <p>Seule l'adresse IP du <strong>tronçon suivant</strong> (<em>next-hop</em>) est spécifiée.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# ip route 192.168.3.0 255.255.255.0 192.168.2.2
+!                    └──── destination ────┘  └── next-hop ──┘</code></pre></div>
+
+  <h3>Méthode 2 — l'interface de sortie</h3>
+  <p>Seule l'<strong>interface de sortie du routeur</strong> est spécifiée.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# ip route 192.168.3.0 255.255.255.0 s0/0/0
+!                                              └─ interface de sortie ─┘</code></pre></div>
+
+  <h3>Méthode 3 — route entièrement spécifiée</h3>
+  <p>Les <strong>deux</strong> sont indiqués.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# ip route 192.168.1.0 255.255.255.0 s0/0/0 192.168.2.1</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Laquelle choisir ?</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Méthode</th><th>Recommandée pour</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Next-hop</strong></td><td>Les liaisons <strong>multi-accès</strong>
+            (Ethernet)</td><td>Sur un réseau Ethernet, plusieurs voisins partagent le lien : il
+            faut désigner <em>lequel</em></td></tr>
+        <tr><td><strong>Interface de sortie</strong></td><td>Les liaisons
+            <strong>point à point</strong> (série)</td><td>Il n'y a qu'un seul voisin possible :
+            nommer l'interface suffit</td></tr>
+        <tr><td><strong>Entièrement spécifiée</strong></td><td>Quand on veut être explicite</td>
+            <td>Évite toute ambiguïté, au prix d'une écriture plus longue</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Le piège :</strong> utiliser l'<em>interface de sortie</em> seule sur un lien
+       Ethernet oblige le routeur à faire un ARP pour <em>chaque</em> destination, comme si tout le
+       monde était directement connecté. Cela fonctionne, mais alourdit inutilement le
+       fonctionnement.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Une route statique est à sens unique</div>
+    <p>Configurer <code>ip route 192.168.3.0 …</code> sur R1 permet à R1 d'<em>envoyer</em> vers le
+       réseau 3. Mais si R3 ne sait pas revenir vers le réseau 1, <strong>rien ne
+       fonctionne</strong> : le paquet arrive, la réponse se perd.</p>
+    <p><strong>Il faut toujours configurer les routes dans les deux sens</strong>, sur tous les
+       routeurs du chemin. Le symptôme d'un oubli est caractéristique : le ping ne répond pas, alors
+       que la trace montre que le paquet est bien parti.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="defaut">
+  <h2><span class="num">06</span>La route par défaut</h2>
+
+  <p>Une <strong>route statique par défaut</strong> est une route qui <strong>correspond à tous les
+     paquets</strong>. Elle identifie l'adresse IP de la passerelle à laquelle le routeur envoie
+     tous les paquets IP qui <strong>n'ont pas de route apprise ou statique</strong>.</p>
+  <p>C'est simplement une route statique avec <strong><code>0.0.0.0/0</code></strong> comme adresse
+     de destination.</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# ip route 0.0.0.0 0.0.0.0 192.168.2.2
+!                    └─ toute destination ─┘ └─ next-hop ─┘
+
+R1# show ip route
+S*   0.0.0.0/0 [1/0] via 192.168.2.2
+!    └ l'astérisque signale la « route candidate par défaut »</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Pourquoi <code>0.0.0.0 0.0.0.0</code> attrape tout</div>
+    <p>Un masque à <code>0.0.0.0</code> signifie « <strong>aucun bit à comparer</strong> ».
+       N'importe quelle adresse correspond donc à cette route — c'est le filet le plus large
+       possible.</p>
+    <p>Mais un routeur applique toujours la règle de la <strong>correspondance la plus
+       longue</strong> : entre <code>192.168.3.0/24</code> (24 bits comparés) et
+       <code>0.0.0.0/0</code> (0 bit comparé), c'est la première qui gagne. La route par défaut
+       n'est donc utilisée que <strong>en dernier recours</strong>, exactement comme prévu.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Où placer une route par défaut</div>
+    <p>Sur un <strong>réseau d'extrémité</strong> (<em>stub</em>) — un réseau qui n'a
+       <strong>qu'une seule sortie</strong>. Inutile d'y détailler toutes les destinations du monde :
+       tout part par le même côté de toute façon.</p>
+    <p>C'est le cas de figure le plus fréquent : le routeur d'une agence, d'un site distant, ou la
+       box d'un particulier. Une seule ligne remplace des milliers de routes.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="cheminement">
+  <h2><span class="num">07</span>Le cheminement d'un paquet</h2>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 210" role="img" aria-label="Cheminement d'un paquet à travers trois routeurs">
+      <style>
+        .pc{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .rr{fill:var(--accent);stroke:none}
+        .lb{font:700 11px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .lw{font:700 11px var(--sans);text-anchor:middle;fill:#fff}
+        .sm{font:10px var(--mono);text-anchor:middle;fill:var(--encre-tenue)}
+        .li{stroke:var(--bord-fort);stroke-width:1.8;fill:none}
+        .fl{stroke:var(--accent);stroke-width:2.2;fill:none;marker-end:url(#a7)}
+      </style>
+      <defs><marker id="a7" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L8,3 L0,6 z" fill="var(--accent)"/></marker></defs>
+
+      <rect class="pc" x="14" y="66" width="66" height="34" rx="5"/><text class="lb" x="47" y="88">PC1</text>
+      <rect class="rr" x="140" y="66" width="66" height="34" rx="5"/><text class="lw" x="173" y="88">R1</text>
+      <rect class="rr" x="266" y="66" width="66" height="34" rx="5"/><text class="lw" x="299" y="88">R2</text>
+      <rect class="rr" x="392" y="66" width="66" height="34" rx="5"/><text class="lw" x="425" y="88">R3</text>
+      <rect class="pc" x="500" y="66" width="66" height="34" rx="5"/><text class="lb" x="533" y="88">Serveur</text>
+
+      <path class="li" d="M82 83 L138 83"/><path class="li" d="M208 83 L264 83"/>
+      <path class="li" d="M334 83 L390 83"/><path class="li" d="M460 83 L498 83"/>
+
+      <text class="sm" x="47"  y="120">172.31.1.10</text>
+      <text class="sm" x="173" y="120">LAN1 + S0/0/0</text>
+      <text class="sm" x="299" y="120">central</text>
+      <text class="sm" x="425" y="120">S0/0/1 + serveur</text>
+      <text class="sm" x="533" y="120">172.31.1.130</text>
+
+      <path class="fl" d="M20 148 L560 148"/>
+      <text class="sm" x="290" y="140" style="fill:var(--accent);font-weight:700">le PAQUET IP traverse : source et destination ne changent jamais</text>
+      <text class="sm" x="290" y="172">À chaque saut : désencapsulation → lecture de la table → réencapsulation</text>
+      <text class="sm" x="290" y="192" style="fill:var(--rouge);font-weight:700">Les adresses MAC, elles, changent à CHAQUE saut</text>
+    </svg>
+    <figcaption>Trois routeurs, trois décisions indépendantes — chacun ne connaît que le saut suivant.</figcaption>
+  </figure>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que fait un routeur pour chaque paquet</div>
+    <ol>
+      <li><strong>Désencapsuler</strong> la trame de couche 2 pour accéder au paquet IP.</li>
+      <li>Lire l'<strong>adresse IP de destination</strong>.</li>
+      <li>Consulter la <strong>table de routage</strong> et retenir la
+          <strong>correspondance la plus longue</strong>.</li>
+      <li>Déterminer l'<strong>interface de sortie</strong> et le <strong>tronçon suivant</strong>.</li>
+      <li><strong>Réencapsuler</strong> le paquet dans une nouvelle trame, avec sa propre MAC en
+          source et celle du saut suivant en destination.</li>
+      <li>Transmettre — et <strong>oublier</strong> : il ne garde aucune trace du paquet.</li>
+    </ol>
+    <p>Si <strong>aucune</strong> route ne correspond et qu'il n'y a pas de route par défaut, le
+       paquet est <strong>abandonné</strong> et un message ICMP
+       <em>Destination unreachable</em> est renvoyé à l'émetteur.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Un routeur n'a aucune mémoire du trajet</div>
+    <p>Chaque routeur prend sa décision <strong>indépendamment</strong>, sans savoir d'où vient le
+       paquet ni ce qui lui arrivera ensuite. C'est ce qui rend le réseau extraordinairement
+       robuste — mais c'est aussi pourquoi une route manquante sur <em>un seul</em> routeur du
+       chemin suffit à tout casser, et pourquoi le retour peut emprunter une route différente de
+       l'aller.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="bilan">
+  <h2><span class="num">08</span>Avantages et limites</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Routage statique</th></tr></thead>
+    <tbody>
+      <tr><td class="rep-ok"><strong>Avantages</strong></td>
+          <td>Aucune consommation de CPU, de RAM ni de bande passante · Comportement
+              <strong>totalement prévisible</strong> · Aucune information de topologie diffusée sur
+              le réseau — donc plus sûr · Simple sur un petit réseau</td></tr>
+      <tr><td class="rep-non"><strong>Inconvénients</strong></td>
+          <td>Configuration <strong>entièrement manuelle</strong> · Ne s'adapte
+              <strong>pas</strong> aux pannes : si le chemin tombe, rien ne se reconfigure ·
+              Le volume de routes explose avec la taille du réseau · Risque d'erreur humaine élevé
+              · Toute modification de topologie impose de reprendre <em>tous</em> les routeurs</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Quand l'utiliser</h3>
+  <p>Les réseaux combinent généralement routage dynamique <em>et</em> statique. Le statique est
+     principalement utilisé pour :</p>
+  <ul>
+    <li><strong>faciliter la maintenance</strong> des tables dans les réseaux de <strong>petite
+        taille</strong> qui ne sont pas amenés à se développer de manière significative ;</li>
+    <li>assurer le routage vers les <strong>réseaux d'extrémité</strong> — un réseau avec une seule
+        route par défaut en sortie et aucune connaissance des réseaux distants ;</li>
+    <li>accéder à un <strong>routeur par défaut unique</strong>, pour représenter un chemin vers
+        tout réseau absent de la table.</li>
+  </ul>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">R1 connecte le LAN <code>172.31.1.0/25</code>. R2 est central, avec le LAN
+       <code>172.31.0.0/24</code>. R3 connecte le serveur en <code>172.31.1.128/26</code>. Quelles
+       routes statiques faut-il, au minimum, sur chaque routeur pour que PC1 (sur R1) joigne le
+       serveur (sur R3) ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Le principe :</strong> chaque routeur doit connaître tous les réseaux qui ne lui
+         sont <em>pas</em> directement connectés — et il faut penser à
+         <strong>l'aller ET au retour</strong>.</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Routeur</th><th>Connaît déjà (C)</th><th>Routes à ajouter</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R1</strong></td><td>172.31.1.0/25, liaison R1–R2</td>
+              <td>172.31.0.0/24 (LAN de R2) · 172.31.1.128/26 (serveur) · liaison R2–R3</td></tr>
+          <tr><td><strong>R2</strong></td><td>172.31.0.0/24, les deux liaisons</td>
+              <td>172.31.1.0/25 (via R1) · 172.31.1.128/26 (via R3)</td></tr>
+          <tr><td><strong>R3</strong></td><td>172.31.1.128/26, liaison R2–R3</td>
+              <td>172.31.1.0/25 (LAN de R1) · 172.31.0.0/24 (LAN de R2) · liaison R1–R2</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p><strong>Simplification :</strong> R1 et R3 sont des <strong>réseaux d'extrémité</strong> —
+         ils n'ont qu'une seule sortie, vers R2. Une <strong>route par défaut</strong> suffit donc
+         sur chacun, au lieu d'énumérer toutes les destinations :</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# ip route 0.0.0.0 0.0.0.0 &lt;IP de R2 côté R1&gt;
+R3(config)# ip route 0.0.0.0 0.0.0.0 &lt;IP de R2 côté R3&gt;
+
+! R2 est central : il a deux directions, il lui faut des routes précises
+R2(config)# ip route 172.31.1.0   255.255.255.128 &lt;IP de R1&gt;
+R2(config)# ip route 172.31.1.128 255.255.255.192 &lt;IP de R3&gt;</code></pre></div>
+      <p><strong>Attention aux masques :</strong> <code>/25</code> =
+         <code>255.255.255.128</code> et <code>/26</code> = <code>255.255.255.192</code>. C'est
+         exactement le genre d'énoncé où l'on écrit <code>255.255.255.0</code> par réflexe — et où
+         la route ne correspond alors à rien.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>Un routeur ne connaît que ses réseaux directement connectés.</strong> Tout le
+          reste s'apprend.</li>
+      <li><strong>Sur un routeur, <code>no shutdown</code> est obligatoire</strong> — les
+          interfaces sont éteintes par défaut. Et <code>clock rate</code> côté DCE.</li>
+      <li><strong>La loopback est toujours UP</strong> et ne dépend d'aucun câble.</li>
+      <li><strong>Table de routage :</strong> <code>L</code> local · <code>C</code> connecté ·
+          <code>S</code> statique · <code>R</code>/<code>O</code>/<code>D</code> dynamique.</li>
+      <li><strong>AD la plus faible gagne</strong> : connecté 0, statique 1, EIGRP 90, OSPF 110,
+          RIP 120. Dans <code>[1/0]</code> : AD / métrique.</li>
+      <li><code>ip route &lt;réseau&gt; &lt;masque&gt; &lt;next-hop ou interface&gt;</code> —
+          et <strong>toujours dans les deux sens</strong>.</li>
+      <li><strong>Route par défaut :</strong> <code>ip route 0.0.0.0 0.0.0.0 &lt;suivant&gt;</code>,
+          pour les réseaux d'extrémité.</li>
+      <li><strong>Correspondance la plus longue</strong> : une route /24 l'emporte toujours sur la
+          route par défaut.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>3-cours_Routage statique.pdf — le professeur</li>
+      <li>A-2-TP-Note_Decouverte_RoutageCisco-01.pdf — Exolab CERTA</li>
+      <li>Doc 3-Troubleshoot Static and Default Routes.pdf</li>
+      <li>TP réseaux routage — session de dépannage guidée</li>
+      <li>3-TP-Configuring IPv4 Static and Default Routes.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

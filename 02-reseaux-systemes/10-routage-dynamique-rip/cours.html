@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage dynamique et RIP — vecteur de distance et état de liens | BTS CIEL</title>
+<meta name="description" content="Cours complet : protocoles de routage dynamique, IGP et EGP, vecteur de distance et état de liens, métriques, RIPv1 et RIPv2, configuration et timers.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#principe">1 · Le principe</a></li>
+    <li><a href="#composants">2 · Les trois composants</a></li>
+    <li><a href="#bilan-dyn">3 · Dynamique ou statique</a></li>
+    <li><a href="#familles">4 · IGP, EGP et les deux approches</a></li>
+    <li><a href="#metriques">5 · Les métriques</a></li>
+    <li><a href="#rip">6 · Le protocole RIP</a></li>
+    <li><a href="#fonctionnement">7 · Comment RIP fonctionne</a></li>
+    <li><a href="#config">8 · Configurer RIPv2</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 10</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Routage dynamique et RIP</h1>
+  <p class="chapeau">Laisser les routeurs se raconter entre eux ce qu'ils savent — et se
+     réorganiser tout seuls quand un lien tombe.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un protocole de routage dynamique fait <strong>échanger automatiquement</strong> leurs
+         informations aux routeurs. Deux grandes approches : le <strong>vecteur de distance</strong>
+         (« je répète à mes voisins tout ce que je sais »), et l'<strong>état de liens</strong>
+         (« chacun a la carte complète »). <strong>RIP</strong> est le représentant historique du
+         premier : métrique en <strong>nombre de sauts, 15 maximum</strong>, mises à jour toutes
+         les <strong>30 secondes</strong>, distance administrative <strong>120</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#routage-dynamique</code> <code>#IGP</code> <code>#EGP</code> <code>#AS</code>
+    <code>#vecteur-de-distance</code> <code>#état-de-liens</code> <code>#métrique</code>
+    <code>#convergence</code> <code>#RIP</code> <code>#RIPv2</code>
+    <code>#Bellman-Ford</code> <code>#OSPF</code> <code>#timers</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="principe">
+  <h2><span class="num">01</span>Le principe</h2>
+
+  <p>Le <strong>routage dynamique</strong> est un mécanisme par lequel les routeurs
+     <strong>échangent automatiquement</strong> leurs informations de routage. Contrairement au
+     routage statique — où l'administrateur configure chaque route manuellement — c'est le
+     <strong>protocole</strong> qui s'en charge.</p>
+
+  <div class="encart analogie">
+    <div class="titre">💡 Analogie</div>
+    <p>Un GPS qui se met à jour en temps réel : si une route est bloquée, il recalcule
+       automatiquement le meilleur chemin. Le routage statique, c'est la carte papier — parfaite
+       tant que rien ne change, inutile dès qu'un pont s'effondre.</p>
+  </div>
+
+  <h3>Les quatre fonctions</h3>
+  <ul>
+    <li><strong>Découverte</strong> des réseaux distants ;</li>
+    <li><strong>Actualisation</strong> des informations de routage en cas de changement ;</li>
+    <li><strong>Choix du meilleur chemin</strong> vers chaque réseau de destination ;</li>
+    <li><strong>Capacité à trouver un nouveau meilleur chemin</strong> si le chemin actuel n'est
+        plus disponible.</li>
+  </ul>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le mot à retenir : la convergence</div>
+    <p>La <strong>convergence</strong> est le moment où <em>tous</em> les routeurs du réseau
+       partagent la même vision de la topologie. Tant qu'elle n'est pas atteinte, certains routeurs
+       travaillent avec des informations périmées — et des paquets peuvent tourner en rond.</p>
+    <p>Le <strong>temps de convergence</strong> est le principal critère de comparaison entre
+       protocoles : RIP met plusieurs minutes, OSPF quelques secondes.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="composants">
+  <h2><span class="num">02</span>Les trois composants</h2>
+
+  <p>Tout protocole de routage dynamique repose sur trois éléments :</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Composant</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Structures de données</strong></td>
+          <td>Tables ou bases de données conservées en <strong>mémoire vive</strong>, construites et
+              mises à jour dynamiquement par le protocole</td></tr>
+      <tr><td><strong>Messages de protocole</strong></td>
+          <td>Différents types de messages pour <strong>découvrir les voisins</strong>, échanger les
+              informations de routage et maintenir des informations précises sur le réseau</td></tr>
+      <tr><td><strong>Algorithme</strong></td>
+          <td>Le calcul mathématique qui détermine le <strong>meilleur chemin</strong>.
+              RIP utilise <strong>Bellman-Ford</strong>, OSPF utilise <strong>Dijkstra</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Bellman-Ford et Dijkstra</div>
+    <p>Ce ne sont pas des noms décoratifs. <strong>Bellman-Ford</strong> calcule les plus courts
+       chemins en ne connaissant que ses voisins immédiats : il convient donc parfaitement au
+       vecteur de distance, mais converge lentement. <strong>Dijkstra</strong> exige une
+       <em>carte complète</em> du graphe et calcule tous les chemins d'un coup : d'où l'état de
+       liens, et sa convergence quasi instantanée.</p>
+    <p>L'algorithme n'est pas un détail d'implémentation : c'est <em>lui</em> qui impose le
+       comportement du protocole.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="bilan-dyn">
+  <h2><span class="num">03</span>Dynamique ou statique</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th class="rep-ok">Avantages du dynamique</th><th class="rep-non">Inconvénients</th></tr></thead>
+    <tbody>
+      <tr><td></td>
+          <td>Partage automatique des informations réseau · Trouve le meilleur chemin tout seul ·
+              Moins de configuration manuelle · <strong>S'adapte automatiquement aux pannes</strong> ·
+              Plus facile à gérer sur les grands réseaux</td>
+          <td>Consomme du <strong>CPU et de la RAM</strong> · Utilise de la <strong>bande
+              passante</strong> pour les mises à jour · Plus complexe à dépanner ·
+              <strong>Convergence plus lente</strong> que le statique</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Quand garder du statique</h3>
+  <p>En pratique, les réseaux combinent routage dynamique <strong>et</strong> statique. Le statique
+     reste utilisé pour trois raisons :</p>
+  <ul>
+    <li><strong>Petits réseaux stables</strong> — faciliter la maintenance des tables dans des
+        réseaux qui ne sont pas amenés à se développer significativement ;</li>
+    <li><strong>Réseaux d'extrémité</strong> (<em>stub</em>) — un réseau avec une seule route par
+        défaut en sortie et aucune connaissance des réseaux distants ;</li>
+    <li><strong>Route par défaut unique</strong> — représenter un chemin vers tout réseau absent de
+        la table.</li>
+  </ul>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Conseil d'expert</div>
+    <p>La route par défaut <code>ip route 0.0.0.0 0.0.0.0 &lt;next-hop&gt;</code> est
+       <strong>presque toujours configurée en statique</strong>, même dans un réseau qui utilise du
+       routage dynamique partout ailleurs. Elle désigne la sortie vers Internet : il n'y a rien à
+       « découvrir », et on ne veut surtout pas qu'un protocole la remette en cause.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="familles">
+  <h2><span class="num">04</span>IGP, EGP et les deux approches</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Famille</th><th>Nom complet</th><th>Utilisation</th><th>Exemples</th></tr></thead>
+    <tbody>
+      <tr><td><strong>IGP</strong></td><td><em>Interior Gateway Protocol</em></td>
+          <td><strong>À l'intérieur</strong> d'un même système autonome</td>
+          <td>RIP, OSPF, EIGRP, IS-IS</td></tr>
+      <tr><td><strong>EGP</strong></td><td><em>Exterior Gateway Protocol</em></td>
+          <td><strong>Entre</strong> systèmes autonomes différents — entre opérateurs</td>
+          <td><strong>BGP</strong> — l'Internet tourne avec lui</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Qu'est-ce qu'un système autonome (AS) ?</div>
+    <p>Un ensemble de réseaux gérés par une <strong>même organisation</strong> — le réseau d'un
+       opérateur, d'une grande entreprise, d'une université. Les <strong>IGP</strong> gèrent le
+       routage <em>à l'intérieur</em>, les <strong>EGP</strong> gèrent le routage <em>entre</em>
+       les AS.</p>
+  </div>
+
+  <h3>Les deux approches des IGP</h3>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 200" role="img" aria-label="Vecteur de distance contre état de liens">
+      <style>
+        .rn{fill:var(--accent);stroke:none}
+        .rp{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.4}
+        .lw{font:700 11px var(--sans);text-anchor:middle;fill:#fff}
+        .tt{font:700 12.5px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .ss{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .lk{stroke:var(--bord-fort);stroke-width:1.6;fill:none}
+        .ey{stroke:var(--accent);stroke-width:1.4;fill:none;stroke-dasharray:4 3}
+      </style>
+      <g>
+        <text class="tt" x="145" y="18">Vecteur de distance</text>
+        <text class="ss" x="145" y="34">« je répète ce que mes voisins me disent »</text>
+        <circle class="rn" cx="60"  cy="80" r="18"/><text class="lw" x="60"  y="85">R1</text>
+        <circle class="rn" cx="145" cy="80" r="18"/><text class="lw" x="145" y="85">R2</text>
+        <circle class="rn" cx="230" cy="80" r="18"/><text class="lw" x="230" y="85">R3</text>
+        <path class="lk" d="M78 80 L127 80"/><path class="lk" d="M163 80 L212 80"/>
+        <path class="ey" d="M78 62 Q102 44 127 62"/>
+        <path class="ey" d="M163 62 Q187 44 212 62"/>
+        <text class="ss" x="145" y="122">R1 ne voit QUE R2</text>
+        <text class="ss" x="145" y="140">Il croit R2 sur parole</text>
+        <text class="ss" x="145" y="164" style="fill:var(--rouge);font-weight:700">Convergence LENTE</text>
+        <text class="ss" x="145" y="182">RIPv1, RIPv2, IGRP, EIGRP</text>
+      </g>
+      <g transform="translate(300,0)">
+        <text class="tt" x="145" y="18">État de liens</text>
+        <text class="ss" x="145" y="34">« chacun a la carte complète »</text>
+        <rect class="rp" x="30" y="52" width="230" height="56" rx="8"/>
+        <circle class="rn" cx="70"  cy="80" r="16"/><text class="lw" x="70"  y="85" style="font-size:10px">R1</text>
+        <circle class="rn" cx="145" cy="80" r="16"/><text class="lw" x="145" y="85" style="font-size:10px">R2</text>
+        <circle class="rn" cx="220" cy="80" r="16"/><text class="lw" x="220" y="85" style="font-size:10px">R3</text>
+        <path class="lk" d="M86 80 L129 80"/><path class="lk" d="M161 80 L204 80"/>
+        <text class="ss" x="145" y="122">Chacun connaît TOUTE la topologie</text>
+        <text class="ss" x="145" y="140">Mise à jour dès qu'un lien change</text>
+        <text class="ss" x="145" y="164" style="fill:var(--vert);font-weight:700">Convergence RAPIDE</text>
+        <text class="ss" x="145" y="182">OSPF, IS-IS</text>
+      </g>
+    </svg>
+    <figcaption>La différence n'est pas la performance brute : c'est ce que chaque routeur <em>sait</em> du réseau.</figcaption>
+  </figure>
+
+  <h3>Vecteur de distance</h3>
+  <p>Chaque routeur envoie sa <strong>table de routage complète</strong> à ses voisins directs,
+     régulièrement. C'est comme demander à ses voisins immédiats : « toi, tu sais comment aller
+     où ? » On ne voit pas le réseau entier, juste ce que les voisins racontent.</p>
+  <p>« Vecteur de distance » signifie que chaque route est définie par deux choses :</p>
+  <ul>
+    <li>la <strong>distance</strong> — le nombre de sauts à traverser ;</li>
+    <li>le <strong>vecteur</strong>, ou direction — l'interface ou le routeur voisin par lequel il
+        faut passer.</li>
+  </ul>
+  <p><em>Exemple :</em> pour R1, le réseau <code>172.16.3.0/24</code> est à <strong>1 saut</strong>
+     (distance), joignable <strong>via R2</strong> (direction).</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Protocole</th><th>Statut</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>RIPv1</strong></td><td>Ancienne</td><td>Protocole classique, ne supporte
+          <strong>ni VLSM ni CIDR</strong></td></tr>
+      <tr><td><strong>RIPv2</strong></td><td>Améliorée</td><td>Supporte VLSM, CIDR,
+          authentification — encore utilisé</td></tr>
+      <tr><td>IGRP</td><td>Obsolète</td><td>Propriétaire Cisco, remplacé par EIGRP</td></tr>
+      <tr><td><strong>EIGRP</strong></td><td>Avancée</td><td>Convergence rapide, prend en compte la
+          bande passante</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>État de liens</h3>
+  <p>Chaque routeur construit une <strong>carte complète du réseau</strong> en récoltant des
+     informations auprès de <em>tous</em> les autres routeurs. C'est comme avoir le plan entier de
+     la ville, et pas seulement ce que les voisins racontent.</p>
+  <p>Quand un lien change d'état — panne ou retour — les routeurs s'envoient
+     <strong>immédiatement</strong> une mise à jour : la convergence est très rapide.</p>
+  <ul>
+    <li><strong>OSPF</strong> — le plus utilisé en entreprise. <strong>Standard ouvert</strong>,
+        non propriétaire. Utilise l'algorithme <strong>Dijkstra (SPF)</strong>.</li>
+    <li><strong>IS-IS</strong> — surtout chez les grands opérateurs télécom. Fonctionnement
+        similaire à OSPF, architecture différente.</li>
+  </ul>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="metriques">
+  <h2><span class="num">05</span>Les métriques</h2>
+
+  <p>Une <strong>métrique</strong> est une valeur mesurable attribuée par le protocole de routage
+     aux différentes routes selon leur utilité. Elle détermine le <strong>coût global</strong> d'un
+     chemin entre la source et la destination.</p>
+  <p><strong>Le meilleur chemin est celui dont la métrique est la plus faible.</strong></p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Protocole</th><th>Métrique</th><th>Explication</th></tr></thead>
+    <tbody>
+      <tr><td><strong>RIP</strong></td><td>Nombre de sauts (<em>hop count</em>)</td>
+          <td>Compte les routeurs traversés. <strong>Maximum 15</strong> — 16 = infini =
+              inaccessible</td></tr>
+      <tr><td><strong>OSPF</strong></td><td>Coût, basé sur la bande passante</td>
+          <td>Formule : <code>coût = 10⁸ / bande passante en bit/s</code></td></tr>
+      <tr><td><strong>EIGRP</strong></td><td>Composite</td>
+          <td>Bande passante <strong>et</strong> délai — plusieurs facteurs combinés</td></tr>
+      <tr><td><strong>BGP</strong></td><td>Politique (attributs)</td>
+          <td>Choix basé sur des règles administratives complexes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pourquoi la métrique de RIP est un problème</div>
+    <p>RIP compte les <strong>sauts</strong>, sans jamais regarder le débit. Un chemin de
+       <strong>2 sauts en liaison série 64 kbit/s</strong> sera donc préféré à un chemin de
+       <strong>3 sauts en fibre 10 Gbit/s</strong> — alors qu'il est cent mille fois plus lent.</p>
+    <p>C'est la limite fondamentale du protocole, et la raison pour laquelle OSPF calcule son coût
+       à partir de la <strong>bande passante</strong>. La question tombe régulièrement : « pourquoi
+       RIP peut-il choisir un mauvais chemin ? »</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La limite des 15 sauts</div>
+    <p>Un réseau situé à <strong>16 sauts ou plus est considéré comme inaccessible</strong>. Cette
+       limite n'est pas un caprice : elle <strong>borne le comptage à l'infini</strong>, le défaut
+       classique du vecteur de distance où deux routeurs s'incrémentent mutuellement sans fin quand
+       une route disparaît.</p>
+    <p>Conséquence pratique : <strong>RIP ne convient pas aux grands réseaux.</strong></p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="rip">
+  <h2><span class="num">06</span>Le protocole RIP</h2>
+
+  <p><strong>RIP</strong> — <em>Routing Information Protocol</em> — est l'un des protocoles de
+     routage dynamique les plus anciens et les plus simples. Il en existe deux versions.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Caractéristique</th><th>RIPv1</th><th>RIPv2</th></tr></thead>
+    <tbody>
+      <tr><td>Métrique</td><td colspan="2" style="text-align:center">Nombre de sauts — <strong>identique</strong></td></tr>
+      <tr><td>Mises à jour envoyées à</td><td><code>255.255.255.255</code><br>(diffusion)</td>
+          <td><code>224.0.0.9</code><br>(multidiffusion)</td></tr>
+      <tr><td>Support <strong>VLSM</strong></td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+      <tr><td>Support <strong>CIDR</strong></td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+      <tr><td>Récapitulation automatique</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+      <tr><td>Authentification</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+      <tr><td>Masques dans les mises à jour</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Les chiffres à connaître</h3>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><strong>Algorithme</strong></td><td>Bellman-Ford</td></tr>
+      <tr><td><strong>Transport</strong></td><td>UDP, <strong>port 520</strong></td></tr>
+      <tr><td><strong>Distance administrative</strong></td><td><strong>120</strong></td></tr>
+      <tr><td><strong>Métrique maximale</strong></td><td><strong>15 sauts</strong> — 16 = infini</td></tr>
+      <tr><td><strong>Fréquence des mises à jour</strong></td><td>Toutes les <strong>30 secondes</strong></td></tr>
+      <tr><td><strong>Version IPv6</strong></td><td><strong>RIPng</strong>, basée sur RIPv2</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La conséquence de « pas de VLSM » en RIPv1</div>
+    <p>RIPv1 <strong>n'envoie pas les masques</strong> dans ses mises à jour. Le routeur receveur
+       doit donc <em>deviner</em> le masque, en appliquant celui de la classe (A, B ou C).</p>
+    <p>Résultat : un réseau découpé en <code>/25</code>, <code>/26</code> ou <code>/30</code> —
+       c'est-à-dire n'importe quel réseau moderne — est mal interprété. C'est pourquoi
+       <strong>on active toujours <code>version 2</code></strong>, et c'est la première commande
+       qu'on oublie.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 Broadcast contre multicast</div>
+    <p>RIPv1 envoie ses mises à jour en <strong>diffusion</strong> (<code>255.255.255.255</code>) :
+       <em>toutes</em> les machines du segment les reçoivent et doivent les traiter, y compris les
+       PC qui n'en ont rien à faire.</p>
+    <p>RIPv2 utilise la <strong>multidiffusion</strong> (<code>224.0.0.9</code>) : seules les
+       machines <em>abonnées</em> à ce groupe — les routeurs RIP — les traitent. Les autres les
+       ignorent au niveau de la carte réseau. C'est un gain net pour tout le monde.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="fonctionnement">
+  <h2><span class="num">07</span>Comment RIP fonctionne</h2>
+
+  <h3>Le démarrage à froid</h3>
+  <p>Au démarrage, chaque routeur ne connaît que ses <strong>propres réseaux directement
+     connectés</strong> — à 0 saut. Sa table est vide pour tout le reste.</p>
+
+  <h3>L'échange des mises à jour</h3>
+  <p>Toutes les <strong>30 secondes</strong>, chaque routeur envoie sa <strong>table de routage
+     complète</strong> à ses voisins. Ceux-ci intègrent ces informations et
+     <strong>ajoutent 1 saut</strong> à chaque route reçue. Après quelques échanges, tous les
+     routeurs connaissent l'ensemble du réseau : c'est la <strong>convergence</strong>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Exemple de propagation</div>
+<div class="bloc-code"><span class="langue">RIP</span><pre><code>R2 annonce à R1 :  « je connais 10.4.0.0, il est à 2 sauts »
+R1 reçoit et ajoute 1  →  il enregistre 10.4.0.0 à 3 SAUTS dans sa table
+
+Si la route disparaît :
+  180 s sans mise à jour  →  RIP la marque INVALIDE (inaccessible)
+  240 s                   →  RIP la SUPPRIME de la table</code></pre></div>
+  </div>
+
+  <h3>Les timers</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Timer</th><th>Valeur</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Update</strong></td><td><strong>30 s</strong></td>
+          <td>Fréquence d'envoi des mises à jour</td></tr>
+      <tr><td><strong>Invalid</strong></td><td><strong>180 s</strong></td>
+          <td>Délai avant de marquer une route invalide, faute de mise à jour</td></tr>
+      <tr><td><strong>Holddown</strong></td><td><strong>180 s</strong></td>
+          <td>Période pendant laquelle on <strong>ignore les nouvelles informations</strong> sur
+              une route invalide</td></tr>
+      <tr><td><strong>Flush</strong></td><td><strong>240 s</strong></td>
+          <td>Délai avant suppression définitive de la table</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ce que ces timers impliquent</div>
+    <p>Un lien tombe. Il faut <strong>180 secondes — trois minutes</strong> — avant que RIP ne
+       considère la route comme invalide, et jusqu'à <strong>240 secondes</strong> avant qu'elle ne
+       disparaisse. Pendant tout ce temps, le routeur continue d'envoyer des paquets dans le vide.</p>
+    <p>C'est <em>la</em> faiblesse de RIP, et la réponse attendue à « pourquoi RIP est-il
+       inadapté aux réseaux modernes ? ». OSPF détecte la même panne en quelques secondes.</p>
+    <p>Le <strong>holddown</strong> existe justement pour éviter le pire : sans lui, un routeur
+       pourrait réapprendre une route morte auprès d'un voisin qui n'a pas encore été informé, et
+       la boucle s'installerait.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="config">
+  <h2><span class="num">08</span>Configurer RIPv2</h2>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1# configure terminal
+R1(config)# router rip                    ← entre dans le mode de configuration RIP
+R1(config-router)# version 2              ← ⚠ ACTIVE RIPv2 — par défaut c'est la v1 !
+R1(config-router)# no auto-summary        ← désactive la récapitulation automatique
+R1(config-router)# network 172.30.0.0     ← annonce le réseau LAN
+R1(config-router)# network 10.0.0.0       ← annonce le réseau WAN série
+R1(config-router)# end
+
+R1# copy running-config startup-config</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que fait vraiment <code>network</code></div>
+    <p>Contrairement à ce qu'on croit souvent, <code>network</code> ne dit pas « annonce ce
+       réseau ». Il fait <strong>deux choses</strong> :</p>
+    <ol>
+      <li><strong>activer RIP sur toutes les interfaces</strong> dont l'adresse tombe dans ce
+          réseau — elles se mettent à envoyer et recevoir des mises à jour ;</li>
+      <li><strong>annoncer</strong> ces réseaux aux voisins.</li>
+    </ol>
+    <p>C'est pourquoi on déclare l'adresse <em>classful</em> du réseau, et non le sous-réseau
+       exact : <code>network 10.0.0.0</code> couvre toutes les interfaces en 10.x.x.x.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>version 2</code> et <code>no auto-summary</code></div>
+    <p><strong><code>version 2</code></strong> — sans cette ligne, IOS envoie du RIPv1 : pas de
+       masques dans les mises à jour, donc pas de VLSM. Tout un plan d'adressage en /26 devient
+       incohérent, sans le moindre message d'erreur.</p>
+    <p><strong><code>no auto-summary</code></strong> — par défaut, RIP résume les réseaux à leur
+       frontière de classe. Un <code>172.30.1.0/24</code> et un <code>172.30.2.0/24</code> seraient
+       tous deux annoncés comme <code>172.30.0.0/16</code>, rendant le routage impossible entre
+       eux. Cette commande le désactive.</p>
+    <p>Les deux vont ensemble : <strong>toujours <code>version 2</code> puis
+       <code>no auto-summary</code></strong>.</p>
+  </div>
+
+  <h3>Vérifier</h3>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip route rip              ← seulement les routes apprises par RIP
+R1# show ip protocols             ← version, réseaux annoncés, timers, voisins
+R1# show ip rip database          ← la base RIP avant sélection
+R1# debug ip rip                  ← voir les mises à jour EN DIRECT
+R1# undebug all                   ← ⚠ ne jamais oublier d'arrêter le debug</code></pre></div>
+
+<div class="bloc-code"><span class="langue">résultat attendu</span><pre><code>R1# show ip route rip
+
+R    192.168.3.0/24 [120/2] via 10.0.0.2, 00:00:11, Serial0/0/0
+└┬┘                  └─┬─┘ └┬┘                └───┬──┘
+ │                     │    │                     └── depuis combien de temps
+ │                     │    └── MÉTRIQUE : 2 sauts
+ │                     └── distance administrative de RIP
+ └── route apprise par RIP</code></pre></div>
+
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Vous avez configuré RIP sur trois routeurs. <code>show ip route rip</code>
+       n'affiche rien sur R1, alors que <code>show ip protocols</code> montre bien RIP actif avec
+       les bons réseaux. Citez trois causes possibles.</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <ol>
+        <li><strong>Il faut attendre.</strong> RIP envoie ses mises à jour toutes les
+            <strong>30 secondes</strong>. Sur trois routeurs, la convergence complète peut demander
+            une à deux minutes. Regardez la table à nouveau, et utilisez
+            <code>debug ip rip</code> pour voir si les paquets circulent.</li>
+        <li><strong>Les interfaces ne sont pas actives.</strong> Un
+            <code>no shutdown</code> oublié, ou une liaison série sans <code>clock rate</code> côté
+            DCE : RIP ne peut envoyer aucune mise à jour sur une interface <code>down</code>.
+            Vérifiez avec <code>show ip interface brief</code>.</li>
+        <li><strong>Les commandes <code>network</code> sont incomplètes ou fausses.</strong> Si le
+            réseau de la liaison entre R1 et R2 n'est pas déclaré, RIP n'est pas activé sur cette
+            interface — les deux routeurs sont voisins physiquement mais ne se parlent pas.
+            <code>show ip protocols</code> liste les réseaux réellement pris en compte.</li>
+      </ol>
+      <p><strong>Une quatrième cause, plus subtile :</strong> R1 est en <code>version 2</code> et
+         R2 est resté en v1. Les versions ne s'entendent pas par défaut ; chacun ignore les mises à
+         jour de l'autre. <code>show ip protocols</code> affiche la version émise et acceptée sur
+         chaque interface.</p>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">🌍 <code>debug</code> — puissant et dangereux</div>
+    <p><code>debug ip rip</code> affiche chaque mise à jour en temps réel : c'est
+       l'outil de diagnostic le plus efficace du chapitre. Mais sur un routeur chargé, le
+       <em>debug</em> consomme énormément de CPU et peut rendre l'équipement inutilisable.</p>
+    <p>On l'active <strong>ponctuellement</strong>, jamais en production sans précaution, et on
+       tape <code>undebug all</code> dès qu'on a vu ce qu'on cherchait.</p>
+  </div>
+</section>
+
+<!-- ================================================================= fin -->
+<footer>
+  <div class="recap">
+    <h2>⚡ Le récap en 2 minutes</h2>
+    <ul>
+      <li><strong>4 fonctions :</strong> découvrir, actualiser, choisir le meilleur chemin,
+          trouver une alternative.</li>
+      <li><strong>3 composants :</strong> structures de données (RAM), messages, algorithme.</li>
+      <li><strong>IGP</strong> à l'intérieur d'un AS (RIP, OSPF, EIGRP), <strong>EGP</strong> entre
+          AS (BGP).</li>
+      <li><strong>Vecteur de distance</strong> = je répète ce que disent mes voisins, convergence
+          lente. <strong>État de liens</strong> = carte complète, convergence rapide.</li>
+      <li><strong>Métrique la plus faible gagne.</strong> RIP compte les sauts, OSPF calcule
+          <code>10⁸ / bande passante</code>.</li>
+      <li><strong>RIP :</strong> AD <strong>120</strong> · max <strong>15 sauts</strong> · UDP
+          <strong>520</strong> · mises à jour toutes les <strong>30 s</strong> · Bellman-Ford.</li>
+      <li><strong>RIPv2</strong> apporte VLSM, CIDR, authentification, multicast
+          <code>224.0.0.9</code>.</li>
+      <li><strong>Timers :</strong> 30 / 180 / 180 / 240 s — d'où une convergence de plusieurs
+          minutes.</li>
+      <li><strong>Configuration :</strong> <code>router rip</code> → <code>version 2</code> →
+          <code>no auto-summary</code> → <code>network</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>4-cours_Routage_Dynamique.pdf — le professeur</li>
+      <li>cours-routage-dynamique.html — fiche de synthèse</li>
+      <li>4- Lab — Configuring Basic RIPv2.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

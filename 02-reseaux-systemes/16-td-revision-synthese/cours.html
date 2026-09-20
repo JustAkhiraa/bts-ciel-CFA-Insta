@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TD de révision — synthèse réseaux | BTS CIEL</title>
+<meta name="description" content="Synthèse : OSI et encapsulation, plan d'adressage et VLSM, configuration de base Cisco, VLAN access et trunk, routage inter-VLAN par router-on-a-stick ou SVI, et la checklist de vérification.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#scenario">1 · Le scénario fil rouge</a></li>
+    <li><a href="#osi">2 · OSI, TCP/IP, encapsulation</a></li>
+    <li><a href="#adressage">3 · Le plan d'adressage</a></li>
+    <li><a href="#base">4 · La configuration de base</a></li>
+    <li><a href="#vlan">5 · VLAN : access et trunk</a></li>
+    <li><a href="#intervlan">6 · Le routage inter-VLAN</a></li>
+    <li><a href="#verification">7 · Vérifier, dans l'ordre</a></li>
+    <li><a href="#production">8 · Les réflexes de production</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 16</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 2<sup>e</sup> année</span>
+  </div>
+
+  <h1>TD de révision — la synthèse</h1>
+  <p class="chapeau">Un seul scénario, et toute la 1<sup>re</sup> année dedans : adressage,
+     VLAN, trunk, routage. C'est là qu'on voit si les briques tiennent ensemble.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une PME, un routeur <strong>R1</strong>, un switch <strong>SW1</strong>, trois VLAN :
+         <strong>10 DIRECTION</strong>, <strong>20 COMPTABILITE</strong>,
+         <strong>30 INVITES</strong>. Les ports des postes sont en <strong>access</strong>, le
+         lien vers le routeur en <strong>trunk 802.1Q</strong>. Le routage entre VLAN se fait
+         soit par <strong>router-on-a-stick</strong> (sous-interfaces sur R1), soit par
+         <strong>SVI</strong> sur un switch de niveau 3. Trois commandes suffisent à tout
+         diagnostiquer : <code>show vlan brief</code>, <code>show interfaces trunk</code>,
+         <code>show ip route</code>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#OSI</code> <code>#encapsulation</code> <code>#VLSM</code> <code>#VLAN</code>
+    <code>#access</code> <code>#trunk</code> <code>#802.1Q</code>
+    <code>#router-on-a-stick</code> <code>#sous-interface</code> <code>#SVI</code>
+    <code>#ip-routing</code> <code>#show-vlan-brief</code> <code>#packet-tracer</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="scenario">
+  <h2><span class="num">01</span>Le scénario fil rouge</h2>
+
+  <p>Tout le TD s'appuie sur une seule maquette, à monter dans <strong>Packet Tracer</strong>.
+     La comprendre d'un coup d'œil fait gagner la moitié du temps.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 680 330" role="img" aria-label="Maquette : un routeur R1 relié à Internet et, par un lien trunk, à un switch SW1 qui porte trois VLAN, direction, comptabilité et invités.">
+      <style>
+        .rbox { fill:#FFFFFF; stroke:#9FB6CC; stroke-width:1.3; rx:8; }
+        .req  { fill:#E8F0F7; stroke:#005B96; stroke-width:1.5; rx:8; }
+        .rtit { font:700 12.5px -apple-system,system-ui,sans-serif; fill:#00406A; }
+        .rtxt { font:11.5px -apple-system,system-ui,sans-serif; fill:#2F2F2F; }
+        .rmon { font:11px ui-monospace,SFMono-Regular,monospace; fill:#00406A; }
+        .rpet { font:10.5px -apple-system,system-ui,sans-serif; fill:#6B6257; }
+        .rli  { stroke:#005B96; stroke-width:1.6; fill:none; }
+        .rtr  { stroke:#B8860B; stroke-width:2.6; fill:none; }
+      </style>
+
+      <rect class="rbox" x="470" y="20" width="190" height="46"/>
+      <text class="rtxt" x="565" y="40" text-anchor="middle">Internet (simulé)</text>
+      <text class="rmon" x="565" y="57" text-anchor="middle">203.0.113.0/30</text>
+
+      <rect class="req" x="470" y="104" width="190" height="62"/>
+      <text class="rtit" x="565" y="126" text-anchor="middle">R1 — routeur</text>
+      <text class="rmon" x="565" y="144" text-anchor="middle">g0/1 : 203.0.113.1</text>
+      <text class="rmon" x="565" y="159" text-anchor="middle">g0/0 : sous-interfaces</text>
+
+      <path class="rli" d="M565 66 V 102"/>
+
+      <rect class="req" x="140" y="104" width="190" height="62"/>
+      <text class="rtit" x="235" y="126" text-anchor="middle">SW1 — switch</text>
+      <text class="rmon" x="235" y="144" text-anchor="middle">vlan 1 : 192.168.1.2</text>
+      <text class="rpet" x="235" y="159" text-anchor="middle">administration seulement</text>
+
+      <path class="rtr" d="M333 135 H 467"/>
+      <text class="rtxt" x="400" y="126" text-anchor="middle" fill="#8A6508">TRUNK 802.1Q</text>
+      <text class="rpet" x="400" y="155" text-anchor="middle">VLAN 10, 20, 30</text>
+
+      <rect class="rbox" x="20" y="212" width="196" height="64"/>
+      <text class="rtit" x="118" y="234" text-anchor="middle">VLAN 10 — DIRECTION</text>
+      <text class="rmon" x="118" y="252" text-anchor="middle">192.168.10.0/24</text>
+      <text class="rpet" x="118" y="268" text-anchor="middle">ports fa0/1 – fa0/5 (access)</text>
+
+      <rect class="rbox" x="232" y="212" width="196" height="64"/>
+      <text class="rtit" x="330" y="234" text-anchor="middle">VLAN 20 — COMPTA</text>
+      <text class="rmon" x="330" y="252" text-anchor="middle">192.168.20.0/24</text>
+      <text class="rpet" x="330" y="268" text-anchor="middle">ports fa0/6 – fa0/10 (access)</text>
+
+      <rect class="rbox" x="444" y="212" width="196" height="64"/>
+      <text class="rtit" x="542" y="234" text-anchor="middle">VLAN 30 — INVITES</text>
+      <text class="rmon" x="542" y="252" text-anchor="middle">192.168.30.0/24</text>
+      <text class="rpet" x="542" y="268" text-anchor="middle">ports fa0/11 – fa0/15 (access)</text>
+
+      <path class="rli" d="M235 168 V 190 H 118 V 210"/>
+      <path class="rli" d="M235 190 H 330 V 210"/>
+      <path class="rli" d="M235 190 H 542 V 210"/>
+
+      <text class="rpet" x="20" y="304">Un seul câble physique porte les trois VLAN entre SW1 et R1 : c'est le rôle du trunk.</text>
+      <text class="rpet" x="20" y="320">Sans routage inter-VLAN, les trois réseaux sont hermétiques les uns aux autres.</text>
+    </svg>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 Trois VLAN, c'est trois switchs qu'on n'a pas achetés</div>
+    <p>Un VLAN découpe un switch physique en <strong>plusieurs switchs logiques</strong>. Les
+       postes du VLAN 10 se comportent exactement comme s'ils étaient seuls sur leur propre
+       switch : ils ne voient pas le broadcast du VLAN 20.</p>
+    <p>Et le <strong>trunk</strong>, c'est le câble unique qui relie ces switchs imaginaires au
+       routeur, en étiquetant chaque trame pour dire de quel VLAN elle vient.</p>
+    <p class="rap">D'où la conséquence qui surprend toujours : <strong>deux VLAN ne se parlent
+       pas</strong> tant qu'un équipement de couche 3 ne les met pas en relation.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="osi">
+  <h2><span class="num">02</span>OSI, TCP/IP, encapsulation</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Nº</th><th>Couche OSI</th><th>PDU</th><th>Exemple</th><th>TCP/IP (4 couches)</th></tr></thead>
+    <tbody>
+      <tr><td>7</td><td>Application</td><td rowspan="3">Données</td><td>HTTP, DNS, FTP</td>
+          <td rowspan="3">Application</td></tr>
+      <tr><td>6</td><td>Présentation</td><td>TLS, encodage, compression</td></tr>
+      <tr><td>5</td><td>Session</td><td>ouverture/fermeture de dialogue</td></tr>
+      <tr><td>4</td><td>Transport</td><td>Segment (TCP)<br>Datagramme (UDP)</td><td>TCP, UDP</td>
+          <td>Transport</td></tr>
+      <tr><td>3</td><td>Réseau</td><td>Paquet</td><td>IP, ICMP, <strong>routeur</strong></td>
+          <td>Internet</td></tr>
+      <tr><td>2</td><td>Liaison</td><td>Trame</td><td>Ethernet, MAC, <strong>switch</strong></td>
+          <td rowspan="2">Accès réseau</td></tr>
+      <tr><td>1</td><td>Physique</td><td>Bit</td><td>câble, signal</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les réponses de la partie 1, en une ligne chacune</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>Switch ou routeur ?</strong></td>
+            <td>Le switch commute des <strong>trames</strong> d'après les adresses
+                <strong>MAC</strong> (couche 2) ; le routeur achemine des
+                <strong>paquets</strong> d'après les adresses <strong>IP</strong> (couche 3).</td></tr>
+        <tr><td><strong>MAC ou IP ?</strong></td>
+            <td>La MAC est gravée dans la carte, valable sur <strong>le lien local</strong>.
+                L'IP est attribuée, valable <strong>de bout en bout</strong> : c'est elle qui
+                identifie un hôte sur Internet.</td></tr>
+        <tr><td><strong>ARP</strong></td>
+            <td>Trouve l'adresse <strong>MAC</strong> correspondant à une adresse
+                <strong>IP</strong> sur le réseau local.</td></tr>
+        <tr><td><strong>Domaine de broadcast</strong></td>
+            <td>L'ensemble des machines qu'atteint une diffusion. Segmenté par un
+                <strong>routeur</strong> — ou par un <strong>VLAN</strong>.</td></tr>
+        <tr><td><strong>Domaine de collision</strong></td>
+            <td>L'ensemble des machines qui se disputent le média. Segmenté par un
+                <strong>switch</strong> : chaque port est son propre domaine.</td></tr>
+        <tr><td><strong>Test de connectivité</strong></td>
+            <td><strong>ICMP</strong>, employé par <code>ping</code> et
+                <code>traceroute</code>.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Retenez le couple : le <strong>switch</strong> segmente les collisions, le
+       <strong>routeur</strong> (ou le VLAN) segmente les broadcasts.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi un VLAN segmente-t-il un domaine de broadcast alors qu'un switch est un équipement de couche 2 ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que le VLAN n'est pas une fonction de <em>routage</em> : c'est une
+         <strong>cloison logique</strong> à l'intérieur du switch. Le switch refuse simplement de
+         recopier une trame de broadcast vers les ports qui n'appartiennent pas au même VLAN.</p>
+      <p>Il reste donc bien en couche 2 — il ne lit aucune adresse IP. Il applique une règle
+         d'appartenance de port.</p>
+      <p class="rap">C'est aussi pour cela que <strong>le VLAN ne suffit pas</strong> à faire
+         communiquer deux services : cloisonner n'est pas router.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="adressage">
+  <h2><span class="num">03</span>Le plan d'adressage</h2>
+
+  <h3>Le réseau de départ</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Réseau</th><th>Masque</th><th>Broadcast</th><th>Plage utilisable</th><th>Hôtes</th></tr></thead>
+    <tbody>
+      <tr><td><code>192.168.10.0/24</code></td><td><code>255.255.255.0</code></td>
+          <td><code>192.168.10.255</code></td>
+          <td><code>192.168.10.1</code> → <code>192.168.10.254</code></td>
+          <td><strong>254</strong> <span class="sub">(2⁸ − 2)</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Le VLSM demandé : 500, 100 et 20 hôtes dans 172.16.0.0/16</h3>
+
+  <div class="encart methode">
+    <div class="titre">🎯 La règle d'or du VLSM : du plus gros au plus petit</div>
+    <p>Découper dans le désordre laisse des trous inutilisables. On sert donc
+       <strong>le service le plus gourmand en premier</strong>, puis on enchaîne les blocs sans
+       laisser d'espace.</p>
+    <p>Pour chaque service : chercher la <strong>plus petite puissance de 2</strong> qui couvre
+       le besoin <em>plus deux adresses</em> — celle du réseau et celle du broadcast.</p>
+  </div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Service</th><th>Besoin</th><th>Bloc</th><th>Masque</th><th>Réseau</th><th>Plage utilisable</th><th>Broadcast</th><th>Hôtes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A</strong></td><td>500</td><td><code>/23</code></td>
+          <td><code>255.255.254.0</code></td><td><code>172.16.0.0</code></td>
+          <td><code>172.16.0.1</code> → <code>172.16.1.254</code></td>
+          <td><code>172.16.1.255</code></td><td><strong>510</strong></td></tr>
+      <tr><td><strong>B</strong></td><td>100</td><td><code>/25</code></td>
+          <td><code>255.255.255.128</code></td><td><code>172.16.2.0</code></td>
+          <td><code>172.16.2.1</code> → <code>172.16.2.126</code></td>
+          <td><code>172.16.2.127</code></td><td><strong>126</strong></td></tr>
+      <tr><td><strong>C</strong></td><td>20</td><td><code>/27</code></td>
+          <td><code>255.255.255.224</code></td><td><code>172.16.2.128</code></td>
+          <td><code>172.16.2.129</code> → <code>172.16.2.158</code></td>
+          <td><code>172.16.2.159</code></td><td><strong>30</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Justifier chaque masque, en une ligne</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>500 hôtes</td><td>/24 = 254 → insuffisant · <strong>/23 = 510</strong> ✔</td></tr>
+        <tr><td>100 hôtes</td><td>/26 = 62 → insuffisant · <strong>/25 = 126</strong> ✔</td></tr>
+        <tr><td>20 hôtes</td><td>/28 = 14 → insuffisant · <strong>/27 = 30</strong> ✔</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">En contrôle, <strong>écrivez le masque immédiatement inférieur et pourquoi il
+       ne suffit pas</strong> : c'est ce qui prouve que le masque choisi est le plus petit
+       possible, et non le premier qui marche.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les blocs s'enchaînent sans trou</div>
+    <p><code>172.16.1.255</code> + 1 = <code>172.16.2.0</code> · <code>172.16.2.127</code> + 1 =
+       <code>172.16.2.128</code>. Chaque bloc commence exactement là où le précédent finit.</p>
+    <p class="rap">C'est le contrôle le plus rapide d'un VLSM : <strong>le broadcast de l'un,
+       plus un, donne le réseau du suivant</strong>. Si ce n'est pas le cas, il y a un trou ou un
+       recouvrement.</p>
+  </div>
+
+  <h3>Le plan du scénario</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>VLAN</th><th>Nom</th><th>Réseau</th><th>Masque</th><th>Passerelle</th><th>Plage utilisable</th></tr></thead>
+    <tbody>
+      <tr><td>10</td><td>DIRECTION</td><td><code>192.168.10.0</code></td><td><code>/24</code></td>
+          <td><code>192.168.10.1</code></td>
+          <td><code>.2</code> → <code>.254</code></td></tr>
+      <tr><td>20</td><td>COMPTABILITE</td><td><code>192.168.20.0</code></td><td><code>/24</code></td>
+          <td><code>192.168.20.1</code></td>
+          <td><code>.2</code> → <code>.254</code></td></tr>
+      <tr><td>30</td><td>INVITES</td><td><code>192.168.30.0</code></td><td><code>/24</code></td>
+          <td><code>192.168.30.1</code></td>
+          <td><code>.2</code> → <code>.254</code></td></tr>
+      <tr><td>—</td><td>Administration</td><td><code>192.168.99.0</code></td><td><code>/24</code></td>
+          <td><code>192.168.99.1</code></td>
+          <td><code>.2</code> → <code>.254</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la passerelle : première ou dernière adresse ?</div>
+    <p>L'énoncé demande de <strong>justifier</strong> la convention
+       « passerelle = <em>dernière</em> adresse utilisable ». Mais la partie 5 du même TD
+       configure les sous-interfaces en <code>192.168.10.1</code>,
+       <code>192.168.20.1</code>, <code>192.168.30.1</code> — c'est-à-dire la
+       <strong>première</strong>.</p>
+    <p>Les deux conventions existent et <strong>aucune n'est techniquement supérieure</strong> :
+       la passerelle est une adresse d'hôte comme une autre. Ce qui compte est
+       <strong>d'être constant</strong> sur tout le réseau, pour qu'un technicien puisse deviner
+       la passerelle sans consulter la documentation.</p>
+    <p class="rap">Le tableau ci-dessus suit la <strong>configuration réelle du TD</strong> —
+       première adresse. Si votre professeur impose la dernière, remplacez
+       <code>.1</code> par <code>.254</code> partout, y compris dans les sous-interfaces.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="base">
+  <h2><span class="num">04</span>La configuration de base</h2>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — SW1, configuration initiale</span><pre><code>Switch&gt; enable
+Switch# configure terminal
+Switch(config)# hostname SW1
+SW1(config)# enable secret cisco123
+
+SW1(config)# line console 0
+SW1(config-line)# password consolepass
+SW1(config-line)# login
+SW1(config-line)# exit
+
+SW1(config)# line vty 0 4
+SW1(config-line)# password vtypass
+SW1(config-line)# login
+SW1(config-line)# exit
+
+SW1(config)# service password-encryption
+SW1(config)# banner motd # Acces reserve au personnel autorise #
+
+SW1(config)# interface vlan 1
+SW1(config-if)# ip address 192.168.1.2 255.255.255.0
+SW1(config-if)# no shutdown
+SW1(config-if)# exit
+SW1(config)# ip default-gateway 192.168.1.1
+SW1(config)# exit
+
+SW1# copy running-config startup-config</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois questions du TD, répondues</div>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>Pourquoi une IP sur <code>interface vlan 1</code> si le switch est en
+                couche 2 ?</strong></td>
+            <td>Cette adresse ne sert <strong>pas</strong> à commuter : elle sert à
+                <strong>administrer</strong> le switch — SSH, Telnet, SNMP. Le switch reste un
+                équipement de couche 2 ; il a seulement une « porte d'entrée » en couche 3 pour
+                qu'on puisse lui parler.</td></tr>
+        <tr><td><strong>À quoi sert <code>ip default-gateway</code> ?</strong></td>
+            <td>À permettre au switch de <strong>répondre</strong> à une machine située dans un
+                autre réseau. Sans elle, on ne peut l'administrer que depuis son propre sous-
+                réseau. Elle n'est utile que tant que <code>ip routing</code> est
+                désactivé.</td></tr>
+        <tr><td><strong>Que fait <code>service password-encryption</code> ? Est-ce
+                suffisant ?</strong></td>
+            <td>Elle chiffre les mots de passe en clair de la configuration avec l'algorithme
+                <strong>type 7</strong> — <strong>réversible</strong>, et cassé en quelques
+                secondes par des outils publics. Elle protège d'un regard par-dessus l'épaule,
+                <strong>pas d'un attaquant</strong>. Le vrai mot de passe est celui d'
+                <code>enable secret</code>, haché.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Retenez la formule : <code>service password-encryption</code> est un
+       <strong>cache-misère</strong>, <code>enable secret</code> une vraie protection.</p>
+  </div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>Router&gt; enable
+Router# configure terminal
+Router(config)# hostname R1
+R1(config)# enable secret cisco123
+
+R1(config)# interface gigabitEthernet 0/0
+R1(config-if)# description LAN vers SW1
+R1(config-if)# ip address 192.168.1.1 255.255.255.0
+R1(config-if)# no shutdown
+R1(config-if)# exit
+
+R1(config)# interface gigabitEthernet 0/1
+R1(config-if)# description Vers Internet (simule)
+R1(config-if)# ip address 203.0.113.1 255.255.255.252
+R1(config-if)# no shutdown</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>no shutdown</code> : l'oubli qui coûte le plus de temps</div>
+    <p>Sur un routeur, <strong>toutes les interfaces sont éteintes par défaut</strong>. Sur un
+       switch, elles sont allumées. C'est la cause numéro un des « ça ne ping pas » en TP.</p>
+    <p>La vérification tient en une commande :</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1# show ip interface brief</code></pre></div>
+    <p>Deux colonnes à lire : <strong>Status</strong> (la couche 1, le câble) et
+       <strong>Protocol</strong> (la couche 2). Il faut <code>up / up</code>.</p>
+    <p class="rap"><code>administratively down</code> signifie exactement une chose : il manque
+       un <code>no shutdown</code>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>203.0.113.0/30</code> n'est pas une adresse au hasard</div>
+    <p>Ce bloc est réservé par la RFC 5737 à la <strong>documentation</strong> — comme
+       <code>192.0.2.0/24</code> et <code>198.51.100.0/24</code>. Il ne sera jamais routé sur
+       Internet, ce qui en fait l'adresse idéale pour simuler un lien opérateur.</p>
+    <p>Et le <strong>/30</strong> est le masque classique d'une liaison point à point :
+       4 adresses, dont <strong>2 utilisables</strong> — une à chaque bout, sans gaspillage.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="vlan">
+  <h2><span class="num">05</span>VLAN : access et trunk</h2>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — créer les VLAN</span><pre><code>SW1(config)# vlan 10
+SW1(config-vlan)# name DIRECTION
+SW1(config-vlan)# exit
+SW1(config)# vlan 20
+SW1(config-vlan)# name COMPTABILITE
+SW1(config-vlan)# exit
+SW1(config)# vlan 30
+SW1(config-vlan)# name INVITES
+SW1(config-vlan)# exit
+
+SW1(config)# do show vlan brief</code></pre></div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — affecter les ports (mode access)</span><pre><code>SW1(config)# interface range fastEthernet 0/1 - 5
+SW1(config-if-range)# switchport mode access
+SW1(config-if-range)# switchport access vlan 10
+SW1(config-if-range)# exit
+
+SW1(config)# interface range fastEthernet 0/6 - 10
+SW1(config-if-range)# switchport mode access
+SW1(config-if-range)# switchport access vlan 20
+SW1(config-if-range)# exit
+
+SW1(config)# interface range fastEthernet 0/11 - 15
+SW1(config-if-range)# switchport mode access
+SW1(config-if-range)# switchport access vlan 30</code></pre></div>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — le lien trunk vers R1</span><pre><code>SW1(config)# interface gigabitEthernet 0/1
+SW1(config-if)# switchport trunk encapsulation dot1q
+SW1(config-if)# switchport mode trunk
+SW1(config-if)# switchport trunk allowed vlan 10,20,30</code></pre></div>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Port <strong>access</strong></th><th>Port <strong>trunk</strong></th></tr></thead>
+    <tbody>
+      <tr><td>On y branche</td><td>un poste, une imprimante, un téléphone</td>
+          <td>un autre switch, ou un routeur</td></tr>
+      <tr><td>VLAN transportés</td><td><strong>un seul</strong></td><td><strong>plusieurs</strong></td></tr>
+      <tr><td>Trames</td><td>sans étiquette</td><td><strong>étiquetées 802.1Q</strong></td></tr>
+      <tr><td>Le poste connecté</td><td>ignore tout du VLAN</td><td>doit savoir lire les étiquettes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 L'étiquette 802.1Q, c'est l'adresse sur l'enveloppe</div>
+    <p>Sur un lien trunk, un seul câble transporte les trames de trois VLAN. Sans marquage, le
+       destinataire n'aurait aucun moyen de savoir laquelle vient d'où.</p>
+    <p>802.1Q <strong>insère 4 octets dans la trame Ethernet</strong>, dont un identifiant de
+       VLAN sur 12 bits — d'où <strong>4 094 VLAN utilisables</strong>
+       <span class="sub">(2¹² − 2 : les identifiants 0 et 4095 sont réservés)</span>.</p>
+    <p class="rap">L'étiquette est ajoutée à l'entrée du trunk et <strong>retirée à la
+       sortie</strong> : le poste final ne la voit jamais.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Si le VLAN 30 manque dans <code>allowed vlan</code></div>
+    <p>Ses trames sont <strong>silencieusement jetées</strong> à l'entrée du trunk. Le VLAN 30
+       existe, ses ports sont bien affectés, le ping intra-VLAN fonctionne — mais
+       <strong>aucun invité ne sort</strong>, et rien n'apparaît dans les journaux.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS — la commande qui le dit</span><pre><code>SW1# show interfaces trunk</code></pre></div>
+    <p class="rap">C'est la panne la plus vicieuse du TD, parce qu'elle ressemble à un problème
+       de routage. <strong>Toujours vérifier les VLAN autorisés avant de soupçonner R1.</strong></p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 <code>switchport trunk encapsulation dot1q</code> n'existe pas partout</div>
+    <p>Cette commande ne s'accepte que sur les switchs qui savent faire <strong>autre chose</strong>
+       que du 802.1Q — c'est-à-dire l'ancien ISL de Cisco. Sur un <strong>2960</strong>, qui ne
+       connaît que le 802.1Q, elle est <strong>refusée</strong> : il faut passer directement à
+       <code>switchport mode trunk</code>.</p>
+    <p class="rap">Si Packet Tracer répond <code>% Invalid input detected</code> sur cette ligne,
+       ce n'est pas une faute de frappe : c'est le modèle de switch. Sautez-la.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="intervlan">
+  <h2><span class="num">06</span>Le routage inter-VLAN</h2>
+
+  <p>Trois VLAN correctement cloisonnés ne communiquent pas. Pour qu'ils se parlent, il faut un
+     équipement de <strong>couche 3</strong>. Deux méthodes.</p>
+
+  <h3>Méthode 1 — router-on-a-stick</h3>
+  <p>Le routeur reçoit tout le trafic par <strong>un seul lien physique</strong>, découpé en
+     <strong>sous-interfaces</strong> — une par VLAN.</p>
+
+<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# interface gigabitEthernet 0/0.10
+R1(config-subif)# encapsulation dot1Q 10
+R1(config-subif)# ip address 192.168.10.1 255.255.255.0
+R1(config-subif)# exit
+
+R1(config)# interface gigabitEthernet 0/0.20
+R1(config-subif)# encapsulation dot1Q 20
+R1(config-subif)# ip address 192.168.20.1 255.255.255.0
+R1(config-subif)# exit
+
+R1(config)# interface gigabitEthernet 0/0.30
+R1(config-subif)# encapsulation dot1Q 30
+R1(config-subif)# ip address 192.168.30.1 255.255.255.0
+R1(config-subif)# exit
+
+R1(config)# interface gigabitEthernet 0/0
+R1(config-if)# no ip address
+R1(config-if)# no shutdown</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les deux lignes de la fin ne sont pas facultatives</div>
+    <ul>
+      <li><strong><code>no ip address</code> sur l'interface physique</strong> — elle ne doit
+          plus porter d'adresse : ce sont les sous-interfaces qui en portent. Une adresse
+          restante entrerait en conflit.</li>
+      <li><strong><code>no shutdown</code> sur l'interface physique</strong> — les
+          sous-interfaces sont <strong>portées</strong> par elle. Si la physique est éteinte,
+          les trois sous-interfaces le sont aussi, quoi qu'on ait configuré dessus.</li>
+    </ul>
+    <p class="rap">C'est la seconde cause de « le ping inter-VLAN ne passe pas » : tout est
+       juste, sauf que le tronc est éteint.</p>
+  </div>
+
+  <h3>Méthode 2 — SVI sur un switch de niveau 3</h3>
+<div class="bloc-code"><span class="langue">Cisco IOS — switch L3</span><pre><code>SW1(config)# ip routing
+
+SW1(config)# interface vlan 10
+SW1(config-if)# ip address 192.168.10.1 255.255.255.0
+SW1(config-if)# no shutdown
+
+SW1(config)# interface vlan 20
+SW1(config-if)# ip address 192.168.20.1 255.255.255.0
+SW1(config-if)# no shutdown
+
+SW1(config)# interface vlan 30
+SW1(config-if)# ip address 192.168.30.1 255.255.255.0
+SW1(config-if)# no shutdown</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sans <code>ip routing</code>, rien ne route</div>
+    <p>Un switch de niveau 3 sort d'usine avec le routage <strong>désactivé</strong> : il se
+       comporte en switch de couche 2. Les trois SVI peuvent être parfaitement configurées, le
+       trafic ne passera pas d'un VLAN à l'autre.</p>
+    <p class="rap">Une seule commande, et on l'oublie tout le temps. Contrôle :
+       <code>show ip route</code> doit lister les trois réseaux en <code>C</code> — connectés.</p>
+  </div>
+
+  <h3>Laquelle choisir ?</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Critère</th><th>Router-on-a-stick</th><th>Switch L3 (SVI)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Coût</strong></td><td>faible — on réutilise le routeur existant</td>
+          <td>élevé — un switch L3 coûte bien plus cher</td></tr>
+      <tr><td><strong>Performance</strong></td>
+          <td>limitée : <strong>tout le trafic inter-VLAN passe deux fois</strong> sur le même
+              câble, à l'aller et au retour</td>
+          <td>très élevée : commutation matérielle, dans le fond de panier</td></tr>
+      <tr><td><strong>Montée en charge</strong></td>
+          <td>le lien unique devient vite le goulot d'étranglement</td>
+          <td>excellente, des dizaines de VLAN sans peine</td></tr>
+      <tr><td><strong>Cas d'emploi</strong></td>
+          <td>petite structure, peu de trafic entre services, budget serré</td>
+          <td>trafic inter-VLAN important, cœur de réseau, croissance prévue</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 « Deux fois sur le même câble » : la vraie limite</div>
+    <p>Un poste du VLAN 10 qui envoie un fichier au VLAN 20 fait voyager chaque paquet
+       <strong>deux fois</strong> sur le lien trunk : SW1 → R1, puis R1 → SW1. Un lien à 1 Gb/s
+       ne laisse donc que <strong>500 Mb/s utiles</strong> de trafic inter-VLAN.</p>
+    <p class="rap">C'est l'argument à donner en question de synthèse : ce n'est pas une question
+       de goût, c'est une division par deux.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="verification">
+  <h2><span class="num">07</span>Vérifier, dans l'ordre</h2>
+
+  <div class="encart methode">
+    <div class="titre">🎯 On remonte les couches : physique, liaison, réseau</div>
+    <p>Un diagnostic se fait <strong>de bas en haut</strong>. Inutile de chercher une erreur de
+       routage si le câble est sur le mauvais port.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Ordre</th><th>Commande</th><th>Ce qu'elle prouve</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>show ip interface brief</code></td>
+            <td>l'interface est <code>up / up</code> — câble et protocole</td></tr>
+        <tr><td>2</td><td><code>show cdp neighbors</code></td>
+            <td>qui est réellement en face, et sur quel port</td></tr>
+        <tr><td>3</td><td><code>show vlan brief</code></td>
+            <td>les 3 VLAN existent et les bons ports y sont affectés</td></tr>
+        <tr><td>4</td><td><code>show interfaces trunk</code></td>
+            <td>le trunk est actif, avec les bons VLAN autorisés</td></tr>
+        <tr><td>5</td><td><code>show ip route</code></td>
+            <td>les 3 réseaux apparaissent, marqués <code>C</code></td></tr>
+        <tr><td>6</td><td><code>ping</code> intra-VLAN puis inter-VLAN</td>
+            <td>le cloisonnement, puis le routage</td></tr>
+        <tr><td>7</td><td><code>copy running-config startup-config</code></td>
+            <td>la configuration survivra au redémarrage</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Le <strong>ping intra-VLAN avant l'inter-VLAN</strong> : si le premier échoue,
+       le problème est en couche 2 et R1 n'y est pour rien.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>copy running-config startup-config</code>, ou tout est perdu</div>
+    <p><code>running-config</code> vit en <strong>mémoire vive</strong>. Un redémarrage — ou une
+       coupure — et deux heures de TP disparaissent. <code>startup-config</code> est en mémoire
+       non volatile.</p>
+    <p class="rap">Prenez l'habitude de sauvegarder <strong>après chaque étape qui
+       fonctionne</strong>, pas seulement à la fin.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="production">
+  <h2><span class="num">08</span>Les réflexes de production</h2>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi désactiver le VLAN 1 sur les ports d'accès</div>
+    <p>C'est la question ouverte de fin de séance. Trois raisons, dans l'ordre d'importance :</p>
+    <ol>
+      <li><strong>C'est le VLAN par défaut de tout le monde.</strong> Un équipement branché sans
+          configuration se retrouve dans le VLAN 1 — donc potentiellement avec les interfaces
+          d'administration des switchs.</li>
+      <li><strong>Il porte le trafic de service</strong> (CDP, DTP, STP, VTP). Le mélanger avec
+          du trafic utilisateur expose ces protocoles.</li>
+      <li><strong>Un attaquant le sait.</strong> Le VLAN 1 est le premier essayé, y compris pour
+          le <em>VLAN hopping</em> par le VLAN natif d'un trunk.</li>
+    </ol>
+    <p class="rap">La pratique courante : laisser le VLAN 1 <strong>inutilisé</strong>, mettre
+       l'administration dans un VLAN dédié (ici le 99), et affecter tous les ports d'accès à un
+       VLAN métier.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les trois prolongements proposés</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Prolongement</th><th>Ce qu'il apporte</th><th>Chapitre</th></tr></thead>
+      <tbody>
+        <tr><td><strong>ACL</strong> interdisant au VLAN 30 d'atteindre le VLAN 10</td>
+            <td>le cloisonnement logique ne suffit plus dès qu'on a routé : il faut
+                <em>refiltrer</em> ce qu'on vient d'ouvrir</td>
+            <td>cybersécurité</td></tr>
+        <tr><td><strong>DHCP</strong> par VLAN, en pools locaux ou par
+            <code>ip helper-address</code></td>
+            <td>un serveur central sert plusieurs VLAN, parce que le DHCP fonctionne en
+                broadcast et ne traverse pas un routeur</td>
+            <td><a href="../11-dhcp/cours.html">11 — DHCP</a></td></tr>
+        <tr><td><strong>VLAN natif</strong> modifié sur le trunk</td>
+            <td>le VLAN natif circule <strong>sans étiquette</strong> : c'est la porte du
+                <em>VLAN hopping</em></td>
+            <td><a href="../08-commutation-vlan/cours.html">08 — VLAN</a></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Le premier est le plus formateur : il montre que <strong>router et filtrer
+       sont deux décisions distinctes</strong>.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Le VLAN 30 (Invités) peut joindre le VLAN 10 (Direction). Est-ce normal ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>C'est techniquement normal, et fonctionnellement inacceptable.</strong></p>
+      <p>Dès que le routage inter-VLAN est actif, <strong>tous</strong> les VLAN se joignent :
+         c'est précisément ce qu'on a demandé au routeur. Le cloisonnement de couche 2 a été
+         volontairement percé en couche 3.</p>
+      <p>Un VLAN <em>Invités</em> n'a aucune raison d'atteindre la <em>Direction</em>. Il lui faut
+         une <strong>ACL</strong> sur R1 : accès à Internet, refus vers les réseaux internes.</p>
+      <p class="rap">Retenez la phrase : <strong>le VLAN sépare, le routeur relie, l'ACL
+         arbitre.</strong> Les trois sont nécessaires.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Switch</strong> = trames + MAC (couche 2) · <strong>routeur</strong> = paquets
+          + IP (couche 3). Le switch segmente les collisions, le routeur et le VLAN segmentent
+          les broadcasts.</li>
+      <li><strong>VLSM</strong> : servir du plus gros au plus petit. 500 → <code>/23</code> ·
+          100 → <code>/25</code> · 20 → <code>/27</code>. Contrôle : broadcast + 1 = réseau
+          suivant.</li>
+      <li><strong>Access</strong> = un VLAN, sans étiquette · <strong>trunk</strong> = plusieurs
+          VLAN, étiquetés 802.1Q (12 bits → 4 094 VLAN).</li>
+      <li><strong>Un VLAN oublié dans <code>allowed vlan</code></strong> et ses trames
+          disparaissent en silence.</li>
+      <li><strong>Router-on-a-stick</strong> : sous-interfaces, <code>encapsulation dot1Q</code>,
+          puis <code>no ip address</code> + <code>no shutdown</code> sur la physique.</li>
+      <li><strong>SVI</strong> : ne routent rien tant que <code>ip routing</code> n'est pas
+          activé.</li>
+      <li><strong>Choisir</strong> : stick = pas cher mais le trafic passe deux fois sur le
+          câble · L3 = cher mais commutation matérielle.</li>
+      <li><strong>Diagnostiquer de bas en haut</strong> : <code>show ip interface brief</code> →
+          <code>show vlan brief</code> → <code>show interfaces trunk</code> →
+          <code>show ip route</code> → ping intra puis inter.</li>
+      <li><strong>Le VLAN sépare, le routeur relie, l'ACL arbitre.</strong></li>
+      <li><strong>Sauvegarder</strong> : <code>copy running-config startup-config</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Révision — Réseaux &amp; Configuration Cisco » — TD de 2<sup>e</sup> année,
+          7 pages : scénario fil rouge, 6 parties, checklist de vérification</li>
+      <li>Liste de vidéos de révision rassemblée en classe</li>
+      <li>Chapitres de 1<sup>re</sup> année <a href="../03-modele-osi-tcp-ip/cours.html">03</a>,
+          <a href="../04-adressage-ipv4-vlsm/cours.html">04</a>,
+          <a href="../07-configuration-cisco/cours.html">07</a>,
+          <a href="../08-commutation-vlan/cours.html">08</a> et
+          <a href="../11-dhcp/cours.html">11</a></li>
+    </ul>
+    <p class="rap">Tous les sous-réseaux et toutes les plages annoncés sont recalculés par
+       <code>verif-technique.py</code> à chaque contrôle.</p>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

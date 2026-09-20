@@ -1,0 +1,544 @@
+/* ============================================================================
+   BTS CIEL — design system « Crème & Douceur »
+   Vanilla, zéro dépendance. Chaque fiche déclare sa matière via
+   <body data-matiere="reseau"> pour hériter de son accent chromatique.
+   ========================================================================= */
+
+:root {
+  /* Surfaces */
+  --papier:        #FDF5E6;   /* fond de page — jamais de blanc pur */
+  --carte:         #FFFFFF;
+  --carte-creuse:  #FBF6EE;
+  --bord:          #E6DCCE;
+  --bord-fort:     #D8CBB8;
+
+  /* Texte */
+  --encre:         #2F2F2F;
+  --encre-douce:   #6B6257;
+  --encre-tenue:   #8A8175;
+
+  /* Accent par défaut (réseau) — surchargé par [data-matiere] */
+  --accent:        #005B96;
+  --accent-pale:   #E8F1F8;
+  --accent-sombre: #00426C;
+
+  /* Sémantique */
+  --vert:   #2D5A27;  --vert-pale:   #EAF2E8;
+  --ambre:  #B8860B;  --ambre-pale:  #FBF2DC;
+  --rouge:  #A32E2E;  --rouge-pale:  #FBEDEC;
+  --violet: #6A0DAD;  --violet-pale: #F3EBFA;  --violet-bord: #DFCDEF;
+
+  /* Rythme */
+  --r:   10px;
+  --r-l: 16px;
+  --ombre:      0 1px 2px rgba(60,45,25,.04), 0 4px 16px rgba(60,45,25,.05);
+  --ombre-haut: 0 2px 6px rgba(60,45,25,.06), 0 12px 32px rgba(60,45,25,.07);
+
+  --sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono:  ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+[data-matiere="dev"]     { --accent:#2D5A27; --accent-pale:#EAF2E8; --accent-sombre:#1E3D1A; }
+[data-matiere="reseau"]  { --accent:#005B96; --accent-pale:#E8F1F8; --accent-sombre:#00426C; }
+[data-matiere="maths"]   { --accent:#8B0000; --accent-pale:#F8EBEB; --accent-sombre:#630000; }
+[data-matiere="anglais"] { --accent:#C05621; --accent-pale:#FCEFE6; --accent-sombre:#8C3D14; }
+[data-matiere="culture"] { --accent:#6A0DAD; --accent-pale:#F3EBFA; --accent-sombre:#4C097C; }
+/* Pour ce pôle seulement, le violet sémantique est aussi la couleur d'accent :
+   « méthode » (violet) et « boîte à outils » (accent) tombaient sur le même
+   fond #F3EBFA, deux encarts distincts rendus identiques. On décale le violet
+   sémantique vers l'indigo — l'accent de la matière reste inchangé. */
+[data-matiere="culture"] { --violet:#2F4A7C; --violet-pale:#EBF0F8; --violet-bord:#CBD8EC; }
+[data-matiere="projets"] { --accent:#B8860B; --accent-pale:#FBF2DC; --accent-sombre:#7A5807; }
+
+/* ------------------------------------------------------------------ base */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.72;
+  color: var(--encre);
+  background: var(--papier);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 { line-height: 1.22; letter-spacing: -.018em; margin: 0; font-weight: 700; }
+p { margin: 0 0 1.05em; }
+a { color: var(--accent-sombre); text-underline-offset: .18em; text-decoration-thickness: 1px; }
+a:hover { color: var(--accent); }
+strong { font-weight: 650; color: #1F1F1F; }
+img, svg, video { max-width: 100%; height: auto; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* --------------------------------------------------------------- charpente */
+.page { display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 3rem;
+        max-width: 1220px; margin: 0 auto; padding: 0 2rem 6rem; }
+.corps { min-width: 0; padding-top: 2.6rem; max-width: 76ch; }
+
+/* ---------------------------------------------------------------- sommaire */
+.sommaire { position: sticky; top: 0; align-self: start; max-height: 100vh;
+            overflow-y: auto; padding: 2.6rem 0 3rem; font-size: 14px; }
+.sommaire .retour { display: inline-flex; align-items: center; gap: .45rem;
+  color: var(--encre-douce); text-decoration: none; font-size: 12.5px; font-weight: 600;
+  letter-spacing: .02em; margin-bottom: 1.6rem; }
+.sommaire .retour:hover { color: var(--accent); }
+.sommaire .retour::before { content: "\2190"; }
+.sommaire h2 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .13em;
+  color: var(--encre-tenue); font-weight: 700; margin-bottom: .9rem; }
+.sommaire ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--bord); }
+.sommaire li { margin: 0; }
+.sommaire li a { display: block; padding: .38rem 0 .38rem 1rem; margin-left: -2px;
+  border-left: 2px solid transparent; color: var(--encre-douce);
+  text-decoration: none; transition: color .15s, border-color .15s; }
+.sommaire li a:hover { color: var(--encre); }
+.sommaire li a.actif { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.sommaire li.sous a { padding-left: 1.9rem; font-size: 13.2px; }
+
+/* ----------------------------------------------------------------- en-tête */
+.fiche-tete { margin-bottom: 2.8rem; }
+.fil { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  font-size: 11.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--encre-tenue); margin-bottom: 1.15rem; }
+.fil a { color: inherit; text-decoration: none; }
+.fil a:hover { color: var(--accent); }
+.fil .matiere { color: var(--accent); }
+.fil .sep { color: var(--bord-fort); }
+.badge { display: inline-block; background: var(--accent-pale); color: var(--accent-sombre);
+  border-radius: 999px; padding: .22rem .7rem; font-size: 10.5px; letter-spacing: .07em; }
+
+.fiche-tete h1 { font-size: clamp(2rem, 5.4vw, 3.05rem); font-weight: 780; letter-spacing: -.032em; }
+.chapeau { font-size: 1.12rem; color: var(--encre-douce); margin-top: .85rem; max-width: 62ch; }
+
+.flash { display: flex; gap: 1rem; background: var(--carte); border: 1px solid var(--bord);
+  border-left: 4px solid var(--accent); border-radius: var(--r); padding: 1.15rem 1.35rem;
+  margin: 2rem 0 1.2rem; box-shadow: var(--ombre); }
+.flash .pastille { font-size: 1.15rem; line-height: 1.5; }
+.flash h2 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--accent); margin-bottom: .4rem; }
+.flash p { margin: 0; font-size: 15.5px; }
+
+.motscles { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center;
+  font-size: 12.5px; color: var(--encre-tenue); }
+.motscles code { background: var(--carte); border: 1px solid var(--bord); border-radius: 6px;
+  padding: .18rem .55rem; font-family: var(--mono); font-size: 11.8px; color: var(--encre-douce); }
+
+/* ---------------------------------------------------------------- sections */
+section { margin-top: 3.4rem; scroll-margin-top: 1.5rem; }
+section > h2 { font-size: 1.62rem; font-weight: 740; padding-bottom: .55rem;
+  border-bottom: 2px solid var(--bord); margin-bottom: 1.35rem; }
+section > h2 .num { color: var(--accent); font-family: var(--mono); font-size: .78em;
+  font-weight: 600; margin-right: .55rem; }
+h3 { font-size: 1.16rem; font-weight: 690; margin: 2.1rem 0 .7rem; color: var(--accent-sombre); }
+h4 { font-size: .98rem; font-weight: 680; margin: 1.5rem 0 .5rem; }
+
+ul, ol { padding-left: 1.35rem; margin: 0 0 1.1em; }
+li { margin-bottom: .42em; }
+li::marker { color: var(--accent); }
+
+/* ----------------------------------------------------------------- encarts */
+.encart { border: 1px solid var(--bord); border-radius: var(--r); padding: 1.05rem 1.25rem;
+  margin: 1.6rem 0; background: var(--carte); box-shadow: var(--ombre); font-size: 15.4px; }
+.encart > :last-child { margin-bottom: 0; }
+/* Surtout pas « display:flex » ici : un titre d'encart mêle du texte libre et
+   parfois un <code>, et un conteneur flex en fait des éléments insécables — le
+   titre ne peut plus se couper et pousse la page au-delà de 375 px. Flux inline
+   normal, donc, qui revient à la ligne tout seul. */
+.encart .titre { font-weight: 700;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .6rem; }
+
+.encart.analogie { background: var(--ambre-pale); border-color: #EBDCB4; }
+.encart.analogie .titre { color: #7A5807; }
+.encart.outils   { background: var(--accent-pale); border-color: var(--bord); }
+.encart.outils   .titre { color: var(--accent-sombre); }
+.encart.piege    { background: var(--rouge-pale); border-color: #EFD2CF; }
+.encart.piege    .titre { color: var(--rouge); }
+.encart.savoir   { background: var(--vert-pale); border-color: #D3E2CE; }
+.encart.savoir   .titre { color: var(--vert); }
+.encart.corrige  { background: #FFF9E8; border-color: #EBD9A8; border-left: 4px solid var(--ambre); }
+.encart.corrige  .titre { color: #7A5807; }
+.encart.methode  { background: var(--violet-pale); border-color: var(--violet-bord); }
+.encart.methode  .titre { color: var(--violet); }
+
+/* La phrase de clôture d'un encart — le « à retenir » qui referme la
+   démonstration. Un filet la détache du corps, un trait à gauche reprend
+   l'accent du bloc. Employée 420 fois dans le dépôt, elle n'avait aucune
+   règle : elle se rendait exactement comme un paragraphe ordinaire. */
+.rap { margin-top: .95rem; padding: .62rem 0 0 .85rem;
+  border-top: 1px solid var(--bord-fort); border-left: 3px solid var(--accent);
+  font-size: 14.6px; }
+/* Glose brève accolée à une valeur — « 126 (2⁷ − 2) ». Employée dans les
+   tableaux, elle doit s'effacer devant le chiffre qu'elle explique. */
+.sub { font-size: .86em; color: var(--encre-tenue); }
+
+.encart.analogie .rap, .encart.corrige .rap { border-left-color: var(--ambre); }
+.encart.piege    .rap { border-left-color: var(--rouge);  }
+.encart.savoir   .rap { border-left-color: var(--vert);   }
+.encart.methode  .rap { border-left-color: var(--violet); }
+
+/* -------------------------------------------------------------------- quiz */
+.quiz { border: 1px solid var(--bord); border-left: 4px solid var(--accent);
+  border-radius: var(--r); background: var(--carte); padding: 1.05rem 1.25rem;
+  margin: 1.6rem 0; box-shadow: var(--ombre); }
+.quiz .titre { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+  font-weight: 700; color: var(--accent); margin-bottom: .55rem; }
+.quiz .question { font-weight: 560; margin-bottom: .85rem; }
+.quiz button { font: inherit; font-size: 13.4px; font-weight: 620; cursor: pointer;
+  background: var(--accent); color: #fff; border: 0; border-radius: 7px;
+  padding: .48rem 1.05rem; transition: background .15s, transform .08s; }
+.quiz button:hover { background: var(--accent-sombre); }
+.quiz button:active { transform: translateY(1px); }
+.quiz .reponse { margin-top: .95rem; padding-top: .95rem; border-top: 1px dashed var(--bord-fort);
+  font-size: 15.2px; animation: apparait .22s ease; }
+.quiz .reponse > :last-child { margin-bottom: 0; }
+@keyframes apparait { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+
+/* --------------------------------------------------------------- exercices */
+.exo { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r-l);
+  padding: 1.5rem 1.7rem; margin: 1.8rem 0; box-shadow: var(--ombre); }
+.exo > h3 { margin-top: 0; display: flex; align-items: baseline; gap: .6rem;
+  color: var(--encre); font-size: 1.08rem; }
+.exo > h3 .no { font-family: var(--mono); font-size: .8em; font-weight: 700;
+  color: #fff; background: var(--accent); border-radius: 6px; padding: .1rem .45rem; }
+.exo .enonce { font-size: 15.4px; }
+.exo .quiz { margin-bottom: 0; background: var(--carte-creuse); }
+.exo .tableau { background: var(--carte-creuse); }
+.niveau { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  border-radius: 999px; padding: .16rem .6rem; margin-left: auto; }
+.niveau.n1 { background: var(--vert-pale);  color: var(--vert); }
+.niveau.n2 { background: var(--ambre-pale); color: #7A5807; }
+.niveau.n3 { background: var(--rouge-pale); color: var(--rouge); }
+.rep-ok { color: var(--vert); font-weight: 650; }
+.rep-non { color: var(--rouge); font-weight: 650; }
+
+/* -------------------------------------------------------------------- code */
+.bloc-code { position: relative; margin: 1.5rem 0; }
+.bloc-code .langue { position: absolute; top: 0; left: 1rem; transform: translateY(-50%);
+  background: var(--accent); color: #fff; font-family: var(--mono); font-size: 10px;
+  font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  padding: .16rem .55rem; border-radius: 5px; z-index: 2; }
+.bloc-code .copier { position: absolute; top: .55rem; right: .55rem; z-index: 2;
+  font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  background: rgba(255,255,255,.09); color: #C9C2B6; border: 1px solid rgba(255,255,255,.16);
+  border-radius: 6px; padding: .25rem .6rem; transition: all .15s; }
+.bloc-code .copier:hover { background: rgba(255,255,255,.18); color: #fff; }
+.bloc-code .copier.fait { background: #2D5A27; border-color: #2D5A27; color: #fff; }
+pre { margin: 0; background: #23211E; color: #EDE7DC; border-radius: var(--r);
+  padding: 1.15rem 1.25rem; overflow-x: auto; font-family: var(--mono);
+  font-size: 13.3px; line-height: 1.66; }
+pre code { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
+/* « overflow-wrap » ne coupe qu'en dernier recours — un mot qui ne tient pas
+   seul sur sa ligne. Sans lui, un chemin comme
+   « http://localhost/monprojet/index.php » n'offre aucune césure et pousse la
+   page hors de l'écran à 375 px. */
+:not(pre) > code { font-family: var(--mono); font-size: .885em; background: var(--carte-creuse);
+  border: 1px solid var(--bord); border-radius: 5px; padding: .1em .38em; color: var(--accent-sombre);
+  overflow-wrap: break-word; }
+
+/* Le code ne se met JAMAIS en petites capitales, quel que soit son contexte.
+   Titres d'encart, en-têtes de tableau et intertitres de fiche sont en
+   majuscules : sans ce garde-fou, « adduser » s'affiche ADDUSER et
+   « enable secret » ENABLE SECRET — des commandes qu'aucun terminal n'accepte.
+   Une déclaration sur l'élément lui-même bat toujours un héritage : la règle
+   couvre donc aussi les contextes en majuscules qui seront écrits plus tard. */
+code, kbd, samp { text-transform: none; letter-spacing: normal; }
+
+/* ------------------------------------------------- coloration syntaxique */
+/* Palette chaude, lisible sur le fond #23211E des blocs de code.           */
+.tok-com { color: #8E8878; font-style: italic; }   /* commentaires          */
+.tok-key { color: #E8927C; }                       /* mots-clés, balises    */
+.tok-str { color: #B6C98D; }                       /* chaînes               */
+.tok-num { color: #E3C589; }                       /* nombres, IP, couleurs */
+.tok-att { color: #8FC4D6; }                       /* attributs, propriétés */
+.tok-val { color: #C7A8E0; }                       /* valeurs, variables    */
+.tok-pun { color: #9C958A; }                       /* ponctuation           */
+.tok-met { color: #7FB0A0; }                       /* doctype, @règles      */
+
+/* ------------------------------------ démonstration : code | résultat */
+.demo { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+  margin: 1.7rem 0; align-items: start; }
+.demo > .bloc-code { margin: 0; min-width: 0; }
+.demo .apercu { min-width: 0; }
+.demo .apercu { border: 1px solid var(--bord); border-radius: var(--r);
+  background: var(--carte); overflow: hidden; box-shadow: var(--ombre); }
+.demo .apercu .etiquette { font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--encre-tenue);
+  background: var(--carte-creuse); border-bottom: 1px solid var(--bord);
+  padding: .34rem .7rem; }
+.demo .apercu iframe { display: block; width: 100%; border: 0; background: #fff; }
+
+/* Certaines démonstrations ont besoin de toute la largeur pour dire quelque
+   chose : une grille responsive tassée dans une colonne de 300 px ne montre
+   qu'une seule colonne, c'est-à-dire exactement ce qu'on veut éviter.
+   « .demo.large » empile alors le code au-dessus du résultat, pleine largeur. */
+.demo.large { grid-template-columns: 1fr; }
+
+@media (max-width: 900px) { .demo { grid-template-columns: 1fr; } }
+
+/* ----------------------------------------------------------------- tableau */
+.tableau { overflow-x: auto; margin: 1.6rem 0; border: 1px solid var(--bord);
+  border-radius: var(--r); background: var(--carte); box-shadow: var(--ombre);
+  -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 14.6px; }
+th, td { padding: .62rem .9rem; text-align: left; border-bottom: 1px solid var(--bord); }
+th { background: var(--carte-creuse); font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--encre-douce);
+  white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--carte-creuse); }
+td code { white-space: nowrap; }
+td .sub, th .sub { display: block; font-size: 11.5px; color: var(--encre-tenue);
+  font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* ------------------------------------------------------------------ schéma */
+.schema { margin: 1.9rem 0; padding: 1.4rem; background: var(--carte);
+  border: 1px solid var(--bord); border-radius: var(--r-l); box-shadow: var(--ombre);
+  text-align: center; overflow-x: auto; }
+.schema svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.schema figcaption { margin-top: .9rem; font-size: 13px; color: var(--encre-tenue);
+  font-style: italic; }
+
+/* ------------------------------------------------------------------- récap */
+.recap { margin-top: 4rem; background: var(--carte); border: 1px solid var(--bord);
+  border-top: 4px solid var(--accent); border-radius: var(--r-l);
+  padding: 1.7rem 1.9rem; box-shadow: var(--ombre-haut); }
+.recap h2 { font-size: 1.15rem; margin-bottom: 1rem; }
+.recap ul { list-style: none; padding: 0; }
+.recap li { position: relative; padding-left: 1.6rem; margin-bottom: .6rem; }
+.recap li::before { content: "\25B8"; position: absolute; left: .2rem; color: var(--accent);
+  font-weight: 700; }
+
+.sources { margin-top: 2rem; font-size: 13px; color: var(--encre-tenue); }
+.sources h2 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--encre-tenue); margin-bottom: .7rem; }
+.sources ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.sources li { background: var(--carte); border: 1px solid var(--bord); border-radius: 6px;
+  padding: .2rem .6rem; font-family: var(--mono); font-size: 11.4px; margin: 0; }
+
+/* ------------------------------------------ fiche de révision (imprimable) */
+.page.revision { grid-template-columns: minmax(0, 1fr); max-width: 1000px; }
+.page.revision .corps { max-width: none; }
+.grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 1rem; margin: 1.4rem 0; }
+.memo { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r);
+  border-top: 3px solid var(--accent); padding: .95rem 1.1rem; box-shadow: var(--ombre);
+  font-size: 14.4px; break-inside: avoid; }
+.memo h2, .memo h3 { margin: 0 0 .55rem; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--accent);
+  border: 0; padding: 0; }
+.memo > :last-child { margin-bottom: 0; }
+.memo ul, .memo ol { margin-bottom: 0; padding-left: 1.1rem; }
+.memo li { margin-bottom: .28em; }
+.memo table { font-size: 13px; }
+.memo th, .memo td { padding: .34rem .5rem; }
+.memo .tableau { margin: .5rem 0 0; box-shadow: none; }
+.memo.large { grid-column: 1 / -1; }
+.memo.cle, .memo.alerte { border-top-color: var(--rouge); }
+.memo.cle h2, .memo.cle h3,
+.memo.alerte h2, .memo.alerte h3 { color: var(--rouge); }
+.formule { font-family: var(--mono); font-size: 15px; font-weight: 600; text-align: center;
+  background: var(--accent-pale); border-radius: 7px; padding: .55rem; margin: .55rem 0;
+  color: var(--accent-sombre); }
+.section-revision { margin-top: 2.2rem; }
+.section-revision > h2 { font-size: 1.28rem; }
+
+/* ------------------------------------------------------------- responsive */
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; gap: 0; padding: 0 1.15rem 4rem; }
+  .corps { padding-top: 1.6rem; }
+  .sommaire { position: static; max-height: none; padding: 1.4rem 0 0; }
+  .sommaire ol { display: none; }
+  .sommaire.ouvert ol { display: block; }
+  .sommaire h2 { cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r);
+    padding: .75rem 1rem; margin: 0 0 .7rem; font-size: 11.5px; }
+  .sommaire h2::after { content: "\25BE"; font-size: 13px; transition: transform .2s; }
+  .sommaire.ouvert h2::after { transform: rotate(180deg); }
+  body { font-size: 16px; }
+}
+
+/* ------------------------------------------------------------- impression */
+@media print {
+  :root { --papier: #fff; }
+  body { font-size: 10.5pt; line-height: 1.45; }
+  .page { display: block; max-width: none; padding: 0; }
+  .sommaire, .bloc-code .copier, .quiz button { display: none !important; }
+  .quiz .reponse { display: block !important; }
+  .encart, .quiz, .recap, .tableau, .schema { box-shadow: none; break-inside: avoid; }
+  section > h2, h3 { break-after: avoid; }
+  pre { background: #F4F1EC; color: #23211E; border: 1px solid #DDD; }
+  .tok-com { color: #6B7250; } .tok-key { color: #A03E28; } .tok-str { color: #3F6B2E; }
+  .tok-num { color: #8A5A12; } .tok-att { color: #1F5F73; } .tok-val { color: #5B3A80; }
+  .tok-pun { color: #5A544A; } .tok-met { color: #2C6B5B; }
+  .demo { grid-template-columns: 1fr; }
+  .demo .apercu { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+  .grille { grid-template-columns: 1fr 1fr; gap: .55rem; }
+  .memo { padding: .55rem .7rem; font-size: 9pt; box-shadow: none; }
+  .fiche-tete h1 { font-size: 20pt; }
+  .chapeau, .motscles { display: none; }
+  .section-revision { margin-top: 1rem; }
+  @page { margin: 12mm; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================================
+   PORTAIL ET INDEX DE MATIÈRE
+   ========================================================================= */
+
+.portail-tete { padding: 1rem 0 2.6rem; border-bottom: 1px solid var(--bord); margin-bottom: 2.6rem; }
+.portail-tete h1 { font-size: clamp(2.4rem, 7vw, 4.2rem); font-weight: 800; letter-spacing: -.04em; }
+.portail-tete h1 span { color: var(--encre-tenue); font-weight: 300; letter-spacing: -.02em; }
+.portail-tete .chapeau { max-width: 56ch; }
+
+.compteurs { display: flex; flex-wrap: wrap; gap: 2.4rem; margin-top: 2rem; }
+.compteurs div { display: flex; flex-direction: column; }
+.compteurs strong { font-size: 2rem; font-weight: 780; line-height: 1; letter-spacing: -.03em; }
+.compteurs span { font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--encre-tenue); font-weight: 650; margin-top: .35rem; }
+
+.grille-poles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; }
+.pole { display: block; text-decoration: none; color: inherit; background: var(--carte);
+  border: 1px solid var(--bord); border-radius: var(--r-l); padding: 1.5rem 1.6rem;
+  box-shadow: var(--ombre); position: relative; overflow: hidden;
+  transition: transform .18s, box-shadow .18s, border-color .18s; }
+.pole::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent); }
+.pole:hover { transform: translateY(-3px); box-shadow: var(--ombre-haut); border-color: var(--bord-fort); }
+.pole-ic { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--accent);
+  background: var(--accent-pale); border-radius: 9px; width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+.pole h2 { font-size: 1.18rem; font-weight: 720; margin-bottom: .45rem; }
+.pole p { font-size: 14.2px; color: var(--encre-douce); margin-bottom: 1.1rem; }
+
+.jauge { margin-top: 1.4rem; }
+.jauge-barre { height: 5px; background: var(--carte-creuse); border: 1px solid var(--bord);
+  border-radius: 999px; overflow: hidden; }
+.jauge-barre span { display: block; height: 100%; background: var(--accent); border-radius: 999px;
+  transition: width .4s ease; }
+.jauge-txt { margin-top: .5rem; font-size: 11.5px; font-weight: 620; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--encre-tenue); }
+
+.portail-pied { margin-top: 3.4rem; padding-top: 1.6rem; border-top: 1px solid var(--bord);
+  font-size: 14px; color: var(--encre-douce); }
+.pied-liens { font-size: 12.5px; color: var(--encre-tenue); }
+
+/* ---------------------------------------------------- liste des chapitres */
+.liste-chap { display: flex; flex-direction: column; gap: .55rem; }
+
+/* Marque un chapitre de 2e année dans la liste d'un pôle. Les deux années
+   cohabitent dans le même index : l'épreuve E4 porte sur les deux, et un
+   chapitre de 1re année reste une révision utile. */
+/* Chapitre « bonus » : un complément qu'Ahmed s'est procuré lui-même (CNED),
+   et non un cours donné par ses professeurs. Listé, mais hors décompte. */
+.bonus { display: inline-block; margin-left: .45rem; padding: .08rem .42rem;
+  border: 1px dashed var(--bord-fort); border-radius: 999px;
+  background: var(--carte-creuse); color: var(--encre-tenue);
+  font-size: 9.6px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; vertical-align: .12em; }
+
+.an2 { display: inline-block; margin-left: .45rem; padding: .08rem .42rem;
+  border: 1px solid var(--accent); border-radius: 999px; background: var(--accent-pale);
+  color: var(--accent-sombre); font-size: 9.6px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; vertical-align: .12em; }
+.chap { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-areas: "num txt liens" "num src liens";
+  align-items: center; gap: .2rem 1rem;
+  background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r);
+  padding: .95rem 1.15rem; box-shadow: var(--ombre); transition: border-color .15s; }
+.chap:hover { border-color: var(--bord-fort); }
+.chap-num { grid-area: num; font-family: var(--mono); font-size: 15px; font-weight: 700;
+  color: var(--accent); background: var(--accent-pale); border-radius: 8px;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; }
+.chap-txt { grid-area: txt; }
+.chap-txt h3 { margin: 0; font-size: 15.5px; font-weight: 660; color: var(--encre); }
+.chap-txt p { margin: .1rem 0 0; font-size: 13.2px; color: var(--encre-douce); }
+.chap-src { grid-area: src; font-size: 11px; color: var(--encre-tenue);
+  font-family: var(--mono); margin-top: .3rem; }
+.chap-liens { grid-area: liens; display: flex; gap: .35rem; flex-wrap: wrap; }
+.lien-fiche { font-size: 11.5px; font-weight: 650; letter-spacing: .03em; border-radius: 6px;
+  padding: .3rem .65rem; text-decoration: none; white-space: nowrap;
+  background: var(--accent-pale); color: var(--accent-sombre);
+  border: 1px solid transparent; transition: background .15s; }
+.lien-fiche:hover { background: var(--accent); color: #fff; }
+.lien-fiche.vide { background: transparent; color: var(--encre-tenue);
+  border: 1px dashed var(--bord-fort); cursor: default; }
+.chap.attente { opacity: .72; }
+.chap.pret .chap-num { background: var(--accent); color: #fff; }
+
+@media (max-width: 620px) {
+  .chap { grid-template-columns: 38px minmax(0, 1fr);
+          grid-template-areas: "num txt" "num src" "liens liens"; }
+  .chap-liens { margin-top: .7rem; }
+  .compteurs { gap: 1.4rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THÈME SOMBRE
+   Ajouté pour la version publiée. Le balisage des fiches ne change pas :
+   seules les variables sont redéfinies sous html[data-theme="dark"].
+   Les accents clairs sont éclaircis — un vert #2D5A27 sur fond sombre est
+   illisible, un #7FC77E passe le contraste AA.
+   ═══════════════════════════════════════════════════════════════════════ */
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
+html[data-theme="dark"] {
+  --papier:        #0E1013;
+  --carte:         #16181C;
+  --carte-creuse:  #1C1F24;
+  --bord:          rgba(255,255,255,.10);
+  --bord-fort:     rgba(255,255,255,.18);
+
+  --encre:         #E9E6E1;
+  --encre-douce:   #A8A39B;
+  --encre-tenue:   #7C776F;
+
+  --accent:        #63B3ED;
+  --accent-pale:   rgba(99,179,237,.13);
+  --accent-sombre: #9ECBF5;
+
+  --vert:   #7FC77E;  --vert-pale:   rgba(127,199,126,.13);
+  --ambre:  #E0B54A;  --ambre-pale:  rgba(224,181,74,.13);
+  --rouge:  #F08A84;  --rouge-pale:  rgba(240,138,132,.13);
+  --violet: #B392E8;  --violet-pale: rgba(179,146,232,.13);
+  --violet-bord: rgba(179,146,232,.32);
+
+  --ombre:      0 1px 2px rgba(0,0,0,.45), 0 8px 26px rgba(0,0,0,.38);
+  --ombre-haut: 0 2px 8px rgba(0,0,0,.5),  0 18px 44px rgba(0,0,0,.45);
+}
+
+html[data-theme="dark"] [data-matiere="dev"]     { --accent:#7FC77E; --accent-pale:rgba(127,199,126,.13); --accent-sombre:#A7DCA5; }
+html[data-theme="dark"] [data-matiere="reseau"]  { --accent:#63B3ED; --accent-pale:rgba(99,179,237,.13);  --accent-sombre:#9ECBF5; }
+html[data-theme="dark"] [data-matiere="maths"]   { --accent:#F08A84; --accent-pale:rgba(240,138,132,.13); --accent-sombre:#F6B3AE; }
+html[data-theme="dark"] [data-matiere="anglais"] { --accent:#F0A868; --accent-pale:rgba(240,168,104,.13); --accent-sombre:#F6C79B; }
+html[data-theme="dark"] [data-matiere="culture"] { --accent:#B392E8; --accent-pale:rgba(179,146,232,.13); --accent-sombre:#CDB6F1; }
+html[data-theme="dark"] [data-matiere="projets"] { --accent:#E0B54A; --accent-pale:rgba(224,181,74,.13);  --accent-sombre:#EDD08A; }
+
+/* Le violet sémantique du pôle culture, version sombre */
+html[data-theme="dark"] [data-matiere="culture"] { --violet:#8FB2E8; --violet-pale:rgba(143,178,232,.13); --violet-bord:rgba(143,178,232,.32); }
+
+/* Quelques surfaces qui étaient blanches en dur */
+html[data-theme="dark"] .encart.corrige { background:rgba(224,181,74,.08); border-color:rgba(224,181,74,.28); }
+html[data-theme="dark"] .encart.analogie{ background:rgba(224,181,74,.08); border-color:rgba(224,181,74,.22); }
+html[data-theme="dark"] .encart.analogie .titre { color:var(--ambre); }
+html[data-theme="dark"] .encart.corrige  .titre { color:var(--ambre); }
+html[data-theme="dark"] .tok-str { color:#B6E3A0; }
+
+/* Le bouton de bascule, posé par app.js dans chaque fiche */
+.bascule-theme {
+  position: fixed; right: 14px; bottom: 14px; z-index: 60;
+  width: 42px; height: 42px; border-radius: 999px; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--carte); color: var(--encre-douce);
+  border: 1px solid var(--bord-fort); box-shadow: var(--ombre-haut);
+  font-size: 17px; line-height: 1; padding: 0;
+  transition: transform .12s, color .15s;
+}
+.bascule-theme:hover { transform: translateY(-2px); color: var(--accent); }
+@media print { .bascule-theme { display: none !important; } }

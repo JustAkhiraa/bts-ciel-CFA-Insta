@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration Cisco — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : modes IOS, commandes de configuration de base, mots de passe, SVI, sauvegarde et vérification.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Configuration Cisco — l'essentiel</h1>
+  <p class="chapeau">La fiche à garder ouverte pendant les TP. Toutes les commandes de base.</p>
+</header>
+
+<section class="section-revision" id="modes-fr">
+  <h2><span class="num">01</span>Modes et navigation</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les 5 modes</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Invite</th><th>Mode</th></tr></thead>
+        <tbody>
+          <tr><td><code>Switch&gt;</code></td><td>Exécution <strong>utilisateur</strong> — commandes limitées</td></tr>
+          <tr><td><code>Switch#</code></td><td>Exécution <strong>privilégié</strong> — tout</td></tr>
+          <tr><td><code>(config)#</code></td><td>Configuration <strong>globale</strong></td></tr>
+          <tr><td><code>(config-line)#</code></td><td><strong>Ligne</strong> — console, VTY, AUX</td></tr>
+          <tr><td><code>(config-if)#</code></td><td><strong>Interface</strong> — port, VLAN</td></tr>
+        </tbody>
+      </table>
+      </div>
+<div class="bloc-code"><pre><code>enable              &gt;  →  #
+configure terminal  #  →  (config)#
+line console 0         →  (config-line)#
+interface vlan 1       →  (config-if)#
+
+exit   remonte d'UN niveau
+end    remonte DIRECTEMENT au #
+Ctrl+Z idem</code></pre></div>
+    </div>
+
+    <div class="memo">
+      <h3>Accès à l'équipement</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Console</strong></td><td>Physique — <strong>1<sup>re</sup> config</strong>, dépannage</td></tr>
+          <tr><td><strong>SSH</strong></td><td class="rep-ok">Distant, <strong>chiffré</strong> — recommandé</td></tr>
+          <tr><td><strong>Telnet</strong></td><td class="rep-non">Distant, <strong>en clair</strong> — à éviter</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Émulateurs : PuTTY, Tera Term, SecureCRT.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Aide et erreurs</h3>
+<div class="bloc-code"><pre><code>?          commandes du mode
+sh?        celles commençant par « sh »
+show ?     mots-clés acceptés ensuite
+
+% Ambiguous   → abréviation trop courte
+% Incomplete  → il manque un argument
+% Invalid ^   → le ^ pointe l'erreur</code></pre></div>
+      <p style="margin:.35rem 0 0;font-size:13px"><kbd>Tab</kbd> complète ·
+        <kbd>↑</kbd> historique · <kbd>Ctrl</kbd>+<kbd>Maj</kbd>+<kbd>6</kbd> interrompt un ping
+        ou un DNS bloqué</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="config-fr">
+  <h2><span class="num">02</span>La configuration type</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>De l'usine à l'administration distante</h3>
+<div class="bloc-code"><pre><code>Switch&gt; enable
+Switch# configure terminal
+Switch(config)# hostname S1                        ← nom : lettre au début, pas d'espace, &lt; 64 car.
+S1(config)# no ip domain-lookup                    ← plus d'attente sur les fautes de frappe
+
+S1(config)# enable secret classe456                ← privilégié — « secret », HACHÉ
+
+S1(config)# line console 0                         ← console
+S1(config-line)# password cisco123
+S1(config-line)# login                             ← ⚠ SANS ÇA, AUCUN MOT DE PASSE DEMANDÉ
+S1(config-line)# exit
+
+S1(config)# line vty 0 15                          ← les 16 lignes distantes
+S1(config-line)# password vty789
+S1(config-line)# login
+S1(config-line)# exit
+
+S1(config)# service password-encryption            ← chiffre les autres mots de passe
+S1(config)# banner motd #Acces reserve...#         ← # = délimiteur
+
+S1(config)# interface vlan 1                       ← SVI : administration à distance
+S1(config-if)# ip address 192.168.1.2 255.255.255.0
+S1(config-if)# no shutdown                         ← ⚠ SINON administratively down
+S1(config-if)# exit
+S1(config)# ip default-gateway 192.168.1.1         ← pour être joint depuis un AUTRE réseau
+S1(config)# end
+
+S1# copy running-config startup-config             ← ⚠ SINON TOUT EST PERDU</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 2 protections de mot de passe</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th><code>enable secret</code></th><th><code>service password-encryption</code></th></tr></thead>
+        <tbody>
+          <tr><td>Méthode</td><td><strong>Hachage</strong></td><td>Chiffrement <strong>type 7</strong></td></tr>
+          <tr><td>Réversible</td><td class="rep-ok">Non</td><td class="rep-non"><strong>Oui, en secondes</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">Le type 7 ne protège que de la lecture
+        par-dessus l'épaule. Toujours <code>enable <strong>secret</strong></code>.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>RAM vs NVRAM</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th><code>running-config</code></th><th><code>startup-config</code></th></tr></thead>
+        <tbody>
+          <tr><td>Mémoire</td><td><strong>RAM</strong></td><td><strong>NVRAM</strong></td></tr>
+          <tr><td>Contenu</td><td>Config <strong>active</strong></td><td>Config du <strong>démarrage</strong></td></tr>
+          <tr><td>Extinction</td><td class="rep-non"><strong>PERDUE</strong></td><td class="rep-ok">Conservée</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="formule" style="font-size:12.5px">copy running-config startup-config</div>
+      <p style="margin:0;font-size:13px">Annuler : <code>no &lt;commande&gt;</code> ·
+        <code>reload</code> (non enregistré) · <code>erase startup-config</code> + <code>reload</code></p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="verif-fr">
+  <h2><span class="num">03</span>Vérification et diagnostic</h2>
+  <div class="grille">
+
+    <div class="memo">
+      <h3>Les commandes <code>show</code></h3>
+<div class="bloc-code"><pre><code>show version               IOS, modèle
+show ip interface brief    résumé interfaces
+show interfaces status     vitesse, duplex, VLAN
+show running-config        config active
+show startup-config        config enregistrée
+show mac address-table     table MAC
+
+show run | include password    filtrer
+show run | section interface</code></pre></div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Lire les états d'interface</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Status / Protocol</th><th>Cause</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><code>up</code> / <code>up</code></td><td class="rep-ok">Tout va bien</td><td>—</td></tr>
+          <tr><td><code>down</code> / <code>down</code></td><td><strong>Physique</strong> : câble, équipement éteint</td><td>Vérifier le câblage</td></tr>
+          <tr><td><code>admin. down</code> / <code>down</code></td><td><strong>Vous</strong> : interface désactivée</td><td><code>no shutdown</code></td></tr>
+          <tr><td><code>up</code> / <code>down</code></td><td>Couche 2 : encapsulation</td><td>Vérifier des 2 côtés</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong><em>administratively</em> = c'est vous.</strong>
+        Un simple <code>down</code> = c'est le câble.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 6 oublis classiques</h3>
+      <ol>
+        <li><code>login</code> après <code>password</code></li>
+        <li><code>no shutdown</code> sur la SVI</li>
+        <li><code>copy run start</code></li>
+        <li><code>line vty <strong>0 15</strong></code>, pas <code>0</code></li>
+        <li><code>enable <strong>secret</strong></code>, pas <code>password</code></li>
+        <li><code>ip default-gateway</code> pour l'accès depuis un autre réseau</li>
+      </ol>
+      <p style="margin:.4rem 0 0;font-size:13px">Les n° 1 et 3 ne produisent <strong>aucun
+        message d'erreur</strong> : se déconnecter/reconnecter pour vérifier.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong><code>copy run start</code></strong> après chaque bloc réussi — pas à la fin de
+          la séance.</li>
+      <li><strong><code>password</code> définit, <code>login</code> active.</strong> Les deux, ou
+          rien.</li>
+      <li><strong>Un switch route pour lui-même, jamais pour les autres</strong> — d'où
+          <code>ip default-gateway</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>7-Configuration_base_périphériques.pdf</li>
+      <li>7-TP-Configuration-base-switch.pdf</li>
+      <li>5-TP-Initiation Cisco Packet Tracer.pdf</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

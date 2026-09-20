@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtualisation et installation — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : dimensionner une VM, dérouler l'installation de Debian 12, prérequis Windows 11, configuration de Windows Server et diagnostic.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#dimensionner">1 · Dimensionner des VM</a></li>
+    <li><a href="#debian-exo">2 · L'installation de Debian</a></li>
+    <li><a href="#win11-exo">3 · Les prérequis Windows 11</a></li>
+    <li><a href="#srvtech">4 · Configurer SRVTECH</a></li>
+    <li><a href="#diagnostic">5 · Diagnostic de panne</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 06</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Virtualisation et installation — exercices</h1>
+  <p class="chapeau">Des situations concrètes de TP : dimensionner, installer, configurer,
+     et surtout diagnostiquer quand ça ne marche pas.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Ce qui est évalué ici</h2>
+      <p>Personne ne vous demandera de réciter une suite de clics. Ce qui compte, c'est de
+         <strong>justifier chaque choix</strong> — pourquoi ce mode réseau, pourquoi cette taille
+         de disque, pourquoi une IP statique — et de savoir <strong>retrouver la panne</strong>
+         quand l'installation ne se comporte pas comme prévu.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="dimensionner">
+  <h2><span class="num">01</span>Dimensionner des VM</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Trois machines sur un poste de 16 Go <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Votre poste de travail dispose de <strong>16 Go de RAM</strong>, d'un processeur
+         <strong>8 cœurs</strong> et de <strong>500 Go</strong> de disque. Vous devez monter une
+         maquette avec trois machines virtuelles :</p>
+      <ul>
+        <li>un <strong>serveur Debian</strong> en console, qui hébergera un service DHCP ;</li>
+        <li>un <strong>client Windows 11</strong> ;</li>
+        <li>un <strong>Windows Server 2019</strong>.</li>
+      </ul>
+      <p>Proposez un dimensionnement (RAM, processeurs, disque) pour chaque VM, et justifiez.
+         Les trois doivent pouvoir tourner <strong>en même temps</strong>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>VM</th><th>RAM</th><th>vCPU</th><th>Disque</th><th>Justification</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Debian console</strong></td><td>1 Go</td><td>1</td><td>10 Go</td>
+                <td>Sans interface graphique, Debian tient largement dans 1 Go. Le TP prévoit
+                    d'ailleurs un disque de 10 Go</td></tr>
+            <tr><td><strong>Windows 11</strong></td><td>4 Go</td><td><strong>2</strong></td><td>64 Go</td>
+                <td>Ce sont les <strong>minimums imposés</strong>, pas des recommandations :
+                    en dessous, l'installation refuse de démarrer</td></tr>
+            <tr><td><strong>Windows Server 2019</strong></td><td>4 Go</td><td>2</td><td>60 Go</td>
+                <td>2 Go suffisent en théorie, mais deviennent pénibles dès qu'on installe des
+                    rôles (AD, DNS, DHCP)</td></tr>
+            <tr><td colspan="2"><strong>Total alloué</strong></td><td>9 Go</td><td>5 vCPU</td>
+                <td>134 Go</td><td></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>Il reste 7 Go à l'hôte</strong>, ce qui est confortable : son propre système,
+           le navigateur et VirtualBox lui-même en consomment déjà 4 à 6 Go.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Les deux erreurs de dimensionnement</div>
+          <ul>
+            <li><strong>Tout allouer.</strong> Attribuer 5 + 5 + 5 Go sur 16 laisse 1 Go à l'hôte :
+                celui-ci se met à utiliser le fichier d'échange, et <em>tout</em> devient lent — VM
+                comprises. Gardez toujours <strong>au moins 4 Go</strong> à la machine hôte.</li>
+            <li><strong>Additionner les cœurs sans réfléchir.</strong> On peut allouer plus de vCPU
+                que de cœurs physiques — l'hyperviseur les partage dans le temps —, mais si toutes
+                les VM travaillent simultanément, chacune ralentit. Sur 8 cœurs, 5 vCPU répartis
+                est raisonnable.</li>
+          </ul>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Disque dynamique ou fixe ?</div>
+          <p>Un disque <strong>dynamique</strong> ne consomme sur l'hôte que l'espace réellement
+             utilisé : les 64 Go déclarés pour Windows 11 n'occuperont peut-être que 25 Go au
+             départ. C'est ce qui permet de déclarer 134 Go de disques virtuels sans les avoir
+             physiquement.</p>
+          <p>Un disque <strong>fixe</strong> réserve tout l'espace immédiatement : légèrement plus
+             rapide, mais nettement moins souple. <strong>En TP, prenez toujours du
+             dynamique.</strong></p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Choisir le mode réseau <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pour chacune de ces situations, quel mode réseau VirtualBox choisir — <strong>NAT</strong>,
+         <strong>accès par pont</strong> ou <strong>réseau privé hôte</strong> ?</p>
+      <ol>
+        <li>Une VM Debian qui doit seulement télécharger des paquets avec <code>apt</code>.</li>
+        <li>Un serveur web sur une VM, que vous voulez consulter depuis le navigateur de votre
+            PC.</li>
+        <li>Une maquette de trois VM qui communiquent entre elles, sans aucun accès à Internet,
+            pour tester un DHCP sans perturber le réseau du lycée.</li>
+        <li>Un Windows Server qui doit être joignable par les autres postes de la salle.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Situation</th><th>Mode</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td>1 — <code>apt</code> seulement</td><td><strong>NAT</strong></td>
+                <td>La VM sort vers Internet, c'est tout ce qu'on demande. Aucune configuration,
+                    aucun risque de conflit d'adresses</td></tr>
+            <tr><td>2 — serveur web consulté depuis l'hôte</td><td><strong>Accès par pont</strong></td>
+                <td>Il faut que la VM soit <em>joignable</em>. En NAT, elle est invisible depuis
+                    l'hôte</td></tr>
+            <tr><td>3 — maquette DHCP isolée</td><td><strong>Réseau privé hôte</strong></td>
+                <td>Les VM se voient entre elles, et le serveur DHCP ne peut pas distribuer
+                    d'adresses sur le réseau du lycée</td></tr>
+            <tr><td>4 — serveur joignable par la salle</td><td><strong>Accès par pont</strong></td>
+                <td>La VM reçoit une adresse sur le réseau physique et se comporte comme une vraie
+                    machine</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le DHCP « sauvage » — la faute qui fâche</div>
+          <p>La situation 3 n'est pas un caprice pédagogique. Un serveur DHCP en mode
+             <strong>pont</strong> se met à répondre aux demandes de <em>toutes</em> les machines
+             du réseau, avant le vrai serveur. Résultat : des postes qui reçoivent une mauvaise
+             adresse, une mauvaise passerelle, et une salle entière déconnectée.</p>
+          <p>C'est l'incident classique du TP DHCP. Un serveur DHCP en test se monte
+             <strong>toujours</strong> sur un réseau isolé.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Pourquoi le NAT rend la VM invisible</div>
+          <p>En NAT, VirtualBox joue le rôle d'un petit routeur : la VM est dans un réseau privé
+             interne (souvent <code>10.0.2.x</code>) et ses paquets sortants sont traduits avec
+             l'adresse de l'hôte. Vers l'extérieur, tout passe. Mais dans l'autre sens, aucune
+             règle ne dit où rediriger une connexion entrante : elle est simplement abandonnée.
+             C'est exactement le comportement du NAT de votre box — et c'est pourquoi il faut
+             configurer une redirection de port pour héberger un service chez soi.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="debian-exo">
+  <h2><span class="num">02</span>L'installation de Debian</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Retrouver les choix du TP <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Pour chaque écran de l'installateur Debian 12, indiquez le choix retenu dans le TP et
+         justifiez-le en une phrase.</p>
+      <ol>
+        <li>Premier écran : <code>Install</code> ou <code>Graphical install</code> ?</li>
+        <li>Nom de domaine ?</li>
+        <li>Méthode de partitionnement ?</li>
+        <li>Schéma de partitions ?</li>
+        <li>Sélection des logiciels ?</li>
+        <li>GRUB ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Écran</th><th>Choix</th><th>Justification</th></tr></thead>
+          <tbody>
+            <tr><td>1 — Mode</td><td><strong><code>Install</code></strong></td>
+                <td>Mode console : plus simple et plus rapide. On n'installera pas d'interface
+                    graphique, qui alourdirait le système inutilement</td></tr>
+            <tr><td>2 — Domaine</td><td><strong>Laissé vide</strong></td>
+                <td>Non obligatoire, et inutile pour une machine de TP isolée</td></tr>
+            <tr><td>3 — Partitionnement</td><td><strong>Assisté — utiliser un disque entier</strong></td>
+                <td>Le disque de 10 Go de la VM ne contient rien d'autre à préserver</td></tr>
+            <tr><td>4 — Schéma</td><td><strong>Tout dans une seule partition</strong></td>
+                <td>Recommandé pour les débutants ; suffisant pour une VM jetable</td></tr>
+            <tr><td>5 — Logiciels</td><td><strong>Utilitaires usuels du système uniquement</strong></td>
+                <td><strong>Décocher « Environnement de bureau Debian » et « GNOME »</strong>, qui
+                    sont cochés par défaut</td></tr>
+            <tr><td>6 — GRUB</td><td><strong>Sur le disque principal</strong></td>
+                <td>Sans programme d'amorçage, la machine ne démarrera pas, même si le système est
+                    parfaitement installé</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ L'écran 5 est celui qu'on rate</div>
+          <p>« Environnement de bureau Debian » et « GNOME » sont <strong>pré-cochés</strong>. On
+             appuie sur Entrée sans regarder, et on se retrouve avec une interface graphique
+             complète sur ce qui devait être un serveur minimal : plusieurs gigaoctets de disque,
+             des centaines de mégaoctets de RAM en permanence, et une surface d'attaque
+             démultipliée.</p>
+          <p>Le TP insiste explicitement : <em>« il est important de désélectionner… sinon vous
+             installez une interface graphique qui ne sera pas utile et qui alourdira le
+             système »</em>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Quand séparer les partitions ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le TP retient « tout dans une seule partition ». Dans quels cas cela devient-il un mauvais
+         choix, et quelles partitions séparerait-on ? Donnez un scénario concret de panne évitée.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Partition séparée</th><th>Ce qu'elle contient</th><th>Le risque qu'elle écarte</th></tr></thead>
+          <tbody>
+            <tr><td><code>/home</code></td><td>Les données des utilisateurs</td>
+                <td>Permet de <strong>réinstaller le système sans perdre les données</strong></td></tr>
+            <tr><td><code>/var</code></td><td>Les <strong>journaux</strong>, les bases de données,
+                les fichiers des services</td>
+                <td>Un journal qui s'emballe ne remplit plus <em>tout</em> le disque</td></tr>
+            <tr><td><code>/tmp</code></td><td>Les fichiers temporaires</td>
+                <td>Un utilisateur ou un programme ne peut plus saturer le système</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <h4>Le scénario concret</h4>
+        <p>Un service web mal configuré se met à écrire une erreur par milliseconde dans
+           <code>/var/log/apache2/error.log</code>. En quelques heures, le fichier atteint plusieurs
+           gigaoctets.</p>
+        <ul>
+          <li><strong>Avec une partition unique :</strong> le disque entier se remplit. Plus aucun
+              fichier ne peut être écrit — ni par le système, ni par les utilisateurs. La machine
+              ne peut souvent même plus se connecter, car la session a besoin d'écrire. Vous
+              découvrez la panne quand tout est déjà bloqué.</li>
+          <li><strong>Avec <code>/var</code> séparé :</strong> seule cette partition sature. Le
+              système continue de fonctionner, vous pouvez vous connecter, identifier le fichier
+              coupable et le vider. Le service concerné est en panne ; <strong>la machine, non</strong>.</li>
+        </ul>
+        <div class="encart savoir">
+          <div class="titre">🌍 La règle en une phrase</div>
+          <p>On sépare ce qui <strong>grossit de façon imprévisible</strong> — journaux, données
+             utilisateurs, fichiers temporaires — de ce qui doit <strong>rester
+             fonctionnel</strong> : le système. C'est du cloisonnement, exactement comme les
+             compartiments étanches d'un navire.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="win11-exo">
+  <h2><span class="num">03</span>Les prérequis Windows 11</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>« Ce PC ne peut pas exécuter Windows 11 » <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Vous créez une VM avec ces paramètres, puis démarrez sur l'ISO de Windows 11 :</p>
+<div class="bloc-code"><pre><code>Nom            : Client-W11
+Type           : Microsoft Windows
+Version        : Windows 11 (64 bits)
+Mémoire        : 4096 Mo
+Disque         : 64 Go, dynamique
+Processeurs    : 1
+Système        : carte mère → UEFI décoché, TPM : aucun</code></pre></div>
+      <p>L'installation s'interrompt avec « <em>Ce PC ne peut pas exécuter Windows 11</em> ».
+         Identifiez <strong>toutes</strong> les causes et corrigez-les.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Paramètre</th><th>Valeur donnée</th><th>Exigence</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>Mémoire</td><td>4096 Mo</td><td>4 Go minimum</td><td class="rep-ok">Conforme</td></tr>
+            <tr><td>Disque</td><td>64 Go</td><td>64 Go minimum</td><td class="rep-ok">Conforme</td></tr>
+            <tr><td>Version 64 bits</td><td>Oui</td><td>Processeur 64 bits</td><td class="rep-ok">Conforme</td></tr>
+            <tr><td><strong>Processeurs</strong></td><td><strong>1</strong></td><td><strong>2 cœurs minimum</strong></td>
+                <td class="rep-non">EN CAUSE</td></tr>
+            <tr><td><strong>UEFI</strong></td><td><strong>Décoché</strong></td><td><strong>Obligatoire</strong></td>
+                <td class="rep-non">EN CAUSE</td></tr>
+            <tr><td><strong>TPM</strong></td><td><strong>Aucun</strong></td><td><strong>TPM 2.0</strong></td>
+                <td class="rep-non">EN CAUSE</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <h4>Les corrections, dans la configuration de la VM</h4>
+<div class="bloc-code"><span class="langue">VirtualBox — mode Expert</span><pre><code>Système → Carte mère → cocher « Activer UEFI (OS spéciaux seulement) »
+Système → Carte mère → TPM : v2.0
+Système → Processeur → Nombre de processeurs virtuels : 2</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Ces réglages se font AVANT le premier démarrage</div>
+          <p>Passer de BIOS hérité à UEFI change la façon dont le disque est partitionné — MBR
+             contre GPT. Si l'installation a déjà commencé, le disque est au mauvais format :
+             il faut <strong>supprimer la VM et recommencer</strong>.</p>
+          <p>D'où le réflexe : on <strong>termine entièrement la configuration</strong> de la VM
+             avant de la démarrer une seule fois.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le quatrième réglage à ne pas oublier</div>
+          <p>Le TP demande aussi de <strong>décocher <em>Proceed with Unattended Installation</em></strong>
+             à la création de la VM. Cette option laisse VirtualBox installer Windows tout seul, en
+             créant un compte de son choix — vous ne verriez alors aucun des écrans d'installation,
+             et l'objectif du TP (« créer un utilisateur local ») serait manqué.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="srvtech">
+  <h2><span class="num">04</span>Configurer SRVTECH</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Les quatre réglages d'après-installation <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Vous venez d'installer Windows Server 2019 pour le projet TechShop. Détaillez les quatre
+         réglages à effectuer, avec les valeurs exactes, et justifiez chacun.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>a. Fixer l'adresse IP</h4>
+<div class="bloc-code"><pre><code>Adresse IP            192.168.100.10     ← VLAN Administration
+Masque                255.255.255.0      ← /24
+Passerelle par défaut 192.168.100.1      ← l'interface du routeur dans ce VLAN
+DNS                   127.0.0.1          ← le serveur est son propre serveur DNS</code></pre></div>
+        <p><strong>Pourquoi statique :</strong> un serveur doit être joignable à une adresse
+           <em>stable et prévisible</em>. Avec le DHCP, son adresse pourrait changer et tous les
+           clients le perdraient.</p>
+
+        <h4>b. Nommer le serveur : <code>SRVTECH</code></h4>
+        <p>Un nom explicite est indispensable dès qu'un parc dépasse quelques machines : on retient
+           un nom, pas une adresse. C'est aussi le nom sous lequel il sera enregistré dans le
+           DNS.</p>
+
+        <h4>c. Désactiver le pare-feu Windows</h4>
+        <p><strong>En TP uniquement</strong>, pour écarter d'emblée toute source de blocage pendant
+           les tests. <strong>En production, c'est une faute :</strong> on ouvre les ports
+           nécessaires, et rien d'autre.</p>
+
+        <h4>d. Définir un mot de passe administrateur</h4>
+        <p>Windows Server impose sa politique de complexité : longueur minimale, majuscules,
+           minuscules et chiffres.</p>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le piège du DNS à <code>127.0.0.1</code></div>
+          <p>Ce réglage n'est correct que <strong>parce que ce serveur héberge lui-même le service
+             DNS</strong> — ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
+          <p>Sur un serveur qui ne rend pas ce service, indiquer <code>127.0.0.1</code> en DNS le
+             priverait de toute résolution de noms : il s'interrogerait lui-même et n'obtiendrait
+             rien. Si on vous demande de justifier, la réponse est <em>« parce qu'il est
+             lui-même serveur DNS »</em>, pas <em>« parce que c'est un serveur »</em>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="diagnostic">
+  <h2><span class="num">05</span>Diagnostic de panne</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Quatre symptômes, quatre causes <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Pour chaque symptôme, identifiez la cause la plus probable et la correction.</p>
+      <ol>
+        <li>Depuis <code>SRVTECH</code>, <code>ping 192.168.100.1</code> répond, mais
+            <code>ping www.google.fr</code> échoue avec « hôte inconnu ».</li>
+        <li>La VM Debian atteint Internet et met à jour ses paquets, mais depuis votre PC hôte,
+            <code>ping</code> vers la VM ne donne rien.</li>
+        <li>Vous avez installé Debian, tout s'est bien passé, mais au redémarrage l'écran affiche
+            <code>No bootable device</code>.</li>
+        <li>Votre VM Debian rame et l'hôte aussi, alors que vous n'avez ouvert qu'un terminal.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. « Hôte inconnu » alors que la passerelle répond</h4>
+        <p><strong>Cause : le DNS.</strong> Le message distingue tout : « hôte inconnu » signifie
+           que le nom n'a pas pu être <em>traduit</em>. Si le routage était en cause, on lirait
+           « délai d'attente dépassé ».</p>
+        <p>Ici, le serveur pointe sur <code>127.0.0.1</code> alors que le rôle DNS n'est pas encore
+           installé. <strong>Correction :</strong> installer et configurer le rôle DNS, ou
+           renseigner temporairement un DNS externe (<code>8.8.8.8</code>).</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Le test qui isole toujours le DNS</div>
+<div class="bloc-code"><pre><code>ping 8.8.8.8          répond   → le réseau et le routage fonctionnent
+ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></pre></div>
+        </div>
+
+        <h4>2. La VM sort, mais on ne la joint pas</h4>
+        <p><strong>Cause : le mode réseau NAT.</strong> C'est le mode par défaut de VirtualBox. La
+           VM est derrière un routeur virtuel : elle sort, mais rien ne peut entrer.</p>
+        <p><strong>Correction :</strong> passer en <strong>accès par pont</strong> — la VM reçoit
+           alors une adresse sur le réseau physique — ou, si l'on veut rester en NAT, configurer
+           une <strong>redirection de port</strong>.</p>
+
+        <h4>3. <code>No bootable device</code></h4>
+        <p><strong>Cause : GRUB.</strong> Deux possibilités :</p>
+        <ul>
+          <li>le programme d'amorçage n'a pas été installé sur le disque principal — on a répondu
+              « non » à l'écran GRUB, ou choisi le mauvais disque ;</li>
+          <li>l'<strong>ISO est resté monté</strong> et la VM tente encore de démarrer dessus, ou
+              inversement l'ordre de démarrage pointe sur le lecteur optique vide.</li>
+        </ul>
+        <p><strong>Correction :</strong> vérifier l'ordre de démarrage de la VM et retirer l'ISO du
+           lecteur virtuel. Si le problème persiste, redémarrer sur l'ISO en mode
+           <em>rescue</em> et réinstaller GRUB.</p>
+        <div class="encart savoir">
+          <div class="titre">🌍 Le message est trompeur</div>
+          <p><code>No bootable device</code> ne veut pas dire que le disque est vide ou que
+             l'installation a échoué. Le système est parfaitement là : c'est seulement le
+             <em>panneau indicateur</em> — les quelques centaines d'octets du secteur d'amorçage —
+             qui manque. D'où l'importance de l'écran GRUB, qu'on a tendance à valider machinalement.</p>
+        </div>
+
+        <h4>4. Tout rame, hôte compris</h4>
+        <p><strong>Cause : sur-allocation de mémoire.</strong> On a attribué à la VM une part trop
+           importante des 16 Go, et la machine hôte n'a plus assez de RAM : elle se met à utiliser
+           le fichier d'échange sur disque, ce qui ralentit <em>tout</em> — y compris la VM
+           elle-même.</p>
+        <p><strong>Correction :</strong> réduire la mémoire allouée à la VM. Une Debian en console
+           n'a besoin que de <strong>1 Go</strong>. Conservez toujours au moins 4 Go à l'hôte.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le contre-sens du « plus j'en donne, mieux c'est »</div>
+          <p>Allouer 12 Go sur 16 à une VM ne la rend pas plus rapide : cela rend l'hôte
+             inutilisable, et l'hôte est <em>précisément</em> ce qui fait tourner la VM. Le
+             dimensionnement d'une VM se pense <strong>en fonction de ce qui reste à l'hôte</strong>,
+             pas de ce qu'on aimerait donner à la VM.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Oublier UEFI et les 2 vCPU</strong> pour Windows 11 — et devoir tout
+          recommencer.</li>
+      <li><strong>Laisser GNOME coché</strong> à l'installation de Debian.</li>
+      <li><strong>Rester en NAT</strong> quand on veut joindre la VM depuis l'hôte.</li>
+      <li><strong>Monter un serveur DHCP en mode pont</strong> — et déconnecter toute la salle.</li>
+      <li><strong>Sur-allouer la mémoire</strong> et étouffer la machine hôte.</li>
+      <li><strong>Justifier le DNS <code>127.0.0.1</code> par « c'est un serveur »</strong> — c'est
+          parce qu'il est <em>lui-même</em> serveur DNS.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>1-TP-Installation_Debian12.pdf — tutos-info.fr</li>
+      <li>4-TP-Installer Windows 11 avec VirtualBox.pdf</li>
+      <li>6-1-Installation_WinServer.pdf — projet TechShop</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

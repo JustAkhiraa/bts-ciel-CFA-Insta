@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modèle OSI — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="TD2 Modèle OSI corrigé : tableau des couches, PDU, équipements par couche, IP ou MAC, composition d'un LAN.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#tableau">1 · Le tableau des deux modèles</a></li>
+    <li><a href="#pdu">2 · Retrouver la PDU</a></li>
+    <li><a href="#niveaux">3 · Équipements et couches</a></li>
+    <li><a href="#ip-mac">4 · IP ou MAC ?</a></li>
+    <li><a href="#composer">5 · Composer un réseau</a></li>
+    <li><a href="#scenario">6 · Suivre un paquet</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 03</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Modèle OSI — exercices</h1>
+  <p class="chapeau">Le TD2 corrigé, plus les questions qui font la différence entre réciter les
+     sept couches et savoir s'en servir.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Ce qui est réellement évalué</h2>
+      <p>Réciter les couches rapporte peu de points. Ce qui compte : <strong>situer un protocole,
+         un équipement ou une adresse</strong> à la bonne couche, et savoir <strong>ce qui change
+         et ce qui ne change pas</strong> quand un paquet traverse le réseau.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="tableau">
+  <h2><span class="num">01</span>Le tableau des deux modèles</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Couches, PDU et protocoles <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Énumérez les <strong>7 couches du modèle OSI en ordre décroissant</strong>, en indiquant
+            le nom de chaque couche.</li>
+        <li>Indiquez le <strong>numéro et le nom exact</strong> de chaque couche du modèle TCP/IP,
+            avec le terme utilisé pour l'<strong>unité d'encapsulation</strong> et les
+            <strong>protocoles</strong> ou utilitaires connexes.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Les 7 couches OSI, du haut vers le bas</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Couche</th><th>En une phrase</th></tr></thead>
+          <tbody>
+            <tr><td><strong>7</strong></td><td>Application</td><td>La plus proche de l'utilisateur ; sert les applications, pas les autres couches OSI</td></tr>
+            <tr><td><strong>6</strong></td><td>Présentation</td><td>Rend l'information lisible par l'autre système : traduit les formats</td></tr>
+            <tr><td><strong>5</strong></td><td>Session</td><td>Ouvre, gère et ferme les sessions ; synchronise le dialogue</td></tr>
+            <tr><td><strong>4</strong></td><td>Transport</td><td>Segmente, réassemble, assure la fiabilité de bout en bout</td></tr>
+            <tr><td><strong>3</strong></td><td>Réseau</td><td>Connectivité et <strong>sélection du trajet</strong> entre réseaux éloignés</td></tr>
+            <tr><td><strong>2</strong></td><td>Liaison de données</td><td>Transit fiable sur une liaison ; <strong>adressage physique</strong></td></tr>
+            <tr><td><strong>1</strong></td><td>Physique</td><td>Spécifications électriques, mécaniques, procédurales, fonctionnelles</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h4>2. Le modèle TCP/IP</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>N°</th><th>Couche TCP/IP</th><th>Couches OSI</th><th>PDU</th><th>Protocoles</th></tr></thead>
+          <tbody>
+            <tr><td><strong>4</strong></td><td>Application</td><td>7 · 6 · 5</td><td>Données</td>
+                <td><code>HTTP</code> <code>HTTPS</code> <code>FTP</code> <code>SMTP</code>
+                    <code>DNS</code> <code>DHCP</code> <code>Telnet</code> <code>SSH</code></td></tr>
+            <tr><td><strong>3</strong></td><td>Transport</td><td>4</td><td><strong>Segment</strong></td>
+                <td><code>TCP</code> <code>UDP</code></td></tr>
+            <tr><td><strong>2</strong></td><td>Internet</td><td>3</td><td><strong>Paquet</strong></td>
+                <td><code>IP</code> <code>ICMP</code> <code>ARP</code></td></tr>
+            <tr><td><strong>1</strong></td><td>Accès réseau</td><td>2 · 1</td><td><strong>Trame</strong> puis <strong>bits</strong></td>
+                <td><code>Ethernet</code> <code>Wi-Fi</code> <code>PPP</code></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Deux erreurs de numérotation</div>
+          <p>La couche <strong>Application de TCP/IP porte le numéro 4</strong>, pas 7 : le modèle
+             n'a que quatre couches. Et la couche <strong>Internet</strong> ne s'appelle
+             <em>jamais</em> « réseau » dans TCP/IP — même si elle correspond bien à la couche 3
+             d'OSI. Le correcteur attend le vocabulaire du bon modèle.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Les protocoles à savoir placer</div>
+<div class="bloc-code"><span class="langue">mémo</span><pre><code>Couche 7 / Application  HTTP  HTTPS  FTP  SMTP  POP3  IMAP  DNS  DHCP  SSH  Telnet
+Couche 4 / Transport    TCP (fiable, connecté)   UDP (rapide, non connecté)
+Couche 3 / Réseau       IP  ICMP (ping)  ARP (IP → MAC)
+Couche 2 / Liaison      Ethernet  Wi-Fi (802.11)  PPP
+Couche 1 / Physique     RJ45, fibre, ondes, niveaux de tension</code></pre></div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="pdu">
+  <h2><span class="num">02</span>Retrouver la PDU</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Nommer l'unité de données <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Quel est le nom de l'unité de données de protocole dans chacune de ces situations ?</p>
+      <ol>
+        <li>Les données viennent de recevoir les adresses IP source et destination.</li>
+        <li>La couche transport vient de découper le flux pour l'envoi.</li>
+        <li>L'information circule sur le câble sous forme de signal électrique.</li>
+        <li>Les adresses MAC et un en-queue de contrôle viennent d'être ajoutés.</li>
+        <li>L'utilisateur vient de valider l'envoi de son courriel.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Situation</th><th>PDU</th><th>Couche</th></tr></thead>
+          <tbody>
+            <tr><td>Adresses IP ajoutées</td><td><strong>Paquet</strong> (ou datagramme)</td><td>3 — Réseau</td></tr>
+            <tr><td>Flux découpé par le transport</td><td><strong>Segment</strong></td><td>4 — Transport</td></tr>
+            <tr><td>Signal sur le câble</td><td><strong>Bits</strong></td><td>1 — Physique</td></tr>
+            <tr><td>Adresses MAC + en-queue</td><td><strong>Trame</strong></td><td>2 — Liaison</td></tr>
+            <tr><td>Courriel validé par l'utilisateur</td><td><strong>Données</strong></td><td>7 — Application</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Le réflexe qui ne trompe jamais</div>
+          <p>Ne cherchez pas le nom de la PDU : cherchez <strong>quelle adresse vient d'être
+             ajoutée</strong>.</p>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>on ajoute des PORTS   → Segment
+on ajoute une IP      → Paquet
+on ajoute une MAC     → Trame
+plus rien à ajouter, on transmet → Bits</code></pre></div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="niveaux">
+  <h2><span class="num">03</span>Équipements et couches</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Niveau d'intervention dans le modèle OSI <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Quel est le niveau d'intervention, dans le modèle OSI, de chacun de ces équipements
+         d'interconnexion ?</p>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Équipement</th><th>Couche OSI</th></tr></thead>
+        <tbody>
+          <tr><td>Routeur</td><td><em>?</em></td></tr>
+          <tr><td>Répéteur</td><td><em>?</em></td></tr>
+          <tr><td>Hub</td><td><em>?</em></td></tr>
+          <tr><td>Switch</td><td><em>?</em></td></tr>
+          <tr><td>Carte réseau</td><td><em>?</em></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Équipement</th><th>Couche</th><th>Justification</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Routeur</strong></td><td><strong>3</strong> — Réseau</td>
+                <td>Il lit les <strong>adresses IP</strong> et sélectionne le trajet. Le cours le
+                    dit explicitement : « agissant au niveau 3 de l'OSI »</td></tr>
+            <tr><td><strong>Répéteur</strong></td><td><strong>1</strong> — Physique</td>
+                <td>Il <strong>n'interprète pas les trames</strong> et retransmet bit à bit. C'est
+                    « le matériel de plus bas niveau »</td></tr>
+            <tr><td><strong>Hub</strong></td><td><strong>1</strong> — Physique</td>
+                <td>C'est un répéteur multiport : il recopie le signal sans rien lire</td></tr>
+            <tr><td><strong>Switch</strong></td><td><strong>2</strong> — Liaison</td>
+                <td>Il lit les <strong>adresses MAC</strong> pour commuter vers le bon port</td></tr>
+            <tr><td><strong>Carte réseau</strong></td><td><strong>1 et 2</strong></td>
+                <td>Couche 1 : conversion bits ↔ signal. Couche 2 : elle porte l'adresse MAC et
+                    construit les trames</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ La carte réseau vaut deux points</div>
+          <p>C'est le seul élément du tableau qui couvre <strong>deux couches</strong>. Répondre
+             « couche 2 » seulement fait perdre la moitié du point. La justification : Ethernet est
+             précisément défini par le cours comme une « technologie de couche 2 <em>et</em> de
+             couche 1 » — et la carte réseau est son incarnation matérielle.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="ip-mac">
+  <h2><span class="num">04</span>IP ou MAC ?</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Reconnaître le type d'adresse <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Pour chacune de ces adresses, précisez s'il s'agit d'une adresse <strong>IP</strong> ou
+         d'une adresse <strong>MAC</strong>.</p>
+      <p><code>192.168.1.10</code> · <code>00:1A:2B:3C:4D:5E</code> · <code>172.16.254.1</code> ·
+         <code>A4-B1-C2-D3-E4-F5</code> · <code>10.0.0.254</code> ·
+         <code>FF:FF:FF:FF:FF:FF</code> · <code>2001:db8::1</code></p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Type</th><th>Ce qui le prouve</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.1.10</code></td><td><strong>IP</strong> (v4)</td>
+                <td>4 nombres décimaux de 0 à 255, séparés par des points</td></tr>
+            <tr><td><code>00:1A:2B:3C:4D:5E</code></td><td><strong>MAC</strong></td>
+                <td>6 groupes hexadécimaux séparés par des deux-points</td></tr>
+            <tr><td><code>172.16.254.1</code></td><td><strong>IP</strong> (v4)</td>
+                <td>Format décimal pointé — et une plage privée</td></tr>
+            <tr><td><code>A4-B1-C2-D3-E4-F5</code></td><td><strong>MAC</strong></td>
+                <td>6 groupes hexadécimaux ; le séparateur peut être un tiret (notation Windows)</td></tr>
+            <tr><td><code>10.0.0.254</code></td><td><strong>IP</strong> (v4)</td><td>Format décimal pointé</td></tr>
+            <tr><td><code>FF:FF:FF:FF:FF:FF</code></td><td><strong>MAC</strong></td>
+                <td>C'est la MAC de <strong>diffusion</strong> : tous les bits à 1</td></tr>
+            <tr><td><code>2001:db8::1</code></td><td><strong>IP</strong> (v6)</td>
+                <td>Hexadécimal séparé par des <em>deux-points</em>, avec un <code>::</code> qui
+                    abrège une suite de zéros</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 Trois secondes pour trancher</div>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>Des POINTS et des chiffres de 0 à 255 …… IPv4   (couche 3)
+6 groupes de 2 caractères hexa ………………… MAC    (couche 2)
+Des deux-points avec des lettres a-f ……… IPv6   (couche 3)
+
+Piège : IPv6 et MAC utilisent tous deux « : » et l'hexadécimal.
+Comptez les groupes : 6 groupes de 2 → MAC. Jusqu'à 8 groupes de 4 → IPv6.</code></pre></div>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">🌍 Les 3 premiers octets d'une MAC ne sont pas au hasard</div>
+          <p>Ils forment l'<strong>OUI</strong> (<em>Organizationally Unique Identifier</em>), le
+             code du fabricant attribué par l'IEEE. <code>00:1A:2B</code> désigne un constructeur
+             précis, les trois octets suivants le numéro de série de la carte. C'est ce qui rend
+             chaque MAC théoriquement unique au monde — et c'est aussi ce qui permet, en dépannage,
+             d'identifier la marque d'un équipement inconnu sur le réseau.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="composer">
+  <h2><span class="num">05</span>Composer un réseau</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>De quoi a-t-on besoin ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>Quels sont les éléments nécessaires pour former un <strong>LAN de quatre
+            ordinateurs</strong>, dont <strong>deux en Wi-Fi</strong>, et le relier à
+            <strong>Internet</strong> ?</li>
+        <li>Quels sont les éléments <strong>obligatoires</strong> pour constituer un réseau avec
+            seulement <strong>deux périphériques</strong> ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. Le LAN de quatre postes relié à Internet</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Élément</th><th>Quantité</th><th>Rôle</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Ordinateurs</strong> avec carte réseau</td><td>4</td>
+                <td>2 avec carte Ethernet, 2 avec carte Wi-Fi</td></tr>
+            <tr><td><strong>Switch</strong></td><td>1</td>
+                <td>Interconnecte les postes filaires — couche 2</td></tr>
+            <tr><td><strong>Point d'accès Wi-Fi</strong></td><td>1</td>
+                <td>Raccorde les 2 postes sans fil au réseau filaire</td></tr>
+            <tr><td><strong>Câbles à paires torsadées</strong> RJ45</td><td>3 au moins</td>
+                <td>2 postes → switch, et switch → point d'accès</td></tr>
+            <tr><td><strong>Routeur</strong></td><td>1</td>
+                <td>Sortie vers Internet — couche 3. Souvent intégré à la box</td></tr>
+            <tr><td><strong>Modem</strong> / accès opérateur</td><td>1</td>
+                <td>Liaison physique avec le réseau du fournisseur d'accès</td></tr>
+            <tr><td><strong>Un plan d'adressage</strong></td><td>—</td>
+                <td>IP + masque sur chaque poste, <strong>passerelle par défaut</strong>, DNS</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🧰 En pratique, une box fait tout</div>
+          <p>Une box internet grand public réunit dans un seul boîtier le <strong>modem</strong>, le
+             <strong>routeur</strong>, un <strong>switch</strong> de 4 ports et un <strong>point
+             d'accès Wi-Fi</strong>. En épreuve, énumérez tout de même les <em>fonctions</em>
+             séparément : c'est ce que le correcteur vérifie. Répondre « une box » n'a jamais
+             rapporté de points.</p>
+        </div>
+
+        <h4>2. Le réseau minimal de deux périphériques</h4>
+        <p>Trois éléments obligatoires, et rien de plus :</p>
+        <ol>
+          <li><strong>Deux périphériques</strong> équipés chacun d'une <strong>carte
+              réseau</strong> ;</li>
+          <li>un <strong>support de transmission</strong> — un câble reliant directement les deux,
+              ou une liaison sans fil ;</li>
+          <li>des <strong>règles communes</strong> : un protocole partagé, et des adresses IP
+              cohérentes, c'est-à-dire <strong>dans le même sous-réseau</strong>.</li>
+        </ol>
+        <div class="encart piege">
+          <div class="titre">⚠️ Ni switch, ni routeur — et le cas du câble croisé</div>
+          <p>Deux machines suffisent : <strong>aucun équipement intermédiaire n'est
+             obligatoire</strong>. C'est le sens de la question. Historiquement, une liaison directe
+             entre deux PC exigeait un <strong>câble croisé</strong>, qui inverse les paires
+             d'émission et de réception. Les cartes réseau modernes gèrent l'<strong>Auto-MDI/X</strong>
+             et font le croisement toutes seules : un câble droit fonctionne. Mentionnez le câble
+             croisé — cela montre que vous comprenez <em>pourquoi</em> il existait.</p>
+          <p>Et n'oubliez pas la troisième condition, celle qu'on oublie toujours : sans
+             <strong>adresses dans le même sous-réseau</strong>, les deux machines sont câblées mais
+             ne se parlent pas. Le réseau, c'est aussi les <em>règles</em>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="scenario">
+  <h2><span class="num">06</span>Suivre un paquet</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Ce qui change, ce qui ne change pas <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p>Depuis son PC, un utilisateur ouvre <code>https://www.exemple.fr</code>. Le serveur se
+         trouve à l'autre bout du monde ; le trafic traverse la box de l'utilisateur puis plusieurs
+         routeurs d'opérateurs.</p>
+      <ol>
+        <li>Citez, dans l'ordre, les <strong>couches traversées</strong> et la <strong>PDU</strong>
+            produite à chacune, à l'émission.</li>
+        <li>Les adresses <strong>IP</strong> source et destination changent-elles en route ? Et les
+            adresses <strong>MAC</strong> ?</li>
+        <li>Quel équipement <strong>désencapsule jusqu'à la couche 3</strong>, et pourquoi
+            s'arrête-t-il là ?</li>
+        <li>Que fait le <strong>switch</strong> de la box en voyant passer cette trame ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1. La descente de la pile</h4>
+<div class="bloc-code"><span class="langue">encapsulation</span><pre><code>7 Application   le navigateur forme la requête HTTPS ……………… DONNÉES
+6 Présentation  chiffrement TLS, encodage ………………………………… DONNÉES
+5 Session       ouverture et suivi de la session ………………… DONNÉES
+4 Transport     TCP découpe + ports (source aléatoire, 443) … SEGMENT
+3 Réseau        IP ajoute les adresses logiques ………………………… PAQUET
+2 Liaison       Ethernet ajoute les MAC + le FCS …………………… TRAME
+1 Physique      conversion en signal sur le support ………………… BITS</code></pre></div>
+
+        <h4>2. Ce qui change en route</h4>
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Change ?</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td><strong>IP source et destination</strong></td><td class="rep-ok">Non</td>
+                <td>Elles identifient les <strong>extrémités</strong> de la communication, de bout
+                    en bout</td></tr>
+            <tr><td><strong>MAC source et destination</strong></td><td class="rep-non">À chaque saut</td>
+                <td>Elles n'identifient que les deux voisins d'un <strong>même lien</strong></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ La nuance qui manque presque toujours</div>
+          <p>L'IP source <em>change en réalité une fois</em> : au passage de la box, par le
+             <strong>NAT</strong>, qui remplace l'adresse privée du PC par l'adresse publique de la
+             box. Mais c'est une opération volontaire de translation, pas le fonctionnement normal
+             du routage. Si la question porte sur le <em>principe</em> du modèle en couches,
+             répondez « les IP ne changent pas » et <strong>signalez l'exception du NAT</strong> :
+             c'est ce qui distingue une bonne copie.</p>
+        </div>
+
+        <h4>3. L'équipement qui désencapsule jusqu'à la couche 3</h4>
+        <p><strong>Le routeur.</strong> Il remonte jusqu'à la couche 3 parce qu'il a besoin de lire
+           l'<strong>adresse IP de destination</strong> pour consulter sa table de routage et
+           décider par quelle interface sortir.</p>
+        <p><strong>Pourquoi il s'arrête là :</strong> le contenu du segment — les ports, les données
+           applicatives — ne le concerne pas. Monter plus haut serait du travail inutile, et le
+           routeur doit traiter des millions de paquets par seconde. Il <strong>réencapsule</strong>
+           aussitôt dans une nouvelle trame de couche 2, avec sa propre MAC en source et celle du
+           prochain saut en destination.</p>
+        <div class="encart analogie">
+          <div class="titre">💡 Analogie</div>
+          <p>Le centre de tri ouvre le sac postal (couche 2) pour lire l'adresse sur le colis
+             (couche 3), puis le remet dans un <em>autre</em> sac pour la ville suivante. Il
+             <strong>n'ouvre jamais le colis</strong> : le contenu ne le regarde pas et lui ferait
+             perdre un temps considérable.</p>
+        </div>
+
+        <h4>4. Le switch de la box</h4>
+        <p>Il ne monte qu'à la <strong>couche 2</strong>. Il lit la <strong>MAC de
+           destination</strong> de la trame, consulte sa table d'adresses MAC, et commute la trame
+           vers le <strong>seul port</strong> où se trouve le destinataire — ici, le port du
+           routeur.</p>
+        <p>Il ne regarde <strong>ni l'adresse IP, ni le port TCP, ni le contenu</strong>. C'est
+           précisément ce qui le rend rapide : moins on lit, plus on commute vite.</p>
+        <div class="encart savoir">
+          <div class="titre">🌍 Comment le switch a appris où se trouve chacun</div>
+          <p>Personne ne le lui a dit. À chaque trame reçue, il note l'<strong>adresse MAC
+             source</strong> et le port d'arrivée : il apprend donc en écoutant. Si la destination
+             lui est encore inconnue, il inonde tous les ports sauf celui d'origine — et la réponse
+             lui apprend la position manquante. C'est le mécanisme d'<em>apprentissage</em>, et
+             c'est aussi pourquoi un switch neuf se comporte les premières secondes comme un
+             hub.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Inverser session et présentation.</strong> Ordre : 7 Application, 6 Présentation,
+          5 Session.</li>
+      <li><strong>Numéroter la couche Application de TCP/IP « 7 ».</strong> C'est la couche
+          <strong>4</strong> — il n'y en a que quatre.</li>
+      <li><strong>Ne citer qu'une couche pour la carte réseau.</strong> Elle en couvre
+          <strong>deux</strong> : 1 et 2.</li>
+      <li><strong>Dire que les adresses IP changent à chaque routeur.</strong> Ce sont les
+          <strong>MAC</strong> qui changent.</li>
+      <li><strong>Confondre MAC et IPv6</strong> — les deux utilisent l'hexadécimal et les
+          deux-points. Comptez les groupes.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>3-TD2-OSI.pdf — le professeur</li>
+      <li>3-Modele OSI.pdf — chapitre 2</li>
+      <li>Modèle TCP_IP.docx · Modèles OSI_.docx</li>
+      <li>Quiz OSI Commando.html</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

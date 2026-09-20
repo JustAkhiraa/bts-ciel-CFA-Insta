@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAT et PAT — exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Exercices corrigés : vocabulaire NAT, configuration statique, dynamique et PAT, lecture de table de traduction et dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#vocab-exo">1 · Le vocabulaire</a></li>
+    <li><a href="#choisir-nat">2 · Choisir le bon type</a></li>
+    <li><a href="#config-nat">3 · Les trois configurations</a></li>
+    <li><a href="#lire-table">4 · Lire une table de traduction</a></li>
+    <li><a href="#dep-nat">5 · Dépannage</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 12</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>NAT et PAT — exercices</h1>
+  <p class="chapeau">Les trois configurations à savoir écrire de tête, et les pannes qu'on
+     rencontre en TP.</p>
+
+  <div class="flash">
+    <span class="pastille">🎯</span>
+    <div>
+      <h2>Les deux réflexes du chapitre</h2>
+      <p><strong>1.</strong> Toute configuration NAT comporte <em>obligatoirement</em>
+         <code>ip nat inside</code> et <code>ip nat outside</code>. Si vous les oubliez, rien ne
+         fonctionne et rien ne le signale.<br>
+         <strong>2.</strong> Devant un problème, la première commande est
+         <code>show ip nat translations</code>. Une table vide et une table pleine mènent à des
+         diagnostics opposés.</p>
+    </div>
+  </div>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="vocab-exo">
+  <h2><span class="num">01</span>Le vocabulaire</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Nommer les quatre adresses <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Un PC en <code>192.168.1.20</code> consulte un serveur web situé à
+         <code>192.31.7.1</code>. Le routeur NAT le fait sortir avec l'adresse publique
+         <code>209.165.200.225</code>.</p>
+      <p>Nommez chacune de ces quatre adresses selon la terminologie NAT, et indiquez laquelle la
+         NAT traduit réellement.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Adresse</th><th>Terme</th><th>Pourquoi</th></tr></thead>
+          <tbody>
+            <tr><td><code>192.168.1.20</code></td><td><strong>Inside Local</strong></td>
+                <td><em>Inside</em> = mon réseau · <em>Local</em> = adresse privée</td></tr>
+            <tr><td><code>209.165.200.225</code></td><td><strong>Inside Global</strong></td>
+                <td><em>Inside</em> = c'est toujours ma machine · <em>Global</em> = mais vue avec
+                    une adresse publique</td></tr>
+            <tr><td><code>192.31.7.1</code> vue de l'intérieur</td><td><strong>Outside Local</strong></td>
+                <td><em>Outside</em> = l'autre côté · <em>Local</em> = telle que mon réseau la
+                    voit</td></tr>
+            <tr><td><code>192.31.7.1</code> réelle</td><td><strong>Outside Global</strong></td>
+                <td>Son adresse véritable sur Internet</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>La NAT traduit Inside Local → Inside Global</strong>, c'est-à-dire
+           <code>192.168.1.20</code> → <code>209.165.200.225</code>. Les deux adresses
+           <em>Outside</em> sont ici identiques, ce qui est le cas le plus courant.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 La grille à deux axes</div>
+          <div class="tableau">
+          <table>
+            <thead><tr><th></th><th><strong>Local</strong><br>(adresse privée)</th>
+                       <th><strong>Global</strong><br>(adresse publique)</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Inside</strong><br>(mon réseau)</td>
+                  <td>Inside <strong>Local</strong><br><code>192.168.1.20</code></td>
+                  <td>Inside <strong>Global</strong><br><code>209.165.200.225</code></td></tr>
+              <tr><td><strong>Outside</strong><br>(Internet)</td>
+                  <td>Outside <strong>Local</strong><br><code>192.31.7.1</code></td>
+                  <td>Outside <strong>Global</strong><br><code>192.31.7.1</code></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Reconstruire cette grille prend dix secondes en épreuve et évite toute confusion.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="choisir-nat">
+  <h2><span class="num">02</span>Choisir le bon type</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Quatre situations <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Statique, dynamique ou PAT ? Justifiez.</p>
+      <ol>
+        <li>Un serveur web interne doit être accessible depuis Internet à une adresse fixe.</li>
+        <li>Une PME de 80 postes dispose d'une seule adresse publique.</li>
+        <li>Une entreprise a 15 adresses publiques et 12 serveurs qui sortent régulièrement, sans
+            jamais être contactés depuis l'extérieur.</li>
+        <li>Un particulier avec sa box, une trentaine d'appareils connectés.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Cas</th><th>Choix</th><th>Justification</th></tr></thead>
+          <tbody>
+            <tr><td>1 — Serveur web joignable</td><td><strong>NAT statique</strong></td>
+                <td>C'est le cas d'usage typique : mappage <strong>permanent</strong>, l'entrée
+                    existe même sans trafic, et l'adresse publique ne change jamais — les clients
+                    externes doivent pouvoir l'atteindre</td></tr>
+            <tr><td>2 — 80 postes, 1 adresse</td><td><strong>PAT</strong></td>
+                <td>Seule solution possible : plusieurs pour une, distingués par les ports</td></tr>
+            <tr><td>3 — 15 adresses, 12 serveurs sortants</td><td><strong>NAT dynamique</strong></td>
+                <td>Assez d'adresses pour tout le monde, et personne ne doit être contacté de
+                    l'extérieur. La PAT fonctionnerait aussi, mais la dynamique préserve une
+                    correspondance 1 pour 1 pendant la session — utile pour les journaux</td></tr>
+            <tr><td>4 — Box particulier</td><td><strong>PAT</strong></td>
+                <td>C'est exactement ce que fait toute box : une adresse publique, des dizaines
+                    d'appareils</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le critère qui tranche vraiment</div>
+          <p>Posez-vous <strong>une seule question</strong> : <em>« quelqu'un doit-il pouvoir
+             contacter cette machine depuis Internet, à son initiative ? »</em></p>
+          <ul>
+            <li><strong>Oui</strong> → NAT statique, obligatoirement. Une entrée dynamique n'existe
+                que si la machine a d'abord émis.</li>
+            <li><strong>Non</strong> → dynamique ou PAT, selon le nombre d'adresses disponibles.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="config-nat">
+  <h2><span class="num">03</span>Les trois configurations</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Écrire les trois de tête <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur R2, dont <code>fa0/0</code> est côté LAN (<code>192.168.10.0/24</code>) et
+         <code>s0/1/0</code> côté Internet, écrivez :</p>
+      <ol>
+        <li>Une <strong>NAT statique</strong> exposant le serveur <code>192.168.10.254</code> sous
+            l'adresse publique <code>209.165.201.5</code>.</li>
+        <li>Une <strong>NAT dynamique</strong> avec le pool
+            <code>209.165.200.226</code> → <code>209.165.200.240</code>, masque
+            <code>255.255.255.224</code>, pour tout le réseau <code>192.168.0.0/16</code>.</li>
+        <li>Une <strong>PAT</strong> utilisant l'adresse de l'interface <code>s0/1/0</code>.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1 — NAT statique</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# ip nat inside source static 192.168.10.254 209.165.201.5
+
+R2(config)# interface fa0/0
+R2(config-if)# ip nat inside
+R2(config-if)# exit
+R2(config)# interface s0/1/0
+R2(config-if)# ip nat outside</code></pre></div>
+
+        <h4>2 — NAT dynamique</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# ip nat pool NAT-POOL1 209.165.200.226 209.165.200.240 netmask 255.255.255.224
+R2(config)# access-list 1 permit 192.168.0.0 0.0.255.255
+R2(config)# ip nat inside source list 1 pool NAT-POOL1
+
+R2(config)# interface fa0/0
+R2(config-if)# ip nat inside
+R2(config-if)# exit
+R2(config)# interface s0/1/0
+R2(config-if)# ip nat outside</code></pre></div>
+
+        <h4>3 — PAT sur l'interface</h4>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# access-list 1 permit 192.168.0.0 0.0.255.255
+R2(config)# ip nat inside source list 1 interface s0/1/0 overload
+!                                                        └── le mot-clé PAT
+
+R2(config)# interface fa0/0
+R2(config-if)# ip nat inside
+R2(config-if)# exit
+R2(config)# interface s0/1/0
+R2(config-if)# ip nat outside</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Ce qui est commun aux trois</div>
+          <p>Les <strong>deux déclarations d'interface</strong> sont identiques dans les trois cas,
+             et <strong>obligatoires</strong>. Seule la première partie change :</p>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Type</th><th>Commande caractéristique</th></tr></thead>
+            <tbody>
+              <tr><td>Statique</td><td><code>ip nat inside source <strong>static</strong> &lt;privée&gt; &lt;publique&gt;</code></td></tr>
+              <tr><td>Dynamique</td><td><code>ip nat inside source <strong>list</strong> 1 <strong>pool</strong> NOM</code></td></tr>
+              <tr><td>PAT</td><td>idem <strong>+ <code>overload</code></strong>, ou <code>interface X overload</code></td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Trois détails qui coûtent des points</div>
+          <ul>
+            <li><strong>Le masque générique de l'ACL</strong> : <code>0.0.255.255</code>, et non
+                <code>255.255.0.0</code>. C'est le complément — 0 signifie « doit correspondre »,
+                1 signifie « peu importe ».</li>
+            <li><strong>Le nom du pool est sensible à la casse.</strong> <code>NAT-POOL1</code> et
+                <code>nat-pool1</code> sont deux pools distincts, et le second n'existe pas.</li>
+            <li><strong><code>netmask</code> dans <code>ip nat pool</code></strong> — sans lui, IOS
+                refuse la commande.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="lire-table">
+  <h2><span class="num">04</span>Lire une table de traduction</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Décoder chaque ligne <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+<div class="bloc-code"><pre><code>R2# show ip nat translations
+
+Pro   Inside global          Inside local         Outside local    Outside global
+---   209.165.201.5          192.168.10.254       ---              ---
+tcp   209.165.200.225:1444   192.168.1.10:1444    192.31.7.1:80    192.31.7.1:80
+tcp   209.165.200.225:1445   192.168.1.11:1444    192.31.7.1:80    192.31.7.1:80
+udp   209.165.200.225:1520   192.168.1.12:1520    8.8.8.8:53       8.8.8.8:53</code></pre></div>
+      <ol>
+        <li>Quelle ligne correspond à une NAT statique, et comment le voit-on ?</li>
+        <li>Pourquoi les lignes 2 et 3 ont-elles des ports <em>Inside global</em> différents alors
+            que les ports <em>Inside local</em> sont identiques ?</li>
+        <li>Quel service la dernière ligne concerne-t-elle ?</li>
+        <li>Combien d'adresses publiques cette entreprise utilise-t-elle ?</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>1.</strong> La <strong>première ligne</strong>. Deux indices concordants :</p>
+        <ul>
+          <li>la colonne <code>Pro</code> vaut <code>---</code> : aucun protocole, donc aucune
+              session en cours ;</li>
+          <li>les colonnes <em>Outside</em> sont vides : personne ne communique.</li>
+        </ul>
+        <p>C'est la marque de la NAT statique : <strong>l'entrée existe en permanence</strong>, même
+           sans trafic. Une entrée dynamique n'apparaît que pendant une session active.</p>
+
+        <p><strong>2.</strong> C'est le cœur de la <strong>PAT</strong>. Les postes
+           <code>192.168.1.10</code> et <code>192.168.1.11</code> ont tous deux choisi le port
+           source 1444 — un pur hasard, mais fréquent. Comme les deux sessions doivent partager
+           <strong>la même adresse publique</strong>, la PAT <strong>incrémente</strong> le port du
+           second en <strong>1445</strong>, afin que chaque entrée reste unique.</p>
+        <p>C'est précisément ce port qui permettra, au retour, de savoir à quel poste interne
+           remettre la réponse.</p>
+
+        <p><strong>3.</strong> Le port de destination <strong>53 en UDP</strong> vers
+           <code>8.8.8.8</code> : c'est une requête <strong>DNS</strong>.</p>
+
+        <p><strong>4.</strong> <strong>Deux</strong> : <code>209.165.201.5</code> pour le serveur en
+           statique, et <code>209.165.200.225</code> partagée par tous les postes en PAT.</p>
+        <div class="encart outils">
+          <div class="titre">🧰 Les ports courants à reconnaître</div>
+          <div class="tableau">
+          <table>
+            <tbody>
+              <tr><td><strong>80</strong> / TCP</td><td>HTTP</td>
+                  <td><strong>53</strong> / UDP</td><td>DNS</td></tr>
+              <tr><td><strong>443</strong> / TCP</td><td>HTTPS</td>
+                  <td><strong>67-68</strong> / UDP</td><td>DHCP</td></tr>
+              <tr><td><strong>22</strong> / TCP</td><td>SSH</td>
+                  <td><strong>25</strong> / TCP</td><td>SMTP</td></tr>
+              <tr><td><strong>23</strong> / TCP</td><td>Telnet</td>
+                  <td><strong>21</strong> / TCP</td><td>FTP</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p>Lire une table NAT, c'est aussi lire l'activité du réseau : on voit qui fait quoi.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="dep-nat">
+  <h2><span class="num">05</span>Dépannage</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Quatre pannes <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <ol>
+        <li>La configuration semble complète, mais <code>show ip nat translations</code> reste
+            vide et aucun poste ne sort.</li>
+        <li>La table se remplit, mais seuls trois postes sur quarante accèdent à Internet.</li>
+        <li>Le serveur web interne est joignable depuis le LAN, mais pas depuis Internet.</li>
+        <li>Tout fonctionnait ; après une modification, <code>show ip nat statistics</code> affiche
+            des <em>misses</em> qui augmentent et zéro <em>hit</em>.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <h4>1 — Table vide</h4>
+        <p><strong>Cause :</strong> <code>ip nat inside</code> ou <code>ip nat outside</code> est
+           manquant — ou, plus vicieux, les deux sont <strong>inversés</strong>.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2# show ip nat statistics
+
+Outside interfaces:  Serial0/1/0        ← doit être l'interface vers INTERNET
+Inside interfaces:   FastEthernet0/0    ← doit être l'interface vers le LAN</code></pre></div>
+        <p>Si ces deux lignes sont vides ou échangées, le routeur ne sait pas dans quel sens
+           traduire, et n'applique rien. Aucun message d'erreur n'est produit.</p>
+
+        <h4>2 — Trois postes sur quarante</h4>
+        <p><strong>Cause :</strong> <strong>NAT dynamique avec un pool de trois adresses</strong>, et
+           le mot-clé <code>overload</code> manquant. Chaque poste monopolise une adresse publique
+           pour toute la durée de sa session.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# no ip nat inside source list 1 pool NAT-POOL1
+R2(config)# ip nat inside source list 1 pool NAT-POOL1 overload
+R2# clear ip nat translation *</code></pre></div>
+
+        <h4>3 — Serveur injoignable depuis Internet</h4>
+        <p><strong>Cause :</strong> il n'y a <strong>pas de NAT statique</strong> pour ce serveur —
+           seulement de la PAT pour le trafic sortant.</p>
+        <p>La PAT ne crée une entrée que lorsqu'une machine <em>interne</em> émet. Un client
+           externe qui contacte l'adresse publique arrive sur un routeur qui n'a
+           <strong>aucune entrée correspondante</strong> : il ne sait pas à qui remettre le paquet
+           et le rejette.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>! exposer le serveur avec une adresse publique dédiée
+R2(config)# ip nat inside source static 192.168.10.254 209.165.201.5
+
+! ou, si l'on n'a qu'une adresse publique : rediriger un seul port
+R2(config)# ip nat inside source static tcp 192.168.10.254 80 209.165.200.225 80</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">🌍 C'est la « redirection de port » de votre box</div>
+          <p>La seconde commande est exactement ce que fait l'interface d'une box quand on
+             « ouvre un port » pour héberger un serveur de jeu ou un NAS. On dit au routeur :
+             <em>« tout ce qui arrive sur le port 80 de mon adresse publique, envoie-le à cette
+             machine-là »</em>.</p>
+          <p>C'est aussi l'illustration concrète de l'inconvénient « perte de la fonctionnalité de
+             bout en bout » : sans cette configuration manuelle, une machine derrière une NAT est
+             <strong>invisible depuis Internet</strong>.</p>
+        </div>
+
+        <h4>4 — Des <em>misses</em>, aucun <em>hit</em></h4>
+        <p><strong>Cause :</strong> l'<strong>ACL</strong> ne sélectionne plus le trafic, ou le
+           <strong>nom du pool</strong> ne correspond plus — souvent une différence de casse
+           introduite lors de la modification.</p>
+<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2# show access-lists
+    10 matches            ← si le compteur reste à 0, l'ACL ne voit pas le trafic
+
+R2# show running-config | include nat
+    ip nat pool NAT-POOL1 ...
+    ip nat inside source list 1 pool nat-pool1     ← ⚠ casse différente !</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 <em>Hits</em> et <em>misses</em>, ce que ça veut dire</div>
+          <ul>
+            <li><strong>Hit</strong> — un paquet a été traduit avec succès.</li>
+            <li><strong>Miss</strong> — un paquet <em>aurait dû</em> être traduit, mais aucune
+                traduction n'a pu être créée : plus d'adresse dans le pool, ou pool
+                introuvable.</li>
+          </ul>
+          <p>Des <em>misses</em> qui grimpent sans aucun <em>hit</em> désignent presque toujours un
+             pool inaccessible. Des <em>misses</em> avec beaucoup de <em>hits</em> désignent un pool
+             épuisé — il manque <code>overload</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
+    <ul>
+      <li><strong>Oublier <code>ip nat inside</code> / <code>ip nat outside</code></strong>, ou les
+          inverser.</li>
+      <li><strong>Oublier <code>overload</code></strong> — le pool s'épuise et tout le monde
+          attend.</li>
+      <li><strong>Se tromper de casse</strong> sur le nom du pool.</li>
+      <li><strong>Écrire un masque de sous-réseau dans l'ACL</strong> au lieu du masque
+          générique.</li>
+      <li><strong>Croire qu'une PAT rend un serveur joignable</strong> — il faut une NAT statique
+          ou une redirection de port.</li>
+      <li><strong>Oublier <code>netmask</code></strong> dans <code>ip nat pool</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>5-cours_NAT.pdf — le professeur</li>
+      <li>5-1-TP-Config Dynamic and Static NAT.pdf</li>
+      <li>5-2-packet-tracer — configure PAT</li>
+      <li>5-3-Packet Tracer — Verifying and Troubleshooting NAT Configurations</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

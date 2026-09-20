@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routage dynamique et RIP — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : protocoles de routage, IGP/EGP, métriques, RIPv1 et RIPv2, timers et configuration.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 10</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+    <span class="sep">/</span><a href="cours.html">Cours</a>
+    <span class="sep">·</span><a href="exercices.html">Exercices</a>
+  </div>
+  <h1>Routage dynamique et RIP — l'essentiel</h1>
+  <p class="chapeau">Une page à imprimer (⌘P). Les familles, les chiffres, la configuration.</p>
+</header>
+
+<section class="section-revision" id="dyn-rev">
+  <h2><span class="num">01</span>Le routage dynamique</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les 4 fonctions</h3>
+      <ol>
+        <li><strong>Découvrir</strong> les réseaux distants</li>
+        <li><strong>Actualiser</strong> en cas de changement</li>
+        <li><strong>Choisir</strong> le meilleur chemin</li>
+        <li><strong>Trouver une alternative</strong> si le chemin tombe</li>
+      </ol>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>3 composants :</strong> structures de
+        données (RAM) · messages · algorithme.</p>
+    </div>
+
+    <div class="memo">
+      <h3>Dynamique vs statique</h3>
+      <p style="margin:0 0 .3rem;font-size:13.5px"><span class="rep-ok"><strong>+</strong></span>
+        Automatique · <strong>s'adapte aux pannes</strong> · gère les grands réseaux</p>
+      <p style="margin:0;font-size:13.5px"><span class="rep-non"><strong>−</strong></span>
+        CPU, RAM, bande passante · plus complexe · <strong>convergence plus lente</strong></p>
+      <p style="margin:.35rem 0 0;font-size:13px"><strong>Statique pour :</strong> petits réseaux
+        stables · réseaux d'extrémité · <strong>route par défaut</strong> (même en réseau
+        dynamique).</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les familles</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>Portée</th><th>Exemples</th></tr></thead>
+        <tbody>
+          <tr><td><strong>IGP</strong></td><td>DANS un AS</td><td>RIP, OSPF, EIGRP, IS-IS</td></tr>
+          <tr><td><strong>EGP</strong></td><td>ENTRE les AS</td><td><strong>BGP</strong></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>AS</strong> = ensemble de réseaux gérés par
+        une même organisation.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 2 approches IGP</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>Vecteur de distance</th><th>État de liens</th></tr></thead>
+        <tbody>
+          <tr><td>Principe</td><td>Je répète ce que disent mes voisins</td><td><strong>Carte complète</strong> du réseau</td></tr>
+          <tr><td>Convergence</td><td class="rep-non">Lente</td><td class="rep-ok">Rapide</td></tr>
+          <tr><td>Algorithme</td><td>Bellman-Ford</td><td>Dijkstra</td></tr>
+          <tr><td>Exemples</td><td>RIP, IGRP, EIGRP</td><td>OSPF, IS-IS</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="metr-rev">
+  <h2><span class="num">02</span>Métriques et distances</h2>
+  <div class="grille">
+
+    <div class="memo large cle">
+      <h3>Métriques et distances administratives</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th>Protocole</th><th>Métrique</th><th>AD</th><th>Remarque</th></tr></thead>
+        <tbody>
+          <tr><td>Connecté</td><td>—</td><td><strong>0</strong></td><td>Le plus fiable</td></tr>
+          <tr><td>Statique</td><td>0</td><td><strong>1</strong></td><td></td></tr>
+          <tr><td><strong>EIGRP</strong></td><td>Bande passante + délai</td><td><strong>90</strong></td><td>Composite</td></tr>
+          <tr><td><strong>OSPF</strong></td><td>Coût = <strong>10⁸ / bande passante</strong></td><td><strong>110</strong></td><td>Standard ouvert</td></tr>
+          <tr><td><strong>RIP</strong></td><td><strong>Nombre de sauts</strong>, max 15</td><td><strong>120</strong></td><td>Ignore le débit</td></tr>
+          <tr><td>BGP</td><td>Politique</td><td>20 / 200</td><td>EGP</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>AD la plus faible gagne</strong> entre
+        protocoles différents. <strong>Métrique la plus faible</strong> entre routes du même
+        protocole. Dans <code>[120/2]</code> : AD 120, métrique 2.</p>
+    </div>
+
+    <div class="memo cle">
+      <h3>La faiblesse de RIP</h3>
+      <p style="margin:0 0 .35rem;font-size:13.5px">RIP compte les <strong>sauts</strong>, jamais
+        le débit.</p>
+      <div class="formule" style="font-size:12.5px">2 sauts à 64 kbit/s<br>préféré à<br>4 sauts à 1 Gbit/s</div>
+      <p style="margin:0;font-size:13px">C'est <strong>la</strong> réponse à « pourquoi RIP est-il
+        dépassé » — avec la lenteur de convergence.</p>
+    </div>
+
+  </div>
+</section>
+
+<section class="section-revision" id="rip-rev">
+  <h2><span class="num">03</span>RIP en détail</h2>
+  <div class="grille">
+
+    <div class="memo cle">
+      <h3>Les chiffres à connaître</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td>Algorithme</td><td><strong>Bellman-Ford</strong></td></tr>
+          <tr><td>Transport</td><td>UDP <strong>520</strong></td></tr>
+          <tr><td>Distance admin.</td><td><strong>120</strong></td></tr>
+          <tr><td>Métrique max</td><td><strong>15 sauts</strong> (16 = infini)</td></tr>
+          <tr><td>Mises à jour</td><td>Toutes les <strong>30 s</strong></td></tr>
+          <tr><td>IPv6</td><td>RIPng</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo cle">
+      <h3>RIPv1 vs RIPv2</h3>
+      <div class="tableau">
+      <table>
+        <thead><tr><th></th><th>v1</th><th>v2</th></tr></thead>
+        <tbody>
+          <tr><td>Envoi</td><td>255.255.255.255<br><em>broadcast</em></td><td><strong>224.0.0.9</strong><br><em>multicast</em></td></tr>
+          <tr><td>VLSM</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+          <tr><td>CIDR</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+          <tr><td>Masques envoyés</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+          <tr><td>Authentification</td><td class="rep-non">Non</td><td class="rep-ok">Oui</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="memo cle">
+      <h3>Les 4 timers</h3>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td><strong>Update</strong></td><td><strong>30 s</strong></td><td>Envoi des mises à jour</td></tr>
+          <tr><td><strong>Invalid</strong></td><td><strong>180 s</strong></td><td>Route marquée invalide</td></tr>
+          <tr><td><strong>Holddown</strong></td><td><strong>180 s</strong></td><td>On ignore les nouvelles infos</td></tr>
+          <tr><td><strong>Flush</strong></td><td><strong>240 s</strong></td><td>Suppression définitive</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="margin:.4rem 0 0;font-size:13px">⚠️ <strong>3 à 4 minutes</strong> pour réagir à
+        une panne. C'est le défaut majeur de RIP.</p>
+    </div>
+
+    <div class="memo large cle">
+      <h3>Configuration RIPv2 — les 4 lignes</h3>
+<div class="bloc-code"><pre><code>R1(config)# router rip
+R1(config-router)# version 2              ← ⚠ SANS ÇA, C'EST DU RIPv1
+R1(config-router)# no auto-summary        ← ⚠ sinon les sous-réseaux fusionnent
+R1(config-router)# network 172.30.0.0     ← adresse CLASSFUL, sans masque
+R1(config-router)# network 10.0.0.0
+R1(config-router)# passive-interface fa0/0   ← pas de RIP vers les LAN d'utilisateurs
+
+! network fait DEUX choses : ACTIVE RIP sur les interfaces concernées + les ANNONCE
+
+! ── vérifier ──
+show ip protocols      version, réseaux, timers, voisins
+show ip route rip      les routes apprises
+debug ip rip           en direct — puis undebug all</code></pre></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Si vous ne reteniez que trois choses</h2>
+    <ul>
+      <li><strong>RIP : 120 / 15 sauts / 30 secondes.</strong> Ces trois nombres expliquent tout
+          son comportement.</li>
+      <li><strong><code>version 2</code> et <code>no auto-summary</code></strong> — sans elles, pas
+          de VLSM, donc rien ne marche.</li>
+      <li><strong>Vecteur de distance = lent, état de liens = rapide.</strong> La différence
+          tient à ce que chaque routeur <em>sait</em> du réseau.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>4-cours_Routage_Dynamique.pdf — le professeur</li>
+      <li>4- Lab — Configuring Basic RIPv2.pdf</li>
+      <li>cours-routage-dynamique.html</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

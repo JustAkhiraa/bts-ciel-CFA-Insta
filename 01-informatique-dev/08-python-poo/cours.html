@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python — programmation orientée objet | BTS CIEL</title>
+<meta name="description" content="Cours complet : classes et objets, self et __init__, méthodes, destructeur, encapsulation, getters/setters, @property, héritage, override et super().">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#pourquoi">1 · Pourquoi la POO</a></li>
+    <li><a href="#classe-objet">2 · Classe et objet</a></li>
+    <li><a href="#attributs">3 · Attributs, self et __init__</a></li>
+    <li><a href="#methodes">4 · Les méthodes</a></li>
+    <li><a href="#destructeur">5 · Le destructeur</a></li>
+    <li><a href="#encapsulation">6 · L'encapsulation</a></li>
+    <li><a href="#accesseurs">7 · Getters, setters, @property</a></li>
+    <li><a href="#heritage">8 · L'héritage</a></li>
+    <li><a href="#override">9 · Override et super()</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 08</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Python — programmation orientée objet</h1>
+  <p class="chapeau">Regrouper les données et les traitements qui vont ensemble, au lieu de les
+     laisser éparpillés.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>La <strong>POO</strong> réunit dans une même structure les <strong>données</strong>
+         (attributs) et les <strong>actions</strong> (méthodes). Une <strong>classe</strong> est le
+         plan ; un <strong>objet</strong> en est une réalisation. <code>__init__</code> construit
+         l'objet, <code>self</code> le désigne. L'<strong>encapsulation</strong> protège les données
+         derrière des contrôles, et l'<strong>héritage</strong> évite de réécrire ce qui est
+         commun.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#class</code> <code>#objet</code> <code>#instance</code> <code>#self</code>
+    <code>#__init__</code> <code>#__del__</code> <code>#attribut</code> <code>#méthode</code>
+    <code>#encapsulation</code> <code>#getter</code> <code>#setter</code> <code>#@property</code>
+    <code>#héritage</code> <code>#override</code> <code>#super</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="pourquoi">
+  <h2><span class="num">01</span>Pourquoi la POO</h2>
+
+  <p>Dans les premiers programmes, les <strong>données</strong> et les <strong>fonctions</strong>
+     sont séparées. Quand l'application grandit, le code devient difficile à organiser, à maintenir
+     et à réutiliser. La POO apporte une solution : <strong>regrouper</strong> les données et les
+     traitements associés dans une même structure, l'<strong>objet</strong>.</p>
+
+  <ul>
+    <li>organiser le code de façon claire ;</li>
+    <li>faciliter la <strong>réutilisation</strong> ;</li>
+    <li>simplifier la <strong>maintenance</strong> ;</li>
+    <li>représenter des entités du monde réel.</li>
+  </ul>
+
+  <div class="encart analogie">
+    <div class="titre">💡 La voiture — l'exemple du cours</div>
+    <p>Une voiture possède des <strong>caractéristiques</strong> (marque, modèle, couleur, vitesse)
+       et des <strong>actions</strong> (démarrer, accélérer, freiner, arrêter). En POO :</p>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>les caractéristiques</td><td>deviennent des <strong>attributs</strong></td></tr>
+        <tr><td>les actions</td><td>deviennent des <strong>méthodes</strong></td></tr>
+        <tr><td>la voiture</td><td>devient un <strong>objet</strong></td></tr>
+        <tr><td>le modèle général servant à en créer plusieurs</td>
+            <td>devient une <strong>classe</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="classe-objet">
+  <h2><span class="num">02</span>Classe et objet</h2>
+
+  <p>Une <strong>classe</strong> est un <em>modèle</em>, un plan. Un <strong>objet</strong> (ou
+     <strong>instance</strong>) est une réalisation concrète de ce plan.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 580 190" role="img" aria-label="Une classe et ses objets">
+      <style>
+        .kl{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.8}
+        .ob{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .kt{font:700 13px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .ot{font:600 11px var(--mono);text-anchor:middle;fill:var(--encre)}
+        .od{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .kf{stroke:var(--accent);stroke-width:1.5;fill:none;marker-end:url(#kk)}
+      </style>
+      <defs><marker id="kk" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+
+      <rect class="kl" x="212" y="14" width="156" height="52" rx="8"/>
+      <text class="kt" x="290" y="38">class Voiture</text>
+      <text class="od" x="290" y="55">le plan (une seule fois)</text>
+
+      <path class="kf" d="M250,70 V92 H100 V112"/>
+      <path class="kf" d="M290,70 V112"/>
+      <path class="kf" d="M330,70 V92 H480 V112"/>
+
+      <rect class="ob" x="26" y="112" width="148" height="58" rx="7"/>
+      <text class="ot" x="100" y="132">v1</text>
+      <text class="od" x="100" y="150">"Renault", rouge</text>
+      <text class="od" x="100" y="164">vitesse 0</text>
+
+      <rect class="ob" x="216" y="112" width="148" height="58" rx="7"/>
+      <text class="ot" x="290" y="132">v2</text>
+      <text class="od" x="290" y="150">"Peugeot", bleu</text>
+      <text class="od" x="290" y="164">vitesse 90</text>
+
+      <rect class="ob" x="406" y="112" width="148" height="58" rx="7"/>
+      <text class="ot" x="480" y="132">v3</text>
+      <text class="od" x="480" y="150">"Tesla", blanc</text>
+      <text class="od" x="480" y="164">vitesse 130</text>
+    </svg>
+    <figcaption>Une classe, autant d'objets qu'on veut. Chacun a <strong>ses propres
+      valeurs</strong>.</figcaption>
+  </figure>
+
+<div class="bloc-code"><span class="langue">python — la structure standard</span><pre><code>class NomDeLaClasse:
+
+    attribut_classe = valeur          # attribut de CLASSE (partagé)
+
+    def __init__(self, parametres):   # constructeur
+        self.attribut_instance = parametres    # attribut d'INSTANCE (propre)
+
+    def methode(self):                # méthode
+        pass</code></pre></div>
+
+<div class="bloc-code"><span class="langue">python — créer des objets</span><pre><code>class Personne:
+    def __init__(self, nom, age):
+        self.nom = nom
+        self.age = age
+
+p1 = Personne("Alice", 30)      # instanciation
+p2 = Personne("Bob", 25)
+
+print(p1.nom)      # Alice
+print(p2.nom)      # Bob        ← chaque objet a SES valeurs</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le nom des classes prend une majuscule</div>
+    <p>Convention Python (la <em>PEP 8</em>) : les classes s'écrivent en
+       <strong>CamelCase</strong> — <code>Personne</code>, <code>Equipement</code>,
+       <code>ServeurWeb</code> — tandis que variables et fonctions restent en minuscules avec des
+       soulignés. À la lecture, une majuscule signale immédiatement une classe.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="attributs">
+  <h2><span class="num">03</span>Attributs, <code>self</code> et <code>__init__</code></h2>
+
+  <h3><code>self</code> : l'objet lui-même</h3>
+  <p><code>self</code> représente <strong>l'instance courante</strong> — l'objet sur lequel la
+     méthode est appelée. Il permet d'accéder à ses attributs et à ses méthodes.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Voiture:
+    def afficher_marque(self):
+        print(self.marque)        # self.marque = « la marque DE CET objet »</code></pre></div>
+
+  <h3><code>__init__</code> : le constructeur</h3>
+  <p>Méthode appelée <strong>automatiquement</strong> à la création d'un objet. Elle sert à
+     initialiser les attributs.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+    def __init__(self, ip, nom):
+        self.ip  = ip
+        self.nom = nom
+
+sw = Equipement("192.168.1.10", "SW-01")
+#                     ↑              ↑
+#              ces valeurs partent dans __init__</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>self</code> s'écrit, mais ne se passe jamais</div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+    def afficher(self):        # ← self est DÉCLARÉ
+        print(self.ip)
+
+sw.afficher()                  # ← mais on ne le PASSE pas
+sw.afficher(sw)                # ✘ TypeError: takes 1 positional argument but 2 were given</code></pre></div>
+    <p>Python le transmet tout seul : <code>sw.afficher()</code> devient en coulisses
+       <code>Equipement.afficher(sw)</code>.</p>
+    <p>L'erreur inverse est encore plus fréquente — <strong>oublier</strong> <code>self</code> dans
+       la définition :</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>def afficher():                # ✘ self manquant
+    print(self.ip)
+# TypeError: afficher() takes 0 positional arguments but 1 was given</code></pre></div>
+    <p>Le message paraît absurde (« 0 attendu, 1 reçu ») : c'est justement le <code>self</code>
+       automatique qui arrive et que la méthode n'attend pas.</p>
+  </div>
+
+  <h3>Attribut de classe ou d'instance ?</h3>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+    nombre = 0                     # attribut de CLASSE : partagé par tous
+
+    def __init__(self, ip):
+        self.ip = ip               # attribut d'INSTANCE : propre à chacun
+        Equipement.nombre += 1
+
+a = Equipement("192.168.1.1")
+b = Equipement("192.168.1.2")
+
+print(a.ip, b.ip)            # 192.168.1.1 192.168.1.2   ← différents
+print(Equipement.nombre)     # 2                          ← commun</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Quand utiliser l'un ou l'autre</div>
+    <p><strong>Instance</strong> : tout ce qui varie d'un objet à l'autre — l'IP, le nom, l'état.
+       <strong>Classe</strong> : ce qui vaut pour tous — un compteur, une constante, une valeur par
+       défaut commune.</p>
+    <p>En pratique, 90 % des attributs sont des attributs d'instance, définis dans
+       <code>__init__</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="methodes">
+  <h2><span class="num">04</span>Les méthodes</h2>
+
+  <p>Une <strong>méthode</strong> est une fonction définie <em>dans</em> une classe : c'est une
+     action que l'objet sait faire.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Voiture:
+    def __init__(self, marque):
+        self.marque  = marque
+        self.vitesse = 0
+
+    def accelerer(self, valeur):
+        self.vitesse += valeur
+
+    def freiner(self):
+        self.vitesse = 0
+
+    def afficher(self):
+        print(f"{self.marque} roule à {self.vitesse} km/h")
+
+v = Voiture("Renault")
+v.accelerer(50)
+v.accelerer(30)
+v.afficher()          # Renault roule à 80 km/h
+v.freiner()
+v.afficher()          # Renault roule à 0 km/h</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">💡 L'objet sait faire, on ne le bricole pas de l'extérieur</div>
+    <p>Sans POO, on écrirait <code>vitesse = vitesse + 50</code> quelque part dans le programme.
+       Avec, on dit <code>v.accelerer(50)</code> : c'est <strong>la voiture</strong> qui gère sa
+       vitesse.</p>
+    <p>La différence devient décisive le jour où accélérer implique aussi de consommer du carburant
+       et de vérifier une limite : tout est <em>dans</em> la méthode, et tous les appels en
+       profitent.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="destructeur">
+  <h2><span class="num">05</span>Le destructeur</h2>
+
+  <p>Le <strong>destructeur</strong> est appelé quand l'objet est détruit — utile pour libérer une
+     ressource, fermer un fichier ou une connexion.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Connexion:
+    def __init__(self, serveur):
+        self.serveur = serveur
+        print(f"Connexion à {serveur} ouverte")
+
+    def __del__(self):
+        print(f"Connexion à {self.serveur} fermée")
+
+c = Connexion("192.168.1.1")
+del c                  # Connexion à 192.168.1.1 fermée</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">🔧 Corrigé — le destructeur s'écrit <code>__del__</code>, pas
+      <code>__def__</code></div>
+    <p>Le sommaire du polycopié annonce « Un destructeur (<code>__def__</code>) ». C'est une
+       <strong>coquille</strong> : la méthode correcte est <code>__del__</code> (comme
+       <em>delete</em>), et le cours l'écrit d'ailleurs correctement plus loin, à la section 8.</p>
+    <p><code>__def__</code> n'existe pas en Python : définie ainsi, la méthode ne serait
+       <strong>jamais appelée</strong>, sans le moindre message d'erreur — le genre de bug qu'on
+       cherche longtemps.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="encapsulation">
+  <h2><span class="num">06</span>L'encapsulation</h2>
+
+  <p>Considérons cette classe, sans protection :</p>
+
+<div class="bloc-code"><span class="langue">python — le problème</span><pre><code>class Personne:
+    def __init__(self, nom, age):
+        self.nom = nom
+        self.age = age
+
+p1 = Personne("Alice", 30)
+p1.age = -10            # ← rien ne l'empêche
+print(p1.age)           # -10</code></pre></div>
+
+  <p>L'attribut <code>age</code> est accessible directement : <strong>n'importe quelle valeur</strong>
+     peut lui être attribuée, même incohérente. L'encapsulation apporte la solution — empêcher
+     l'accès direct et <strong>imposer des contrôles</strong> avant toute modification. L'objet
+     conserve alors un <strong>état valide</strong> tout au long de sa vie.</p>
+
+  <h3>Les trois niveaux, par convention</h3>
+  <p>Contrairement à Java ou C++, Python n'a <strong>pas</strong> les mots-clés
+     <code>public</code>, <code>protected</code>, <code>private</code>. Il repose sur une
+     <strong>convention de nommage</strong>.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Niveau</th><th>Écriture</th><th>Signification</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Public</strong></td><td><code>nom</code></td><td>accessible partout — le
+          comportement par défaut</td></tr>
+      <tr><td><strong>Protégé</strong></td><td><code>_nom</code></td><td>usage interne recommandé —
+          « n'y touchez pas sans raison »</td></tr>
+      <tr><td><strong>Privé</strong></td><td><code>__nom</code></td><td>accès fortement
+          restreint</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le « privé » de Python n'est pas une serrure</div>
+    <p>Le cours le dit avec justesse : c'est « davantage une règle de bonnes pratiques qu'une
+       véritable protection ». Concrètement, un attribut <code>__age</code> est simplement
+       <strong>renommé</strong> par Python en <code>_Personne__age</code> (on parle de
+       <em>name mangling</em>) :</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>p1.__age            # ✘ AttributeError — l'accès direct échoue…
+p1._Personne__age   # ✔ …mais celui-ci fonctionne !</code></pre></div>
+    <p>L'encapsulation en Python <strong>signale une intention</strong> plutôt qu'elle n'interdit.
+       Elle protège des erreurs d'inattention, pas d'un développeur déterminé. C'est suffisant :
+       l'objectif est la cohérence du code, pas la sécurité.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="accesseurs">
+  <h2><span class="num">07</span>Getters, setters et <code>@property</code></h2>
+
+  <p>Un attribut privé ne se modifie plus directement : on passe par des <strong>méthodes
+     d'accès</strong>.</p>
+  <div class="tableau">
+  <table>
+    <tbody>
+      <tr><td><strong>Getter</strong></td><td>permet de <strong>lire</strong> la valeur</td></tr>
+      <tr><td><strong>Setter</strong></td><td>permet de la <strong>modifier</strong>, en effectuant
+          des contrôles</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Personne:
+    def __init__(self, age):
+        self.__age = age
+
+    def get_age(self):
+        return self.__age
+
+    def set_age(self, age):
+        if age &gt;= 0:
+            self.__age = age
+        else:
+            print("Âge invalide")
+
+p1 = Personne(30)
+
+p1.set_age(35)
+print(p1.get_age())     # 35
+
+p1.set_age(-5)          # Âge invalide
+print(p1.get_age())     # 35   ← la dernière valeur VALIDE est conservée</code></pre></div>
+
+  <p>Le setter empêche l'enregistrement de données incohérentes : l'objet ne peut plus se retrouver
+     dans un état absurde.</p>
+
+  <h3><code>@property</code> — la forme moderne</h3>
+  <p>Python permet de garder la <strong>simplicité d'un attribut public</strong> tout en gardant le
+     <strong>contrôle d'un setter</strong>.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Personne:
+    def __init__(self, age):
+        self.__age = age
+
+    @property
+    def age(self):                 # le getter
+        return self.__age
+
+    @age.setter
+    def age(self, valeur):         # le setter
+        if valeur &gt;= 0:
+            self.__age = valeur
+        else:
+            print("Âge invalide")
+
+p1 = Personne(30)
+
+p1.age = 35        # appelle le SETTER sans qu'on le voie
+print(p1.age)      # 35   ← appelle le GETTER
+
+p1.age = -5        # Âge invalide
+print(p1.age)      # 35</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Pourquoi <code>@property</code> est préférable</div>
+    <p>La syntaxe d'utilisation redevient naturelle (<code>p1.age = 35</code> au lieu de
+       <code>p1.set_age(35)</code>) alors que le contrôle est bien là.</p>
+    <p>Surtout, cela permet de <strong>protéger après coup</strong> un attribut qui était public,
+       <em>sans modifier le code qui l'utilise déjà</em>. Avec des <code>get_</code>/<code>set_</code>,
+       il faudrait réécrire tous les appels existants.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="heritage">
+  <h2><span class="num">08</span>L'héritage</h2>
+
+  <p>L'<strong>héritage</strong> permet à une classe (la <em>fille</em>) de reprendre les attributs
+     et méthodes d'une autre (la <em>mère</em>), puis d'ajouter ce qui lui est propre. Objectif :
+     <strong>ne pas réécrire ce qui est commun</strong>.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 560 190" role="img" aria-label="Hiérarchie d'héritage">
+      <style>
+        .hm{fill:var(--accent);opacity:.9}
+        .hf{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .hw{font:700 12px var(--mono);text-anchor:middle;fill:#fff}
+        .hk{font:700 12px var(--mono);text-anchor:middle;fill:var(--accent-sombre)}
+        .hd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
+        .hl{stroke:var(--accent);stroke-width:1.6;fill:none}
+      </style>
+      <rect class="hm" x="200" y="16" width="160" height="50" rx="8"/>
+      <text class="hw" x="280" y="38">Equipement</text>
+      <text class="hd" x="280" y="56" style="fill:#EDE7DC">ip · get_ip() · set_ip()</text>
+
+      <path class="hl" d="M280,70 V92 H110 V116"/>
+      <path class="hl" d="M280,70 V92 H450 V116"/>
+
+      <rect class="hf" x="24" y="116" width="172" height="56" rx="8"/>
+      <text class="hk" x="110" y="138">Serveur</text>
+      <text class="hd" x="110" y="156">+ systeme_exploitation</text>
+
+      <rect class="hf" x="364" y="116" width="172" height="56" rx="8"/>
+      <text class="hk" x="450" y="138">Routeur</text>
+      <text class="hd" x="450" y="156">+ nb_interfaces</text>
+
+      <text class="hd" x="280" y="104" style="font-weight:700;fill:var(--encre)">héritent de l'IP et de ses accesseurs</text>
+    </svg>
+    <figcaption>Tout équipement a une IP ; seuls certains ont un système d'exploitation. On écrit
+      l'IP <strong>une seule fois</strong>.</figcaption>
+  </figure>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:                      # classe MÈRE
+    def __init__(self, ip):
+        self.__ip = ip
+
+    def get_ip(self):
+        return self.__ip
+
+
+class Serveur(Equipement):             # classe FILLE
+    def __init__(self, ip, systeme):
+        super().__init__(ip)           # on réutilise le constructeur de la mère
+        self.systeme = systeme
+
+    def afficher_infos(self):
+        print(f"Serveur {self.get_ip()} — {self.systeme}")
+
+
+s = Serveur("192.168.1.10", "Linux")
+s.afficher_infos()       # Serveur 192.168.1.10 — Linux
+print(s.get_ip())        # 192.168.1.10   ← méthode HÉRITÉE</code></pre></div>
+  <p>La syntaxe tient en une paire de parenthèses : <code>class Fille(Mere):</code>.</p>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="override">
+  <h2><span class="num">09</span>Override et <code>super()</code></h2>
+
+  <h3>Redéfinir une méthode (<em>override</em>)</h3>
+  <p>Une classe fille peut <strong>remplacer</strong> une méthode héritée pour adapter le
+     comportement.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Utilisateur:
+    def se_connecter(self):
+        print("Connexion standard utilisateur")
+
+class Administrateur(Utilisateur):
+    def se_connecter(self):                          # même nom → REDÉFINITION
+        print("Connexion administrateur avec privilèges")
+
+u = Utilisateur()
+a = Administrateur()
+
+u.se_connecter()      # Connexion standard utilisateur
+a.se_connecter()      # Connexion administrateur avec privilèges</code></pre></div>
+
+  <p>L'override permet de <strong>personnaliser</strong> un comportement selon le type d'objet, tout
+     en gardant une structure commune.</p>
+
+  <h3><code>super()</code> — appeler la mère</h3>
+  <p><code>super()</code> appelle une méthode de la classe parent depuis la classe enfant, pour
+     <strong>réutiliser</strong> son code au lieu de le recopier.</p>
+
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Administrateur(Utilisateur):
+    def se_connecter(self):
+        super().se_connecter()                  # on fait d'abord ce que fait la mère
+        print("Privilèges administrateur activés")   # puis on ajoute
+
+# Connexion standard utilisateur
+# Privilèges administrateur activés</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Oublier <code>super().__init__()</code></div>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Serveur(Equipement):
+    def __init__(self, ip, systeme):
+        self.systeme = systeme          # ✘ on a oublié super().__init__(ip)
+
+s = Serveur("192.168.1.10", "Linux")
+s.get_ip()
+# AttributeError: 'Serveur' object has no attribute '_Equipement__ip'</code></pre></div>
+    <p>Définir <code>__init__</code> dans la fille <strong>remplace</strong> celui de la mère : si
+       on ne l'appelle pas, les attributs de la mère ne sont <em>jamais créés</em>. L'objet semble
+       exister, puis plante à la première utilisation d'une méthode héritée.</p>
+    <div class="formule">Dès qu'une classe fille a son propre <code>__init__</code>,<br>
+      sa première ligne est presque toujours <code>super().__init__(…)</code></div>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que <code>super()</code> vous épargne</div>
+    <p>Sans lui, on recopie le code du parent dans l'enfant. Le jour où le parent change — un
+       contrôle ajouté, un attribut de plus — <strong>les copies ne suivent pas</strong>. Avec
+       <code>super()</code>, les modifications du parent sont automatiquement prises en compte
+       partout.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Ce code affiche <code>AttributeError</code> à la dernière ligne. Trouvez les
+       <strong>deux</strong> problèmes.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Equipement:
+    def __init__(self, ip):
+        self.__ip = ip
+
+class Routeur(Equipement):
+    def __init__(self, ip, interfaces):
+        self.interfaces = interfaces
+
+r = Routeur("10.0.0.1", 4)
+print(r.__ip)</code></pre></div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>1. <code>super().__init__(ip)</code> est manquant.</strong> Le constructeur de
+         <code>Routeur</code> remplace celui d'<code>Equipement</code>, qui n'est donc jamais
+         exécuté : l'attribut <code>__ip</code> n'existe pas.</p>
+      <p><strong>2. <code>r.__ip</code> ne fonctionnerait de toute façon pas.</strong> L'attribut est
+         <em>privé</em> : Python l'a renommé en <code>_Equipement__ip</code>. On ne le lit pas de
+         l'extérieur — c'est précisément le but.</p>
+<div class="bloc-code"><span class="langue">python — corrigé</span><pre><code>class Equipement:
+    def __init__(self, ip):
+        self.__ip = ip
+
+    def get_ip(self):                      # un accesseur, puisque c'est privé
+        return self.__ip
+
+class Routeur(Equipement):
+    def __init__(self, ip, interfaces):
+        super().__init__(ip)               # on construit la partie « mère »
+        self.interfaces = interfaces
+
+r = Routeur("10.0.0.1", 4)
+print(r.get_ip())      # 10.0.0.1</code></pre></div>
+      <p class="rap">Les deux erreurs sont les plus fréquentes du TP4 — et elles se produisent
+         souvent ensemble.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Classe</strong> = le plan · <strong>objet</strong> = une réalisation.
+          <code>class Personne:</code>, majuscule.</li>
+      <li><strong><code>__init__</code></strong> construit, <strong><code>self</code></strong>
+          désigne l'objet. On déclare <code>self</code>, on ne le passe jamais.</li>
+      <li><strong>Attribut de classe</strong> = partagé · <strong>d'instance</strong> = propre
+          (dans <code>__init__</code>).</li>
+      <li><strong>Destructeur</strong> : <code>__del__</code> — et non <code>__def__</code>.</li>
+      <li><strong>Encapsulation</strong> : <code>nom</code> public, <code>_nom</code> protégé,
+          <code>__nom</code> privé. Une <em>convention</em>, pas une serrure.</li>
+      <li><strong>Getter / setter</strong> pour contrôler, ou mieux :
+          <strong><code>@property</code></strong>.</li>
+      <li><strong>Héritage</strong> : <code>class Fille(Mere):</code> — on ne réécrit pas le
+          commun.</li>
+      <li><strong>Override</strong> : même nom de méthode dans la fille.
+          <strong><code>super()</code></strong> appelle la mère.</li>
+      <li><strong>Ne jamais oublier <code>super().__init__(…)</code></strong> dans le constructeur
+          d'une fille.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Cours « POO en Python » · « L'Encapsulation » · « L'héritage en Python »
+          (le professeur, BTS CIEL 2025-2026)</li>
+      <li>TP3 et TP4 — POO, encapsulation et héritage (gestion d'équipements réseau)</li>
+      <li>comptes rendus d'élève</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

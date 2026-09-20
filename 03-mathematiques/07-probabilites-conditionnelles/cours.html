@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probabilités conditionnelles | BTS CIEL</title>
+<meta name="description" content="Cours complet : vocabulaire des probabilités, tableau de contingence, probabilité conditionnelle, arbre pondéré, formule des probabilités totales, renversement du conditionnement et événements indépendants.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#vocabulaire">1 · Le vocabulaire</a></li>
+    <li><a href="#regles">2 · Les règles de base</a></li>
+    <li><a href="#tableau">3 · Le tableau de contingence</a></li>
+    <li><a href="#conditionnelle">4 · La probabilité conditionnelle</a></li>
+    <li><a href="#arbre">5 · L'arbre pondéré</a></li>
+    <li><a href="#totales">6 · Les probabilités totales</a></li>
+    <li><a href="#renverser">7 · Renverser le conditionnement</a></li>
+    <li><a href="#independants">8 · Les événements indépendants</a></li>
+    <li><a href="#langue">9 · Les pièges de langue</a></li>
+    <li><a href="#examen">10 · À l'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 07</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Probabilités conditionnelles</h1>
+  <p class="chapeau">Une information change tout : savoir que la pièce est défectueuse ne change
+     pas la pièce — cela change <em>ce qu'on peut en dire</em>.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une probabilité <strong>conditionnelle</strong> se calcule sur un univers
+         <strong>réduit</strong> : <code>P<sub>B</sub>(A) = P(A∩B) / P(B)</code>. On la lit
+         « probabilité de A <strong>sachant</strong> B ». L'outil est l'<strong>arbre
+         pondéré</strong> : les branches de <strong>2ᵉ niveau</strong> portent des probabilités
+         conditionnelles, on <strong>multiplie</strong> le long d'un chemin et l'on
+         <strong>additionne</strong> les chemins. Deux événements sont
+         <strong>indépendants</strong> si l'un n'apprend rien sur l'autre —
+         <code>P(A∩B) = P(A) × P(B)</code>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#univers</code> <code>#événement</code> <code>#incompatibles</code>
+    <code>#contraire</code> <code>#union</code> <code>#intersection</code>
+    <code>#tableau-de-contingence</code> <code>#conditionnelle</code>
+    <code>#arbre-pondéré</code> <code>#probabilités-totales</code>
+    <code>#Bayes</code> <code>#indépendance</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="vocabulaire">
+  <h2><span class="num">01</span>Le vocabulaire</h2>
+
+  <p>Tout part d'une <strong>expérience aléatoire</strong> : une expérience dont on connaît tous
+     les résultats possibles, mais pas celui qui va sortir. Lancer un dé, tirer une pièce dans une
+     livraison, ouvrir un dossier d'assuré au hasard.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Terme</th><th>Notation</th><th>Ce que c'est</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Événement élémentaire</strong></td><td>E<sub>i</sub></td>
+          <td>un résultat possible, et un seul</td></tr>
+      <tr><td><strong>Univers</strong></td><td><strong>Ω</strong></td>
+          <td>l'ensemble de <em>tous</em> les résultats possibles</td></tr>
+      <tr><td><strong>Événement</strong></td><td>A, B…</td>
+          <td>un <em>ensemble</em> d'événements élémentaires — une partie de Ω</td></tr>
+      <tr><td><strong>Événement contraire</strong></td><td><strong>Ā</strong></td>
+          <td>tout ce qui est dans Ω mais pas dans A</td></tr>
+      <tr><td><strong>Intersection</strong></td><td>A ∩ B</td>
+          <td>« A <strong>ET</strong> B » — les deux à la fois</td></tr>
+      <tr><td><strong>Union</strong></td><td>A ∪ B</td>
+          <td>« A <strong>OU</strong> B » — au moins l'un des deux</td></tr>
+      <tr><td><strong>Incompatibles</strong></td><td>A ∩ B = ∅</td>
+          <td>ils ne peuvent pas se produire ensemble</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'exemple du dé, à garder en tête tout le chapitre</div>
+    <p>On lance un dé à 6 faces. <code>E<sub>i</sub></code> : « le résultat est <em>i</em> ».</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Ω = { E₁ , E₂ , E₃ , E₄ , E₅ , E₆ }
+
+A : « le résultat est pair »       → A = { E₂ , E₄ , E₆ }
+B : « le résultat est ⩽ 3 »        → B = { E₁ , E₂ , E₃ }
+
+Ā : « le résultat est impair »     → Ā = { E₁ , E₃ , E₅ }
+
+A ∩ B : « pair ET ⩽ 3 »            → A ∩ B = { E₂ }
+A ∪ B : « pair OU ⩽ 3 »            → A ∪ B = { E₁ , E₂ , E₃ , E₄ , E₆ }</code></pre></div>
+    <p>Remarquez <code>A ∪ B</code> : le <code>E₂</code> appartient aux deux, mais on ne le compte
+       <strong>qu'une fois</strong>. C'est toute l'origine du « − P(A∩B) » de la formule de
+       l'union.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 620 250" role="img" aria-label="Diagramme de Venn : intersection, union et événement contraire">
+      <style>
+        .vr{fill:none;stroke:var(--bord-fort);stroke-width:1.4}
+        .va{fill:var(--accent-pale);fill-opacity:.85;stroke:var(--accent);stroke-width:1.5}
+        .vb{fill:var(--rouge-pale,#FBEDEC);fill-opacity:.8;stroke:var(--rouge);stroke-width:1.5}
+        .vt{font:700 12px var(--sans);text-anchor:middle;fill:var(--encre)}
+        .vd{font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+        .ve{font:600 11px var(--mono);text-anchor:middle;fill:var(--encre)}
+      </style>
+      <rect class="vr" x="20" y="30" width="290" height="185" rx="6"/>
+      <text class="vd" x="40" y="48">Ω</text>
+      <circle class="va" cx="130" cy="125" r="72"/>
+      <circle class="vb" cx="205" cy="125" r="72"/>
+      <text class="vt" x="98" y="120">A</text><text class="vd" x="98" y="136">pair</text>
+      <text class="vt" x="238" y="120">B</text><text class="vd" x="238" y="136">⩽ 3</text>
+      <text class="ve" x="167" y="122">E₂</text>
+      <text class="ve" x="100" y="160">E₄ E₆</text>
+      <text class="ve" x="235" y="160">E₁ E₃</text>
+      <text class="ve" x="282" y="200">E₅</text>
+      <text class="vd" x="165" y="238">A ∩ B = { E₂ } — la zone commune</text>
+
+      <rect class="vr" x="340" y="30" width="260" height="185" rx="6"/>
+      <text class="vd" x="360" y="48">Ω</text>
+      <circle class="va" cx="440" cy="120" r="62"/>
+      <text class="vt" x="440" y="118">A</text>
+      <text class="vd" x="440" y="134">pair</text>
+      <text class="vt" x="548" y="80">Ā</text>
+      <text class="vd" x="548" y="96">impair</text>
+      <text class="ve" x="548" y="126">E₁ E₃ E₅</text>
+      <text class="vd" x="470" y="238">P(Ā) = 1 − P(A)</text>
+    </svg>
+    <figcaption>À gauche l'intersection, à droite le contraire. Tout le chapitre se lit sur ces
+      deux dessins : une probabilité conditionnelle, c'est se restreindre à l'un des disques.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="regles">
+  <h2><span class="num">02</span>Les règles de base</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les cinq règles qui ne changent jamais</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Règle</th><th>Formule</th><th>Ce qu'elle dit</th></tr></thead>
+      <tbody>
+        <tr><td>Univers</td><td><strong>P(Ω) = 1</strong></td>
+            <td>« il se passe forcément quelque chose »</td></tr>
+        <tr><td>Encadrement</td><td><strong>0 ⩽ P(A) ⩽ 1</strong></td>
+            <td>une probabilité n'est <em>jamais</em> négative ni &gt; 1</td></tr>
+        <tr><td>Impossible</td><td>P(∅) = 0</td><td>un événement vide ne se produit pas</td></tr>
+        <tr><td>Contraire</td><td><strong>P(Ā) = 1 − P(A)</strong></td>
+            <td>la règle la plus rentable de tout le chapitre</td></tr>
+        <tr><td>Somme</td><td>Σ P(E<sub>i</sub>) = 1</td>
+            <td>les probabilités élémentaires totalisent 1</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>L'union de deux événements</h3>
+
+  <div class="formule">P(A ∪ B) = P(A) + P(B) − P(A ∩ B)<br>
+    et si A et B sont <strong>incompatibles</strong> : P(A ∪ B) = P(A) + P(B)</div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Compter les élèves d'une classe</div>
+    <p>Dans une classe, 18 élèves font de l'anglais, 12 de l'espagnol. Combien font au moins une
+       langue ? Pas 30 : ceux qui font <strong>les deux</strong> ont été comptés deux fois. S'ils
+       sont 5, la réponse est 18 + 12 − 5 = 25.</p>
+    <p>La formule de l'union ne dit rien d'autre. Le « − P(A∩B) » <strong>corrige un double
+       comptage</strong>. Et quand les deux événements sont incompatibles, il n'y a personne dans
+       l'intersection : le terme disparaît.</p>
+  </div>
+
+  <h3>L'équiprobabilité</h3>
+
+  <p>Quand tous les résultats ont la <em>même</em> chance — un dé non pipé, un tirage au hasard —
+     le calcul devient un comptage :</p>
+
+  <div class="formule">P(A) = k / n = nombre de cas <strong>favorables</strong> /
+    nombre de cas <strong>possibles</strong></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Au hasard » est le mot qui autorise l'équiprobabilité</div>
+    <p>La formule <code>k/n</code> n'est valable que si les cas sont <strong>équiprobables</strong>.
+       L'énoncé le signale par « au hasard », « non truqué », « toutes les pièces ont la même
+       probabilité d'être prélevées ». Si cette mention manque, on ne peut pas compter : il faut
+       les probabilités données.</p>
+    <p>Piège classique : « on tire une boule dans une urne contenant 3 rouges et 2 noires ». Les
+       <em>couleurs</em> ne sont pas équiprobables (3/5 et 2/5) — ce sont les <em>boules</em> qui
+       le sont. On compte toujours les objets, jamais les catégories.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="tableau">
+  <h2><span class="num">03</span>Le tableau de contingence</h2>
+
+  <p>Avant toute formule, le cours part d'un tableau — et c'est la meilleure porte d'entrée, parce
+     qu'on y <strong>voit</strong> ce qu'une conditionnelle signifie.</p>
+
+  <p>Un assureur a relevé, sur <strong>1 000 dossiers</strong>, le nombre d'incidents de paiement
+     selon que le client est français ou étranger.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Incident</th><th>Pas d'incident</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Français</strong></td><td><strong>80</strong></td><td>720</td><td>800</td></tr>
+      <tr><td><strong>Étrangers</strong></td><td>40</td><td>160</td><td>200</td></tr>
+      <tr><td><strong>Total</strong></td><td>120</td><td>880</td><td><strong>1 000</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Comment on complète un tel tableau</div>
+    <p>L'énoncé ne donnait que quatre cases : 720, 800, 120 et 1 000. Tout le reste se déduit par
+       <strong>complémentarité</strong> — chaque ligne et chaque colonne totalise son bord :</p>
+    <ol>
+      <li>Français avec incident = 800 − 720 = <strong>80</strong></li>
+      <li>Étrangers (total) = 1 000 − 800 = <strong>200</strong></li>
+      <li>Étrangers avec incident = 120 − 80 = <strong>40</strong></li>
+      <li>Étrangers sans incident = 200 − 40 = <strong>160</strong></li>
+      <li>Total sans incident = 1 000 − 120 = <strong>880</strong> (contrôle : 720 + 160 = 880 ✔)</li>
+    </ol>
+    <p>Le <strong>contrôle croisé</strong> de la dernière ligne est gratuit et attrape toutes les
+       erreurs de soustraction. Faites-le systématiquement.</p>
+  </div>
+
+  <h3>Trois pourcentages qui n'ont rien à voir</h3>
+
+  <p>Voici le cœur du chapitre. Trois questions se ressemblent — et donnent trois résultats
+     différents, parce qu'elles ne divisent pas par le même total.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>La question</th><th>Le calcul</th><th>Résultat</th><th>On divise par…</th></tr></thead>
+    <tbody>
+      <tr><td>% de clients français <strong>et</strong> ayant eu un incident</td>
+          <td>80 / <strong>1 000</strong></td><td><strong>8 %</strong></td>
+          <td>tout le monde</td></tr>
+      <tr><td>% d'incidents <strong>parmi</strong> les français</td>
+          <td>80 / <strong>800</strong></td><td><strong>10 %</strong></td>
+          <td>les français seulement</td></tr>
+      <tr><td>% de français <strong>parmi</strong> ceux ayant eu un incident</td>
+          <td>80 / <strong>120</strong></td><td><strong>67 %</strong></td>
+          <td>les incidents seulement</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le numérateur est le même — c'est le dénominateur qui parle</div>
+    <p>Les trois calculs partent du <strong>même 80</strong>. Ce qui change, c'est la
+       <strong>population de référence</strong> : 1 000, 800 ou 120. Autrement dit,
+       <em>l'univers</em>.</p>
+    <p>Une probabilité conditionnelle, c'est exactement cela : <strong>on rétrécit l'univers</strong>.
+       Dire « sachant que le client est français », c'est jeter les 200 dossiers d'étrangers et
+       recalculer sur les 800 restants. Rien de plus.</p>
+    <div class="formule">8 %, 10 % et 67 % décrivent la même case du tableau.<br>
+      Seule la question posée diffère.</div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Complétez sans regarder le tableau : « ……… % des clients ayant eu un incident de paiement
+       sont français. » Et : « ……… % des clients français ont eu un incident. »</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>67 %</strong> des clients ayant eu un incident sont français (80/120).<br>
+         <strong>10 %</strong> des clients français ont eu un incident (80/800).</p>
+      <p><strong>La clé est dans l'ordre de la phrase.</strong> Ce qui vient <em>après</em> « des »
+         est la population de référence — le dénominateur :</p>
+      <div class="tableau">
+      <table>
+        <tbody>
+          <tr><td>« … % <strong>des clients ayant eu un incident</strong> sont français »</td>
+              <td>→ on divise par les incidents (120)</td></tr>
+          <tr><td>« … % <strong>des clients français</strong> ont eu un incident »</td>
+              <td>→ on divise par les français (800)</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="rap">En examen, <strong>soulignez la population de référence</strong> dans
+         l'énoncé avant de calculer. C'est trente secondes, et cela supprime l'erreur la plus
+         coûteuse du chapitre.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="conditionnelle">
+  <h2><span class="num">04</span>La probabilité conditionnelle</h2>
+
+  <p>On passe du comptage aux probabilités. On choisit un dossier au hasard parmi les 1 000, et
+     l'on pose :</p>
+
+  <ul>
+    <li><strong>F</strong> : « le dossier est celui d'un assuré <strong>français</strong> » —
+        donc <strong>F̄</strong> : « … d'un assuré étranger » ;</li>
+    <li><strong>I</strong> : « l'assuré a eu un <strong>incident</strong> dans l'année » —
+        donc <strong>Ī</strong> : « … n'a pas eu d'incident ».</li>
+  </ul>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(F)     = 800 / 1000 = 0,8            ← 80 % des clients sont français
+P(F ∩ I) =  80 / 1000 = 0,08           ← français ET incident
+
+P_F(I)   =  80 /  800 = 0,10           ← incident SACHANT français
+P_I(F)   =  80 /  120 ≈ 0,67           ← français SACHANT incident</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La définition</div>
+    <div class="formule">P<sub>B</sub>(A) = P(A ∩ B) / P(B) &nbsp;&nbsp;(avec P(B) ≠ 0)</div>
+    <p>Se lit : « probabilité de A <strong>sachant</strong> B ». On vérifie sur l'exemple :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P_F(I) = P(I ∩ F) / P(F) = 0,08 / 0,8 = 0,10     ✔
+P_I(F) = P(F ∩ I) / P(I) = 0,08 / 0,12 ≈ 0,67    ✔   avec P(I) = 120/1000 = 0,12</code></pre></div>
+    <p>La formule ne fait que traduire le tableau : diviser par <code>P(B)</code>, c'est
+       <strong>ramener l'univers à B</strong>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ P<sub>B</sub>(A) et P<sub>A</sub>(B) ne sont pas la même chose</div>
+    <p>L'intersection, elle, est symétrique : <code>P(A ∩ B) = P(B ∩ A)</code> — « A et B » est la
+       même chose que « B et A ». <strong>Les conditionnelles ne le sont pas :</strong></p>
+    <div class="formule">P<sub>F</sub>(I) = 0,10 &nbsp;·&nbsp; P<sub>I</sub>(F) ≈ 0,67<br>
+      même numérateur, dénominateurs différents</div>
+    <p>Confondre les deux est <em>l'</em>erreur du chapitre, et elle a un nom hors des maths :
+       le <strong>sophisme du procureur</strong>. « 99 % des malades ont ce symptôme » ne veut
+       <strong>pas</strong> dire « 99 % de ceux qui ont ce symptôme sont malades » — si la maladie
+       est rare, le second chiffre peut être minuscule. La <a href="#renverser">section 7</a> y
+       revient, calcul à l'appui.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La complémentarité vaut aussi pour les conditionnelles</div>
+    <div class="formule">P<sub>B</sub>(Ā) = 1 − P<sub>B</sub>(A)</div>
+    <p>Une fois l'univers réduit à B, tout s'y comporte normalement : les probabilités y totalisent
+       encore 1. Si 10 % des français ont eu un incident, alors <strong>90 % n'en ont pas eu</strong>.</p>
+    <p><strong>Attention au sens :</strong> c'est l'<em>événement</em> qui passe au contraire, pas
+       la condition. <code>P<sub>B</sub>(Ā) = 1 − P<sub>B</sub>(A)</code> est vrai, mais
+       <code>P<sub>B̄</sub>(A) = 1 − P<sub>B</sub>(A)</code> est <strong>faux</strong> : ce sont deux
+       univers différents.</p>
+  </div>
+
+  <h3>La formule des probabilités composées</h3>
+
+  <p>En multipliant la définition par P(B), on obtient la forme qu'on utilise le plus souvent —
+     celle qui correspond à un chemin dans l'arbre :</p>
+
+  <div class="formule">P(A ∩ B) = P(B) × P<sub>B</sub>(A) = P(A) × P<sub>A</sub>(B)</div>
+
+  <p>C'est la même égalité lue dans les deux sens. Elle dit : pour que A <em>et</em> B se
+     produisent, il faut d'abord que B se produise (probabilité P(B)), puis que A se produise
+     <em>dans ce cas</em> (probabilité P<sub>B</sub>(A)).</p>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="arbre">
+  <h2><span class="num">05</span>L'arbre pondéré</h2>
+
+  <p>C'est l'outil du chapitre — celui qu'on dessine <strong>avant</strong> de calculer quoi que ce
+     soit. Il transforme un énoncé en image, et l'image donne les réponses.</p>
+
+  <p>Reprenons l'énoncé sous forme probabiliste : <em>80 % des clients sont français ; 10 % des
+     clients français ont eu un incident ; 20 % des clients étrangers ont eu un incident.</em></p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 640 300" role="img" aria-label="Arbre pondéré à deux niveaux : français ou étranger, puis incident ou non">
+      <style>
+        .ab{stroke:var(--encre-douce);stroke-width:1.4;fill:none}
+        .an{font:700 13px var(--sans);fill:var(--encre)}
+        .ap{font:600 11px var(--mono);fill:var(--accent-sombre)}
+        .ac{font:600 11px var(--mono);fill:var(--rouge)}
+        .al{font:10.5px var(--sans);fill:var(--encre-douce)}
+        .ah{font:700 10.5px var(--sans);fill:var(--encre);text-anchor:middle}
+      </style>
+      <text class="ah" x="120" y="22">1ᵉʳ niveau</text>
+      <text class="ah" x="360" y="22">2ᵉ niveau — conditionnelles</text>
+      <text class="ah" x="560" y="22">chemin</text>
+      <line x1="240" y1="30" x2="240" y2="288" stroke="var(--bord)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="470" y1="30" x2="470" y2="288" stroke="var(--bord)" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <circle cx="40" cy="155" r="4" fill="var(--encre-douce)"/>
+
+      <path class="ab" d="M44,155 L150,85"/>
+      <text class="ap" x="80" y="108">0,8</text>
+      <text class="an" x="158" y="90">F</text>
+      <path class="ab" d="M44,155 L150,225"/>
+      <text class="ap" x="80" y="210">0,2</text>
+      <text class="an" x="158" y="230">F̄</text>
+
+      <path class="ab" d="M172,82 L300,50"/>
+      <text class="ac" x="215" y="55">0,1</text>
+      <text class="an" x="308" y="55">I</text>
+      <path class="ab" d="M172,90 L300,122"/>
+      <text class="ac" x="215" y="122">0,9</text>
+      <text class="an" x="308" y="127">Ī</text>
+
+      <path class="ab" d="M172,222 L300,190"/>
+      <text class="ac" x="215" y="192">0,2</text>
+      <text class="an" x="308" y="195">I</text>
+      <path class="ab" d="M172,230 L300,262"/>
+      <text class="ac" x="215" y="262">0,8</text>
+      <text class="an" x="308" y="267">Ī</text>
+
+      <text class="al" x="346" y="55">P(F∩I)  = 0,8 × 0,1 =</text>
+      <text class="ap" x="486" y="55" style="font-size:12px;fill:var(--rouge)">0,08</text>
+      <text class="al" x="346" y="127">P(F∩Ī) = 0,8 × 0,9 = 0,72</text>
+      <text class="al" x="346" y="195">P(F̄∩I)  = 0,2 × 0,2 =</text>
+      <text class="ap" x="486" y="195" style="font-size:12px;fill:var(--rouge)">0,04</text>
+      <text class="al" x="346" y="267">P(F̄∩Ī) = 0,2 × 0,8 = 0,16</text>
+
+      <line x1="500" y1="70" x2="500" y2="190" stroke="var(--rouge)" stroke-width="1.4"/>
+      <path d="M500,190 L530,190" stroke="var(--rouge)" stroke-width="1.4" fill="none"/>
+      <text class="ap" x="534" y="136" style="fill:var(--rouge)">P(I) = 0,12</text>
+      <text class="al" x="140" y="292">Σ des 4 chemins = 0,08 + 0,72 + 0,04 + 0,16 = 1 ✔</text>
+    </svg>
+    <figcaption>Le long d'un chemin, on <strong>multiplie</strong>. Entre les chemins qui mènent au
+      même événement, on <strong>additionne</strong>.</figcaption>
+  </figure>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Le mode d'emploi, en cinq règles</div>
+    <ol>
+      <li><strong>1ᵉʳ niveau : probabilités simples.</strong> <code>P(F) = 0,8</code>,
+          <code>P(F̄) = 0,2</code>. C'est la partition de l'univers.</li>
+      <li><strong>2ᵉ niveau : probabilités CONDITIONNELLES.</strong> La branche qui suit F porte
+          <code>P<sub>F</sub>(I)</code>, pas <code>P(I)</code>. <em>C'est le point que le jury
+          vérifie.</em></li>
+      <li><strong>Le long d'un chemin, on multiplie.</strong> Chemin F puis I :
+          <code>P(F ∩ I) = 0,8 × 0,1 = 0,08</code>.</li>
+      <li><strong>Entre les chemins, on additionne.</strong> Deux chemins mènent à I :
+          <code>P(I) = 0,08 + 0,04 = 0,12</code>.</li>
+      <li><strong>Les branches issues d'un même nœud totalisent 1.</strong>
+          0,1 + 0,9 = 1 ✔ · 0,2 + 0,8 = 1 ✔ · 0,8 + 0,2 = 1 ✔</li>
+    </ol>
+    <p>La règle 5 est un <strong>contrôle gratuit</strong> : elle attrape presque toutes les
+       erreurs de recopie de l'énoncé.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Piège d'examen — « 20 % des étrangers » n'est pas « 20 % des clients »</div>
+    <p>L'énoncé dit « 20 % des clients <strong>étrangers</strong> ont eu un incident ». Cette valeur
+       est <code>P<sub>F̄</sub>(I) = 0,2</code> — une conditionnelle, à placer sur une branche de
+       <strong>deuxième</strong> niveau.</p>
+    <p>La placer au premier niveau, ou écrire <code>P(F̄ ∩ I) = 0,2</code>, fausse tout le reste
+       de l'exercice. Le repère est infaillible : <strong>un pourcentage « parmi » une
+       sous-population est toujours une conditionnelle</strong>.</p>
+    <div class="formule">Vérification : les vrais P(F̄ ∩ I) valent 0,04, pas 0,2.<br>
+      40 dossiers sur 1 000 — le tableau le confirme.</div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Quel événement mettre au premier niveau ?</div>
+    <p>Celui dont l'énoncé donne les probabilités <strong>simples</strong>. Ici « 80 % des clients
+       sont français » est une probabilité simple : F va au premier niveau. Les incidents ne sont
+       donnés que « parmi les français » et « parmi les étrangers » — donc au second.</p>
+    <p>L'arbre suit la <strong>chronologie de l'information</strong>, pas celle de la question. On
+       peut très bien demander <code>P<sub>I</sub>(F)</code> — une conditionnelle « à l'envers » de
+       l'arbre : c'est précisément l'objet de la <a href="#renverser">section 7</a>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="totales">
+  <h2><span class="num">06</span>Les probabilités totales</h2>
+
+  <p>Comment atteindre I ? Par deux chemins seulement : en passant par F, ou en passant par F̄. Il
+     n'y a pas de troisième possibilité — c'est une <strong>partition</strong> de l'univers.</p>
+
+  <div class="formule">P(A) = P(A ∩ B) + P(A ∩ B̄)</div>
+
+  <p>Et en développant chaque intersection le long de son chemin :</p>
+
+  <div class="formule">P(A) = P(B) × P<sub>B</sub>(A) &nbsp;+&nbsp; P(B̄) × P<sub>B̄</sub>(A)</div>
+
+<div class="bloc-code"><span class="langue">calcul — sur l'exemple</span><pre><code>P(I) = P(F ∩ I) + P(F̄ ∩ I)
+     = P(F) × P_F(I)  +  P(F̄) × P_F̄(I)
+     = 0,8 × 0,1      +  0,2 × 0,2
+     = 0,08           +  0,04
+     = 0,12
+
+contrôle par le tableau : 120 / 1000 = 0,12   ✔
+
+conclusion : 12 % des clients ont eu un incident de paiement dans l'année.</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Les deux portes de la même salle</div>
+    <p>Une salle a deux portes. Pour savoir combien de personnes y sont entrées, on compte les
+       entrées de la porte A <em>et</em> celles de la porte B, puis on additionne. À condition
+       qu'il n'y ait pas de troisième porte — et que personne ne soit passé par les deux.</p>
+    <p>C'est exactement l'hypothèse de la formule : <strong>B et B̄ recouvrent tout l'univers, sans
+       se chevaucher</strong>. C'est vrai pour tout couple {B, B̄}, et c'est pourquoi la formule
+       marche toujours.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Avec trois branches ou plus</div>
+    <p>Rien ne change si l'univers est partagé en trois — trois fournisseurs, trois grossistes,
+       trois sites de production. On additionne simplement trois chemins :</p>
+    <div class="formule">P(M) = P(A)×P<sub>A</sub>(M) + P(B)×P<sub>B</sub>(M) + P(C)×P<sub>C</sub>(M)</div>
+    <p>Deux conditions, et toujours les mêmes : les cas doivent être
+       <strong>incompatibles</strong> (on ne peut pas venir de deux fournisseurs à la fois) et
+       <strong>recouvrir tout</strong> (il n'y a pas de quatrième fournisseur). C'est la définition
+       d'une partition, et le sujet la garantit en écrivant « 20 % de A, 35 % de B et
+       <em>le reste</em> de C ».</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Un poissonnier se fournit chez trois grossistes : 20 % chez A, 35 % chez B, le reste chez C.
+       Parmi les crabes de A, 5 % sont invendables ; 10 % pour B ; 20 % pour C. Quelle est la
+       probabilité qu'un crabe pris au hasard soit invendable ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Étape 1 — la part de C.</strong> « Le reste » : 100 − 20 − 35 = <strong>45 %</strong>.
+         Contrôle : 0,20 + 0,35 + 0,45 = 1 ✔</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(M) = P(A)×P_A(M) + P(B)×P_B(M) + P(C)×P_C(M)
+     = 0,20 × 0,05  +  0,35 × 0,10  +  0,45 × 0,20
+     = 0,01         +  0,035        +  0,09
+     = 0,135
+
+13,5 % des crabes sont invendables.</code></pre></div>
+      <p class="rap">Deux contrôles immédiats : le résultat est compris entre le plus petit taux
+         (5 %) et le plus grand (20 %) — c'est une <strong>moyenne pondérée</strong>, elle ne peut
+         pas en sortir. Et il penche vers 20 % parce que C, le plus mauvais, fournit presque la
+         moitié.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="renverser">
+  <h2><span class="num">07</span>Renverser le conditionnement</h2>
+
+  <p>L'arbre va de la cause vers l'effet : on sait d'où vient le client, on en déduit son risque
+     d'incident. La question d'examen fait souvent le <strong>chemin inverse</strong> : on
+     <em>constate</em> l'incident, et l'on cherche d'où vient le dossier.</p>
+
+  <div class="formule">P<sub>I</sub>(F) = P(F ∩ I) / P(I)</div>
+
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>1. le numérateur — un seul chemin de l'arbre
+   P(F ∩ I) = 0,8 × 0,1 = 0,08
+
+2. le dénominateur — les probabilités totales
+   P(I) = 0,08 + 0,04 = 0,12
+
+3. la division
+   P_I(F) = 0,08 / 0,12 ≈ 0,67
+
+conclusion : 67 % des clients ayant eu un incident sont français.</code></pre></div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 La méthode en trois temps — toujours la même</div>
+    <div class="formule">1. le chemin (numérateur) &nbsp;→&nbsp; 2. les probabilités totales
+      (dénominateur) &nbsp;→&nbsp; 3. on divise</div>
+    <p>C'est la <strong>formule de Bayes</strong>, qu'on n'a pas besoin de nommer ni d'apprendre
+       par cœur : elle n'est que la définition de la conditionnelle, avec un dénominateur calculé
+       à l'étape d'avant. <strong>L'étape 2 est déjà faite</strong> si l'énoncé a demandé P(I) à la
+       question précédente — et c'est presque toujours le cas.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pourquoi 67 % surprend — et pourquoi c'est juste</div>
+    <p>Seulement 10 % des français ont un incident, contre 20 % des étrangers. Les étrangers sont
+       deux fois plus « à risque ». Et pourtant, <strong>deux tiers des incidents viennent de
+       français</strong>. Contradiction ?</p>
+    <p>Non : les français sont <strong>quatre fois plus nombreux</strong>. Un taux plus faible sur
+       une population beaucoup plus grande donne un effectif plus grand.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>français  : 800 × 10 %  =  80 incidents
+étrangers : 200 × 20 %  =  40 incidents
+                          ───
+                          120 incidents  dont 80 français, soit 67 %</code></pre></div>
+    <p>C'est <strong>l'effet de base</strong> (<em>base rate</em>), et c'est la raison d'être de ce
+       chapitre. Un raisonnement qui néglige la taille des populations se trompe — en médecine, en
+       justice, en détection d'intrusion.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le même calcul en cybersécurité</div>
+    <p>Un système de détection d'intrusion signale 99 % des vraies attaques (<em>vrais
+       positifs</em>) et se trompe sur 1 % du trafic normal (<em>faux positifs</em>). Sur
+       1 000 000 de connexions, 100 sont des attaques. Une alerte vient de sonner : quelle est la
+       probabilité que ce soit une vraie attaque ?</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>vraies attaques détectées  :     100 × 0,99 =     99
+fausses alertes            : 999 900 × 0,01 =  9 999
+                                              ──────
+alertes au total                              10 098
+
+P(vraie attaque | alerte) = 99 / 10 098 ≈ 0,0098  →  environ 1 %</code></pre></div>
+    <p>Un détecteur « fiable à 99 % » produit <strong>99 fausses alertes pour une vraie</strong>,
+       parce que les attaques sont rares. C'est exactement pourquoi les analystes SOC se noient
+       sous les alertes — et pourquoi on affine les règles au lieu d'en ajouter. Le lien avec le
+       <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
+       cybersécurité</a> est direct.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="independants">
+  <h2><span class="num">08</span>Les événements indépendants</h2>
+
+  <p>Deux événements sont <strong>indépendants</strong> quand savoir que l'un s'est produit
+     n'apprend <em>rien</em> sur l'autre. La conditionnalité disparaît :</p>
+
+  <div class="formule">A et B indépendants &nbsp;⟺&nbsp;
+    P<sub>B</sub>(A) = P(A) &nbsp;et&nbsp; P<sub>A</sub>(B) = P(B)<br>
+    ⟺ &nbsp;<strong>P(A ∩ B) = P(A) × P(B)</strong></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux propriétés à connaître</div>
+    <ol>
+      <li><strong>L'indépendance passe aux contraires.</strong> Si A et B sont indépendants, alors
+          (Ā, B), (A, B̄) et (Ā, B̄) le sont aussi. C'est ce qui permet de calculer « aucun des
+          deux » par un simple produit.</li>
+      <li><strong>Mais elle ne passe pas aux combinaisons.</strong> Si A et B sont indépendants,
+          <code>A ∪ B</code> et <code>A ∩ B</code> ne le sont <em>pas</em> entre eux — et c'est
+          l'objet de l'exercice ci-dessous.</li>
+    </ol>
+  </div>
+
+  <h3>L'exemple du cours : les deux défauts</h3>
+
+  <p>Un atelier reçoit des pièces en grande quantité. Chacune peut présenter deux défauts,
+     <em>a</em> et <em>b</em>. On prélève une pièce au hasard.</p>
+
+  <ul>
+    <li><strong>A</strong> : « la pièce présente le défaut <em>a</em> », <code>P(A) = 0,02</code></li>
+    <li><strong>B</strong> : « la pièce présente le défaut <em>b</em> », <code>P(B) = 0,01</code></li>
+    <li>A et B sont supposés <strong>indépendants</strong>.</li>
+  </ul>
+
+<div class="bloc-code"><span class="langue">calcul — E₁ : les DEUX défauts</span><pre><code>E₁ = A ∩ B
+
+P(E₁) = P(A) × P(B)          ← licite car A et B sont indépendants
+      = 0,02 × 0,01
+      = 0,0002               soit 0,02 % des pièces</code></pre></div>
+
+<div class="bloc-code"><span class="langue">calcul — E₂ : la pièce est défectueuse (AU MOINS un défaut)</span><pre><code>E₂ = A ∪ B
+
+P(E₂) = P(A) + P(B) − P(A ∩ B)
+      = 0,02 + 0,01 − 0,0002
+      = 0,0298               soit 2,98 % des pièces</code></pre></div>
+
+<div class="bloc-code"><span class="langue">calcul — E₃ : AUCUN défaut, par deux chemins</span><pre><code>méthode 1 — par l'indépendance des contraires
+E₃ = Ā ∩ B̄
+P(E₃) = P(Ā) × P(B̄) = (1 − 0,02) × (1 − 0,01) = 0,98 × 0,99 = 0,9702
+
+méthode 2 — par complémentarité
+E₃ = complémentaire de (A ∪ B)
+P(E₃) = 1 − P(A ∪ B) = 1 − 0,0298 = 0,9702      ✔ même résultat
+
+97,02 % des pièces sont saines.</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Au moins un » se traite par le contraire</div>
+    <div class="formule">« au moins un » = contraire de « aucun »</div>
+    <p>Avec deux événements, les deux méthodes se valent. Avec <strong>dix</strong>, la formule de
+       l'union devient monstrueuse, alors que le contraire reste un simple produit :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>P(au moins un défaut sur 10 pièces) = 1 − P(aucun défaut)
+                                    = 1 − 0,98¹⁰
+                                    ≈ 1 − 0,817 = 0,183</code></pre></div>
+    <p>Dès que vous lisez « au moins un » dans un énoncé, <strong>écrivez d'abord
+       <code>1 − P(aucun)</code></strong>. Le réflexe est rentable dans tout le chapitre, et
+       encore plus au <a href="../08-variables-aleatoires-loi-binomiale/cours.html">chapitre
+       suivant</a>.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — une erreur d'un facteur 10 dans le corrigé du cours</div>
+    <p>La dernière question demande : <em>quelle est la probabilité que la pièce présente les deux
+       défauts, sachant qu'elle est défectueuse ?</em> C'est une conditionnelle
+       <code>P<sub>A∪B</sub>(A∩B)</code>, et le corrigé la pose correctement :</p>
+<div class="bloc-code"><span class="langue">calcul — ce qui est écrit</span><pre><code>P_A∪B(A ∩ B) = P((A∪B) ∩ (A∩B)) / P(A∪B)
+             = P(A ∩ B) / P(A ∪ B)          ← car A∩B est inclus dans A∪B
+             = 0,0002 / 0,0298
+             = 0,067        ✘   →  « 6,7 % des pièces défectueuses ont les 2 défauts »</code></pre></div>
+    <p>La mise en place est juste ; c'est la <strong>division</strong> qui dérape :</p>
+<div class="bloc-code"><span class="langue">calcul — le bon résultat</span><pre><code>0,0002 / 0,0298 = 0,006711…
+
+arrondi à 10⁻⁴ (comme l'énoncé le demande) :  0,0067
+
+→ 0,67 % des pièces défectueuses ont les deux défauts,  pas 6,7 %</code></pre></div>
+    <p><strong>La vérification qui tranche</strong> — on remultiplie :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>0,0298 × 0,067  = 0,001997     ✘  on attendait 0,0002
+0,0298 × 0,0067 = 0,0002       ✔</code></pre></div>
+    <p>Le résultat annoncé est donc <strong>dix fois trop grand</strong>. Et le contrôle de
+       vraisemblance suffisait à le voir : les pièces à deux défauts sont
+       <strong>0,0002/0,0298 ≈ 1/149</strong> des pièces défectueuses — environ une sur cent
+       cinquante. 6,7 % voudrait dire une sur quinze.</p>
+    <div class="formule">Après toute division de deux petits nombres :<br>
+      remultipliez pour retrouver le numérateur.</div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Indépendants n'est pas incompatibles</div>
+    <p>Deux mots proches, deux notions <strong>opposées</strong> — et la confusion coûte cher :</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>Incompatibles</th><th>Indépendants</th></tr></thead>
+      <tbody>
+        <tr><td>Définition</td><td>A ∩ B = ∅</td><td>P(A ∩ B) = P(A) × P(B)</td></tr>
+        <tr><td>Peuvent-ils arriver ensemble ?</td><td><strong>non, jamais</strong></td>
+            <td><strong>oui</strong>, et on sait à quelle fréquence</td></tr>
+        <tr><td>P(A ∩ B)</td><td>= 0</td><td>= P(A) × P(B), non nul</td></tr>
+        <tr><td>Si l'un se produit…</td><td>l'autre est <em>exclu</em> — information maximale</td>
+            <td>on n'apprend <em>rien</em> sur l'autre</td></tr>
+        <tr><td>Exemple</td><td>obtenir 2 et obtenir 5 au même lancer</td>
+            <td>le défaut <em>a</em> et le défaut <em>b</em></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Deux événements incompatibles de probabilité non nulle sont même
+       <strong>toujours dépendants</strong> : savoir que l'un est arrivé garantit que l'autre
+       ne l'est pas.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="langue">
+  <h2><span class="num">09</span>Les pièges de langue</h2>
+
+  <p>En probabilités, la difficulté n'est presque jamais le calcul : c'est la
+     <strong>traduction</strong> de l'énoncé. Trois mots décident de tout.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>L'énoncé dit…</th><th>Cela se traduit</th><th>Dans l'arbre</th></tr></thead>
+    <tbody>
+      <tr><td>« A <strong>et</strong> B », « les deux »</td><td><code>P(A ∩ B)</code></td>
+          <td>un chemin complet — on multiplie</td></tr>
+      <tr><td>« A <strong>ou</strong> B », « au moins un »</td><td><code>P(A ∪ B)</code></td>
+          <td>plusieurs chemins — on additionne</td></tr>
+      <tr><td>« <strong>sachant que</strong> B »</td><td><code>P<sub>B</sub>(A)</code></td>
+          <td>une branche de 2ᵉ niveau</td></tr>
+      <tr><td>« <strong>parmi</strong> les B »</td><td><code>P<sub>B</sub>(A)</code></td>
+          <td>idem — c'est le même mot</td></tr>
+      <tr><td>« … % <strong>des</strong> B sont A »</td><td><code>P<sub>B</sub>(A)</code></td>
+          <td>idem</td></tr>
+      <tr><td>« <strong>aucun</strong> », « pas de »</td><td><code>P(Ā ∩ B̄)</code></td>
+          <td>le chemin « non » puis « non »</td></tr>
+      <tr><td>« <strong>le reste</strong> »</td><td>1 − (ce qui précède)</td>
+          <td>la dernière branche du 1ᵉʳ niveau</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 La méthode de traduction, avant tout calcul</div>
+    <ol>
+      <li><strong>Nommer les événements</strong> par une lettre, et écrire la phrase complète en
+          face. « F : le client est français ». Cette ligne se recopie dans la copie — elle
+          rapporte des points et évite les confusions trois questions plus loin.</li>
+      <li><strong>Souligner dans l'énoncé</strong> les mots <em>et</em>, <em>ou</em>,
+          <em>sachant</em>, <em>parmi</em>, <em>au moins</em>, <em>aucun</em>.</li>
+      <li><strong>Classer chaque donnée</strong> : simple (1ᵉʳ niveau) ou conditionnelle
+          (2ᵉ niveau) ? Le test : « ce pourcentage porte-t-il sur <em>tout le monde</em> ou sur
+          <em>une sous-population</em> ? »</li>
+      <li><strong>Dessiner l'arbre</strong>, et seulement ensuite calculer.</li>
+    </ol>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Trois phrases qui se ressemblent et ne disent pas la même chose</div>
+<div class="bloc-code"><span class="langue">énoncés</span><pre><code>« 8 % des clients sont français ET ont eu un incident »   →  P(F ∩ I) = 0,08
+« 10 % des clients français ont eu un incident »          →  P_F(I)   = 0,10
+« 67 % des clients ayant eu un incident sont français »   →  P_I(F)   = 0,67</code></pre></div>
+    <p>Trois nombres différents pour <strong>la même situation</strong> et la même case du
+       tableau. La seule façon de ne pas se tromper est de repérer la population de référence — ce
+       qui suit « des » ou « parmi ».</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Rédiger la conclusion : une phrase, avec le contexte</div>
+    <p>Le barème accorde presque toujours un point à l'interprétation. Un résultat nu n'en vaut
+       aucun.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>❌ Ne rapporte rien</th><th>✔ Rapporte le point</th></tr></thead>
+      <tbody>
+        <tr><td>« P<sub>I</sub>(F) = 0,67 »</td>
+            <td>« 67 % des clients ayant eu un incident de paiement sont français. »</td></tr>
+        <tr><td>« 0,135 »</td>
+            <td>« 13,5 % des crabes du poissonnier sont invendables. »</td></tr>
+        <tr><td>« 0,0067 »</td>
+            <td>« Parmi les pièces défectueuses, 0,67 % présentent les deux défauts. »</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>La recette : <strong>un pourcentage, le mot « parmi » ou « des », et les mots de
+       l'énoncé</strong>. Jamais « A », « B » ou « I » dans une conclusion — on reprend les noms
+       réels.</p>
+  </div>
+</section>
+
+<!-- ================================================================ 10 -->
+<section id="examen">
+  <h2><span class="num">10</span>À l'examen</h2>
+
+  <p>Ce chapitre tombe à <strong>chaque</strong> session, et presque toujours sous la même forme :
+     un exercice en trois parties, dont la première est un arbre pondéré.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La structure type d'un exercice</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Question</th><th>Ce qui est attendu</th><th>Barème typique</th></tr></thead>
+      <tbody>
+        <tr><td>1. Représenter par un arbre pondéré</td>
+            <td>l'arbre complet, <strong>toutes</strong> les branches étiquetées</td>
+            <td>1 à 1,5 pt</td></tr>
+        <tr><td>2a. Calculer P(A ∩ D) et interpréter</td>
+            <td>un produit le long d'un chemin + <strong>une phrase</strong></td>
+            <td>1,5 pt</td></tr>
+        <tr><td>2b. Montrer que P(D) = …</td>
+            <td>probabilités totales — la valeur est donnée, il faut la <em>retrouver</em></td>
+            <td>1,5 pt</td></tr>
+        <tr><td>3. Une pièce défectueuse est prélevée : probabilité qu'elle vienne de A ?</td>
+            <td>conditionnelle renversée : chemin ÷ total</td><td>1,5 pt</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>La question 2b est <strong>cadeau</strong> : la valeur étant donnée, on sait immédiatement si
+       l'on s'est trompé. Et elle sert de dénominateur à la question 3 — donc même en la ratant, on
+       peut enchaîner avec la valeur de l'énoncé.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Montrer que » n'est pas « calculer »</div>
+    <p>Quand l'énoncé écrit « Montrer que P(D) = 0,00695 », il ne suffit pas d'écrire le résultat :
+       il faut <strong>dérouler le calcul</strong> qui y mène. Le point porte sur la démarche, pas
+       sur le nombre — qui est déjà imprimé sur le sujet.</p>
+<div class="bloc-code"><span class="langue">rédaction attendue</span><pre><code>D'après la formule des probabilités totales :
+
+P(D) = P(A ∩ D) + P(B ∩ D)
+     = P(A) × P_A(D)  +  P(B) × P_B(D)
+     = 0,65 × 0,008   +  0,35 × 0,005
+     = 0,0052         +  0,00175
+     = 0,00695                              ✔ conforme à l'énoncé</code></pre></div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Ce qui s'est réellement vu en DST</div>
+    <p>Les trois devoirs de l'année ont posé la même architecture, avec des habillages
+       différents :</p>
+    <ul>
+      <li><strong>Cartes mères</strong> — deux sites de production A (65 %) et B (35 %), taux de
+          défaut 0,8 % et 0,5 %. Questions : arbre, P(A∩D), montrer que P(D) = 0,00695, puis
+          <code>P<sub>D</sub>(A) ≈ 0,748</code>.</li>
+      <li><strong>Crabes et grossistes</strong> — trois branches au premier niveau (20 %, 35 %,
+          45 %), taux d'invendables 5 %, 10 %, 20 %. Même méthode avec une addition de plus.</li>
+      <li><strong>Factures d'un garage</strong> — mécanique (65 %) et carrosserie, taux d'erreur
+          2 % et 1 %. Question finale : la facture est erronée, vient-elle de la carrosserie ?</li>
+    </ul>
+    <p>Trois sujets, un seul schéma. <strong>Maîtriser l'arbre, c'est maîtriser le
+       chapitre.</strong></p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🧠 Auto-évaluation</div>
+    <p>Une entreprise produit des cartes mères sur deux sites. A produit 65 % des cartes, le reste
+       vient de B. 0,8 % des cartes de A sont défectueuses, contre 0,5 % pour B. Une carte
+       défectueuse est prélevée : quelle est la probabilité qu'elle vienne de A ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>1. Nommer et poser.</strong> A : « la carte vient du site A » · B : « … du site
+         B » · D : « la carte est défectueuse ».</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>Données :   P(A) = 0,65      P(B) = 0,35     ← « le reste »
+            P_A(D) = 0,008   P_B(D) = 0,005  ← conditionnelles : « des cartes de A »
+
+2. le chemin
+   P(A ∩ D) = P(A) × P_A(D) = 0,65 × 0,008 = 0,0052
+
+3. les probabilités totales
+   P(D) = P(A ∩ D) + P(B ∩ D)
+        = 0,0052 + 0,35 × 0,005
+        = 0,0052 + 0,00175
+        = 0,00695
+
+4. on renverse
+   P_D(A) = P(A ∩ D) / P(D) = 0,0052 / 0,00695 ≈ 0,748</code></pre></div>
+      <p><strong>Conclusion :</strong> parmi les cartes défectueuses, environ
+         <strong>74,8 %</strong> proviennent du site A.</p>
+      <div class="encart savoir">
+        <div class="titre">💡 Pourquoi ce n'est pas contradictoire</div>
+        <p>Le site A a un taux de défaut plus élevé (0,8 % contre 0,5 %) <em>et</em> produit
+           presque le double de cartes. Les deux effets vont dans le même sens : il est donc
+           normal que les trois quarts des défauts viennent de A.</p>
+        <p>Mais attention à la conclusion managériale : cela ne veut pas dire que A est
+           « responsable des trois quarts du problème » — si l'on veut comparer les sites, c'est
+           le <strong>taux</strong> qu'on regarde, pas l'effectif.</p>
+      </div>
+      <p class="rap">Contrôle de vraisemblance : <code>P<sub>D</sub>(A)</code> doit être
+         <strong>supérieure</strong> à <code>P(A) = 0,65</code>, puisque A est le site le plus
+         défaillant — savoir que la carte est défectueuse rend A <em>plus</em> probable.
+         0,748 &gt; 0,65 ✔</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Vocabulaire</strong> : Ω l'univers · Ā le contraire · ∩ = « et » · ∪ = « ou » ·
+          incompatibles = A ∩ B = ∅.</li>
+      <li><strong>Règles</strong> : <code>P(Ā) = 1 − P(A)</code> ·
+          <code>P(A ∪ B) = P(A) + P(B) − P(A ∩ B)</code> · équiprobabilité :
+          favorables / possibles.</li>
+      <li><strong>Conditionnelle</strong> : <code>P<sub>B</sub>(A) = P(A ∩ B) / P(B)</code> —
+          on <strong>réduit l'univers</strong> à B.</li>
+      <li><strong>P<sub>B</sub>(A) ≠ P<sub>A</sub>(B)</strong> : même numérateur, dénominateurs
+          différents. C'est l'erreur du chapitre.</li>
+      <li><strong>Arbre</strong> : 1ᵉʳ niveau = simples · 2ᵉ niveau = <strong>conditionnelles</strong>.
+          On <strong>multiplie</strong> le long d'un chemin, on <strong>additionne</strong> les
+          chemins. Les branches d'un même nœud totalisent 1.</li>
+      <li><strong>Probabilités totales</strong> :
+          <code>P(A) = P(B)×P<sub>B</sub>(A) + P(B̄)×P<sub>B̄</sub>(A)</code> — autant de termes que
+          de branches.</li>
+      <li><strong>Renverser</strong> (Bayes) : le chemin au numérateur, les probabilités totales au
+          dénominateur, on divise.</li>
+      <li><strong>Indépendants</strong> : <code>P(A ∩ B) = P(A) × P(B)</code>. Ce n'est
+          <strong>pas</strong> « incompatibles ».</li>
+      <li><strong>« Au moins un »</strong> → <code>1 − P(aucun)</code>. Toujours.</li>
+      <li><strong>Traduire</strong> : « parmi », « sachant », « … % des B » → conditionnelle.
+          « Le reste » → 1 − le reste.</li>
+      <li><strong>Conclure par une phrase</strong> avec un pourcentage et les mots de l'énoncé —
+          c'est un point du barème.</li>
+      <li><strong>Vérifier</strong> : les branches somment à 1 · une moyenne pondérée reste entre
+          ses extrêmes · après une division, remultiplier.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Chapitre 03 — Probabilités » : généralités, vocabulaire, union, équiprobabilité
+          (3 pages)</li>
+      <li>« Probabilités conditionnelles » : tableau de contingence de l'assureur, passage des
+          pourcentages aux probabilités, arbre pondéré (5 pages)</li>
+      <li>« Chapitre 4 — partie 2 : événements indépendants », cours manuscrit (7 pages) — exemple
+          des deux défauts <em>a</em> et <em>b</em></li>
+      <li>« Chapitre 4 — partie 1 : introduction » et feuille d'exercices (9 + 5 pages, scans)</li>
+      <li>Sujets et corrigés de DST : cartes mères (sites A et B), crabes et grossistes, factures
+          de garage — dont une copie notée 20/20</li>
+      <li>Photos de tableau : corrigé de l'arbre et de la formule de renversement</li>
+      <li>Travaux de l'élève et du binôme, exercices 1 à 3</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

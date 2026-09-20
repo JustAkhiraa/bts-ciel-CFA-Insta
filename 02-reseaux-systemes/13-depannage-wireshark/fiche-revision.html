@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dépannage réseau — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : méthode de dépannage en 5 étapes, ipconfig, ping, TTL, tracert, netstat, nslookup et Wireshark.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; Systèmes</span>
+    <span class="sep">/</span><span>Chapitre 13</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Dépannage réseau</h1>
+  <p class="chapeau">Recto-verso. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo">
+    <h2>La méthode — 5 étapes</h2>
+    <p>Du <strong>plus proche</strong> au <strong>plus lointain</strong>. Le premier test qui échoue
+       localise la panne.</p>
+    <ol>
+      <li><strong>Physique</strong> — câbles, connecteurs, LED</li>
+      <li><strong>Ping du switch</strong> — connectivité locale</li>
+      <li><strong>Ping du routeur</strong>, puis d'un autre poste</li>
+      <li><strong>Ping 8.8.8.8</strong> — sortie Internet</li>
+      <li><strong><code>ipconfig /all</code></strong> — cohérence de la configuration</li>
+    </ol>
+  </article>
+
+  <article class="memo">
+    <h2>Les commandes</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>ipconfig /all</code></td><td>IP, masque, passerelle, DNS, MAC, DHCP</td></tr>
+        <tr><td><code>ipconfig /release</code></td><td>libère le bail DHCP</td></tr>
+        <tr><td><code>ipconfig /renew</code></td><td>en demande un nouveau</td></tr>
+        <tr><td><code>ipconfig /flushdns</code></td><td>vide le cache DNS</td></tr>
+        <tr><td><code>ping &lt;cible&gt;</code></td><td>joignabilité + TTL + latence</td></tr>
+        <tr><td><code>ping -t</code></td><td>en continu — pannes intermittentes</td></tr>
+        <tr><td><code>tracert &lt;cible&gt;</code></td><td>chemin saut par saut</td></tr>
+        <tr><td><code>netstat -an</code></td><td>connexions et ports en écoute</td></tr>
+        <tr><td><code>nslookup &lt;nom&gt;</code></td><td>interroge le DNS</td></tr>
+        <tr><td><code>arp -a</code></td><td>correspondances IP ↔ MAC</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo">
+    <h2>Le TTL</h2>
+    <div class="formule">routeurs traversés = TTL initial − TTL reçu</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Initial</th><th>Système</th></tr></thead>
+      <tbody>
+        <tr><td><strong>64</strong></td><td>Linux, macOS, Unix, équipements réseau</td></tr>
+        <tr><td><strong>128</strong></td><td>Windows</td></tr>
+        <tr><td>255</td><td>certains équipements Cisco</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><code>TTL=54</code> → 64 − 54 = <strong>10 routeurs</strong>.<br>
+       <code>TTL=118</code> → 128 − 118 = 10 routeurs, et la cible est <strong>sous
+       Windows</strong>.<br>
+       TTL <strong>intact</strong> → <strong>même segment</strong>, aucun routeur.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le tableau de diagnostic</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Symptôme</th><th>Conclusion</th></tr></thead>
+      <tbody>
+        <tr><td>IP en <code>169.254.x.x</code></td>
+            <td><strong>APIPA</strong> — aucun DHCP joint</td></tr>
+        <tr><td>Passerelle vide</td><td>le LAN marche, <strong>pas la sortie</strong></td></tr>
+        <tr><td>DNS vide</td><td>IP OK, <strong>aucun nom</strong> ne résout</td></tr>
+        <tr><td><code>ping IP</code> OK<br><code>ping nom</code> KO</td>
+            <td class="rep-ok"><strong>DNS</strong> — le réseau est bon</td></tr>
+        <tr><td>A ne ping pas B<br>mais B ping A</td>
+            <td><strong>pare-feu</strong> de B (asymétrie)</td></tr>
+        <tr><td>Masque ≠ plan d'adressage</td>
+            <td>certaines destinations seulement échouent</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo">
+    <h2>Lire un <code>tracert</code></h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Où ça bloque</th><th>Responsabilité</th></tr></thead>
+      <tbody>
+        <tr><td>Avant la passerelle</td><td><strong>interne</strong> — LAN, poste, VLAN</td></tr>
+        <tr><td>Juste après</td><td>routage, ou lien <strong>opérateur</strong></td></tr>
+        <tr><td>Plus loin</td><td><strong>FAI</strong> — hors de votre contrôle</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Des <code>*</code> au milieu ne sont pas une panne</strong> : beaucoup de routeurs
+       refusent de répondre aux sondes tout en acheminant le trafic. Seul compte le fait
+       d'<strong>atteindre la destination</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Wireshark</h2>
+    <p>Analyseur de protocoles : capture chaque <strong>PDU</strong> et la décode selon les
+       <strong>RFC</strong>.</p>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>icmp</code></td><td>les pings</td></tr>
+        <tr><td><code>dhcp</code></td><td>le dialogue DORA</td></tr>
+        <tr><td><code>arp</code></td><td>résolution IP → MAC</td></tr>
+        <tr><td><code>dns</code></td><td>requêtes de noms</td></tr>
+        <tr><td><code>tcp.port == 80</code></td><td>un port précis</td></tr>
+        <tr><td><code>ip.addr == …</code></td><td>une machine précise</td></tr>
+        <tr><td><code>telnet</code></td><td>mots de passe <strong>en clair</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Filtre de <strong>capture</strong> (<code>host …</code>, avant) ≠ filtre
+       d'<strong>affichage</strong> (<code>ip.addr == …</code>, après). Capturer large, filtrer
+       après.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les cinq causes d'un ping muet</h2>
+    <ol>
+      <li>problème de <strong>routage</strong> ;</li>
+      <li><strong>pare-feu entre</strong> les deux machines ;</li>
+      <li><strong>pare-feu local</strong> de l'hôte distant ;</li>
+      <li><strong>pare-feu réseau</strong> ;</li>
+      <li><strong>nom</strong> non résolu par le DNS.</li>
+    </ol>
+    <p><strong>Ne pas répondre au ping ≠ être en panne.</strong> Tester le service lui-même.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Panne intermittente</h2>
+    <p>Le cas le plus difficile : tout marche au moment du test.</p>
+    <ul>
+      <li><strong>Conflit d'IP</strong> — statique non exclue du pool DHCP</li>
+      <li><strong>Câble en limite</strong> — lâche à la chaleur</li>
+      <li><strong>Bail DHCP</strong> non renouvelé</li>
+      <li><strong>DHCP pirate</strong> — une box branchée par un utilisateur</li>
+    </ul>
+    <p>Se diagnostique dans la <strong>durée</strong> : <code>ping -t</code> plusieurs minutes,
+       <code>arp -a</code> pour les doublons.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Sous-réseaux — le réflexe</h2>
+    <div class="formule">2ⁿ ≥ nombre de sous-réseaux voulus<br>
+                         pas = 256 − valeur de l'octet coupé</div>
+    <p><strong>Classe B en 4 sous-réseaux :</strong> 2² = 4 → emprunter <strong>2 bits</strong> →
+       <code>/18</code> = <code>255.255.192.0</code>, pas de <strong>64</strong> sur le
+       <strong>3<sup>e</sup> octet</strong>, et 2¹⁴ − 2 = <strong>16 382</strong> hôtes.</p>
+    <p>Le pas s'applique à l'<strong>octet coupé</strong> — celui qui n'est ni 255 ni 0 —
+       jamais mécaniquement au dernier.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les six pièges</h2>
+    <ol>
+      <li>« Ça ne ping pas <strong>donc</strong> c'est en panne » — non, souvent un pare-feu.</li>
+      <li>Des <code>*</code> dans un <code>tracert</code> pris pour une coupure.</li>
+      <li>Le <strong>masque</strong> renseigné mais faux — le plus vicieux.</li>
+      <li>Le <strong>pas</strong> appliqué au dernier octet en classe B.</li>
+      <li>Une panne intermittente testée <strong>une seule fois</strong>.</li>
+      <li>Filtre de capture confondu avec filtre d'affichage.</li>
+    </ol>
+  </article>
+
+</section>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Systèmes de numération — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : poids binaires, table hexadécimale, méthodes de conversion, opérations, complément à deux, partie fractionnaire et applications réseau.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var t=localStorage.getItem("bts-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 01</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Systèmes de numération</h1>
+  <p class="chapeau">Recto-verso. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo large cle">
+    <h2>⚡ Les poids binaires — à savoir par cœur</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>2¹⁰</th><th>2⁹</th><th>2⁸</th><th>2⁷</th><th>2⁶</th><th>2⁵</th>
+        <th>2⁴</th><th>2³</th><th>2²</th><th>2¹</th><th>2⁰</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1024</strong></td><td>512</td><td>256</td><td>128</td><td>64</td>
+            <td>32</td><td>16</td><td>8</td><td>4</td><td>2</td><td><strong>1</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Chaque valeur est le <strong>double</strong> de sa voisine de droite. On numérote les
+       positions <strong>à partir de 0</strong>, en partant de la droite.</p>
+    <div class="formule">n bits → 2<sup>n</sup> valeurs → de 0 à 2<sup>n</sup> − 1</div>
+  </article>
+
+  <article class="memo">
+    <h2>Le principe de position</h2>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>247₁₀ = 2×10² + 4×10¹ + 7×10⁰
+1011₂ = 1×2³ + 0×2² + 1×2¹ + 1×2⁰
+       = 8 + 0 + 2 + 1 = 11₁₀</code></pre></div>
+    <p>En base <em>b</em> : <em>b</em> chiffres (0 à <em>b</em>−1), poids
+       <em>b</em><sup>n</sup>.</p>
+    <p><strong><em>x</em><sup>0</sup> = 1</strong> — la colonne de droite vaut 1 dans toutes les
+       bases.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Le vocabulaire</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>bit</strong></td><td>1 chiffre <strong>binaire</strong> : 0 ou 1</td></tr>
+        <tr><td><strong>quartet</strong></td><td>4 bits = 0 à 15 = <strong>1 chiffre hexa</strong></td></tr>
+        <tr><td><strong>octet</strong></td><td>8 bits = 0 à 255 = <strong>2 chiffres hexa</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Un <code>F</code> hexadécimal n'est <strong>pas</strong> un bit : il en vaut quatre.</p>
+    <p>2⁸ = <strong>256 valeurs</strong>, mais la plus grande est <strong>255</strong>.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Binaire → décimal</h2>
+    <ol>
+      <li>compter les bits → l'exposant de gauche = <em>nb</em> − 1</li>
+      <li>écrire les poids au-dessus</li>
+      <li>additionner <strong>seulement les colonnes à 1</strong></li>
+    </ol>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>101 1101₂  (7 bits → 2⁶ à gauche)
+ 64 32 16 8 4 2 1
+  1  0  1 1 1 0 1
+= 64+16+8+4+1 = 93₁₀</code></pre></div>
+    <p>Finit par <strong>1</strong> → impair. Contrôle gratuit.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Décimal → binaire : soustractions</h2>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>392 − 1×256 = 136   → 1
+136 − 1×128 =   8   → 1
+  8 − 0× 64 =   8   → 0
+  8 − 0× 32 =   8   → 0
+  8 − 0× 16 =   8   → 0
+  8 − 1×  8 =   0   → 1
+  0 − 0×  4 =   0   → 0
+  0 − 0×  2 =   0   → 0
+  0 − 0×  1 =   0   → 0
+
+392₁₀ = 1 1000 1000₂</code></pre></div>
+    <p>Le reste se <strong>reporte</strong> ligne à ligne. La dernière ligne doit donner 0.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Décimal → binaire : divisions</h2>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>251 │ 2
+  1 │ 125 │ 2
+      1 │ 62 │ 2
+           0 │ 31 │ 2
+                1 │ 15 │ 2
+                     1 │ 7 │ 2
+                         1 │ 3 │ 2
+                             1 │ 1 │ 2
+                                 1 │ 0
+
+251₁₀ = 1111 1011₂</code></pre></div>
+    <p>Restes lus <strong>de bas en haut</strong> : le dernier reste est le bit de poids fort.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Addition binaire</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>0+0=0</code></td><td><code>0+1=1</code></td></tr>
+        <tr><td><code>1+0=1</code></td><td><code>1+1=</code><strong><code>10</code></strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><code>1+1</code> : on pose <strong>0</strong>, on retient <strong>1</strong>.</p>
+    <p>Trois ou quatre 1 dans une colonne : on additionne <strong>deux par deux</strong>.
+       <code>1+1+1 = 11₂</code> (3) · <code>1+1+1+1 = 100₂</code> (4).</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Soustraction binaire</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>0−0=0</code></td><td><code>1−0=1</code></td></tr>
+        <tr><td><code>1−1=0</code></td><td><code>0−1=1</code> + <strong>emprunt de 2</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Aligner sur le même nombre de bits</strong> avant de poser — compléter à gauche
+       par des zéros.</p>
+    <p>Contrôle : le résultat doit être <strong>plus petit</strong> que le premier opérande.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Si A &lt; B</h2>
+    <div class="formule">A − B = − (B − A)</div>
+    <ol>
+      <li>comparer : premier bit qui diffère, de gauche à droite</li>
+      <li>poser <strong>B − A</strong></li>
+      <li>écrire le signe moins</li>
+    </ol>
+    <p>Un résultat <em>plus grand</em> que l'opérande = un négatif en
+       <strong>complément à deux</strong>, pas une erreur.</p>
+    <div class="formule">sur n bits : −x s'écrit 2<sup>n</sup> − x</div>
+    <p>Sur 8 bits : −4 → 256 − 4 = 252 = <code>1111 1100</code>. Plage signée :
+       <strong>−128 à +127</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Multiplication et division</h2>
+    <p><code>0×0=0</code> · <code>0×1=0</code> · <code>1×0=0</code> · <code>1×1=1</code></p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>    1 0 1 1        11
+  ×   1 0 1      ×  5
+  ─────────
+    1 0 1 1
+  0 0 0 0 ·
+1 0 1 1 · ·
+─────────────
+1 1 0 1 1 1  = 55 ✔</code></pre></div>
+    <div class="formule">a = b × q + r &nbsp;avec&nbsp; <strong>r &lt; b</strong></div>
+    <p>Ajouter un <code>0</code> à droite <strong>double</strong> le nombre (décalage).</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ La table hexadécimale</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>D</th><th>B</th><th>H</th><th>D</th><th>B</th><th>H</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><code>0000</code></td><td>0</td>
+            <td>8</td><td><code>1000</code></td><td>8</td></tr>
+        <tr><td>1</td><td><code>0001</code></td><td>1</td>
+            <td>9</td><td><code>1001</code></td><td>9</td></tr>
+        <tr><td>2</td><td><code>0010</code></td><td>2</td>
+            <td>10</td><td><code>1010</code></td><td><strong>A</strong></td></tr>
+        <tr><td>3</td><td><code>0011</code></td><td>3</td>
+            <td>11</td><td><code>1011</code></td><td><strong>B</strong></td></tr>
+        <tr><td>4</td><td><code>0100</code></td><td>4</td>
+            <td>12</td><td><code>1100</code></td><td><strong>C</strong></td></tr>
+        <tr><td>5</td><td><code>0101</code></td><td>5</td>
+            <td>13</td><td><code>1101</code></td><td><strong>D</strong></td></tr>
+        <tr><td>6</td><td><code>0110</code></td><td>6</td>
+            <td>14</td><td><code>1110</code></td><td><strong>E</strong></td></tr>
+        <tr><td>7</td><td><code>0111</code></td><td>7</td>
+            <td>15</td><td><code>1111</code></td><td><strong>F</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Hexa ↔ binaire : gratuit</h2>
+    <div class="formule">16 = 2⁴ → 1 chiffre hexa = <strong>4 bits</strong></div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>8B7₁₆ → 1000 1011 0111₂
+
+1 1010 1111₂
+→ 0001 1010 1111   ← compléter À GAUCHE
+→   1    A    F    = 1AF₁₆</code></pre></div>
+    <p>Le regroupement part <strong>toujours de la droite</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Décimal → hexa</h2>
+    <p>Poids : <strong>1, 16, 256, 4096, 65 536</strong>.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>3151 − 12×256 = 79   → C
+  79 −  4× 16 = 15   → 4
+  15 − 15×  1 =  0   → F
+3151₁₀ = C4F₁₆
+
+3167 │ 16
+  15 │ 197 │ 16
+       5   │ 12 │ 16
+             12 │  0
+restes ↑ : 12,5,15 → C5F₁₆</code></pre></div>
+    <p>Traduire les restes ⩾ 10 <strong>en lettres</strong>. Ou passer par le binaire : décimal →
+       binaire → quartets → hexa.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Partie fractionnaire</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td>2⁻¹</td><td>2⁻²</td><td>2⁻³</td><td>2⁻⁴</td></tr>
+        <tr><td>0,5</td><td>0,25</td><td>0,125</td><td>0,0625</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">Partie entière → restes <strong>à l'envers</strong><br>
+      Fractionnaire → retenues <strong>à l'endroit</strong></div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>0,625 × 2 = 1,25  → 1
+0,25  × 2 = 0,5   → 0
+0,5   × 2 = 1     → 1
+        → 0,101₂
+
+21,625₁₀ = 10101,101₂</code></pre></div>
+  </article>
+
+  <article class="memo">
+    <h2>0,1 n'existe pas en binaire</h2>
+    <div class="formule">0,1₁₀ = 0,0001100110011…₂</div>
+    <p>Le motif <code>0011</code> se répète à l'infini : la machine <strong>approche</strong>.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>&gt;&gt;&gt; 0.1 + 0.2
+0.30000000000000004</code></pre></div>
+    <p>Donc : jamais de <code>==</code> entre flottants · un prix se compte en
+       <strong>centimes entiers</strong>, ou en <code>DECIMAL</code> en base de données.</p>
+  </article>
+
+  <article class="memo cle">
+    <h2>⚡ Les valeurs à reconnaître</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Déc</th><th>Binaire</th><th>Hexa</th></tr></thead>
+      <tbody>
+        <tr><td>15</td><td><code>1111</code></td><td><code>F</code></td></tr>
+        <tr><td>128</td><td><code>1000 0000</code></td><td><code>80</code></td></tr>
+        <tr><td>192</td><td><code>1100 0000</code></td><td><code>C0</code></td></tr>
+        <tr><td>255</td><td><code>1111 1111</code></td><td><code>FF</code></td></tr>
+        <tr><td>256</td><td><code>1 0000 0000</code></td><td><code>100</code></td></tr>
+        <tr><td>1024</td><td><code>100 0000 0000</code></td><td><code>400</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo large">
+    <h2>Là où ça ressort en CIEL</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Où</th><th>Exemple</th><th>À lire</th></tr></thead>
+      <tbody>
+        <tr><td>Adresse IPv4</td><td><code>192.168.10.1</code></td><td>4 octets = 32 bits</td></tr>
+        <tr><td>Masque</td><td><code>255.255.255.192</code> = /26</td>
+            <td><code>192 = 1100 0000</code> → 24+2 bits à 1</td></tr>
+        <tr><td>Adresses utilisables</td><td>/26</td>
+            <td>2<sup>(32−26)</sup> − 2 = 2⁶ − 2 = <strong>62</strong></td></tr>
+        <tr><td>Adresse MAC</td><td><code>00:60:70:41:C1:D4</code></td>
+            <td>12 chiffres hexa × 4 = <strong>48 bits</strong></td></tr>
+        <tr><td>Couleur web</td><td><code>#2D5A27</code></td>
+            <td>2D=45, 5A=90, 27=39 → rgb(45, 90, 39)</td></tr>
+        <tr><td>IPv6</td><td><code>fe80::260:70ff:fe41:c1d4</code></td><td>128 bits</td></tr>
+        <tr><td>Mémoire</td><td>1 kio = 1024 octets</td><td>2¹⁰, pas 1000</td></tr>
+        <tr><td>Permissions Linux</td><td><code>chmod 755</code></td>
+            <td>base 8 : 1 chiffre = 3 bits (r w x)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="formule">adresses utilisables = 2<sup>(32 − n)</sup> − 2</div>
+    <p>Le « − 2 » retire l'adresse <strong>réseau</strong> (bits machine à 0) et le
+       <strong>broadcast</strong> (tous à 1).</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les 6 contrôles gratuits</h2>
+    <ol>
+      <li><strong>Parité</strong> : un binaire finissant par 1 est impair.</li>
+      <li><strong>Nombre de bits</strong> : 2<sup>k</sup> ⩽ N &lt; 2<sup>k+1</sup> → k+1 bits.</li>
+      <li><strong>Reconvertir</strong> dans l'autre sens.</li>
+      <li><strong>Soustraction</strong> : le résultat doit être plus petit.</li>
+      <li><strong>Division</strong> : <code>r &lt; b</code>, toujours.</li>
+      <li><strong>Base en indice</strong> : <code>10₂</code> ≠ <code>10₁₀</code> ≠
+          <code>10₁₆</code>.</li>
+    </ol>
+  </article>
+
+</section>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
