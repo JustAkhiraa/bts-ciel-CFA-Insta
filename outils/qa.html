@@ -21,11 +21,12 @@
 </head>
 <body>
 <h1>Banc de test — rendu réel</h1>
-<p class="sous">Lire le code ne dit rien de la mise en page : un titre ne déborde qu'une fois
-calculé. Cette page mesure, dans un vrai moteur de rendu, trois choses que le regard
-rate&nbsp;: le <b>débordement horizontal</b> (la page qui se décale au doigt),
-les <b>cibles tactiles sous 40&nbsp;px</b>, et les <b>textes tronqués</b>. Elle croise
-toutes les pages aux deux largeurs de référence, puis un échantillon sur les 40 thèmes.</p>
+<p class="sous">Lire le code ne dit rien de la page rendue. Ce banc mesure, dans un vrai
+moteur, ce que le regard rate&nbsp;: le <b>débordement horizontal</b> (la page qui se
+décale au doigt), les <b>cibles tactiles sous 34&nbsp;px</b>, et — depuis qu'une
+réécriture a effacé deux fonctions sans que rien ne le signale — les
+<b>erreurs JavaScript</b> et les <b>ressources introuvables</b>. Il croise toutes les
+pages aux trois largeurs de référence, puis un échantillon sur les 40 thèmes.</p>
 <button id="go">Lancer le contrôle</button>
 <div id="etat"></div>
 <div id="journal"></div>
@@ -53,11 +54,37 @@ function dire(txt, classe) {
   journal.appendChild(p);
 }
 
+/* On écoute la fenêtre du cadre : une exception au chargement ne laisse
+   aucune trace dans le DOM, et une feuille ou un script manquant se rend
+   comme une page simplement « un peu différente ». Deux pannes muettes. */
+let incidents = [];
 function charger(url) {
+  incidents = [];
   return new Promise(res => {
-    f.onload = () => setTimeout(() => res(f), 60);
+    f.onload = () => {
+      const w = f.contentWindow;
+      w.addEventListener("error", ev => {
+        incidents.push(ev.message
+          ? "JS : " + ev.message
+          : "ressource introuvable : " + (ev.target && (ev.target.src || ev.target.href) || "?"));
+      }, true);
+      w.addEventListener("unhandledrejection",
+        ev => incidents.push("promesse rejetée : " + ev.reason));
+      setTimeout(() => res(f), 140);
+    };
     f.src = url;
   });
+}
+
+/* Les fonctions que la coquille doit exposer pour que la page soit vivante.
+   Les appeler prouve qu'elles existent — c'est ce qui manquait quand la
+   recherche a cessé de fonctionner en silence. */
+function coquilleVivante(fen, doc) {
+  const manques = [];
+  if (!doc.querySelector(".barre-outils, .app-tete nav button")) manques.push("aucune commande posée");
+  if (doc.getElementById("q") && !doc.getElementById("resultats")) manques.push("champ sans liste de résultats");
+  if (Array.isArray(fen.__INDEX) === false) manques.push("index de recherche absent");
+  return manques;
 }
 
 /* Le crawl part de l'accueil et suit les liens internes : ajouter un chapitre
@@ -132,6 +159,10 @@ document.getElementById("go").onclick = async () => {
       if (w === 375) {
         const c = ciblesTrop_petites(doc);
         if (c.length) { fautes++; dire("CIBLE <34px  " + u + "  → " + c.slice(0,4).join(" | "), "ko"); }
+        for (const x of incidents) { fautes++; dire("CONSOLE  " + u + "  → " + x, "ko"); }
+        for (const x of coquilleVivante(f.contentWindow, doc)) {
+          fautes++; dire("COQUILLE  " + u + "  → " + x, "ko");
+        }
       }
     }
     etat.textContent = n + " mesures — " + u;
@@ -158,8 +189,9 @@ document.getElementById("go").onclick = async () => {
 
   f.style.width = "375px";
   etat.textContent = n + " mesures terminées.";
-  dire(fautes ? fautes + " anomalie(s) de rendu." : "OK — aucun débordement, aucune cible sous 34 px, sur "
-       + liste.length + " pages et " + THEMES.length + " thèmes.", fautes ? "ko" : "ok");
+  dire(fautes ? fautes + " anomalie(s)." : "OK — aucun débordement, aucune cible sous 34 px, "
+       + "aucune erreur de console, sur " + liste.length + " pages et "
+       + THEMES.length + " thèmes.", fautes ? "ko" : "ok");
 };
 </script>
 </body>
