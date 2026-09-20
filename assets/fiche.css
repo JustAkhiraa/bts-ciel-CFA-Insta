@@ -1745,54 +1745,96 @@ html[data-theme="zellige"] body {
 .apercu-theme .ap-txt { font-size: .7576rem; color: var(--encre-tenue); font-weight: 620; }
 
 /* ── La barre d'outils d'une fiche ────────────────────────────────────
-   Empilés le long du bord droit, trois boutons mangeaient une colonne de
-   170 px par-dessus le texte : sur 375 px, ils tombaient en pleine zone de
-   lecture. Un seul conteneur, deux dispositions : pile discrète dans la
-   marge sur grand écran, barre horizontale en bas sur téléphone — là où le
-   pouce arrive, et où elle ne couvre qu'une bande. */
+   Écrite en partant du téléphone : la barre du bas est le cas PAR DÉFAUT,
+   et elle ne remonte sur le côté que là où il y a vraiment la place. Trois
+   situations, chacune énoncée une seule fois :
+
+   • par défaut            → barre horizontale en bas, qui s'efface en lisant ;
+   • fiche avec sommaire   → rangée dans la colonne de gauche, dès 901 px ;
+   • fiche de révision     → pas de colonne (elle s'imprime sur une seule) :
+                             elle passe dans la marge droite, mais seulement
+                             au-delà de 1380 px, où cette marge existe.
+
+   Empilée au bord droit comme au départ, elle se posait en plein sur le
+   texte : 170 px de commandes par-dessus la colonne de lecture. */
 .barre-outils {
   position: fixed; z-index: 60;
-  right: 16px; bottom: max(16px, env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; gap: 10px;
+  left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: row; justify-content: space-evenly; gap: 2px;
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--carte) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(170%);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  border-top: 1px solid var(--bord);
+  transition: transform .26s var(--ease, cubic-bezier(.32,.72,0,1));
 }
-.flottant {
-  width: 44px; height: 44px; border-radius: 14px; cursor: pointer; flex: none;
-  display: grid; place-items: center; padding: 0; text-decoration: none;
-  background: color-mix(in srgb, var(--carte) 88%, transparent);
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  color: var(--encre-douce); border: 1px solid var(--bord-fort);
-  box-shadow: var(--ombre-haut);
-  transition: transform .18s var(--ease, cubic-bezier(.34,1.3,.64,1)), color .15s, border-color .15s;
-}
-.flottant:hover { color: var(--accent-sombre); border-color: var(--accent); transform: translateY(-2px); }
-.flottant:active { transform: scale(.93); }
-.flottant svg { width: 20px; height: 20px; }
+.barre-outils.effacee { transform: translateY(105%); }
 
-@media (max-width: 720px) {
-  .barre-outils {
-    left: 0; right: 0; bottom: 0;
-    flex-direction: row; justify-content: space-evenly; gap: 2px;
-    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--carte) 92%, transparent);
-    backdrop-filter: blur(16px) saturate(170%);
-    -webkit-backdrop-filter: blur(16px) saturate(170%);
-    border-top: 1px solid var(--bord);
-    transition: transform .26s var(--ease, cubic-bezier(.32,.72,0,1));
-  }
-  /* Elle s'efface vers le bas pendant qu'on descend dans le texte. */
-  .barre-outils.effacee { transform: translateY(105%); }
-  .flottant {
-    background: transparent; border-color: transparent; box-shadow: none;
+.flottant {
+  width: 46px; height: 46px; border-radius: 12px; cursor: pointer; flex: none;
+  display: grid; place-items: center; padding: 0; text-decoration: none;
+  background: transparent; border: 1px solid transparent; box-shadow: none;
+  color: var(--encre-douce);
+  transition: transform .18s var(--ease, cubic-bezier(.34,1.3,.64,1)), color .15s,
+              border-color .15s, background .15s;
+}
+.flottant:active { background: var(--carte-creuse); transform: scale(.92); }
+.flottant svg { width: 20px; height: 20px; }
+/* La barre ne doit pas recouvrir la fin du texte. */
+.page { padding-bottom: 5.5rem; }
+
+/* ── Fiche avec sommaire : la barre se range dans la colonne de gauche ── */
+@media (min-width: 901px) {
+  .barre-outils:not(.sans-colonne) {
+    left: calc(max(0px, (100vw - var(--large-page, 1220px)) / 2) + 2rem);
+    right: auto; bottom: 22px; width: 268px;
+    justify-content: flex-start; gap: 8px;
+    padding: 0; background: none; border-top: 0;
     backdrop-filter: none; -webkit-backdrop-filter: none;
-    border-radius: 12px; height: 46px; width: 46px;
+    transform: none;
   }
-  .flottant:hover { transform: none; }
-  .flottant:active { background: var(--carte-creuse); transform: scale(.92); }
-  /* La barre ne doit pas recouvrir la fin du texte. */
-  /* « .page » est le conteneur des fiches, et elles seules portent la barre.
-     On évite ainsi un sélecteur parent que les vieux navigateurs ignorent. */
-  .page { padding-bottom: 5.5rem; }
+  /* Le sommaire s'arrête au-dessus : sur un chapitre à quinze sections, la
+     liste descendait jusqu'en bas et passait dessous. */
+  .sommaire { padding-bottom: 6rem; }
+  .page { padding-bottom: 6rem; }
+  /* Posé seul au-dessus de la page, un bouton porte son propre verre dépoli ;
+     dans la barre du bas, c'est la barre qui le porte — pas lui. */
+  .barre-outils:not(.sans-colonne) .flottant {
+    background: color-mix(in srgb, var(--carte) 88%, transparent);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border-color: var(--bord-fort); border-radius: 14px;
+    box-shadow: var(--ombre-haut); width: 44px; height: 44px;
+  }
+  .barre-outils:not(.sans-colonne) .flottant:hover {
+    color: var(--accent-sombre); border-color: var(--accent); transform: translateY(-2px);
+  }
+}
+
+/* ── Fiche de révision : marge droite, mais seulement si elle existe ──── */
+@media (min-width: 1380px) {
+  .barre-outils.sans-colonne {
+    left: auto; right: 16px; bottom: 22px;
+    flex-direction: column; justify-content: flex-start; gap: 10px;
+    padding: 0; background: none; border-top: 0;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    transition: opacity .22s var(--ease), transform .26s var(--ease);
+  }
+  .barre-outils.sans-colonne.effacee {
+    opacity: 0; transform: translateX(120%); pointer-events: none;
+  }
+  /* Posé seul au-dessus de la page, un bouton porte son propre verre dépoli ;
+     dans la barre du bas, c'est la barre qui le porte — pas lui. */
+  .barre-outils.sans-colonne .flottant {
+    background: color-mix(in srgb, var(--carte) 88%, transparent);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border-color: var(--bord-fort); border-radius: 14px;
+    box-shadow: var(--ombre-haut); width: 44px; height: 44px;
+  }
+  .barre-outils.sans-colonne .flottant:hover {
+    color: var(--accent-sombre); border-color: var(--accent); transform: translateY(-2px);
+  }
 }
 @media print { .barre-outils, .toast { display: none !important; } }
 

@@ -431,13 +431,24 @@
     if (suiv) barre.appendChild(lien("flottant", "Chapitre suivant : " +
         suiv.querySelector("b").textContent, ICONE_SUIV, suiv.getAttribute("href")));
 
+    /* Les fiches de révision n'ont pas de colonne de gauche : elles sont
+       faites pour l'impression, donc sur une seule colonne. La barre n'a
+       nulle part où se ranger — elle reste au bord droit et s'efface quand
+       on descend. */
+    if (!document.querySelector(".sommaire")) barre.classList.add("sans-colonne");
+
     document.body.appendChild(barre);
     effacerAuDefilement(barre);
   }
 
   /* Elle disparaît vers le bas quand on descend, revient dès qu'on remonte.
      Jamais tout en haut de la page, jamais pendant qu'un panneau est ouvert :
-     on ne fait pas disparaître une commande sous le doigt qui la vise. */
+     on ne fait pas disparaître une commande sous le doigt qui la vise.
+
+     L'écouteur est posé quelle que soit la largeur, et c'est la feuille de
+     style qui décide : rangée dans la colonne de gauche, la barre n'a aucune
+     règle pour « effacee », donc la classe n'y fait rien. Un test de largeur
+     au chargement aurait cessé d'être vrai au premier redimensionnement. */
   function effacerAuDefilement(barre) {
     if (!S.anim) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
