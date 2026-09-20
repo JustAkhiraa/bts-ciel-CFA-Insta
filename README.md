@@ -3,7 +3,7 @@
 Cours, exercices corrigés et fiches de révision pour le **BTS CIEL option A**
 (Cybersécurité, Informatique et réseaux, Électronique), 1re et 2e année.
 
-**→ [Consulter le site](https://VOTRE-COMPTE.github.io/bts-ciel-revisions/)**
+**→ [Consulter le site](https://justakhiraa.github.io/bts-ciel-revisions/)**
 
 ## Ce que c'est
 
