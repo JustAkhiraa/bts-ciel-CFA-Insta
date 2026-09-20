@@ -479,6 +479,21 @@
     tete.appendChild(outil("bouton-rond", "Réglages", ICONE_REGLAGES, ouvrir));
   }
 
+  /* ───────────────────────────────────────────────── outils de texte
+     Ces deux-là avaient été emportés par une réécriture voisine : « normaliser »
+     alimente la recherche, « echapper » protège tout ce qu'on réinjecte en
+     HTML. Sans elles, la recherche levait une exception à chaque frappe et la
+     liste « vu récemment » ne s'affichait pas. */
+  function normaliser(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function echapper(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
   /* Un seul moteur, deux surfaces : le champ de l'accueil et la palette qui
      s'ouvre par-dessus n'importe quelle page. Sans cela le second aurait
      redécrit la recherche, et les deux auraient divergé à la première
