@@ -1,7 +1,7 @@
 /* BTS CIEL — hors-ligne. La coquille est mise en cache a l'installation ;
    chaque fiche visitee s'y ajoute ensuite. */
 const VERSION='bts-ciel-v1';
-const COQUILLE=["./", "./index.html", "./a-propos.html", "./recherche.json", "./manifest.webmanifest", "./assets/icone.svg", "./assets/fiche.css", "./assets/app.css", "./assets/app.js", "./assets/fiche.js", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html"];
+const COQUILLE=["./", "./index.html", "./a-propos.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/fiche.css", "./assets/app.css", "./assets/app.js", "./assets/fiche.js", "./assets/recherche.js", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html"];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting()));

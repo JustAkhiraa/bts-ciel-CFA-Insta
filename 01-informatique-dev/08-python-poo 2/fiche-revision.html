@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python POO — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : classe et objet, self, __init__, encapsulation, getters/setters, @property, héritage, super() et messages d'erreur.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.anim=S.anim===0?"0":"1";if(S.accent)d.dataset.accent=S.accent}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="dev">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; Développement</span>
+    <span class="sep">/</span><span>Chapitre 08</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Python — POO</h1>
+  <p class="chapeau">Recto-verso. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo">
+    <h2>Le vocabulaire</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><strong>Classe</strong></td><td>le plan</td></tr>
+        <tr><td><strong>Objet</strong> / instance</td><td>une réalisation</td></tr>
+        <tr><td><strong>Attribut</strong></td><td>une caractéristique</td></tr>
+        <tr><td><strong>Méthode</strong></td><td>une action</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Classe → <strong>majuscule</strong> : <code>Personne</code>, <code>Equipement</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>La structure</h2>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Voiture:
+    nombre = 0        # de CLASSE
+
+    def __init__(self, marque):
+        self.marque = marque   # d'INSTANCE
+
+    def rouler(self):
+        print(self.marque)</code></pre></div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ <code>self</code></h2>
+    <p>Il <strong>se déclare</strong> dans chaque méthode, mais <strong>ne se passe jamais</strong>
+       à l'appel.</p>
+<div class="bloc-code"><span class="langue">python</span><pre><code>def afficher(self):   # déclaré
+v.afficher()          # PAS passé</code></pre></div>
+    <p>Oublié → <code>takes 0 positional arguments but 1 was given</code></p>
+  </article>
+
+  <article class="memo">
+    <h2>Constructeur / destructeur</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>__init__</code></td><td>à la création</td></tr>
+        <tr><td><code>__del__</code></td><td>à la destruction</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong><code>__del__</code></strong>, et non <code>__def__</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Encapsulation</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>nom</code></td><td>public</td></tr>
+        <tr><td><code>_nom</code></td><td>protégé (interne)</td></tr>
+        <tr><td><code>__nom</code></td><td>privé</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Une <strong>convention</strong>, pas une serrure : <code>__nom</code> devient
+       <code>_Classe__nom</code> (<em>name mangling</em>).</p>
+  </article>
+
+  <article class="memo">
+    <h2>Getter / setter</h2>
+<div class="bloc-code"><span class="langue">python</span><pre><code>def get_age(self):
+    return self.__age
+
+def set_age(self, a):
+    if a &gt;= 0:
+        self.__age = a
+    else:
+        print("Âge invalide")</code></pre></div>
+    <p>Le setter <strong>contrôle</strong> — sinon il ne sert à rien.</p>
+  </article>
+
+  <article class="memo">
+    <h2><code>@property</code></h2>
+<div class="bloc-code"><span class="langue">python</span><pre><code>@property
+def age(self):
+    return self.__age
+
+@age.setter
+def age(self, v):
+    if v &gt;= 0:
+        self.__age = v
+
+p.age = 35     # appelle le setter
+print(p.age)   # appelle le getter</code></pre></div>
+    <p>La forme moderne : syntaxe d'attribut, contrôle de méthode.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Héritage</h2>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Serveur(Equipement):
+    def __init__(self, ip, os):
+        super().__init__(ip)
+        self.os = os</code></pre></div>
+    <p>La fille reçoit attributs <strong>et</strong> méthodes de la mère.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ <code>super().__init__()</code></h2>
+    <p>Dès que la fille a son propre <code>__init__</code>, il <strong>remplace</strong> celui de la
+       mère.</p>
+    <p>Sans l'appel, les attributs de la mère <strong>n'existent pas</strong> →
+       <code>AttributeError: '_Classe__x'</code></p>
+    <div class="formule">1ʳᵉ ligne du constructeur d'une fille :<br>
+      <code>super().__init__(…)</code></div>
+  </article>
+
+  <article class="memo">
+    <h2>Override</h2>
+<div class="bloc-code"><span class="langue">python</span><pre><code>class Admin(Utilisateur):
+    def se_connecter(self):
+        super().se_connecter()   # le comportement mère
+        print("+ privilèges")    # puis le sien</code></pre></div>
+    <p>Même nom de méthode = redéfinition.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Décoder les erreurs</h2>
+    <div class="tableau">
+    <table>
+      <tbody>
+        <tr><td><code>takes 0 arguments but 1</code></td><td><code>self</code> oublié</td></tr>
+        <tr><td><code>no attribute '_Classe__x'</code></td><td><code>super().__init__()</code>
+            oublié</td></tr>
+        <tr><td><code>no attribute '__x'</code></td><td>privé lu de l'extérieur</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo">
+    <h2>Le réflexe</h2>
+    <p><strong>Qui peut modifier cette donnée, et sous quelles conditions ?</strong></p>
+    <p>« N'importe qui, n'importe comment » → attribut <strong>privé</strong> + setter qui
+       <strong>contrôle</strong>.</p>
+    <p>Et une classe passe par <strong>ses propres getters</strong>, pas par l'attribut brut.</p>
+  </article>
+
+</section>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>

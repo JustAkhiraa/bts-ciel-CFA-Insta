@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dérivées | BTS CIEL</title>
+<meta name="description" content="Cours complet : nombre dérivé et tangente, formulaire des dérivées usuelles, dérivation terme à terme, opérations ku, u+v, uv, u/v, uⁿ et √u, et application au tableau de variations.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.anim=S.anim===0?"0":"1";if(S.accent)d.dataset.accent=S.accent}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#pente">1 · La dérivée, c'est la pente</a></li>
+    <li><a href="#formulaire">2 · Le formulaire</a></li>
+    <li><a href="#polynome">3 · Dériver un polynôme</a></li>
+    <li><a href="#somme">4 · k·u et u + v</a></li>
+    <li><a href="#produit">5 · Le produit u·v</a></li>
+    <li><a href="#quotient">6 · Le quotient u/v</a></li>
+    <li><a href="#puissance">7 · Puissances et racine</a></li>
+    <li><a href="#factoriser">8 · Factoriser, pas développer</a></li>
+    <li><a href="#variations">9 · Vers les variations</a></li>
+    <li><a href="#examen">10 · À l'examen</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 04</span>
+    <span class="sep">/</span><span class="badge">BTS CIEL 1<sup>re</sup> année</span>
+  </div>
+
+  <h1>Dérivées</h1>
+  <p class="chapeau">Une machine à fabriquer des pentes. On lui donne une fonction, elle
+     rend une autre fonction — celle qui dit, en chaque point, si ça monte et à quelle
+     vitesse.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Tout se ramène à <strong>trois formules usuelles</strong> —
+         <code>(k)' = 0</code>, <code>(x)' = 1</code>, <code>(xⁿ)' = n·xⁿ⁻¹</code> — et à
+         <strong>quatre opérations</strong> : <code>(ku)' = ku'</code>,
+         <code>(u+v)' = u'+v'</code>, <code>(uv)' = u'v + uv'</code>,
+         <code>(u/v)' = (u'v − uv')/v²</code>. Un polynôme se dérive
+         <strong>terme par terme</strong>, et la constante disparaît. Sur les gros calculs,
+         on <strong>factorise</strong> au lieu de développer : c'est plus court, plus sûr,
+         et c'est ce qui sert ensuite au tableau de variations.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#dérivée</code> <code>#nombre-dérivé</code> <code>#tangente</code>
+    <code>#coefficient-directeur</code> <code>#formulaire</code>
+    <code>#ku</code> <code>#u+v</code> <code>#uv</code> <code>#u/v</code>
+    <code>#uⁿ</code> <code>#racine</code> <code>#factorisation</code>
+    <code>#variations</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="pente">
+  <h2><span class="num">01</span>La dérivée, c'est la pente</h2>
+
+  <p>Une fonction affine a <strong>une seule</strong> pente : son coefficient directeur a.
+     Une courbe, elle, change de pente en permanence. La dérivée est la fonction qui donne
+     cette pente <strong>en chaque point</strong>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Deux objets à ne pas confondre</div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Objet</th><th>Notation</th><th>Nature</th><th>Sens</th></tr></thead>
+        <tbody>
+          <tr><td>Le <strong>nombre dérivé</strong> en a</td><td><code>f'(a)</code></td>
+              <td>un <strong>nombre</strong></td>
+              <td>la pente de la courbe au point d'abscisse a</td></tr>
+          <tr><td>La <strong>fonction dérivée</strong></td><td><code>f'</code></td>
+              <td>une <strong>fonction</strong></td>
+              <td>la formule qui donne la pente pour n'importe quel x</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>On calcule d'abord <code>f'</code> — une formule — puis on y remplace x par a pour
+       obtenir <code>f'(a)</code>, un nombre.</p>
+  </div>
+
+  <figure class="schema">
+    <svg viewBox="0 0 600 282" role="img" aria-label="La courbe de x carré et sa tangente au point d'abscisse 1,5, de pente 3">
+      <style>
+        .ta{fill:none;stroke:var(--bord-fort);stroke-width:1.3}
+        .tc{fill:none;stroke:var(--accent);stroke-width:2.8}
+        .tt{fill:none;stroke:var(--ambre);stroke-width:2.2;stroke-dasharray:8 4}
+        .tp{fill:var(--accent)}
+        .tg{fill:none;stroke:var(--bord-fort);stroke-width:1;stroke-dasharray:3 4}
+        .tn{fill:none;stroke:var(--ambre);stroke-width:1.1}
+        .tl{font:700 12px var(--mono);text-anchor:end;fill:var(--accent-sombre)}
+        .tr{font:700 11.5px var(--mono);text-anchor:start;fill:#7A5807}
+        .td{font:10px var(--sans);text-anchor:middle;fill:var(--encre-douce)}
+      </style>
+      <line class="ta" x1="70" y1="232" x2="578" y2="232"/>
+      <line class="ta" x1="147.4" y1="250" x2="147.4" y2="34"/>
+      <line class="tg" x1="340.8" y1="189.2" x2="340.8" y2="232"/>
+      <path class="tt" d="M218.3,243.4 L540.7,100.9"/>
+      <path class="tc" d="M70.0,225.2 L87.5,227.9 L105.0,229.9 L122.5,231.3 L140.0,231.9 L157.5,231.9 L175.0,231.1 L192.5,229.7 L210.0,227.5 L227.5,224.7 L245.0,221.1 L262.5,216.9 L280.0,211.9 L297.5,206.2 L315.0,199.9 L332.5,192.8 L350.0,185.1 L367.5,176.6 L385.0,167.5 L402.5,157.6 L420.0,147.1 L437.5,135.8 L455.0,123.9 L472.5,111.2 L490.0,97.9 L507.5,83.8 L525.0,69.0 L542.5,53.6 L560.0,37.4"/>
+      <circle class="tp" cx="340.8" cy="189.2" r="5"/>
+
+      <text class="tl" x="470" y="58">f(x) = x²</text>
+      <path class="tn" d="M478,54 C495,56 510,62 522,72" stroke="var(--accent)"/>
+
+      <text class="tr" x="176" y="112">la tangente en A</text>
+      <text class="tr" x="176" y="129">sa pente est f'(1,5) = 3</text>
+      <path class="tn" d="M232,136 C248,160 260,186 272,213"/>
+
+      <text class="td" x="276.3" y="248">1</text>
+      <text class="td" x="405.3" y="248">2</text>
+      <text class="td" x="534.2" y="248">3</text>
+      <text class="td" x="340.8" y="248">1,5</text>
+      <text class="td" x="326" y="184">A</text>
+      <text class="td" x="324" y="272">f'(x) = 2x, donc f'(1,5) = 2 × 1,5 = 3</text>
+    </svg>
+    <figcaption>Le <strong>nombre dérivé</strong> <code>f'(1,5) = 3</code> est le
+      coefficient directeur de la <strong>tangente</strong> : la droite qui épouse la courbe
+      au point A.</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 La route vallonnée</div>
+    <p><code>f(x)</code> est l'<strong>altitude</strong> à la position x.
+       <code>f'(x)</code> est la <strong>pente sous les roues</strong> à cet endroit :</p>
+    <ul>
+      <li><code>f'(x) &gt; 0</code> : ça monte — f est croissante ;</li>
+      <li><code>f'(x) &lt; 0</code> : ça descend — f est décroissante ;</li>
+      <li><code>f'(x) = 0</code> : c'est plat — sommet de côte ou fond de vallon, un
+          <strong>extremum</strong>.</li>
+    </ul>
+    <p>Lire le signe de f', c'est lire le profil de la route sans l'avoir vue. C'est tout
+       l'objet du <a href="../03-fonctions-variations/cours.html#variations">tableau de
+       variations</a>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'équation de la tangente</div>
+    <p>La tangente au point d'abscisse a est la droite qui passe par
+       <code>(a ; f(a))</code> avec la pente <code>f'(a)</code> :</p>
+    <div class="formule">y = <strong>f'(a)</strong> (x − a) + <strong>f(a)</strong></div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>f(x) = x²   en a = 1,5
+
+  f(1,5)  = 1,5² = 2,25         ← le point : (1,5 ; 2,25)
+  f'(x)   = 2x
+  f'(1,5) = 2 × 1,5 = 3         ← la pente
+
+  y = 3(x − 1,5) + 2,25
+    = 3x − 4,5 + 2,25
+    = 3x − 2,25
+
+Contrôle : en x = 1,5, y = 4,5 − 2,25 = 2,25 = f(1,5)  ✔
+           la tangente touche bien la courbe au point A.</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="formulaire">
+  <h2><span class="num">02</span>Le formulaire</h2>
+
+  <p>Soit f définie et dérivable sur un intervalle I de ℝ. On note <code>f'</code> sa
+     fonction dérivée sur I. Voici tout ce qu'il faut savoir par cœur.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les dérivées usuelles</div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th><code>f(x)</code></th><th><code>f'(x)</code></th>
+            <th>Exemple</th></tr></thead>
+        <tbody>
+          <tr><td><code>k</code> &nbsp;(une constante)</td><td><code>0</code></td>
+              <td><code>f(x) = 15</code> → <code>f'(x) = 0</code></td></tr>
+          <tr><td><code>x</code></td><td><code>1</code></td>
+              <td>—</td></tr>
+          <tr><td><code>ax</code></td><td><code>a</code></td>
+              <td><code>f(x) = −2x</code> → <code>f'(x) = −2</code></td></tr>
+          <tr><td><code>ax + b</code></td><td><code>a</code></td>
+              <td><code>f(x) = −2x + 1</code> → <code>f'(x) = −2</code></td></tr>
+          <tr><td><code>x²</code></td><td><code>2x</code></td>
+              <td>—</td></tr>
+          <tr><td><code>x³</code></td><td><code>3x²</code></td>
+              <td>—</td></tr>
+          <tr><td><code>xⁿ</code> &nbsp;(n ∈ ℝ)</td><td><strong><code>n·xⁿ⁻¹</code></strong></td>
+              <td><code>f(x) = x¹²</code> → <code>f'(x) = 12x¹¹</code></td></tr>
+          <tr><td><code>1/x</code></td><td><code>−1/x²</code></td>
+              <td>—</td></tr>
+          <tr><td><code>√x</code></td><td><code>1 / (2√x)</code></td>
+              <td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Toute la colonne de gauche découle en réalité de la seule ligne
+       <code>xⁿ → n·xⁿ⁻¹</code> : <code>x = x¹ → 1·x⁰ = 1</code>,
+       <code>x² → 2x¹</code>, <code>1/x = x⁻¹ → −1·x⁻² = −1/x²</code>,
+       <code>√x = x^½ → ½·x^(−½) = 1/(2√x)</code>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La dérivée d'une affine est une <em>constante</em></div>
+    <p>Un cahier de la classe note, pour <code>f(x) = −2x + 1</code> :
+       <code>f'(x) = −2x</code>. C'est faux : la dérivée est <strong>−2</strong>, un nombre,
+       sans x.</p>
+    <p>La suite du raisonnement le confirme d'ailleurs — « −2 &lt; 0 donc f' &lt; 0 sur
+       ℝ » n'aurait aucun sens si f' dépendait de x. <strong>Une droite a la même pente
+       partout</strong> : c'est la définition même d'une droite, et c'est pour cela que sa
+       dérivée est constante.</p>
+    <p>Conséquence pratique, utile au signe : <strong>une dérivée constante ne change jamais
+       de signe</strong>, donc le tableau de variations n'a aucune colonne intermédiaire.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="polynome">
+  <h2><span class="num">03</span>Dériver un polynôme</h2>
+
+  <p>C'est le cas le plus fréquent, et le plus mécanique. On applique
+     <code>xⁿ → n·xⁿ⁻¹</code> à chaque terme, on garde les coefficients, et la constante
+     tombe.</p>
+
+  <div class="encart methode">
+    <div class="titre">📐 Terme par terme</div>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>Pour chaque terme  a·xⁿ  :
+  ① on multiplie le coefficient par l'exposant   → a × n
+  ② on baisse l'exposant d'un cran               → xⁿ⁻¹
+
+  a·xⁿ  →  (a × n) · xⁿ⁻¹
+
+Et le terme constant (sans x) disparaît : sa dérivée vaut 0.</code></pre></div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = 6x⁵ − 4x³ + x² + x − 9</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>terme par terme :
+
+   6x⁵  →  6 × 5 x⁴  =  30x⁴
+  −4x³  → −4 × 3 x²  = −12x²
+    x²  →      2 x¹  =   2x
+     x  →          1 =    1
+    −9  →          0
+
+f'(x) = 30x⁴ − 12x² + 2x + 1</code></pre></div>
+      <p class="rap">Contrôle du degré : f est de degré 5, sa dérivée est de degré
+         <strong>4</strong>. <strong>Dériver fait toujours baisser le degré d'un cran.</strong>
+         Si votre dérivée a le même degré que la fonction, il y a une erreur.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = −2x¹⁰ + 23x⁴ − 41x</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  −2x¹⁰  →  −2 × 10 x⁹  =  −20x⁹
+   23x⁴  →  23 ×  4 x³  =   92x³
+  −41x   →  −41 ×  1    =  −41
+
+f'(x) = −20x⁹ + 92x³ − 41</code></pre></div>
+      <p class="rap">Contrôle : degré 10 → degré 9 ✔ Et le terme en x devient une
+         constante — c'est le cas n = 1, où <code>x⁰ = 1</code>.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = ⅓x³ − x</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  ⅓x³  →  ⅓ × 3 x²  =  x²      ← le 3 simplifie le ⅓
+   −x   →  −1
+
+f'(x) = x² − 1</code></pre></div>
+      <p class="rap">Les fractions se simplifient presque toujours : c'est pour cela
+         qu'un énoncé choisit <code>⅓x³</code> plutôt que <code>x³</code> — pour que la
+         dérivée soit propre. Un coefficient qui reste fractionnaire après dérivation est
+         souvent le signe d'une erreur d'énoncé… ou d'un exercice qui le veut ainsi.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="somme">
+  <h2><span class="num">04</span>k·u et u + v</h2>
+
+  <p>Les deux opérations faciles : la dérivation <strong>traverse</strong> une somme et une
+     multiplication par un nombre.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux règles simples</div>
+    <div class="formule">
+      (k·u)' = <strong>k·u'</strong> &nbsp;&nbsp;·&nbsp;&nbsp;
+      (u + v)' = <strong>u' + v'</strong>
+    </div>
+    <p>u et v sont deux fonctions définies et dérivables ; k est un réel.</p>
+    <p>Autrement dit : <strong>une constante multiplicative reste en place</strong>, et
+       <strong>on dérive une somme morceau par morceau</strong>. C'est exactement ce qu'on
+       fait sans y penser en dérivant un polynôme.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ce qui ne traverse pas : le produit et le quotient</div>
+    <div class="formule" style="color:var(--rouge)">
+      (u·v)' ≠ u'·v' &nbsp;&nbsp;·&nbsp;&nbsp; (u/v)' ≠ u'/v'
+    </div>
+    <p>Un contre-exemple d'une ligne suffit à s'en convaincre :</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>f(x) = x × x = x²      donc  f'(x) = 2x
+
+Si (u·v)' valait u'·v', on aurait  1 × 1 = 1.
+Or 1 ≠ 2x.                                    ✗
+
+C'est pour cela qu'il existe une formule spéciale (§ 5).</code></pre></div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="produit">
+  <h2><span class="num">05</span>Le produit u·v</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La formule</div>
+    <div class="formule">(u·v)' = <strong>u'v + uv'</strong></div>
+    <p>« On dérive le premier, on garde le second ; puis on garde le premier, on dérive le
+       second. » Les deux morceaux s'<strong>additionnent</strong>.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 La disposition qui évite les erreurs</div>
+    <p>Écrire systématiquement les quatre lignes avant de commencer. C'est deux lignes de
+       plus, et c'est ce qui fait la différence sur un gros calcul.</p>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>f(x) = (x² + 1)(4x + 7)
+
+  u  = x² + 1        v  = 4x + 7
+  u' = 2x            v' = 4
+
+  (uv)' = u'v + uv'
+
+f'(x) = (2x)(4x + 7) + (x² + 1)(4)
+      = 8x² + 14x + 4x² + 4
+      = 12x² + 14x + 4</code></pre></div>
+    <p class="rap">Contrôle par développement préalable :
+       <code>(x²+1)(4x+7) = 4x³ + 7x² + 4x + 7</code>, dont la dérivée terme à terme vaut
+       <code>12x² + 14x + 4</code> ✔ Les deux chemins mènent au même résultat — c'est le
+       meilleur contrôle possible, et il marche à chaque fois qu'on peut développer.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = (x² + 5x)(x − 3)</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = x² + 5x       v  = x − 3
+  u' = 2x + 5        v' = 1
+
+f'(x) = (2x + 5)(x − 3) + (x² + 5x)(1)
+      = 2x² − 6x + 5x − 15 + x² + 5x
+      = 3x² + 4x − 15</code></pre></div>
+      <p class="rap">Contrôle : <code>(x²+5x)(x−3) = x³ + 2x² − 15x</code>, dérivée
+         <code>3x² + 4x − 15</code> ✔</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = (−x³ + 2x)(4x² − 1)</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = −x³ + 2x      v  = 4x² − 1
+  u' = −3x² + 2      v' = 8x
+
+f'(x) = (−3x² + 2)(4x² − 1) + (−x³ + 2x)(8x)
+      = −12x⁴ + 3x² + 8x² − 2  +  (−8x⁴ + 16x²)
+      = −12x⁴ + 11x² − 2 − 8x⁴ + 16x²
+      = −20x⁴ + 27x² − 2</code></pre></div>
+      <p class="rap">Contrôle : <code>(−x³+2x)(4x²−1) = −4x⁵ + 9x³ − 2x</code>, dérivée
+         <code>−20x⁴ + 27x² − 2</code> ✔ Degré 5 → degré 4 ✔</p>
+      <div class="encart piege">
+        <div class="titre">⚠️ Les parenthèses ne sont pas optionnelles</div>
+        <p>Dans <code>(−3x² + 2)(4x² − 1)</code>, chaque terme du premier facteur multiplie
+           <em>chaque</em> terme du second : quatre produits, pas deux. Écrire
+           <code>−3x² + 2 × 4x² − 1</code> sans parenthèses change complètement le calcul.
+           La remarque du cahier est explicite : <strong>« chaque lettre a une
+           parenthèse »</strong>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="quotient">
+  <h2><span class="num">06</span>Le quotient u/v</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La formule</div>
+    <div class="formule">(u / v)' = <strong>(u'v − uv') / v²</strong></div>
+    <p>Deux différences avec le produit, et ce sont exactement les deux sources d'erreur :
+       le <strong>signe moins</strong> au milieu, et le <strong>v² au dénominateur</strong>.
+       L'ordre compte aussi : <code>u'v</code> <em>d'abord</em>, <code>− uv'</code>
+       <em>ensuite</em>.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Retenir l'ordre</div>
+    <p>Le numérateur commence par <strong>u'</strong> comme dans la formule du produit —
+       <code>u'v + uv'</code> devient <code>u'v − uv'</code>. Une seule chose change : le
+       <strong>+</strong> devient <strong>−</strong>. Et comme une soustraction n'est pas
+       commutative, <strong>l'ordre des deux termes devient obligatoire</strong> alors qu'il
+       était libre pour le produit.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = (2x + 1)/(x + 2)</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = 2x + 1        v  = x + 2
+  u' = 2             v' = 1
+
+f'(x) = [ (2)(x + 2) − (2x + 1)(1) ] / (x + 2)²
+      = [ 2x + 4 − 2x − 1 ] / (x + 2)²
+      = 3 / (x + 2)²</code></pre></div>
+      <p class="rap">Le numérateur se simplifie en une <strong>constante</strong> : c'est
+         typique des quotients de deux affines. Conséquence immédiate et précieuse :
+         <code>3 &gt; 0</code> et <code>(x+2)² &gt; 0</code>, donc
+         <strong>f' &gt; 0 partout</strong> — f est croissante sur chacun de ses
+         intervalles de définition, sans aucune inéquation à résoudre.</p>
+      <p class="rap">Attention à la distribution du signe moins :
+         <code>− (2x + 1)</code> donne <code>− 2x − 1</code>, les <em>deux</em> termes
+         changent de signe.</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = 1/(x² + 1)</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = 1             v  = x² + 1
+  u' = 0             v' = 2x
+
+f'(x) = [ (0)(x² + 1) − (1)(2x) ] / (x² + 1)²
+      = [ 0 − 2x ] / (x² + 1)²
+      = −2x / (x² + 1)²</code></pre></div>
+      <p class="rap">Le premier terme s'annule (u' = 0), il ne reste que
+         <code>− uv'</code>. Contrôle de signe : le dénominateur est un carré, donc positif ;
+         f' a donc le signe de <code>−2x</code>, c'est-à-dire <strong>positif pour
+         x &lt; 0 et négatif pour x &gt; 0</strong>. La fonction monte puis descend, avec un
+         maximum en 0 — et en effet <code>f(0) = 1</code> est la plus grande valeur possible
+         de <code>1/(x²+1)</code> ✔</p>
+    </div>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — (x − 1)² ne vaut pas x² + 2x + 1</div>
+    <p>Sur l'exercice <code>f(x) = (x² + 1)/(x − 1)</code>, la copie aboutit correctement au
+       numérateur <code>x² − 2x − 1</code>, puis écrit le dénominateur développé en
+       <code>x² + 2x + 1</code>. C'est faux : l'identité rappelée juste à côté,
+       <code>(a − b)² = a² − 2ab + b²</code>, donne un <strong>moins</strong> :</p>
+    <div class="formule">(x − 1)² = x² − 2x + 1</div>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = x² + 1        v  = x − 1
+  u' = 2x            v' = 1
+
+f'(x) = [ (2x)(x − 1) − (x² + 1)(1) ] / (x − 1)²
+      = [ 2x² − 2x − x² − 1 ] / (x − 1)²
+      = (x² − 2x − 1) / (x − 1)²</code></pre></div>
+    <p><strong>Et surtout : il ne fallait pas développer du tout.</strong> Un dénominateur
+       laissé sous la forme <code>(x − 1)²</code> est plus lisible, se simplifie mieux, et
+       surtout <strong>son signe se lit immédiatement</strong> — un carré est positif. En le
+       développant, on perd cette information et on s'expose à l'erreur. C'est le sujet du
+       §&nbsp;8.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="puissance">
+  <h2><span class="num">07</span>Puissances et racine</h2>
+
+  <p>Quand ce n'est pas x qui est élevé à une puissance, mais toute une expression, on ne
+     peut plus appliquer <code>xⁿ → n·xⁿ⁻¹</code> tel quel : il faut tenir compte de ce
+     qu'il y a dedans.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux formules composées</div>
+    <div class="formule">
+      (uⁿ)' = <strong>n · u' · uⁿ⁻¹</strong><br>
+      (√u)' = <strong>u' / (2√u)</strong>
+    </div>
+    <p>Par rapport aux formules simples, il apparaît un facteur <code>u'</code> : c'est
+       <strong>la dérivée de l'intérieur</strong>. On l'oublie une fois sur deux.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 La poupée russe</div>
+    <p>Dans <code>(3x² + 6x + 1)⁴</code>, il y a deux couches : la
+       <strong>puissance 4</strong> à l'extérieur, et le <strong>trinôme</strong> à
+       l'intérieur. Dériver, c'est ouvrir les deux : on dérive l'enveloppe
+       (<code>4·u³</code>), puis on multiplie par la dérivée du contenu (<code>u'</code>).</p>
+    <p>Si l'on oublie <code>u'</code>, on dérive comme si l'intérieur était simplement
+       « x » — ce qui n'est vrai que lorsque <code>u = x</code>, donc <code>u' = 1</code>.
+       C'est d'ailleurs pourquoi la formule simple <code>(xⁿ)' = n·xⁿ⁻¹</code> est un cas
+       particulier de celle-ci.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = (3x² + 6x + 1)⁴</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = 3x² + 6x + 1      n = 4
+  u' = 6x + 6
+
+  (uⁿ)' = n · u' · uⁿ⁻¹
+
+f'(x) = 4 × (6x + 6) × (3x² + 6x + 1)³
+      = (24x + 24)(3x² + 6x + 1)³
+
+On peut aussi factoriser le premier facteur :
+      = 24(x + 1)(3x² + 6x + 1)³</code></pre></div>
+      <p class="rap">Contrôle du degré : f est de degré 8 (un trinôme à la puissance 4),
+         donc f' doit être de degré 7. Ici : <code>(24x+24)</code> est de degré 1 et
+         <code>(…)³</code> de degré 6, total <strong>7</strong> ✔</p>
+      <div class="encart corrige">
+        <div class="titre">🔧 Corrigé — deux erreurs sur cet exercice</div>
+        <p><strong>①</strong> La copie écrit d'abord
+           <code>f'(x) = 4 × 2 × 3x + 6 × (3x² + 6x + 1)³</code>, où <code>u'</code> est
+           faux : la dérivée de <code>3x² + 6x + 1</code> est <code>6x + 6</code>, pas
+           « 2 × 3x + 6 » écrit sans parenthèses.</p>
+        <p><strong>②</strong> Même corrigée, la ligne <code>= 24x + 24 (3x²+6x+1)³</code>
+           reste ambiguë : sans parenthèses, elle se lit « 24x <em>plus</em>
+           24(3x²+6x+1)³ », ce qui n'est pas le résultat. Il faut écrire</p>
+        <div class="formule">f'(x) = <strong>(24x + 24)</strong>(3x² + 6x + 1)³</div>
+        <p>Le facteur <code>4 × u'</code> forme <strong>un seul bloc</strong> qui multiplie
+           le reste. C'est exactement le sens de l'annotation portée sur la copie :
+           « chaque lettre a une parenthèse ».</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dériver f(x) = √(x³ + 6x² + 1)</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>  u  = x³ + 6x² + 1
+  u' = 3x² + 12x
+
+  (√u)' = u' / (2√u)
+
+f'(x) = (3x² + 12x) / (2√(x³ + 6x² + 1))</code></pre></div>
+      <p class="rap">Rien à simplifier, et surtout <strong>rien à développer</strong> :
+         la réponse est finie. On peut au mieux factoriser le numérateur en
+         <code>3x(x + 4)</code>, ce qui rend son signe lisible — utile si la question
+         suivante porte sur les variations.</p>
+      <div class="encart piege">
+        <div class="titre">⚠️ L'ensemble de définition</div>
+        <p>Une racine carrée exige un contenu <strong>positif ou nul</strong>, et le
+           dénominateur <code>2√u</code> exige en plus qu'il soit <strong>non nul</strong>.
+           La dérivée n'existe donc que là où <code>x³ + 6x² + 1 &gt; 0</code>,
+           strictement. Un énoncé qui dit « sur son ensemble de définition » attend qu'on
+           le signale.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="factoriser">
+  <h2><span class="num">08</span>Factoriser, pas développer</h2>
+
+  <p>Sur les gros calculs, développer est à la fois plus long et plus risqué. Et surtout,
+     c'est inutile : ce qu'on veut ensuite, c'est le <strong>signe</strong> de f' — et un
+     produit de facteurs se lit, alors qu'une somme se calcule.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 L'exemple complet — f(x) = (4x² + 1)²(3x − 7)³</div>
+    <p>C'est le plus gros calcul du chapitre. Il combine le produit (§&nbsp;5) et les
+       puissances (§&nbsp;7).</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>① Poser u et v, chacun étant lui-même une puissance :
+
+  u  = (4x² + 1)²                      v  = (3x − 7)³
+  u' = 2 × (8x) × (4x² + 1)            v' = 3 × (3) × (3x − 7)²
+     = 16x(4x² + 1)                       = 9(3x − 7)²
+
+② Appliquer (uv)' = u'v + uv' :
+
+f'(x) = 16x(4x² + 1) · (3x − 7)³  +  (4x² + 1)² · 9(3x − 7)²
+
+③ Repérer ce qui est COMMUN aux deux termes :
+
+     (4x² + 1)   apparaît des deux côtés  → on le sort
+     (3x − 7)²   apparaît des deux côtés  → on le sort
+                 (à gauche il y en a 3, à droite 2 : on sort la
+                  plus petite puissance, donc 2)
+
+f'(x) = (4x² + 1)(3x − 7)² [ 16x(3x − 7) + 9(4x² + 1) ]
+
+④ Développer SEULEMENT le crochet :
+
+  16x(3x − 7) = 48x² − 112x
+  9(4x² + 1)  = 36x² + 9
+              ─────────────
+                84x² − 112x + 9
+
+f'(x) = (4x² + 1)(3x − 7)²(84x² − 112x + 9)</code></pre></div>
+    <p class="rap">Contrôle numérique en x = 2 : la forme factorisée donne
+       <code>17 × 1 × (336 − 224 + 9) = 17 × 121 = 2 057</code>, et la forme
+       <code>u'v + uv'</code> donne <code>32 × 17 × (−1) + 289 × 9 × 1 = −544 + 2 601
+       = 2 057</code> ✔ Une seule valeur suffit à détecter presque toutes les erreurs.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi cette forme est la bonne réponse</div>
+    <p>Développée, cette dérivée est un polynôme de degré 6, avec sept termes. Factorisée,
+       elle tient sur une ligne — et son <strong>signe se lit directement</strong> :</p>
+    <ul>
+      <li><code>(4x² + 1)</code> : toujours <strong>&gt; 0</strong> (une somme de carrés
+          plus 1) ;</li>
+      <li><code>(3x − 7)²</code> : toujours <strong>⩾ 0</strong>, nul en x = 7/3 ;</li>
+      <li><code>(84x² − 112x + 9)</code> : un trinôme, dont on étudie le signe par le
+          <a href="../03-fonctions-variations/cours.html#signe2">discriminant</a>.</li>
+    </ul>
+    <p>Le signe de f' se ramène donc à celui d'un seul trinôme. Sous forme développée, cette
+       lecture serait impossible. <strong>Factoriser n'est pas une coquetterie : c'est ce
+       qui rend la question suivante faisable.</strong></p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — trois erreurs sur ce calcul</div>
+    <p><strong>①</strong> <code>u' = 16x(4x² + 1)</code> est développé en
+       <code>64x² + 16x</code>. C'est faux : <code>16x × 4x² = 64x³</code>, pas
+       <code>64x²</code>. <strong>Multiplier deux x ajoute les exposants</strong> —
+       l'erreur fait perdre un degré. La forme correcte développée serait
+       <code>64x³ + 16x</code> — mais mieux vaut ne pas développer du tout.</p>
+    <p><strong>②</strong> <code>9(3x − 7)²</code> est développé en
+       <code>81x² + 378x + 441</code>, avec un <strong>plus</strong> au milieu. Or
+       <code>(3x − 7)² = 9x² − 42x + 49</code>, d'où <code>81x² − 378x + 441</code>.
+       C'est la même identité remarquable que plus haut : <code>(a − b)²</code> donne
+       <code>− 2ab</code>.</p>
+    <p><strong>③</strong> La factorisation finale est notée
+       <code>(4x² + 1)(3x − 7)[16x(3x − 7) + 9(4x² − 1)]</code>. Deux coquilles :
+       <code>(3x − 7)</code> doit être au <strong>carré</strong> (c'est la puissance commune
+       aux deux termes), et le dernier facteur est <code>9(4x² <strong>+</strong> 1)</code>,
+       avec un plus — c'est <code>u</code>, et <code>u = (4x²+1)²</code> ne contient aucun
+       « −1 ». La forme juste est :</p>
+    <div class="formule">f'(x) = (4x² + 1)(3x − 7)²[16x(3x − 7) + 9(4x² + 1)]</div>
+    <p>Les trois erreurs viennent d'une même cause : <strong>on a développé trop tôt</strong>.
+       En restant factorisé jusqu'au bout, aucune des trois n'était possible.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">📐 Quand développer, quand s'arrêter</div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Situation</th><th>Que faire</th></tr></thead>
+        <tbody>
+          <tr><td>Polynôme court (2 ou 3 termes)</td>
+              <td><strong>Développer</strong> — c'est plus lisible, et ça permet le
+                  contrôle croisé</td></tr>
+          <tr><td>Produit de deux gros facteurs</td>
+              <td><strong>Factoriser</strong> — sortir tout ce qui est commun</td></tr>
+          <tr><td>Quotient</td>
+              <td>Développer le <em>numérateur</em>, <strong>jamais</strong> le
+                  dénominateur : il reste <code>v²</code></td></tr>
+          <tr><td>Racine</td>
+              <td><strong>Ne rien développer</strong> — au mieux factoriser le
+                  numérateur</td></tr>
+          <tr><td>La question suivante demande le signe</td>
+              <td><strong>Factoriser, toujours</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 9 -->
+<section id="variations">
+  <h2><span class="num">09</span>Vers les variations</h2>
+
+  <p>Tout ce chapitre n'a qu'un but : alimenter le tableau de variations, étudié au
+     <a href="../03-fonctions-variations/cours.html#variations">chapitre 03</a>. Voici le
+     lien, en une page.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le théorème fondamental</div>
+    <div class="formule">
+      f'(x) &gt; 0 &nbsp;⟹&nbsp; f <strong>croissante</strong> — la flèche monte ╱<br>
+      f'(x) &lt; 0 &nbsp;⟹&nbsp; f <strong>décroissante</strong> — la flèche descend ╲<br>
+      f'(x) = 0 &nbsp;⟹&nbsp; f <strong>constante</strong>, ou un <strong>extremum</strong>
+    </div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le degré prédit la forme du tableau</div>
+    <p>Une remarque de la classe, très juste, qui fait gagner du temps :</p>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>f est de degré…</th><th>f' est de degré…</th>
+            <th>Nombre de changements de sens</th></tr></thead>
+        <tbody>
+          <tr><td>1 (une droite)</td><td>0 — une <strong>constante</strong></td>
+              <td><strong>aucun</strong> : monotone sur tout I</td></tr>
+          <tr><td>2 (une parabole)</td><td>1 — une <strong>droite</strong></td>
+              <td><strong>un</strong> : un seul extremum, le sommet</td></tr>
+          <tr><td>3 (une courbe en S)</td><td>2 — un <strong>trinôme</strong></td>
+              <td><strong>deux au plus</strong> : un max puis un min</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Conséquence pratique : pour un degré 2, <strong>on ne calcule pas de
+       discriminant</strong> — f' est une affine, on résout directement
+       <code>f'(x) = 0</code>. Le discriminant ne sert qu'à partir du degré 3, où f'
+       devient un trinôme.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Le cas du degré 2 — f(x) = 2x² + 3x + 1</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>① f'(x) = 4x + 3            ← une affine : pas de discriminant
+
+② Signe de f' :
+     4x + 3 = 0  →  4x = −3  →  x = −3/4
+
+   a = 4 &gt; 0 pour f' : négative avant, positive après.
+
+  x     │ −∞          −3/4          +∞
+  ──────┼───────────────────────────────
+  f'(x) │     −         0       +
+
+③ L'extremum :
+   f(−3/4) = 2 × 9/16 − 9/4 + 1
+           = 9/8 − 18/8 + 8/8
+           = −1/8
+
+④ Tableau :
+  x     │ −∞          −3/4          +∞
+  ──────┼───────────────────────────────
+  f'(x) │     −         0       +
+  ──────┼───────────────────────────────
+  f(x)  │ +∞  ╲       −1/8     ╱  +∞
+
+f admet un minimum égal à −1/8, atteint en x = −3/4.</code></pre></div>
+      <p class="rap">Contrôle : <code>a = 2 &gt; 0</code> pour f, donc la parabole ouvre
+         vers le haut et doit avoir un <strong>minimum</strong> ✔ ; le sommet est en
+         <code>−b/2a = −3/4</code>, l'abscisse trouvée ✔ ; et
+         <code>f(0) = 1 &gt; −1/8</code> ✔</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Le cas du degré 3 — f(x) = x² − 6x + 10 sur [0 ; 5]</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Malgré l'annonce, celui-ci est de degré 2 — il illustre l'importance des
+         <strong>bornes</strong>.</p>
+<div class="bloc-code"><span class="langue">calcul</span><pre><code>① f'(x) = 2x − 6
+
+② Signe : 2x − 6 = 0  →  x = 3,  et 3 ∈ [0 ; 5]  ✔
+
+  x     │  0           3            5
+  ──────┼───────────────────────────────
+  f'(x) │     −        0       +
+
+③ Les trois valeurs — bornes comprises :
+   f(0) = 0 − 0  + 10 = 10
+   f(3) = 9 − 18 + 10 = 1        ← le minimum
+   f(5) = 25 − 30 + 10 = 5
+
+④ Tableau :
+  x     │  0           3            5
+  ──────┼───────────────────────────────
+  f'(x) │     −        0       +
+  ──────┼───────────────────────────────
+  f(x)  │  10  ╲       1      ╱   5</code></pre></div>
+      <p class="rap">Contrôle : sur un intervalle <strong>fermé</strong>, le tableau
+         commence et finit aux bornes, pas à ±∞ — et il faut calculer <code>f(0)</code> et
+         <code>f(5)</code>, pas seulement <code>f(3)</code>. Ici le maximum sur [0 ; 5] vaut
+         10, atteint <em>au bord gauche</em> : il n'apparaît nulle part dans le signe de f'.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 10 -->
+<section id="examen">
+  <h2><span class="num">10</span>À l'examen</h2>
+
+  <div class="encart methode">
+    <div class="titre">📐 La méthode, quelle que soit la fonction</div>
+    <ol>
+      <li><strong>Reconnaître la structure</strong> : somme ? produit ? quotient ?
+          puissance ? racine ? C'est elle qui choisit la formule.</li>
+      <li><strong>Poser u, u', v, v'</strong> en quatre lignes séparées, avant tout calcul.
+          Sur un quotient ou un produit, ces quatre lignes valent des points à elles
+          seules.</li>
+      <li><strong>Écrire la formule</strong> telle quelle, puis y substituer.</li>
+      <li><strong>Simplifier intelligemment</strong> — développer si c'est court,
+          factoriser si c'est long ou si le signe est demandé ensuite.</li>
+      <li><strong>Contrôler</strong> : le degré a-t-il baissé d'un cran ? Une valeur
+          numérique concorde-t-elle ?</li>
+    </ol>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les sept erreurs qui coûtent des points</div>
+    <ol>
+      <li><strong>Dériver un produit comme <code>u'v'</code></strong> — la formule est
+          <code>u'v + uv'</code>.</li>
+      <li><strong>Oublier le signe moins</strong> du quotient, ou intervertir les deux
+          termes du numérateur.</li>
+      <li><strong>Oublier <code>u'</code></strong> dans <code>(uⁿ)'</code> et
+          <code>(√u)'</code> — la dérivée de l'intérieur.</li>
+      <li><strong>Écrire <code>f'(x) = −2x</code></strong> pour <code>f(x) = −2x + 1</code> :
+          la dérivée d'une affine est une constante.</li>
+      <li><strong>Perdre un exposant</strong> en développant :
+          <code>16x × 4x² = 64x³</code>, pas <code>64x²</code>.</li>
+      <li><strong>Se tromper d'identité remarquable</strong> :
+          <code>(a − b)² = a² − 2ab + b²</code>, avec un <strong>moins</strong>.</li>
+      <li><strong>Oublier les parenthèses</strong> autour d'un facteur :
+          <code>(24x + 24)(…)³</code> et non <code>24x + 24(…)³</code>.</li>
+    </ol>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le contrôle qui ne trompe pas</div>
+    <p><strong>Vérifier sur une valeur.</strong> Choisissez un x simple (0, 1 ou 2),
+       calculez <code>f'(x)</code> avec votre résultat, puis recalculez-le par un autre
+       chemin — en développant f d'abord, ou en revenant à <code>u'v + uv'</code> avant
+       factorisation. Si les deux nombres coïncident, le calcul est presque sûrement bon ;
+       s'ils diffèrent, l'erreur est quelque part entre les deux.</p>
+    <p>Et le contrôle gratuit, à faire systématiquement : <strong>dériver fait baisser le
+       degré d'exactement un cran.</strong></p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Nombre dérivé</strong> <code>f'(a)</code> = un <em>nombre</em>, la pente de
+          la tangente en a. <strong>Fonction dérivée</strong> <code>f'</code> = une
+          <em>formule</em>.</li>
+      <li><strong>Tangente</strong> : <code>y = f'(a)(x − a) + f(a)</code>.</li>
+      <li><strong>Usuelles</strong> : <code>(k)' = 0</code> · <code>(x)' = 1</code> ·
+          <code>(ax + b)' = a</code> · <code>(x²)' = 2x</code> ·
+          <code>(xⁿ)' = n·xⁿ⁻¹</code> · <code>(1/x)' = −1/x²</code> ·
+          <code>(√x)' = 1/(2√x)</code>.</li>
+      <li><strong>Un polynôme se dérive terme par terme</strong> : coefficient × exposant,
+          exposant − 1. La constante disparaît.</li>
+      <li><strong>Simples</strong> : <code>(ku)' = ku'</code> ·
+          <code>(u + v)' = u' + v'</code>.</li>
+      <li><strong>Produit</strong> : <code>(uv)' = u'v + uv'</code>. Surtout
+          <strong>pas</strong> <code>u'v'</code>.</li>
+      <li><strong>Quotient</strong> : <code>(u/v)' = (u'v − uv')/v²</code>. Le
+          <strong>moins</strong>, et l'<strong>ordre</strong>, sont obligatoires.</li>
+      <li><strong>Composées</strong> : <code>(uⁿ)' = n·u'·uⁿ⁻¹</code> ·
+          <code>(√u)' = u'/(2√u)</code>. Le <code>u'</code> est
+          <strong>la dérivée de l'intérieur</strong> : c'est lui qu'on oublie.</li>
+      <li><strong>Factoriser plutôt que développer</strong> dès que le calcul est gros — et
+          <strong>toujours</strong> si la question suivante demande le signe.</li>
+      <li><strong>(a − b)² = a² − 2ab + b²</strong>, avec un moins. Et
+          <code>16x × 4x² = 64x³</code> : les exposants s'ajoutent.</li>
+      <li><strong>Contrôle du degré</strong> : dériver baisse le degré d'un cran, toujours.</li>
+      <li><strong>Contrôle numérique</strong> : une valeur de x, deux chemins de calcul, le
+          même résultat.</li>
+      <li><strong>Vers les variations</strong> : <code>f' &gt; 0</code> monte ·
+          <code>f' &lt; 0</code> descend · <code>f' = 0</code> extremum. Degré 2 → f' affine
+          (pas de discriminant) · degré 3 → f' trinôme (discriminant).</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li><em>tout-le-cours-broillon.pdf</em> (14 pages) — le cours complet recopié par un
+          camarade : fonctions affines, second degré, dérivation, opérations, variations</li>
+      <li><em>chapitre-3.-fonctions-partie-1-eleve-b.pdf</em> (11 pages) — tableau des
+          dérivées usuelles, tableau des opérations (Ku, u+v, uv, u/v, u<sup>α</sup>),
+          et les exercices de dérivation du 11/12</li>
+      <li><em>les-fonctions-au-propre-la copie A.pdf</em> (6 pages) — la version au propre
+          de l'élève</li>
+      <li><em>variation-les-explication-de-eleve-c.pdf</em> (2 pages) — l'explication du
+          lien degré de f / degré de f' / nombre de changements de sens, avec l'exemple
+          <code>2x² + 3x + 1</code></li>
+      <li><em>La copie A.docx</em> et <em>eleve-b.docx</em> — les six exercices de dérivation
+          (racine, quotients, puissance, produits), avec les corrections portées en marge
+          sur la copie A</li>
+      <li><em>La copie A-1.docx</em>, <em>exo-supplementaire.docx</em>, <em>pivoine.docx</em> —
+          exercices de dérivées simples, produits et quotients</li>
+      <li><em>exercices-revisions-derivation-la copie A.docx</em> et
+          <em>-eleve-b.docx</em>, <em>exo-derivees-maths-pour-le-11-12-25</em> —
+          les devoirs maison</li>
+      <li><em>fiche-revision-1/2/3.png</em> — fiches de révision : théorème fondamental,
+          cas du second et du troisième degré, formulaire</li>
+      <li>Le §&nbsp;1 (nombre dérivé et tangente) est un <strong>complément</strong> :
+          il ne figure pas dans les cahiers, mais il donne le sens de tout le reste</li>
+    </ul>
+  </div>
+</footer>
+
+</main>
+</div>
+<script src="../../assets/fiche.js"></script>
+<script src="../../assets/app.js"></script>
+</body>
+</html>
