@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convertisseur — BTS CIEL</title>
+<meta name="description" content="Convertir un octet bit par bit, et lire une adresse IPv4 en binaire, décimal et hexadécimal.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" href="../assets/icone.svg">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=98b4a5b6">
+</head>
+<body data-matiere="reseau">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav>
+    <a href="../index.html" class="secondaire">Accueil</a>
+    <a href="../outils/index.html" aria-current="page">Outils</a>
+    <a href="../a-propos.html" class="secondaire">À propos</a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span> <span>Convertisseur</span></div>
+
+  <div class="tete-matiere">
+    <h1>Convertisseur</h1>
+    <p>Passer du décimal au binaire et retour, sans poser l'opération —
+       et voir <em>pourquoi</em> ça tombe juste.</p>
+  </div>
+
+  <section class="outil" id="octet">
+    <h2><span class="num-outil">1</span> Un octet, bit par bit</h2>
+    <p class="intro">Huit cases, chacune valant une puissance de deux. Cliquez pour
+       allumer : la somme des cases allumées <em>est</em> la valeur décimale.</p>
+
+    <div class="bits" role="group" aria-label="Les huit bits d'un octet">
+      <div class="bit"><span class="poids">128</span><button type="button" data-bit="7" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">64</span><button type="button" data-bit="6" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">32</span><button type="button" data-bit="5" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">16</span><button type="button" data-bit="4" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">8</span><button type="button" data-bit="3" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">4</span><button type="button" data-bit="2" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">2</span><button type="button" data-bit="1" aria-pressed="false">0</button></div>
+      <div class="bit"><span class="poids">1</span><button type="button" data-bit="0" aria-pressed="false">0</button></div>
+    </div>
+
+    <p class="calcul" id="calcul" aria-live="polite">Aucun bit allumé — la valeur vaut <b>0</b>.</p>
+
+    <div class="rangee">
+      <label class="ch-dec">Décimal <input id="o-dec" type="text" inputmode="numeric" value="0"
+             autocomplete="off" spellcheck="false" aria-label="Octet en décimal"></label>
+      <label class="ch-bin">Binaire <input id="o-bin" type="text" inputmode="numeric" value="00000000"
+             autocomplete="off" spellcheck="false" aria-label="Octet en binaire"></label>
+      <label class="ch-hex">Hexadécimal <input id="o-hex" type="text" value="00"
+             autocomplete="off" spellcheck="false" aria-label="Octet en hexadécimal"></label>
+    </div>
+    <p class="note">Les trois champs sont liés. Un octet va de 0 à 255 — c'est pour cela
+       qu'une adresse IPv4 ne dépasse jamais 255.</p>
+  </section>
+
+  <section class="outil" id="adresse">
+    <h2><span class="num-outil">2</span> Une adresse IPv4 en entier</h2>
+    <p class="intro">Les quatre octets, chacun avec sa couleur : le décimal, ses huit bits
+       et sa valeur hexadécimale restent liés à l'œil.</p>
+
+    <div class="rangee">
+      <label>Adresse <input id="ip-dec" type="text" value="192.168.1.10"
+             autocomplete="off" spellcheck="false"
+             aria-label="Adresse IPv4 en décimal pointé"></label>
+      <label>Binaire <input id="ip-bin-in" type="text"
+             autocomplete="off" spellcheck="false"
+             aria-label="Adresse IPv4 en binaire"></label>
+    </div>
+
+    <div class="ipv4" id="ipv4" aria-live="polite"></div>
+    <p class="note">32 bits en tout : quatre groupes de huit. Écrivez dans l'un des deux
+       champs, l'autre suit.</p>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <span class="vide"></span>
+    <a class="suiv" href="masques.html"><span>Outil suivant</span><b>Table des masques</b></a>
+  </nav>
+</main>
+
+<script>
+/* Convertisseur — sans dépendance, sans réseau. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var bits = Array.prototype.slice.call(document.querySelectorAll(".bits button"));
+  var dec = $("o-dec"), bin = $("o-bin"), hex = $("o-hex"), calcul = $("calcul");
+  if (!bits.length) return;
+
+  function peindre(v, sauf) {
+    bits.forEach(function (b) {
+      var on = !!(v & (1 << +b.dataset.bit));
+      b.setAttribute("aria-pressed", String(on));
+      b.textContent = on ? "1" : "0";
+    });
+    if (sauf !== "dec") dec.value = String(v);
+    if (sauf !== "bin") bin.value = ("0000000" + v.toString(2)).slice(-8);
+    if (sauf !== "hex") hex.value = ("0" + v.toString(16).toUpperCase()).slice(-2);
+
+    /* On montre l'addition, pas seulement le résultat : c'est l'opération
+       qu'on pose au tableau, et c'est elle qu'il faut retenir. */
+    var allumes = bits.filter(function (b) { return b.getAttribute("aria-pressed") === "true"; })
+                      .map(function (b) { return 1 << +b.dataset.bit; });
+    calcul.innerHTML = allumes.length
+      ? allumes.join('<span class="plus">+</span>') + '<span class="egal">=</span><b>' + v + "</b>"
+      : "Aucun bit allumé — la valeur vaut <b>0</b>.";
+  }
+
+  bits.forEach(function (b) {
+    b.addEventListener("click", function () {
+      b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+      peindre(bits.reduce(function (n, x) {
+        return n + (x.getAttribute("aria-pressed") === "true" ? (1 << +x.dataset.bit) : 0);
+      }, 0));
+    });
+  });
+
+  function borne(v) { return Math.max(0, Math.min(255, v)); }
+  dec.addEventListener("input", function () {
+    var v = parseInt(dec.value.replace(/[^\d]/g, ""), 10);
+    if (!isNaN(v)) peindre(borne(v), "dec");
+  });
+  bin.addEventListener("input", function () {
+    var t = bin.value.replace(/[^01]/g, "").slice(0, 8);
+    if (t) peindre(borne(parseInt(t, 2)), "bin");
+  });
+  hex.addEventListener("input", function () {
+    var t = hex.value.replace(/[^0-9a-fA-F]/g, "").slice(0, 2);
+    if (t) peindre(borne(parseInt(t, 16)), "hex");
+  });
+  peindre(0);
+
+  /* ── L'adresse complète ──────────────────────────────────────────────
+     Chaque octet garde SA couleur du décimal jusqu'aux bits : c'est ce qui
+     permet de rattacher « 11000000 » à « 192 » sans les compter. */
+  var ipDec = $("ip-dec"), ipBinIn = $("ip-bin-in"), grille = $("ipv4");
+
+  function lire(txt) {
+    var m = txt.trim().split(".");
+    if (m.length !== 4) return null;
+    var o = m.map(function (x) { return /^\d{1,3}$/.test(x.trim()) ? +x.trim() : -1; });
+    return o.every(function (x) { return x >= 0 && x <= 255; }) ? o : null;
+  }
+  function en8(n) { return ("0000000" + n.toString(2)).slice(-8); }
+
+  function rendre(o) {
+    grille.innerHTML = o.map(function (n, i) {
+      return '<div class="oct o' + (i + 1) + '">' +
+               '<span class="rang">' + (i + 1) + '<sup>' + (i ? "e" : "er") + '</sup> octet</span>' +
+               '<span class="val">' + n + "</span>" +
+               '<span class="b8">' + en8(n) + "</span>" +
+               '<span class="hx">0x' + ("0" + n.toString(16).toUpperCase()).slice(-2) + "</span>" +
+             "</div>";
+    }).join("");
+  }
+
+  function depuisDecimal(ecrire) {
+    var o = lire(ipDec.value);
+    if (!o) {
+      grille.innerHTML = '<p class="invalide">Adresse incomplète — quatre nombres de 0 à 255, séparés par des points.</p>';
+      return;
+    }
+    rendre(o);
+    if (ecrire !== false) ipBinIn.value = o.map(en8).join(".");
+  }
+
+  ipDec.addEventListener("input", function () { depuisDecimal(); });
+  ipBinIn.addEventListener("input", function () {
+    var t = ipBinIn.value.replace(/[^01.]/g, "").split(".");
+    if (t.length !== 4 || !t.every(function (x) { return x.length === 8; })) return;
+    ipDec.value = t.map(function (x) { return parseInt(x, 2); }).join(".");
+    depuisDecimal(false);
+  });
+  depuisDecimal();
+})();
+</script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/recherche.js?v=98b4a5b6"></script>
+<script src="../assets/app.js?v=98b4a5b6"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>
