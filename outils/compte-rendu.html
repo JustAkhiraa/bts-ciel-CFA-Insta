@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compteur du compte rendu — BTS CIEL</title>
+<meta name="description" content="Compter les mots d'un compte rendu bloc par bloc, selon la convention de comptage du cours, et vérifier la fourchette 180 – 220.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" href="../assets/icone.svg">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=867a6964">
+</head>
+<body data-matiere="anglais">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav>
+    <a href="../index.html" class="secondaire">Accueil</a>
+    <a href="../outils/index.html" aria-current="page">Outils</a>
+    <a href="../a-propos.html" class="secondaire">À propos</a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#epreuves">Épreuves et méthode</a> <span>/</span>
+    <span>Compteur du compte rendu</span></div>
+
+  <div class="tete-matiere">
+    <h1>Compteur du compte rendu</h1>
+    <p>Introduction, développement, conclusion : chacun avec sa cible. Le total se compare à la fourchette <b>180 – 220</b>, et la mention à recopier en bas de copie se copie d'un clic.</p>
+  </div>
+
+  <section class="outil" id="compteur">
+    <h2><span class="num-outil">1</span> Votre compte rendu, pesé</h2>
+    <p class="intro">Trois blocs, trois cibles. Collez ou tapez votre brouillon :
+       chaque bloc s'affiche avec son écart, et le total se compare à la fourchette
+       <b>180 – 220</b>. Rien ne part ailleurs, tout se compte dans votre navigateur.</p>
+
+    <div class="cr-blocs">
+      <div class="cr-bloc" data-min="0" data-max="35" data-cible="30">
+        <div class="cr-tete"><h3>Introduction</h3><span class="cr-cible">30 mots, 35 maximum</span></div>
+        <textarea rows="4" aria-label="Introduction" spellcheck="true"
+          placeholder="Nature du document, source, date, thème — quatre éléments, pas un de plus."></textarea>
+        <p class="cr-verdict"></p>
+      </div>
+      <div class="cr-bloc" data-min="130" data-max="150" data-cible="140">
+        <div class="cr-tete"><h3>Développement</h3><span class="cr-cible">130 à 150 mots</span></div>
+        <textarea rows="9" aria-label="Développement" spellcheck="true"
+          placeholder="Trois paragraphes, trois idées, trois connecteurs."></textarea>
+        <p class="cr-verdict"></p>
+      </div>
+      <div class="cr-bloc" data-min="30" data-max="45" data-cible="38">
+        <div class="cr-tete"><h3>Conclusion personnelle</h3><span class="cr-cible">30 à 45 mots</span></div>
+        <textarea rows="4" aria-label="Conclusion personnelle" spellcheck="true"
+          placeholder="L'idée forte, l'élargissement professionnel, votre apport."></textarea>
+        <p class="cr-verdict"></p>
+      </div>
+    </div>
+
+    <div class="cr-total" id="cr-total">
+      <div class="cr-chiffre"><b id="cr-n">0</b><span>mots au total</span></div>
+      <div class="cr-jauge" aria-hidden="true">
+        <div class="cr-piste"><span class="cr-zone"></span><span class="cr-curseur" id="cr-curseur"></span></div>
+        <div class="cr-graduations"><span>0</span><span>180</span><span>220</span><span>260</span></div>
+      </div>
+      <p class="cr-etat" id="cr-etat" aria-live="polite">Commencez à écrire.</p>
+    </div>
+
+    <div class="cr-rendu">
+      <p class="cr-rappel"><b>À recopier en bas de la copie.</b> La consigne dit
+         « <em>impérativement</em> » : l'oublier coûte un point, pour dix secondes
+         de travail.</p>
+      <div class="cr-ligne"><code id="cr-mention">(0 mots)</code>
+        <button type="button" id="cr-copier">Copier</button></div>
+    </div>
+  </section>
+
+  <section class="outil" id="regle">
+    <h2><span class="num-outil">2</span> Ce qui compte pour un mot</h2>
+    <p class="intro">Le compteur applique la convention de votre cours — celle que le
+       correcteur utilise. Un compteur de traitement de texte ne la respecte pas :
+       il lit « 85 000 » comme deux mots.</p>
+
+    <div class="tableau"><table>
+      <thead><tr><th scope="col">Cas</th><th scope="col">Compte pour</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">aujourd'hui · l'importance · qu'elle</th>
+            <td><b>1 mot</b> — l'apostrophe ne sépare pas</td></tr>
+        <tr><th scope="row">c'est-à-dire · lui-même · man-in-the-middle</th>
+            <td><b>1 mot</b> — le trait d'union non plus</td></tr>
+        <tr><th scope="row">85 000 · 71 %</th>
+            <td><b>1 mot</b> — l'espace des milliers et le symbole restent collés</td></tr>
+        <tr><th scope="row">25 juillet 2018</th>
+            <td><b>3 mots</b> — trois nombres séparés par un mot</td></tr>
+        <tr><th scope="row">Titan Security Key</th>
+            <td><b>3 mots</b> — un nom propre composé ne se compresse pas</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="encart savoir">
+      <div class="titre">💡 Le correcteur ne recompte pas au mot près</div>
+      <p>Il vérifie deux choses : que vous êtes dans la fourchette, et que vous avez
+         <b>indiqué un nombre</b>. Deux ou trois mots d'écart avec son propre décompte
+         ne se voient pas. L'absence de décompte, si.</p>
+    </div>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="ports.html"><span>Outil précédent</span><b>Ports et protocoles</b></a>
+    <span class="vide"></span>
+  </nav>
+</main>
+
+<script>
+/* Compteur de mots du compte rendu — la convention du cours, pas celle d'un
+   traitement de texte.
+
+   Vérifié contre une copie réellement pesée dans le chapitre de méthodologie
+   (la version rendue d'un compte rendu « Titan Security Key », annoncée à
+   207 mots) : le compteur rend 207. Un découpage naïf sur les espaces en
+   rendait 209, parce qu'il lisait « 85 000 » et « 19 des 20 » de travers. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var blocs = Array.prototype.slice.call(document.querySelectorAll(".cr-bloc"));
+  if (!blocs.length) return;
+
+  function compter(t) {
+    /* L'espace des milliers et le symbole restent collés au nombre : « 85 000 »
+       et « 71 % » valent un mot chacun. */
+    t = t.replace(/(\d)[   ](?=\d{3}(?!\d))/g, "$1");
+    t = t.replace(/(\d)[   ]([%€$°])/g, "$1$2");
+    var jetons = t.match(/\S+/g) || [];
+    var n = 0;
+    /* Un tiret cadratin isolé, un guillemet, une puce : de la ponctuation, pas
+       un mot. On ne compte que ce qui porte au moins une lettre ou un chiffre. */
+    for (var i = 0; i < jetons.length; i++) if (/[0-9A-Za-zÀ-ÿ]/.test(jetons[i])) n++;
+    return n;
+  }
+
+  var MEM = "bts-ciel:compte-rendu";
+  var total = $("cr-n"), etat = $("cr-etat"), curseur = $("cr-curseur"),
+      mention = $("cr-mention"), copier = $("cr-copier"), boite = $("cr-total");
+
+  function peser() {
+    var somme = 0;
+    blocs.forEach(function (b) {
+      var z = b.querySelector("textarea"), v = b.querySelector(".cr-verdict");
+      var n = compter(z.value), min = +b.getAttribute("data-min"), max = +b.getAttribute("data-max");
+      somme += n;
+      b.classList.remove("court", "juste", "long");
+      if (!n) { v.textContent = ""; }
+      else if (n > max) {
+        b.classList.add("long");
+        v.textContent = n + " mots — " + (n - max) + " de trop.";
+      } else if (n < min) {
+        b.classList.add("court");
+        v.textContent = n + " mots — il en manque " + (min - n) + ".";
+      } else {
+        b.classList.add("juste");
+        v.textContent = n + " mots — dans la cible.";
+      }
+    });
+
+    total.textContent = somme;
+    mention.textContent = "(" + somme + " mot" + (somme > 1 ? "s" : "") + ")";
+    curseur.style.left = Math.min(100, somme / 260 * 100) + "%";
+
+    boite.classList.remove("court", "juste", "long");
+    if (!somme) { etat.textContent = "Commencez à écrire."; }
+    else if (somme < 180) {
+      boite.classList.add("court");
+      etat.textContent = "Trop court de " + (180 - somme) + " mots. La fourchette commence à 180.";
+    } else if (somme > 220) {
+      boite.classList.add("long");
+      etat.textContent = "Trop long de " + (somme - 220) + " mots. Coupez les étiquettes « Intro : », les connecteurs en trop, les répétitions.";
+    } else {
+      boite.classList.add("juste");
+      etat.textContent = "Dans la fourchette. Reste à écrire le nombre sur la copie.";
+    }
+
+    try { localStorage.setItem(MEM, JSON.stringify(blocs.map(function (b) {
+      return b.querySelector("textarea").value; }))); } catch (e) {}
+  }
+
+  /* Le brouillon reste dans CE navigateur — il n'est ni envoyé, ni partagé.
+     Sans lui, fermer l'onglet entre deux cours effaçait le travail. */
+  try {
+    var garde = JSON.parse(localStorage.getItem(MEM) || "[]");
+    if (garde.length === blocs.length)
+      blocs.forEach(function (b, i) { b.querySelector("textarea").value = garde[i] || ""; });
+  } catch (e) {}
+
+  blocs.forEach(function (b) {
+    b.querySelector("textarea").addEventListener("input", peser);
+  });
+
+  copier.addEventListener("click", function () {
+    var t = mention.textContent, fini = function (ok) {
+      copier.textContent = ok ? "Copié ✓" : "Échec";
+      copier.classList.toggle("fait", ok);
+      setTimeout(function () { copier.textContent = "Copier"; copier.classList.remove("fait"); }, 1600);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(t).then(function () { fini(true); }, function () { fini(false); });
+    } else {
+      var z = document.createElement("textarea");
+      z.value = t; z.style.position = "fixed"; z.style.opacity = "0";
+      document.body.appendChild(z); z.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(z); fini(ok);
+    }
+  });
+
+  peser();
+})();
+</script>
+
+<script src="../assets/fiche.js?v=867a6964"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/recherche.js?v=867a6964"></script>
+<script src="../assets/app.js?v=867a6964"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

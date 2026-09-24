@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculateur de sous-réseau — BTS CIEL</title>
+<meta name="description" content="Calculer l'adresse de réseau, la diffusion, la plage utilisable et découper un réseau en sous-réseaux égaux.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" href="../assets/icone.svg">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=867a6964">
+</head>
+<body data-matiere="reseau">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav>
+    <a href="../index.html" class="secondaire">Accueil</a>
+    <a href="../outils/index.html" aria-current="page">Outils</a>
+    <a href="../a-propos.html" class="secondaire">À propos</a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#adressage">Adressage IP</a> <span>/</span>
+    <span>Calculateur de sous-réseau</span></div>
+
+  <div class="tete-matiere">
+    <h1>Calculateur de sous-réseau</h1>
+    <p>Le ET logique posé bit à bit, puis le découpage : <b>ce que l'énoncé demande</b>, dans l'ordre où on le rédige.</p>
+  </div>
+
+  <section class="outil" id="analyse">
+    <h2><span class="num-outil">1</span> Une adresse, décortiquée</h2>
+    <p class="intro">Donnez une adresse et un masque : tout le reste se déduit. Le
+       tableau du bas n'est pas une décoration — c'est le <b>ET logique</b> que vous
+       posez au tableau, bit à bit.</p>
+
+    <div class="rangee">
+      <label class="ch-dec">Adresse IPv4
+        <input id="sr-ip" type="text" value="192.168.1.10" autocomplete="off"
+               spellcheck="false" placeholder="192.168.1.10 ou 192.168.1.10/26"
+               aria-label="Adresse IPv4"></label>
+      <label class="ch-bin">Masque ou préfixe
+        <input id="sr-masque" type="text" value="/26" autocomplete="off"
+               spellcheck="false" placeholder="/26 ou 255.255.255.192"
+               aria-label="Masque de sous-réseau ou préfixe"></label>
+    </div>
+    <p class="sr-erreur" id="sr-err" hidden></p>
+
+    <div class="res" id="sr-res" aria-live="polite"></div>
+
+    <div class="mb-pose" id="sr-pose" aria-hidden="true"></div>
+    <p class="note" id="sr-note"></p>
+  </section>
+
+  <section class="outil" id="decoupe">
+    <h2><span class="num-outil">2</span> Découper en sous-réseaux égaux</h2>
+    <p class="intro">Le réseau de départ, puis <em>ce dont vous avez besoin</em> :
+       un nombre de sous-réseaux, ou un nombre de machines dans chacun. L'outil
+       emprunte les bits qu'il faut et vous rend le plan.</p>
+
+    <div class="rangee">
+      <label class="ch-dec">Réseau de départ
+        <input id="dc-ip" type="text" value="192.168.1.0/24" autocomplete="off"
+               spellcheck="false" aria-label="Réseau de départ"></label>
+      <label class="ch-hex">Il me faut
+        <input id="dc-n" type="text" inputmode="numeric" value="4" autocomplete="off"
+               spellcheck="false" aria-label="Quantité demandée"></label>
+      <label class="ch-bin">…de quoi
+        <select id="dc-quoi" aria-label="Type de besoin">
+          <option value="sr">sous-réseaux</option>
+          <option value="h">machines par sous-réseau</option>
+        </select></label>
+    </div>
+    <p class="sr-erreur" id="dc-err" hidden></p>
+
+    <p class="calcul" id="dc-calcul" aria-live="polite"></p>
+    <div class="tableau"><table id="dc-table">
+      <caption class="sr-legende" id="dc-cap"></caption>
+      <thead><tr><th scope="col">#</th><th scope="col">Réseau</th>
+        <th scope="col">Première</th><th scope="col">Dernière</th>
+        <th scope="col">Diffusion</th><th scope="col">Hôtes</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="note">Au-delà de 32 sous-réseaux, seuls les premiers sont listés : le
+       <b>pas</b> suffit à écrire la suite, et c'est lui qu'on vous demande en
+       contrôle.</p>
+  </section>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Sous-réseaux égaux ou VLSM ?</div>
+    <p>Ce découpage donne des tranches de <b>même taille</b>. C'est ce qu'on demande
+       quand l'énoncé dit « découpez en 4 sous-réseaux ». Quand chaque site a un
+       besoin différent — 50 postes ici, 12 là, 2 pour une liaison série — on sert
+       le plus gros d'abord avec le masque le plus serré qui lui convient : c'est le
+       VLSM, et il se pose avec la même mécanique, une tranche à la fois.</p>
+  </div>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <span class="vide"></span>
+    <a class="suiv" href="convertisseur.html"><span>Outil suivant</span><b>Convertisseur</b></a>
+  </nav>
+</main>
+
+<script>
+/* Calculateur de sous-réseau — arithmétique 32 bits, sans dépendance.
+
+   JavaScript manipule les entiers bit à bit en 32 bits SIGNÉS : « 255.255.255.0 »
+   vaut -256 dès qu'on le décale. D'où le « >>> 0 » systématique — il ramène la
+   valeur dans les entiers non signés, sans quoi 224.0.0.0 s'affiche en négatif. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  if (!$("sr-ip")) return;
+
+  /* ── Lire et écrire une adresse ───────────────────────────────────── */
+  function lireIp(s) {
+    var m = /^\s*(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\s*(?:\/\s*(\d{1,2}))?\s*$/.exec(s || "");
+    if (!m) return null;
+    var o = [+m[1], +m[2], +m[3], +m[4]];
+    for (var i = 0; i < 4; i++) if (o[i] > 255) return null;
+    var p = m[5] === undefined ? null : +m[5];
+    if (p !== null && p > 32) return null;
+    return { n: ((o[0] << 24) | (o[1] << 16) | (o[2] << 8) | o[3]) >>> 0, p: p };
+  }
+  function txt(n) {
+    return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(".");
+  }
+  function masqueDe(p) { return p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0; }
+
+  function lirePrefixe(s) {
+    s = (s || "").trim();
+    var m = /^\/?\s*(\d{1,2})$/.exec(s);
+    if (m) return +m[1] <= 32 ? +m[1] : null;
+    var a = lireIp(s);
+    if (!a || a.p !== null) return null;
+    /* Un masque valide, c'est des 1 puis des 0, sans mélange : 255.255.0.255
+       n'est pas un masque, c'est une faute de frappe. On la refuse au lieu
+       d'inventer un résultat. */
+    var v = a.n, p = 0;
+    while (p < 32 && (v & (0x80000000 >>> p))) p++;
+    return (masqueDe(p) === v) ? p : null;
+  }
+
+  function binaire(n, p) {
+    var b = "", i;
+    for (i = 31; i >= 0; i--) {
+      b += (n >>> i) & 1;
+      if (i % 8 === 0 && i) b += ".";
+    }
+    /* Les bits de réseau en gras, les bits d'hôte en creux : la frontière du
+       préfixe devient visible, et c'est tout ce qu'un masque veut dire. */
+    var pos = 0, res = "", pris = 0;
+    for (i = 0; i < b.length; i++) {
+      if (b[i] === ".") { res += '<span class="sep">.</span>'; continue; }
+      res += (pris < p ? "<b>" : "<i>") + b[i] + (pris < p ? "</b>" : "</i>");
+      pris++;
+    }
+    return res;
+  }
+
+  function portee(n) {
+    var o1 = (n >>> 24) & 255, o2 = (n >>> 16) & 255;
+    if (o1 === 127) return ["Bouclage", "127.0.0.0/8 — la machine elle-même"];
+    if (o1 === 10) return ["Privée", "RFC 1918 — 10.0.0.0/8"];
+    if (o1 === 172 && o2 >= 16 && o2 <= 31) return ["Privée", "RFC 1918 — 172.16.0.0/12"];
+    if (o1 === 192 && o2 === 168) return ["Privée", "RFC 1918 — 192.168.0.0/16"];
+    if (o1 === 169 && o2 === 254) return ["APIPA", "169.254.0.0/16 — aucun serveur DHCP n'a répondu"];
+    if (o1 >= 224 && o1 <= 239) return ["Multidiffusion", "224.0.0.0/4 — un groupe, pas une machine"];
+    if (o1 >= 240) return ["Réservée", "240.0.0.0/4 — usage expérimental"];
+    if (o1 === 0) return ["Réservée", "0.0.0.0/8 — « ce réseau-ci »"];
+    return ["Publique", "routable sur Internet"];
+  }
+  function classe(n) {
+    var o1 = (n >>> 24) & 255;
+    return o1 < 128 ? "A" : o1 < 192 ? "B" : o1 < 224 ? "C" : o1 < 240 ? "D" : "E";
+  }
+
+  /* Le décompte des hôtes suit la RFC 3021 : la soustraction de 2 vaut
+     jusqu'au /30. Un /31 sert une liaison point à point et ses deux adresses
+     servent ; un /32 désigne une machine. */
+  function hotes(p) {
+    if (p === 32) return 1;
+    if (p === 31) return 2;
+    return Math.pow(2, 32 - p) - 2;
+  }
+  function gros(n) { return n.toLocaleString("fr-FR"); }
+
+  /* ── 1. L'analyse ─────────────────────────────────────────────────── */
+  var ip = $("sr-ip"), mq = $("sr-masque"), err = $("sr-err"),
+      res = $("sr-res"), pose = $("sr-pose"), note = $("sr-note");
+
+  function ligne(cle, val, sous, teinte) {
+    return '<div class="r' + (teinte ? " " + teinte : "") + '"><span class="k">' + cle +
+           '</span><span class="v">' + val + "</span>" +
+           (sous ? '<span class="s">' + sous + "</span>" : "") + "</div>";
+  }
+
+  function analyser() {
+    var a = lireIp(ip.value);
+    if (a && a.p !== null) { mq.value = "/" + a.p; }
+    var p = lirePrefixe(mq.value);
+
+    if (!a || p === null) {
+      err.hidden = false;
+      err.textContent = !a ? "Adresse invalide — quatre nombres de 0 à 255, séparés par des points."
+                           : "Masque invalide — un préfixe de /0 à /32, ou un masque fait de 1 puis de 0.";
+      res.innerHTML = ""; pose.innerHTML = ""; note.textContent = "";
+      return;
+    }
+    err.hidden = true;
+
+    var m = masqueDe(p), reseau = (a.n & m) >>> 0,
+        diff = (reseau | (~m >>> 0)) >>> 0, nb = hotes(p);
+    var prem, dern;
+    if (p >= 31) { prem = reseau; dern = diff; } else { prem = reseau + 1; dern = diff - 1; }
+
+    var po = portee(reseau);
+    res.innerHTML =
+      ligne("Adresse de réseau", txt(reseau), "l'identité du sous-réseau", "o1") +
+      ligne("Masque", txt(m), "/" + p + " — " + p + " bits de réseau", "o2") +
+      ligne("Masque générique", txt(~m >>> 0), "wildcard, pour les ACL", "") +
+      ligne("Première utilisable", txt(prem), p >= 31 ? "pas d'adresse réservée ici" : "la passerelle, d'habitude", "o3") +
+      ligne("Dernière utilisable", txt(dern), "", "o3") +
+      ligne("Diffusion", p >= 31 ? "—" : txt(diff), p >= 31 ? "un /" + p + " n'en a pas" : "tout le sous-réseau à la fois", "o4") +
+      ligne("Hôtes utilisables", gros(nb), p <= 30 ? "2^" + (32 - p) + " − 2" : "RFC 3021", "o1") +
+      ligne("Classe " + classe(reseau) + " · " + po[0], po[1], "", "");
+
+    pose.innerHTML =
+      '<div class="mbl"><span>adresse</span><span class="mb">' + binaire(a.n, p) + '</span><b class="d">' + txt(a.n) + "</b></div>" +
+      '<div class="mbl"><span>masque</span><span class="mb">' + binaire(m, p) + '</span><b class="d">' + txt(m) + "</b></div>" +
+      '<div class="mbl et"><span>= réseau</span><span class="mb">' + binaire(reseau, p) + '</span><b class="d">' + txt(reseau) + "</b></div>";
+
+    note.innerHTML = "Le ET logique ne garde un 1 que là où les <em>deux</em> lignes " +
+      "en ont un. Sous le masque, tous les bits d'hôte tombent à 0 — c'est " +
+      "littéralement l'adresse de réseau.";
+  }
+  ip.addEventListener("input", analyser);
+  mq.addEventListener("input", analyser);
+  analyser();
+
+  /* ── 2. Le découpage ──────────────────────────────────────────────── */
+  var dip = $("dc-ip"), dn = $("dc-n"), quoi = $("dc-quoi"),
+      derr = $("dc-err"), dcal = $("dc-calcul"),
+      corps = document.querySelector("#dc-table tbody"), cap = $("dc-cap");
+
+  function decouper() {
+    var a = lireIp(dip.value);
+    var p = a && a.p !== null ? a.p : null;
+    var n = parseInt(dn.value, 10);
+
+    function stop(msg) {
+      derr.hidden = false; derr.textContent = msg;
+      dcal.textContent = ""; corps.innerHTML = ""; cap.textContent = "";
+    }
+    if (!a) return stop("Réseau invalide — écrivez-le avec son préfixe, par exemple 192.168.1.0/24.");
+    if (p === null) return stop("Il manque le préfixe : 192.168.1.0/24, pas 192.168.1.0.");
+    if (!(n > 0)) return stop("Indiquez combien il vous en faut.");
+
+    var bits, np;
+    if (quoi.value === "sr") {
+      bits = Math.ceil(Math.log2(n));
+      np = p + bits;
+      if (np > 32) return stop("Impossible : " + n + " sous-réseaux demandent " + bits +
+                               " bits, et un /" + p + " n'en a que " + (32 - p) + " à prêter.");
+    } else {
+      var k = Math.ceil(Math.log2(n + 2));          // n hôtes + réseau + diffusion
+      np = 32 - k;
+      if (np < p) return stop("Impossible : " + n + " machines demandent un /" + np +
+                              ", plus large que le /" + p + " de départ.");
+      bits = np - p;
+    }
+
+    derr.hidden = true;
+    var total = Math.pow(2, bits), pas = Math.pow(2, 32 - np),
+        base = (a.n & masqueDe(p)) >>> 0, nb = hotes(np);
+
+    var s = bits > 1 ? "s" : "";     // « 1 bit emprunté », pas « 1 bit empruntés »
+    dcal.innerHTML = "/" + p + '<span class="plus">+</span>' + bits + " bit" + s +
+      " emprunté" + s + '<span class="egal">=</span><b>/' + np + "</b>" +
+      '<span class="plus">·</span>' + gros(total) + " sous-réseau" + (total > 1 ? "x" : "") +
+      '<span class="plus">·</span>' + gros(nb) + " hôte" + (nb > 1 ? "s" : "") + " chacun" +
+      '<span class="plus">·</span>pas de <b>' + pas + "</b>";
+
+    var montre = Math.min(total, 32), html = "", i;
+    for (i = 0; i < montre; i++) {
+      var r = (base + i * pas) >>> 0, d = (r + pas - 1) >>> 0;
+      var pr = np >= 31 ? r : r + 1, de = np >= 31 ? d : d - 1;
+      html += "<tr><th scope=\"row\">" + (i + 1) + "</th><td class=\"nb\">" + txt(r) + "/" + np +
+              "</td><td class=\"nb\">" + txt(pr) + "</td><td class=\"nb\">" + txt(de) +
+              "</td><td class=\"nb\">" + (np >= 31 ? "—" : txt(d)) +
+              "</td><td class=\"nb\">" + gros(nb) + "</td></tr>";
+    }
+    corps.innerHTML = html;
+    cap.textContent = total > montre
+      ? "Les " + montre + " premiers sur " + gros(total) + " — ajoutez " + pas + " pour passer au suivant."
+      : "Les " + total + " sous-réseaux, en entier.";
+  }
+  [dip, dn].forEach(function (c) { c.addEventListener("input", decouper); });
+  quoi.addEventListener("change", decouper);
+  decouper();
+})();
+</script>
+
+<script src="../assets/fiche.js?v=867a6964"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/recherche.js?v=867a6964"></script>
+<script src="../assets/app.js?v=867a6964"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

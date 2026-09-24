@@ -41,6 +41,13 @@ Chaque chapitre existe en trois fiches au rôle distinct :
 Le succès se mesure à une chose : **la veille d'un contrôle, l'étudiant trouve ce
 qu'il cherche sans se demander où il l'a rangé.**
 
+À côté des fiches, une section **Outils** rassemble ce qui se *calcule* au lieu de
+se relire, rangé par situation : l'adressage IP (calculateur de sous-réseau,
+convertisseur, table des masques), le TP (blocs de commandes Packet Tracer prêts à
+coller, ports et protocoles), et les épreuves (compteur du compte rendu d'anglais).
+Un outil sert pendant qu'on travaille, pas avant : il doit tenir dans un écran et
+répondre sans qu'on lise sa notice.
+
 ## Positioning
 
 Ce ne sont pas les cours officiels, et aucun document d'origine n'est
@@ -99,7 +106,7 @@ année. Toute conception doit supporter l'ajout plutôt que supposer un corpus f
 prévoir pour l'instant.
 
 **État du corpus à la dernière génération :** 5 matières, 52 chapitres,
-156 fiches, 163 pages. Ces nombres sont calculés par le générateur, jamais
+156 fiches, 171 pages, 6 outils. Ces nombres sont calculés par le générateur, jamais
 écrits à la main.
 
 ## Brand Commitments
@@ -121,11 +128,13 @@ prévoir pour l'instant.
   vérifié.
 - `a-propos.html` — la même déclaration, à destination du lecteur.
 - `verification/verifier.py` — le contrôle public : données personnelles, dépendances
-  externes, liens morts, intégrité de l'index de recherche.
-- `verification/qa.html` — 1 129 mesures de rendu : débordement horizontal et cibles
-  tactiles, sur 163 pages × 40 thèmes × 3 largeurs.
-- `verification/contraste.html` — 400 combinaisons de contraste mesurées dans un
-  navigateur, au seuil AA.
+  externes, liens morts, identifiants en double, intégrité de l'index de recherche,
+  recalcul des 33 masques, relecture des 28 ports et des 25 blocs de commandes.
+- `verification/qa.html` — 1 150 mesures de rendu : débordement horizontal, cibles
+  tactiles, erreurs de console et ressources manquantes, sur 170 pages × 40 thèmes
+  × 3 largeurs.
+- `verification/contraste.html` — 960 combinaisons de contraste mesurées dans un
+  navigateur, au seuil AA, sur 12 pages dont les 6 outils.
 - `LICENSE` — MIT pour le code, CC BY-NC-SA 4.0 pour le contenu pédagogique.
 
 **Ce qui n'existe pas et ne doit pas être inventé** : aucun témoignage, aucun
@@ -152,7 +161,7 @@ par l'auteur, et elle est tenue **par la mesure, pas par l'estimation** :
 
 - **Contraste AA** sur les 40 thèmes, mesuré dans un navigateur sur les fonds
   réels, transparences composées.
-- **Cibles tactiles ≥ 34 px**, vérifiées sur les 163 pages.
+- **Cibles tactiles ≥ 34 px**, vérifiées sur les 170 pages.
 - **Réglages de lecture** : taille du texte, largeur de ligne, police,
   interligne — parce que les situations d'usage vont du téléphone au grand écran.
 - **`prefers-reduced-motion`** respecté, doublé d'une bascule d'animations dans
