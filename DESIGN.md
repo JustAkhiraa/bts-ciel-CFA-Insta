@@ -135,8 +135,8 @@ défaut, pas la marque. La marque est la discipline qui rend les trente-neuf
 autres possibles : aucune couleur n'est jamais écrite en dur dans une règle, et
 toute valeur de texte est mesurée contre le fond réel de chaque thème.
 
-Cette discipline n'est pas une intention, elle est vérifiée : `outils/contraste.html`
-mesure 400 combinaisons dans un vrai navigateur, `outils/qa.html` en mesure 1 129
+Cette discipline n'est pas une intention, elle est vérifiée : `verification/contraste.html`
+mesure 400 combinaisons dans un vrai navigateur, `verification/qa.html` en mesure 1 129
 autres pour le débordement et les cibles tactiles. Une couleur qui échoue est
 recalculée, jamais estimée à l'œil.
 
@@ -369,7 +369,7 @@ C'est le composant qui porte l'étoile polaire : c'est là que l'établi se règ
 - **Do** donner trois valeurs à tout nouvel accent : la surface, ce qu'on pose
   dessus, et le texte sur fond pâle.
 - **Do** mesurer un contraste dans un navigateur avant de l'annoncer
-  (`outils/contraste.html`), transparences composées comprises.
+  (`verification/contraste.html`), transparences composées comprises.
 - **Do** tenir 34 px de haut sur toute commande, et vérifier à 375 px.
 - **Do** écrire les tailles de texte en `rem`, pour qu'elles suivent le réglage
   du lecteur.

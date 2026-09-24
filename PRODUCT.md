@@ -120,11 +120,11 @@ prévoir pour l'instant.
 - `README.md` — ce que contient le site, ce qu'il n'est pas, comment il est
   vérifié.
 - `a-propos.html` — la même déclaration, à destination du lecteur.
-- `outils/verifier.py` — le contrôle public : données personnelles, dépendances
+- `verification/verifier.py` — le contrôle public : données personnelles, dépendances
   externes, liens morts, intégrité de l'index de recherche.
-- `outils/qa.html` — 1 129 mesures de rendu : débordement horizontal et cibles
+- `verification/qa.html` — 1 129 mesures de rendu : débordement horizontal et cibles
   tactiles, sur 163 pages × 40 thèmes × 3 largeurs.
-- `outils/contraste.html` — 400 combinaisons de contraste mesurées dans un
+- `verification/contraste.html` — 400 combinaisons de contraste mesurées dans un
   navigateur, au seuil AA.
 - `LICENSE` — MIT pour le code, CC BY-NC-SA 4.0 pour le contenu pédagogique.
 

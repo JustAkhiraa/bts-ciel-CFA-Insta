@@ -153,8 +153,11 @@
      que de compter les segments de l'URL, qui change selon que le site est
      servi à la racine du domaine ou dans un sous-dossier. */
   function racine() {
-    var l = document.querySelector('link[rel="stylesheet"][href$="assets/fiche.css"]');
-    if (l) return l.getAttribute("href").replace(/assets\/fiche\.css$/, "");
+    /* « href$= » ne marche plus depuis que les ressources portent leur
+       version dans l'URL : le lien finit par « ?v=1a2b3c4d », pas par
+       « .css ». On cherche donc le fragment, et on coupe à partir de lui. */
+    var l = document.querySelector('link[rel="stylesheet"][href*="assets/fiche.css"]');
+    if (l) return l.getAttribute("href").replace(/assets\/fiche\.css.*$/, "");
     var q = document.getElementById("q");
     return (q && q.dataset.base) || "";
   }
