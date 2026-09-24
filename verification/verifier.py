@@ -10,7 +10,7 @@ Cinq contrôles, sans aucune dépendance :
   4. Chaque chapitre a bien ses trois fiches.
   5. L'index de recherche pointe vers des pages qui existent.
 
-    python3 outils/verifier.py
+    python3 verification/verifier.py
 """
 import json, os, re, sys
 from urllib.parse import unquote, urlparse
@@ -47,7 +47,7 @@ TOLERES = {
     "06 12 34 56 78",                         # placeholder d'un champ de formulaire
 }
 
-DOSSIERS_IGNORES = {".git", ".github", "outils", "node_modules"}
+DOSSIERS_IGNORES = {".git", ".github", "verification", "node_modules"}
 
 
 # Les fichiers de texte publiés à côté des pages. Ils échappaient au contrôle
@@ -93,6 +93,45 @@ def personnel(h, rel, pbs):
             pbs.append((rel, f"{quoi} en clair : {valeur}"))
 
 
+def masques(racine, pbs):
+    """Recalcule les 33 lignes de la table des masques d'outils.html.
+
+    Le tableau est produit par le générateur, donc juste par construction —
+    aujourd'hui. Ce contrôle existe pour le jour où quelqu'un le retouchera à
+    la main, ou changera la formule : une table de masques fausse est l'erreur
+    la plus coûteuse du dépôt, parce qu'on la recopie sans la vérifier."""
+    chemin = os.path.join(racine, "outils.html")
+    if not os.path.isfile(chemin):
+        return 0
+    h = open(chemin, encoding="utf-8").read()
+    lignes = re.findall(
+        r'<tr><th scope="row">/(\d+)</th><td><code>([\d.]+)</code></td>'
+        r'<td><code>([\d.]+)</code></td><td>([\d\u202f\u00a0 ]+)</td>'
+        r'<td>([\d\u202f\u00a0 ]+)</td>', h)
+    if len(lignes) != 33:
+        pbs.append(("outils.html", f"table des masques : {len(lignes)} lignes au lieu de 33"))
+        return len(lignes)
+
+    def nombre(t):
+        return int(re.sub(r"[^\d]", "", t))
+
+    for n, masque, joker, total, hotes in lignes:
+        n = int(n)
+        entier = (0xFFFFFFFF << (32 - n)) & 0xFFFFFFFF if n else 0
+        attendu = ".".join(str((entier >> d) & 255) for d in (24, 16, 8, 0))
+        inverse = ".".join(str(255 - int(o)) for o in attendu.split("."))
+        n_total = 1 << (32 - n)
+        n_hotes = n_total - 2 if n <= 30 else (2 if n == 31 else 1)
+        for quoi, obtenu, voulu in (("masque", masque, attendu),
+                                    ("masque inverse", joker, inverse),
+                                    ("nombre d'adresses", nombre(total), n_total),
+                                    ("hôtes utilisables", nombre(hotes), n_hotes)):
+            if obtenu != voulu:
+                pbs.append(("outils.html",
+                            f"/{n} — {quoi} : {obtenu} annoncé, {voulu} recalculé"))
+    return len(lignes)
+
+
 def main():
     pbs, n = [], 0
     fichiers = sorted(pages())
@@ -102,6 +141,8 @@ def main():
             personnel(open(p, encoding="utf-8").read(), os.path.relpath(p, RACINE), pbs)
         except (UnicodeDecodeError, OSError):
             pass          # un binaire mal nommé n'est pas une donnée personnelle
+
+    n_masques = masques(RACINE, pbs)
 
     for p in fichiers:
         n += 1
@@ -164,7 +205,7 @@ def main():
     else:
         pbs.append(("assets/recherche.js", "absent"))
 
-    print(f"{n} pages · {n_index} entrées de recherche")
+    print(f"{n} pages · {n_index} entrées de recherche · {n_masques} masques recalculés")
     if pbs:
         print(f"\n{len(pbs)} anomalie(s) :")
         for f, m in pbs[:60]:

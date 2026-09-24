@@ -38,10 +38,10 @@ Dix contrôles automatiques, lancés à chaque modification :
 8. **Langage C** — les programmes publiés sont **compilés et exécutés**
 9. **Rendu** — mesure dans un navigateur, à 375, 768 et 1440 px
 10. **Site publié** — débordement, cibles tactiles et contraste, mesurés sur les
-    163 pages et les 40 thèmes (`outils/qa.html`, `outils/contraste.html`)
+    163 pages et les 40 thèmes (`verification/qa.html`, `verification/contraste.html`)
 
 ```bash
-python3 outils/verifier.py
+python3 verification/verifier.py
 ```
 
 ## Technique

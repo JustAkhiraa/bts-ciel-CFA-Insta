@@ -1331,7 +1331,11 @@ html[data-theme="zellige"] body {
    deux lignes dès 430 px, et l'en-tête doublait de hauteur. Le titre se
    tronque plutôt que de replier la barre. */
 .app-marque {
-  display: flex; align-items: center; gap: .55rem; min-width: 0; padding: .25rem 0;
+  /* « flex: none » : le porte-logo ne se comprime JAMAIS. Sans lui, l'arrivée
+     d'un troisième lien dans la barre l'a écrasé à 15 px de large — le badge
+     de la classe se retrouvait tranché sur téléphone. Si la place manque,
+     c'est à la navigation de céder, pas à l'identité du site. */
+  display: flex; align-items: center; gap: .55rem; flex: none; padding: .25rem 0;
   font-weight: 700; font-size: 0.9091rem; color: var(--encre);
   text-decoration: none; letter-spacing: -.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1904,6 +1908,11 @@ html[data-anim="0"] .apparait { opacity: 1; }
   .app-tete nav { gap: .15rem; }
   .app-marque .nom { display: none; }
 }
+/* Sous 620 px, la barre garde le logo, « Outils » et les trois commandes.
+   « Accueil » est déjà le logo, « À propos » est dans le pied de page. */
+@media (max-width: 620px) {
+  .app-tete nav a.secondaire { display: none; }
+}
 @media (max-width: 480px) {
   .app-tete { gap: .5rem; padding: .6rem .8rem; }
   .app-tete nav a { padding: .38rem .5rem; font-size: .7879rem; }
@@ -2081,3 +2090,108 @@ html[data-anim="0"] .apparait { opacity: 1; }
   background: var(--accent); margin-right: .5rem;
 }
 .recents a:hover { border-color: var(--accent); color: var(--accent-sombre); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OUTILS — convertisseur et table des masques
+   Tout passe par les variables : les quarante thèmes suivent sans retouche.
+   ═══════════════════════════════════════════════════════════════════════ */
+.outil {
+  margin-top: 2.4rem; padding: 1.5rem 1.6rem 1.7rem;
+  background: var(--carte); border: 1px solid var(--bord);
+  border-top: 3px solid var(--accent); border-radius: var(--r-l);
+  box-shadow: var(--ombre);
+}
+.outil > h2 {
+  margin: 0 0 .5rem; font-size: 1.28rem; font-weight: 740;
+  letter-spacing: -.018em; color: var(--encre);
+}
+.outil .intro { margin: 0 0 1.2rem; color: var(--encre-douce); font-size: .9394rem; line-height: 1.6; }
+.outil .note { margin: .9rem 0 0; font-size: .8182rem; color: var(--encre-tenue); line-height: 1.6; }
+
+/* ── Les huit bits d'un octet ───────────────────────────────────────── */
+.bits { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .3rem; }
+.bit { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-width: 0; }
+.bit .poids {
+  font-family: var(--mono); font-size: .697rem; font-weight: 600;
+  color: var(--encre-tenue); letter-spacing: -.02em;
+}
+.bit button {
+  width: 100%; min-height: 46px; cursor: pointer; padding: 0;
+  font-family: var(--mono); font-size: 1.12rem; font-weight: 700;
+  background: var(--carte-creuse); color: var(--encre-tenue);
+  border: 1px solid var(--bord-fort); border-radius: var(--r);
+  transition: background .12s, color .12s, border-color .12s, transform .1s var(--ease);
+}
+.bit button:hover { border-color: var(--accent); color: var(--encre); }
+.bit button:active { transform: scale(.94); }
+/* Un bit allumé prend l'accent : fond d'accent, texte « sur-accent » — le
+   seul couple dont le contraste est garanti sur les quarante thèmes. */
+.bit button[aria-pressed="true"] {
+  background: var(--accent); color: var(--sur-accent); border-color: var(--accent);
+}
+
+/* On montre l'addition, pas seulement le résultat : c'est l'opération qu'on
+   pose au tableau, et c'est elle qu'il faut retenir. */
+.calcul {
+  margin: .9rem 0 1.1rem; padding: .7rem .9rem; border-radius: var(--r);
+  background: var(--accent-pale); border-left: 3px solid var(--accent);
+  font-family: var(--mono); font-size: .9091rem; color: var(--encre);
+}
+.calcul b { font-size: 1.12em; color: var(--accent-sombre); }
+
+/* ── Champs liés ────────────────────────────────────────────────────── */
+.rangee { display: flex; flex-wrap: wrap; gap: .7rem; }
+.rangee label {
+  display: flex; flex-direction: column; gap: .3rem; flex: 1 1 8rem; min-width: 0;
+  font-size: .697rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--encre-tenue);
+}
+.rangee input {
+  width: 100%; box-sizing: border-box; min-height: 44px;
+  padding: .55rem .75rem; font-family: var(--mono); font-size: 1rem;
+  color: var(--encre); background: var(--carte-creuse);
+  border: 1px solid var(--bord-fort); border-radius: var(--r);
+  transition: border-color .15s, box-shadow .15s;
+}
+.rangee input:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale);
+}
+
+/* ── L'adresse en binaire ───────────────────────────────────────────── */
+.binaire-ip {
+  margin: 1rem 0; padding: .8rem .9rem; border-radius: var(--r);
+  background: var(--carte-creuse); border: 1px solid var(--bord);
+  font-family: var(--mono); font-size: .8848rem; color: var(--encre);
+  overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
+}
+.binaire-ip .pt { color: var(--accent-sombre); font-weight: 700; padding: 0 .3rem; }
+.binaire-ip .invalide { color: var(--rouge); white-space: normal; font-family: var(--sans); }
+
+/* ── Filtrer la table ───────────────────────────────────────────────── */
+.filtre { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+.filtre label {
+  font-size: .697rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--encre-tenue);
+}
+.filtre input {
+  flex: 1 1 14rem; min-width: 0; box-sizing: border-box; min-height: 44px;
+  padding: .5rem .8rem; font: inherit; font-size: .9091rem; color: var(--encre);
+  background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: var(--r);
+}
+.filtre input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
+.filtre button {
+  min-height: 44px; padding: .5rem .9rem; cursor: pointer; flex: none;
+  font: inherit; font-size: .8182rem; font-weight: 650;
+  background: var(--carte-creuse); color: var(--encre-douce);
+  border: 1px solid var(--bord-fort); border-radius: var(--r);
+  transition: border-color .14s, color .14s;
+}
+.filtre button:hover { border-color: var(--accent); color: var(--accent-sombre); }
+
+#table-masques th[scope="row"] { font-family: var(--mono); color: var(--accent-sombre); }
+#table-masques .rq { color: var(--encre-tenue); font-size: .9em; }
+#table-masques tr[hidden] { display: none; }
+
+/* La carte « Outils » de l'accueil : même forme que les matières, icône
+   distincte. Elle occupe la largeur restante de la grille. */
+.carte-outils .ic { font-size: 20px; }
