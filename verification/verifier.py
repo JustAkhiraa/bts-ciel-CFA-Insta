@@ -13,6 +13,7 @@ Cinq contrôles, sans aucune dépendance :
     python3 verification/verifier.py
 """
 import json, os, re, sys
+from html import unescape
 from urllib.parse import unquote, urlparse
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -151,6 +152,149 @@ def masques(racine, pbs):
     return len(rangs)
 
 
+def ports(racine, pbs):
+    """Relit la table des ports, et les trois plages.
+
+    Les numéros, eux, sont éditoriaux : rien ne les recalcule. Ce qu'on peut
+    vérifier, ce sont les invariants — un port tient sur 16 bits, un transport
+    est TCP ou UDP, et un numéro n'apparaît pas deux fois. Surtout, les trois
+    plages doivent se toucher sans trou et couvrir 0 à 65 535 : c'est la seule
+    affirmation arithmétique de la page, donc la seule qui puisse se démentir
+    en silence."""
+    chemin = os.path.join(racine, "outils", "ports.html")
+    if not os.path.isfile(chemin):
+        return 0
+    h = open(chemin, encoding="utf-8").read()
+    corps = re.search(r'<table id="table-ports">(.*?)</table>', h, re.S)
+    if not corps:
+        pbs.append(("outils/ports.html", "table des ports introuvable"))
+        return 0
+
+    vus, n = {}, 0
+    for th, reste in re.findall(
+            r'<tr[^>]*><th scope="row" class="nb">([^<]+)</th>(.*?)</tr>',
+            corps.group(1), re.S):
+        n += 1
+        for num in re.findall(r"\d+", th):
+            num = int(num)
+            if not 0 <= num <= 65535:
+                pbs.append(("outils/ports.html", f"port hors des 16 bits : {num}"))
+            vus[num] = vus.get(num, 0) + 1
+        cellules = re.findall(r"<td[^>]*>(.*?)</td>", reste, re.S)
+        if len(cellules) != 4:
+            pbs.append(("outils/ports.html", f"port {th} : {len(cellules)} cellules au lieu de 4"))
+            continue
+        transport = re.sub(r"<[^>]+>", "", cellules[0]).strip()
+        if transport not in ("TCP", "UDP", "TCP · UDP"):
+            pbs.append(("outils/ports.html", f"port {th} : transport « {transport} » inattendu"))
+    for num, combien in sorted(vus.items()):
+        if combien > 1:
+            pbs.append(("outils/ports.html", f"port {num} listé {combien} fois"))
+    if n < 20:
+        pbs.append(("outils/ports.html",
+                    f"{n} ligne(s) de port relue(s) : le contrôle ne lit plus la table"))
+
+    # Les trois plages de l'IANA : contiguës, et couvrant tout l'espace.
+    plages = re.findall(r'<tr><th scope="row">(\d+)\s*[–-]\s*(\d+)</th>',
+                        h.replace("&#8211;", "–"))
+    if len(plages) != 3:
+        pbs.append(("outils/ports.html", f"{len(plages)} plages de ports au lieu de 3"))
+    else:
+        bornes = [(int(a), int(b)) for a, b in plages]
+        if bornes[0][0] != 0 or bornes[-1][1] != 65535:
+            pbs.append(("outils/ports.html",
+                        f"les plages couvrent {bornes[0][0]}–{bornes[-1][1]}, pas 0–65535"))
+        for (_, fin), (debut, _) in zip(bornes, bornes[1:]):
+            if debut != fin + 1:
+                pbs.append(("outils/ports.html",
+                            f"trou ou chevauchement entre {fin} et {debut}"))
+    return n
+
+
+def packet_tracer(racine, pbs):
+    """Relit chaque bloc de commandes Packet Tracer.
+
+    Le vrai risque de cet outil n'est pas l'affichage : c'est qu'on copie un
+    bloc qui ne fait pas ce que son titre annonce. Trois affirmations se
+    vérifient ici.
+
+    1. Le texte affiché est exactement le modèle substitué avec les valeurs
+       par défaut. Les deux existent séparément — l'un pour être lu sans
+       JavaScript, l'autre pour être regénéré quand on change le nom ou le
+       mot de passe — et rien n'empêcherait qu'ils divergent.
+    2. Chaque bloc commence par « enable » : c'est ce qui le rend collable
+       depuis n'importe quel mode, et c'est la promesse faite au lecteur.
+    3. Un bloc qui entre en configuration en ressort par « end » et
+       sauvegarde. Une configuration perdue au redémarrage est l'erreur de TP
+       la plus fréquente, et c'est celle que l'outil est censé éviter."""
+    chemin = os.path.join(racine, "outils", "packet-tracer.html")
+    if not os.path.isfile(chemin):
+        return 0
+    page = open(chemin, encoding="utf-8").read()
+    DEF = {"nom": "R1", "mdp": "cisco"}
+
+    blocs = re.findall(
+        r'<article class="pt-bloc" data-cat="([^"]+)"[^>]*>\s*'
+        r'<div class="pt-tete"><h3>([^<]+)</h3>.*?'
+        r'<code data-modele="([^"]*)">(.*?)</code>', page, re.S)
+    if len(blocs) < 15:
+        pbs.append(("outils/packet-tracer.html",
+                    f"{len(blocs)} bloc(s) de commandes relu(s) — attendu au moins 15. "
+                    "Si la page en montre davantage, c'est le contrôle qui ne lit plus."))
+
+    cats = set(re.findall(r'<section class="outil pt-cat" id="([^"]+)"', page))
+    for cat, titre, modele, visible in blocs:
+        ou = f"outils/packet-tracer.html — « {titre} »"
+        if cat not in cats:
+            pbs.append((ou, f"catégorie « {cat} » sans section correspondante"))
+
+        attendu = unescape(modele)
+        for cle, val in DEF.items():
+            attendu = attendu.replace("{{" + cle + "}}", val)
+        lu = unescape(visible)
+        if lu != attendu:
+            pbs.append((ou, "le bloc affiché ne correspond pas à son modèle"))
+            continue
+
+        lignes = [l for l in lu.split("\n") if l.strip()]
+        if not lignes or lignes[0] != "enable":
+            pbs.append((ou, "ne commence pas par « enable »"))
+        if any(l.lstrip().startswith("!") for l in lignes):
+            pbs.append((ou, "contient une ligne de commentaire « ! » — ce qu'on colle doit s'exécuter"))
+        if "{{" in lu:
+            pbs.append((ou, "une substitution n'a pas été faite"))
+        if "configure terminal" in lignes:
+            if "end" not in lignes:
+                pbs.append((ou, "entre en configuration sans en sortir par « end »"))
+            if lignes[-1] != "write memory":
+                pbs.append((ou, "configure sans sauvegarder : la configuration serait perdue au redémarrage"))
+    return len(blocs)
+
+
+def compte_rendu(racine, pbs):
+    """La jauge du compte rendu dit une fourchette : elle doit la montrer.
+
+    La zone verte est posée en pourcentage dans la feuille de style, sur une
+    échelle de 0 à 260 mots. Si quelqu'un change la fourchette du cours sans
+    recalculer ces deux pourcentages, la jauge mentira sans qu'aucun test ne
+    s'en aperçoive."""
+    css = os.path.join(racine, "assets", "fiche.css")
+    if not os.path.isfile(css):
+        return 0
+    h = open(css, encoding="utf-8").read()
+    m = re.search(r"\.cr-zone\s*\{[^}]*?left:\s*([\d.]+)%;\s*width:\s*([\d.]+)%", h)
+    if not m:
+        pbs.append(("assets/fiche.css", "la zone de la jauge du compte rendu est introuvable"))
+        return 0
+    gauche, largeur = float(m.group(1)), float(m.group(2))
+    for nom, attendu, lu in (("borne basse", 180 / 260 * 100, gauche),
+                             ("largeur", (220 - 180) / 260 * 100, largeur)):
+        if abs(attendu - lu) > 0.05:
+            pbs.append(("assets/fiche.css",
+                        f"jauge du compte rendu, {nom} : {lu} % au lieu de {attendu:.2f} %"))
+    return 1
+
+
 def main():
     pbs, n = [], 0
     fichiers = sorted(pages())
@@ -162,6 +306,9 @@ def main():
             pass          # un binaire mal nommé n'est pas une donnée personnelle
 
     n_masques = masques(RACINE, pbs)
+    n_ports = ports(RACINE, pbs)
+    n_pt = packet_tracer(RACINE, pbs)
+    compte_rendu(RACINE, pbs)
 
     for p in fichiers:
         n += 1
@@ -241,7 +388,8 @@ def main():
     else:
         pbs.append(("assets/recherche.js", "absent"))
 
-    print(f"{n} pages · {n_index} entrées de recherche · {n_masques} masques recalculés")
+    print(f"{n} pages · {n_index} entrées de recherche · {n_masques} masques "
+          f"recalculés · {n_ports} ports · {n_pt} blocs de commandes relus")
     if pbs:
         print(f"\n{len(pbs)} anomalie(s) :")
         for f, m in pbs[:60]:

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Commandes Packet Tracer — BTS CIEL</title>
+<meta name="description" content="Des blocs de commandes Cisco IOS prêts à coller dans Packet Tracer : accès, VLAN, trunk, inter-VLAN, routage, DHCP, NAT.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" href="../assets/icone.svg">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=867a6964">
+</head>
+<body data-matiere="reseau">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav>
+    <a href="../index.html" class="secondaire">Accueil</a>
+    <a href="../outils/index.html" aria-current="page">Outils</a>
+    <a href="../a-propos.html" class="secondaire">À propos</a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#tp">En TP, la main sur le clavier</a> <span>/</span>
+    <span>Commandes Packet Tracer</span></div>
+
+  <div class="tete-matiere">
+    <h1>Commandes Packet Tracer</h1>
+    <p>Un clic copie le <b>bloc entier</b>. Vous le collez dans la console de Packet Tracer, vous validez, c'est configuré. Chaque bloc part de <code>enable</code> et finit par la sauvegarde : il marche quel que soit le mode où vous étiez.</p>
+  </div>
+
+  <section class="outil" id="reglages">
+    <h2><span class="num-outil">⚙</span> Vos deux valeurs</h2>
+    <p class="intro">Le nom de l'équipement et le mot de passe reviennent dans presque
+       tous les blocs. Changez-les ici une fois : tous les blocs suivent. Les adresses
+       et les numéros de VLAN restent des exemples — c'est dans Packet Tracer que vous
+       les ajusterez, sous les yeux de votre topologie.</p>
+
+    <div class="rangee">
+      <label class="ch-dec">Nom de l'équipement
+        <input id="pt-val-nom" type="text" value="R1" maxlength="24"
+               autocomplete="off" spellcheck="false" aria-label="Nom de l'équipement"></label>
+      <label class="ch-bin">Mot de passe
+        <input id="pt-val-mdp" type="text" value="cisco" maxlength="24"
+               autocomplete="off" spellcheck="false" aria-label="Mot de passe"></label>
+    </div>
+    <p class="note">Rien n'est envoyé nulle part : la substitution se fait dans votre
+       navigateur, et la page fonctionne hors ligne.</p>
+  </section>
+
+  <div class="pt-barre">
+    <div class="filtre">
+      <label for="pt-f">Chercher un bloc</label>
+      <input id="pt-f" type="search" autocomplete="off" spellcheck="false"
+             placeholder="vlan · trunk · mot de passe · ssh · nat · dhcp"
+             aria-label="Chercher un bloc de commandes">
+      <button type="button" id="pt-vide">Tout afficher</button>
+    </div>
+    <nav class="pt-chips" id="pt-chips" aria-label="Catégories de commandes"></nav>
+    <p class="pt-rien" id="pt-rien" hidden>Aucun bloc ne correspond.</p>
+  </div>
+
+  <section class="outil pt-cat" id="pt-base" data-titre="Mise en service">
+    <h2><span class="num-outil">⚡</span> Mise en service</h2>
+    <p class="intro">Les premières lignes qu'on tape sur un équipement sorti du carton.</p>
+      <article class="pt-bloc" data-cat="pt-base" data-mots="le socle nom, banniere d'avertissement, et la fin des attentes de trente secondes quand on se trompe de commande. pt-base mise en service enable configure terminal hostname {{nom}} no ip domain-lookup banner motd #acces reserve aux personnes autorisees# line console 0 logging synchronous exit end write memory">
+        <div class="pt-tete"><h3>Le socle</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Nom, bannière d'avertissement, et la fin des attentes de trente secondes quand on se trompe de commande.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;hostname {{nom}}&#10;no ip domain-lookup&#10;banner motd #Acces reserve aux personnes autorisees#&#10;line console 0&#10;logging synchronous&#10;exit&#10;end&#10;write memory">enable
+configure terminal
+hostname R1
+no ip domain-lookup
+banner motd #Acces reserve aux personnes autorisees#
+line console 0
+logging synchronous
+exit
+end
+write memory</code></pre></div>
+        <p class="note">Sans <code>no ip domain-lookup</code>, chaque faute de frappe est prise pour un nom d'hôte : IOS tente de le résoudre et bloque la console. C'est la première chose à désactiver en TP.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-base" data-mots="sauvegarder la configuration la configuration courante vit en memoire vive. sans ca, un redemarrage la perd entierement. pt-base mise en service enable write memory">
+        <div class="pt-tete"><h3>Sauvegarder la configuration</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">La configuration courante vit en mémoire vive. Sans ça, un redémarrage la perd entièrement.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;write memory">enable
+write memory</code></pre></div>
+        <p class="note"><code>write memory</code> ne pose aucune question. <code>copy running-config startup-config</code> fait la même chose mais demande de confirmer le nom du fichier — une validation de plus à donner.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-mdp" data-titre="Mots de passe et accès">
+    <h2><span class="num-outil">🔒</span> Mots de passe et accès</h2>
+    <p class="intro">Protéger l'équipement, et le protéger de la bonne façon.</p>
+      <article class="pt-bloc" data-cat="pt-mdp" data-mots="chiffrer les mots de passe le mot de passe du mode privilegie devient un condensat, et ceux qui restent en clair dans la configuration sont brouilles. pt-mdp mots de passe et acces enable configure terminal enable secret {{mdp}} service password-encryption end write memory">
+        <div class="pt-tete"><h3>Chiffrer les mots de passe</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Le mot de passe du mode privilégié devient un condensat, et ceux qui restent en clair dans la configuration sont brouillés.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;enable secret {{mdp}}&#10;service password-encryption&#10;end&#10;write memory">enable
+configure terminal
+enable secret cisco
+service password-encryption
+end
+write memory</code></pre></div>
+        <p class="note">Les deux commandes ne protègent pas pareil. <code>enable secret</code> stocke un <b>condensat</b> : on ne le retrouve pas. <code>service password-encryption</code> applique un chiffrement <b>de type 7</b>, réversible — n'importe quel site le décode en une seconde. Il cache d'un regard par-dessus l'épaule, pas d'un attaquant. C'est exactement ce qu'on vous demandera de distinguer.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-mdp" data-mots="mot de passe sur la console demander un mot de passe a qui branche un cable console. pt-mdp mots de passe et acces enable configure terminal line console 0 password {{mdp}} login logging synchronous end write memory">
+        <div class="pt-tete"><h3>Mot de passe sur la console</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Demander un mot de passe à qui branche un câble console.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;line console 0&#10;password {{mdp}}&#10;login&#10;logging synchronous&#10;end&#10;write memory">enable
+configure terminal
+line console 0
+password cisco
+login
+logging synchronous
+end
+write memory</code></pre></div>
+      </article>
+      <article class="pt-bloc" data-cat="pt-mdp" data-mots="acces distant ssh administration a distance chiffree : la seule a utiliser. pt-mdp mots de passe et acces enable configure terminal hostname {{nom}} ip domain-name ciel.lan username admin privilege 15 secret {{mdp}} crypto key generate rsa 1024 ip ssh version 2 line vty 0 4 transport input ssh login local exec-timeout 10 0 end write memory">
+        <div class="pt-tete"><h3>Accès distant SSH</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Administration à distance chiffrée : la seule à utiliser.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;hostname {{nom}}&#10;ip domain-name ciel.lan&#10;username admin privilege 15 secret {{mdp}}&#10;crypto key generate rsa&#10;1024&#10;ip ssh version 2&#10;line vty 0 4&#10;transport input ssh&#10;login local&#10;exec-timeout 10 0&#10;end&#10;write memory">enable
+configure terminal
+hostname R1
+ip domain-name ciel.lan
+username admin privilege 15 secret cisco
+crypto key generate rsa
+1024
+ip ssh version 2
+line vty 0 4
+transport input ssh
+login local
+exec-timeout 10 0
+end
+write memory</code></pre></div>
+        <p class="note">La ligne <code>1024</code> n'est pas une commande : elle répond à la question « How many bits in the modulus » que pose <code>crypto key generate rsa</code>. Collée à la suite, elle est prise comme la réponse. Le nom d'hôte et le nom de domaine doivent être posés <em>avant</em>, sinon la génération de la clé est refusée.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-mdp" data-mots="acces distant telnet ce que demandent encore beaucoup de tp — a savoir configurer, et a savoir critiquer. pt-mdp mots de passe et acces enable configure terminal line vty 0 4 password {{mdp}} login transport input telnet end write memory">
+        <div class="pt-tete"><h3>Accès distant Telnet</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Ce que demandent encore beaucoup de TP — à savoir configurer, et à savoir critiquer.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;line vty 0 4&#10;password {{mdp}}&#10;login&#10;transport input telnet&#10;end&#10;write memory">enable
+configure terminal
+line vty 0 4
+password cisco
+login
+transport input telnet
+end
+write memory</code></pre></div>
+        <p class="note">Telnet transporte le mot de passe <b>en clair</b> : une capture Wireshark sur le lien le lit tel quel. On le configure en TP parce que l'énoncé le demande ; sur un vrai équipement, c'est SSH.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-ip" data-titre="Adressage">
+    <h2><span class="num-outil">◈</span> Adressage</h2>
+    <p class="intro">Donner une adresse à ce qui doit en avoir une.</p>
+      <article class="pt-bloc" data-cat="pt-ip" data-mots="adresse sur une interface de routeur une interface de routeur arrive eteinte : sans « no shutdown », elle reste administrativement a l'arret. pt-ip adressage enable configure terminal interface gigabitethernet 0/0 description lan ip address 192.168.1.1 255.255.255.0 no shutdown end write memory">
+        <div class="pt-tete"><h3>Adresse sur une interface de routeur</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Une interface de routeur arrive éteinte : sans « no shutdown », elle reste administrativement à l'arrêt.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface gigabitEthernet 0/0&#10;description LAN&#10;ip address 192.168.1.1 255.255.255.0&#10;no shutdown&#10;end&#10;write memory">enable
+configure terminal
+interface gigabitEthernet 0/0
+description LAN
+ip address 192.168.1.1 255.255.255.0
+no shutdown
+end
+write memory</code></pre></div>
+        <p class="note">Ajustez l'interface et l'adresse à votre topologie. <code>show ip interface brief</code> doit ensuite afficher <b>up / up</b> : le premier mot est l'état administratif, le second l'état du lien.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-ip" data-mots="liaison serie, cote dce sur une liaison serie, un seul des deux routeurs fournit l'horloge. pt-ip adressage enable configure terminal interface serial 0/0/0 ip address 10.0.0.1 255.255.255.252 clock rate 64000 no shutdown end write memory">
+        <div class="pt-tete"><h3>Liaison série, côté DCE</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Sur une liaison série, un seul des deux routeurs fournit l'horloge.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface serial 0/0/0&#10;ip address 10.0.0.1 255.255.255.252&#10;clock rate 64000&#10;no shutdown&#10;end&#10;write memory">enable
+configure terminal
+interface serial 0/0/0
+ip address 10.0.0.1 255.255.255.252
+clock rate 64000
+no shutdown
+end
+write memory</code></pre></div>
+        <p class="note"><code>show controllers serial 0/0/0</code> dit de quel côté vous êtes. Sans horloge côté DCE, la ligne reste <b>down</b> et aucune mise à jour de routage ne passe.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-ip" data-mots="adresse d'administration d'un commutateur un commutateur travaille en couche 2 : cette adresse ne sert qu'a l'administrer, pas a commuter. pt-ip adressage enable configure terminal interface vlan 1 ip address 192.168.1.2 255.255.255.0 no shutdown exit ip default-gateway 192.168.1.1 end write memory">
+        <div class="pt-tete"><h3>Adresse d'administration d'un commutateur</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Un commutateur travaille en couche 2 : cette adresse ne sert qu'à l'administrer, pas à commuter.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface vlan 1&#10;ip address 192.168.1.2 255.255.255.0&#10;no shutdown&#10;exit&#10;ip default-gateway 192.168.1.1&#10;end&#10;write memory">enable
+configure terminal
+interface vlan 1
+ip address 192.168.1.2 255.255.255.0
+no shutdown
+exit
+ip default-gateway 192.168.1.1
+end
+write memory</code></pre></div>
+        <p class="note">La passerelle se pose avec <code>ip default-gateway</code>, et non avec une route : un commutateur de couche 2 n'a pas de table de routage. Si votre VLAN d'administration n'est pas le 1, remplacez <code>vlan 1</code> — mais le VLAN doit exister, sinon l'interface reste éteinte.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-vlan" data-titre="VLAN et agrégation">
+    <h2><span class="num-outil">▣</span> VLAN et agrégation</h2>
+    <p class="intro">Découper le commutateur, puis faire passer les VLAN sur un seul câble.</p>
+      <article class="pt-bloc" data-cat="pt-vlan" data-mots="creer les vlan trois vlan nommes, d'un coup. pt-vlan vlan et agregation enable configure terminal vlan 10 name ventes vlan 20 name gestion vlan 99 name admin end write memory">
+        <div class="pt-tete"><h3>Créer les VLAN</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Trois VLAN nommés, d'un coup.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;vlan 10&#10;name VENTES&#10;vlan 20&#10;name GESTION&#10;vlan 99&#10;name ADMIN&#10;end&#10;write memory">enable
+configure terminal
+vlan 10
+name VENTES
+vlan 20
+name GESTION
+vlan 99
+name ADMIN
+end
+write memory</code></pre></div>
+        <p class="note">Un VLAN créé mais sans aucun port reste invisible dans <code>show vlan brief</code> côté machines : c'est normal, il existe, il est simplement vide.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-vlan" data-mots="mettre une plage de ports dans un vlan huit ports d'un coup, au lieu de huit fois la meme chose. pt-vlan vlan et agregation enable configure terminal interface range fastethernet 0/1 - 8 switchport mode access switchport access vlan 10 no shutdown end write memory">
+        <div class="pt-tete"><h3>Mettre une plage de ports dans un VLAN</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Huit ports d'un coup, au lieu de huit fois la même chose.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface range fastEthernet 0/1 - 8&#10;switchport mode access&#10;switchport access vlan 10&#10;no shutdown&#10;end&#10;write memory">enable
+configure terminal
+interface range fastEthernet 0/1 - 8
+switchport mode access
+switchport access vlan 10
+no shutdown
+end
+write memory</code></pre></div>
+        <p class="note"><code>switchport mode access</code> avant <code>switchport access vlan</code> : sans lui, le port reste en mode automatique et peut basculer en agrégation face à un voisin bavard.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-vlan" data-mots="creer un trunk le lien entre deux commutateurs, ou vers le routeur : il porte tous les vlan etiquetes. pt-vlan vlan et agregation enable configure terminal interface fastethernet 0/24 switchport mode trunk switchport trunk native vlan 99 switchport trunk allowed vlan 10,20,99 no shutdown end write memory">
+        <div class="pt-tete"><h3>Créer un trunk</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Le lien entre deux commutateurs, ou vers le routeur : il porte tous les VLAN étiquetés.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface fastEthernet 0/24&#10;switchport mode trunk&#10;switchport trunk native vlan 99&#10;switchport trunk allowed vlan 10,20,99&#10;no shutdown&#10;end&#10;write memory">enable
+configure terminal
+interface fastEthernet 0/24
+switchport mode trunk
+switchport trunk native vlan 99
+switchport trunk allowed vlan 10,20,99
+no shutdown
+end
+write memory</code></pre></div>
+        <p class="note">Le VLAN natif doit être <b>le même des deux côtés</b>. Sinon IOS affiche <code>%CDP-4-NATIVE_VLAN_MISMATCH</code> — un message qu'on croit anodin et qui explique pourquoi la moitié du trafic disparaît.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-intervlan" data-titre="Routage inter-VLAN">
+    <h2><span class="num-outil">⤫</span> Routage inter-VLAN</h2>
+    <p class="intro">Faire parler deux VLAN entre eux avec un seul lien vers le routeur.</p>
+      <article class="pt-bloc" data-cat="pt-intervlan" data-mots="router-on-a-stick une sous-interface par vlan, chacune passerelle de son reseau. pt-intervlan routage inter-vlan enable configure terminal interface gigabitethernet 0/0 no ip address no shutdown exit interface gigabitethernet 0/0.10 encapsulation dot1q 10 ip address 192.168.10.1 255.255.255.0 exit interface gigabitethernet 0/0.20 encapsulation dot1q 20 ip address 192.168.20.1 255.255.255.0 exit interface gigabitethernet 0/0.99 encapsulation dot1q 99 native ip address 192.168.99.1 255.255.255.0 end write memory">
+        <div class="pt-tete"><h3>Router-on-a-stick</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Une sous-interface par VLAN, chacune passerelle de son réseau.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface gigabitEthernet 0/0&#10;no ip address&#10;no shutdown&#10;exit&#10;interface gigabitEthernet 0/0.10&#10;encapsulation dot1Q 10&#10;ip address 192.168.10.1 255.255.255.0&#10;exit&#10;interface gigabitEthernet 0/0.20&#10;encapsulation dot1Q 20&#10;ip address 192.168.20.1 255.255.255.0&#10;exit&#10;interface gigabitEthernet 0/0.99&#10;encapsulation dot1Q 99 native&#10;ip address 192.168.99.1 255.255.255.0&#10;end&#10;write memory">enable
+configure terminal
+interface gigabitEthernet 0/0
+no ip address
+no shutdown
+exit
+interface gigabitEthernet 0/0.10
+encapsulation dot1Q 10
+ip address 192.168.10.1 255.255.255.0
+exit
+interface gigabitEthernet 0/0.20
+encapsulation dot1Q 20
+ip address 192.168.20.1 255.255.255.0
+exit
+interface gigabitEthernet 0/0.99
+encapsulation dot1Q 99 native
+ip address 192.168.99.1 255.255.255.0
+end
+write memory</code></pre></div>
+        <p class="note">L'interface physique reste <b>sans adresse</b> mais doit être allumée : c'est elle qui porte les sous-interfaces. Le VLAN natif se déclare avec le mot-clé <code>native</code> — l'oublier fait tomber le trafic non étiqueté.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-routage" data-titre="Routage">
+    <h2><span class="num-outil">⇥</span> Routage</h2>
+    <p class="intro">Dire au routeur où envoyer ce qui n'est pas chez lui.</p>
+      <article class="pt-bloc" data-cat="pt-routage" data-mots="route statique et route par defaut une route precise vers un reseau connu, puis la route « tout le reste ». pt-routage routage enable configure terminal ip route 192.168.3.0 255.255.255.0 192.168.2.2 ip route 0.0.0.0 0.0.0.0 192.168.2.2 end write memory">
+        <div class="pt-tete"><h3>Route statique et route par défaut</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Une route précise vers un réseau connu, puis la route « tout le reste ».</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;ip route 192.168.3.0 255.255.255.0 192.168.2.2&#10;ip route 0.0.0.0 0.0.0.0 192.168.2.2&#10;end&#10;write memory">enable
+configure terminal
+ip route 192.168.3.0 255.255.255.0 192.168.2.2
+ip route 0.0.0.0 0.0.0.0 192.168.2.2
+end
+write memory</code></pre></div>
+        <p class="note"><code>0.0.0.0 0.0.0.0</code> se lit « n'importe quelle destination » : c'est la route de dernier recours, celle qui sort vers Internet. Elle n'est consultée que si aucune route plus précise ne correspond.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-routage" data-mots="rip version 2 le routage dynamique du programme : on annonce ses reseaux, les voisins apprennent le reste. pt-routage routage enable configure terminal router rip version 2 no auto-summary network 192.168.1.0 network 192.168.2.0 passive-interface gigabitethernet 0/0 end write memory">
+        <div class="pt-tete"><h3>RIP version 2</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Le routage dynamique du programme : on annonce ses réseaux, les voisins apprennent le reste.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;router rip&#10;version 2&#10;no auto-summary&#10;network 192.168.1.0&#10;network 192.168.2.0&#10;passive-interface gigabitEthernet 0/0&#10;end&#10;write memory">enable
+configure terminal
+router rip
+version 2
+no auto-summary
+network 192.168.1.0
+network 192.168.2.0
+passive-interface gigabitEthernet 0/0
+end
+write memory</code></pre></div>
+        <p class="note"><code>version 2</code> et <code>no auto-summary</code> ne sont pas facultatifs : sans eux, RIP résume aux anciennes classes A/B/C et casse tout découpage en sous-réseaux. On annonce l'adresse de <b>réseau</b>, pas celle de l'interface.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-dhcp" data-titre="DHCP">
+    <h2><span class="num-outil">◌</span> DHCP</h2>
+    <p class="intro">Distribuer les adresses au lieu de les taper une par une.</p>
+      <article class="pt-bloc" data-cat="pt-dhcp" data-mots="un pool sur le routeur les machines du lan recoivent adresse, passerelle et dns toutes seules. pt-dhcp dhcp enable configure terminal ip dhcp excluded-address 192.168.1.1 192.168.1.10 ip dhcp pool lan network 192.168.1.0 255.255.255.0 default-router 192.168.1.1 dns-server 8.8.8.8 domain-name ciel.lan end write memory">
+        <div class="pt-tete"><h3>Un pool sur le routeur</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Les machines du LAN reçoivent adresse, passerelle et DNS toutes seules.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;ip dhcp excluded-address 192.168.1.1 192.168.1.10&#10;ip dhcp pool LAN&#10;network 192.168.1.0 255.255.255.0&#10;default-router 192.168.1.1&#10;dns-server 8.8.8.8&#10;domain-name ciel.lan&#10;end&#10;write memory">enable
+configure terminal
+ip dhcp excluded-address 192.168.1.1 192.168.1.10
+ip dhcp pool LAN
+network 192.168.1.0 255.255.255.0
+default-router 192.168.1.1
+dns-server 8.8.8.8
+domain-name ciel.lan
+end
+write memory</code></pre></div>
+        <p class="note"><code>ip dhcp excluded-address</code> se pose <b>avant</b> le pool : c'est ce qui réserve les adresses fixes — passerelle, imprimante, serveur. Oubliée, la plage distribue l'adresse de la passerelle à un poste, et le réseau tombe.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-dhcp" data-mots="relais dhcp quand le serveur dhcp est dans un autre reseau que les machines. pt-dhcp dhcp enable configure terminal interface gigabitethernet 0/0 ip helper-address 192.168.100.10 end write memory">
+        <div class="pt-tete"><h3>Relais DHCP</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Quand le serveur DHCP est dans un autre réseau que les machines.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface gigabitEthernet 0/0&#10;ip helper-address 192.168.100.10&#10;end&#10;write memory">enable
+configure terminal
+interface gigabitEthernet 0/0
+ip helper-address 192.168.100.10
+end
+write memory</code></pre></div>
+        <p class="note">La demande DHCP est une diffusion, et un routeur ne fait pas passer les diffusions. <code>ip helper-address</code> la transforme en message unique vers le serveur. La commande se pose sur l'interface <b>côté clients</b>, pas côté serveur.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-nat" data-titre="NAT et PAT">
+    <h2><span class="num-outil">⇄</span> NAT et PAT</h2>
+    <p class="intro">Faire sortir tout un réseau privé derrière une seule adresse publique.</p>
+      <article class="pt-bloc" data-cat="pt-nat" data-mots="pat — toute la surcharge le cas normal : un seul lien vers l'exterieur, tout le lan derriere. pt-nat nat et pat enable configure terminal interface gigabitethernet 0/0 ip nat inside exit interface serial 0/0/0 ip nat outside exit access-list 1 permit 192.168.1.0 0.0.0.255 ip nat inside source list 1 interface serial 0/0/0 overload end write memory">
+        <div class="pt-tete"><h3>PAT — toute la surcharge</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Le cas normal : un seul lien vers l'extérieur, tout le LAN derrière.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface gigabitEthernet 0/0&#10;ip nat inside&#10;exit&#10;interface serial 0/0/0&#10;ip nat outside&#10;exit&#10;access-list 1 permit 192.168.1.0 0.0.0.255&#10;ip nat inside source list 1 interface serial 0/0/0 overload&#10;end&#10;write memory">enable
+configure terminal
+interface gigabitEthernet 0/0
+ip nat inside
+exit
+interface serial 0/0/0
+ip nat outside
+exit
+access-list 1 permit 192.168.1.0 0.0.0.255
+ip nat inside source list 1 interface serial 0/0/0 overload
+end
+write memory</code></pre></div>
+        <p class="note">Le mot-clé <code>overload</code> <em>est</em> le PAT : sans lui, une seule machine à la fois pourrait sortir. Marquer les interfaces <code>inside</code> et <code>outside</code> n'est pas décoratif — sans ces deux lignes, aucune traduction ne se produit et <code>show ip nat translations</code> reste vide.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-nat" data-mots="nat statique un serveur interne joignable depuis l'exterieur, toujours a la meme adresse publique. pt-nat nat et pat enable configure terminal ip nat inside source static 192.168.1.10 209.165.201.5 interface gigabitethernet 0/0 ip nat inside exit interface serial 0/0/0 ip nat outside end write memory">
+        <div class="pt-tete"><h3>NAT statique</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">Un serveur interne joignable depuis l'extérieur, toujours à la même adresse publique.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;ip nat inside source static 192.168.1.10 209.165.201.5&#10;interface gigabitEthernet 0/0&#10;ip nat inside&#10;exit&#10;interface serial 0/0/0&#10;ip nat outside&#10;end&#10;write memory">enable
+configure terminal
+ip nat inside source static 192.168.1.10 209.165.201.5
+interface gigabitEthernet 0/0
+ip nat inside
+exit
+interface serial 0/0/0
+ip nat outside
+end
+write memory</code></pre></div>
+        <p class="note">La liste d'accès utilise un <b>masque générique</b> : <code>0.0.0.255</code>, l'inverse de <code>255.255.255.0</code>. C'est la confusion la plus courante de l'épreuve.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-secu" data-titre="Durcissement">
+    <h2><span class="num-outil">🛡</span> Durcissement</h2>
+    <p class="intro">Ce qu'on ajoute quand l'énoncé parle de sécurité.</p>
+      <article class="pt-bloc" data-cat="pt-secu" data-mots="securiser un port d'acces le port n'accepte que les adresses mac qu'il a apprises, et reagit au-dela. pt-secu durcissement enable configure terminal interface fastethernet 0/1 switchport mode access switchport port-security switchport port-security maximum 2 switchport port-security mac-address sticky switchport port-security violation restrict end write memory">
+        <div class="pt-tete"><h3>Sécuriser un port d'accès</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Le port n'accepte que les adresses MAC qu'il a apprises, et réagit au-delà.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface fastEthernet 0/1&#10;switchport mode access&#10;switchport port-security&#10;switchport port-security maximum 2&#10;switchport port-security mac-address sticky&#10;switchport port-security violation restrict&#10;end&#10;write memory">enable
+configure terminal
+interface fastEthernet 0/1
+switchport mode access
+switchport port-security
+switchport port-security maximum 2
+switchport port-security mac-address sticky
+switchport port-security violation restrict
+end
+write memory</code></pre></div>
+        <p class="note"><code>sticky</code> apprend la MAC présente et l'écrit dans la configuration. <code>restrict</code> bloque le trafic en trop et journalise ; <code>shutdown</code>, le réglage par défaut, éteint le port jusqu'à intervention humaine. En TP, <code>restrict</code> évite de se couper soi-même.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-secu" data-mots="eteindre les ports inutilises un port allume dans un couloir est une prise reseau offerte. pt-secu durcissement enable configure terminal interface range fastethernet 0/9 - 23 switchport mode access switchport access vlan 999 shutdown end write memory">
+        <div class="pt-tete"><h3>Éteindre les ports inutilisés</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Un port allumé dans un couloir est une prise réseau offerte.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;configure terminal&#10;interface range fastEthernet 0/9 - 23&#10;switchport mode access&#10;switchport access vlan 999&#10;shutdown&#10;end&#10;write memory">enable
+configure terminal
+interface range fastEthernet 0/9 - 23
+switchport mode access
+switchport access vlan 999
+shutdown
+end
+write memory</code></pre></div>
+        <p class="note">On les place aussi dans un VLAN sans issue plutôt que dans le VLAN 1 : un port éteint qu'on rallume par erreur ne doit pas retomber dans le réseau d'administration.</p>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-verif" data-titre="Vérifier">
+    <h2><span class="num-outil">👁</span> Vérifier</h2>
+    <p class="intro">Les commandes qu'on tape avant de dire « ça marche ».</p>
+      <article class="pt-bloc" data-cat="pt-verif" data-mots="sur un routeur l'etat des interfaces, la table de routage, la configuration complete. pt-verif verifier enable terminal length 0 show ip interface brief show ip route show running-config">
+        <div class="pt-tete"><h3>Sur un routeur</h3><span class="pt-eq">routeur</span></div>
+        <p class="pt-quoi">L'état des interfaces, la table de routage, la configuration complète.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;terminal length 0&#10;show ip interface brief&#10;show ip route&#10;show running-config">enable
+terminal length 0
+show ip interface brief
+show ip route
+show running-config</code></pre></div>
+        <p class="note"><code>terminal length 0</code> supprime la pagination <code>--More--</code> : la sortie défile d'un coup et se copie en entier. Indispensable pour coller une configuration dans un compte rendu.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-verif" data-mots="sur un commutateur les vlan, les agregations, la table des adresses mac. pt-verif verifier enable terminal length 0 show ip interface brief show vlan brief show interfaces trunk show mac address-table">
+        <div class="pt-tete"><h3>Sur un commutateur</h3><span class="pt-eq">commutateur</span></div>
+        <p class="pt-quoi">Les VLAN, les agrégations, la table des adresses MAC.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;terminal length 0&#10;show ip interface brief&#10;show vlan brief&#10;show interfaces trunk&#10;show mac address-table">enable
+terminal length 0
+show ip interface brief
+show vlan brief
+show interfaces trunk
+show mac address-table</code></pre></div>
+        <p class="note"><code>show interfaces trunk</code> est la commande qui règle la moitié des pannes de VLAN : elle dit quel VLAN natif et quels VLAN autorisés chaque lien porte réellement.</p>
+      </article>
+      <article class="pt-bloc" data-cat="pt-verif" data-mots="quand ca ne marche pas le voisinage, la traduction d'adresses, les baux distribues. pt-verif verifier enable terminal length 0 show cdp neighbors detail show ip nat translations show ip dhcp binding show version">
+        <div class="pt-tete"><h3>Quand ça ne marche pas</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">Le voisinage, la traduction d'adresses, les baux distribués.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;terminal length 0&#10;show cdp neighbors detail&#10;show ip nat translations&#10;show ip dhcp binding&#10;show version">enable
+terminal length 0
+show cdp neighbors detail
+show ip nat translations
+show ip dhcp binding
+show version</code></pre></div>
+      </article>
+  </section>
+
+  <section class="outil pt-cat" id="pt-zero" data-titre="Repartir de zéro">
+    <h2><span class="num-outil">⟲</span> Repartir de zéro</h2>
+    <p class="intro">Rendre l'équipement tel qu'il était au premier branchement.</p>
+      <article class="pt-bloc" data-cat="pt-zero" data-mots="tout effacer la configuration de demarrage et la base des vlan, puis redemarrage. pt-zero repartir de zero enable erase startup-config delete vlan.dat reload">
+        <div class="pt-tete"><h3>Tout effacer</h3><span class="pt-eq">les deux</span></div>
+        <p class="pt-quoi">La configuration de démarrage et la base des VLAN, puis redémarrage.</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code data-modele="enable&#10;erase startup-config&#10;delete vlan.dat&#10;reload">enable
+erase startup-config
+delete vlan.dat
+reload</code></pre></div>
+        <p class="note">Ce bloc pose <b>trois questions</b> — une pour l'effacement, deux pour le fichier des VLAN, plus la confirmation du redémarrage. Validez-les avec Entrée. <code>delete vlan.dat</code> n'existe que sur un commutateur : sur un routeur, la ligne renvoie une erreur sans conséquence. Et effacer <code>startup-config</code> ne touche pas à la configuration courante : c'est le redémarrage qui fait le vide.</p>
+      </article>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="masques.html"><span>Outil précédent</span><b>Table des masques</b></a>
+    <a class="suiv" href="ports.html"><span>Outil suivant</span><b>Ports et protocoles</b></a>
+  </nav>
+</main>
+
+<script>
+/* Commandes Packet Tracer — substitution et filtrage, sans dépendance.
+
+   Les blocs sont écrits à la génération : leur contenu par défaut est du HTML
+   statique, lisible et copiable même sans JavaScript. Le modèle complet vit
+   dans « data-modele » : on n'édite jamais le texte affiché, on le REGÉNÈRE
+   depuis le modèle. Remplacer l'ancienne valeur par la nouvelle dans le texte
+   affiché semblait plus simple — mais un mot de passe nommé « R1 » aurait
+   alors réécrit les « hostname R1 » au passage. Une commande fausse en
+   silence, c'est exactement ce qu'on refuse ici. */
+(function () {
+  "use strict";
+  var nom = document.getElementById("pt-val-nom"),
+      mdp = document.getElementById("pt-val-mdp"),
+      champ = document.getElementById("pt-f"),
+      vide  = document.getElementById("pt-vide"),
+      rien  = document.getElementById("pt-rien"),
+      chips = document.getElementById("pt-chips");
+  var blocs = Array.prototype.slice.call(document.querySelectorAll(".pt-bloc"));
+  var cats  = Array.prototype.slice.call(document.querySelectorAll(".pt-cat"));
+  if (!blocs.length) return;
+
+  /* ── Substitution ─────────────────────────────────────────────────── */
+  var DEF = { nom: "R1", mdp: "cisco" }, rendu = false;
+
+  /* Deux nettoyages différents, parce que IOS n'a pas les mêmes règles pour
+     les deux. Un nom d'hôte n'accepte que lettres, chiffres, point et tiret.
+     Un mot de passe accepte presque tout — sauf l'espace, qui terminerait la
+     commande, et le « ? », qui déclenche l'aide au lieu d'être saisi.
+     Et quand on retire quelque chose, on le DIT : effacer un caractère du
+     mot de passe en silence, c'est faire coller autre chose que ce qui est
+     à l'écran. */
+  function propre(champ, motif, repli) {
+    var brut = (champ.value || "").trim();
+    var net = brut.replace(motif, "");
+    var avis = champ.parentElement.querySelector(".pt-avis");
+    if (!avis) {
+      avis = document.createElement("span");
+      avis.className = "pt-avis";
+      champ.parentElement.appendChild(avis);
+    }
+    avis.textContent = net === brut ? ""
+      : (net ? "caractères impossibles retirés : " + net : "valeur vide — « " + repli + " » conservé");
+    avis.hidden = net === brut;
+    return net || repli;
+  }
+
+  function rendre() {
+    var v = { nom: propre(nom, /[^A-Za-z0-9._-]/g, DEF.nom),
+              mdp: propre(mdp, /[\s?]/g, DEF.mdp) };
+    /* Au premier affichage, si rien n'a bougé, on ne touche à rien : le HTML
+       servi dit déjà exactement ça, et le laisser tel quel conserve la
+       coloration du code. Ensuite on regénère toujours — sans quoi revenir
+       aux valeurs par défaut laissait les blocs sur l'ancienne saisie. */
+    if (!rendu && v.nom === DEF.nom && v.mdp === DEF.mdp) return;
+    rendu = true;
+    blocs.forEach(function (b) {
+      var code = b.querySelector("code");
+      var modele = code && code.getAttribute("data-modele");
+      if (!modele) return;
+      code.textContent = modele.replace(/\{\{(nom|mdp)\}\}/g, function (_, k) { return v[k]; });
+      code.removeAttribute("data-colorie");
+    });
+  }
+  [nom, mdp].forEach(function (c) { c.addEventListener("input", rendre); });
+  rendre();
+
+  /* ── Filtrage ─────────────────────────────────────────────────────── */
+  function sansAccent(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+  var actif = "";
+
+  function filtrer() {
+    var q = sansAccent(champ.value.trim()), n = 0;
+    blocs.forEach(function (b) {
+      var okCat = !actif || b.getAttribute("data-cat") === actif;
+      var okTxt = !q || sansAccent(b.getAttribute("data-mots") + " " + b.textContent).indexOf(q) !== -1;
+      var ok = okCat && okTxt;
+      b.hidden = !ok; if (ok) n++;
+    });
+    /* Une catégorie dont tous les blocs sont masqués ne doit pas laisser un
+       titre seul en l'air. */
+    cats.forEach(function (s) {
+      s.hidden = !s.querySelector(".pt-bloc:not([hidden])");
+    });
+    rien.hidden = n > 0;
+  }
+
+  cats.forEach(function (s) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "pt-chip";
+    b.textContent = s.getAttribute("data-titre");
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () {
+      actif = (actif === s.id) ? "" : s.id;
+      Array.prototype.forEach.call(chips.children, function (c) {
+        var on = c === b && actif;
+        c.classList.toggle("on", !!on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      filtrer();
+      if (actif) s.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    b.setAttribute("data-cat", s.id);
+    chips.appendChild(b);
+  });
+
+  champ.addEventListener("input", filtrer);
+  vide.addEventListener("click", function () {
+    champ.value = ""; actif = "";
+    Array.prototype.forEach.call(chips.children, function (c) {
+      c.classList.remove("on"); c.setAttribute("aria-pressed", "false");
+    });
+    filtrer(); champ.focus();
+  });
+})();
+</script>
+
+<script src="../assets/fiche.js?v=867a6964"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/recherche.js?v=867a6964"></script>
+<script src="../assets/app.js?v=867a6964"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>
