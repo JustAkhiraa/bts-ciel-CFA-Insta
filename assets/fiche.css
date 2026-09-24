@@ -2093,20 +2093,37 @@ html[data-anim="0"] .apparait { opacity: 1; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    OUTILS — convertisseur et table des masques
-   Tout passe par les variables : les quarante thèmes suivent sans retouche.
+
+   La couleur y fait un travail, elle ne décore pas : elle dit à quel octet
+   appartient un groupe de huit bits, et où s'arrête le réseau dans un masque.
+   Les quatre teintes sont celles que le design system définit DÉJÀ pour les
+   quarante thèmes — accent, vert, violet, ambre. Aucune couleur nouvelle
+   n'est écrite en dur : elles suivent le thème comme le reste.
    ═══════════════════════════════════════════════════════════════════════ */
 .outil {
-  margin-top: 2.4rem; padding: 1.5rem 1.6rem 1.7rem;
+  --o1: var(--accent-sombre); --o2: var(--vert);
+  --o3: var(--violet);        --o4: var(--ambre-sombre);
+  --o1-fond: var(--accent-pale); --o2-fond: var(--vert-pale);
+  --o3-fond: var(--violet-pale); --o4-fond: var(--ambre-pale);
+
+  margin-top: 2.2rem; padding: 1.5rem 1.6rem 1.7rem;
   background: var(--carte); border: 1px solid var(--bord);
   border-top: 3px solid var(--accent); border-radius: var(--r-l);
   box-shadow: var(--ombre);
 }
 .outil > h2 {
-  margin: 0 0 .5rem; font-size: 1.28rem; font-weight: 740;
+  display: flex; align-items: center; gap: .6rem;
+  margin: 0 0 .5rem; font-size: 1.24rem; font-weight: 740;
   letter-spacing: -.018em; color: var(--encre);
 }
+.num-outil {
+  flex: none; width: 26px; height: 26px; border-radius: 999px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--sur-accent);
+  font-family: var(--mono); font-size: .7576rem; font-weight: 700;
+}
 .outil .intro { margin: 0 0 1.2rem; color: var(--encre-douce); font-size: .9394rem; line-height: 1.6; }
-.outil .note { margin: .9rem 0 0; font-size: .8182rem; color: var(--encre-tenue); line-height: 1.6; }
+.outil .note  { margin: .9rem 0 0; font-size: .8182rem; color: var(--encre-tenue); line-height: 1.6; }
 
 /* ── Les huit bits d'un octet ───────────────────────────────────────── */
 .bits { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .3rem; }
@@ -2116,8 +2133,8 @@ html[data-anim="0"] .apparait { opacity: 1; }
   color: var(--encre-tenue); letter-spacing: -.02em;
 }
 .bit button {
-  width: 100%; min-height: 46px; cursor: pointer; padding: 0;
-  font-family: var(--mono); font-size: 1.12rem; font-weight: 700;
+  width: 100%; min-height: 48px; cursor: pointer; padding: 0;
+  font-family: var(--mono); font-size: 1.15rem; font-weight: 700;
   background: var(--carte-creuse); color: var(--encre-tenue);
   border: 1px solid var(--bord-fort); border-radius: var(--r);
   transition: background .12s, color .12s, border-color .12s, transform .1s var(--ease);
@@ -2133,22 +2150,24 @@ html[data-anim="0"] .apparait { opacity: 1; }
 /* On montre l'addition, pas seulement le résultat : c'est l'opération qu'on
    pose au tableau, et c'est elle qu'il faut retenir. */
 .calcul {
-  margin: .9rem 0 1.1rem; padding: .7rem .9rem; border-radius: var(--r);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem;
+  margin: 1rem 0 1.2rem; padding: .75rem .95rem; border-radius: var(--r);
   background: var(--accent-pale); border-left: 3px solid var(--accent);
-  font-family: var(--mono); font-size: .9091rem; color: var(--encre);
+  font-family: var(--mono); font-size: .9394rem; color: var(--encre);
 }
-.calcul b { font-size: 1.12em; color: var(--accent-sombre); }
+.calcul .plus, .calcul .egal { color: var(--accent-sombre); padding: 0 .45rem; font-weight: 700; }
+.calcul b { font-size: 1.24em; font-weight: 800; color: var(--accent-sombre); }
 
-/* ── Champs liés ────────────────────────────────────────────────────── */
-.rangee { display: flex; flex-wrap: wrap; gap: .7rem; }
+/* ── Champs ─────────────────────────────────────────────────────────── */
+.rangee { display: flex; flex-wrap: wrap; gap: .75rem; }
 .rangee label {
-  display: flex; flex-direction: column; gap: .3rem; flex: 1 1 8rem; min-width: 0;
+  display: flex; flex-direction: column; gap: .3rem; flex: 1 1 9rem; min-width: 0;
   font-size: .697rem; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--encre-tenue);
 }
 .rangee input {
-  width: 100%; box-sizing: border-box; min-height: 44px;
-  padding: .55rem .75rem; font-family: var(--mono); font-size: 1rem;
+  width: 100%; box-sizing: border-box; min-height: 46px;
+  padding: .55rem .75rem; font-family: var(--mono); font-size: 1.03rem;
   color: var(--encre); background: var(--carte-creuse);
   border: 1px solid var(--bord-fort); border-radius: var(--r);
   transition: border-color .15s, box-shadow .15s;
@@ -2156,31 +2175,56 @@ html[data-anim="0"] .apparait { opacity: 1; }
 .rangee input:focus {
   outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale);
 }
+/* Chaque base a son repère de couleur, repris du bloc des bits. */
+.ch-dec input { border-left: 3px solid var(--o1); }
+.ch-bin input { border-left: 3px solid var(--o2); }
+.ch-hex input { border-left: 3px solid var(--o3); }
 
-/* ── L'adresse en binaire ───────────────────────────────────────────── */
-.binaire-ip {
-  margin: 1rem 0; padding: .8rem .9rem; border-radius: var(--r);
-  background: var(--carte-creuse); border: 1px solid var(--bord);
-  font-family: var(--mono); font-size: .8848rem; color: var(--encre);
-  overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;
+/* ── L'adresse IPv4, un octet par colonne ───────────────────────────── */
+.ipv4 {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem;
+  margin-top: 1.1rem;
 }
-.binaire-ip .pt { color: var(--accent-sombre); font-weight: 700; padding: 0 .3rem; }
-.binaire-ip .invalide { color: var(--rouge); white-space: normal; font-family: var(--sans); }
+.oct {
+  display: flex; flex-direction: column; gap: .25rem; min-width: 0;
+  padding: .7rem .5rem .6rem; border-radius: var(--r); text-align: center;
+  border: 1px solid var(--bord);
+}
+.oct .rang {
+  font-size: .6667rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; opacity: .9;
+}
+.oct .val { font-family: var(--mono); font-size: 1.36rem; font-weight: 800; line-height: 1.1; }
+.oct .b8  { font-family: var(--mono); font-size: .7576rem; letter-spacing: .04em; color: var(--encre-douce); }
+/* « encre tenue » tombait à 3,73:1 sur le fond teinté du thème Midgar —
+   mesuré, pas supposé. « encre douce » y tient 6,59:1, et la ligne
+   hexadécimale reste discrète face au décimal qui la surplombe. */
+.oct .hx  { font-family: var(--mono); font-size: .697rem; color: var(--encre-douce); }
+.oct.o1 { background: var(--o1-fond); border-color: color-mix(in srgb, var(--o1) 30%, transparent); }
+.oct.o2 { background: var(--o2-fond); border-color: color-mix(in srgb, var(--o2) 30%, transparent); }
+.oct.o3 { background: var(--o3-fond); border-color: color-mix(in srgb, var(--o3) 30%, transparent); }
+.oct.o4 { background: var(--o4-fond); border-color: color-mix(in srgb, var(--o4) 30%, transparent); }
+.oct.o1 .rang, .oct.o1 .val { color: var(--o1); }
+.oct.o2 .rang, .oct.o2 .val { color: var(--o2); }
+.oct.o3 .rang, .oct.o3 .val { color: var(--o3); }
+.oct.o4 .rang, .oct.o4 .val { color: var(--o4); }
+.ipv4 .invalide { grid-column: 1 / -1; margin: 0; color: var(--rouge); font-size: .8788rem; }
+@media (max-width: 560px) { .ipv4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-/* ── Filtrer la table ───────────────────────────────────────────────── */
-.filtre { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+/* ── Table des masques ──────────────────────────────────────────────── */
+.filtre { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .9rem; }
 .filtre label {
   font-size: .697rem; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--encre-tenue);
 }
 .filtre input {
-  flex: 1 1 14rem; min-width: 0; box-sizing: border-box; min-height: 44px;
+  flex: 1 1 15rem; min-width: 0; box-sizing: border-box; min-height: 46px;
   padding: .5rem .8rem; font: inherit; font-size: .9091rem; color: var(--encre);
   background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: var(--r);
 }
 .filtre input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
 .filtre button {
-  min-height: 44px; padding: .5rem .9rem; cursor: pointer; flex: none;
+  min-height: 46px; padding: .5rem .9rem; cursor: pointer; flex: none;
   font: inherit; font-size: .8182rem; font-weight: 650;
   background: var(--carte-creuse); color: var(--encre-douce);
   border: 1px solid var(--bord-fort); border-radius: var(--r);
@@ -2188,10 +2232,32 @@ html[data-anim="0"] .apparait { opacity: 1; }
 }
 .filtre button:hover { border-color: var(--accent); color: var(--accent-sombre); }
 
-#table-masques th[scope="row"] { font-family: var(--mono); color: var(--accent-sombre); }
-#table-masques .rq { color: var(--encre-tenue); font-size: .9em; }
+.legende {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem;
+  margin: 0 0 1rem; font-size: .8182rem; color: var(--encre-douce);
+}
+.legende .pl { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.legende .pl-res  { background: var(--accent); }
+.legende .pl-hote { background: var(--carte-creuse); border: 1px solid var(--bord-fort); }
+
+/* Le masque en binaire, sous sa forme décimale : les 1 sont les bits de
+   réseau, les 0 ceux d'hôte. C'est tout ce qu'un masque veut dire, et
+   « 255.255.255.192 » ne le montre pas. */
+.mb {
+  display: block; margin-top: .25rem;
+  font-family: var(--mono); font-size: .6667rem; letter-spacing: .02em; white-space: nowrap;
+}
+.mb b { background: var(--accent-pale); color: var(--accent-sombre); font-weight: 700; padding: .05em 0; }
+.mb i { background: var(--carte-creuse); color: var(--encre-tenue); font-style: normal; padding: .05em 0; }
+.mb .sep { color: var(--bord-fort); padding: 0 .1em; }
+
+#table-masques th[scope="row"] {
+  font-family: var(--mono); font-size: .9394rem; font-weight: 700;
+  color: var(--accent-sombre); background: var(--accent-pale); white-space: nowrap;
+}
+#table-masques .nb { font-family: var(--mono); white-space: nowrap; }
+#table-masques .rq { color: var(--encre-tenue); font-size: .92em; }
 #table-masques tr[hidden] { display: none; }
 
-/* La carte « Outils » de l'accueil : même forme que les matières, icône
-   distincte. Elle occupe la largeur restante de la grille. */
-.carte-outils .ic { font-size: 20px; }
+/* ── Les cartes du sommaire des outils ──────────────────────────────── */
+.carte-outil .ic, .carte-outils .ic { font-size: 19px; }
