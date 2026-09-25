@@ -2,7 +2,7 @@
    chaque fiche visitee s'y ajoute ensuite.
    VERSION est l'empreinte du site publie : elle change des qu'un
    octet change, ce qui purge l'ancien cache a l'activation. */
-const VERSION='bts-ciel-0ce4c179d3';
+const VERSION='bts-ciel-5288c6583d';
 const COQUILLE=["./", "./index.html", "./a-propos.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/fiche.css?v=db5ddbf0", "./assets/app.js?v=db5ddbf0", "./assets/fiche.js?v=db5ddbf0", "./assets/recherche.js?v=db5ddbf0", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html"];
 
 self.addEventListener('install', e => {
