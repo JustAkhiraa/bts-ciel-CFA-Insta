@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fonctions et tableaux en C | BTS CIEL</title>
+<meta name="description" content="Cours : découper un programme en fonctions, les quatre formes, paramètres et arguments, prototype, portée des variables, et les tableaux en C — déclaration, parcours, et passage à une fonction.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=db5ddbf0">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#pourquoi">1 · Pourquoi découper en fonctions</a></li>
+    <li><a href="#anatomie">2 · L'anatomie d'une fonction</a></li>
+    <li><a href="#formes">3 · Les quatre formes</a></li>
+    <li><a href="#appel">4 · L'appel : arguments et retour</a></li>
+    <li><a href="#prototype">5 · Le prototype, et l'ordre dans le fichier</a></li>
+    <li><a href="#portee">6 · Variables locales et globales</a></li>
+    <li><a href="#tableaux">7 · Les tableaux en C</a></li>
+    <li><a href="#passer">8 · Passer un tableau à une fonction</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; développement</span>
+    <span class="sep">/</span><span>Chapitre 13</span>
+  </div>
+
+  <h1>Fonctions et tableaux en C</h1>
+  <p class="chapeau">Le chapitre 12 s'arrêtait aux boucles : un programme, un seul bloc.
+     Celui-ci le découpe. Une fonction, c'est un morceau de programme qu'on nomme — et
+     nommer une chose, c'est pouvoir s'en servir sans la relire.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une fonction a <strong>un type de retour, un nom, des paramètres et un corps</strong>.
+         Elle se décline en quatre formes, selon qu'elle reçoit des données ou non et qu'elle
+         en renvoie ou non ; <code>void</code> dit « ne renvoie rien ». Le
+         <strong>prototype</strong> l'annonce avant <code>main</code> pour que le compilateur
+         la connaisse. Une variable déclarée dans une fonction n'existe que là.
+         Et un <strong>tableau passé à une fonction perd sa taille</strong> : il faut la
+         transmettre à part — c'est la seule vraie difficulté du chapitre.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#fonction</code> <code>#void</code> <code>#return</code>
+    <code>#parametres</code> <code>#arguments</code> <code>#prototype</code>
+    <code>#portee</code> <code>#tableau</code> <code>#indice</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="pourquoi">
+  <h2><span class="num">01</span> Pourquoi découper en fonctions</h2>
+
+  <p>Une fonction est un <strong>bloc d'instructions qui réalise une tâche précise</strong>.
+     Elle permet de découper un programme en parties indépendantes et réutilisables.</p>
+
+  <p>L'argument du cours tient en un exemple. Sans fonction, le calcul d'un carré se réécrit
+     à chaque fois :</p>
+
+  <div class="bloc-code"><span class="langue">C — sans fonction</span><pre><code>carre = nombre * nombre;</code></pre></div>
+
+  <p>Avec une fonction, il s'écrit une fois et se réutilise :</p>
+
+  <div class="bloc-code"><span class="langue">C — avec une fonction</span><pre><code>#include &lt;stdio.h&gt;
+
+int carre(int nombre)
+{
+    return nombre * nombre;
+}
+
+int main(void)
+{
+    int a = carre(5);
+    int b = carre(10);
+    int c = carre(20);
+    printf("%d %d %d\n", a, b, c);
+    return 0;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>25 100 400</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 Une fonction, c'est une commande qu'on invente</div>
+    <p>Vous utilisez <code>printf</code> sans jamais avoir lu son code. Vous savez ce qu'elle
+       fait, ce qu'elle attend, ce qu'elle rend — cela suffit.</p>
+    <p>Écrire une fonction, c'est fabriquer une commande de plus, avec la même promesse : celui
+       qui l'appelle n'a pas besoin de savoir comment elle s'y prend. <strong>Le découpage n'est
+       pas une coquetterie d'écriture, c'est ce qui permet d'oublier des détails.</strong></p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Vous en écrivez déjà une depuis le premier jour</div>
+    <p><code>main</code> est une fonction. Son type de retour est <code>int</code>, elle ne prend
+       pas de paramètre, et son <code>return 0;</code> final est sa valeur de retour — celle que
+       le système d'exploitation récupère pour savoir si le programme s'est bien terminé.</p>
+    <p class="rap">Tout ce que dit ce chapitre s'applique donc à quelque chose que vous écrivez
+       déjà sans y penser.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="anatomie">
+  <h2><span class="num">02</span> L'anatomie d'une fonction</h2>
+
+  <p>Une fonction est constituée de quatre éléments, toujours dans le même ordre.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 720 258" role="img" aria-label="Dissection d'une fonction C : le type de retour, le nom, les paramètres entre parenthèses, puis le corps entre accolades avec l'instruction return">
+      <style>
+        .fn-co{fill:var(--carte-creuse);stroke:var(--bord-fort);stroke-width:1.3}
+        .fn-tx{font:700 19px var(--mono);fill:var(--encre)}
+        .fn-hi{font:700 19px var(--mono)}
+        .fn-t1{fill:var(--accent)}
+        .fn-t2{fill:var(--vert)}
+        .fn-t3{fill:var(--violet)}
+        .fn-t4{fill:var(--ambre-sombre)}
+        .fn-fl{stroke-width:1.4;fill:none}
+        .fn-f1{stroke:var(--accent)} .fn-f2{stroke:var(--vert)}
+        .fn-f3{stroke:var(--violet)} .fn-f4{stroke:var(--ambre-sombre)}
+        .fn-lb{font:700 11px var(--sans);text-anchor:middle}
+        .fn-l1{fill:var(--accent)} .fn-l2{fill:var(--vert)}
+        .fn-l3{fill:var(--violet)} .fn-l4{fill:var(--ambre-sombre)}
+        .fn-sb{font:600 10px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+      </style>
+      <rect class="fn-co" x="120" y="76" width="486" height="118" rx="8"/>
+      <text class="fn-hi fn-t1" x="140" y="108">int</text>
+      <text class="fn-hi fn-t2" x="186" y="108">additionner</text>
+      <text class="fn-tx" x="322" y="108">(</text>
+      <text class="fn-hi fn-t3" x="334" y="108">int a, int b</text>
+      <text class="fn-tx" x="480" y="108">)</text>
+      <text class="fn-tx" x="140" y="136">{</text>
+      <text class="fn-hi fn-t4" x="164" y="164">return a + b;</text>
+      <text class="fn-tx" x="140" y="188">}</text>
+
+      <path class="fn-fl fn-f1" d="M150 70 V44 H210"/>
+      <text class="fn-lb fn-l1" x="268" y="40">type de retour</text>
+      <text class="fn-sb" x="268" y="54">ce qu'elle rend</text>
+
+      <path class="fn-fl fn-f2" d="M250 70 V26 H392"/>
+      <text class="fn-lb fn-l2" x="440" y="22">nom</text>
+      <text class="fn-sb" x="440" y="36">ce qu'on écrit pour l'appeler</text>
+
+      <path class="fn-fl fn-f3" d="M400 118 V214 H330"/>
+      <text class="fn-lb fn-l3" x="252" y="218">paramètres</text>
+      <text class="fn-sb" x="252" y="232">ce qu'elle reçoit</text>
+
+      <path class="fn-fl fn-f4" d="M470 164 H620"/>
+      <text class="fn-lb fn-l4" x="660" y="160">corps</text>
+      <text class="fn-sb" x="660" y="174">le travail</text>
+    </svg>
+    <figcaption>Les quatre éléments d'une fonction. Le corps est le seul qui contienne des
+      instructions ; les trois autres sont un contrat passé avec celui qui appellera.</figcaption>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La syntaxe, dans les deux cas</div>
+    <div class="bloc-code"><span class="langue">C — avec valeur de retour</span><pre><code>type_retour nom_fonction(paramètres)
+{
+    instructions;
+    return valeur;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">C — sans valeur de retour</span><pre><code>void nom_fonction(paramètres)
+{
+    instructions;
+}</code></pre></div>
+    <p class="rap">Quand la fonction ne rend rien, le type de retour est <code>void</code>.
+       Ce n'est pas « rien » : c'est un type à part entière, qui veut dire « vide ».</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pas de point-virgule après l'accolade fermante</div>
+    <p>Une <strong>définition</strong> de fonction se termine par <code>}</code>, sans
+       point-virgule. Un <strong>prototype</strong>, lui, en porte un — c'est justement ce qui
+       les distingue (section 5).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="formes">
+  <h2><span class="num">03</span> Les quatre formes</h2>
+
+  <p>Une fonction se classe selon deux questions indépendantes : <strong>reçoit-elle des
+     données ?</strong> et <strong>en renvoie-t-elle une ?</strong> Deux questions, deux
+     réponses possibles chacune : quatre formes.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Les quatre formes, et un exemple de chacune</caption>
+      <thead><tr><th scope="col"></th><th scope="col">Sans valeur de retour</th><th scope="col">Avec valeur de retour</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Sans paramètre</th>
+            <td><code>void afficherBonjour()</code></td>
+            <td><code>int saisirNombre()</code></td></tr>
+        <tr><th scope="row">Avec paramètres</th>
+            <td><code>void afficherCarre(int n)</code></td>
+            <td><code>int carre(int n)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Sans paramètre, sans retour</h3>
+  <p>Elle ne reçoit rien et ne rend rien : elle agit, c'est tout.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+void afficherBonjour(void)
+{
+    printf("Bonjour !\n");
+}
+
+void afficherCarre(int n)
+{
+    printf("Le carré de %d est %d\n", n, n * n);
+}
+
+int main(void)
+{
+    afficherBonjour();
+    afficherCarre(5);
+    return 0;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>Bonjour !
+Le carré de 5 est 25</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — deux exemples du polycopié ne compilent pas</div>
+    <p>Le cours définit <code>void affichercarre(int n)</code> puis l'appelle
+       <code>afficherCarre(5);</code>. Et plus loin, il définit
+       <code>int saisirnombre()</code> puis appelle <code>saisirNombre();</code>.</p>
+    <p><strong>Le C distingue les majuscules des minuscules.</strong> Ces deux appels désignent
+       des fonctions qui n'existent pas, et le compilateur les refuse :</p>
+    <div class="bloc-code"><span class="langue">C — ne compile pas</span><pre><code>#include &lt;stdio.h&gt;
+
+void affichercarre(int n)
+{
+    printf("Le carré de %d est %d\n", n, n * n);
+}
+
+int main(void)
+{
+    afficherCarre(5);
+    return 0;
+}</code></pre></div>
+    <p class="rap">Message obtenu :
+       <code>call to undeclared function 'afficherCarre'</code> — et le compilateur ajoute même
+       <em>did you mean 'affichercarre'?</em>. Les exemples publiés ici portent la casse
+       corrigée, et <code>verif-c.py</code> compile chacun d'eux à chaque contrôle.</p>
+  </div>
+
+  <h3>Sans paramètre, avec retour</h3>
+  <p>Typiquement, une fonction de saisie : elle ne reçoit rien, elle rend ce que
+     l'utilisateur a tapé.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code>int saisirNombre(void)
+{
+    int n;
+
+    printf("Entrez un nombre : ");
+    scanf("%d", &amp;n);
+    return n;
+}</code></pre></div>
+  <p>À l'appel, la valeur revient et se range dans une variable :</p>
+  <div class="bloc-code"><span class="langue">C — l'appel</span><pre><code>int nombre;
+nombre = saisirNombre();</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>()</code> vide et <code>(void)</code> ne disent pas la même chose</div>
+    <p>En C, <code>int saisirNombre()</code> signifie « je ne dis rien sur les paramètres » —
+       le compilateur ne vérifiera donc pas les appels. <code>int saisirNombre(void)</code>
+       signifie « aucun paramètre », et là il vérifie.</p>
+    <p class="rap">Le polycopié écrit <code>()</code>, qui fonctionne. Écrire
+       <code>(void)</code> ne coûte rien et fait travailler le compilateur pour vous. Les deux
+       sont acceptés en épreuve.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="appel">
+  <h2><span class="num">04</span> L'appel : arguments et retour</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Paramètre et argument : deux mots, deux moments</div>
+    <p>Un <strong>paramètre</strong> est une variable déclarée dans la <em>définition</em> de la
+       fonction. Un <strong>argument</strong> est la valeur fournie lors de l'<em>appel</em>.</p>
+    <div class="bloc-code"><span class="langue">C</span><pre><code>int additionner(int a, int b)   /* a et b sont les PARAMÈTRES */
+{
+    return a + b;
+}
+
+additionner(10, 20);           /* 10 et 20 sont les ARGUMENTS */</code></pre></div>
+    <p class="rap">Le paramètre est un contenant, l'argument est le contenu. Le premier est
+       écrit une fois ; le second change à chaque appel.</p>
+  </div>
+
+  <p>L'appel lui-même s'écrit de deux façons, selon qu'il y a une valeur à récupérer :</p>
+
+  <div class="bloc-code"><span class="langue">C — les deux formes d'appel</span><pre><code>nom_fonction(arguments);              /* sans retour : on l'exécute */
+
+variable = nom_fonction(arguments);   /* avec retour : on range le résultat */</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Une valeur retournée et non rangée est perdue</div>
+    <p>Écrire <code>carre(4);</code> sur une ligne à part est accepté par le compilateur : le
+       calcul se fait, et le résultat part à la poubelle. Rien ne le signale.</p>
+    <p class="rap">C'est une des erreurs les plus difficiles à voir en TP, parce que le
+       programme compile, tourne, et n'affiche simplement pas ce qu'on attendait.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Que vaut <code>resultat</code> après <code>resultat = carre(4);</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>16.</strong> La fonction reçoit 4 comme argument, calcule
+         <code>4 × 4</code>, et <code>return</code> renvoie 16 à l'endroit de l'appel.</p>
+      <p class="rap">L'appel est <em>remplacé</em> par la valeur retournée :
+         <code>resultat = carre(4);</code> devient, au moment de l'exécution,
+         <code>resultat = 16;</code>. C'est la bonne façon de se représenter
+         <code>return</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="prototype">
+  <h2><span class="num">05</span> Le prototype, et l'ordre dans le fichier</h2>
+
+  <p>Le compilateur lit le fichier <strong>de haut en bas</strong>. Quand il rencontre un appel,
+     il doit déjà connaître la fonction : son nom, son type de retour, le nombre et le type de
+     ses paramètres.</p>
+
+  <p>Il y a donc deux façons d'organiser un programme, et les deux sont justes.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Deux organisations possibles</caption>
+      <thead><tr><th scope="col">Avec prototype</th><th scope="col">Sans prototype</th></tr></thead>
+      <tbody>
+        <tr><td>le prototype, puis <code>main</code>, puis les définitions</td>
+            <td>les définitions, puis <code>main</code></td></tr>
+        <tr><td><code>main</code> se lit en premier</td>
+            <td>aucune ligne à écrire deux fois</td></tr>
+        <tr><td>indispensable dès que deux fonctions s'appellent l'une l'autre</td>
+            <td>suffit tant que l'ordre reste simple</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bloc-code"><span class="langue">C — avec prototype</span><pre><code>#include &lt;stdio.h&gt;
+
+int additionner(int a, int b);        /* le PROTOTYPE, avec un point-virgule */
+
+int main(void)
+{
+    int resultat;
+    resultat = additionner(5, 3);
+    printf("résultat = %d\n", resultat);
+    return 0;
+}
+
+int additionner(int a, int b)         /* la DÉFINITION, sans point-virgule */
+{
+    return a + b;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>résultat = 8</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Prototype ou définition : la différence tient à un caractère</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code>int additionner(int a, int b);                       /* prototype  → ; */
+
+int additionner(int a, int b) { return a + b; }      /* définition → { } */</code></pre></div>
+    <p class="rap">Le prototype <strong>annonce</strong> l'existence de la fonction ; la
+       définition <strong>contient</strong> ses instructions. Un fichier peut avoir les deux,
+       jamais deux définitions.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 C'est exactement ce que fait <code>#include &lt;stdio.h&gt;</code></div>
+    <p>Ce fichier ne contient pas le code de <code>printf</code> : il contient son
+       <strong>prototype</strong>. Voilà pourquoi on l'inclut en première ligne — pour que le
+       compilateur connaisse <code>printf</code> avant de rencontrer le premier appel.</p>
+    <p class="rap">Le mécanisme que vous apprenez ici est celui que vous utilisez depuis le
+       début, sans l'avoir nommé.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="portee">
+  <h2><span class="num">06</span> Variables locales et globales</h2>
+
+  <p>La <strong>portée</strong> d'une variable, c'est la partie du programme où elle existe.</p>
+
+  <h3>Locale : déclarée dans une fonction</h3>
+  <p>Elle n'est accessible que dans la fonction où elle est déclarée, et elle disparaît quand
+     la fonction se termine.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code>void calculer(void)
+{
+    int resultat = 0;      /* locale à calculer() */
+    resultat = 10 + 20;
+    printf("%d\n", resultat);
+}</code></pre></div>
+  <p><code>resultat</code> ne peut pas être utilisée dans <code>main</code> : elle n'y existe
+     pas.</p>
+
+  <h3>Globale : déclarée en dehors de toute fonction</h3>
+  <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int val = 0;               /* globale : visible partout */
+
+int carre(void)
+{
+    return val * val;
+}
+
+int main(void)
+{
+    val = 2;
+    printf("le carré de 2 est : %d\n", carre());
+    return 0;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>le carré de 2 est : 4</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La version globale marche, et c'est le problème</div>
+    <p>Ici <code>carre()</code> ne prend aucun paramètre : elle lit <code>val</code>. Pour
+       savoir ce qu'elle calcule, il faut chercher qui a modifié <code>val</code>, où, et
+       quand. La fonction n'est plus lisible seule.</p>
+    <p>Et elle n'est plus réutilisable : impossible de s'en servir pour un autre nombre sans
+       d'abord écrire <code>val = …</code>.</p>
+  </div>
+
+  <div class="bloc-code"><span class="langue">C — la version autonome</span><pre><code>#include &lt;stdio.h&gt;
+
+int carre(int val)
+{
+    return val * val;
+}
+
+int main(void)
+{
+    int resultat;
+    resultat = carre(2);
+    printf("le carré de 2 est : %d\n", resultat);
+    return 0;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>le carré de 2 est : 4</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La bonne pratique, telle que le cours la formule</div>
+    <p><strong>Privilégier les variables locales et le passage de paramètres</strong> chaque
+       fois que c'est possible. Une fonction qui reçoit tout ce dont elle a besoin se comprend
+       sans rien lire d'autre — et se réutilise ailleurs sans rien préparer.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="tableaux">
+  <h2><span class="num">07</span> Les tableaux en C</h2>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Pourquoi cette section est ici</div>
+    <p>Le TP 3 s'intitule « les fonctions <em>et les tableaux</em> », et ses exercices 5 à 9
+       en demandent. Or le polycopié ne donne les tableaux qu'en <strong>pseudo-code</strong>,
+       au chapitre 1 — la syntaxe C, elle, n'apparaît que dans une ligne du chapitre 2 :
+       <code>int notes[5];</code>.</p>
+    <p class="rap">Cette section comble l'écart. La notion est au
+       <a href="../11-algorithmique/cours.html#tableaux">chapitre 11</a>, en algorithmique ;
+       ici, c'est le C.</p>
+  </div>
+
+  <p>Un tableau stocke <strong>plusieurs valeurs du même type</strong>, sous un seul nom. On
+     accède à chacune par son <strong>indice</strong>, qui commence à <strong>0</strong>.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 700 176" role="img" aria-label="Un tableau de cinq entiers en mémoire : cases contiguës d'indice 0 à 4, le nom du tableau désignant la première case">
+      <style>
+        .tb-ca{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .tb-vl{font:700 17px var(--mono);fill:var(--accent-sombre);text-anchor:middle}
+        .tb-ix{font:700 12px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+        .tb-lb{font:700 11px var(--sans);fill:var(--encre);text-anchor:middle}
+        .tb-sb{font:600 10px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .tb-ac{stroke:var(--ambre-sombre);stroke-width:1.4;fill:none}
+        .tb-am{font:700 11px var(--sans);fill:var(--ambre-sombre);text-anchor:middle}
+      </style>
+      <text class="tb-lb" x="350" y="24">int derniers_octets[5] = {10, 20, 30, 40, 50};</text>
+      <rect class="tb-ca" x="150" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="230" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="310" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="390" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="470" y="56" width="80" height="48" rx="4"/>
+      <text class="tb-vl" x="190" y="87">10</text>
+      <text class="tb-vl" x="270" y="87">20</text>
+      <text class="tb-vl" x="350" y="87">30</text>
+      <text class="tb-vl" x="430" y="87">40</text>
+      <text class="tb-vl" x="510" y="87">50</text>
+      <text class="tb-ix" x="190" y="122">[0]</text>
+      <text class="tb-ix" x="270" y="122">[1]</text>
+      <text class="tb-ix" x="350" y="122">[2]</text>
+      <text class="tb-ix" x="430" y="122">[3]</text>
+      <text class="tb-ix" x="510" y="122">[4]</text>
+      <text class="tb-sb" x="350" y="142">cinq cases contiguës en mémoire — indices de 0 à 4</text>
+      <path class="tb-ac" d="M96 80 H142"/>
+      <text class="tb-am" x="62" y="76">le nom</text>
+      <text class="tb-sb" x="62" y="92">= la 1re case</text>
+      <text class="tb-sb" x="596" y="80">il n'y a pas de [5]</text>
+      <text class="tb-sb" x="596" y="96">c'est hors du tableau</text>
+    </svg>
+    <figcaption>Le nom du tableau désigne l'adresse de sa première case. Un tableau de cinq
+      éléments s'arrête à l'indice 4 — <code>[5]</code> sort déjà du tableau.</figcaption>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Déclarer, puis parcourir</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int derniers_octets[5] = {10, 20, 30, 40, 50};
+    int i;
+
+    for (i = 0; i &lt; 5; i++)
+    {
+        printf("octet %d : %d\n", i, derniers_octets[i]);
+    }
+    return 0;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">sortie</span><pre><code>octet 0 : 10
+octet 1 : 20
+octet 2 : 30
+octet 3 : 40
+octet 4 : 50</code></pre></div>
+    <p class="rap">La boucle va <strong>de 0 à taille − 1</strong>, donc la condition s'écrit
+       <code>i &lt; 5</code> et non <code>i &lt;= 5</code>. C'est la faute la plus fréquente du
+       chapitre.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le C ne vérifie jamais les indices</div>
+    <p>Écrire <code>derniers_octets[7]</code> dans un tableau de 5 cases ne produit
+       <strong>aucune erreur</strong> : ni à la compilation, ni à l'exécution. Le programme lit
+       ou écrit simplement ce qui se trouve à côté en mémoire.</p>
+    <p>Le résultat est imprévisible — parfois une valeur absurde, parfois un plantage, parfois
+       rien du tout pendant des semaines. <strong>C'est la source numéro un de bogues en
+       C</strong>, et l'origine d'une grande partie des failles de sécurité.</p>
+    <p class="rap">Personne ne vous protégera : c'est à la boucle d'être juste.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Saisir dans un tableau : le <code>&amp;</code> ne disparaît pas</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code>float temperatures[7];
+int i;
+
+for (i = 0; i &lt; 7; i++)
+{
+    printf("Température %d : ", i + 1);
+    scanf("%f", &amp;temperatures[i]);
+}</code></pre></div>
+    <p class="rap"><code>temperatures[i]</code> est une variable comme une autre :
+       <code>scanf</code> a besoin de son adresse, donc du <code>&amp;</code>. On affiche
+       <code>i + 1</code> pour parler à l'utilisateur en « première, deuxième… » tout en
+       gardant l'indice <code>i</code> pour le tableau.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="passer">
+  <h2><span class="num">08</span> Passer un tableau à une fonction</h2>
+
+  <p>C'est le point qui fait échouer les exercices 8 et 9 du TP, et il tient en une phrase :
+     <strong>un tableau passé à une fonction perd sa taille.</strong></p>
+
+  <div class="bloc-code"><span class="langue">C — la démonstration</span><pre><code>#include &lt;stdio.h&gt;
+
+void combien(int t[])
+{
+    printf("dans la fonction : sizeof(t) = %zu\n", sizeof(t));
+}
+
+int main(void)
+{
+    int mesures[10];
+
+    printf("dans main       : sizeof(mesures) = %zu\n", sizeof(mesures));
+    combien(mesures);
+    return 0;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>dans main       : sizeof(mesures) = 40
+dans la fonction : sizeof(t) = 8</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ 40 octets deviennent 8</div>
+    <p>Dans <code>main</code>, <code>sizeof</code> rend <strong>40</strong> : dix entiers de
+       quatre octets. Dans la fonction, il rend <strong>8</strong> — la taille d'une
+       <em>adresse</em>.</p>
+    <p>Car ce n'est pas le tableau qui est transmis, c'est l'adresse de sa première case. La
+       fonction n'a donc aucun moyen de savoir combien de cases suivent.</p>
+    <p class="rap">D'où la règle absolue : <strong>on passe toujours la taille en second
+       paramètre.</strong></p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La forme à retenir</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+float CalculerMoyenne(float t[], int n)
+{
+    float somme = 0.0f;
+    int i;
+
+    for (i = 0; i &lt; n; i++)
+    {
+        somme = somme + t[i];
+    }
+    return somme / n;
+}
+
+float Maximum(float t[], int n)
+{
+    float max = t[0];
+    int i;
+
+    for (i = 1; i &lt; n; i++)
+    {
+        if (t[i] &gt; max)
+        {
+            max = t[i];
+        }
+    }
+    return max;
+}
+
+int main(void)
+{
+    float debits[8] = {95, 102, 98, 110, 105, 97, 115, 101};
+
+    printf("Débit moyen : %.2f Mb/s\n", CalculerMoyenne(debits, 8));
+    printf("Débit maximum : %.0f Mb/s\n", Maximum(debits, 8));
+    return 0;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">sortie</span><pre><code>Débit moyen : 102.88 Mb/s
+Débit maximum : 115 Mb/s</code></pre></div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Une conséquence qui arrange : la fonction peut modifier le tableau</div>
+    <p>Comme la fonction reçoit l'adresse et non une copie, ce qu'elle écrit dans
+       <code>t[i]</code> est écrit dans le tableau d'origine. C'est exactement ce qui permet à
+       <code>SaisirTableau()</code> de remplir un tableau déclaré dans <code>main</code> sans
+       rien retourner.</p>
+    <p class="rap">Avec une variable simple, c'est l'inverse : la fonction reçoit une copie, et
+       la modifier ne change rien chez l'appelant. <strong>Tableau et variable simple ne se
+       comportent pas pareil</strong> — c'est la distinction à garder en tête.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 <code>Maximum</code> commence sa boucle à <code>i = 1</code>. Pourquoi ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que <code>max</code> a été <strong>initialisé avec <code>t[0]</code></strong> :
+         la case 0 est déjà prise en compte, la comparer à elle-même ne servirait à rien.</p>
+      <p><strong>Pourquoi ne pas initialiser <code>max</code> à 0 ?</strong> Parce que si
+         toutes les valeurs étaient négatives, la fonction renverrait 0 — une valeur qui ne
+         figure pas dans le tableau.</p>
+      <p class="rap">Partir de la première valeur réelle est la seule initialisation juste,
+         quelles que soient les données.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Type de retour · nom · paramètres · corps</strong> — toujours dans cet ordre.
+          <code>void</code> quand il n'y a rien à rendre.</li>
+      <li><strong>Paramètre</strong> = la variable de la définition. <strong>Argument</strong>
+          = la valeur de l'appel.</li>
+      <li><strong>Le prototype se termine par <code>;</code></strong>, la définition par
+          <code>}</code>. Sans prototype, la définition doit précéder l'appel.</li>
+      <li><strong>Le C distingue majuscules et minuscules</strong> :
+          <code>afficherCarre</code> et <code>affichercarre</code> sont deux fonctions
+          différentes — dont une seule existe.</li>
+      <li><strong>Une valeur retournée et non rangée est perdue</strong>, sans le moindre
+          avertissement.</li>
+      <li><strong>Locale par défaut, globale en dernier recours.</strong> Une fonction qui
+          reçoit tout ce dont elle a besoin se lit seule.</li>
+      <li><strong>Les indices vont de 0 à taille − 1</strong> : la boucle s'écrit
+          <code>i &lt; n</code>, jamais <code>i &lt;= n</code>.</li>
+      <li><strong>Le C ne vérifie aucun indice.</strong> Sortir du tableau ne provoque aucune
+          erreur — seulement un bogue plus tard.</li>
+      <li><strong>Un tableau passé à une fonction perd sa taille</strong> :
+          <code>sizeof</code> y rend 8, pas 40. On passe toujours <code>n</code> à côté.</li>
+      <li><strong>Mais la fonction peut le modifier</strong>, puisqu'elle en reçoit l'adresse.
+          C'est ce qui fait marcher <code>SaisirTableau()</code>.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Polycopié « Algorithmique et programmation », chapitre 4 — les fonctions
+          (28 diapositives, pages 113 à 140)</li>
+      <li>Le même polycopié, chapitre 1 pour la notion de tableau en pseudo-code et chapitre 2
+          pour la déclaration en C</li>
+      <li>Sujet « TP 3 : les fonctions et les tableaux », neuf exercices</li>
+    </ul>
+    <p class="rap">Tous les programmes publiés dans ce chapitre sont <strong>compilés et
+       exécutés</strong> par <code>verif-c.py</code> à chaque contrôle, et leur sortie comparée
+       caractère pour caractère à celle qui est affichée. Deux exemples du polycopié ne
+       compilaient pas : la correction est signalée par un encart « 🔧 Corrigé », et
+       l'exemplaire fautif est publié avec la mention « ne compile pas » — ce que le contrôle
+       vérifie aussi.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-langage-c/cours.html"><span>Chapitre précédent</span><b>Langage C</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=db5ddbf0"></script>
+<script src="../../assets/recherche.js?v=db5ddbf0"></script>
+<script src="../../assets/app.js?v=db5ddbf0"></script>
+</body>
+</html>
