@@ -106,8 +106,8 @@ année. Toute conception doit supporter l'ajout plutôt que supposer un corpus f
 **Auteur unique.** Un seul contributeur. Aucun flux de contribution externe à
 prévoir pour l'instant.
 
-**État du corpus à la dernière génération :** 5 matières, 55 chapitres,
-165 fiches, 180 pages, 6 outils. Ces nombres sont calculés par le générateur, jamais
+**État du corpus à la dernière génération :** 5 matières, 56 chapitres,
+168 fiches, 183 pages, 6 outils. Ces nombres sont calculés par le générateur, jamais
 écrits à la main.
 
 ## Brand Commitments
@@ -131,9 +131,9 @@ prévoir pour l'instant.
 - `verification/verifier.py` — le contrôle public : données personnelles, dépendances
   externes, liens morts, identifiants en double, intégrité de l'index de recherche,
   recalcul des 33 masques, relecture des 28 ports et des 25 blocs de commandes.
-- `verification/qa.html` — 1 177 mesures de rendu : débordement horizontal, cibles
-  tactiles, erreurs de console et ressources manquantes, sur 179 pages × 40 thèmes
-  × 3 largeurs.
+- `verification/qa.html` — 1 186 mesures de rendu : débordement horizontal, cibles
+  tactiles, erreurs de console, ressources manquantes et étiquettes de schéma
+  superposées, sur 182 pages × 40 thèmes × 3 largeurs.
 - `verification/contraste.html` — 960 combinaisons de contraste mesurées dans un
   navigateur, au seuil AA, sur 12 pages dont les 6 outils.
 - `LICENSE` — MIT pour le code, CC BY-NC-SA 4.0 pour le contenu pédagogique.
@@ -162,7 +162,7 @@ par l'auteur, et elle est tenue **par la mesure, pas par l'estimation** :
 
 - **Contraste AA** sur les 40 thèmes, mesuré dans un navigateur sur les fonds
   réels, transparences composées.
-- **Cibles tactiles ≥ 34 px**, vérifiées sur les 179 pages.
+- **Cibles tactiles ≥ 34 px**, vérifiées sur les 182 pages.
 - **Réglages de lecture** : taille du texte, largeur de ligne, police,
   interligne — parce que les situations d'usage vont du téléphone au grand écran.
 - **`prefers-reduced-motion`** respecté, doublé d'une bascule d'animations dans

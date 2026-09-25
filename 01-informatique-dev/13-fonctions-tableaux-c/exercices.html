@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TP 3 — fonctions et tableaux | BTS CIEL</title>
+<meta name="description" content="Les neuf exercices du TP 3 corrigés : moyenne, validation d'un octet IPv4, débit, taux de perte, puis les tableaux — températures, débits, recherche, CPU et notes.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=db5ddbf0">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#fonctions">1 · Quatre fonctions simples</a></li>
+    <li><a href="#tableaux">2 · Trois tableaux à parcourir</a></li>
+    <li><a href="#decouper">3 · Découper en fonctions</a></li>
+    <li><a href="#methode">4 · La méthode, en quatre gestes</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Informatique &amp; développement</span>
+    <span class="sep">/</span><span>Chapitre 13</span>
+  </div>
+
+  <h1>TP 3 — fonctions et tableaux</h1>
+  <p class="chapeau">Neuf exercices, tous tirés du réseau : une moyenne de mesures, un octet
+     IPv4 à valider, un débit, un taux de perte de paquets, puis des relevés à stocker et à
+     analyser.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Comment s'en servir</h2>
+      <p>Les corrections sont <strong>repliées</strong> : cherchez d'abord. Chaque programme
+         publié ici est <strong>compilé et exécuté</strong> à chaque contrôle du dépôt — ce que
+         vous lisez tourne, et les valeurs affichées sont celles qu'il produit réellement.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#fonction</code> <code>#return</code> <code>#scanf</code>
+    <code>#tableau</code> <code>#parcours</code> <code>#recherche</code>
+    <code>#moyenne</code> <code>#maximum</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="fonctions">
+  <h2><span class="num">01</span>Quatre fonctions simples</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>La moyenne de deux mesures <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Écrire une fonction <code>Moyenne</code> qui reçoit deux nombres réels et retourne leur
+         moyenne. Le programme principal doit demander deux mesures, appeler la fonction et
+         afficher le résultat.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+float Moyenne(float a, float b)
+{
+    return (a + b) / 2;
+}
+
+int main(void)
+{
+    float m1, m2;
+
+    printf("Saisir la première mesure : ");
+    scanf("%f", &amp;m1);
+    printf("Saisir la deuxième mesure : ");
+    scanf("%f", &amp;m2);
+
+    printf("\nLa moyenne est : %.2f\n", Moyenne(m1, m2));
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 18.5 puis 21.5</span><pre><code>Saisir la première mesure : 18.5
+Saisir la deuxième mesure : 21.5
+
+La moyenne est : 20.00</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>(a + b) / 2</code> et non <code>a + b / 2</code></div>
+          <p>La division est prioritaire sur l'addition. Sans les parenthèses, le programme
+             calcule <code>a + (b / 2)</code>, soit 29,25 au lieu de 20. Il compile, il tourne,
+             et il se trompe.</p>
+          <p class="rap">Ici les deux opérandes sont des <code>float</code>, donc la division
+             est réelle. Avec des entiers, <code>(a + b) / 2</code> tronquerait —
+             c'est le piège de l'exercice 4.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Un octet IPv4 est-il valide ? <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Écrire une fonction <code>EstValide</code> qui reçoit un entier représentant un octet
+         d'adresse IPv4 et retourne <code>1</code> si la valeur est comprise entre 0 et 255,
+         <code>0</code> sinon.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int EstValide(int valeur)
+{
+    if (valeur &gt;= 0 &amp;&amp; valeur &lt;= 255)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int main(void)
+{
+    int valeur;
+
+    printf("Saisir une valeur : ");
+    scanf("%d", &amp;valeur);
+
+    if (EstValide(valeur))
+    {
+        printf("La valeur est valide.\n");
+    }
+    else
+    {
+        printf("La valeur est invalide.\n");
+    }
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 192</span><pre><code>Saisir une valeur : 192
+La valeur est valide.</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 300</span><pre><code>Saisir une valeur : 300
+La valeur est invalide.</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>if (EstValide(valeur))</code> se suffit à lui-même</div>
+          <p>Écrire <code>if (EstValide(valeur) == 1)</code> fonctionne, mais c'est redondant :
+             en C, toute valeur non nulle est vraie. Une fonction qui rend 1 ou 0 s'utilise
+             directement comme condition.</p>
+          <p class="rap">C'est d'ailleurs pour cela que la consigne demande 1 et 0 plutôt que,
+             disons, 1 et 2 : le résultat s'emboîte dans un <code>if</code>.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>0 &lt;= valeur &lt;= 255</code> ne veut pas dire ce que vous croyez</div>
+          <p>Cette écriture, juste en mathématiques, est acceptée par le compilateur et
+             <strong>toujours vraie</strong>. Le C évalue <code>0 &lt;= valeur</code>, ce qui
+             donne 0 ou 1, puis compare ce résultat à 255 — toujours inférieur.</p>
+          <p class="rap">Il faut deux comparaisons reliées par <code>&amp;&amp;</code>. C'est une
+             des rares fautes que le compilateur ne signale pas du tout.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Le débit moyen d'un téléchargement <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Écrire une fonction <code>CalculerDebit</code> qui reçoit la taille d'un fichier en Mo
+         et le temps de téléchargement en secondes, et retourne le débit moyen en Mo/s.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+float CalculerDebit(float taille, float temps)
+{
+    return taille / temps;
+}
+
+int main(void)
+{
+    float taille, temps;
+
+    printf("Taille du fichier : ");
+    scanf("%f", &amp;taille);
+    printf("Temps de téléchargement : ");
+    scanf("%f", &amp;temps);
+
+    printf("\nDébit moyen : %.2f Mo/s\n", CalculerDebit(taille, temps));
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 120 puis 10</span><pre><code>Taille du fichier : 120
+Temps de téléchargement : 10
+
+Débit moyen : 12.00 Mo/s</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Mo/s et Mb/s ne sont pas la même unité</div>
+          <p>L'énoncé demande des <strong>Mo/s</strong> — des méga-octets. Les débits des
+             fournisseurs d'accès s'annoncent en <strong>Mb/s</strong>, des méga-bits. Un octet
+             valant huit bits, <strong>12 Mo/s font 96 Mb/s</strong>.</p>
+          <p class="rap">L'exercice 6 du même TP parle, lui, de Mb/s. Lire l'unité avant
+             d'écrire la formule.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Le taux de perte de paquets <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Écrire une fonction <code>CalculerTauxPerte</code> qui reçoit le nombre de paquets
+         envoyés et le nombre de paquets perdus, et retourne le taux de perte en pourcentage.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+float CalculerTauxPerte(int envoyes, int perdus)
+{
+    return (float) perdus / envoyes * 100;
+}
+
+int main(void)
+{
+    int envoyes, perdus;
+
+    printf("Nombre de paquets envoyés : ");
+    scanf("%d", &amp;envoyes);
+    printf("Nombre de paquets perdus : ");
+    scanf("%d", &amp;perdus);
+
+    printf("\nTaux de perte : %.2f %%\n", CalculerTauxPerte(envoyes, perdus));
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 500 puis 25</span><pre><code>Nombre de paquets envoyés : 500
+Nombre de paquets perdus : 25
+
+Taux de perte : 5.00 %</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le piège de cet exercice : <code>(float)</code></div>
+          <p>Les deux paramètres sont des <code>int</code>. En C, <strong>entier divisé par
+             entier donne un entier</strong> : <code>25 / 500</code> vaut <strong>0</strong>,
+             pas 0,05. Le taux affiché serait alors <code>0.00 %</code>.</p>
+          <p>La conversion <code>(float) perdus</code> force la division à se faire en
+             réels.</p>
+          <div class="bloc-code"><span class="langue">C — les trois écritures</span><pre><code>(float) perdus / envoyes * 100     /* juste : division réelle */
+perdus * 100.0 / envoyes           /* juste aussi : 100.0 est un réel */
+perdus / envoyes * 100             /* FAUX : donne 0 */</code></pre></div>
+          <p class="rap">La deuxième forme marche parce que multiplier par <code>100.0</code>
+             avant de diviser rend l'expression réelle. Les deux sont acceptables ; la
+             troisième est l'erreur classique.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 Pourquoi <code>%%</code> dans le <code>printf</code></div>
+          <p>Le caractère <code>%</code> introduit un format. Pour afficher un pourcentage
+             littéral, il faut le doubler : <code>%%</code>. Écrire un seul <code>%</code> en
+             fin de chaîne produit un affichage imprévisible.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="tableaux">
+  <h2><span class="num">02</span>Trois tableaux à parcourir</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Sept températures <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un technicien relève la température d'un équipement réseau pendant 7 jours. Déclarer
+         un tableau de 7 réels, demander les 7 températures, les afficher toutes, puis calculer
+         et afficher la moyenne.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    float temperatures[7];
+    float somme = 0.0f;
+    int i;
+
+    for (i = 0; i &lt; 7; i++)
+    {
+        printf("Température %d : ", i + 1);
+        scanf("%f", &amp;temperatures[i]);
+        somme = somme + temperatures[i];
+    }
+
+    printf("\nTempératures relevées :\n");
+    for (i = 0; i &lt; 7; i++)
+    {
+        printf("%.1f  ", temperatures[i]);
+    }
+    printf("\n\nTempérature moyenne : %.1f °C\n", somme / 7);
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 21.5, 22.0, 23.5, 22.5, 21.0, 23.0, 23.5</span><pre><code>Température 1 : 21.5
+Température 2 : 22.0
+Température 3 : 23.5
+Température 4 : 22.5
+Température 5 : 21.0
+Température 6 : 23.0
+Température 7 : 23.5
+
+Températures relevées :
+21.5  22.0  23.5  22.5  21.0  23.0  23.5
+
+Température moyenne : 22.4 °C</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Additionner pendant la saisie, ou après ?</div>
+          <p>Ici la somme s'accumule <strong>dans la boucle de saisie</strong> : un seul
+             parcours suffit. On aurait pu faire une deuxième boucle pour la somme — le
+             résultat serait identique.</p>
+          <p class="rap">Le premier choix est plus court ; le second sépare mieux « saisir » de
+             « calculer », ce qui devient utile dès que le programme grandit. C'est exactement
+             le raisonnement qui mène aux exercices 8 et 9.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>somme</code> doit être initialisée</div>
+          <p>Écrire <code>float somme;</code> sans <code>= 0.0f</code> laisse la variable avec
+             une valeur indéterminée — ce qui traînait en mémoire à cet endroit. La moyenne
+             sera fausse, parfois de peu, parfois de beaucoup, et différemment à chaque
+             exécution.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Huit débits : moyenne et maximum <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un administrateur mesure le débit d'une connexion à 8 moments. Déclarer un tableau de
+         8 réels, saisir les valeurs, les afficher, calculer le débit moyen et déterminer le
+         débit maximum.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    float debits[8];
+    float somme = 0.0f, max;
+    int i;
+
+    for (i = 0; i &lt; 8; i++)
+    {
+        printf("Débit %d : ", i + 1);
+        scanf("%f", &amp;debits[i]);
+        somme = somme + debits[i];
+    }
+
+    max = debits[0];
+    for (i = 1; i &lt; 8; i++)
+    {
+        if (debits[i] &gt; max)
+        {
+            max = debits[i];
+        }
+    }
+
+    printf("\nDébits mesurés :\n");
+    for (i = 0; i &lt; 8; i++)
+    {
+        printf("%.0f  ", debits[i]);
+    }
+    printf("\n\nDébit moyen : %.2f Mb/s\n", somme / 8);
+    printf("Débit maximum : %.0f Mb/s\n", max);
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 95, 102, 98, 110, 105, 97, 115, 101</span><pre><code>Débit 1 : 95
+Débit 2 : 102
+Débit 3 : 98
+Débit 4 : 110
+Débit 5 : 105
+Débit 6 : 97
+Débit 7 : 115
+Débit 8 : 101
+
+Débits mesurés :
+95  102  98  110  105  97  115  101
+
+Débit moyen : 102.88 Mb/s
+Débit maximum : 115 Mb/s</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le maximum part de <code>debits[0]</code>, pas de zéro</div>
+          <p>Initialiser <code>max = 0</code> semble naturel et marche ici, parce que tous les
+             débits sont positifs. Mais sur des valeurs négatives — un écart, une variation —
+             la fonction renverrait 0, une valeur absente du tableau.</p>
+          <p class="rap">Partir de la première valeur réelle et boucler à partir de
+             <code>i = 1</code> est juste dans tous les cas. C'est la forme à retenir.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Chercher une valeur, et dire où <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>On considère les derniers octets de dix adresses IP. Déclarer un tableau de 10 entiers,
+         saisir les valeurs, les afficher, demander une valeur à rechercher, indiquer si elle
+         existe et afficher sa position.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    int octets[10];
+    int i, cherche, position = -1;
+
+    for (i = 0; i &lt; 10; i++)
+    {
+        printf("Valeur %d : ", i + 1);
+        scanf("%d", &amp;octets[i]);
+    }
+
+    printf("\nValeurs :\n");
+    for (i = 0; i &lt; 10; i++)
+    {
+        printf("%d  ", octets[i]);
+    }
+
+    printf("\n\nValeur recherchée : ");
+    scanf("%d", &amp;cherche);
+
+    for (i = 0; i &lt; 10; i++)
+    {
+        if (octets[i] == cherche)
+        {
+            position = i;
+            break;
+        }
+    }
+
+    if (position &gt;= 0)
+    {
+        printf("\nLa valeur %d a été trouvée à la position %d.\n", cherche, position);
+    }
+    else
+    {
+        printf("\nLa valeur %d ne figure pas dans le tableau.\n", cherche);
+    }
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 30</span><pre><code>Valeur 1 : 10
+Valeur 2 : 15
+Valeur 3 : 20
+Valeur 4 : 25
+Valeur 5 : 30
+Valeur 6 : 35
+Valeur 7 : 40
+Valeur 8 : 45
+Valeur 9 : 50
+Valeur 10 : 55
+
+Valeurs :
+10  15  20  25  30  35  40  45  50  55
+
+Valeur recherchée : 30
+
+La valeur 30 a été trouvée à la position 4.</code></pre></div>
+        <div class="encart corrige">
+          <div class="titre">🔧 Corrigé — « position 4 », c'est l'indice, pas le rang</div>
+          <p>Dans le tableau <code>10 15 20 25 30 …</code>, la valeur 30 est la
+             <strong>cinquième</strong>. L'énoncé annonce pourtant « position 4 » : il donne
+             donc l'<strong>indice</strong> (<code>i</code>), pas le rang humain.</p>
+          <p>Le programme ci-dessus affiche l'indice, pour coller exactement à l'exemple du
+             sujet. Si le professeur attend le rang, une seule ligne change :</p>
+          <div class="bloc-code"><span class="langue">C — pour afficher le rang</span><pre><code>printf("\nLa valeur %d est la %d° du tableau.\n", cherche, position + 1);</code></pre></div>
+          <p class="rap">Dans un compte rendu, <strong>dites laquelle des deux vous affichez</strong>.
+             Une ligne suffit : « la position est donnée en indice, de 0 à 9 ».</p>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 Pourquoi <code>position = -1</code> au départ</div>
+          <p>Il faut une valeur qui signifie « pas encore trouvé » et qui ne puisse pas être
+             confondue avec un indice valide. Les indices vont de 0 à 9, donc
+             <code>-1</code> convient — <code>0</code> ne conviendrait pas, c'est un indice
+             réel.</p>
+          <p class="rap"><code>break</code> arrête la boucle dès la première occurrence. Sans
+             lui, on obtiendrait la <em>dernière</em> position en cas de doublon.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="decouper">
+  <h2><span class="num">03</span>Découper en fonctions</h2>
+
+  <p>Les deux derniers exercices demandent le même travail que les précédents, mais
+     <strong>réparti en fonctions</strong>. C'est là que se joue le chapitre.</p>
+
+  <article class="exo">
+    <h3><span class="no">8</span>L'utilisation du processeur, en quatre fonctions <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un administrateur relève l'utilisation du processeur d'un serveur sur 10 mesures. Le
+         programme doit utiliser <code>SaisirTableau()</code>, <code>AfficherTableau()</code>,
+         <code>CalculerMoyenne()</code> et <code>Maximum()</code>, et le programme principal
+         doit appeler ces fonctions.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+void  SaisirTableau(float t[], int n);
+void  AfficherTableau(float t[], int n);
+float CalculerMoyenne(float t[], int n);
+float Maximum(float t[], int n);
+
+int main(void)
+{
+    float cpu[10];
+
+    SaisirTableau(cpu, 10);
+
+    printf("\nUtilisation CPU :\n");
+    AfficherTableau(cpu, 10);
+
+    printf("\n\nUtilisation moyenne : %.2f %%\n", CalculerMoyenne(cpu, 10));
+    printf("Utilisation maximale : %.0f %%\n", Maximum(cpu, 10));
+    return 0;
+}
+
+void SaisirTableau(float t[], int n)
+{
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        printf("Mesure %d : ", i + 1);
+        scanf("%f", &amp;t[i]);
+    }
+}
+
+void AfficherTableau(float t[], int n)
+{
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        printf("%.0f  ", t[i]);
+    }
+}
+
+float CalculerMoyenne(float t[], int n)
+{
+    float somme = 0.0f;
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        somme = somme + t[i];
+    }
+    return somme / n;
+}
+
+float Maximum(float t[], int n)
+{
+    float max = t[0];
+    int i;
+    for (i = 1; i &lt; n; i++)
+    {
+        if (t[i] &gt; max)
+        {
+            max = t[i];
+        }
+    }
+    return max;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 45, 52, 61, 70, 55, 48, 63, 72, 68, 50</span><pre><code>Mesure 1 : 45
+Mesure 2 : 52
+…
+Mesure 10 : 50
+
+Utilisation CPU :
+45  52  61  70  55  48  63  72  68  50
+
+Utilisation moyenne : 58.40 %
+Utilisation maximale : 72 %</code></pre></div>
+        <div class="encart outils">
+          <div class="titre">🧰 Les deux choses à comprendre ici</div>
+          <p><strong>1. <code>SaisirTableau</code> ne retourne rien, et pourtant elle
+             remplit le tableau.</strong> Parce qu'elle en reçoit l'<em>adresse</em> : ce
+             qu'elle écrit dans <code>t[i]</code> est écrit dans <code>cpu[i]</code>. Avec une
+             variable simple, ce serait impossible.</p>
+          <p><strong>2. Chaque fonction reçoit <code>n</code>.</strong> Un tableau passé en
+             paramètre perd sa taille — <code>sizeof(t)</code> vaudrait 8, la taille d'une
+             adresse, et non 40. Sans le second paramètre, aucune de ces boucles ne saurait où
+             s'arrêter.</p>
+          <p class="rap">Les deux points sont démontrés dans
+             <a href="cours.html#passer">le cours, section 8</a>, sorties à l'appui.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>float t[]</code> ou <code>float *t</code> : c'est pareil</div>
+          <p>Les deux écritures sont strictement équivalentes pour le compilateur. La première
+             dit l'intention — « je reçois un tableau » — la seconde dit la réalité — « je
+             reçois une adresse ».</p>
+          <p class="rap">Préférez <code>float t[]</code> en TP : elle se lit mieux, et le jour
+             où vous verrez les pointeurs, vous saurez déjà que c'est la même chose.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Les notes d'un groupe, en cinq fonctions <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un tableau de 10 notes sur 20. Écrire un programme utilisant <code>SaisirNotes()</code>,
+         <code>AfficherNotes()</code>, <code>CalculerMoyenne()</code>,
+         <code>CompterAdmis()</code> — le nombre de notes supérieures ou égales à 10 — et
+         <code>NoteMax()</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+
+void  SaisirNotes(float t[], int n);
+void  AfficherNotes(float t[], int n);
+float CalculerMoyenne(float t[], int n);
+int   CompterAdmis(float t[], int n);
+float NoteMax(float t[], int n);
+
+int main(void)
+{
+    float notes[10];
+
+    SaisirNotes(notes, 10);
+
+    printf("\nNotes :\n");
+    AfficherNotes(notes, 10);
+
+    printf("\n\nMoyenne : %.2f\n", CalculerMoyenne(notes, 10));
+    printf("Nombre d'admis : %d\n", CompterAdmis(notes, 10));
+    printf("Meilleure note : %.0f\n", NoteMax(notes, 10));
+    return 0;
+}
+
+void SaisirNotes(float t[], int n)
+{
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        printf("Note %d : ", i + 1);
+        scanf("%f", &amp;t[i]);
+    }
+}
+
+void AfficherNotes(float t[], int n)
+{
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        printf("%.0f  ", t[i]);
+    }
+}
+
+float CalculerMoyenne(float t[], int n)
+{
+    float somme = 0.0f;
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        somme = somme + t[i];
+    }
+    return somme / n;
+}
+
+int CompterAdmis(float t[], int n)
+{
+    int i, admis = 0;
+    for (i = 0; i &lt; n; i++)
+    {
+        if (t[i] &gt;= 10)
+        {
+            admis = admis + 1;
+        }
+    }
+    return admis;
+}
+
+float NoteMax(float t[], int n)
+{
+    float max = t[0];
+    int i;
+    for (i = 1; i &lt; n; i++)
+    {
+        if (t[i] &gt; max)
+        {
+            max = t[i];
+        }
+    }
+    return max;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie réelle — saisies : 12, 8, 15, 11, 9, 14, 16, 10, 7, 13</span><pre><code>Note 1 : 12
+Note 2 : 8
+…
+Note 10 : 13
+
+Notes :
+12  8  15  11  9  14  16  10  7  13
+
+Moyenne : 11.50
+Nombre d'admis : 7
+Meilleure note : 16</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>&gt;=</code> et non <code>&gt;</code> pour les admis</div>
+          <p>« Supérieures <em>ou égales</em> à 10 » : la note de 10 compte. Avec
+             <code>&gt;</code>, on obtiendrait 6 admis au lieu de 7 — et rien ne le
+             signalerait.</p>
+          <p class="rap">Contrôle de cohérence à faire de tête : dans
+             <code>12 8 15 11 9 14 16 10 7 13</code>, les notes sous 10 sont 8, 9 et 7. Trois
+             recalés, donc <strong>sept admis</strong>. ✔</p>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 <code>CompterAdmis</code> retourne un <code>int</code></div>
+          <p>Les quatre autres fonctions rendent des <code>float</code>, parce qu'elles
+             manipulent des notes. Celle-ci compte des personnes : le type de retour suit ce
+             qu'on compte, pas ce qu'on parcourt.</p>
+          <p class="rap">C'est le genre de détail qui se voit sur une copie : un
+             <code>float</code> pour un nombre d'étudiants ferait afficher « 7.00 admis ».</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Vérifier ses résultats sans tout ressaisir <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Retaper dix valeurs pour contrôler un chiffre est une perte de temps — et une source
+         d'erreurs de plus. Ce petit programme reprend les mêmes fonctions avec les données de
+         l'énoncé <strong>déjà écrites dans le code</strong>, et affiche tous les résultats
+         attendus d'un coup.</p>
+      <p>Compilez-le une fois, gardez-le : il vous dira en une seconde si votre version
+         interactive calcule juste.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Le programme de contrôle</div>
+      <button type="button" data-ouvrir="Afficher le programme" data-fermer="Masquer le programme">Afficher le programme</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">C — contrôle, sans saisie</span><pre><code>#include &lt;stdio.h&gt;
+
+float CalculerMoyenne(float t[], int n)
+{
+    float somme = 0.0f;
+    int i;
+    for (i = 0; i &lt; n; i++)
+    {
+        somme = somme + t[i];
+    }
+    return somme / n;
+}
+
+float Maximum(float t[], int n)
+{
+    float max = t[0];
+    int i;
+    for (i = 1; i &lt; n; i++)
+    {
+        if (t[i] &gt; max)
+        {
+            max = t[i];
+        }
+    }
+    return max;
+}
+
+int CompterAdmis(float t[], int n)
+{
+    int i, admis = 0;
+    for (i = 0; i &lt; n; i++)
+    {
+        if (t[i] &gt;= 10)
+        {
+            admis = admis + 1;
+        }
+    }
+    return admis;
+}
+
+int main(void)
+{
+    float temperatures[7] = {21.5, 22.0, 23.5, 22.5, 21.0, 23.0, 23.5};
+    float cpu[10]   = {45, 52, 61, 70, 55, 48, 63, 72, 68, 50};
+    float notes[10] = {12, 8, 15, 11, 9, 14, 16, 10, 7, 13};
+
+    printf("ex.5  temperature moyenne : %.1f\n", CalculerMoyenne(temperatures, 7));
+    printf("ex.8  utilisation moyenne : %.2f\n", CalculerMoyenne(cpu, 10));
+    printf("ex.8  utilisation maximale : %.0f\n", Maximum(cpu, 10));
+    printf("ex.9  moyenne : %.2f\n", CalculerMoyenne(notes, 10));
+    printf("ex.9  admis : %d\n", CompterAdmis(notes, 10));
+    printf("ex.9  meilleure note : %.0f\n", Maximum(notes, 10));
+    return 0;
+}</code></pre></div>
+        <div class="bloc-code"><span class="langue">sortie</span><pre><code>ex.5  temperature moyenne : 22.4
+ex.8  utilisation moyenne : 58.40
+ex.8  utilisation maximale : 72
+ex.9  moyenne : 11.50
+ex.9  admis : 7
+ex.9  meilleure note : 16</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 Pourquoi ce programme existe aussi pour le dépôt</div>
+          <p>Les neuf corrections utilisent <code>scanf</code>. Le contrôle du dépôt les
+             compile et les exécute, mais il ne peut pas comparer leur affichage : un
+             programme qui lit au clavier mélange ses questions et vos réponses, et la
+             transcription ne correspond plus à ce qu'il écrit vraiment.</p>
+          <p>Celui-ci ne lit rien. Sa sortie est donc <strong>recomparée caractère pour
+             caractère</strong> à chaque contrôle — et avec elle les six chiffres du TP.</p>
+          <p class="rap">Une valeur juste une fois le reste : si un jour quelqu'un retouche
+             <code>CompterAdmis</code>, le dépôt le dira le jour même.</p>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 <code>Maximum</code> sert deux fois</div>
+          <p>La même fonction trouve le débit le plus élevé, l'utilisation CPU maximale et la
+             meilleure note. Elle ne sait pas ce qu'elle compare — elle compare des
+             <code>float</code>.</p>
+          <p class="rap">C'est tout l'intérêt du découpage : l'exercice 9 n'avait pas besoin
+             d'une fonction <code>NoteMax</code> séparée, celle de l'exercice 8 suffisait. Le
+             sujet en demande une, on la lui donne — mais son corps est identique.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="methode">
+  <h2><span class="num">04</span>La méthode, en quatre gestes</h2>
+
+  <p>Les neuf exercices suivent le même schéma. Une fois qu'on l'a vu, le TP se déroule
+     tout seul.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Écrire une fonction, dans l'ordre</caption>
+      <thead><tr><th scope="col">#</th><th scope="col">Geste</th><th scope="col">La question à se poser</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">1</th><td>Ce qu'elle reçoit</td><td>de quoi a-t-elle besoin pour travailler ? → les paramètres</td></tr>
+        <tr><th scope="row">2</th><td>Ce qu'elle rend</td><td>une valeur, ou un affichage ? → le type de retour, ou <code>void</code></td></tr>
+        <tr><th scope="row">3</th><td>Le corps</td><td>le calcul, une seule tâche à la fois</td></tr>
+        <tr><th scope="row">4</th><td>L'appel</td><td>où ranger le résultat ? → <code>variable = fonction(…)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Le test qui dit si le découpage est bon</div>
+    <p><strong>Une fonction doit pouvoir se décrire en une phrase sans « et ».</strong></p>
+    <p>« <em>Calcule la moyenne d'un tableau</em> » — bonne fonction.
+       « <em>Saisit les notes et calcule la moyenne et affiche le résultat</em> » — trois
+       fonctions déguisées en une.</p>
+    <p class="rap">C'est précisément pour cela que l'exercice 9 en demande cinq : chacune fait
+       une chose, et <code>main</code> ne fait qu'orchestrer.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les quatre fautes qui reviennent dans ce TP</div>
+    <p><strong>La casse.</strong> <code>Moyenne</code> et <code>moyenne</code> sont deux
+       fonctions différentes. Choisissez une convention et tenez-la.</p>
+    <p><strong>La division entière.</strong> <code>perdus / envoyes</code> entre deux
+       <code>int</code> donne 0. Il faut <code>(float)</code>.</p>
+    <p><strong>La borne de boucle.</strong> <code>i &lt; n</code>, jamais
+       <code>i &lt;= n</code>.</p>
+    <p><strong>La taille oubliée.</strong> Un tableau passé à une fonction a besoin de son
+       <code>n</code>.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi les prototypes sont-ils groupés en haut, aux exercices 8 et 9 ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Pour que <code>main</code> vienne en premier. Le compilateur a besoin de connaître
+         chaque fonction avant le premier appel ; les prototypes le lui disent, et les
+         définitions peuvent alors venir après.</p>
+      <p>L'autre organisation — toutes les définitions avant <code>main</code> — marche aussi.
+         Mais à cinq fonctions, il faut descendre au bas du fichier pour trouver le programme
+         principal.</p>
+      <p class="rap">Sur une copie, grouper les prototypes montre qu'on a compris à quoi ils
+         servent. C'est gratuit, et ça se voit.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Une fonction, une phrase sans « et ».</strong> Si la description en contient
+          un, il y a deux fonctions.</li>
+      <li><strong><code>(a + b) / 2</code></strong> — les parenthèses, sinon la division passe
+          avant l'addition.</li>
+      <li><strong><code>(float) perdus / envoyes</code></strong> — sans la conversion, deux
+          entiers donnent un entier, et le taux vaut 0.</li>
+      <li><strong><code>0 &lt;= v &amp;&amp; v &lt;= 255</code></strong> — l'écriture
+          mathématique <code>0 &lt;= v &lt;= 255</code> compile et est toujours vraie.</li>
+      <li><strong><code>%%</code></strong> pour afficher un pourcentage.</li>
+      <li><strong><code>max = t[0]</code>, boucle à partir de <code>i = 1</code></strong> —
+          partir de 0 est faux dès qu'une valeur est négative.</li>
+      <li><strong><code>position = -1</code></strong> pour dire « pas trouvé » : 0 est un
+          indice valide.</li>
+      <li><strong>« Position » veut dire indice</strong> dans ce sujet — dites-le sur la copie.</li>
+      <li><strong>Un tableau passé à une fonction perd sa taille</strong> : on passe toujours
+          <code>n</code>.</li>
+      <li><strong>Mais la fonction peut le remplir</strong> : c'est pour cela que
+          <code>SaisirTableau()</code> ne retourne rien.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Sujet « TP 3 : les fonctions et les tableaux », neuf exercices avec leurs exemples
+          d'exécution</li>
+      <li>Polycopié « Algorithmique et programmation », chapitre 4 — les fonctions</li>
+    </ul>
+    <p class="rap">Les neuf programmes publiés ici sont <strong>compilés et exécutés</strong>
+       par <code>verif-c.py</code> à chaque contrôle, avec les saisies indiquées. Les valeurs
+       affichées — 20.00, 12.00 Mo/s, 5.00 %, 22.4 °C, 102.88 Mb/s, 58.40 %, 11.50 — sont
+       celles obtenues, et elles correspondent toutes à celles annoncées par le sujet.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-langage-c/exercices.html"><span>Chapitre précédent</span><b>Langage C</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=db5ddbf0"></script>
+<script src="../../assets/recherche.js?v=db5ddbf0"></script>
+<script src="../../assets/app.js?v=db5ddbf0"></script>
+</body>
+</html>
