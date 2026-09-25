@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — infrastructure complète | BTS CIEL</title>
+<meta name="description" content="Monter une infrastructure entière : lire une topologie, calculer le plan d'adressage, l'ordre de montage qui évite les impasses, puis VLAN, inter-VLAN, RIPv2, DHCP, NAT et NTP.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=6c607acc">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#lire">1 · Lire la topologie avant de toucher au clavier</a></li>
+    <li><a href="#plan">2 · Le plan d'adressage, calculé</a></li>
+    <li><a href="#ordre">3 · L'ordre de montage</a></li>
+    <li><a href="#services">4 · Les trois services : DHCP, NAT, NTP</a></li>
+    <li><a href="#ipv6">5 · IPv6 en parallèle</a></li>
+    <li><a href="#verifier">6 · Vérifier, dans le bon ordre</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; systèmes</span>
+    <span class="sep">/</span><span>Chapitre 17</span>
+  </div>
+
+  <h1>Atelier — infrastructure complète</h1>
+  <p class="chapeau">Jusqu'ici, chaque chapitre installait une brique. Celui-ci les empile
+     toutes sur une seule maquette — et c'est un exercice différent : ce qui coince, ce n'est
+     plus une commande, c'est <em>l'ordre</em> dans lequel on les tape.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une infrastructure se monte <strong>de bas en haut</strong> : connectivité physique,
+         puis adressage, puis VLAN, puis routage, puis services. Chaque étage suppose le
+         précédent — configurer DHCP avant que l'inter-VLAN fonctionne ne produit rien
+         d'observable, et fait croire que DHCP est en cause. Le plan d'adressage se
+         <strong>calcule et s'écrit</strong> avant toute connexion à un équipement : c'est la
+         seule étape où une erreur reste bon marché.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#topologie</code> <code>#plan-d-adressage</code> <code>#VLAN</code>
+    <code>#inter-VLAN</code> <code>#RIPv2</code> <code>#DHCP</code>
+    <code>#NAT</code> <code>#PAT</code> <code>#NTP</code> <code>#IPv6</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="lire">
+  <h2><span class="num">01</span> Lire la topologie avant de toucher au clavier</h2>
+
+  <p>La maquette de l'atelier comporte trois routeurs, deux commutateurs, deux postes et un
+     serveur simulant Internet. Avant toute chose, on la <strong>lit</strong>, et on en tire
+     quatre informations qui commandent tout le reste.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Ce qu'une topologie dit, et où le lire</caption>
+      <thead><tr><th scope="col">Information</th><th scope="col">Où elle se trouve</th><th scope="col">Ce qu'elle commande</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Les réseaux et leurs préfixes</th><td>étiquettes sur les liens</td><td>le plan d'adressage entier</td></tr>
+        <tr><th scope="row">Le nom des interfaces</th><td>aux extrémités de chaque trait</td><td>sur quelle interface taper quoi</td></tr>
+        <tr><th scope="row">Les VLAN et leurs noms</th><td>la table « clé de VLAN »</td><td>la base VLAN et les sous-interfaces</td></tr>
+        <tr><th scope="row">Où passe la frontière avec Internet</th><td>le nuage et le routeur qui le touche</td><td>où marquer <code>ip nat inside</code> / <code>outside</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Les quatre questions à se poser devant un schéma</div>
+    <p><strong>1.</strong> Combien de domaines de diffusion ? Un par VLAN, un par liaison
+       série. Ici : 3 VLAN + 2 liaisons série + le segment Internet.</p>
+    <p><strong>2.</strong> Qui route quoi ? R1 route entre les VLAN, R2 sort vers Internet,
+       R3 porte des réseaux simulés par des interfaces de bouclage.</p>
+    <p><strong>3.</strong> Quel lien est un trunk ? Celui entre les deux commutateurs, et
+       celui qui monte vers le routeur — ce sont les seuls qui portent plusieurs VLAN.</p>
+    <p><strong>4.</strong> Où sont les adresses publiques ? Uniquement du côté R2–Internet.
+       Tout le reste est privé, donc tout le reste doit être traduit pour sortir.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Une interface de bouclage, c'est un réseau sans câble</div>
+    <p>R3 porte trois réseaux — <code>192.168.4.0/24</code>, <code>192.168.5.0/24</code> et
+       <code>192.168.6.0/24</code> — mais aucun commutateur n'y est branché. Ce sont des
+       <strong>interfaces de bouclage</strong> (<code>loopback</code>) : des interfaces
+       logiques, toujours actives, qui servent à simuler des réseaux distants sans acheter le
+       matériel.</p>
+    <p class="rap">Elles ne tombent jamais, ce qui en fait aussi le meilleur endroit où poser
+       l'identifiant d'un routeur. En atelier, elles évitent surtout d'avoir à dessiner trois
+       LAN de plus.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="plan">
+  <h2><span class="num">02</span> Le plan d'adressage, calculé</h2>
+
+  <p>Le sujet ne donne pas les adresses : il donne les <strong>réseaux</strong> et des
+     consignes du type « utilisez la première adresse disponible ». Le plan se déduit, et il
+     s'écrit en entier avant la première commande.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Plan d'adressage IPv4 de la maquette, déduit de la topologie</caption>
+      <thead><tr><th scope="col">Équipement</th><th scope="col">Interface</th><th scope="col">Adresse</th><th scope="col">Réseau</th></tr></thead>
+      <tbody>
+        <tr><th scope="row" rowspan="4">R1</th><td>S0/0/0</td><td><code>172.16.1.1</code></td><td><code>172.16.1.0/30</code></td></tr>
+        <tr><td>G0/1.21</td><td><code>192.168.21.1</code></td><td><code>192.168.21.0/24</code> — VLAN 21</td></tr>
+        <tr><td>G0/1.23</td><td><code>192.168.23.1</code></td><td><code>192.168.23.0/24</code> — VLAN 23</td></tr>
+        <tr><td>G0/1.99</td><td><code>192.168.99.1</code></td><td><code>192.168.99.0/24</code> — VLAN 99</td></tr>
+        <tr><th scope="row" rowspan="4">R2</th><td>S0/0/0</td><td><code>172.16.1.2</code></td><td><code>172.16.1.0/30</code></td></tr>
+        <tr><td>S0/0/1</td><td><code>172.16.2.2</code></td><td><code>172.16.2.0/30</code></td></tr>
+        <tr><td>G0/0</td><td><code>209.165.200.233</code></td><td><code>209.165.200.232/29</code></td></tr>
+        <tr><td>Loopback 0</td><td><code>10.10.10.10/32</code></td><td>serveur web simulé</td></tr>
+        <tr><th scope="row" rowspan="4">R3</th><td>S0/0/1</td><td><code>172.16.2.1</code></td><td><code>172.16.2.0/30</code></td></tr>
+        <tr><td>Loopback 4</td><td><code>192.168.4.1</code></td><td><code>192.168.4.0/24</code></td></tr>
+        <tr><td>Loopback 5</td><td><code>192.168.5.1</code></td><td><code>192.168.5.0/24</code></td></tr>
+        <tr><td>Loopback 6</td><td><code>192.168.6.1</code></td><td><code>192.168.6.0/24</code></td></tr>
+        <tr><th scope="row">S1</th><td>VLAN 99</td><td><code>192.168.99.2</code></td><td>administration</td></tr>
+        <tr><th scope="row">S3</th><td>VLAN 99</td><td><code>192.168.99.3</code></td><td>administration</td></tr>
+        <tr><th scope="row">Serveur Internet</th><td>—</td><td><code>209.165.200.238</code></td><td><code>209.165.200.232/29</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux /30, calculés</div>
+    <div class="bloc-code"><span class="langue">calcul</span><pre><code>172.16.1.0/30   masque 255.255.255.252
+  réseau     172.16.1.0
+  utilisables 172.16.1.1  et  172.16.1.2      ← 2² − 2 = 2 adresses
+  diffusion  172.16.1.3
+
+Un /30 pour une liaison point à point : deux extrémités, deux adresses.
+C'est exactement ce qu'il faut, et rien de plus.</code></pre></div>
+    <p class="rap">Le <code>/30</code> n'est pas un choix esthétique : sur une liaison série
+       entre deux routeurs, un <code>/24</code> gaspillerait 252 adresses. C'est la
+       justification qu'on attend en épreuve.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la passerelle du serveur Internet est .233, pas .225</div>
+    <p>Le tableau de tâches du sujet demande de poser <code>209.165.200.225</code> comme
+       passerelle par défaut du serveur Internet. C'est <strong>impossible</strong>, et le
+       calcul le montre en deux lignes :</p>
+    <div class="bloc-code"><span class="langue">calcul</span><pre><code>Le lien R2 ↔ Internet est 209.165.200.232/29 (topologie)
+  réseau       209.165.200.232
+  utilisables  de 209.165.200.233 à 209.165.200.238
+  diffusion    209.165.200.239
+
+Le serveur Internet porte .238 : il est bien dans ce /29.
+209.165.200.225 ne l'est PAS — il appartient au /29 voisin, 209.165.200.224/29.
+
+Une passerelle doit être dans le même sous-réseau que la machine.
+Donc la passerelle du serveur est la première adresse disponible du lien :
+  209.165.200.233, c'est-à-dire l'interface G0/0 de R2.</code></pre></div>
+    <p>D'où vient <code>209.165.200.225</code> ? Du <strong>pool NAT</strong> : le sujet fait
+       traduire les adresses privées vers <code>209.165.200.225</code> à
+       <code>209.165.200.228</code>, et le serveur web vers <code>209.165.200.229</code> —
+       toutes dans <code>209.165.200.224/29</code>. Les deux plages sont voisines mais
+       distinctes, et elles ne se chevauchent pas.</p>
+    <p class="rap">Le réflexe qui sauve : <strong>une adresse annoncée se teste contre son
+       masque.</strong> L'outil de calcul de sous-réseau du site le fait en une seconde.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « La première adresse disponible » n'est pas l'adresse du réseau</div>
+    <p>Pour <code>192.168.21.0/24</code>, la première adresse <em>disponible</em> est
+       <code>192.168.21.1</code> — <code>192.168.21.0</code> désigne le réseau lui-même et ne
+       se pose sur aucune interface.</p>
+    <p class="rap">Même piège à l'autre bout : la dernière disponible est
+       <code>.254</code>, pas <code>.255</code>, qui est la diffusion.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="ordre">
+  <h2><span class="num">03</span> L'ordre de montage</h2>
+
+  <p>C'est le vrai sujet de l'atelier. Chaque étage ne peut être testé que si celui du dessous
+     fonctionne — et tester dans le désordre transforme un atelier de trois heures en chasse
+     au fantôme.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Les six étages, et ce que chacun suppose</caption>
+      <thead><tr><th scope="col">#</th><th scope="col">Étage</th><th scope="col">Suppose</th><th scope="col">Se teste par</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">1</th><td>Remise à zéro et paramètres de base</td><td>rien</td><td><code>show running-config</code></td></tr>
+        <tr><th scope="row">2</th><td>Adressage des interfaces</td><td>étage 1</td><td><code>show ip interface brief</code> → <em>up/up</em></td></tr>
+        <tr><th scope="row">3</th><td>VLAN, ports d'accès et trunks</td><td>étage 2</td><td><code>show vlan brief</code>, <code>show interfaces trunk</code></td></tr>
+        <tr><th scope="row">4</th><td>Routage inter-VLAN et RIPv2</td><td>étage 3</td><td><code>show ip route</code></td></tr>
+        <tr><th scope="row">5</th><td>DHCP et NAT</td><td>étage 4</td><td><code>show ip dhcp binding</code>, <code>show ip nat translations</code></td></tr>
+        <tr><th scope="row">6</th><td>NTP</td><td>étage 4</td><td><code>show ntp status</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le piège classique : DHCP configuré trop tôt</div>
+    <p>Un poste du VLAN 21 demande une adresse par <strong>diffusion</strong>. Si la
+       sous-interface <code>G0/1.21</code> de R1 n'est pas encore montée, ou si le trunk ne
+       laisse pas passer le VLAN 21, la demande n'atteint jamais le serveur DHCP.</p>
+    <p>Le poste tombe alors en <strong>APIPA</strong> — une adresse en
+       <code>169.254.x.x</code> qu'il s'attribue lui-même. On accuse la configuration DHCP,
+       qui est pourtant juste : c'est l'étage 3 qui manquait.</p>
+    <p class="rap">Une adresse en <code>169.254</code> ne dit jamais « DHCP est mal
+       configuré ». Elle dit <strong>« aucun serveur DHCP n'a répondu »</strong> — ce qui est
+       le plus souvent un problème de chemin, pas de service.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Remettre à zéro avant de commencer</div>
+    <p>Un équipement de salle de TP porte la configuration du binôme précédent. Deux commandes,
+       et non une :</p>
+    <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>erase startup-config
+delete vlan.dat
+reload</code></pre></div>
+    <p class="rap"><code>erase startup-config</code> ne touche pas à la base VLAN, qui vit
+       dans un fichier à part, <code>vlan.dat</code>. Oublier la seconde commande laisse des
+       VLAN fantômes qui réapparaissent après le redémarrage — et on cherche longtemps d'où
+       ils viennent.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="services">
+  <h2><span class="num">04</span> Les trois services : DHCP, NAT, NTP</h2>
+
+  <h3>DHCP — deux pools sur le même routeur</h3>
+  <p>R1 sert d'appui pour les deux VLAN utilisateurs. Un pool par VLAN, et des exclusions
+     avant tout.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les exclusions se posent avant le pool, et elles sont globales</div>
+    <p><code>ip dhcp excluded-address</code> n'appartient à aucun pool : c'est une commande
+       globale, qui réserve les adresses pour les configurations statiques — passerelle,
+       imprimantes, serveurs. Le sujet demande de réserver les <strong>vingt premières</strong>
+       adresses de chaque VLAN.</p>
+    <div class="bloc-code"><span class="langue">calcul</span><pre><code>VLAN 21 — réseau 192.168.21.0/24
+
+  adresses exclues   de 192.168.21.1 à 192.168.21.20
+  passerelle         192.168.21.1   (dans la plage exclue : c'est le but)
+  premier bail       192.168.21.21</code></pre></div>
+    <p class="rap">Oubliez l'exclusion, et le premier poste qui démarre reçoit
+       <code>192.168.21.1</code> — l'adresse de la passerelle. Le VLAN entier perd sa sortie,
+       et le symptôme n'a l'air d'avoir aucun rapport avec DHCP.</p>
+  </div>
+
+  <h3>NAT — statique pour entrer, dynamique pour sortir</h3>
+  <div class="tableau">
+    <table>
+      <caption>Les deux traductions de la maquette, et à quoi chacune sert</caption>
+      <thead><tr><th scope="col">Type</th><th scope="col">Ce qu'elle fait</th><th scope="col">Adresse publique</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Statique</th><td>rend le serveur web joignable <strong>depuis</strong> Internet</td><td><code>209.165.200.229</code></td></tr>
+        <tr><th scope="row">Dynamique</th><td>laisse les réseaux privés <strong>sortir</strong> vers Internet</td><td>pool de <code>209.165.200.225</code> à <code>209.165.200.228</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sans inside et outside, la NAT ne traduit rien</div>
+    <p>Déclarer un pool et une liste d'accès ne suffit pas. Le routeur doit savoir
+       <strong>quelle interface regarde l'intérieur et laquelle regarde l'extérieur</strong> :
+       <code>ip nat inside</code> d'un côté, <code>ip nat outside</code> de l'autre.</p>
+    <p class="rap">Symptôme caractéristique : <code>show ip nat translations</code> reste
+       désespérément vide alors que tout le reste semble juste. C'est presque toujours une de
+       ces deux lignes qui manque.</p>
+  </div>
+
+  <h3>NTP — parce que des journaux sans heure ne servent à rien</h3>
+  <p>R2 devient serveur de temps, R1 son client. Le <strong>niveau de strate</strong> dit à
+     quelle distance on est d'une horloge de référence : un serveur de strate 5 annonce
+     « je suis à cinq sauts d'une horloge atomique », et ses clients seront en strate 6.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi l'heure compte en cybersécurité</div>
+    <p>Quand un incident survient, on recoupe les journaux de plusieurs équipements pour
+       reconstituer la chronologie. Si les horloges divergent de quelques minutes, l'ordre des
+       événements devient faux — et une intrusion peut paraître antérieure à la faille qui
+       l'a permise.</p>
+    <p class="rap">C'est pour cela que NTP figure dans un atelier d'infrastructure, et pas
+       seulement dans un chapitre de confort.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="ipv6">
+  <h2><span class="num">05</span> IPv6 en parallèle</h2>
+
+  <p>L'atelier demande un adressage IPv6 <em>en plus</em> de l'IPv4, sur les mêmes interfaces.
+     Ce n'est pas un remplacement : les deux piles coexistent, chacune avec ses adresses et sa
+     route par défaut. On appelle cela une <strong>double pile</strong>.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Ce qui change, et ce qui ne change pas</caption>
+      <thead><tr><th scope="col">IPv4</th><th scope="col">IPv6</th></tr></thead>
+      <tbody>
+        <tr><td><code>ip address 172.16.1.1 255.255.255.252</code></td><td><code>ipv6 address 2001:DB8:ACAD:1::1/64</code></td></tr>
+        <tr><td><code>ip route 0.0.0.0 0.0.0.0 s0/0/0</code></td><td><code>ipv6 route ::/0 s0/0/0</code></td></tr>
+        <tr><td>routage actif par défaut</td><td><code>ipv6 unicast-routing</code> — <strong>à activer</strong></td></tr>
+        <tr><td><code>show ip route</code></td><td><code>show ipv6 route</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sans « ipv6 unicast-routing », le routeur n'est qu'un hôte</div>
+    <p>Contrairement à IPv4, le routage IPv6 est <strong>désactivé par défaut</strong> sur un
+       routeur Cisco. Les interfaces prennent bien leurs adresses, les voisins se voient, mais
+       rien ne traverse. C'est une seule ligne, en mode de configuration globale, et elle
+       s'oublie systématiquement.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 2001:DB8, l'équivalent de « exemple.fr »</div>
+    <p>Le préfixe <code>2001:DB8::/32</code> est réservé par la RFC 3849 à la
+       <strong>documentation</strong>. Il n'est routé nulle part sur Internet, exactement comme
+       les noms de domaine en <code>example.com</code>.</p>
+    <p class="rap">Le voir dans un sujet est un bon signe : cela confirme qu'on est en
+       maquette. Le rencontrer dans une configuration de production serait, lui, un très
+       mauvais signe.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="verifier">
+  <h2><span class="num">06</span> Vérifier, dans le bon ordre</h2>
+
+  <p>Le sujet fournit des tableaux de tests à remplir. Ce n'est pas de la paperasse : c'est la
+     méthode. On teste <strong>du plus proche au plus lointain</strong>, et on s'arrête au
+     premier échec — inutile de tester Internet si le voisin direct ne répond pas.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>L'échelle de test, dans l'ordre</caption>
+      <thead><tr><th scope="col">#</th><th scope="col">Test</th><th scope="col">Ce qu'un échec dénonce</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">1</th><td>interface locale <em>up/up</em></td><td>câble, <code>no shutdown</code>, horloge DCE</td></tr>
+        <tr><th scope="row">2</th><td>ping du voisin direct</td><td>masque ou adresse erronés</td></tr>
+        <tr><th scope="row">3</th><td>ping de sa propre passerelle</td><td>sous-interface, VLAN, trunk</td></tr>
+        <tr><th scope="row">4</th><td>ping d'un réseau distant</td><td>routage : route statique ou RIPv2</td></tr>
+        <tr><th scope="row">5</th><td>bail DHCP obtenu</td><td>pool, exclusions, relais</td></tr>
+        <tr><th scope="row">6</th><td>accès au serveur web public</td><td>NAT statique, <code>inside</code>/<code>outside</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 up/up, up/down, down/down : trois pannes différentes</div>
+    <p><code>show ip interface brief</code> affiche deux états par interface. Ils ne veulent
+       pas dire la même chose :</p>
+    <p><strong>administratively down</strong> — l'interface est éteinte par configuration :
+       il manque <code>no shutdown</code>.</p>
+    <p><strong>down / down</strong> — l'interface est allumée mais ne voit rien en face :
+       câble, équipement éteint, ou horloge manquante côté DCE d'une liaison série.</p>
+    <p><strong>up / down</strong> — le lien physique existe mais le protocole ne s'établit
+       pas : désaccord d'encapsulation, ou l'autre extrémité n'est pas prête.</p>
+    <p class="rap">Lire la bonne colonne fait gagner vingt minutes. La première est ce que
+       <em>vous</em> avez décidé ; la seconde, ce que le <em>câble</em> constate.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les commandes de contrôle, groupées</div>
+    <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>terminal length 0            ← supprime la pagination --More--
+
+show ip interface brief      ← toutes les interfaces : up/up ?
+show ip route                ← les réseaux distants sont-ils appris ?
+show ip protocols            ← RIP tourne-t-il, et annonce-t-il quoi ?
+show vlan brief              ← les VLAN existent-ils, avec les bons ports ?
+show interfaces trunk        ← VLAN natif et VLAN autorisés sur chaque agrégation
+show ip dhcp binding         ← quels baux ont été distribués ?
+show ip nat translations     ← la traduction se produit-elle ?
+show ntp status              ← l'horloge est-elle synchronisée ?</code></pre></div>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le pare-feu du poste fausse les tests</div>
+    <p>Le sujet le répète trois fois : il peut être nécessaire de désactiver le pare-feu du PC
+       pour que les requêtes ping aboutissent. Un ping sans réponse ne prouve donc rien tant
+       que ce point n'a pas été écarté.</p>
+    <p class="rap">Règle générale de dépannage : avant de conclure qu'un chemin est cassé,
+       vérifiez que la <strong>réponse</strong> avait le droit de revenir.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Le plan d'adressage s'écrit avant la première commande.</strong> C'est la
+          seule étape où une erreur ne coûte rien.</li>
+      <li><strong>« Première adresse disponible » = .1</strong>, pas .0. Et la dernière est
+          .254, pas .255.</li>
+      <li><strong>Une passerelle est toujours dans le même sous-réseau que la machine.</strong>
+          Le sujet demande ici une passerelle qui ne l'est pas : c'est .233, pas .225.</li>
+      <li><strong>Un /30 pour une liaison point à point</strong> : deux adresses utilisables,
+          exactement le nécessaire.</li>
+      <li><strong>Monter de bas en haut</strong> : physique → adressage → VLAN → routage →
+          services. Un service testé trop tôt semble toujours cassé.</li>
+      <li><strong><code>erase startup-config</code> ne supprime pas les VLAN</strong> :
+          il faut aussi <code>delete vlan.dat</code>.</li>
+      <li><strong>Les exclusions DHCP se posent avant le pool</strong>, et protègent la
+          passerelle.</li>
+      <li><strong>Pas de NAT sans <code>inside</code> et <code>outside</code></strong> sur les
+          interfaces.</li>
+      <li><strong>IPv6 : <code>ipv6 unicast-routing</code></strong>, sinon le routeur ne route
+          pas.</li>
+      <li><strong>Tester du plus proche au plus lointain</strong>, et s'arrêter au premier
+          échec.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Sujet d'atelier de révision « Infrastructure Réseaux » — 11 pages : contexte,
+          topologie, tableaux de tâches et tableaux de tests</li>
+      <li>Topologie de la maquette : trois routeurs, deux commutateurs, clé de VLAN et
+          plages d'adresses</li>
+    </ul>
+    <p class="rap">Le sujet d'origine n'est pas redistribué. Le plan d'adressage publié ici
+       est <strong>recalculé</strong> depuis la topologie, et relu à chaque contrôle par
+       <code>verif-technique.py</code>.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/cours.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=6c607acc"></script>
+<script src="../../assets/recherche.js?v=6c607acc"></script>
+<script src="../../assets/app.js?v=6c607acc"></script>
+</body>
+</html>

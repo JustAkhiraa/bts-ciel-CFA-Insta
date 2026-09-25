@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — infrastructure complète : le TP | BTS CIEL</title>
+<meta name="description" content="Le TP d'infrastructure, mission par mission, avec les configurations complètes de R1, R2, R3, S1 et S3 : base, VLAN, inter-VLAN, RIPv2, DHCP, NAT, NTP et IPv6.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=6c607acc">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#m1">1 · Mission 1 — remise à zéro et paramètres de base</a></li>
+    <li><a href="#m2">2 · Mission 2 — adressage des trois routeurs</a></li>
+    <li><a href="#m3">3 · Mission 3 — VLAN, agrégations et inter-VLAN</a></li>
+    <li><a href="#m4">4 · Mission 4 — routage dynamique RIPv2</a></li>
+    <li><a href="#m5">5 · Mission 5 — DHCP</a></li>
+    <li><a href="#m6">6 · Mission 6 — NAT statique et dynamique</a></li>
+    <li><a href="#m7">7 · Mission 7 — NTP</a></li>
+    <li><a href="#m8">8 · Les questions du sujet</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; systèmes</span>
+    <span class="sep">/</span><span>Chapitre 17</span>
+  </div>
+
+  <h1>Atelier — infrastructure complète : le TP</h1>
+  <p class="chapeau">Sept missions, une seule maquette. Les configurations sont complètes et
+     dans l'ordre où elles se tapent — chacune se colle telle quelle dans la console.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Le contexte</h2>
+      <p>Une société du secteur médical met en place son infrastructure. Le réseau 1 héberge
+         les postes des employés — comptabilité, ingénierie, gestion — et le réseau 2 les
+         serveurs. Un routeur relie l'ensemble à Internet. Il faut monter la connectivité
+         IPv4 <em>et</em> IPv6, sécuriser les commutateurs, router entre les VLAN, faire
+         tourner RIPv2, distribuer les adresses par DHCP, traduire les adresses privées et
+         synchroniser les horloges.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#VLAN-21</code> <code>#VLAN-23</code> <code>#VLAN-99</code>
+    <code>#dot1Q</code> <code>#RIPv2</code> <code>#DHCP</code>
+    <code>#NAT-statique</code> <code>#PAT</code> <code>#NTP</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="m1">
+  <h2><span class="num">01</span>Mission 1 — remise à zéro et paramètres de base</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Repartir d'un équipement vierge <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Supprimer les configurations initiales des cinq équipements et les redémarrer, puis
+         poser sur chacun : nom d'hôte, désactivation de la recherche DNS, mot de passe
+         chiffré du mode privilégié (<code>class</code>), mots de passe console et Telnet
+         (<code>cisco</code>), chiffrement des mots de passe restés en clair, et une bannière
+         d'avertissement.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>Effacer, sur chaque équipement :</strong></p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+erase startup-config
+delete vlan.dat
+reload</code></pre></div>
+        <p><strong>Le socle, identique partout sauf le nom</strong> (exemple pour R1) :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+hostname R1
+no ip domain-lookup
+enable secret class
+service password-encryption
+banner motd #Unauthorized Access is Prohibited!#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 4
+password cisco
+login
+exit
+end
+write memory</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ enable secret et enable password ne se valent pas</div>
+          <p>Le sujet demande un mot de passe <strong>chiffré</strong> du mode privilégié :
+             c'est <code>enable secret</code>, qui stocke un condensat. <code>enable
+             password</code> le laisse en clair, et <code>service password-encryption</code>
+             ne lui applique qu'un chiffrement réversible, décodable en ligne en une seconde.</p>
+          <p class="rap">Si les deux sont posés, c'est <code>enable secret</code> qui gagne —
+             mais l'autre reste visible dans la configuration, ce qui est précisément le
+             défaut qu'on voulait éviter.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="m2">
+  <h2><span class="num">02</span>Mission 2 — adressage des trois routeurs</h2>
+
+  <article class="exo">
+    <h3><span class="no">2</span>R1, R2 et R3 en double pile <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Adresser les interfaces des trois routeurs en IPv4 et en IPv6 d'après la topologie,
+         poser les fréquences d'horloge du côté DCE, activer les interfaces, et configurer les
+         routes par défaut. R2 porte en plus une interface de bouclage qui simule le serveur
+         web, et doit activer son serveur HTTP.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>R1</strong> — la liaison vers R2, et la sortie par défaut :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+ipv6 unicast-routing
+interface serial 0/0/0
+description Liaison WAN vers R2
+ip address 172.16.1.1 255.255.255.252
+ipv6 address 2001:DB8:ACAD:1::1/64
+clock rate 128000
+no shutdown
+exit
+ip route 0.0.0.0 0.0.0.0 serial 0/0/0
+ipv6 route ::/0 serial 0/0/0
+end
+write memory</code></pre></div>
+
+        <p><strong>R2</strong> — deux liaisons série, la sortie Internet, le serveur web :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+ipv6 unicast-routing
+ip http server
+interface serial 0/0/0
+description Liaison WAN vers R1
+ip address 172.16.1.2 255.255.255.252
+ipv6 address 2001:DB8:ACAD:1::2/64
+no shutdown
+exit
+interface serial 0/0/1
+description Liaison WAN vers R3
+ip address 172.16.2.2 255.255.255.252
+ipv6 address 2001:DB8:ACAD:3::2/64
+clock rate 128000
+no shutdown
+exit
+interface gigabitEthernet 0/0
+description Sortie Internet
+ip address 209.165.200.233 255.255.255.248
+ipv6 address 2001:DB8:ACAD:2::1/64
+no shutdown
+exit
+interface loopback 0
+description Serveur web simule
+ip address 10.10.10.10 255.255.255.255
+exit
+ip route 0.0.0.0 0.0.0.0 gigabitEthernet 0/0
+ipv6 route ::/0 gigabitEthernet 0/0
+end
+write memory</code></pre></div>
+
+        <p><strong>R3</strong> — la liaison vers R2 et les trois réseaux simulés :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+ipv6 unicast-routing
+interface serial 0/0/1
+description Liaison WAN vers R2
+ip address 172.16.2.1 255.255.255.252
+ipv6 address 2001:DB8:ACAD:3::1/64
+no shutdown
+exit
+interface loopback 4
+ip address 192.168.4.1 255.255.255.0
+exit
+interface loopback 5
+ip address 192.168.5.1 255.255.255.0
+exit
+interface loopback 6
+ip address 192.168.6.1 255.255.255.0
+exit
+ip route 0.0.0.0 0.0.0.0 serial 0/0/1
+ipv6 route ::/0 serial 0/0/1
+end
+write memory</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 D'où viennent ces adresses</div>
+          <div class="bloc-code"><span class="langue">calcul</span><pre><code>172.16.1.0/30  →  masque 255.255.255.252
+   deux adresses utilisables seulement : .1 et .2
+   R1 prend .1 (topologie), R2 prend « la suivante disponible » : .2
+
+209.165.200.232/29  →  masque 255.255.255.248
+   utilisables de 209.165.200.233 à 209.165.200.238
+   le serveur Internet occupe .238
+   R2 prend « la première disponible » : .233
+
+10.10.10.10/32  →  masque 255.255.255.255
+   un /32 désigne UNE machine : c'est l'usage normal d'une boucle locale</code></pre></div>
+        </div>
+
+        <div class="encart corrige">
+          <div class="titre">🔧 Corrigé — la passerelle du serveur Internet</div>
+          <p>Le tableau de tâches du sujet indique <code>209.165.200.225</code> comme
+             passerelle par défaut du serveur Internet. Cette adresse n'appartient pas au
+             <code>209.165.200.232/29</code> du lien, mais au <code>209.165.200.224/29</code>
+             voisin — celui du pool NAT. La passerelle correcte est <strong>l'interface G0/0
+             de R2, soit 209.165.200.233</strong>.</p>
+          <p class="rap">Le détail de la démonstration est dans
+             <a href="cours.html#plan">le cours, section 2</a>. Avec
+             <code>209.165.200.225</code>, le serveur ne joint rien du tout : sa passerelle
+             n'est pas sur son propre segment.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le côté DCE, et lui seul, porte l'horloge</div>
+          <p>Sur une liaison série, <code>clock rate</code> ne se pose que d'un côté — celui
+             où le câble DCE est branché. Posée des deux côtés, la commande est simplement
+             ignorée par le DTE ; oubliée du côté DCE, la liaison reste
+             <strong>down / down</strong> et RIP n'a rien à annoncer.</p>
+          <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>show controllers serial 0/0/0 | include DCE|DTE     ← quel côté suis-je ?</code></pre></div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="m3">
+  <h2><span class="num">03</span>Mission 3 — VLAN, agrégations et inter-VLAN</h2>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Les commutateurs, puis le routeur sur un bâton <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Créer la base VLAN sur S1 et S3 d'après la clé de VLAN (21 Comptabilité,
+         23 Engineering, 99 Gestion), attribuer l'adresse d'administration et la passerelle,
+         imposer l'agrégation sur les liens qui la demandent avec le VLAN 1 en VLAN natif,
+         passer tous les autres ports en mode accès, placer F0/6 dans le VLAN 21 sur S1 et
+         F0/18 dans le VLAN 23 sur S3, et éteindre les ports inutilisés. Puis créer les
+         sous-interfaces 802.1Q sur R1.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>S1</strong> — deux agrégations : vers R1 (F0/5) et vers S3 (F0/3) :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+vlan 21
+name Comptabilite
+vlan 23
+name Engineering
+vlan 99
+name Gestion
+exit
+interface vlan 99
+ip address 192.168.99.2 255.255.255.0
+no shutdown
+exit
+ip default-gateway 192.168.99.1
+interface range fastEthernet 0/3, fastEthernet 0/5
+switchport mode trunk
+switchport trunk native vlan 1
+no shutdown
+exit
+interface range fastEthernet 0/1 - 2, fastEthernet 0/4, fastEthernet 0/6 - 24
+switchport mode access
+exit
+interface fastEthernet 0/6
+switchport access vlan 21
+no shutdown
+exit
+interface range fastEthernet 0/1 - 2, fastEthernet 0/4, fastEthernet 0/7 - 24
+shutdown
+end
+write memory</code></pre></div>
+
+        <p><strong>S3</strong> — une seule agrégation, vers S1 :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+vlan 21
+name Comptabilite
+vlan 23
+name Engineering
+vlan 99
+name Gestion
+exit
+interface vlan 99
+ip address 192.168.99.3 255.255.255.0
+no shutdown
+exit
+ip default-gateway 192.168.99.1
+interface fastEthernet 0/3
+switchport mode trunk
+switchport trunk native vlan 1
+no shutdown
+exit
+interface range fastEthernet 0/1 - 2, fastEthernet 0/4 - 24
+switchport mode access
+exit
+interface fastEthernet 0/18
+switchport access vlan 23
+no shutdown
+exit
+interface range fastEthernet 0/1 - 2, fastEthernet 0/4 - 17, fastEthernet 0/19 - 24
+shutdown
+end
+write memory</code></pre></div>
+
+        <p><strong>R1</strong> — une sous-interface par VLAN, sur le même câble :</p>
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+interface gigabitEthernet 0/1
+no ip address
+no shutdown
+exit
+interface gigabitEthernet 0/1.21
+description LAN Comptabilite
+encapsulation dot1Q 21
+ip address 192.168.21.1 255.255.255.0
+exit
+interface gigabitEthernet 0/1.23
+description LAN Engineering
+encapsulation dot1Q 23
+ip address 192.168.23.1 255.255.255.0
+exit
+interface gigabitEthernet 0/1.99
+description LAN Gestion
+encapsulation dot1Q 99
+ip address 192.168.99.1 255.255.255.0
+end
+write memory</code></pre></div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Ici le VLAN natif est 1, donc aucune sous-interface ne porte « native »</div>
+          <p>Le sujet impose le <strong>VLAN 1 comme VLAN natif</strong>. Le VLAN natif circule
+             <em>non étiqueté</em> sur l'agrégation, et n'a donc pas de sous-interface dédiée.
+             Le mot-clé <code>native</code> après <code>encapsulation dot1Q</code> ne
+             s'emploierait que si le VLAN natif était l'un des trois — 99, par exemple, comme
+             dans d'autres sujets.</p>
+          <p class="rap">Écrire <code>encapsulation dot1Q 99 native</code> ici casserait le
+             VLAN de gestion : R1 attendrait du trafic non étiqueté là où les commutateurs en
+             envoient de l'étiqueté.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ L'interface physique reste sans adresse, mais allumée</div>
+          <p><code>G0/1</code> ne porte aucune adresse IP : ce sont ses sous-interfaces qui en
+             ont. Mais elle doit être <code>no shutdown</code>, sinon <strong>toutes</strong>
+             les sous-interfaces restent éteintes avec elle — et rien dans leur affichage ne
+             dit pourquoi.</p>
+        </div>
+
+        <div class="encart methode">
+          <div class="titre">🧭 Vérifier avant de passer à la suite</div>
+          <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>show vlan brief              ← les trois VLAN existent, F0/6 est bien dans le 21
+show interfaces trunk        ← VLAN natif 1, et 21/23/99 autorisés
+show ip interface brief      ← les sous-interfaces de R1 en up/up</code></pre></div>
+          <p class="rap">Puis un ping de S1 vers <code>192.168.99.1</code>. S'il passe, le
+             VLAN de gestion et l'agrégation fonctionnent tous les deux — deux étages validés
+             d'un coup.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="m4">
+  <h2><span class="num">04</span>Mission 4 — routage dynamique RIPv2</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Annoncer, sans bavarder <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Configurer RIP version 2 sur les trois routeurs, annoncer les réseaux directement
+         connectés, désactiver le récapitulatif automatique, et passer toutes les interfaces
+         LAN en mode passif. Sur R2, ne pas annoncer le réseau de l'interface G0/0.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1 :
+enable
+configure terminal
+router rip
+version 2
+no auto-summary
+network 172.16.0.0
+network 192.168.21.0
+network 192.168.23.0
+network 192.168.99.0
+passive-interface gigabitEthernet 0/1.21
+passive-interface gigabitEthernet 0/1.23
+passive-interface gigabitEthernet 0/1.99
+end
+write memory</code></pre></div>
+
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2 :
+enable
+configure terminal
+router rip
+version 2
+no auto-summary
+network 172.16.0.0
+passive-interface loopback 0
+default-information originate
+end
+write memory</code></pre></div>
+
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R3 :
+enable
+configure terminal
+router rip
+version 2
+no auto-summary
+network 172.16.0.0
+network 192.168.4.0
+network 192.168.5.0
+network 192.168.6.0
+passive-interface loopback 4
+passive-interface loopback 5
+passive-interface loopback 6
+end
+write memory</code></pre></div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ « network » prend l'adresse classful, pas le sous-réseau</div>
+          <p>Les deux liaisons série sont <code>172.16.1.0/30</code> et
+             <code>172.16.2.0/30</code>. On n'écrit pourtant qu'une seule ligne :
+             <code>network 172.16.0.0</code>. RIP ramène l'argument à la classe — ici la
+             classe B <code>172.16.0.0</code> — et active le protocole sur
+             <strong>toutes</strong> les interfaces qui tombent dedans.</p>
+          <p class="rap">C'est aussi pourquoi <code>no auto-summary</code> est obligatoire :
+             sans lui, RIP annoncerait <code>172.16.0.0/16</code> au lieu des deux
+             <code>/30</code>, et le découpage en sous-réseaux serait perdu.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 À quoi sert « passive-interface »</div>
+          <p>Une interface passive <strong>reçoit</strong> les mises à jour mais n'en
+             <strong>émet</strong> plus. Sur un LAN où il n'y a que des postes, émettre des
+             annonces de routage toutes les trente secondes est inutile — et c'est une
+             information offerte à qui écoute le réseau.</p>
+          <p class="rap">Le réseau reste annoncé aux autres routeurs : c'est
+             <code>network</code> qui le publie, <code>passive-interface</code> ne fait que
+             taire le bavardage local.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ La route par défaut ne se propage pas toute seule</div>
+          <p>R2 est le seul à connaître la sortie Internet. Sans
+             <code>default-information originate</code>, R1 et R3 ne l'apprennent jamais par
+             RIP — et leurs postes n'atteignent pas Internet, alors que tout le routage
+             interne fonctionne.</p>
+          <p class="rap">Symptôme : un ping entre VLAN passe, un ping vers
+             <code>209.165.200.238</code> échoue, et <code>show ip route</code> sur R1
+             n'affiche aucune ligne <code>R* 0.0.0.0/0</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="m5">
+  <h2><span class="num">05</span>Mission 5 — DHCP</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Deux pools sur R1 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Configurer R1 comme serveur DHCP pour les VLAN 21 et 23. Réserver les vingt premières
+         adresses de chaque réseau pour les configurations statiques. Les pools se nomment
+         <code>ACCT</code> et <code>ENGNR</code>, le serveur DNS est <code>10.10.10.10</code>
+         et le nom de domaine <code>ccna-sa.com</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+ip dhcp excluded-address 192.168.21.1 192.168.21.20
+ip dhcp excluded-address 192.168.23.1 192.168.23.20
+ip dhcp pool ACCT
+network 192.168.21.0 255.255.255.0
+default-router 192.168.21.1
+dns-server 10.10.10.10
+domain-name ccna-sa.com
+exit
+ip dhcp pool ENGNR
+network 192.168.23.0 255.255.255.0
+default-router 192.168.23.1
+dns-server 10.10.10.10
+domain-name ccna-sa.com
+end
+write memory</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Ce que chaque poste recevra</div>
+          <div class="bloc-code"><span class="langue">calcul</span><pre><code>VLAN 21 — réseau 192.168.21.0/24
+
+  réservées      de 192.168.21.1 à 192.168.21.20   (20 adresses)
+  distribuées    de 192.168.21.21 à 192.168.21.254 (234 adresses)
+  passerelle     192.168.21.1
+  DNS            10.10.10.10</code></pre></div>
+          <p class="rap">254 adresses utilisables dans un /24, moins les 20 réservées :
+             il en reste 234 à distribuer. De quoi voir venir.</p>
+        </div>
+
+        <div class="encart methode">
+          <div class="titre">🧭 Aucun relais ici — et c'est ce qu'il faut comprendre</div>
+          <p><code>ip helper-address</code> n'apparaît nulle part dans cette maquette, et ce
+             n'est pas un oubli : le serveur DHCP <strong>est</strong> le routeur qui porte
+             les passerelles des deux VLAN. La diffusion n'a aucune frontière à franchir.</p>
+          <p class="rap">Le relais devient nécessaire dès que le serveur DHCP est ailleurs —
+             sur un serveur dédié dans le réseau 2, par exemple. On le pose alors sur
+             l'interface <strong>côté clients</strong>.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Un poste en 169.254.x.x n'accuse pas DHCP</div>
+          <p>C'est une adresse APIPA, que la machine s'attribue quand <strong>aucune
+             réponse</strong> n'est revenue. Avant de relire la configuration DHCP, vérifiez
+             que le poste est dans le bon VLAN, que l'agrégation laisse passer ce VLAN, et
+             que la sous-interface correspondante est en <em>up/up</em>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="m6">
+  <h2><span class="num">06</span>Mission 6 — NAT statique et dynamique</h2>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Entrer et sortir <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur R2 : créer une NAT statique rendant le serveur web joignable depuis Internet à
+         l'adresse <code>209.165.200.229</code>, puis une NAT dynamique autorisant les réseaux
+         de comptabilité et d'ingénierie ainsi que les réseaux de bouclage de R3, avec un pool
+         nommé <code>INTERNET</code> allant de <code>209.165.200.225</code> à
+         <code>209.165.200.228</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>enable
+configure terminal
+ip nat inside source static 10.10.10.10 209.165.200.229
+interface serial 0/0/0
+ip nat inside
+exit
+interface serial 0/0/1
+ip nat inside
+exit
+interface gigabitEthernet 0/0
+ip nat outside
+exit
+access-list 1 permit 192.168.21.0 0.0.0.255
+access-list 1 permit 192.168.23.0 0.0.0.255
+access-list 1 permit 192.168.4.0 0.0.3.255
+ip nat pool INTERNET 209.165.200.225 209.165.200.228 netmask 255.255.255.248
+ip nat inside source list 1 pool INTERNET
+end
+write memory</code></pre></div>
+
+        <div class="encart outils">
+          <div class="titre">🧰 Le récapitulatif des trois réseaux de R3, calculé</div>
+          <div class="bloc-code"><span class="langue">calcul</span><pre><code>Les trois réseaux à couvrir :
+   192.168.4.0/24 · 192.168.5.0/24 · 192.168.6.0/24
+
+En binaire, le troisième octet :
+   4  =  000001 00
+   5  =  000001 01
+   6  =  000001 10
+   7  =  000001 11     ← inclus par le regroupement
+         ↑↑↑↑↑↑
+         6 bits communs
+
+24 bits (les deux premiers octets) + 6 bits communs = 22 bits fixes
+Récapitulatif : 192.168.4.0/22
+Masque de sous-réseau : 255.255.252.0
+Masque générique      : 0.0.3.255</code></pre></div>
+          <p class="rap">Le regroupement couvre aussi <code>192.168.7.0/24</code>, qui
+             n'existe pas dans la maquette. C'est le prix d'un récapitulatif : il est toujours
+             au moins aussi large que ce qu'on voulait couvrir.</p>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Le masque générique est l'inverse du masque de sous-réseau</div>
+          <p>Une liste d'accès ne prend pas <code>255.255.252.0</code> mais son complément,
+             <code>0.0.3.255</code>. Un 0 dans un masque générique signifie « ce bit doit
+             correspondre », un 1 signifie « peu importe » — exactement l'inverse de la
+             lecture d'un masque de sous-réseau.</p>
+          <div class="bloc-code"><span class="langue">calcul</span><pre><code>masque de sous-réseau   255.255.252.0
+masque générique          0.  0.  3.255      ← 255 − 255, 255 − 255, 255 − 252, 255 − 0</code></pre></div>
+        </div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ Les deux interfaces série sont « inside », pas seulement une</div>
+          <p>Le trafic à traduire vient de <strong>deux</strong> directions : les VLAN via R1
+             (S0/0/0) et les réseaux de bouclage via R3 (S0/0/1). Marquer une seule des deux
+             fait sortir la moitié du réseau et pas l'autre — une panne qui ressemble à un
+             problème de routage alors qu'elle n'en est pas un.</p>
+        </div>
+
+        <div class="encart methode">
+          <div class="titre">🧭 Comment savoir que ça marche</div>
+          <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>show ip nat translations     ← la table doit se remplir dès qu'un poste sort
+show ip nat statistics       ← compteur « Hits » qui augmente
+clear ip nat translation *   ← purge les entrées dynamiques pour repartir propre</code></pre></div>
+          <p class="rap">Un tableau vide après un ping sortant signifie presque toujours
+             qu'il manque <code>ip nat inside</code> ou <code>ip nat outside</code> quelque
+             part. Commencez par là, avant de relire la liste d'accès.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="m7">
+  <h2><span class="num">07</span>Mission 7 — NTP</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Une horloge de référence <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Régler la date et l'heure sur R2, le configurer en serveur NTP de strate 5, puis
+         faire de R1 un client NTP de R2 et lui demander de mettre à jour son calendrier
+         matériel. Vérifier la synchronisation.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2 — le serveur de temps :
+enable
+clock set 09:00:00 5 March 2016
+configure terminal
+ntp master 5
+end
+write memory</code></pre></div>
+
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1 — le client :
+enable
+configure terminal
+ntp server 172.16.1.2
+ntp update-calendar
+end
+write memory</code></pre></div>
+
+        <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Vérification, sur R1 :
+show ntp status         ← « Clock is synchronized, stratum 6 »
+show ntp associations   ← le serveur 172.16.1.2, avec un * devant
+show clock              ← l'heure doit correspondre à celle de R2</code></pre></div>
+
+        <div class="encart piege">
+          <div class="titre">⚠️ « clock set » se tape en mode privilégié, pas en configuration</div>
+          <p>C'est une commande d'exécution, pas de configuration : régler une horloge n'est
+             pas un paramètre qu'on enregistre, c'est une action. Tapée après
+             <code>configure terminal</code>, elle est refusée.</p>
+          <p class="rap">Corollaire : elle ne figure pas dans <code>running-config</code> et
+             ne survit pas à un redémarrage — sauf si <code>ntp update-calendar</code> a écrit
+             l'heure dans le calendrier matériel.</p>
+        </div>
+
+        <div class="encart savoir">
+          <div class="titre">💡 La strate se compte en sauts</div>
+          <p>Une horloge de référence — atomique, GPS — est en <strong>strate 0</strong>. Le
+             serveur qui y est directement relié est en strate 1, son client en strate 2, et
+             ainsi de suite. R2 annonce <code>ntp master 5</code>, donc R1 se retrouvera en
+             <strong>strate 6</strong>.</p>
+          <p class="rap">Plus la strate est haute, moins l'horloge est fiable. Au-delà de 15,
+             NTP considère la source comme inutilisable.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="m8">
+  <h2><span class="num">08</span>Les questions du sujet</h2>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Trois commandes de vérification RIP <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Quelle commande permet d'afficher l'identifiant de processus RIP, les récapitulations
+         d'adresse, les réseaux annoncés et les interfaces passives configurées ? Quelle
+         commande n'affiche que les routes RIP ? Quelle commande affiche la section RIP de la
+         configuration courante ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+          <table>
+            <thead><tr><th scope="col">Question</th><th scope="col">Commande</th></tr></thead>
+            <tbody>
+              <tr><td>processus, récapitulations, réseaux, interfaces passives</td>
+                  <td><code>show ip protocols</code></td></tr>
+              <tr><td>uniquement les routes apprises par RIP</td>
+                  <td><code>show ip route rip</code></td></tr>
+              <tr><td>la section RIP de la configuration courante</td>
+                  <td><code>show running-config | section rip</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="rap"><code>show ip protocols</code> est la commande la plus rentable des
+           trois : elle dit en un écran si <code>version 2</code> est actif, si
+           <code>auto-summary</code> a bien été désactivé, quels réseaux sont annoncés et
+           quelles interfaces se taisent. Quatre vérifications d'un coup.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Le tableau de tests, rempli <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le sujet fournit plusieurs tableaux de connectivité à compléter. Quelles adresses y
+         inscrire, et dans quel ordre mener les tests ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+          <table>
+            <caption>Les tests, du plus proche au plus lointain</caption>
+            <thead><tr><th scope="col">#</th><th scope="col">Origine</th><th scope="col">Cible</th><th scope="col">Adresse</th><th scope="col">Ce qu'un échec dénonce</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">1</th><td>R1</td><td>R2, S0/0/0</td><td><code>172.16.1.2</code></td><td>horloge DCE, masque, <code>no shutdown</code></td></tr>
+              <tr><th scope="row">2</th><td>R2</td><td>R3, S0/0/1</td><td><code>172.16.2.1</code></td><td>idem, sur la seconde liaison</td></tr>
+              <tr><th scope="row">3</th><td>Serveur Internet</td><td>sa passerelle</td><td><code>209.165.200.233</code></td><td>adresse ou passerelle hors du /29</td></tr>
+              <tr><th scope="row">4</th><td>S1</td><td>R1, VLAN 99</td><td><code>192.168.99.1</code></td><td>agrégation, sous-interface .99</td></tr>
+              <tr><th scope="row">5</th><td>S3</td><td>R1, VLAN 99</td><td><code>192.168.99.1</code></td><td>agrégation entre S1 et S3</td></tr>
+              <tr><th scope="row">6</th><td>PC-A</td><td>PC-C</td><td>bail DHCP du VLAN 23</td><td>inter-VLAN, ou pare-feu du poste</td></tr>
+              <tr><th scope="row">7</th><td>PC Internet</td><td>serveur web</td><td><code>209.165.200.229</code></td><td>NAT statique, <code>inside</code>/<code>outside</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 S'arrêter au premier échec</div>
+          <p>Un test qui échoue rend tous les suivants ininterprétables. Si le test 4 ne passe
+             pas, inutile de tenter le 6 : on ne saurait pas si c'est l'inter-VLAN ou
+             l'agrégation qui manque.</p>
+          <p class="rap">C'est ce que le tableau du sujet impose implicitement, et c'est la
+             méthode de dépannage attendue en épreuve E5.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Sept missions, un seul ordre</strong> : effacer → base → adressage → VLAN →
+          routage → services. Jamais dans le désordre.</li>
+      <li><strong>R2 est le seul à voir Internet</strong> : c'est lui qui porte la NAT, et lui
+          qui doit propager la route par défaut avec
+          <code>default-information originate</code>.</li>
+      <li><strong>RIP prend l'adresse de classe</strong> : une seule ligne
+          <code>network 172.16.0.0</code> pour les deux liaisons série.</li>
+      <li><strong><code>no auto-summary</code> est obligatoire</strong>, sinon les
+          <code>/30</code> sont résumés en <code>/16</code>.</li>
+      <li><strong>Le VLAN natif est 1</strong> dans cette maquette : aucune sous-interface ne
+          porte le mot-clé <code>native</code>.</li>
+      <li><strong>L'interface physique du routeur sur un bâton</strong> reste sans adresse,
+          mais allumée.</li>
+      <li><strong>Les deux liaisons série de R2 sont <code>ip nat inside</code></strong>,
+          la sortie Internet est <code>outside</code>.</li>
+      <li><strong>Récapitulatif des réseaux de R3</strong> : <code>192.168.4.0/22</code>,
+          masque générique <code>0.0.3.255</code>.</li>
+      <li><strong><code>clock set</code> se tape en mode privilégié</strong>, et ne figure pas
+          dans la configuration.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Sujet d'atelier de révision « Infrastructure Réseaux » — les sept missions, les
+          tableaux de tâches et les tableaux de tests</li>
+      <li>Topologie de la maquette : clé de VLAN, plages d'adresses et noms d'interfaces</li>
+    </ul>
+    <p class="rap">Les configurations publiées ici sont écrites à partir de la topologie, pas
+       recopiées du corrigé : le sujet n'en fournit aucun. Toutes les adresses sont recalculées
+       par <code>verif-technique.py</code> à chaque contrôle.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/exercices.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=6c607acc"></script>
+<script src="../../assets/recherche.js?v=6c607acc"></script>
+<script src="../../assets/app.js?v=6c607acc"></script>
+</body>
+</html>

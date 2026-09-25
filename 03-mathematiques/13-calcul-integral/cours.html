@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcul intégral | BTS CIEL</title>
+<meta name="description" content="Cours : l'intégrale comme nombre, le théorème fondamental du calcul intégral, les primitives en e^(ax+b) et en u'/u, l'aire sous la courbe et la valeur moyenne d'une fonction.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=6c607acc">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#nombre">1 · L'intégrale est un nombre</a></li>
+    <li><a href="#theoreme">2 · Le théorème fondamental</a></li>
+    <li><a href="#composee">3 · Le préalable : dériver une composée</a></li>
+    <li><a href="#exponentielles">4 · Les exponentielles e<sup>αx+β</sup></a></li>
+    <li><a href="#logarithme">5 · Le logarithme : la forme u′/u</a></li>
+    <li><a href="#aire">6 · L'aire, et l'unité d'aire</a></li>
+    <li><a href="#moyenne">7 · La valeur moyenne</a></li>
+    <li><a href="#manque">8 · Ce qui est comblé, ce qui manque encore</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Mathématiques</span>
+    <span class="sep">/</span><span>Chapitre 13</span>
+  </div>
+
+  <h1>Calcul intégral</h1>
+  <p class="chapeau">Le chapitre 12 apprenait à <em>remonter</em> une dérivée. Celui-ci dit à
+     quoi ça sert : calculer une aire, et calculer une moyenne — la moyenne d'une grandeur qui
+     change en continu, ce qu'aucune somme divisée par le nombre de valeurs ne sait faire.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une intégrale est un <strong>nombre</strong>, pas une fonction. Le
+         <strong>théorème fondamental</strong> le donne sans mystère :
+         <strong>∫<sub>a</sub><sup>b</sup> f(x) dx = [F(x)]<sub>a</sub><sup>b</sup> = F(b) − F(a)</strong>,
+         où F est n'importe quelle primitive de f. Deux familles de primitives s'ajoutent à
+         celles du chapitre 12 : <strong>e<sup>αx+β</sup> → (1/α)e<sup>αx+β</sup></strong> et
+         <strong>u′/u → ln|u|</strong>. Et une notion nouvelle, la
+         <strong>valeur moyenne</strong> : <strong>V<sub>m</sub> = 1/(b−a) · ∫<sub>a</sub><sup>b</sup> f</strong>,
+         c'est-à-dire la hauteur du rectangle qui a la même aire que la courbe.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#integrale</code> <code>#theoreme-fondamental</code> <code>#crochets</code>
+    <code>#aire-sous-la-courbe</code> <code>#unite-d-aire</code>
+    <code>#valeur-moyenne</code> <code>#u'-sur-u</code> <code>#ln</code>
+  </p>
+</header>
+
+<!-- ================================================================= 1 -->
+<section id="nombre">
+  <h2><span class="num">01</span> L'intégrale est un nombre</h2>
+
+  <p>Le cours l'écrit en toutes lettres, et c'est la phrase à retenir :</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La définition du cours</div>
+    <p>L'intégrale d'une fonction <code>f</code> sur un intervalle <code>[a ; b]</code> est un
+       <strong>nombre</strong>, qui peut s'interpréter comme une sorte de « somme » de toutes
+       les valeurs <code>f(x)</code> pour <code>x</code> variant de <code>a</code> à
+       <code>b</code>. Ce nombre est noté :</p>
+    <div class="formule">∫<sub>a</sub><sup>b</sup> f&nbsp;&nbsp;&nbsp;ou encore&nbsp;&nbsp;&nbsp;∫<sub>a</sub><sup>b</sup> f(x) dx</div>
+    <p class="rap">Le symbole ∫ est en fait la lettre <strong>S déformée</strong> — S comme
+       <em>somme</em>. Ce n'est pas une décoration : c'est l'étymologie du signe.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 Pourquoi on ne peut pas faire une moyenne ordinaire</div>
+    <p>Pour connaître votre moyenne de maths, vous additionnez vos notes et vous divisez par
+       leur nombre. C'est possible parce qu'il y en a <strong>un nombre fini</strong>.</p>
+    <p>Maintenant, la température d'une salle serveur entre 8 h et 18 h. Elle change
+       <strong>en continu</strong> : entre deux instants, il y en a toujours un troisième.
+       On ne peut ni les compter ni les additionner. L'intégrale est précisément l'outil qui
+       fait cette « somme » d'une infinité de valeurs — et qui rend un nombre fini au bout.</p>
+  </div>
+
+  <p>Le <code>dx</code> qui traîne à la fin n'est pas un ornement. Il porte un nom :
+     l'<strong>élément différentiel</strong>. Il dit selon quelle variable on somme, et il
+     redevient utile dès qu'il y en a plusieurs. En BTS, il sert surtout de repère :
+     <code>∫ f(t) dt</code> intègre par rapport au <em>temps</em>, <code>∫ f(x) dx</code>
+     par rapport à une longueur ou à une quantité.</p>
+
+  <div class="quiz">
+    <div class="titre">🤔 ∫<sub>0</sub><sup>2</sup> x dx est-il une fonction ou un nombre ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Un <strong>nombre</strong> : ici 2. Les bornes 0 et 2 « consomment » la variable —
+         elle disparaît du résultat.</p>
+      <p class="rap">Test infaillible : s'il reste un <code>x</code> dans votre réponse, vous
+         avez écrit une primitive, pas une intégrale.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 2 -->
+<section id="theoreme">
+  <h2><span class="num">02</span> Le théorème fondamental</h2>
+
+  <p>Il peut paraître inattendu que le calcul d'une <em>aire</em> passe par une
+     <em>dérivée</em>. C'est pourtant tout le programme de BTS, et c'est ce théorème qui
+     fait le pont :</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Théorème fondamental du calcul intégral</div>
+    <p>Si <code>F</code> désigne une <strong>primitive</strong> de <code>f</code> sur
+       <code>[a ; b]</code>, c'est-à-dire une fonction <code>F</code> telle que
+       <code>F′(x) = f(x)</code> pour tout <code>x ∈ [a ; b]</code>, alors :</p>
+    <div class="formule">∫<sub>a</sub><sup>b</sup> f = F(b) − F(a)</div>
+    <p>Pour des raisons de lisibilité, le réel <code>F(b) − F(a)</code> se note aussi
+       <code>[F(x)]<sub>a</sub><sup>b</sup></code>.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la primitive n'est pas « l'inverse » de la dérivée</div>
+    <p>Le polycopié écrit d'abord que la primitive est la notion « inverse » de la dérivée,
+       puis le mot est <strong>rayé à la main</strong>. La rature a raison, et il vaut la peine
+       de dire pourquoi : une fonction a <strong>une seule</strong> dérivée, mais une
+       <strong>infinité</strong> de primitives, toutes séparées d'une constante. Une
+       correspondance qui va dans un sens et pas dans l'autre n'est pas une inverse.</p>
+    <p class="rap">Le mot juste est <em>réciproque à une constante près</em>. Et c'est
+       exactement pour cela que le <code>+ K</code> existe.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le K disparaît, mais seulement dans une intégrale</div>
+    <p>Dans <code>F(b) − F(a)</code>, la constante se soustrait avec elle-même et s'annule :
+       on peut donc prendre <strong>n'importe quelle</strong> primitive. C'est pourquoi on ne
+       l'écrit pas dans un calcul d'intégrale.</p>
+    <p>Mais dès que la question dit « déterminer <em>les</em> primitives » ou « l'ensemble des
+       primitives », l'oublier coûte des points — c'est la réponse qui devient fausse, pas la
+       présentation.</p>
+  </div>
+
+  <div class="bloc-code"><span class="langue">calcul</span><pre><code>I₂ = ∫₀² x³ dx
+
+f(x) = x³  a pour primitives  F(x) = ¼x⁴ + K
+
+I₂ = F(2) − F(0)
+   = (¼ × 2⁴ + K) − (¼ × 0⁴ + K)     ← les deux K se soustraient
+   = 4 − 0
+   = 4 u.a.</code></pre></div>
+</section>
+
+<!-- ================================================================= 3 -->
+<section id="composee">
+  <h2><span class="num">03</span> Le préalable : dériver une composée</h2>
+
+  <p>Le cours le dit sans détour : il n'y a pas de « règle automatique » pour trouver une
+     primitive. On la reconnaît. Et on ne reconnaît que ce qu'on sait dériver — d'où ce
+     rappel, qui est la vraie clé des deux sections suivantes.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Les quatre dérivées dont tout le chapitre dépend, où <code>u</code> est une
+        fonction définie et dérivable</caption>
+      <thead><tr><th scope="col">f</th><th scope="col">f′</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>ln x</code></th><td><code>1/x</code></td></tr>
+        <tr><th scope="row"><code>ln u</code></th><td><code>u′/u</code></td></tr>
+        <tr><th scope="row"><code>e<sup>x</sup></code></th><td><code>e<sup>x</sup></code></td></tr>
+        <tr><th scope="row"><code>e<sup>u</sup></code></th><td><code>u′·e<sup>u</sup></code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Le réflexe « on pose u »</div>
+    <p>Trois lignes, toujours les mêmes, et l'exercice se rédige tout seul :</p>
+    <div class="bloc-code"><span class="langue">méthode</span><pre><code>f(x) = ln(2x − 1)
+
+On pose : u(x) = 2x − 1   donc   u′(x) = 2
+f = ln u                  donc   f′ = u′/u
+
+f′(x) = 2 / (2x − 1)        sur Df = ]½ ; +∞[</code></pre></div>
+    <p class="rap">Le domaine n'est pas un détail décoratif : <code>ln</code> exige un
+       argument strictement positif, donc <code>2x − 1 &gt; 0</code>, donc
+       <code>x &gt; ½</code>.</p>
+  </div>
+
+  <p>Même mécanique avec un produit, où la règle <code>(uv)′ = u′v + uv′</code> se combine à
+     la composée :</p>
+
+  <div class="bloc-code"><span class="langue">calcul</span><pre><code>f(x) = (0,5x − 4) · e^(−0,5x)
+
+u(x) = 0,5x − 4      donc  u′(x) = 0,5
+v(x) = e^(−0,5x)     donc  v′(x) = −0,5 · e^(−0,5x)
+
+f = uv        donc  f′ = u′v + uv′
+f′(x) = 0,5·e^(−0,5x) + (0,5x − 4)·(−0,5·e^(−0,5x))
+      = 0,5·e^(−0,5x) · (1 − (0,5x − 4))
+f′(x) = 0,5·(−0,5x + 5)·e^(−0,5x)</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Factoriser par l'exponentielle, toujours</div>
+    <p>Une dérivée laissée sous la forme <code>0,5e^(−0,5x) + (0,5x−4)(−0,5e^(−0,5x))</code>
+       est juste, mais inexploitable : on ne peut pas en lire le signe. Comme
+       <code>e<sup>quelque chose</sup> &gt; 0</code> <em>toujours</em>, une fois l'exponentielle
+       mise en facteur, le signe de la dérivée est celui du <strong>facteur restant</strong> —
+       un polynôme, dont le signe se lit d'un coup d'œil.</p>
+    <p class="rap">C'est la question 1.b de presque toutes les annales : « étudier le signe de
+       f′ ». Elle est gratuite si l'on a factorisé, pénible sinon.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 4 -->
+<section id="exponentielles">
+  <h2><span class="num">04</span> Les exponentielles e<sup>αx+β</sup></h2>
+
+  <p>Le chapitre 12 donnait <code>e<sup>ax</sup> → (1/a)e<sup>ax</sup></code>. La forme
+     complète en découle, et elle couvre tout ce qui tombe en annale.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les deux formules à connaître</div>
+    <div class="formule">f(x) = e<sup>αx</sup>&nbsp;&nbsp;→&nbsp;&nbsp;F(x) = (1/α)·e<sup>αx</sup> + K</div>
+    <div class="formule">f(x) = e<sup>αx+β</sup>&nbsp;&nbsp;→&nbsp;&nbsp;F(x) = (1/α)·e<sup>αx+β</sup> + K</div>
+    <p class="rap">Le <code>β</code> ne change rien : il est constant, sa dérivée est nulle,
+       le facteur qui sort en dérivant reste <code>α</code>. <strong>Seul le coefficient de
+       x compte.</strong></p>
+  </div>
+
+  <p>La démonstration tient en une ligne, et c'est celle qu'on écrit sur la copie :</p>
+
+  <div class="bloc-code"><span class="langue">calcul</span><pre><code>F(x) = −½ · e^(−2x+3)
+
+u(x) = −2x + 3   donc  u′(x) = −2
+F = −½ e^u       donc  F′ = −½ · u′ · e^u
+F′(x) = −½ × (−2) × e^(−2x+3)
+F′(x) = e^(−2x+3)      ✔  F est bien une primitive de e^(−2x+3)</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le signe du coefficient se garde jusqu'au bout</div>
+    <p>Pour <code>f(x) = e<sup>−0,1x</sup></code>, la primitive est
+       <code>(1/−0,1)e<sup>−0,1x</sup> = <strong>−10</strong>e<sup>−0,1x</sup></code>.
+       Le moins n'est pas une faute de recopie : il vient de <code>1/α</code> avec
+       <code>α</code> négatif. L'oublier change le signe du résultat final, donc l'aire.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Calculer I = ∫<sub>0</sub><sup>10</sup> 2e<sup>−0,1x</sup> dx</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <div class="bloc-code"><span class="langue">calcul</span><pre><code>Le facteur 2 sort de l'intégrale :
+I = 2 ∫₀¹⁰ e^(−0,1x) dx
+
+f(x) = e^(−0,1x)  a pour primitives  F(x) = (1/−0,1)·e^(−0,1x) + K = −10e^(−0,1x) + K
+
+I = 2 · (F(10) − F(0))
+  = 2 · (−10e^(−1) − (−10e⁰))
+  = −20(e^(−1) − 1)
+  = −20(1/e − 1)
+
+I ≈ 12,64 u.a.   (à 10⁻²)</code></pre></div>
+      <p class="rap">Rappel utile : <code>e<sup>−1</sup> = 1/e<sup>1</sup> = 1/e ≈ 0,3679</code>.
+         Le résultat est positif parce que <code>1/e − 1</code> est négatif — deux signes
+         moins qui se répondent.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 5 -->
+<section id="logarithme">
+  <h2><span class="num">05</span> Le logarithme : la forme u′/u</h2>
+
+  <p>C'est le manque annoncé au chapitre 12, et il se comble d'une seule ligne — lue à
+     l'envers, la dérivée de <code>ln u</code> <em>est</em> la formule de primitive.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La formule, et rien qu'elle</div>
+    <div class="formule">(ln u)′ = u′/u&nbsp;&nbsp;&nbsp;donc&nbsp;&nbsp;&nbsp;f = u′/u&nbsp;&nbsp;→&nbsp;&nbsp;F = ln|u| + K</div>
+    <p>Cas particulier, celui qu'on rencontre en premier :</p>
+    <div class="formule">f(x) = 1/(x + α)&nbsp;&nbsp;→&nbsp;&nbsp;F(x) = ln|x + α| + K</div>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Reconnaître un u′/u déguisé</div>
+    <p>La fraction est rarement offerte sous la bonne forme. La méthode : regarder le
+       <strong>dénominateur</strong>, le dériver, et comparer au numérateur.</p>
+    <div class="tableau">
+      <table>
+        <caption>Les quatre cas du TD, traités de la même façon</caption>
+        <thead><tr><th scope="col">f(x)</th><th scope="col">u</th><th scope="col">u′</th><th scope="col">Une primitive</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><code>2/(2x+1)</code></th><td><code>2x+1</code></td><td><code>2</code></td><td><code>ln|2x+1|</code></td></tr>
+          <tr><th scope="row"><code>2x/(x²+1)</code></th><td><code>x²+1</code></td><td><code>2x</code></td><td><code>ln(x²+1)</code></td></tr>
+          <tr><th scope="row"><code>5e<sup>x</sup>/(1+5e<sup>x</sup>)</code></th><td><code>1+5e<sup>x</sup></code></td><td><code>5e<sup>x</sup></code></td><td><code>ln(1+5e<sup>x</sup>)</code></td></tr>
+          <tr><th scope="row"><code>−2e<sup>−0,1x</sup>/(1+20e<sup>−0,1x</sup>)</code></th><td><code>1+20e<sup>−0,1x</sup></code></td><td><code>−2e<sup>−0,1x</sup></code></td><td><code>ln(1+20e<sup>−0,1x</sup>)</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="rap">Le dernier cas paraît hostile ; il ne l'est pas.
+       <code>(1+20e<sup>−0,1x</sup>)′ = 20 × (−0,1) × e<sup>−0,1x</sup> = −2e<sup>−0,1x</sup></code>,
+       qui est exactement le numérateur. <strong>Dérivez toujours le dénominateur avant de
+       conclure que l'exercice est infaisable.</strong></p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les valeurs absolues, et quand on peut les enlever</div>
+    <p>La formule générale s'écrit <code>ln|u|</code>, parce que <code>ln</code> n'accepte pas
+       d'argument négatif. On n'a le droit de retirer les barres que si l'on a
+       <strong>montré</strong> que <code>u &gt; 0</code> sur l'intervalle de travail.</p>
+    <p>C'est le cas dans les trois dernières lignes du tableau : <code>x²+1 ⩾ 1</code>,
+       et une exponentielle est toujours strictement positive. Ce n'est pas le cas de
+       <code>2x+1</code>, qui change de signe en <code>−½</code>.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 6 -->
+<section id="aire">
+  <h2><span class="num">06</span> L'aire, et l'unité d'aire</h2>
+
+  <p>Graphiquement, <code>∫<sub>a</sub><sup>b</sup> f(x) dx</code> représente l'aire
+     « sous la courbe » : la surface comprise entre la courbe, l'axe des abscisses, et les
+     deux droites verticales d'équation <code>x = a</code> et <code>x = b</code>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le contrôle géométrique, gratuit et imparable</div>
+    <p><code>∫<sub>0</sub><sup>2</sup> x dx = 2</code>. Vérifions sans aucun calcul
+       d'intégrale : la courbe de <code>f(x) = x</code> est une droite, la surface sous elle
+       entre 0 et 2 est un <strong>triangle</strong> de base 2 et de hauteur 2, donc d'aire
+       <code>(2 × 2)/2 = 2</code>. ✔</p>
+    <p class="rap">Chaque fois que la fonction est affine, vous pouvez recalculer l'intégrale
+       à la main. Faites-le : c'est trente secondes, et cela attrape un signe oublié.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « u.a. » n'est pas une unité décorative</div>
+    <p>Le résultat d'une intégrale s'exprime en <strong>unités d'aire</strong> : une u.a. est
+       l'aire du rectangle bâti sur une unité en abscisse et une unité en ordonnée. Tant que
+       le repère n'a pas d'unité physique, on ne peut pas dire mieux.</p>
+    <p>Dans une annale, en revanche, les axes ont un sens — des minutes, des mégapascals, des
+       centaines d'euros. <strong>L'interprétation vaut des points</strong>, et elle est
+       toujours demandée.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Aire = intégrale seulement si f ⩾ 0</div>
+    <p>Sur un intervalle où la courbe passe sous l'axe, l'intégrale compte cette portion
+       <strong>négativement</strong>. Une intégrale nulle ne veut donc pas dire « aucune
+       aire » : elle peut vouloir dire « autant au-dessus qu'en dessous ».</p>
+    <p class="rap">Dans les annales de BTS, les fonctions modélisent des quantités physiques
+       positives. Vérifiez-le une fois, dites-le en une ligne, et le problème disparaît.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 7 -->
+<section id="moyenne">
+  <h2><span class="num">07</span> La valeur moyenne</h2>
+
+  <p>C'est la notion nouvelle du chapitre, et celle que le cours annonce dès sa première
+     phrase : l'intégrale sert à calculer <em>la moyenne d'une quantité qui évolue de façon
+     continue</em>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Valeur moyenne d'une fonction sur [a ; b]</div>
+    <div class="formule">V<sub>m</sub> = <sup>1</sup>⁄<sub>b − a</sub> ∫<sub>a</sub><sup>b</sup> f(x) dx</div>
+    <p class="rap">On somme toutes les valeurs (c'est l'intégrale), puis on divise par la
+       « taille » de l'ensemble sur lequel on fait la moyenne — c'est-à-dire par la longueur
+       <code>b − a</code> de l'intervalle. Exactement comme une moyenne ordinaire.</p>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 La hauteur du rectangle qui a la même aire</div>
+    <p>Il existe une lecture géométrique, et c'est la plus utile : <strong>V<sub>m</sub> est
+       la hauteur du rectangle de base [a ; b] qui a exactement la même aire que la surface
+       sous la courbe.</strong></p>
+    <p>Versez la surface sous la courbe dans un bac large de <code>b − a</code> : le niveau
+       auquel elle se stabilise, c'est la valeur moyenne. Ce qui dépasse comble ce qui manque.</p>
+  </div>
+
+  <div class="schema">
+    <svg viewBox="0 0 420 210" role="img" aria-label="La valeur moyenne est la hauteur du rectangle de même aire que la surface sous la courbe">
+      <style>
+        .vm-ax{stroke:var(--encre);stroke-width:1.4;fill:none}
+        .vm-gr{stroke:var(--bord);stroke-width:1;fill:none}
+        .vm-cb{stroke:var(--accent);stroke-width:2.2;fill:none}
+        .vm-ai{fill:var(--accent);opacity:.16}
+        .vm-re{fill:none;stroke:var(--accent-sombre);stroke-width:1.6;stroke-dasharray:5 3}
+        .vm-lb{font:600 11px var(--sans);fill:var(--encre);text-anchor:middle}
+        .vm-lt{font:600 10.5px var(--sans);fill:var(--encre-douce);text-anchor:start}
+      </style>
+      <path class="vm-gr" d="M60 40h300M60 75h300M60 110h300M60 145h300"/>
+      <path class="vm-ai" d="M90 175 C150 60, 230 145, 330 70 L330 175 Z"/>
+      <rect class="vm-re" x="90" y="105" width="240" height="70"/>
+      <path class="vm-cb" d="M90 175 C150 60, 230 145, 330 70"/>
+      <path class="vm-ax" d="M60 175h310M60 190V30"/>
+      <path class="vm-ax" d="M90 175v6M330 175v6"/>
+      <text class="vm-lb" x="90" y="198">a</text>
+      <text class="vm-lb" x="330" y="198">b</text>
+      <text class="vm-lt" x="338" y="109">V<tspan dy="3" font-size="8">m</tspan></text>
+      <text class="vm-lt" x="196" y="128">même aire</text>
+    </svg>
+    <figcaption>Le rectangle en pointillés et la surface colorée ont la même aire.
+       Sa hauteur est la valeur moyenne.</figcaption>
+  </div>
+
+  <div class="bloc-code"><span class="langue">calcul</span><pre><code>Exemple 1 — valeur moyenne de f(x) = x sur [0 ; 10]
+
+F(x) = ½x²
+Vₘ = 1/(10 − 0) · ∫₀¹⁰ x dx
+   = (1/10) · (½ × 10² − ½ × 0²)
+   = (1/10) × 50
+Vₘ = 5
+
+
+Exemple 2 — valeur moyenne de f(x) = x² sur [0 ; 10]
+
+F(x) = x³/3
+Vₘ = (1/10) · ∫₀¹⁰ x² dx
+   = (1/10) · (10³/3 − 0³/3)
+   = (1/10) × 1000/3
+Vₘ = 100/3 ≈ 33,33</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les deux résultats se contrôlent à l'œil</div>
+    <p>Sur <code>[0 ; 10]</code>, la fonction <code>x</code> va de 0 à 10 régulièrement : sa
+       moyenne est le milieu, <strong>5</strong>. ✔</p>
+    <p>La fonction <code>x²</code> va de 0 à 100, mais elle reste longtemps petite avant de
+       s'envoler. Sa moyenne doit donc être <strong>nettement sous 50</strong> : 33,33 est
+       cohérent, 50 aurait dû alerter.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi V<sub>m</sub> n'est-elle pas (f(a) + f(b))/2 ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que cette formule ne regarde que les <strong>deux bouts</strong> et ignore tout
+         ce qui se passe entre. Elle ne serait juste que si la fonction était affine.</p>
+      <p>Contre-exemple immédiat, avec <code>x²</code> sur <code>[0 ; 10]</code> :
+         <code>(0 + 100)/2 = 50</code>, alors que la vraie valeur moyenne est
+         <code>100/3 ≈ 33,33</code>. L'écart est de 50 %.</p>
+      <p class="rap">C'est exactement ce que l'intégrale apporte : elle tient compte de
+         <em>toutes</em> les valeurs, pas des extrémités.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 8 -->
+<section id="manque">
+  <h2><span class="num">08</span> Ce qui est comblé, ce qui manque encore</h2>
+
+  <p>Le chapitre 12 se terminait sur une liste franche de ce que ses sources ne couvraient
+     pas. Le nouveau cours en comble deux. La liste est mise à jour ici plutôt que réécrite
+     en silence.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>État du programme d'intégration, après le cours de calcul intégral</caption>
+      <thead><tr><th scope="col">Attendu au programme</th><th scope="col">État</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Primitive de 1/x → ln|x|, et la forme u′/u</th><td><strong>traité</strong> — section 5</td></tr>
+        <tr><th scope="row">Valeur moyenne d'une fonction</th><td><strong>traité</strong> — section 7</td></tr>
+        <tr><th scope="row">Primitives de sin et cos</th><td>toujours absent des sources</td></tr>
+        <tr><th scope="row">Intégration par parties</th><td>toujours absent des sources</td></tr>
+        <tr><th scope="row">Aire entre deux courbes</th><td>toujours absent des sources</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="rap">Ces trois points ne sont pas inventés ici : une fiche dit ce qu'elle ne
+     couvre pas plutôt que de combler les trous en devinant. À compléter dès que la suite du
+     cours sera donnée.</p>
+
+  <div class="encart methode">
+    <div class="titre">📐 Ce que l'épreuve demande vraiment</div>
+    <p>Les trois annales du chapitre suivent toutes le même plan : <strong>étude de fonction,
+       puis primitive, puis valeur moyenne, puis interprétation</strong>. Le calcul intégral
+       n'y apparaît jamais seul — il arrive après une dérivée, un tableau de variation et un
+       théorème des valeurs intermédiaires.</p>
+    <p class="rap">Autrement dit : réviser ce chapitre sans réviser les chapitres 4 (dérivées)
+       et 6 (logarithme et exponentielle) ne sert à rien. C'est la même question, en trois
+       parties.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Une intégrale est un nombre.</strong> S'il reste un <code>x</code> dans la
+          réponse, c'est une primitive, pas une intégrale.</li>
+      <li><strong>∫<sub>a</sub><sup>b</sup> f = [F(x)]<sub>a</sub><sup>b</sup> = F(b) − F(a)</strong>
+          — haut moins bas. Le <code>+ K</code> s'annule, donc n'importe quelle primitive convient.</li>
+      <li><strong>e<sup>αx+β</sup> → (1/α)·e<sup>αx+β</sup></strong>. Seul le coefficient de
+          <code>x</code> compte ; le <code>β</code> ne change rien.</li>
+      <li><strong>u′/u → ln|u|</strong>. Devant une fraction : dérivez le dénominateur et
+          comparez au numérateur.</li>
+      <li><strong>Factorisez toujours par l'exponentielle</strong> : elle est positive, donc le
+          signe de la dérivée est celui du facteur restant.</li>
+      <li><strong>V<sub>m</sub> = 1/(b−a) · ∫<sub>a</sub><sup>b</sup> f</strong> : la hauteur du
+          rectangle de même aire. Elle n'est pas la moyenne des deux extrémités.</li>
+      <li><strong>Aire = intégrale seulement si f ⩾ 0</strong>, et le résultat se dit en
+          unités d'aire — puis s'interprète dans l'unité de l'énoncé.</li>
+      <li><strong>Contrôle gratuit</strong> : dérivez votre primitive. Si vous retombez sur
+          <code>f</code>, c'est juste.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Tableau de cours « Calcul intégral » — polycopié imprimé (définition de l'intégrale,
+          valeur moyenne, théorème fondamental) et notes manuscrites (primitives, formulaire,
+          exercices 1 à 4 corrigés)</li>
+      <li>Annale — bénéfice d'une start-up, <code>f(x) = 80x·e<sup>−0,2x</sup></code>, avec son
+          annexe graphique</li>
+      <li>Annale groupement B1, session 2025 — résistance du béton, partie B</li>
+      <li>Annale groupement D1, 14 mai 2024 — teneur en matière grasse, partie C et annexe</li>
+    </ul>
+    <p class="rap">Toutes les valeurs numériques de ce chapitre sont recalculées par
+       <code>verif-maths.py</code> à chaque contrôle.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-integrales-primitives/cours.html"><span>Chapitre précédent</span><b>Intégrales et primitives</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=6c607acc"></script>
+<script src="../../assets/recherche.js?v=6c607acc"></script>
+<script src="../../assets/app.js?v=6c607acc"></script>
+</body>
+</html>

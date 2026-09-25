@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier infrastructure — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche recto-verso imprimable : l'ordre de montage d'une infrastructure, le plan d'adressage, les commandes clés de chaque étage et les pièges qui coûtent une heure de TP.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=6c607acc">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <span class="matiere">Réseaux &amp; systèmes</span>
+    <span class="sep">/</span><span>Chapitre 17</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Atelier — infrastructure complète</h1>
+  <p class="chapeau">Recto-verso. À garder ouverte pendant le TP.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Le TP corrigé</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ L'ordre de montage</h2>
+    <p><strong>1.</strong> effacer : <code>erase startup-config</code> + <code>delete vlan.dat</code> + <code>reload</code><br>
+       <strong>2.</strong> base : nom, mots de passe, bannière<br>
+       <strong>3.</strong> adressage + <code>no shutdown</code> + horloge DCE<br>
+       <strong>4.</strong> VLAN, ports d'accès, agrégations<br>
+       <strong>5.</strong> inter-VLAN, puis RIPv2<br>
+       <strong>6.</strong> DHCP, NAT, NTP</p>
+    <p>Chaque étage suppose le précédent. Un service testé trop tôt <strong>semble toujours
+       cassé</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le plan d'adressage</h2>
+    <div class="tableau">
+      <table>
+        <thead><tr><th scope="col">Rôle</th><th scope="col">Adresse</th></tr></thead>
+        <tbody>
+          <tr><td>R1 S0/0/0</td><td><code>172.16.1.1/30</code></td></tr>
+          <tr><td>R2 S0/0/0</td><td><code>172.16.1.2/30</code></td></tr>
+          <tr><td>R2 S0/0/1</td><td><code>172.16.2.2/30</code></td></tr>
+          <tr><td>R3 S0/0/1</td><td><code>172.16.2.1/30</code></td></tr>
+          <tr><td>R2 G0/0</td><td><code>209.165.200.233/29</code></td></tr>
+          <tr><td>Serveur web</td><td><code>10.10.10.10/32</code></td></tr>
+          <tr><td>VLAN 21 · 23 · 99</td><td><code>192.168.21.1</code> · <code>.23.1</code> · <code>.99.1</code></td></tr>
+          <tr><td>S1 · S3 (VLAN 99)</td><td><code>192.168.99.2</code> · <code>192.168.99.3</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Ce que le sujet a faux</h2>
+    <p>Il annonce <code>209.165.200.225</code> comme passerelle du serveur Internet.</p>
+    <p>Le lien est <code>209.165.200.232/29</code> : utilisables de <code>.233</code> à
+       <code>.238</code>. Le serveur porte <code>.238</code>, sa passerelle doit donc être
+       <strong><code>209.165.200.233</code></strong>.</p>
+    <p><code>.225</code> appartient au <code>209.165.200.224/29</code> voisin — celui du pool
+       NAT.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le routeur sur un bâton</h2>
+    <p>Interface physique : <strong>sans adresse, mais allumée</strong>.</p>
+    <p>Une sous-interface par VLAN, numérotée comme le VLAN par convention :</p>
+    <p><code>interface g0/1.21</code><br>
+       <code>encapsulation dot1Q 21</code><br>
+       <code>ip address 192.168.21.1 255.255.255.0</code></p>
+    <p>Le mot-clé <code>native</code> ne s'ajoute que si le VLAN natif est l'un de ceux-là.
+       Ici le natif est le 1 : <strong>aucun</strong> <code>native</code>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ RIPv2 : les quatre lignes</h2>
+    <p><code>router rip</code><br>
+       <code>version 2</code><br>
+       <code>no auto-summary</code><br>
+       <code>network 172.16.0.0</code></p>
+    <p><code>network</code> prend l'adresse de <strong>classe</strong>, pas le sous-réseau :
+       une seule ligne couvre les deux <code>/30</code>.</p>
+    <p>Sans <code>no auto-summary</code>, les <code>/30</code> sont annoncés en
+       <code>/16</code> et le découpage est perdu.</p>
+    <p>Sur R2 : <code>default-information originate</code>, sinon personne n'apprend la sortie
+       Internet.</p>
+  </article>
+
+  <article class="memo">
+    <h2>DHCP</h2>
+    <p>Les exclusions sont <strong>globales</strong> et se posent avant les pools :</p>
+    <p><code>ip dhcp excluded-address 192.168.21.1 192.168.21.20</code></p>
+    <p>Puis, dans le pool : <code>network</code>, <code>default-router</code>,
+       <code>dns-server</code>, <code>domain-name</code>.</p>
+    <p>Une adresse en <code>169.254.x.x</code> ne dit pas « DHCP est faux », elle dit
+       <strong>« personne n'a répondu »</strong> — cherchez le VLAN, l'agrégation, la
+       sous-interface.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ NAT : les deux lignes qu'on oublie</h2>
+    <p><code>ip nat inside</code> sur chaque interface côté réseau privé —
+       <strong>les deux liaisons série ici</strong>.</p>
+    <p><code>ip nat outside</code> sur la sortie Internet.</p>
+    <p>Sans elles, <code>show ip nat translations</code> reste vide quoi qu'on fasse.</p>
+    <p>Masque générique = inverse du masque : <code>255.255.252.0</code> donne
+       <code>0.0.3.255</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Lire un état d'interface</h2>
+    <p><strong>administratively down</strong> → il manque <code>no shutdown</code>.</p>
+    <p><strong>down / down</strong> → rien en face : câble, équipement éteint, ou horloge DCE
+       manquante.</p>
+    <p><strong>up / down</strong> → le lien existe, le protocole ne s'établit pas :
+       encapsulation, ou l'autre bout n'est pas prêt.</p>
+    <p>La première colonne est ce que <em>vous</em> avez décidé. La seconde, ce que le
+       <em>câble</em> constate.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les commandes de contrôle</h2>
+    <p><code>terminal length 0</code> — supprime la pagination</p>
+    <p><code>show ip interface brief</code> — up/up ?<br>
+       <code>show ip protocols</code> — RIP : version, résumé, réseaux, passives<br>
+       <code>show ip route</code> — les réseaux distants sont-ils appris ?<br>
+       <code>show vlan brief</code> · <code>show interfaces trunk</code><br>
+       <code>show ip dhcp binding</code> · <code>show ip nat translations</code><br>
+       <code>show ntp status</code></p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ IPv6 : la ligne oubliée</h2>
+    <p><code>ipv6 unicast-routing</code> — <strong>en configuration globale</strong>.</p>
+    <p>Sans elle, les interfaces prennent bien leurs adresses, les voisins se voient, mais rien
+       ne traverse : le routeur n'est qu'un hôte.</p>
+    <p>Route par défaut IPv6 : <code>ipv6 route ::/0 serial 0/0/0</code>.</p>
+    <p><code>2001:DB8::/32</code> est le préfixe réservé à la documentation — l'équivalent de
+       <code>exemple.fr</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>NTP</h2>
+    <p>Sur le serveur : <code>clock set 09:00:00 5 March 2016</code> en <strong>mode
+       privilégié</strong>, puis <code>ntp master 5</code> en configuration.</p>
+    <p>Sur le client : <code>ntp server 172.16.1.2</code> et
+       <code>ntp update-calendar</code>.</p>
+    <p>La strate se compte en sauts depuis l'horloge de référence : maître en 5, client en 6.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Tester du plus proche au plus lointain</h2>
+    <p><strong>1.</strong> interface locale up/up<br>
+       <strong>2.</strong> ping du voisin direct<br>
+       <strong>3.</strong> ping de sa passerelle<br>
+       <strong>4.</strong> ping d'un réseau distant<br>
+       <strong>5.</strong> bail DHCP obtenu<br>
+       <strong>6.</strong> accès au serveur web public</p>
+    <p><strong>S'arrêter au premier échec.</strong> Un test raté rend tous les suivants
+       ininterprétables.</p>
+    <p>Et vérifier que le <strong>pare-feu du poste</strong> laisse revenir la réponse.</p>
+  </article>
+
+</section>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/fiche-revision.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=6c607acc"></script>
+<script src="../../assets/recherche.js?v=6c607acc"></script>
+<script src="../../assets/app.js?v=6c607acc"></script>
+</body>
+</html>
