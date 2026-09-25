@@ -7,7 +7,7 @@
 <meta name="description" content="Monter une infrastructure entière : lire une topologie, calculer le plan d'adressage, l'ordre de montage qui évite les impasses, puis VLAN, inter-VLAN, RIPv2, DHCP, NAT et NTP.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=6c607acc">
+<link rel="stylesheet" href="../../assets/fiche.css?v=ec8aa505">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -65,6 +65,92 @@
   <p>La maquette de l'atelier comporte trois routeurs, deux commutateurs, deux postes et un
      serveur simulant Internet. Avant toute chose, on la <strong>lit</strong>, et on en tire
      quatre informations qui commandent tout le reste.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 780 430" role="img" aria-label="Topologie de la maquette : R2 relie Internet, R1 porte les trois VLAN via les commutateurs S1 et S3, R3 porte trois réseaux simulés par des interfaces de bouclage">
+      <style>
+        .tp-bo{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.4}
+        .tp-rt{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.6}
+        .tp-sw{fill:var(--vert-pale);stroke:var(--vert);stroke-width:1.6}
+        .tp-pc{fill:var(--ambre-pale);stroke:var(--ambre);stroke-width:1.4}
+        .tp-li{stroke:var(--encre-douce);stroke-width:1.6;fill:none}
+        .tp-se{stroke:var(--rouge);stroke-width:2.4;fill:none}
+        .tp-nu{fill:var(--carte-creuse);stroke:var(--bord-fort);stroke-width:1.4}
+        .tp-nm{font:700 13px var(--sans);fill:var(--encre);text-anchor:middle}
+        .tp-ad{font:600 9.5px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+        .tp-if{font:600 9px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+        .tp-ti{font:700 9.5px var(--sans);fill:var(--encre-douce);letter-spacing:.06em}
+      </style>
+
+      <path class="tp-nu" d="M300 16h120a26 26 0 0 1 0 52H300a26 26 0 0 1 0-52z"/>
+      <text class="tp-nm" x="360" y="48">Internet</text>
+      <rect class="tp-bo" x="150" y="22" width="112" height="40" rx="7"/>
+      <text class="tp-nm" x="206" y="40">Serveur</text>
+      <text class="tp-ad" x="206" y="55">209.165.200.238</text>
+      <path class="tp-li" d="M262 42h38"/>
+
+      <path class="tp-li" d="M360 68v42"/>
+      <text class="tp-if" x="404" y="84">G0/0</text>
+      <text class="tp-ad" x="432" y="100">209.165.200.233/29</text>
+
+      <rect class="tp-rt" x="310" y="110" width="100" height="42" rx="8"/>
+      <text class="tp-nm" x="360" y="136">R2</text>
+      <rect class="tp-bo" x="452" y="112" width="116" height="38" rx="7"/>
+      <text class="tp-ad" x="510" y="128">Serveur web</text>
+      <text class="tp-ad" x="510" y="142">10.10.10.10/32</text>
+      <path class="tp-li" d="M410 131h42"/>
+
+      <path class="tp-se" d="M310 145 L176 196"/>
+      <text class="tp-ad" x="208" y="160">172.16.1.0/30</text>
+      <path class="tp-se" d="M410 145 L560 196"/>
+      <text class="tp-ad" x="530" y="160">172.16.2.0/30</text>
+
+      <rect class="tp-rt" x="106" y="196" width="100" height="42" rx="8"/>
+      <text class="tp-nm" x="156" y="222">R1</text>
+      <rect class="tp-rt" x="522" y="196" width="100" height="42" rx="8"/>
+      <text class="tp-nm" x="572" y="222">R3</text>
+
+      <rect class="tp-bo" x="640" y="188" width="128" height="58" rx="7"/>
+      <text class="tp-ad" x="704" y="205">192.168.4.0/24</text>
+      <text class="tp-ad" x="704" y="220">192.168.5.0/24</text>
+      <text class="tp-ad" x="704" y="235">192.168.6.0/24</text>
+      <path class="tp-li" d="M622 217h18"/>
+      <text class="tp-ti" x="640" y="263">bouclages</text>
+
+      <path class="tp-li" d="M156 238v46"/>
+      <text class="tp-if" x="196" y="256">G0/1</text>
+      <text class="tp-ti" x="176" y="272">802.1Q</text>
+
+      <rect class="tp-sw" x="106" y="284" width="100" height="38" rx="8"/>
+      <text class="tp-nm" x="156" y="308">S1</text>
+      <rect class="tp-sw" x="286" y="284" width="100" height="38" rx="8"/>
+      <text class="tp-nm" x="336" y="308">S3</text>
+      <path class="tp-li" d="M206 303h80"/>
+      <text class="tp-ti" x="222" y="296">trunk</text>
+      <text class="tp-ad" x="60" y="298">192.168.99.2</text>
+      <text class="tp-ad" x="432" y="298">192.168.99.3</text>
+
+      <path class="tp-li" d="M156 322v34"/>
+      <path class="tp-li" d="M336 322v34"/>
+      <rect class="tp-pc" x="106" y="356" width="100" height="38" rx="7"/>
+      <text class="tp-nm" x="156" y="374">PC-A</text>
+      <text class="tp-ad" x="156" y="388">DHCP</text>
+      <rect class="tp-pc" x="286" y="356" width="100" height="38" rx="7"/>
+      <text class="tp-nm" x="336" y="374">PC-C</text>
+      <text class="tp-ad" x="336" y="388">DHCP</text>
+      <text class="tp-ti" x="212" y="348">VLAN 21</text>
+      <text class="tp-ti" x="392" y="348">VLAN 23</text>
+
+      <rect class="tp-bo" x="500" y="300" width="268" height="96" rx="8"/>
+      <text class="tp-ti" x="516" y="322">CLÉ DE VLAN</text>
+      <text class="tp-ad" x="576" y="344">21</text><text class="tp-ad" x="666" y="344">192.168.21.0/24</text><text class="tp-ad" x="744" y="344">Cpta</text>
+      <text class="tp-ad" x="576" y="362">23</text><text class="tp-ad" x="666" y="362">192.168.23.0/24</text><text class="tp-ad" x="744" y="362">Engr</text>
+      <text class="tp-ad" x="576" y="380">99</text><text class="tp-ad" x="666" y="380">192.168.99.0/24</text><text class="tp-ad" x="744" y="380">Gest</text>
+    </svg>
+    <figcaption>La maquette entière. En rouge, les deux liaisons série en /30 ;
+      en vert, les commutateurs ; en ambre, les postes qui reçoivent leur adresse
+      par DHCP.</figcaption>
+  </div>
 
   <div class="tableau">
     <table>
@@ -443,8 +529,8 @@ show ntp status              ← l'horloge est-elle synchronisée ?</code></pre>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/cours.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=6c607acc"></script>
-<script src="../../assets/recherche.js?v=6c607acc"></script>
-<script src="../../assets/app.js?v=6c607acc"></script>
+<script src="../../assets/fiche.js?v=ec8aa505"></script>
+<script src="../../assets/recherche.js?v=ec8aa505"></script>
+<script src="../../assets/app.js?v=ec8aa505"></script>
 </body>
 </html>

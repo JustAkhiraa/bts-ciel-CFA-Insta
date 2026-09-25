@@ -42,11 +42,12 @@ Le succès se mesure à une chose : **la veille d'un contrôle, l'étudiant trou
 qu'il cherche sans se demander où il l'a rangé.**
 
 À côté des fiches, une section **Outils** rassemble ce qui se *calcule* au lieu de
-se relire, rangé par situation : l'adressage IP (calculateur de sous-réseau,
-convertisseur, table des masques), le TP (blocs de commandes Packet Tracer prêts à
-coller, ports et protocoles), et les épreuves (compteur du compte rendu d'anglais).
-Un outil sert pendant qu'on travaille, pas avant : il doit tenir dans un écran et
-répondre sans qu'on lise sa notice.
+se relire, **rangé par matière** — comme le reste du site, et avec la couleur
+d'accent de chacune. Un outil sert pendant qu'on travaille, pas avant : il doit
+tenir dans un écran et répondre sans qu'on lise sa notice.
+
+Une matière sans outil n'apparaît pas dans ce sommaire, qui dit donc aussi ce qui
+reste à fabriquer.
 
 ## Positioning
 

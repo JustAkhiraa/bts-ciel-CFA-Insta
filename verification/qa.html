@@ -25,7 +25,9 @@
 moteur, ce que le regard rate&nbsp;: le <b>débordement horizontal</b> (la page qui se
 décale au doigt), les <b>cibles tactiles sous 34&nbsp;px</b>, et — depuis qu'une
 réécriture a effacé deux fonctions sans que rien ne le signale — les
-<b>erreurs JavaScript</b> et les <b>ressources introuvables</b>. Il croise toutes les
+<b>erreurs JavaScript</b> et les <b>ressources introuvables</b>. Il relit aussi les
+<b>schémas</b> : deux étiquettes superposées donnent une bouillie illisible, et rien
+dans le HTML ne le signale. Il croise toutes les
 pages aux trois largeurs de référence, puis un échantillon sur les 40 thèmes.</p>
 <button id="go">Lancer le contrôle</button>
 <div id="etat"></div>
@@ -139,6 +141,48 @@ function ciblesTrop_petites(doc) {
   return mauvais;
 }
 
+/* Les schémas sont écrits à la main, coordonnée par coordonnée. Deux étiquettes
+   qui se recouvrent donnent une bouillie illisible, et rien dans le HTML ne le
+   signale : le document reste valide, les classes existent, aucun lien n'est
+   mort. Le seul moyen de le savoir est de mesurer les boîtes une fois la page
+   rendue — donc ici.
+
+   Cinquante-deux schémas vivent dans le dépôt et aucun n'avait jamais été
+   contrôlé. */
+function etiquettesQuiSeChevauchent(doc) {
+  const mauvais = [];
+  for (const svg of doc.querySelectorAll(".schema svg")) {
+    const T = [];
+    for (const t of svg.querySelectorAll("text")) {
+      const txt = (t.textContent || "").trim();
+      if (!txt) continue;
+      /* getBoundingClientRect et non getBBox : le second rend les coordonnées
+         dans l'espace PROPRE de l'élément, en ignorant les « transform » des
+         groupes parents. Deux étiquettes posées dans deux <g translate>
+         différents paraissaient alors superposées alors qu'elles sont aux deux
+         bouts du schéma — le premier jet de ce contrôle a signalé huit schémas
+         parfaitement lisibles. */
+      const b = t.getBoundingClientRect();
+      if (!b.width || !b.height) continue;
+      T.push({ t: txt, x: b.x, y: b.y, w: b.width, h: b.height });
+    }
+    for (let i = 0; i < T.length; i++) {
+      for (let j = i + 1; j < T.length; j++) {
+        const a = T[i], c = T[j];
+        const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x);
+        const oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y);
+        /* Deux pixels de tolérance : les jambages se frôlent sans gêner. On ne
+           signale qu'un recouvrement franc, sur les deux axes à la fois. */
+        if (ox > 2 && oy > 2) {
+          mauvais.push("« " + a.t.slice(0, 20) + " » × « " + c.t.slice(0, 20) + " » ("
+                       + Math.round(ox) + "×" + Math.round(oy) + "px)");
+        }
+      }
+    }
+  }
+  return mauvais;
+}
+
 document.getElementById("go").onclick = async () => {
   journal.innerHTML = ""; etat.textContent = "recensement des pages…";
   const liste = await pages();
@@ -163,6 +207,9 @@ document.getElementById("go").onclick = async () => {
         for (const x of coquilleVivante(f.contentWindow, doc)) {
           fautes++; dire("COQUILLE  " + u + "  → " + x, "ko");
         }
+        const sc = etiquettesQuiSeChevauchent(doc);
+        if (sc.length) { fautes++; dire("SCHÉMA  " + u + "  → étiquettes superposées : "
+                                        + sc.slice(0, 3).join(" | "), "ko"); }
       }
     }
     etat.textContent = n + " mesures — " + u;
