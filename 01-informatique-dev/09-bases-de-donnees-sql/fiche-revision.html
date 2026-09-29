@@ -6,15 +6,15 @@
 <title>Bases de données & SQL — fiche de révision | BTS CIEL</title>
 <meta name="description" content="Fiche recto-verso imprimable : modèle relationnel, clés, MLD, CREATE, requêtes, jointures, agrégats, PDO, requêtes préparées et sécurité.">
 <meta name="theme-color" content="#FDF5E6">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=5f6e2ccc">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
 
 <header class="fiche-tete">
   <div class="fil">
-    <span class="matiere">Informatique &amp; Développement</span>
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
     <span class="sep">/</span><span>Chapitre 09</span>
     <span class="sep">/</span><span class="badge">Fiche de révision</span>
   </div>
@@ -99,15 +99,15 @@
 
   <article class="memo">
     <h2>Créer</h2>
-<div class="bloc-code"><span class="langue">sql</span><pre><code>CREATE TABLE etudiants (
-  id     INT AUTO_INCREMENT
-         PRIMARY KEY,
-  nom    VARCHAR(50) NOT NULL,
-  classe VARCHAR(50) NOT NULL
+<div class="bloc-code"><span class="langue">sql</span><pre><code><span class="j-mc">CREATE TABLE</span> <span class="j-fn">etudiants</span> (
+  id     <span class="j-typ">INT</span> <span class="j-mc">AUTO_INCREMENT</span>
+         <span class="j-mc">PRIMARY KEY</span>,
+  nom    <span class="j-typ">VARCHAR</span>(<span class="j-num">50</span>) <span class="j-mc">NOT</span> <span class="j-mc">NULL</span>,
+  classe <span class="j-typ">VARCHAR</span>(<span class="j-num">50</span>) <span class="j-mc">NOT</span> <span class="j-mc">NULL</span>
 );
 
-FOREIGN KEY (id_etudiant)
-  REFERENCES etudiants(id)</code></pre></div>
+<span class="j-mc">FOREIGN KEY</span> (id_etudiant)
+  <span class="j-mc">REFERENCES</span> <span class="j-fn">etudiants</span>(id)</code></pre></div>
     <p>La table <strong>référencée</strong> se crée en premier.</p>
   </article>
 
@@ -129,29 +129,29 @@ FOREIGN KEY (id_etudiant)
 
   <article class="memo alerte">
     <h2>⚡ Le <code>WHERE</code> oublié</h2>
-<div class="bloc-code"><span class="langue">sql</span><pre><code>UPDATE etudiants SET classe='X';
-DELETE FROM etudiants;</code></pre></div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code><span class="j-mc">UPDATE</span> etudiants <span class="j-mc">SET</span> classe=<span class="j-txt">'X'</span>;
+<span class="j-mc">DELETE</span> <span class="j-mc">FROM</span> etudiants;</code></pre></div>
     <p>Touche <strong>toutes</strong> les lignes. Aucun avertissement, aucune annulation.</p>
     <div class="formule">D'abord <code>SELECT</code>,<br>ensuite <code>DELETE</code></div>
   </article>
 
   <article class="memo">
     <h2>Interroger</h2>
-<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT nom, prenom
-FROM etudiants
-WHERE classe = 'BTS1'
-ORDER BY nom ASC
-LIMIT 10;</code></pre></div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> nom, prenom
+<span class="j-mc">FROM</span> etudiants
+<span class="j-mc">WHERE</span> classe = <span class="j-txt">'BTS1'</span>
+<span class="j-mc">ORDER BY</span> nom <span class="j-mc">ASC</span>
+<span class="j-mc">LIMIT</span> <span class="j-num">10</span>;</code></pre></div>
     <p><code>LIKE '%dup%'</code> · <code>IN (…)</code> · <code>BETWEEN … AND …</code></p>
     <p><strong><code>IS NULL</code></strong>, jamais <code>= NULL</code>.</p>
   </article>
 
   <article class="memo">
     <h2>Jointures</h2>
-<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT e.nom, p.statut
-FROM presences p
-INNER JOIN etudiants e
-        ON p.id_etudiant = e.id;</code></pre></div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> e.nom, p.statut
+<span class="j-mc">FROM</span> presences p
+<span class="j-mc">INNER JOIN</span> etudiants e
+        <span class="j-mc">ON</span> p.id_etudiant = e.id;</code></pre></div>
     <div class="tableau">
     <table>
       <tbody>
@@ -165,21 +165,21 @@ INNER JOIN etudiants e
 
   <article class="memo">
     <h2>Agrégats</h2>
-<div class="bloc-code"><span class="langue">sql</span><pre><code>SELECT classe, COUNT(*) AS nb
-FROM etudiants
-GROUP BY classe
-HAVING COUNT(*) &gt; 16;</code></pre></div>
+<div class="bloc-code"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> classe, <span class="j-mc">COUNT</span>(*) <span class="j-mc">AS</span> nb
+<span class="j-mc">FROM</span> etudiants
+<span class="j-mc">GROUP BY</span> classe
+<span class="j-mc">HAVING</span> <span class="j-mc">COUNT</span>(*) &gt; <span class="j-num">16</span>;</code></pre></div>
     <div class="formule">FROM → WHERE → GROUP BY →<br>HAVING → SELECT → ORDER BY</div>
     <p><code>WHERE</code> filtre les lignes, <code>HAVING</code> les groupes.</p>
   </article>
 
   <article class="memo">
     <h2>PDO</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>$pdo = new PDO(
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-var">$pdo</span> = <span class="j-mc">new</span> <span class="j-fn">PDO</span>(
  "mysql:host=localhost;
   dbname=base;charset=utf8mb4",
- $user, $mdp);
-$pdo-&gt;setAttribute(
+ <span class="j-var">$user</span>, <span class="j-var">$mdp</span>);
+<span class="j-var">$pdo</span>-&gt;<span class="j-fn">setAttribute</span>(
  PDO::ATTR_ERRMODE,
  PDO::ERRMODE_EXCEPTION);</code></pre></div>
     <p><code>fetch()</code> une ligne · <code>fetchAll()</code> toutes ·
@@ -188,11 +188,11 @@ $pdo-&gt;setAttribute(
 
   <article class="memo alerte">
     <h2>⚡ Injection SQL</h2>
-<div class="bloc-code"><span class="langue">php — vulnérable</span><pre><code>"... WHERE login = '$login'"</code></pre></div>
+<div class="bloc-code"><span class="langue">php — vulnérable</span><pre><code><span class="j-txt">"... WHERE login = '$login'"</span></code></pre></div>
     <p>Saisir <code>' OR '1'='1</code> → <strong>connecté sans mot de passe</strong>.</p>
-<div class="bloc-code"><span class="langue">php — sûr</span><pre><code>$r = $pdo-&gt;prepare(
-  "... WHERE login = :login");
-$r-&gt;execute([':login' =&gt; $x]);</code></pre></div>
+<div class="bloc-code"><span class="langue">php — sûr</span><pre><code><span class="j-var">$r</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">prepare</span>(
+  <span class="j-txt">"... WHERE login = :login"</span>);
+<span class="j-var">$r</span>-&gt;<span class="j-fn">execute</span>([<span class="j-txt">':login'</span> =&gt; <span class="j-var">$x</span>]);</code></pre></div>
     <div class="formule">Une variable dans une requête ?<br><code>prepare()</code> + <code>execute()</code></div>
   </article>
 
@@ -218,8 +218,7 @@ $r-&gt;execute([':login' =&gt; $x]);</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/fiche-revision.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/fiche-revision.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=5f6e2ccc"></script>
-<script src="../../assets/recherche.js?v=5f6e2ccc"></script>
-<script src="../../assets/app.js?v=5f6e2ccc"></script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
 </body>
 </html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dépannage réseau et Wireshark — QCM | BTS CIEL</title>
+<meta name="description" content="Dix questions sur la méthode des cinq paliers, les cinq commandes de diagnostic et la lecture d'une capture.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 13</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>Dépannage réseau et Wireshark — QCM</h1>
+  <p class="chapeau">10 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 10</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">1</span>Pourquoi teste-t-on du plus proche au plus lointain plutôt que l'inverse ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Parce que les tests proches sont plus rapides à exécuter</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce que le premier test qui échoue désigne l'endroit exact de la panne</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Parce que les commandes lointaines demandent des droits d'administrateur</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Parce que le pare-feu bloque les tests distants</span></button>
+      </div>
+      <p class="qcm-why" hidden>Câble → switch → routeur → Internet → DNS. Chaque palier suppose le précédent réparé, donc <b>le premier échec localise la panne</b> et tous les tests suivants deviennent inutiles. Commencer par « je ping Google » ne renseigne sur rien : l'échec peut venir de n'importe où sur le trajet.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">2</span>ipconfig /all affiche une adresse en 169.254.12.7. Qu'est-ce que cela indique ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Une adresse publique attribuée par le fournisseur d'accès</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Une adresse de bouclage</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Que la machine n'a obtenu aucune adresse du serveur DHCP</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Que la machine est sur un VLAN différent</span></button>
+      </div>
+      <p class="qcm-why" hidden>169.254.x.x est l'adresse que Windows <b>s'attribue tout seul</b> quand aucun serveur DHCP ne lui a répondu. La machine a donc une adresse — c'est pourquoi rien ne semble cassé — mais elle ne parle à personne. Les trois autres anomalies qui se lisent dans <code>ipconfig /all</code> : passerelle vide, DNS vide, serveur DHCP inattendu.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">3</span>Un ping vers un serveur revient avec TTL=54. Combien de routeurs le paquet a-t-il traversés ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>54</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>10, si le départ était à 64</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Impossible à savoir depuis un ping</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>128 moins 54, soit 74 dans tous les cas</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le TTL part généralement de <b>64</b> (Linux) ou <b>128</b> (Windows) et perd 1 à chaque routeur traversé. 64 − 54 = <b>10 sauts</b>. Au passage, le même calcul trahit le système distant : un TTL reçu de 118 vient d'un départ à 128, donc d'une machine Windows.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">4</span>Le poste A ne ping pas le poste B, mais B ping très bien A. Que cherche-t-on ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Un câble défectueux entre les deux</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Une erreur de masque de sous-réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Un pare-feu qui bloque l'ICMP entrant sur B</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une boucle de commutation</span></button>
+      </div>
+      <p class="qcm-why" hidden>Cette <b>asymétrie</b> ne peut venir d'aucun problème réseau : un câble coupé ou un mauvais masque casse la communication dans les deux sens. Seul un filtrage explique qu'un sens passe et pas l'autre — et le pare-feu Windows bloque l'ICMP entrant par défaut. Le test qui tranche est justement de pinguer dans l'autre sens.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>Un tracert affiche une ligne d'astérisques au saut 3, puis atteint la destination au saut 4. Que conclure ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Rien d'anormal : ce routeur ne répond pas, c'est tout</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le chemin est coupé au saut 3</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La destination est injoignable</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le paquet a été fragmenté</span></button>
+      </div>
+      <p class="qcm-why" hidden>Beaucoup de routeurs sont configurés pour <b>ne pas répondre</b> aux sollicitations de tracert, et cela n'empêche pas la trace de poursuivre. Le vrai signal d'alarme, c'est la trace qui <b>s'arrête définitivement</b> à un saut et n'atteint jamais la destination. Un temps qui explose puis redevient normal n'est pas une panne non plus : c'est un routeur occupé qui achemine correctement.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Quelle commande donne le PID du processus qui occupe déjà le port 80 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>netstat -r</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>netstat -ano</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>nslookup 80</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>tracert -h 80</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>-a</code> toutes les connexions, <code>-n</code> sans résolution de noms (bien plus rapide), <code>-o</code> le <b>PID</b> du processus responsable — que le gestionnaire des tâches traduit en nom d'application. Sous Linux, l'équivalent moderne est <code>ss -tulpn</code>. C'est aussi la commande qui révèle une connexion sortante inattendue, premier indice d'une machine compromise.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>nslookup répond « Réponse ne faisant pas autorité ». Est-ce une erreur ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Oui, le serveur DNS est mal configuré</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Oui, le domaine n'existe pas</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Non, la réponse vient d'un cache et non du serveur officiel de la zone</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Non, mais il faut relancer la commande en administrateur</span></button>
+      </div>
+      <p class="qcm-why" hidden>L'adresse a été fournie par un serveur qui l'avait <b>mise en cache</b>, pas par celui qui gère officiellement la zone. C'est le fonctionnement normal du DNS, et c'est ce qui le rend rapide. La mention signale seulement que l'information peut être légèrement datée.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">8</span>ping 8.8.8.8 répond, ping www.google.fr échoue. Où est le problème ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Dans le routage vers Internet</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Dans la résolution de noms, donc le DNS</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Dans le masque de sous-réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Dans le câblage jusqu'au commutateur</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le réseau, le routage et la sortie Internet sont prouvés par le premier ping. Seule la traduction du nom échoue. Trois commandes suivent, dans cet ordre : <code>ipconfig /all</code> pour voir quel serveur DNS est configuré, <code>nslookup</code> pour tester sa réponse, <code>ipconfig /flushdns</code> pour vider un cache obsolète.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">9</span>Quelle est la différence entre un filtre de capture et un filtre d'affichage dans Wireshark ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le filtre de capture choisit ce qu'on enregistre, le filtre d'affichage ce qu'on montre ensuite</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le filtre de capture est réservé aux administrateurs</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le filtre d'affichage supprime définitivement les paquets écartés</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il n'y a aucune différence, seul le nom change</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le premier agit <b>avant</b> l'enregistrement et s'écrit en syntaxe BPF : <code>host 192.168.1.10</code>. Le second agit <b>après</b>, en syntaxe Wireshark : <code>ip.addr == 192.168.1.10</code>. Les deux syntaxes se ressemblent assez pour qu'on les confonde, et pas assez pour qu'elles s'échangent.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">10</span>Une capture lancée sur un poste relié à un commutateur ne montre pas le trafic des voisins. Pourquoi ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Parce que le trafic des voisins est chiffré</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce que le mode promiscuité est désactivé par le pare-feu</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Parce qu'un commutateur n'envoie chaque trame que sur le port concerné</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Parce que Wireshark ne décode qu'un seul flux à la fois</span></button>
+      </div>
+      <p class="qcm-why" hidden>On ne voit que son propre trafic, plus les diffusions. Pour capturer celui d'un autre poste, il faut un <b>port miroir (SPAN)</b> sur le commutateur, qui recopie le trafic d'un port vers celui de l'analyseur. C'est ce qui rend l'écoute passive difficile sur un réseau commuté, à la différence d'un hub où tout le monde voyait tout.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-nat-pat/qcm.html"><span>Chapitre précédent</span><b>NAT &amp; PAT</b></a><a class="suiv" href="../14-cybersecurite-cned/qcm.html"><span>Chapitre suivant</span><b>Cybersécurité — CNED</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>

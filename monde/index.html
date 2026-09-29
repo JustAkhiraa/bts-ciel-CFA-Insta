@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CIEL — le village 3D | BTS CIEL</title>
+<meta name="description" content="Les fiches du BTS CIEL dans un village en trois dimensions : une allée, une fontaine, un château au bout, et cinq bâtiments — un par matière.">
+<meta name="theme-color" content="#0B1430">
+<link rel="icon" href="../assets/icone.svg">
+<link rel="stylesheet" href="monde.css?v=4f488fdb">
+</head>
+<body>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<!-- Le voile et les lignes de vitesse : deux couches, entre le village et
+     les cartes. Elles ne reçoivent jamais un clic — une couche plein écran
+     au-dessus des cartes leur volerait tout. -->
+<div class="voile" id="voile" aria-hidden="true"></div>
+<div class="ruee" id="ruee" aria-hidden="true"></div>
+
+<noscript>
+  <div class="secours">
+    <h1>Le village 3D a besoin de JavaScript</h1>
+    <p>Les mêmes fiches se lisent sans lui, sur le site ordinaire.</p>
+    <p><a href="../index.html">Aller au site</a></p>
+  </div>
+</noscript>
+
+<div class="secours" id="secours" hidden>
+  <h1>Ce navigateur ne peut pas afficher le village 3D</h1>
+  <p id="secours-quoi">WebGL n'est pas disponible ici.</p>
+  <p>Aucune importance : <strong>les fiches sont exactement les mêmes</strong>
+     sur le site ordinaire, et il fonctionne partout.</p>
+  <p><a href="../index.html">Aller au site</a></p>
+</div>
+
+<div class="chargement" id="chargement">
+  <div class="logo-ciel" aria-hidden="true"></div>
+  <p>On bâtit le village…</p>
+</div>
+
+<header class="hud hud-haut" id="hud" hidden>
+  <a class="retour" href="../index.html" title="Revenir au site ordinaire">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M15 5l-7 7 7 7"/></svg>
+    <span>Le site</span>
+  </a>
+  <p class="titre-monde" id="titre-haut">CIEL<span>— le village</span></p>
+  <button type="button" id="btn-heure" class="rond" aria-label="Passer en plein jour">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" aria-hidden="true" class="ic-nuit">
+      <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" aria-hidden="true" class="ic-jour">
+      <circle cx="12" cy="12" r="4.2"/>
+      <path d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>
+  </button>
+  <button type="button" id="btn-aide" class="rond" aria-label="Aide">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+         stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.2"/></svg>
+  </button>
+</header>
+
+<!-- Les chapitres sont des cartes HTML, pas des plans dessinés dans la scène.
+     Trois raisons : le texte y reste net et sélectionnable à toute distance ;
+     la carte peut porter un vrai reflet holographique, que la 3D rendrait
+     laborieusement ; et un lecteur d'écran la lit. La 3D fait le DÉCOR, les
+     cartes font le CONTENU. -->
+<!-- Ici, le titre seul : les cartes et les enseignes vivent DANS la scène. -->
+<div class="pont" id="pont" aria-hidden="false">
+  <header class="pont-tete" id="pont-tete"></header>
+</div>
+
+<!-- Le manche du pouce : il n'a ni place réservée ni bouton. Il apparaît
+     là où le pouce se pose, et il n'existe que pendant qu'on s'en sert. -->
+<div class="manche" id="manche" hidden aria-hidden="true">
+  <span class="manche-poignee" id="manche-poignee"></span>
+</div>
+
+<nav class="boussole" id="boussole" hidden aria-label="Choisir une matière">
+  <!-- L'invite de marche vit DANS la boussole : c'est là que l'œil va
+       chercher ce qu'on peut faire. Elle s'efface au premier pas. -->
+  <!-- Une invite doit nommer le geste QUI EXISTE SUR CE TÉLÉPHONE-LÀ. Elle
+       affichait « ZQSD pour marcher » sur un écran tactile, qui n'a pas de
+       clavier — et elle ne disait nulle part que le pouce posé en bas à gauche
+       fait office de manche, alors que c'est le seul moyen d'avancer là. On
+       promettait donc une commande absente en taisant celle qui marche. -->
+  <p class="invite" id="invite">
+    <b>Vous êtes à côté de la fontaine.</b>
+    <span class="au-clavier"><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> pour marcher</span>
+    <span class="au-doigt">posez le pouce en bas à gauche pour marcher</span>
+    <span>· glissez pour regarder</span>
+    <span class="au-clavier">· cliquez un bâtiment pour y aller</span>
+    <span class="au-doigt">· touchez un bâtiment pour y aller</span>
+  </p>
+  <button type="button" id="tout" class="chip chip-tout" hidden>
+    <span class="fleche" aria-hidden="true">←</span> Toutes les matières
+  </button>
+  <div class="chips" id="chips"></div>
+</nav>
+
+<div class="aide" id="aide" hidden>
+  <div class="aide-boite">
+    <h2>Trois gestes, pas un de plus</h2>
+    <dl>
+      <dt>Choisir une matière</dt>
+      <dd>cliquer sur son bâtiment — ou sur son enseigne, ou sur son nom en bas</dd>
+      <dt>Ouvrir un chapitre</dt><dd>cliquer sur sa carte, devant le bâtiment</dd>
+      <dt>Revenir dans l'allée</dt><dd><kbd>Échap</kbd>, ou « Toutes les matières »</dd>
+      <dt>Se promener</dt>
+      <dd class="au-clavier"><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> pour
+          marcher, <kbd>Maj</kbd> pour courir, et glisser la souris pour tourner
+          la tête</dd>
+      <dd class="au-doigt">posez le pouce en bas à gauche de l'écran : un manche
+          apparaît sous lui et vous avancez. L'autre doigt, glissé n'importe où,
+          tourne la tête.</dd>
+    </dl>
+    <p class="aide-note">Se promener n'est jamais obligatoire : un clic sur
+       un bâtiment vous y emmène. Chaque
+       matière a sa forme — l'atelier et sa cheminée, l'observatoire et son
+       dôme, la maison à colombages, la pagode, et le château au bout de
+       l'allée. Les flèches <kbd>←</kbd> <kbd>→</kbd> passent d'un bâtiment à
+       l'autre, <kbd>↑</kbd> <kbd>↓</kbd> font défiler les chapitres, et le
+       soleil en haut à droite change l'heure du jour.</p>
+    <button type="button" id="aide-ok">Compris</button>
+  </div>
+</div>
+
+<!-- Le sous-titre : le nom de la matière qu'on regarde, en bas, comme au
+     cinéma. Il part de lui-même au bout de cinq secondes. -->
+<p class="soustitre" id="soustitre" hidden aria-live="polite"></p>
+
+<aside class="lecture" id="lecture" hidden aria-live="polite">
+  <header>
+    <span class="lecture-matiere" id="lecture-matiere"></span>
+    <h2 id="lecture-titre"></h2>
+    <p id="lecture-sous"></p>
+    <button type="button" id="lecture-fermer" aria-label="Fermer">✕</button>
+  </header>
+  <nav class="lecture-onglets" id="lecture-onglets"></nav>
+  <div class="lecture-corps" id="lecture-corps"></div>
+</aside>
+
+<script type="module" src="monde.js?v=4f488fdb"></script>
+</body>
+</html>

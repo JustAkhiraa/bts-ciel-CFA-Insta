@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bases de données &amp; SQL — QCM | BTS CIEL</title>
+<meta name="description" content="Dix questions sur les clés, les cardinalités, les types, les jointures, les agrégats, PDO et l'injection SQL.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="dev">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; développement</a>
+    <span class="sep">/</span><span>Chapitre 9</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>Bases de données &amp; SQL — QCM</h1>
+  <p class="chapeau">10 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 10</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Un client passe plusieurs commandes. Où se place la clé étrangère ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Dans commandes : id_client</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Dans clients : id_commande</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Dans les deux tables</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Dans une table intermédiaire</span></button>
+      </div>
+      <p class="qcm-why" hidden><b>La clé étrangère descend du côté qui ne peut en avoir qu'un</b> — parce qu'une colonne ne contient qu'une valeur. Une commande appartient à un seul client : <code>id_client</code> tient dans <code>commandes</code>. L'inverse obligerait à entasser plusieurs numéros dans une case.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>« Un USER possède 1 à N PC. » Comment se lit cette cardinalité ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Un utilisateur peut n'avoir aucun PC</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un utilisateur a au moins un PC, sans maximum</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Un PC peut appartenir à plusieurs utilisateurs</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Un utilisateur a exactement un PC</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>1,N</code> se lit <b>« au moins une fois, sans maximum »</b> — c'est <code>0,N</code> qui autorise le zéro. Et la cardinalité s'écrit toujours du côté <b>opposé</b> à ce qu'elle décrit, d'où l'intérêt de relire la relation dans les deux sens avant de conclure.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>Quel type choisir pour un prix ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>FLOAT, fait pour les décimaux</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>VARCHAR(10), pour garder le format d'affichage</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>DECIMAL(10,2)</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>INT, en comptant en centimes uniquement</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>FLOAT</code> est <b>approché</b> : en base 2, 0,10 n'a pas d'écriture exacte, et les centimes finissent par se perdre sur une somme. <code>DECIMAL</code> compte en décimal, donc juste. Quant à mettre un nombre en <code>VARCHAR</code>, cela fausse aussi bien les tris que les calculs — « 10 » y passe avant « 9 ».</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">4</span>Comment retrouver les lignes dont la date est vide ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>WHERE date = NULL</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>WHERE date = ''</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>WHERE date != 0</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>WHERE date IS NULL</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>NULL</code> n'est pas une valeur, c'est une <b>absence</b> : aucune comparaison ne peut être vraie avec lui, pas même <code>NULL = NULL</code>. <code>= NULL</code> ne renvoie donc jamais rien, <b>sans message d'erreur</b>. Seuls <code>IS NULL</code> et <code>IS NOT NULL</code> le testent.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>UPDATE etudiants SET classe='X'; — sans WHERE. Que se passe-t-il ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Toutes les lignes de la table sont modifiées, sans avertissement</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>La requête est refusée car incomplète</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Seule la première ligne est modifiée</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>MySQL demande confirmation</span></button>
+      </div>
+      <p class="qcm-why" hidden>Sans <code>WHERE</code>, la portée est <b>la table entière</b>. Aucun avertissement, et rien à annuler hors d'une transaction. D'où le réflexe : écrire d'abord le <code>SELECT</code> avec le même <code>WHERE</code>, vérifier les lignes visées, <b>puis</b> transformer en <code>UPDATE</code> ou <code>DELETE</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Vous voulez lister tous les étudiants, y compris ceux sans aucune présence enregistrée :</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>INNER JOIN</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>LEFT JOIN, avec etudiants à gauche</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Une jointure sur deux WHERE</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>GROUP BY etudiants.id</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>INNER JOIN</code> ne rend que l'<b>intersection</b> : un étudiant sans ligne en face disparaît du résultat — et c'est précisément lui qu'on cherchait. La question à se poser avant de choisir : <b>« veux-je voir aussi ceux qui n'ont rien ? »</b> Si oui, <code>LEFT JOIN</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>Quelle est la différence entre WHERE et HAVING ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>HAVING est plus rapide</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>WHERE s'utilise avec ORDER BY, HAVING avec LIMIT</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>WHERE filtre les lignes, HAVING filtre les groupes</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Aucune : HAVING est l'ancienne écriture</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>WHERE</code> agit <b>avant</b> le regroupement, sur chaque ligne ; <code>HAVING</code> agit <b>après</b>, sur le résultat des agrégats. C'est pourquoi <code>WHERE COUNT(*) &gt; 16</code> ne peut pas marcher : au moment où <code>WHERE</code> s'exécute, aucun groupe n'existe encore, donc aucun compte.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">8</span>Dans quel ordre le serveur exécute-t-il une requête ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>SELECT → FROM → WHERE → GROUP BY → ORDER BY</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>FROM → SELECT → WHERE → GROUP BY → HAVING</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Dans l'ordre où elle est écrite</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY</span></button>
+      </div>
+      <p class="qcm-why" hidden>L'ordre d'<b>écriture</b> n'est pas l'ordre d'<b>exécution</b> : <code>SELECT</code> passe presque en dernier. Cela explique deux choses d'un coup — pourquoi un alias défini dans le <code>SELECT</code> n'est pas utilisable dans le <code>WHERE</code>, et pourquoi il l'est dans l'<code>ORDER BY</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">9</span>Saisir ' OR '1'='1 dans un champ login connecte sans mot de passe. La parade :</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>prepare() puis execute(), qui sépare la requête des données</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>htmlspecialchars() sur le login</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Interdire l'apostrophe dans le formulaire</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Passer le formulaire en POST</span></button>
+      </div>
+      <p class="qcm-why" hidden>Coller une variable dans une requête laisse le visiteur <b>écrire du SQL</b>. Une requête préparée envoie d'abord le squelette, puis les valeurs à part : elles ne peuvent plus être lues comme des instructions. <b>Une variable dans une requête ?</b> <code>prepare()</code> + <code>execute()</code>, sans exception.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">10</span>prepare(), htmlspecialchars(), password_hash() : quand intervient chacun ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Tous les trois à la réception du formulaire</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>prepare() à l'écriture en base, htmlspecialchars() à l'affichage, password_hash() au stockage du mot de passe</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>htmlspecialchars() avant d'insérer, prepare() avant d'afficher</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>password_hash() à chaque connexion, les deux autres à l'inscription</span></button>
+      </div>
+      <p class="qcm-why" hidden>Chacun protège d'une chose précise, <b>à un moment précis</b> : injection SQL, XSS, fuite de mots de passe. Échapper trop tôt abîme la donnée — « O'Brien » finit stocké avec une entité HTML au milieu du nom, et il est alors trop tard pour le savoir.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/qcm.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/qcm.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>

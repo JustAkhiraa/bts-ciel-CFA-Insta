@@ -43,6 +43,13 @@ const THEMES = ["light","sand","cream","dawn","sakura","porcelain","linen","mist
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"]);
+/* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
+   au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
+   la moitié du site sans contrôle — et c'est justement la moitié neuve. */
+const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
+  "determination","velours","neon-lime","androide","grand-large","cahier-rose",
+  "console-blanche","bloc-notes","liquid","zellige"]);
+function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 const LARGEURS = [375, 768, 1440];
 
 const f = document.getElementById("f"),
@@ -60,6 +67,30 @@ function dire(txt, classe) {
    aucune trace dans le DOM, et une feuille ou un script manquant se rend
    comme une page simplement « un peu différente ». Deux pannes muettes. */
 let incidents = [];
+/* Le banc n'a pas d'historique, donc l'accueil ne lui a JAMAIS montré sa
+   carte « Vu récemment » ni son bouton « Reprendre ». Un défaut y a vécu sans
+   être vu : un intitulé long de chapitre, rendu à chasse fixe, poussait la
+   page de 8 px à 375. On sème donc un historique avant de mesurer — un
+   composant qui n'apparaît qu'à certains lecteurs doit être mesuré comme
+   eux le voient. */
+function semerHistorique() {
+  try {
+    const CLE = "bts-ciel";
+    const S = JSON.parse(localStorage.getItem(CLE) || "{}");
+    S.derniere = { url: "03-mathematiques/07-probabilites-conditionnelles/exercices.html",
+                   titre: "Probabilités conditionnelles — exercices" };
+    S.recents = [
+      { url: "03-mathematiques/07-probabilites-conditionnelles/exercices.html",
+        titre: "Probabilités conditionnelles — exercices" },
+      { url: "02-reseaux-systemes/17-atelier-infrastructure/cours.html",
+        titre: "Atelier d'infrastructure — étude et conception de réseaux" },
+      { url: "01-informatique-dev/12-langage-c/qcm.html",
+        titre: "Langage C — QCM" }
+    ];
+    localStorage.setItem(CLE, JSON.stringify(S));
+  } catch (e) {}
+}
+
 function charger(url) {
   incidents = [];
   return new Promise(res => {
@@ -72,21 +103,90 @@ function charger(url) {
       }, true);
       w.addEventListener("unhandledrejection",
         ev => incidents.push("promesse rejetée : " + ev.reason));
-      setTimeout(() => res(f), 140);
+      /* Ni la page ni sa feuille de style n'étaient dé-cachées : ce banc
+         pouvait mesurer une version périmée du site sans rien en dire. La
+         page porte donc maintenant un paramètre neuf, et la feuille aussi —
+         son URL portant l'empreinte de build, elle ne change pas quand on
+         retouche le fichier. Défaut vérifié sur l'autre banc, en cassant une
+         couleur exprès : le disque disait #8C8578, le banc lisait #948D80. */
+      Promise.all([...f.contentDocument.querySelectorAll('link[rel="stylesheet"]')]
+        .map(l => new Promise(ok => {
+          l.addEventListener("load", ok, { once: true });
+          l.addEventListener("error", ok, { once: true });
+          const h = l.getAttribute("href").split(/[?&]m=\d+/)[0];
+          l.href = h + (h.includes("?") ? "&" : "?") + "m=" + Date.now();
+        }))).then(() => setTimeout(() => res(f), 140));
     };
-    f.src = url;
+    f.src = url + (url.includes("?") ? "&" : "?") + "m=" + Date.now();
   });
 }
 
 /* Les fonctions que la coquille doit exposer pour que la page soit vivante.
    Les appeler prouve qu'elles existent — c'est ce qui manquait quand la
-   recherche a cessé de fonctionner en silence. */
-function coquilleVivante(fen, doc) {
+   recherche a cessé de fonctionner en silence.
+
+   Ce contrôle a cessé de dire vrai le jour où l'index de recherche est passé
+   en chargement différé : app.js n'injecte plus « recherche.js » qu'au
+   PREMIER GESTE, ce qui retire 73 Ko de chacune des 224 fiches. Lire
+   « __INDEX est un tableau » sur une page au repos revenait alors à mesurer
+   une absence NORMALE — et le banc criait sur toutes les pages à la fois,
+   ce qui est la façon dont un contrôle meurt sans qu'on s'en aperçoive.
+
+   On refait donc le geste au lieu de guetter la variable : on presse « / »,
+   on tape un mot, et l'on regarde s'il sort des liens. C'est plus lent, et
+   cela vérifie toute la chaîne — le raccourci, la palette construite à la
+   demande, le chargement différé avec son empreinte de build, le classement,
+   l'affichage — là où l'ancienne ligne ne regardait qu'une globale. */
+async function coquilleVivante(fen, doc) {
   const manques = [];
   if (!doc.querySelector(".barre-outils, .app-tete nav button")) manques.push("aucune commande posée");
   if (doc.getElementById("q") && !doc.getElementById("resultats")) manques.push("champ sans liste de résultats");
-  if (Array.isArray(fen.__INDEX) === false) manques.push("index de recherche absent");
+
+  /* Deux surfaces, et « / » ne mène pas à la même : l'accueil a son propre
+     champ, visible, que le raccourci se contente de faire prendre le focus ;
+     partout ailleurs il ouvre la palette. Un banc qui ne connaîtrait que la
+     seconde accuserait l'accueil à chaque passage — ce qu'il a fait. */
+  doc.dispatchEvent(new fen.KeyboardEvent("keydown", { key: "/", bubbles: true }));
+  const champ = doc.querySelector(".palette.ouverte #qp") || doc.getElementById("q");
+  const boite = champ && (champ.id === "qp"
+    ? doc.querySelector(".palette #resultats-p") : doc.getElementById("resultats"));
+  if (!champ || !boite) { manques.push("la touche « / » n'ouvre aucune recherche"); return manques; }
+
+  champ.value = "reseau";
+  champ.dispatchEvent(new fen.Event("input", { bubbles: true }));
+  for (let i = 0; i < 60 && !boite.querySelector("a"); i++)
+    await new Promise(r => setTimeout(r, 50));
+  if (!boite.querySelector("a"))
+    manques.push("« reseau » ne renvoie aucun résultat — index de recherche non chargé");
   return manques;
+}
+
+/* ── Neutraliser le service worker avant de mesurer ───────────────────────
+   Le site est une application installable : un service worker met en cache
+   les pages, les feuilles de style et les scripts, et les ressert HORS
+   RÉSEAU. Un banc qui mesure par-dessus lui ne mesure donc pas le site
+   publié, mais la copie que le navigateur avait gardée — et il le fait sans
+   rien en dire.
+
+   Ce n'est pas une crainte théorique. En retirant « recherche.js » du disque
+   pour vérifier que le contrôle de la recherche savait crier, le banc a
+   répondu « rien à signaler » : le worker resservait l'index depuis son
+   cache. La mesure était juste, l'objet mesuré ne l'était pas. C'est la
+   troisième fois que ce dépôt se fait prendre par un cache — après la
+   feuille de style des deux bancs, et la page elle-même.
+
+   On le désinscrit donc, et l'on vide ses caches, avant chaque campagne. */
+async function sansServiceWorker() {
+  let workers = 0;
+  if (navigator.serviceWorker) {
+    for (const r of await navigator.serviceWorker.getRegistrations()) {
+      await r.unregister(); workers++;
+    }
+  }
+  let noms = [];
+  try { noms = await caches.keys(); } catch (e) {}
+  for (const k of noms) { try { await caches.delete(k); } catch (e) {} }
+  return workers + " worker(s) désinscrit(s), " + noms.length + " cache(s) vidé(s)";
 }
 
 /* Le crawl part de l'accueil et suit les liens internes : ajouter un chapitre
@@ -184,11 +284,14 @@ function etiquettesQuiSeChevauchent(doc) {
 }
 
 document.getElementById("go").onclick = async () => {
-  journal.innerHTML = ""; etat.textContent = "recensement des pages…";
+  journal.innerHTML = ""; etat.textContent = "neutralisation du cache hors ligne…";
+  dire("CACHE    " + await sansServiceWorker(), "ok");
+  etat.textContent = "recensement des pages…";
   const liste = await pages();
   let n = 0, fautes = 0;
 
   // ── 1. toutes les pages, thème par défaut, trois largeurs ──────────────
+  semerHistorique();
   for (const u of liste) {
     await charger("../" + u);
     for (const w of LARGEURS) {
@@ -204,7 +307,7 @@ document.getElementById("go").onclick = async () => {
         const c = ciblesTrop_petites(doc);
         if (c.length) { fautes++; dire("CIBLE <34px  " + u + "  → " + c.slice(0,4).join(" | "), "ko"); }
         for (const x of incidents) { fautes++; dire("CONSOLE  " + u + "  → " + x, "ko"); }
-        for (const x of coquilleVivante(f.contentWindow, doc)) {
+        for (const x of await coquilleVivante(f.contentWindow, doc)) {
           fautes++; dire("COQUILLE  " + u + "  → " + x, "ko");
         }
         const sc = etiquettesQuiSeChevauchent(doc);
@@ -215,6 +318,29 @@ document.getElementById("go").onclick = async () => {
     etat.textContent = n + " mesures — " + u;
   }
 
+  /* La feuille de réglages n'était JAMAIS ouverte par le banc : un thème a pu
+     la repasser de « fixed » à « relative » — elle s'ouvrait alors coupée hors
+     de l'écran — sans qu'aucune des 1 222 mesures ne le voie. Un panneau qui
+     ne s'affiche que sur un geste doit être contrôlé en faisant ce geste. */
+  function feuilleHorsEcran(doc, w) {
+    const bouton = [...doc.querySelectorAll(".app-tete .bouton-rond")].pop();
+    if (!bouton) return null;
+    bouton.click();
+    const f = doc.querySelector(".feuille");
+    if (!f) { return "aucune feuille de réglages"; }
+    const st = doc.defaultView.getComputedStyle(f);
+    const r = f.getBoundingClientRect();
+    let pb = null;
+    if (st.position !== "fixed")
+      pb = "la feuille est en « " + st.position + " » au lieu de « fixed »";
+    else if (r.left < -1 || r.right > w + 1)
+      pb = "la feuille sort de l'écran (" + Math.round(r.left) + " → "
+         + Math.round(r.right) + " pour " + w + "px)";
+    const fermer = f.querySelector("[data-fermer]");
+    if (fermer) fermer.click(); else bouton.click();
+    return pb;
+  }
+
   // ── 2. échantillon × 40 thèmes ────────────────────────────────────────
   const echantillon = liste.filter(u => /index\.html$|cours\.html$|exercices\.html$|fiche-revision\.html$/.test(u))
                            .filter((_, i) => i % Math.ceil(liste.length / 8) === 0).slice(0, 8);
@@ -223,12 +349,19 @@ document.getElementById("go").onclick = async () => {
     const doc = f.contentDocument, d = doc.documentElement;
     d.dataset.anim = "0";
     for (const t of THEMES) {
-      d.dataset.theme = t; d.dataset.sombre = SOMBRES.has(t) ? "1" : "0";
+      for (const face of faces(t)) {
+      d.dataset.theme = t; d.dataset.sombre = face;
       for (const w of [375, 1440]) {
         f.style.width = w + "px"; doc.body.offsetHeight; n++;
         const x = deborde(doc, w);
-        if (x) { fautes++; dire("DÉBORDE  " + u + "  thème " + t + " @" + w + "px → "
+        if (x) { fautes++; dire("DÉBORDE  " + u + "  thème " + t
+                   + (face === "1" ? " (nuit)" : " (jour)") + " @" + w + "px → "
                    + x.total + "px  (" + (x.coupable ? x.coupable.q : "?") + ")", "ko"); }
+        const fr = feuilleHorsEcran(doc, w);
+        if (fr) { fautes++; dire("RÉGLAGES  thème " + t
+                   + (face === "1" ? " (nuit)" : " (jour)") + " @" + w + "px → " + fr, "ko"); }
+        n++;
+      }
       }
     }
     etat.textContent = n + " mesures — thèmes sur " + u;
@@ -238,7 +371,7 @@ document.getElementById("go").onclick = async () => {
   etat.textContent = n + " mesures terminées.";
   dire(fautes ? fautes + " anomalie(s)." : "OK — aucun débordement, aucune cible sous 34 px, "
        + "aucune erreur de console, sur " + liste.length + " pages et "
-       + THEMES.length + " thèmes.", fautes ? "ko" : "ok");
+       + THEMES.length + " thèmes (deux faces pour les univers).", fautes ? "ko" : "ok");
 };
 </script>
 </body>
