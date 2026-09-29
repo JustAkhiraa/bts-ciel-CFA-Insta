@@ -98,30 +98,43 @@ function direPuisTaire() {
    le nom de la matière, et la retirer au bout de 5 s ». Il part tout seul :
    une étiquette qui colle au pointeur devient un meuble au bout d'une
    minute. */
-let minuteurSousTitre = 0, derniereVisee = -1;
-function sousTitrer(i) {
+let minuteurSousTitre = 0, derniereVisee = "";
+/* Le fond commun aux deux : la CLÉ dit ce qu'on regarde. Une clé de texte et
+   non un numéro, parce que la matière 2 et la boutique 2 sont deux choses
+   différentes — avec un numéro nu, viser l'une après l'autre ne rafraîchissait
+   rien, et c'est le genre de collision qui ne se voit qu'une fois sur cinq. */
+function direSousTitre(cle, titre, ligne, couleur) {
   const el = $("soustitre");
-  if (i < 0 || i === derniereVisee) return;
-  derniereVisee = i;
-  const m = matieres[i];
-  el.innerHTML = `<b>${ech(m.pole.titre)}</b>` +
-    `<span>${ech(m.L.lieu)} · ${m.pole.chapitres.length} chapitres ·` +
-    ` cliquez pour entrer</span>`;
-  el.style.setProperty("--c", m.css);
+  if (!cle || cle === derniereVisee) return;
+  derniereVisee = cle;
+  el.innerHTML = `<b>${ech(titre)}</b><span>${ech(ligne)}</span>`;
+  el.style.setProperty("--c", couleur);
   el.hidden = false;
   requestAnimationFrame(() => el.classList.add("vu"));
   clearTimeout(minuteurSousTitre);
   minuteurSousTitre = setTimeout(() => {
     el.classList.remove("vu");
-    setTimeout(() => { el.hidden = true; derniereVisee = -1; }, 420);
+    setTimeout(() => { el.hidden = true; derniereVisee = ""; }, 420);
   }, 5000);
+}
+function sousTitrer(i) {
+  if (i < 0) return;
+  const m = matieres[i];
+  direSousTitre("m" + i, m.pole.titre,
+    `${m.L.lieu} · ${m.pole.chapitres.length} chapitres · cliquez pour entrer`,
+    m.css);
+}
+function nommerBoutique(i) {
+  const b = BOUTIQUES[i];
+  direSousTitre("b" + i, b.nom, "boutique · cliquez pour entrer",
+                "#" + b.couleur.toString(16).padStart(6, "0"));
 }
 function taireSousTitre() {
   const el = $("soustitre");
   clearTimeout(minuteurSousTitre);
   el.classList.remove("vu");
   setTimeout(() => { el.hidden = true; }, 420);
-  derniereVisee = -1;
+  derniereVisee = "";
 }
 
 /* Les accents du site, rendus lumineux : les originaux sont taillés pour du
@@ -542,6 +555,10 @@ const CONES = [];
 const FLAQUES = [];
 const TOURNE = [];     // ce qui tourne doucement : engrenage, anneau, parabole
 const BALANCE = [];    // ce qui se balance : les enseignes de fer
+/* Les emprises des échoppes. Elles sont remplies à leur construction, bien
+   avant que le marcheur n'ait sa liste d'obstacles : les déclarer ici évite
+   de faire dépendre un bloc de l'ordre d'exécution d'un autre. */
+const OBSTACLES_BOUT = [];
 
 function fenetre(l, h, x, y, z, rotY) {
   const m = new THREE.MeshBasicMaterial({ color: 0xFFC066, fog: true });
@@ -1494,6 +1511,69 @@ function fondre() {
   scene.add(collines);
 }
 
+/* ══════════════════════════════════════════════ les boutiques ════════
+   JustAkhiraa : « je veux plus de monde à explorer et des boutiques, parce que
+   quand je regarde derrière moi c'est le vide » — et, plus précisément :
+   « dans les maisons autour il y a des immeubles à visiter, et en easter egg,
+   quand tu entres dans une certaine boutique tu peux utiliser un des outils,
+   comme l'atelier pour coder en C ».
+
+   Le village avait cinq bâtiments, un par matière, et cinquante maisons
+   muettes. La partie SUD — derrière le point de départ, entre la fontaine et
+   le portail — n'était qu'un décor qu'on tourne le dos à. C'est pourtant le
+   premier endroit qu'on voit en se retournant.
+
+   Sept échoppes y ouvrent, et chacune abrite un outil du site. Ce n'est pas
+   un gadget : un convertisseur binaire cherché dans un menu est un
+   convertisseur ; le même, trouvé derrière la porte d'une boutique qui
+   s'appelle « La Table de Conversion », se retient. C'est la seule raison de
+   les mettre là — pas la décoration, la MÉMOIRE DU LIEU.
+
+   Le plan est déclaré AVANT la rue : c'est lui qui réserve la place, sinon
+   les cinquante maisons bâtissent par-dessus. */
+const BOUTIQUES = [
+  { nom: "L'Atelier du C", enseigne: "{;}", couleur: 0x62E88A,
+    outil: "outils/langage-c.html", cote: -1, z: 262,
+    tenancier: "Maître Clang",
+    bonjour: "Bonjour ! Vous voulez coder en C ? Entrez, la forge est chaude — "
+           + "et ici le compilateur vous dit ce qui cloche, avec la ligne." },
+  { nom: "Le Bureau des Masques", enseigne: "/24", couleur: 0x54BEF8,
+    outil: "outils/sous-reseau.html", cote: 1, z: 246,
+    tenancier: "Dame VLSM",
+    bonjour: "Un réseau à découper ? Posez votre adresse sur le comptoir, "
+           + "je vous dis combien d'hôtes il vous reste." },
+  { nom: "La Table de Conversion", enseigne: "0b", couleur: 0xFFB05A,
+    outil: "outils/convertisseur.html", cote: -1, z: 214,
+    tenancier: "Le changeur",
+    bonjour: "Binaire, hexadécimal, décimal — je change tout, et je montre "
+           + "les quatre octets de couleurs différentes." },
+  { nom: "Le Comptoir des Ports", enseigne: "22", couleur: 0xCE96FF,
+    outil: "outils/ports.html", cote: 1, z: 198,
+    tenancier: "Le portier",
+    bonjour: "Vingt-deux, quatre-vingts, quatre cent quarante-trois… "
+           + "Dites-moi un numéro, je vous dis qui frappe." },
+  { nom: "L'Écritoire", enseigne: "EN", couleur: 0xFF9ED2,
+    outil: "outils/compte-rendu.html", cote: -1, z: 166,
+    tenancier: "La scribe",
+    bonjour: "Un compte rendu à rendre ? Je compte les mots pendant que "
+           + "vous écrivez, et je vous dis si le barème tient." },
+  { nom: "La Halle aux Câbles", enseigne: "⇄", couleur: 0x7FD6C5,
+    outil: "outils/packet-tracer.html", cote: 1, z: 150,
+    tenancier: "Le câbleur",
+    bonjour: "Packet Tracer ? J'ai les blocs de commandes tout prêts, "
+           + "avec votre nom d'hôte et votre mot de passe dedans." },
+  { nom: "Le Grenier des Masques", enseigne: "255", couleur: 0xFF7B7B,
+    outil: "outils/masques.html", cote: -1, z: 134,
+    tenancier: "Le compteur",
+    bonjour: "Trente-trois lignes, du /0 au /32, recalculées à chaque "
+           + "publication. Aucune n'est recopiée d'un livre." },
+];
+/* La largeur d'une échoppe et son recul par rapport au pavé. La façade
+   s'aligne sur le premier rang de maisons : une boutique en retrait passerait
+   pour une remise. */
+const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
+for (const b of BOUTIQUES) { b.x = b.cote * BOUT_X; b.rot = b.cote > 0 ? -Math.PI / 2 : Math.PI / 2; }
+
 /* ── La rue : une cinquantaine de maisons qui bordent l'allée ──────────
    Elles n'ont pas de porte à ouvrir ni de nom : ce sont des VOISINES. Leur
    rôle est de fermer la rue des deux côtés, pour que l'allée soit une rue
@@ -1504,8 +1584,11 @@ function fondre() {
   const rnd = semeur(20252027);
   const MURS = [M.platre, M.pierreC, M.brique, M.pierre];
   const TOITS = [M.tuile, M.ardoise, M.tuile];
-  /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. */
-  const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }));
+  /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. Les
+     sept échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
+     par-dessus, et l'on cliquerait sur une porte qui ne mène nulle part. */
+  const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }))
+    .concat(BOUTIQUES.map((b) => ({ x: b.x, z: b.z, r: BOUT_L / 2 + 14 })));
   /* La PLACE devant chaque bâtiment : un couloir ouvert dans l'axe de sa
      façade, où l'on se tient pour lire ses chapitres. Rien n'y est bâti —
      c'est ce qui manquait le jour où la caméra s'est retrouvée dans le mur
@@ -1605,6 +1688,99 @@ function fondre() {
   /* Un plancher : si la rue se vidait, le village redeviendrait cinq objets
      dans un pré, et rien à l'écran ne le dirait. */
   if (posees < 24) console.warn("village : seulement " + posees + " maisons");
+}
+
+/* ── Les échoppes se bâtissent ──────────────────────────────────────────
+   Chacune est une petite maison, mais trois détails suffisent à la faire lire
+   comme un COMMERCE plutôt que comme une habitation : un store rayé qui
+   avance sur la rue, une vitrine large et éclairée jusqu'au sol, et une
+   enseigne en potence perpendiculaire à la façade — celle qu'on lit en
+   remontant la rue, pas celle qu'on lit de face. Les maisons voisines n'ont
+   aucun des trois. */
+const groupesBout = [];
+{
+  const rnd = semeur(7331);
+  BOUTIQUES.forEach((b, i) => {
+    const g = new THREE.Group();
+    g.position.set(b.x, 0, b.z);
+    g.rotation.y = b.rot;
+    g.userData.boutique = i;
+
+    const mur = [M.platre, M.pierreC, M.brique][i % 3];
+    const h = 44 + rnd() * 10;
+    g.add(bloc(mur, BOUT_L, h, BOUT_P, 0, h / 2, 0));
+    g.add(pignon(M.tuile, BOUT_L + 4, 13, BOUT_P + 4, 0, h, 0));
+    g.add(bloc(M.pierreC, BOUT_L + 2, 2.4, BOUT_P + 2, 0, h + 1, 0));
+
+    /* La devanture, à z + P/2 : tout ce qui suit est sur la façade qui donne
+       sur l'allée. Les plans sont séparés d'au moins une unité — la leçon de
+       la herse du château, où deux surfaces coplanaires clignotaient. */
+    const f = BOUT_P / 2;
+    g.add(bloc(M.bois, BOUT_L, 3.2, 1.2, 0, 25.6, f + 0.6));      // le linteau
+    const vitre = fenetre(BOUT_L - 7, 15, 0, 17, f + 1.4);
+    g.add(vitre);
+    for (const sx of [-1, 1])                                      // les montants
+      g.add(bloc(M.bois, 1.4, 16, 1.6, sx * (BOUT_L / 2 - 2.2), 17, f + 1.5));
+    g.add(bloc(M.bois, BOUT_L - 6, 1.2, 2.2, 0, 8.8, f + 1.6));    // l'appui
+
+    /* La porte : un panneau sombre, un seuil de pierre, une poignée. C'est
+       elle qu'on vise, et elle doit se distinguer de la vitrine. */
+    g.add(bloc(M.sombre, 9, 19, 1.2, BOUT_L / 2 - 8, 9.5, f + 1.1));
+    g.add(bloc(M.bois, 10.6, 1.4, 2.4, BOUT_L / 2 - 8, 19.6, f + 1.4));
+    g.add(bloc(M.pierreC, 12, 1.2, 5, BOUT_L / 2 - 8, 0.6, f + 3));
+    const poignee = cyl(M.or, 0.5, 0.5, 1.4, 8, BOUT_L / 2 - 12, 9.6, f + 2.1);
+    poignee.rotation.x = Math.PI / 2;
+    g.add(poignee);
+
+    /* Le store rayé. Deux plans inclinés d'une teinte et de l'autre : à cette
+       distance, c'est la RAYURE qu'on reconnaît, pas le tissu. */
+    const teinte = lambert(b.couleur);
+    const blanc = lambert(0xF4EFE6);
+    for (let k = 0; k < 8; k++) {
+      const p = bloc(k % 2 ? teinte : blanc, BOUT_L / 8, 0.8, 11,
+                     -BOUT_L / 2 + BOUT_L / 8 * (k + 0.5), 28.4, f + 5);
+      p.rotation.x = 0.36;
+      g.add(p);
+    }
+    g.add(bloc(M.bois, BOUT_L + 1, 1.4, 1.4, 0, 30.4, f + 0.9));
+    for (const sx of [-1, 1]) {                                    // les bras
+      const bras = bloc(M.bois, 0.9, 11, 0.9, sx * (BOUT_L / 2 - 1), 28, f + 5);
+      bras.rotation.x = 0.36;
+      g.add(bras);
+    }
+
+    /* L'enseigne en potence : une plaque perpendiculaire, portée par une
+       ferrure. Elle se balance — le village a déjà ce mouvement pour les
+       enseignes de fer, on le réutilise. */
+    const potence = new THREE.Group();
+    potence.position.set(-BOUT_L / 2 + 3, 36, f + 1.5);
+    potence.add(bloc(M.metal, 12, 0.7, 0.7, 6, 0, 0));
+    const plaque = new THREE.Group();
+    plaque.position.set(11, -5.5, 0);
+    plaque.add(bloc(M.bois, 0.8, 9, 13, 0, 0, 0));
+    plaque.add(bloc(teinte, 1.4, 7, 11, 0.2, 0, 0));
+    potence.add(plaque);
+    /* BALANCE contient des DESCRIPTEURS, pas des objets : { o, v, a }. Y
+       pousser la plaque nue a fait planter la boucle de rendu entière au
+       premier tour — donc le village entier, pour une enseigne. Une liste
+       partagée a une forme, et rien ne la rappelle à celui qui l'alimente. */
+    BALANCE.push({ o: plaque, v: 1.1 + rnd() * 0.3, a: 0.07 });
+    g.add(potence);
+
+    /* La lanterne au-dessus de la porte : c'est elle qui dit, la nuit, qu'une
+       boutique est ouverte. */
+    const m = new THREE.MeshBasicMaterial({ color: 0xFFB454, fog: true });
+    LANTERNES.push(m);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.4, 2.6), m)
+          .translateX(BOUT_L / 2 - 8).translateY(23.5).translateZ(f + 2.4));
+    g.add(lueur(20, BOUT_L / 2 - 8, 23.5, f + 2.4));
+
+    scene.add(g);
+    groupesBout.push(g);
+    /* On ne traverse pas une échoppe : elle entre dans les obstacles comme
+       les cinq bâtiments. */
+    OBSTACLES_BOUT.push({ x: b.x, z: b.z, r: Math.max(BOUT_L, BOUT_P) / 2 + 6 });
+  });
 }
 
 /* ── Les cônes de lumière ───────────────────────────────────────────────
@@ -1883,6 +2059,7 @@ const PASSANTS = {
    dire un village sans murs, ce qui est précisément le défaut qu'on corrige. */
 const MURS = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }));
 MURS.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 8 });
+for (const o of OBSTACLES_BOUT) MURS.push(o);
 
 {
   const rnd = semeur(1789);
@@ -1973,6 +2150,151 @@ MURS.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 8 });
                    broute: info.bete === "mouton",
                    phase: rnd() * Math.PI * 2 });
   });
+}
+
+/* ══════════════════════════════════════════════ les scénettes ════════
+   JustAkhiraa : « mets des passants aussi en dehors du chemin, et même des
+   immobiles, d'autres qui parlent entre eux, d'autres qui dansent avec une
+   radio qui sort des notes de musique ».
+
+   C'est la demande la plus juste de toute la série, et voici pourquoi : les
+   dix-huit passants du village vont tous d'un point à un autre. Aucun ne
+   s'arrête, aucun ne regarde un autre, aucun n'a de raison d'être là. Un
+   village où tout le monde marche n'est pas un village, c'est un couloir.
+
+   Ce qui manque n'est pas le nombre, c'est le MOTIF. Trois suffisent :
+
+     · quelqu'un qui attend quelque part — devant sa porte, au bord de la
+       fontaine. Il ne fait rien, et c'est précisément ce qui donne envie de
+       s'approcher ;
+     · deux ou trois qui se font face. Deux silhouettes tournées l'une vers
+       l'autre se lisent comme une conversation avant même qu'un mot
+       s'affiche — c'est de la posture, pas du texte ;
+     · un qui danse près d'une radio. Le seul mouvement du village qui ne
+       serve à aller nulle part.
+
+   Les répliques n'apparaissent qu'à PORTÉE DE VOIX — quarante-cinq unités,
+   à peu près la largeur de l'allée. Des bulles visibles d'un bout à l'autre
+   du village en feraient un panneau publicitaire ; là, il faut s'approcher,
+   et c'est ce qui les rend vivantes. */
+const SCENETTES = [];
+{
+  const rnd = semeur(1848);
+  /* Les bulles vont dans « monde3D », PAS dans « scene ». Le village a deux
+     graphes qui partagent la même caméra : l'un est rendu par WebGL, l'autre
+     par CSS3DRenderer, et chacun ignore le contenu de l'autre. Une bulle
+     rangée dans la scène WebGL n'apparaît donc jamais, sans la moindre
+     erreur — le renderer CSS ne la parcourt simplement pas. C'est exactement
+     ce qui vient d'arriver : sept bulles construites, zéro dans le document. */
+  const BULLES = new THREE.Group();
+  monde3D.add(BULLES);
+
+  /* Un groupe de silhouettes tournées les unes vers les autres. L'angle est
+     calculé, pas tiré au sort : chacun regarde le CENTRE du cercle. */
+  function attroupement(x, z, roles, rayonCercle) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    roles.forEach((role, k) => {
+      const p = new THREE.Group();
+      const a = (k / roles.length) * Math.PI * 2 + 0.4;
+      p.position.set(Math.cos(a) * rayonCercle, 0, Math.sin(a) * rayonCercle);
+      /* Tourné vers le centre : atan2 de l'opposé de sa propre position. */
+      p.rotation.y = Math.atan2(-p.position.x, -p.position.z);
+      PASSANTS[role](p, rnd);
+      g.add(p);
+    });
+    scene.add(g);
+    return g;
+  }
+
+  /* La bulle : un élément HTML posé dans la scène, comme les enseignes. Du
+     texte dessiné en 3D serait flou de près et illisible de loin ; celui-ci
+     reste net à toute distance et un lecteur d'écran le lit. */
+  function bulle(x, y, z, lignes, couleur) {
+    const el = document.createElement("div");
+    el.className = "bulle";
+    el.style.setProperty("--c", couleur);
+    el.textContent = lignes[0];
+    const o = new CSS3DSprite(el);
+    o.position.set(x, y, z);
+    /* L'échelle se déduit d'une largeur VOULUE, elle ne se choisit pas au
+       jugé : la bulle fait 240 pixels de large, on la veut à peu près neuf
+       unités dans le village — la largeur d'un passant et demi. À 0,16, elle
+       en faisait cinquante-six et remplissait l'écran à dix pas. */
+    o.scale.setScalar(9 / 240);
+    BULLES.add(o);
+    return { el, o, lignes, k: 0, prochaine: 3 + rnd() * 3 };
+  }
+
+  const DITS = {
+    marche: ["Le château, c'est tout au bout.", "Vous cherchez quoi ?",
+             "Moi j'ai commencé par les réseaux.", "Bonne journée !"],
+    boutique: ["Entrez donc, c'est ouvert.", "J'ai ce qu'il vous faut.",
+               "On ferme tard, ce soir."],
+    danse: ["♪", "♫", "Ça, c'est de la musique !", "♪♪"],
+  };
+
+  /* 1 — Deux qui discutent au bord de la fontaine, là où l'on arrive. */
+  {
+    const x = -V.rFontaine - 14, z = V.zFontaine + 30;
+    attroupement(x, z, ["japonais", "cowboy"], 7);
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.marche, "#6FC8FF"), x, z });
+  }
+  /* 2 — Trois devant la pagode, qui refont le monde. */
+  {
+    const x = V.demiAllee + 22, z = -30;
+    attroupement(x, z, ["ninja", "mib", "japonais"], 8);
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.marche, "#CE96FF"), x, z });
+  }
+  /* 3 — Les tenanciers, plantés devant leur porte. Immobiles, tournés vers
+     l'allée : c'est l'attitude de quelqu'un qui attend le client. */
+  BOUTIQUES.forEach((b, i) => {
+    if (i % 2) return;                       // un sur deux : pas une haie d'honneur
+    const p = new THREE.Group();
+    p.position.set(b.x - b.cote * (BOUT_P / 2 + 7), 0, b.z + 6);
+    p.rotation.y = b.cote > 0 ? Math.PI / 2 : -Math.PI / 2;
+    PASSANTS[["japonais", "mib", "cowboy", "ninja"][i % 4]](p, rnd);
+    scene.add(p);
+    SCENETTES.push({
+      bulle: bulle(p.position.x, 17, p.position.z, DITS.boutique,
+                   "#" + b.couleur.toString(16).padStart(6, "0")),
+      x: p.position.x, z: p.position.z,
+    });
+  });
+  /* 4 — Le danseur et sa radio. Il ne va nulle part, et c'est tout l'objet :
+     le seul mouvement du village qui ne mène à rien. */
+  {
+    const x = -V.demiAllee - 20, z = 96;
+    const p = new THREE.Group();
+    p.position.set(x, 0, z);
+    PASSANTS.cowboy(p, rnd);
+    scene.add(p);
+
+    /* La radio : une boîte, deux haut-parleurs, une poignée, une antenne. */
+    const r = new THREE.Group();
+    r.position.set(x + 9, 0, z + 2);
+    r.add(bloc(lambert(0x2A2E36), 13, 8, 5, 0, 8, 0));
+    for (const sx of [-1, 1])
+      r.add(cyl(lambert(0x14161C), 2.4, 2.4, 1, 12, sx * 3.4, 8, 2.6).rotateX(Math.PI / 2));
+    r.add(cyl(M.metal, 0.4, 0.4, 5, 6, 0, 13.6, 0).rotateZ(0.5));
+    r.add(bloc(M.bois, 2, 1, 5, 0, 3.4, 0));
+    scene.add(r);
+
+    /* Les notes : des sprites qui montent et se dissipent. Trois suffisent —
+       au-delà, ce n'est plus une radio, c'est un feu d'artifice. */
+    const notes = [];
+    for (let k = 0; k < 3; k++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: TEX.lueur, transparent: true, opacity: 0, depthWrite: false,
+        blending: THREE.AdditiveBlending, color: 0xFFE9A0, fog: true }));
+      s.scale.setScalar(5);
+      s.position.set(x + 9, 13, z + 2);
+      scene.add(s);
+      notes.push({ s, t: k * 0.9 });
+    }
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.danse, "#FFB05A"),
+                     x, z, danseur: p, notes, radio: r });
+  }
 }
 
 /* ── Les chats assis ────────────────────────────────────────────────────
@@ -2109,6 +2431,7 @@ const OBSTACLES = [];
 matieres.forEach((m) => OBSTACLES.push(
   { x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 14 }));
 OBSTACLES.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 9 });
+for (const o of OBSTACLES_BOUT) OBSTACLES.push(o);
 for (const sx of [-1, 1])
   OBSTACLES.push({ x: sx * (V.demiAllee + 6), z: V.zPortail, r: 13 });
 const BORNES = { x: 250, zMin: -158, zMax: V.zPortail + 70 };
@@ -2868,10 +3191,25 @@ function matiereSous(objet) {
     if (o.userData && o.userData.matiere !== undefined) return o.userData.matiere;
   return -1;
 }
+function boutiqueSous(objet) {
+  for (let o = objet; o; o = o.parent)
+    if (o.userData && o.userData.boutique !== undefined) return o.userData.boutique;
+  return -1;
+}
 function viserBatiment() {
   if (vue.matiere >= 0 || ruee.actif) return;
   rayon.setFromCamera(souris, camera);
-  const t = rayon.intersectObjects(groupesBat, true)[0];
+  const t = rayon.intersectObjects(groupesBat.concat(groupesBout), true)[0];
+  const b = t ? boutiqueSous(t.object) : -1;
+  /* Une échoppe visée se signale comme un bâtiment : le curseur change et la
+     ligne du haut donne son nom. Sans ce retour, rien ne dit qu'une porte
+     s'ouvre — et une porte dont on ne sait pas qu'elle s'ouvre est un mur. */
+  if (b >= 0) {
+    marquerSurvol(-1, false);
+    toile.style.cursor = "pointer";
+    nommerBoutique(b);
+    return;
+  }
   marquerSurvol(t ? matiereSous(t.object) : -1, !!t);
 }
 
@@ -2937,11 +3275,16 @@ toile.addEventListener("pointerup", (e) => {
   if (parcouru === null || parcouru > 9 || vue.matiere >= 0 || ruee.actif) return;
   majSouris(e);
   rayon.setFromCamera(souris, camera);
-  const t = rayon.intersectObjects(groupesBat, true)[0];
-  if (t) {
-    const i = matiereSous(t.object);
-    if (i >= 0) allerA(i);
-  }
+  /* Les deux familles sont interrogées d'un seul coup, et c'est le plus
+     PROCHE qui gagne. Les interroger l'une après l'autre ferait passer une
+     échoppe devant le château qu'elle cache, ou l'inverse — et le résultat
+     dépendrait de l'ordre des deux lignes, ce qui n'est pas une règle. */
+  const t = rayon.intersectObjects(groupesBat.concat(groupesBout), true)[0];
+  if (!t) return;
+  const b = boutiqueSous(t.object);
+  if (b >= 0) { ouvrirBoutique(b); return; }
+  const i = matiereSous(t.object);
+  if (i >= 0) allerA(i);
 });
 
 addEventListener("keydown", (e) => {
@@ -3007,6 +3350,37 @@ function ouvrirLecture(d) {
   lecture.classList.add("glisse");
   requestAnimationFrame(() => lecture.classList.remove("glisse"));
   if (chap.fiches[0]) afficherFiche(chap.fiches[0][1]);
+}
+
+/* ── Entrer dans une échoppe ────────────────────────────────────────────
+   Une fiche est INJECTÉE dans la fenêtre : on lui retire son script, parce
+   qu'on ne fait pas tourner le code d'une page étrangère dans la sienne. Un
+   OUTIL, lui, n'est que son script — un convertisseur sans JavaScript est un
+   tableau vide, et l'atelier C est un compilateur WebAssembly de soixante
+   mégaoctets. L'injecter reviendrait à livrer une coquille.
+
+   Il entre donc dans un « iframe » : le navigateur lui donne son propre
+   document, ses propres scripts et son propre cloisonnement, et l'outil
+   fonctionne exactement comme sur le site. C'est la seule solution qui ne
+   demande ni de dupliquer l'outil, ni de lui faire confiance. */
+function ouvrirBoutique(i) {
+  const b = BOUTIQUES[i];
+  const c = "#" + b.couleur.toString(16).padStart(6, "0");
+  lecture.style.setProperty("--c", c);
+  $("lecture-matiere").textContent = "Boutique";
+  $("lecture-titre").textContent = b.nom;
+  $("lecture-sous").textContent = b.tenancier;
+  $("lecture-onglets").innerHTML = "";
+  $("lecture-corps").innerHTML =
+    `<p class="bonjour"><span class="bonjour-qui" aria-hidden="true">☻</span>` +
+    `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
+    `<iframe class="boutique-outil" src="../${b.outil}" title="${ech(b.nom)}"` +
+    ` loading="lazy"></iframe>` +
+    `<a class="lecture-ouvrir" href="../${b.outil}" target="_blank" rel="noopener">` +
+    `Ouvrir l'outil en grand</a>`;
+  lecture.hidden = false;
+  lecture.classList.add("glisse");
+  requestAnimationFrame(() => lecture.classList.remove("glisse"));
 }
 
 function fermerLecture() {
@@ -3300,6 +3674,44 @@ function image(now) {
        cher du village, et l'un des deux qu'on remarque. */
     if (v.broute && v.tete)
       v.tete.rotation.x = 0.36 + Math.sin(t * 0.55 + v.phase) * 0.34;
+  }
+  /* ── Les scénettes ────────────────────────────────────────────────────
+     Une bulle ne s'affiche qu'à PORTÉE DE VOIX, et son opacité suit la
+     distance : elle apparaît en s'approchant au lieu de surgir. Le seuil est
+     à quarante-cinq unités, la largeur de l'allée — de l'autre trottoir on
+     voit qu'on parle, on ne lit pas ce qui se dit. */
+  for (const s of SCENETTES) {
+    const d = Math.hypot(oeil.pos.x - s.x, oeil.pos.z - s.z);
+    const pres = Math.max(0, Math.min(1, (58 - d) / 13));
+    s.bulle.el.style.opacity = pres.toFixed(2);
+    if (pres > 0.05) {
+      /* On ne change de réplique que si elle est LUE : faire tourner un texte
+         invisible, c'est arriver au milieu d'une phrase qu'on n'a pas vue
+         commencer. */
+      s.bulle.prochaine -= dt;
+      if (s.bulle.prochaine <= 0) {
+        s.bulle.k = (s.bulle.k + 1) % s.bulle.lignes.length;
+        s.bulle.el.textContent = s.bulle.lignes[s.bulle.k];
+        s.bulle.prochaine = 3.2 + (s.bulle.k % 3) * 0.9;
+      }
+    }
+    if (s.danseur) {
+      /* La danse : un rebond, un balancement, et un quart de tour qui va et
+         vient. Trois sinusoïdes de périodes différentes — la même période
+         partout donnerait un métronome, pas un danseur. */
+      s.danseur.position.y = Math.abs(Math.sin(t * 4.2)) * 2.4;
+      s.danseur.rotation.z = Math.sin(t * 2.1) * 0.13;
+      s.danseur.rotation.y = Math.sin(t * 1.35) * 0.8;
+      for (const n of s.notes) {
+        n.t += dt;
+        const u = (n.t % 2.6) / 2.6;
+        n.s.position.y = 13 + u * 22;
+        n.s.position.x = s.x + 9 + Math.sin(u * 7 + n.t) * 4;
+        /* Elle naît, elle monte, elle s'efface : une note qui disparaît net
+           en haut de sa course se lit comme un défaut d'affichage. */
+        n.s.material.opacity = Math.sin(u * Math.PI) * 0.75;
+      }
+    }
   }
   for (const c of CHATS_ASSIS) {
     /* Trois mouvements très lents, et rien de plus : la queue qui balaie, la
