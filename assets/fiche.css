@@ -244,17 +244,59 @@ li::marker { color: var(--accent-sombre); }
   background: var(--accent); color: var(--sur-accent); font-family: var(--mono); font-size: 0.6061rem;
   font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   padding: .16rem .55rem; border-radius: 5px; z-index: 2; }
-.bloc-code .copier { position: absolute; top: .55rem; right: .55rem; z-index: 2;
+.bloc-code .copier, .bloc-code .essayer { position: absolute; top: .55rem; right: .55rem; z-index: 2;
   font: inherit; font-size: 0.697rem; font-weight: 600; cursor: pointer;
-  background: rgba(255,255,255,.09); color: #C9C2B6; border: 1px solid rgba(255,255,255,.16);
+  /* Fond OPAQUE, et c'est une mesure qui l'exige. En rgba(255,255,255,.09)
+     le rendu était le même à l'œil — le bouton flotte au-dessus d'un <pre>
+     sombre — mais un contrôle de contraste compose les fonds en remontant
+     le DOM, pas la pile visuelle : le parent de ce bouton est .bloc-code,
+     qui n'a pas de fond, donc la mesure aboutissait au papier du thème.
+     Sur « Androïde (jour) », elle relevait 1,18:1. Le rendu ne change pas :
+     #373532 est exactement rgba(255,255,255,.09) posé sur #23211E. Le texte
+     y tient 6,91:1, et 8,97:1 au survol. */
+  background: #373532; color: #C9C2B6; border: 1px solid #464542;
   border-radius: 6px; padding: .45rem .7rem; transition: all .15s;
   min-height: 34px; }   /* 30 px se rataient au doigt sur un bloc de code */
-.bloc-code .copier:hover { background: rgba(255,255,255,.18); color: #fff; }
+.bloc-code .copier:hover, .bloc-code .essayer:hover { background: #4B4946; color: #fff; }
 .bloc-code .copier.fait { background: #2D5A27; border-color: #2D5A27; color: #fff; }
+/* « Essayer » se range à gauche de « Copier », et PARTAGE ses règles au lieu
+   de les recopier : deux commandes du même bloc n'ont aucune raison de se
+   ressembler à moitié. Écrit d'abord en double, le bouton faisait 43 px de
+   haut contre 37, pour un simple « display » différent. Ne restent ici que
+   les deux écarts réels — le décalage de 4,9 rem est la largeur de
+   « Copier » plus la gouttière. */
+.bloc-code .essayer { right: 4.9rem; text-decoration: none; }
 pre { margin: 0; background: #23211E; color: #EDE7DC; border-radius: var(--r);
   padding: 1.15rem 1.25rem; overflow-x: auto; font-family: var(--mono);
   font-size: 0.8061rem; line-height: 1.66; }
 pre code { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
+
+/* ------------------------------------------- coloration du code publié
+   Ahmed : « le code met lui des couleurs pour chaque element/attribut […]
+   c'est tres ergonomique c'est facile a lire ».
+
+   Ces classes sont posées à la PUBLICATION par coloration.py : aucune
+   bibliothèque, aucun script, rien à charger. La page arrive déjà colorée.
+
+   Une seule palette suffit pour les quarante thèmes, et c'est une mesure qui
+   le dit : dans toute la feuille, « pre » n'a que DEUX fonds — #23211E à
+   l'écran, #F4F1EC à l'impression. Aucun thème ne les redéfinit. Les vingt
+   couleurs ci-dessous ont donc été mesurées contre ces deux fonds-là :
+   toutes passent le seuil AA, la plus juste à 4,78:1.
+
+   Le commentaire est volontairement le plus terne — c'est sa fonction — mais
+   pas en dessous du seuil : le premier gris essayé (#8C8578) tombait à
+   4,39:1. */
+.j-com { color: #948D80; font-style: italic; }
+.j-mc  { color: #E58AC9; }
+.j-typ { color: #6FC3DF; }
+.j-txt { color: #C3E88D; }
+.j-num { color: #F7A66B; }
+.j-fn  { color: #82AAFF; }
+.j-bal { color: #E5C07B; }
+.j-att { color: #8FD4C1; }
+.j-var { color: #F09E9E; }
+.j-pre { color: #C8A2E8; }
 /* « overflow-wrap » ne coupe qu'en dernier recours — un mot qui ne tient pas
    seul sur sa ligne. Sans lui, un chemin comme
    « http://localhost/monprojet/index.php » n'offre aucune césure et pousse la
@@ -273,14 +315,6 @@ code, kbd, samp { text-transform: none; letter-spacing: normal; }
 
 /* ------------------------------------------------- coloration syntaxique */
 /* Palette chaude, lisible sur le fond #23211E des blocs de code.           */
-.tok-com { color: #8E8878; font-style: italic; }   /* commentaires          */
-.tok-key { color: #E8927C; }                       /* mots-clés, balises    */
-.tok-str { color: #B6C98D; }                       /* chaînes               */
-.tok-num { color: #E3C589; }                       /* nombres, IP, couleurs */
-.tok-att { color: #8FC4D6; }                       /* attributs, propriétés */
-.tok-val { color: #C7A8E0; }                       /* valeurs, variables    */
-.tok-pun { color: #9C958A; }                       /* ponctuation           */
-.tok-met { color: #7FB0A0; }                       /* doctype, @règles      */
 
 /* ------------------------------------ démonstration : code | résultat */
 .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
@@ -335,6 +369,13 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
 .recap li { position: relative; padding-left: 1.6rem; margin-bottom: .6rem; }
 .recap li::before { content: "\25B8"; position: absolute; left: .2rem; color: var(--accent-sombre);
   font-weight: 700; }
+/* Un chapitre qui couvre deux séances a deux récapitulatifs. Plutôt qu'un seul
+   bloc de vingt lignes où l'on ne retrouve rien, un intertitre par moitié — même
+   graphie que le titre des sources, pour qu'il se lise comme une étiquette et
+   non comme un titre de section. */
+.recap-part { margin: 1.4rem 0 .7rem; font-size: 0.6364rem; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--encre-tenue); }
+.recap-part:first-of-type { margin-top: 0; }
 
 .sources { margin-top: 2rem; font-size: 0.7879rem; color: var(--encre-tenue); }
 .sources h2 { font-size: 0.6364rem; text-transform: uppercase; letter-spacing: .12em;
@@ -393,14 +434,23 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   :root { --papier: #fff; }
   body { font-size: 10.5pt; line-height: 1.45; }
   .page { display: block; max-width: none; padding: 0; }
-  .sommaire, .bloc-code .copier, .quiz button { display: none !important; }
+  .sommaire, .bloc-code .copier, .bloc-code .essayer, .quiz button { display: none !important; }
   .quiz .reponse { display: block !important; }
   .encart, .quiz, .recap, .tableau, .schema { box-shadow: none; break-inside: avoid; }
   section > h2, h3 { break-after: avoid; }
   pre { background: #F4F1EC; color: #23211E; border: 1px solid #DDD; }
-  .tok-com { color: #6B7250; } .tok-key { color: #A03E28; } .tok-str { color: #3F6B2E; }
-  .tok-num { color: #8A5A12; } .tok-att { color: #1F5F73; } .tok-val { color: #5B3A80; }
-  .tok-pun { color: #5A544A; } .tok-met { color: #2C6B5B; }
+  /* Sur papier le fond s'inverse : la palette d'écran y passerait sous le
+     seuil. Mêmes rôles, mêmes teintes, assombries pour le blanc. */
+  .j-com { color: #6E6A62; }
+  .j-mc  { color: #A3246E; }
+  .j-typ { color: #0B6E86; }
+  .j-txt { color: #2F6B1E; }
+  .j-num { color: #9A4A00; }
+  .j-fn  { color: #1D4FA8; }
+  .j-bal { color: #7A5A00; }
+  .j-att { color: #0D6B57; }
+  .j-var { color: #A32020; }
+  .j-pre { color: #6B3FA0; }
   .demo { grid-template-columns: 1fr; }
   .demo .apercu { break-inside: avoid; }
   a { color: inherit; text-decoration: none; }
@@ -916,6 +966,24 @@ html[data-anim="0"] *, html[data-anim="0"] *::before, html[data-anim="0"] *::aft
   transition-duration: .001ms !important; scroll-behavior: auto !important;
 }
 
+/* ── Pourquoi « [data-sombre="0"] » sur les règles de FOND ───────────────
+   Ahmed, 27/09/2026 : « le mode sombre de console blanche est à revoir ».
+
+   Mesuré : les cartes d'un index restaient BLANCHES de nuit, sous un texte
+   passé en blanc cassé — 1,08:1, illisible. La cause n'était pas la palette
+   sombre, qui est juste : c'était une règle écrite pour la face claire, sans
+   garde de face, et qui peignait par-dessus. Une image de fond se pose SUR la
+   couleur de fond ; le « --carte » sombre était là, recouvert.
+
+   Le banc, lui, ne lisait que « backgroundColor » : il voyait le sombre et
+   déclarait le contraste bon. Deux aveuglements superposés, dont un dans
+   l'outil chargé de les voir.
+
+   Quatre univers étaient touchés — cahier-rose, console-blanche, grand-large,
+   liquid — pour 854 textes sous le seuil. Seules les règles qui PEIGNENT sont
+   scopées : la forme (arrondis, biseaux, inclinaisons) reste commune aux deux
+   faces, puisque c'est elle qui fait l'univers. */
+
 /* ═══════════════════════════════════════════════════════════════════════
    STYLES — les thèmes « à univers », repris de Sakina avec leurs noms.
    Chacun vient d'un jeu ou d'un écran : Voxel, Terminal, Matrix, Retro CRT,
@@ -1213,7 +1281,15 @@ html[data-theme="determination"] .chapitre,
 html[data-theme="determination"] .encart,
 html[data-theme="determination"] .feuille,
 html[data-theme="determination"] .resultats { border:2px solid #FFFFFF; }
-html[data-theme="determination"] .carte-matiere .ic::after { content:" ♥"; }
+/* Le cœur est une DÉCORATION, pas un second glyphe. .ic est une grille de
+   38 px de côté : un ::after y crée une deuxième rangée, qui déborde sous la
+   pastille et vient se poser sur la première lettre du titre. On le sort du
+   flux et on le pose dans l'angle. */
+html[data-theme="determination"] .carte-matiere .ic { position:relative; }
+html[data-theme="determination"] .carte-matiere .ic::after {
+  content:"\2665"; position:absolute; top:-5px; right:-5px;
+  font-size:.58em; line-height:1; pointer-events:none;
+}
 
 /* ───────────────────────────────────────────── ANDROÏDE (sable, HUD fin) */
 html[data-theme="androide"], html[data-theme="androide"] [data-matiere] {
@@ -1255,7 +1331,13 @@ html[data-theme="velours"] .carte-matiere { transform: skewY(-.4deg); }
 html[data-theme="grand-large"], html[data-theme="grand-large"] [data-matiere] {
   --papier:#E3F3EF; --carte:#FFFDF4; --carte-creuse:#F6F1E2;
   --bord:#CFE0D8; --bord-fort:#A9C7BB;
-  --encre:#24413D; --encre-douce:#3C5A54; --encre-tenue:#547069;  /* 4,70:1 mesuré */
+  --encre:#24413D; --encre-douce:#3C5A54; --encre-tenue:#456057;
+  /* Mesuré contre le PARCHEMIN, pas contre --carte. L'ancienne valeur
+     (#547069) annonçait « 4,70:1 » — vrai sur #FFFDF4, faux sur le fond
+     réel : les cartes de Grand Large sont peintes d'un dégradé qui
+     descend à #F6E7C1, où elle tombait à 4,39:1. Le banc ne lisait alors
+     que « backgroundColor » et ne voyait pas le dégradé.
+     Nouvelle valeur : 5,59:1 sur le parchemin, 6,73:1 sur la carte. */
   --accent:#0C7A76; --accent-pale:rgba(12,122,118,.11); --accent-sombre:#075C59;
   --sur-accent:#FFFFFF;
 }
@@ -1265,7 +1347,7 @@ html[data-theme="grand-large"] {
   --ombre:0 2px 10px rgba(12,74,70,.1);
   --ombre-haut:0 10px 34px rgba(12,74,70,.16);
 }
-html[data-theme="grand-large"] body {
+html[data-theme="grand-large"][data-sombre="0"] body {
   background-image: radial-gradient(ellipse 120% 60% at 50% 0%, rgba(255,255,255,.7), transparent 70%);
 }
 
@@ -1282,8 +1364,8 @@ html[data-theme="cahier-rose"] {
   --ombre:0 2px 8px rgba(160,60,105,.09);
   --ombre-haut:0 10px 30px rgba(160,60,105,.14);
 }
-html[data-theme="cahier-rose"] .carte-matiere,
-html[data-theme="cahier-rose"] .encart {
+html[data-theme="cahier-rose"][data-sombre="0"] .carte-matiere,
+html[data-theme="cahier-rose"][data-sombre="0"] .encart {
   background-image: repeating-linear-gradient(transparent 0 27px, rgba(226,168,196,.28) 27px 28px);
 }
 
@@ -1291,7 +1373,11 @@ html[data-theme="cahier-rose"] .encart {
 html[data-theme="console-blanche"], html[data-theme="console-blanche"] [data-matiere] {
   --papier:#EBF0F4; --carte:#FFFFFF; --carte-creuse:#F4F7F9;
   --bord:#D3DDE4; --bord-fort:#A9B9C4;
-  --encre:#26333C; --encre-douce:#3F5060; --encre-tenue:#5A6D7B;  /* 4,68:1 mesuré */
+  --encre:#26333C; --encre-douce:#3F5060; --encre-tenue:#4E6675;
+  /* Même correction que Grand Large, et même cause. « 4,68:1 mesuré »
+     valait contre --carte (#FFFFFF) ; le fond réel de la page descend à
+     #E4EBF1, où l'ancienne valeur tombait à 4,19:1. Nouvelle valeur :
+     6,03 / 5,71 / 5,01 sur les trois surfaces du thème. */
   --accent:#0679A0; --accent-pale:rgba(6,121,160,.1); --accent-sombre:#045C7A;
   --sur-accent:#FFFFFF;
 }
@@ -1300,8 +1386,8 @@ html[data-theme="console-blanche"] {
   --ombre:0 1px 0 #FFFFFF inset, 0 1px 3px rgba(38,51,60,.1);
   --ombre-haut:0 8px 26px rgba(38,51,60,.14);
 }
-html[data-theme="console-blanche"] .carte-matiere,
-html[data-theme="console-blanche"] .chapitre {
+html[data-theme="console-blanche"][data-sombre="0"] .carte-matiere,
+html[data-theme="console-blanche"][data-sombre="0"] .chapitre {
   background-image: linear-gradient(#FFFFFF, #F6F9FB);
 }
 
@@ -1319,7 +1405,7 @@ html[data-theme="bloc-notes"] {
   --ombre:0 1px 2px rgba(60,50,25,.09);
   --ombre-haut:0 8px 22px rgba(60,50,25,.13);
 }
-html[data-theme="bloc-notes"] body {
+html[data-theme="bloc-notes"][data-sombre="0"] body {
   background-image: repeating-linear-gradient(transparent 0 25px, rgba(23,80,155,.09) 25px 26px);
 }
 html[data-theme="bloc-notes"] .carte-matiere,
@@ -1344,7 +1430,11 @@ html[data-theme="neon-lime"] .heros h1 span { text-shadow:0 0 18px rgba(163,230,
 html[data-theme="liquid"], html[data-theme="liquid"] [data-matiere] {
   --papier:#E8EEF6; --carte:rgba(255,255,255,.62); --carte-creuse:rgba(255,255,255,.4);
   --bord:rgba(255,255,255,.7); --bord-fort:rgba(120,140,170,.35);
-  --encre:#16202C; --encre-douce:#35465A; --encre-tenue:#54687C;
+  --encre:#16202C; --encre-douce:#35465A; --encre-tenue:#425566;
+  /* Liquid Glass pose un voile bleu radial sur la page. Au point le plus
+     dense (55 % de #78BEFF), l'ancienne valeur tombait à 3,70:1 — un
+     texte ténu posé pile sur la tache lumineuse. Mesurée contre ce
+     point-là et non contre --papier : 4,95:1 sur le voile, 6,61 ailleurs. */
   --accent:#1D4ED8; --accent-pale:rgba(29,78,216,.1); --accent-sombre:#1A3FA8;
   --sur-accent:#FFFFFF;
 }
@@ -1353,7 +1443,7 @@ html[data-theme="liquid"] {
   --ombre:0 1px 1px rgba(255,255,255,.7) inset, 0 6px 22px rgba(30,50,80,.12);
   --ombre-haut:0 1px 1px rgba(255,255,255,.8) inset, 0 18px 50px rgba(30,50,80,.2);
 }
-html[data-theme="liquid"] body {
+html[data-theme="liquid"][data-sombre="0"] body {
   background-image:
     radial-gradient(ellipse 70% 50% at 12% 6%,  rgba(120,190,255,.55), transparent 62%),
     radial-gradient(ellipse 60% 45% at 88% 12%, rgba(190,160,255,.45), transparent 60%),
@@ -1382,10 +1472,989 @@ html[data-theme="zellige"] {
   --ombre:0 1px 2px rgba(40,60,50,.08);
   --ombre-haut:0 10px 28px rgba(40,60,50,.14);
 }
-html[data-theme="zellige"] body {
+html[data-theme="zellige"][data-sombre="0"] body {
   background-image:
     repeating-linear-gradient( 45deg, rgba(12,99,87,.05) 0 2px, transparent 2px 18px),
     repeating-linear-gradient(-45deg, rgba(180,140,60,.05) 0 2px, transparent 2px 18px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SECONDE COUCHE — la direction artistique, pas seulement la palette.
+   Chaque style ci-dessus posait ses variables ; un menu ne se reconnaît pas
+   à ses couleurs seules mais à la FORME de ses panneaux, à ce que fait la
+   sélection, et à la façon dont le texte est posé. C'est ce que cette
+   couche ajoute, sans toucher aux couleurs déjà mesurées au contraste.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════ DÉTERMINATION — la boîte de dialogue noire */
+/* Le jeu n'a qu'un seul objet d'interface : un rectangle noir cerné de blanc
+   épais, du texte blanc à chasse fixe, et un cœur rouge qui désigne le choix
+   courant. Le jaune ne sert qu'à une chose : l'option sélectionnée. */
+html[data-theme="determination"] .app-tete,
+html[data-theme="determination"] .bandeau-plan,
+html[data-theme="determination"] .sommaire,
+html[data-theme="determination"] .bloc-code,
+html[data-theme="determination"] table { border:2px solid #FFFFFF; background:#000000; }
+
+html[data-theme="determination"] .app-tete nav a,
+html[data-theme="determination"] .pastilles button,
+html[data-theme="determination"] .quiz button,
+html[data-theme="determination"] .bouton-hasard,
+html[data-theme="determination"] .bouton-rond,
+html[data-theme="determination"] .mini,
+html[data-theme="determination"] .coche,
+html[data-theme="determination"] .bloc-code .copier {
+  position: relative; background:#000000; color:#FFFFFF;
+  border:2px solid #FFFFFF; border-radius:0; box-shadow:none;
+}
+/* Le cœur : il n'apparaît pas, il se DÉPLACE — c'est le curseur du jeu.
+   Réservé en largeur pour que rien ne bouge quand il arrive. */
+html[data-theme="determination"] .app-tete nav a::before,
+html[data-theme="determination"] .pastilles button::before,
+html[data-theme="determination"] .bouton-hasard::before,
+html[data-theme="determination"] .coche::before {
+  content:"\2665"; display:inline-block; width:1em; margin-right:.15em;
+  color:transparent; transition:none;
+}
+html[data-theme="determination"] .app-tete nav a:hover::before,
+html[data-theme="determination"] .pastilles button:hover::before,
+html[data-theme="determination"] .bouton-hasard:hover::before,
+html[data-theme="determination"] .coche:hover::before,
+html[data-theme="determination"] .app-tete nav a[aria-current="page"]::before,
+html[data-theme="determination"] .pastilles button[aria-pressed="true"]::before,
+html[data-theme="determination"] .coche[aria-pressed="true"]::before { color:#FF3B3B; }
+/* Le jaune ne désigne QUE le choix courant : c'est sa seule fonction dans
+   le jeu, et lui en donner une autre la lui ferait perdre. */
+html[data-theme="determination"] .app-tete nav a[aria-current="page"],
+html[data-theme="determination"] .pastilles button[aria-pressed="true"],
+html[data-theme="determination"] .coche[aria-pressed="true"] { color:#FFFF00; border-color:#FFFF00; }
+html[data-theme="determination"] .heros h1 span { color:#FFFF00; }
+html[data-theme="determination"] .recherche input {
+  background:#000000; color:#FFFFFF; border:2px solid #FFFFFF; border-radius:0;
+}
+html[data-theme="determination"] h1,
+html[data-theme="determination"] h2 { letter-spacing:.04em; font-weight:400; }
+
+/* ═══════════════════════ MIDGAR — le menu de Final Fantasy VII Remake */
+/* Panneaux bleu nuit translucides, liseré cyan en haut, coins coupés, et une
+   barre verticale qui marque l'entrée active. Les titres sont en capitales
+   très espacées : c'est la signature typographique de ces menus. */
+/* « .feuille » reçoit bien le fond et le liseré — mais PAS le
+   « position: relative » : elle est en « fixed », ancrée à l'écran, et la
+   repasser en relative la renvoie dans le flux, à moitié dehors. La même
+   faute avait été faite sur Androïde ; celle-ci, le banc l'a trouvée seul,
+   le jour où on lui a appris à ouvrir les réglages. */
+html[data-theme="midgar"] .carte-matiere,
+html[data-theme="midgar"] .chapitre,
+html[data-theme="midgar"] .encart,
+html[data-theme="midgar"] .bandeau-plan,
+html[data-theme="midgar"] .sommaire { position: relative; }
+html[data-theme="midgar"] .carte-matiere,
+html[data-theme="midgar"] .chapitre,
+html[data-theme="midgar"] .encart,
+html[data-theme="midgar"] .feuille,
+html[data-theme="midgar"] .bandeau-plan,
+html[data-theme="midgar"] .sommaire {
+  background: linear-gradient(160deg, rgba(20,42,66,.92), rgba(9,18,30,.92));
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border:1px solid rgba(53,199,216,.28);
+}
+/* Le filet lumineux du haut : dans le jeu, chaque panneau s'ouvre par là. */
+html[data-theme="midgar"] .carte-matiere::after,
+html[data-theme="midgar"] .encart::after,
+html[data-theme="midgar"] .bandeau-plan::after {
+  content:""; position:absolute; left:0; right:0; top:0; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(126,223,234,.9), transparent);
+}
+html[data-theme="midgar"] .app-tete {
+  background: linear-gradient(180deg, rgba(10,22,36,.96), rgba(7,14,24,.92));
+  border-bottom:1px solid rgba(53,199,216,.3);
+}
+html[data-theme="midgar"] .app-tete nav a { position:relative; border-radius:0; }
+html[data-theme="midgar"] .app-tete nav a[aria-current="page"] {
+  background: rgba(53,199,216,.1); box-shadow: inset 2px 0 0 #35C7D8;
+  text-shadow: 0 0 10px rgba(53,199,216,.6);
+}
+html[data-theme="midgar"] h1,
+html[data-theme="midgar"] h3 { letter-spacing:.07em; text-transform:uppercase; }
+html[data-theme="midgar"] .heros h1 span { text-shadow:0 0 22px rgba(53,199,216,.55); }
+
+/* ═════════════════════════════ VELOURS — Persona 5 Royal, rouge et noir */
+/* Tout y est de travers et rien n'y est droit : les panneaux penchent, les
+   angles sont coupés en biais, les titres sont en italique lourd. Le rouge
+   ne décore pas, il découpe. L'or est la touche « Royal ». */
+html[data-theme="velours"] { --or:#E8C25A; }
+html[data-theme="velours"] body {
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(228,35,74,.14), transparent 44%),
+    repeating-linear-gradient(115deg, rgba(228,35,74,.05) 0 2px, transparent 2px 9px);
+  background-attachment: fixed;
+}
+html[data-theme="velours"] .carte-matiere,
+html[data-theme="velours"] .encart,
+html[data-theme="velours"] .bandeau-plan {
+  transform: skewY(-1deg);
+  clip-path: polygon(0 10px, 14px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 14px) 100%, 0 100%);
+  border-left:3px solid #E4234A;
+}
+/* Le contenu se redresse : seul le CADRE penche, sinon le texte devient
+   illisible et la page entière gîte. */
+html[data-theme="velours"] .carte-matiere > *,
+html[data-theme="velours"] .encart > *,
+html[data-theme="velours"] .bandeau-plan > * { transform: skewY(1deg); }
+html[data-theme="velours"] .app-tete {
+  background:#0A0507; border-bottom:3px solid #E4234A;
+}
+html[data-theme="velours"] .app-tete nav a,
+html[data-theme="velours"] .pastilles button,
+html[data-theme="velours"] .bouton-hasard,
+html[data-theme="velours"] .mini {
+  transform: skew(-9deg); border-radius:0;
+}
+html[data-theme="velours"] .app-tete nav a > *,
+html[data-theme="velours"] .bouton-hasard > * { display:inline-block; transform: skew(9deg); }
+html[data-theme="velours"] .app-tete nav a[aria-current="page"] {
+  background:#E4234A; color:#FFFFFF;
+}
+html[data-theme="velours"] h1,
+html[data-theme="velours"] h2,
+html[data-theme="velours"] h3 {
+  font-style: italic; font-weight:800; letter-spacing:-.025em; text-transform:uppercase;
+}
+html[data-theme="velours"] .heros h1 span { color:#E8C25A; }
+html[data-theme="velours"] .carte-matiere .pastille,
+html[data-theme="velours"] .heros .promo {
+  border-radius:0; transform: skew(-9deg); border-color:#E8C25A; color:#E8C25A;
+}
+
+/* ═══════════════════════════════ ANDROÏDE — NieR:Automata, austère */
+/* Beige sale, filets d'un pixel, capitales espacées, et la sélection qui
+   INVERSE le bloc au lieu de le colorer. Les petits repères d'angle sont la
+   marque de ses menus : quatre traits, jamais un cadre fermé. */
+html[data-theme="androide"][data-sombre="0"] body::after {
+  content:""; position:fixed; inset:0; z-index:9998; pointer-events:none;
+  background: repeating-linear-gradient(rgba(58,54,45,.045) 0 1px, transparent 1px 4px);
+}
+html[data-theme="androide"][data-anim="0"] body::after { display:none; }
+/* « .feuille » NE doit pas figurer ici : la feuille de réglages est en
+   « position: fixed », ancrée en bas à droite de l'écran. La repasser en
+   « relative » la renvoie dans le flux, à moitié hors de l'écran — le
+   panneau s'ouvrait coupé à gauche. Les repères d'angle ne concernent que
+   les panneaux de contenu, de toute façon. */
+html[data-theme="androide"] .carte-matiere,
+html[data-theme="androide"] .encart,
+html[data-theme="androide"] .bandeau-plan { position:relative; }
+/* Les repères d'angle, dessinés en dégradés : deux traits en haut à gauche,
+   deux en bas à droite. Rien au milieu — le cadre reste ouvert. */
+html[data-theme="androide"][data-sombre="0"] .carte-matiere::before,
+html[data-theme="androide"][data-sombre="0"] .encart::before,
+html[data-theme="androide"][data-sombre="0"] .bandeau-plan::before {
+  content:""; position:absolute; inset:-1px; pointer-events:none;
+  background:
+    linear-gradient(#3A362D,#3A362D) left  top    / 12px 2px no-repeat,
+    linear-gradient(#3A362D,#3A362D) left  top    / 2px 12px no-repeat,
+    linear-gradient(#3A362D,#3A362D) right bottom / 12px 2px no-repeat,
+    linear-gradient(#3A362D,#3A362D) right bottom / 2px 12px no-repeat;
+}
+html[data-theme="androide"][data-sombre="0"] .app-tete { background:#C2BEAC; border-bottom:1px solid #3A362D; }
+html[data-theme="androide"] .app-tete nav a,
+html[data-theme="androide"] .pastilles button,
+html[data-theme="androide"] .mini,
+html[data-theme="androide"] .coche { border-radius:0; letter-spacing:.06em; }
+/* La sélection inverse : fond sombre, texte sable. C'est exactement ce que
+   fait le curseur du jeu, et ça se lit sans couleur. */
+html[data-theme="androide"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="androide"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="androide"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background:#3A362D; color:#DCD9CB; box-shadow:none;
+}
+html[data-theme="androide"][data-sombre="0"] .app-tete nav a:hover { background:rgba(58,54,45,.12); }
+/* Les capitales très espacées sont la signature typographique du jeu — mais
+   un titre long, mis en capitales et écarté de .14em, ne tient plus dans
+   375 px : il poussait la page à 389 et la décalait entière. L'interlettrage
+   se resserre sur petit écran, et le mot peut se couper si vraiment il le
+   faut. Le signe reste, le débordement part. */
+html[data-theme="androide"] h1,
+html[data-theme="androide"] h3 {
+  text-transform:uppercase; letter-spacing:.14em; overflow-wrap:anywhere;
+}
+@media (max-width: 560px) {
+  html[data-theme="androide"] h1,
+  html[data-theme="androide"] h3 { letter-spacing:.06em; }
+}
+html[data-theme="androide"] .heros .promo { border-radius:0; letter-spacing:.14em; }
+
+/* ═════════════════════════ CAHIER ROSE — Doki Doki, le carnet à poèmes */
+/* Des boîtes blanches très arrondies posées sur un rose pâle, un liseré rose
+   soutenu, et une ombre douce : c'est la fenêtre de dialogue du jeu. Le
+   papier réglé est réservé aux encarts — c'est la feuille de poème. */
+html[data-theme="cahier-rose"][data-sombre="0"] body {
+  background-image:
+    radial-gradient(circle at 12% 8%,  rgba(255,182,213,.5), transparent 42%),
+    radial-gradient(circle at 88% 4%,  rgba(255,214,232,.6), transparent 40%);
+  background-attachment: fixed;
+}
+html[data-theme="cahier-rose"] .carte-matiere,
+html[data-theme="cahier-rose"] .chapitre,
+html[data-theme="cahier-rose"] .bandeau-plan,
+html[data-theme="cahier-rose"] .feuille,
+html[data-theme="cahier-rose"] .app-tete {
+  border:2px solid #E4A8C4;
+  box-shadow: 0 4px 0 rgba(228,168,196,.45), 0 10px 26px rgba(160,60,105,.12);
+}
+html[data-theme="cahier-rose"] .app-tete nav a,
+html[data-theme="cahier-rose"] .pastilles button,
+html[data-theme="cahier-rose"] .bouton-hasard,
+html[data-theme="cahier-rose"] .mini,
+html[data-theme="cahier-rose"] .coche {
+  border-radius:999px; border:1.5px solid #E4A8C4; background:#FFFFFF;
+}
+html[data-theme="cahier-rose"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="cahier-rose"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="cahier-rose"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background:#C2185B; color:#FFFFFF; border-color:#C2185B;
+}
+html[data-theme="cahier-rose"] .carte-matiere .ic { position:relative; }
+html[data-theme="cahier-rose"] .carte-matiere .ic::after {
+  content:"\273F"; position:absolute; top:-5px; right:-5px;
+  font-size:.58em; line-height:1; pointer-events:none;
+}
+html[data-theme="cahier-rose"] h1,
+html[data-theme="cahier-rose"] h2 { letter-spacing:-.01em; }
+
+/* ═════════════════════ GRAND LARGE — Wind Waker, parchemin sur la mer */
+/* Le fond est la mer, les panneaux sont du parchemin cerné de brun chaud et
+   très arrondi — le HUD du jeu. Le bleu reste dehors, le texte reste sur
+   fond clair : c'est ce qui rend l'ensemble lisible en plein soleil. */
+html[data-theme="grand-large"][data-sombre="0"] body {
+  background-image:
+    radial-gradient(ellipse 140% 70% at 50% -10%, rgba(255,247,214,.85), transparent 58%),
+    linear-gradient(180deg, #CDEDE6 0%, #9FD8D0 45%, #7CC4BE 100%);
+  background-attachment: fixed;
+}
+html[data-theme="grand-large"][data-sombre="0"] .carte-matiere,
+html[data-theme="grand-large"][data-sombre="0"] .chapitre,
+html[data-theme="grand-large"][data-sombre="0"] .encart,
+html[data-theme="grand-large"][data-sombre="0"] .bandeau-plan,
+html[data-theme="grand-large"][data-sombre="0"] .feuille,
+html[data-theme="grand-large"][data-sombre="0"] .sommaire {
+  background: linear-gradient(180deg, #FFF8E4, #F6E7C1);
+  border:2px solid #A9793F;
+  box-shadow: 0 3px 0 rgba(122,84,40,.35), 0 12px 30px rgba(12,74,70,.18);
+}
+html[data-theme="grand-large"][data-sombre="0"] .app-tete {
+  background: linear-gradient(180deg, #FFF8E4, #F2DFB6);
+  border-bottom:2px solid #A9793F;
+}
+html[data-theme="grand-large"] .app-tete nav a,
+html[data-theme="grand-large"] .pastilles button,
+html[data-theme="grand-large"] .bouton-hasard,
+html[data-theme="grand-large"] .mini,
+html[data-theme="grand-large"] .coche {
+  border:2px solid #A9793F; background:#FFF8E4; border-radius:999px;
+}
+html[data-theme="grand-large"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="grand-large"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="grand-large"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background:#0C7A76; color:#FFF8E4; border-color:#075C59;
+}
+html[data-theme="grand-large"] h1,
+html[data-theme="grand-large"] h2 { letter-spacing:-.005em; }
+
+/* ═══════════════════════ CONSOLE BLANCHE — le menu de la Wii */
+/* Des tuiles blanches très arrondies, un liseré bleu clair, une lueur bleue
+   au survol, et la séparation grise horizontale du bas d'écran. Tout est
+   laqué : les dégradés vont du blanc pur au gris-bleu le plus léger. */
+html[data-theme="console-blanche"][data-sombre="0"] body {
+  background-image: linear-gradient(180deg, #F7FAFC 0%, #E4EBF1 100%);
+  background-attachment: fixed;
+}
+html[data-theme="console-blanche"] .carte-matiere,
+html[data-theme="console-blanche"] .chapitre,
+html[data-theme="console-blanche"] .bandeau-plan,
+html[data-theme="console-blanche"] .feuille {
+  border:2px solid #C9DCE8; border-radius:14px;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 2px 6px rgba(38,51,60,.09);
+  transition: box-shadow .18s, border-color .18s;
+}
+html[data-theme="console-blanche"] .carte-matiere:hover {
+  border-color:#5FB8E0;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 3px rgba(95,184,224,.28), 0 8px 22px rgba(38,51,60,.14);
+}
+html[data-theme="console-blanche"][data-sombre="0"] .app-tete {
+  background: linear-gradient(180deg, #FFFFFF, #EDF3F7);
+  border-bottom:1px solid #C9DCE8;
+}
+html[data-theme="console-blanche"][data-sombre="0"] .app-tete nav a,
+html[data-theme="console-blanche"][data-sombre="0"] .pastilles button,
+html[data-theme="console-blanche"][data-sombre="0"] .bouton-hasard,
+html[data-theme="console-blanche"][data-sombre="0"] .mini,
+html[data-theme="console-blanche"][data-sombre="0"] .bouton-rond,
+html[data-theme="console-blanche"][data-sombre="0"] .coche {
+  border-radius:999px; border:1px solid #C9DCE8;
+  background: linear-gradient(180deg, #FFFFFF, #F1F6F9);
+  box-shadow: inset 0 1px 0 #FFFFFF;
+}
+html[data-theme="console-blanche"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="console-blanche"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="console-blanche"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background: linear-gradient(180deg, #2FA6DC, #0679A0); color:#FFFFFF; border-color:#045C7A;
+}
+
+/* ══════════════════════ BLOC-NOTES — Doodle Jump, le cahier griffonné */
+/* Page quadrillée, trait de crayon, et le vert des plateformes. Les panneaux
+   sont légèrement de travers, comme collés à la main — mais très légèrement :
+   au-delà d'un degré, une page entière devient pénible à lire. */
+html[data-theme="bloc-notes"] {
+  --sans: "Chalkboard SE", "Comic Sans MS", "Marker Felt", ui-rounded, sans-serif;
+  --ressort:#7DB93F;
+}
+html[data-theme="bloc-notes"][data-sombre="0"] body {
+  background-image:
+    repeating-linear-gradient(rgba(23,80,155,.10) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(23,80,155,.06) 0 1px, transparent 1px 26px);
+}
+html[data-theme="bloc-notes"] .carte-matiere,
+html[data-theme="bloc-notes"] .encart,
+html[data-theme="bloc-notes"] .bandeau-plan {
+  border:2px solid #2A2E38; border-style:solid;
+  box-shadow: 2px 2px 0 rgba(42,46,56,.75);
+}
+html[data-theme="bloc-notes"] .carte-matiere:nth-child(odd)  { transform: rotate(-.5deg); }
+html[data-theme="bloc-notes"] .carte-matiere:nth-child(even) { transform: rotate(.5deg); }
+html[data-theme="bloc-notes"] .app-tete {
+  border-bottom:2px solid #2A2E38; background:#FFFEF7;
+}
+html[data-theme="bloc-notes"] .app-tete nav a,
+html[data-theme="bloc-notes"] .pastilles button,
+html[data-theme="bloc-notes"] .bouton-hasard,
+html[data-theme="bloc-notes"] .mini,
+html[data-theme="bloc-notes"] .coche {
+  border:2px solid #2A2E38; border-radius:10px; background:#FFFEF7;
+  box-shadow: 2px 2px 0 rgba(42,46,56,.6);
+}
+/* Le vert du ressort : c'est la seule couleur vive du jeu, réservée à ce
+   qui est actif — on saute dessus. */
+html[data-theme="bloc-notes"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="bloc-notes"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="bloc-notes"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background: var(--ressort); color:#14240A; border-color:#2A2E38;
+}
+html[data-theme="bloc-notes"] .heros h1 span { color:#4B7D22; }
+
+/* ═════════════════════════ LIQUID GLASS — le verre des iOS récents */
+/* Le verre ne se voit pas à sa transparence mais à son BORD : un liseré clair
+   en haut, sombre en bas, et un léger grossissement de ce qu'il y a derrière.
+   Les formes sont des « squircles » — arrondis larges et continus. */
+html[data-theme="liquid"][data-sombre="0"] .carte-matiere,
+html[data-theme="liquid"][data-sombre="0"] .chapitre,
+html[data-theme="liquid"][data-sombre="0"] .encart,
+html[data-theme="liquid"][data-sombre="0"] .bandeau-plan,
+html[data-theme="liquid"][data-sombre="0"] .feuille,
+html[data-theme="liquid"][data-sombre="0"] .app-tete {
+  border-radius:22px; border:.5px solid rgba(255,255,255,.55);
+  background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.46));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 0 rgba(120,140,170,.18),
+    0 8px 30px rgba(30,50,80,.14);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+html[data-theme="liquid"] .app-tete { border-radius:0; }
+html[data-theme="liquid"][data-sombre="0"] .app-tete nav a,
+html[data-theme="liquid"][data-sombre="0"] .pastilles button,
+html[data-theme="liquid"][data-sombre="0"] .bouton-hasard,
+html[data-theme="liquid"][data-sombre="0"] .mini,
+html[data-theme="liquid"][data-sombre="0"] .bouton-rond,
+html[data-theme="liquid"][data-sombre="0"] .coche {
+  border-radius:999px; border:.5px solid rgba(255,255,255,.7);
+  background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.5));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 2px 10px rgba(30,50,80,.1);
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+}
+html[data-theme="liquid"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="liquid"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="liquid"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background: linear-gradient(180deg, #3B6BEA, #1D4ED8); color:#FFFFFF;
+  border-color: rgba(255,255,255,.4);
+}
+html[data-theme="liquid"][data-sombre="0"] .recherche input {
+  border-radius:999px; border:.5px solid rgba(255,255,255,.7);
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LES DEUX FACES DE CHAQUE UNIVERS
+   Un univers n'est pas « un thème sombre » ou « un thème clair » : c'est une
+   forme, une typographie, une façon de désigner la sélection. Tout cela vaut
+   de jour comme de nuit. Le bouton jour/nuit ne quitte donc plus l'univers,
+   il en change la face — « data-sombre » vaut 1 ou 0, et c'est tout.
+
+   Les blocs plus haut restent la face NATIVE de chaque univers (celle du jeu).
+   Ci-dessous, la face manquante. Deux sélecteurs d'attribut sur « html »
+   l'emportent sur un seul : rien n'a besoin d'être réécrit au-dessus.
+
+   Les couleurs sont conservatrices par construction — encre foncée sur papier
+   clair, encre claire sur papier foncé — et vérifiées ensuite par
+   verification/contraste.html, qui croise désormais les deux faces.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────── VOXEL en plein jour (sable et herbe) */
+html[data-theme="voxel"][data-sombre="0"],
+html[data-theme="voxel"][data-sombre="0"] [data-matiere] {
+  /* --papier vaut la zone LA PLUS SOMBRE du rendu — l'inverse exact de la
+     face de nuit, et pour la même raison. De nuit, le fond est voilé de noir :
+     la zone la plus CLAIRE donne la mesure la plus dure. De jour, le voile est
+     blanc : c'est la zone la plus SOMBRE qui contraint.
+
+     Depuis le 28/09/2026, la face de jour a SA PROPRE image — la texture de
+     pierre, fournie par Ahmed — au lieu de la terre de nuit blanchie à 62 %.
+     #AEAEAF est le pixel le plus sombre des 559 000 de l'image, voilé de
+     blanc à 50 % : mesuré sur l'image elle-même, pas sur une moyenne. Une
+     moyenne de bloc donnait #7C7C7C et aurait laissé passer des textes
+     illisibles au-dessus des joints sombres de la pierre.
+     Les trois encres y tiennent 8,45 · 6,08 · 5,22:1, et --accent-sombre
+     5,47:1. La valeur est très légèrement PLUS CLAIRE que l'ancienne
+     (#B0ABA6) : aucun texte déjà validé ne peut donc régresser. */
+  --papier:#AEAEAF; --carte:#EFE8D8; --carte-creuse:#E3DAC6;
+  --bord:#2B2115; --bord-fort:#2B2115;
+  --encre:#17110B; --encre-douce:#3A2C1C; --encre-tenue:#463625;
+  --accent:#35631F; --accent-pale:rgba(53,99,31,.15); --accent-sombre:#1E3D11;
+  --sur-accent:#FFFFFF;
+  --vert:#2E6B1E; --ambre:#8A5F00; --rouge:#9E2B25; --violet:#5B3E8F;
+}
+html[data-theme="voxel"][data-sombre="0"] {
+  --pierre:#DCD6C8; --pierre-survol:#B9C3E2;
+}
+/* Le plein jour a sa propre image : la texture de PIERRE, quand la nuit a
+   celle de la terre. Le voile blanc tombe de 62 % à 50 % — il n'a plus à
+   éclaircir une image sombre, seulement à poser le soleil dessus, et la
+   pierre reste lisible comme pierre. #C0C0C0 est le pixel médian de l'image
+   voilé de la même façon : c'est ce qu'on voit le temps que l'image arrive,
+   et pendant l'impression. */
+html[data-theme="voxel"][data-sombre="0"] body {
+  background-color:#C0C0C0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,.5)),
+    url("fond-voxel-clair.webp");
+}
+html[data-theme="voxel"][data-sombre="0"] .carte-matiere,
+html[data-theme="voxel"][data-sombre="0"] .chapitre,
+html[data-theme="voxel"][data-sombre="0"] .encart,
+html[data-theme="voxel"][data-sombre="0"] .feuille,
+html[data-theme="voxel"][data-sombre="0"] .resultats,
+html[data-theme="voxel"][data-sombre="0"] .app-tete,
+html[data-theme="voxel"][data-sombre="0"] .bloc-code,
+html[data-theme="voxel"][data-sombre="0"] .sommaire,
+html[data-theme="voxel"][data-sombre="0"] table {
+  background-color:#EFE8D8; border:2px solid #2B2115;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.8), inset -2px -2px 0 rgba(43,33,21,.28);
+}
+html[data-theme="voxel"][data-sombre="0"] .app-tete nav a,
+html[data-theme="voxel"][data-sombre="0"] .pastilles button,
+html[data-theme="voxel"][data-sombre="0"] .quiz button,
+html[data-theme="voxel"][data-sombre="0"] .bouton-hasard,
+html[data-theme="voxel"][data-sombre="0"] .mini,
+html[data-theme="voxel"][data-sombre="0"] .danger,
+html[data-theme="voxel"][data-sombre="0"] .bouton-rond,
+html[data-theme="voxel"][data-sombre="0"] .flottant,
+html[data-theme="voxel"][data-sombre="0"] .coche,
+html[data-theme="voxel"][data-sombre="0"] .chapitre .liens a,
+html[data-theme="voxel"][data-sombre="0"] .champ-select select,
+html[data-theme="voxel"][data-sombre="0"] .sommaire .retour,
+html[data-theme="voxel"][data-sombre="0"] .bloc-code .copier {
+  background: var(--pierre); color:#1F1710; text-shadow:none;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.85), inset -2px -2px 0 rgba(43,33,21,.3);
+}
+html[data-theme="voxel"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="voxel"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="voxel"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background:#3A6B22; color:#FFFFFF;
+}
+html[data-theme="voxel"][data-sombre="0"] .recherche input {
+  background:#FFFDF5; color:#1F1710; border:2px solid #2B2115;
+}
+html[data-theme="voxel"][data-sombre="0"] .recherche input::placeholder { color:#5B4A34; }
+html[data-theme="voxel"][data-sombre="0"] .heros .promo,
+html[data-theme="voxel"][data-sombre="0"] .carte-matiere .pastille,
+html[data-theme="voxel"][data-sombre="0"] .carte-matiere .ic,
+html[data-theme="voxel"][data-sombre="0"] .chapitre .num,
+html[data-theme="voxel"][data-sombre="0"] .jauge-matiere,
+html[data-theme="voxel"][data-sombre="0"] .app-marque .sigle {
+  background:#EFE8D8; border:2px solid #2B2115; color:#1F1710;
+}
+/* Une ombre dure noire sous un texte noir ne se voit pas : elle l'épaissit
+   et le rend sale. En plein jour, le texte n'en porte pas. */
+html[data-theme="voxel"][data-sombre="0"] h1,
+html[data-theme="voxel"][data-sombre="0"] h2,
+html[data-theme="voxel"][data-sombre="0"] h3,
+html[data-theme="voxel"][data-sombre="0"] .app-marque,
+html[data-theme="voxel"][data-sombre="0"] .heros p,
+html[data-theme="voxel"][data-sombre="0"] .chiffres strong,
+html[data-theme="voxel"][data-sombre="0"] .chiffres span { text-shadow:none; }
+html[data-theme="voxel"][data-sombre="0"] .heros h1 span { color:#8A5F00; }
+
+/* ─────────────────────────────────────────────────────── PIXEL en clair */
+html[data-theme="pixel"][data-sombre="0"],
+html[data-theme="pixel"][data-sombre="0"] [data-matiere] {
+  --papier:#DCE7EC; --carte:#FFFFFF; --carte-creuse:#F0F5F8;
+  --bord:#10181D; --bord-fort:#10181D;
+  --encre:#0D1418; --encre-douce:#39505C; --encre-tenue:#4C6672;
+  --accent:#0B6E85; --accent-pale:rgba(11,110,133,.12); --accent-sombre:#08505F;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="pixel"][data-sombre="0"] {
+  --ombre:4px 4px 0 rgba(16,24,29,.25); --ombre-haut:6px 6px 0 rgba(16,24,29,.3);
+}
+html[data-theme="pixel"][data-sombre="0"] body {
+  background-image:
+    linear-gradient(rgba(16,24,29,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,24,29,.05) 1px, transparent 1px);
+}
+
+/* ────────────────────────────────── TERMINAL en clair (fond de papier) */
+html[data-theme="terminal"][data-sombre="0"],
+html[data-theme="terminal"][data-sombre="0"] [data-matiere] {
+  --papier:#EEF5EF; --carte:#FFFFFF; --carte-creuse:#F5FAF6;
+  --bord:rgba(11,106,56,.24); --bord-fort:rgba(11,106,56,.46);
+  --encre:#0E2A18; --encre-douce:#2F5840; --encre-tenue:#3F6B50;
+  --accent:#0B6A38; --accent-pale:rgba(11,106,56,.1); --accent-sombre:#084E29;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="terminal"][data-sombre="0"] { --ombre:0 0 0 1px rgba(11,106,56,.12); }
+
+/* ────────────────────────────────────── MATRIX en clair (vert sur blanc) */
+html[data-theme="matrix"][data-sombre="0"],
+html[data-theme="matrix"][data-sombre="0"] [data-matiere] {
+  --papier:#EDF6EF; --carte:#FFFFFF; --carte-creuse:#F4FAF5;
+  --bord:rgba(13,110,55,.24); --bord-fort:rgba(13,110,55,.46);
+  --encre:#0A2A15; --encre-douce:#2C563B; --encre-tenue:#3C6A4B;
+  --accent:#0D6E37; --accent-pale:rgba(13,110,55,.1); --accent-sombre:#095228;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="matrix"][data-sombre="0"] body {
+  background-image: repeating-linear-gradient(90deg,
+    rgba(13,110,55,.05) 0 1px, transparent 1px 22px);
+}
+html[data-theme="matrix"][data-sombre="0"] h1,
+html[data-theme="matrix"][data-sombre="0"] h2,
+html[data-theme="matrix"][data-sombre="0"] .heros h1 span { text-shadow:none; }
+
+/* ──────────────────────────── RETRO CRT en clair (papier thermique ambre) */
+html[data-theme="crt"][data-sombre="0"],
+html[data-theme="crt"][data-sombre="0"] [data-matiere] {
+  --papier:#F5EAD6; --carte:#FFFCF4; --carte-creuse:#F9F2E4;
+  --bord:rgba(122,80,0,.26); --bord-fort:rgba(122,80,0,.48);
+  --encre:#33230A; --encre-douce:#5A4111; --encre-tenue:#6B4F18;
+  --accent:#8A5A00; --accent-pale:rgba(138,90,0,.11); --accent-sombre:#6A4400;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="crt"][data-sombre="0"] body::after {
+  background: repeating-linear-gradient(rgba(122,80,0,.08) 0 1px, transparent 1px 3px);
+  mix-blend-mode: normal;
+}
+html[data-theme="crt"][data-sombre="0"] h1,
+html[data-theme="crt"][data-sombre="0"] h2 { text-shadow:none; }
+
+/* ───────────────────────── MIDGAR en clair (les écrans de jour de Shinra) */
+html[data-theme="midgar"][data-sombre="0"],
+html[data-theme="midgar"][data-sombre="0"] [data-matiere] {
+  --papier:#E4EDF4; --carte:#FFFFFF; --carte-creuse:#F1F6FA;
+  --bord:rgba(8,105,119,.24); --bord-fort:rgba(8,105,119,.46);
+  --encre:#0B2231; --encre-douce:#2F4C5F; --encre-tenue:#3F5E72;
+  --accent:#086977; --accent-pale:rgba(8,105,119,.1); --accent-sombre:#064E58;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="midgar"][data-sombre="0"] .carte-matiere,
+html[data-theme="midgar"][data-sombre="0"] .chapitre,
+html[data-theme="midgar"][data-sombre="0"] .encart,
+html[data-theme="midgar"][data-sombre="0"] .feuille,
+html[data-theme="midgar"][data-sombre="0"] .bandeau-plan,
+html[data-theme="midgar"][data-sombre="0"] .sommaire {
+  background: linear-gradient(160deg, rgba(255,255,255,.96), rgba(233,242,248,.96));
+  border:1px solid rgba(8,105,119,.3);
+}
+html[data-theme="midgar"][data-sombre="0"] .carte-matiere::after,
+html[data-theme="midgar"][data-sombre="0"] .encart::after,
+html[data-theme="midgar"][data-sombre="0"] .bandeau-plan::after {
+  background: linear-gradient(90deg, transparent, rgba(8,105,119,.7), transparent);
+}
+html[data-theme="midgar"][data-sombre="0"] .app-tete {
+  background: linear-gradient(180deg, #FFFFFF, #EAF2F7);
+  border-bottom:1px solid rgba(8,105,119,.3);
+}
+html[data-theme="midgar"][data-sombre="0"] .app-tete nav a[aria-current="page"] {
+  background: rgba(8,105,119,.1); box-shadow: inset 2px 0 0 #086977; text-shadow:none;
+}
+html[data-theme="midgar"][data-sombre="0"] .heros h1 span { text-shadow:none; }
+
+/* ───────────────────── DÉTERMINATION en clair (la boîte blanche inversée) */
+html[data-theme="determination"][data-sombre="0"],
+html[data-theme="determination"][data-sombre="0"] [data-matiere] {
+  --papier:#FFFFFF; --carte:#FFFFFF; --carte-creuse:#F4F4F4;
+  --bord:#000000; --bord-fort:#000000;
+  --encre:#000000; --encre-douce:#2E2E2E; --encre-tenue:#454545;
+  --accent:#C40000; --accent-pale:rgba(196,0,0,.1); --accent-sombre:#8E0000;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="determination"][data-sombre="0"] .app-tete,
+html[data-theme="determination"][data-sombre="0"] .bandeau-plan,
+html[data-theme="determination"][data-sombre="0"] .sommaire,
+html[data-theme="determination"][data-sombre="0"] .bloc-code,
+html[data-theme="determination"][data-sombre="0"] table { border:2px solid #000000; background:#FFFFFF; }
+html[data-theme="determination"][data-sombre="0"] .carte-matiere,
+html[data-theme="determination"][data-sombre="0"] .chapitre,
+html[data-theme="determination"][data-sombre="0"] .encart,
+html[data-theme="determination"][data-sombre="0"] .feuille,
+html[data-theme="determination"][data-sombre="0"] .resultats { border:2px solid #000000; }
+html[data-theme="determination"][data-sombre="0"] .app-tete nav a,
+html[data-theme="determination"][data-sombre="0"] .pastilles button,
+html[data-theme="determination"][data-sombre="0"] .quiz button,
+html[data-theme="determination"][data-sombre="0"] .bouton-hasard,
+html[data-theme="determination"][data-sombre="0"] .bouton-rond,
+html[data-theme="determination"][data-sombre="0"] .mini,
+html[data-theme="determination"][data-sombre="0"] .coche,
+html[data-theme="determination"][data-sombre="0"] .bloc-code .copier,
+html[data-theme="determination"][data-sombre="0"] .recherche input {
+  background:#FFFFFF; color:#000000; border:2px solid #000000;
+}
+/* Le jaune du jeu sur du blanc serait illisible : il devient un aplat,
+   texte noir dessus. Même signal, contraste tenu. */
+html[data-theme="determination"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="determination"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="determination"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background:#FFD400; color:#000000; border-color:#000000;
+}
+html[data-theme="determination"][data-sombre="0"] .heros h1 span { color:#8A6A00; }
+
+/* ────────────────────── VELOURS en clair (le blanc « Royal » de Persona) */
+html[data-theme="velours"][data-sombre="0"],
+html[data-theme="velours"][data-sombre="0"] [data-matiere] {
+  --papier:#F2EFEC; --carte:#FFFFFF; --carte-creuse:#F7F4F1;
+  --bord:rgba(180,17,44,.24); --bord-fort:rgba(180,17,44,.5);
+  --encre:#1A0A0E; --encre-douce:#4A2E35; --encre-tenue:#5C3D45;
+  --accent:#B4112C; --accent-pale:rgba(180,17,44,.1); --accent-sombre:#8A0C21;
+  --sur-accent:#FFFFFF;
+  /* L'or « Royal » de jour : #6F540D tombait à 4,24:1 sur la pastille,
+     mesuré par le banc dès l'instant où il a croisé la face claire — il
+     ne l'avait jamais vue. #6F540D tient 6,22:1 sur le papier. */
+  --or:#6F540D;
+}
+html[data-theme="velours"][data-sombre="0"] {
+  --ombre:3px 3px 0 rgba(180,17,44,.22); --ombre-haut:6px 6px 0 rgba(180,17,44,.28);
+}
+html[data-theme="velours"][data-sombre="0"] body {
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(180,17,44,.1), transparent 44%),
+    repeating-linear-gradient(115deg, rgba(180,17,44,.045) 0 2px, transparent 2px 9px);
+}
+html[data-theme="velours"][data-sombre="0"] .app-tete {
+  background:#FFFFFF; border-bottom:3px solid #B4112C;
+}
+html[data-theme="velours"][data-sombre="0"] .carte-matiere,
+html[data-theme="velours"][data-sombre="0"] .encart,
+html[data-theme="velours"][data-sombre="0"] .bandeau-plan { border-left:3px solid #B4112C; }
+html[data-theme="velours"][data-sombre="0"] .app-tete nav a[aria-current="page"] {
+  background:#B4112C; color:#FFFFFF;
+}
+html[data-theme="velours"][data-sombre="0"] .heros h1 span { color:#6F540D; }
+html[data-theme="velours"][data-sombre="0"] .carte-matiere .pastille,
+html[data-theme="velours"][data-sombre="0"] .heros .promo { border-color:#6F540D; color:#6F540D; }
+
+/* ───────────────────────────── NEON LIME en clair (citron sur papier) */
+html[data-theme="neon-lime"][data-sombre="0"],
+html[data-theme="neon-lime"][data-sombre="0"] [data-matiere] {
+  --papier:#F3F8E8; --carte:#FFFFFF; --carte-creuse:#F8FBF0;
+  --bord:rgba(77,124,15,.22); --bord-fort:rgba(77,124,15,.45);
+  --encre:#1B2608; --encre-douce:#3E5216; --encre-tenue:#4E651E;
+  --accent:#4D7C0F; --accent-pale:rgba(77,124,15,.1); --accent-sombre:#3A5E0B;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="neon-lime"][data-sombre="0"] { --ombre-haut:0 8px 26px rgba(77,124,15,.16); }
+html[data-theme="neon-lime"][data-sombre="0"] .heros h1 span { text-shadow:none; }
+
+/* ══════════════════ Et la face SOMBRE des univers nés en clair ══════════ */
+
+/* ────────────────────────────── ANDROÏDE de nuit (le mode « piratage ») */
+html[data-theme="androide"][data-sombre="1"],
+html[data-theme="androide"][data-sombre="1"] [data-matiere] {
+  --papier:#2A2822; --carte:#35322B; --carte-creuse:#2F2C26;
+  --bord:rgba(203,199,182,.3); --bord-fort:rgba(203,199,182,.55);
+  --encre:#E4E0D2; --encre-douce:#C2BEAC; --encre-tenue:#AAA695;
+  --accent:#CBC7B6; --accent-pale:rgba(203,199,182,.12); --accent-sombre:#E4E0D2;
+  --sur-accent:#2A2822;
+}
+html[data-theme="androide"][data-sombre="1"] body::after {
+  background: repeating-linear-gradient(rgba(203,199,182,.05) 0 1px, transparent 1px 4px);
+}
+html[data-theme="androide"][data-sombre="1"] .carte-matiere::before,
+html[data-theme="androide"][data-sombre="1"] .encart::before,
+html[data-theme="androide"][data-sombre="1"] .bandeau-plan::before {
+  background:
+    linear-gradient(#CBC7B6,#CBC7B6) left  top    / 12px 2px no-repeat,
+    linear-gradient(#CBC7B6,#CBC7B6) left  top    / 2px 12px no-repeat,
+    linear-gradient(#CBC7B6,#CBC7B6) right bottom / 12px 2px no-repeat,
+    linear-gradient(#CBC7B6,#CBC7B6) right bottom / 2px 12px no-repeat;
+}
+html[data-theme="androide"][data-sombre="1"] .app-tete {
+  background:#242219; border-bottom:1px solid rgba(203,199,182,.4);
+}
+html[data-theme="androide"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="androide"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="androide"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background:#CBC7B6; color:#2A2822;
+}
+html[data-theme="androide"][data-sombre="1"] .app-tete nav a:hover { background:rgba(203,199,182,.14); }
+
+/* ───────────────────── GRAND LARGE de nuit (la mer sous la lune) */
+html[data-theme="grand-large"][data-sombre="1"],
+html[data-theme="grand-large"][data-sombre="1"] [data-matiere] {
+  --papier:#0D2A32; --carte:#16333A; --carte-creuse:#122C33;
+  --bord:rgba(216,178,120,.3); --bord-fort:rgba(216,178,120,.55);
+  --encre:#EAF6F2; --encre-douce:#B8D6CF; --encre-tenue:#9CC0B9;
+  --accent:#63C9BD; --accent-pale:rgba(99,201,189,.14); --accent-sombre:#96E0D6;
+  --sur-accent:#062024;
+}
+html[data-theme="grand-large"][data-sombre="1"] body {
+  background-image:
+    radial-gradient(ellipse 140% 70% at 50% -10%, rgba(120,190,200,.22), transparent 58%),
+    linear-gradient(180deg, #14414B 0%, #0D2A32 55%, #081E24 100%);
+}
+/* Le parchemin devient une lanterne : sombre, mais toujours cerné de brun. */
+html[data-theme="grand-large"][data-sombre="1"] .carte-matiere,
+html[data-theme="grand-large"][data-sombre="1"] .chapitre,
+html[data-theme="grand-large"][data-sombre="1"] .encart,
+html[data-theme="grand-large"][data-sombre="1"] .bandeau-plan,
+html[data-theme="grand-large"][data-sombre="1"] .feuille,
+html[data-theme="grand-large"][data-sombre="1"] .sommaire {
+  background: linear-gradient(180deg, #1B3B42, #16333A);
+  border:2px solid #A9793F;
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 12px 30px rgba(0,0,0,.4);
+}
+html[data-theme="grand-large"][data-sombre="1"] .app-tete {
+  background: linear-gradient(180deg, #1B3B42, #122C33); border-bottom:2px solid #A9793F;
+}
+html[data-theme="grand-large"][data-sombre="1"] .app-tete nav a,
+html[data-theme="grand-large"][data-sombre="1"] .pastilles button,
+html[data-theme="grand-large"][data-sombre="1"] .bouton-hasard,
+html[data-theme="grand-large"][data-sombre="1"] .mini,
+html[data-theme="grand-large"][data-sombre="1"] .coche {
+  background:#1B3B42; border:2px solid #A9793F; color:#EAF6F2;
+}
+html[data-theme="grand-large"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="grand-large"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="grand-large"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background:#63C9BD; color:#062024; border-color:#D8B278;
+}
+
+/* ─────────────────── CAHIER ROSE de nuit (la face sombre du carnet) */
+html[data-theme="cahier-rose"][data-sombre="1"],
+html[data-theme="cahier-rose"][data-sombre="1"] [data-matiere] {
+  --papier:#180C14; --carte:#24121E; --carte-creuse:#1E0F19;
+  --bord:rgba(255,124,171,.3); --bord-fort:rgba(255,124,171,.55);
+  --encre:#FBEAF2; --encre-douce:#DDB3C8; --encre-tenue:#C296AD;
+  --accent:#FF7CAB; --accent-pale:rgba(255,124,171,.14); --accent-sombre:#FFAECB;
+  --sur-accent:#2A0F1D;
+}
+html[data-theme="cahier-rose"][data-sombre="1"] body {
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(120,30,70,.4), transparent 42%),
+    radial-gradient(circle at 88% 4%, rgba(70,20,50,.45), transparent 40%);
+}
+html[data-theme="cahier-rose"][data-sombre="1"] .carte-matiere,
+html[data-theme="cahier-rose"][data-sombre="1"] .chapitre,
+html[data-theme="cahier-rose"][data-sombre="1"] .bandeau-plan,
+html[data-theme="cahier-rose"][data-sombre="1"] .feuille,
+html[data-theme="cahier-rose"][data-sombre="1"] .app-tete {
+  border:2px solid rgba(255,124,171,.45);
+  box-shadow: 0 4px 0 rgba(255,124,171,.18), 0 10px 26px rgba(0,0,0,.5);
+}
+html[data-theme="cahier-rose"][data-sombre="1"] .app-tete nav a,
+html[data-theme="cahier-rose"][data-sombre="1"] .pastilles button,
+html[data-theme="cahier-rose"][data-sombre="1"] .bouton-hasard,
+html[data-theme="cahier-rose"][data-sombre="1"] .mini,
+html[data-theme="cahier-rose"][data-sombre="1"] .coche {
+  background:#24121E; border:1.5px solid rgba(255,124,171,.45); color:#FBEAF2;
+}
+html[data-theme="cahier-rose"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="cahier-rose"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="cahier-rose"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background:#FF7CAB; color:#2A0F1D; border-color:#FF7CAB;
+}
+html[data-theme="cahier-rose"][data-sombre="1"] .carte-matiere,
+html[data-theme="cahier-rose"][data-sombre="1"] .encart {
+  background-image: repeating-linear-gradient(transparent 0 27px, rgba(255,124,171,.14) 27px 28px);
+}
+
+/* ──────────────────────── CONSOLE BLANCHE de nuit (la console éteinte) */
+html[data-theme="console-blanche"][data-sombre="1"],
+html[data-theme="console-blanche"][data-sombre="1"] [data-matiere] {
+  --papier:#0E141A; --carte:#19222B; --carte-creuse:#141C24;
+  --bord:#2C3A46; --bord-fort:#44586A;
+  --encre:#E9F1F7; --encre-douce:#B7C7D4; --encre-tenue:#9AAEBD;
+  --accent:#4FC3F0; --accent-pale:rgba(79,195,240,.14); --accent-sombre:#8CD9F6;
+  --sur-accent:#05131B;
+}
+html[data-theme="console-blanche"][data-sombre="1"] body {
+  background-image: linear-gradient(180deg, #131C24 0%, #0B1116 100%);
+}
+html[data-theme="console-blanche"][data-sombre="1"] .carte-matiere,
+html[data-theme="console-blanche"][data-sombre="1"] .chapitre,
+html[data-theme="console-blanche"][data-sombre="1"] .bandeau-plan,
+html[data-theme="console-blanche"][data-sombre="1"] .feuille {
+  border:2px solid #2C3A46;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 6px rgba(0,0,0,.5);
+}
+html[data-theme="console-blanche"][data-sombre="1"] .carte-matiere:hover {
+  border-color:#4FC3F0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 3px rgba(79,195,240,.25), 0 8px 22px rgba(0,0,0,.55);
+}
+html[data-theme="console-blanche"][data-sombre="1"] .app-tete {
+  background: linear-gradient(180deg, #1A242E, #131A21); border-bottom:1px solid #2C3A46;
+}
+html[data-theme="console-blanche"][data-sombre="1"] .app-tete nav a,
+html[data-theme="console-blanche"][data-sombre="1"] .pastilles button,
+html[data-theme="console-blanche"][data-sombre="1"] .bouton-hasard,
+html[data-theme="console-blanche"][data-sombre="1"] .mini,
+html[data-theme="console-blanche"][data-sombre="1"] .bouton-rond,
+html[data-theme="console-blanche"][data-sombre="1"] .coche {
+  background: linear-gradient(180deg, #1F2A34, #172029); border:1px solid #2C3A46;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06); color:#E9F1F7;
+}
+html[data-theme="console-blanche"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="console-blanche"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="console-blanche"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background: linear-gradient(180deg, #4FC3F0, #1E93C4); color:#05131B; border-color:#8CD9F6;
+}
+
+/* ──────────────────────────── BLOC-NOTES de nuit (le tableau noir) */
+html[data-theme="bloc-notes"][data-sombre="1"],
+html[data-theme="bloc-notes"][data-sombre="1"] [data-matiere] {
+  --papier:#16201B; --carte:#1E2A24; --carte-creuse:#1A241F;
+  --bord:#3C4C43; --bord-fort:#5A6F63;
+  --encre:#EDF4EF; --encre-douce:#C2D2C8; --encre-tenue:#A7BAAF;
+  --accent:#9BD95C; --accent-pale:rgba(155,217,92,.14); --accent-sombre:#C2EC96;
+  --sur-accent:#132009;
+  --ressort:#9BD95C;
+}
+html[data-theme="bloc-notes"][data-sombre="1"] body {
+  background-image:
+    repeating-linear-gradient(rgba(237,244,239,.07) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgba(237,244,239,.045) 0 1px, transparent 1px 26px);
+}
+html[data-theme="bloc-notes"][data-sombre="1"] .carte-matiere,
+html[data-theme="bloc-notes"][data-sombre="1"] .encart,
+html[data-theme="bloc-notes"][data-sombre="1"] .bandeau-plan {
+  border:2px solid #EDF4EF; box-shadow: 2px 2px 0 rgba(237,244,239,.28);
+}
+html[data-theme="bloc-notes"][data-sombre="1"] .app-tete {
+  background:#1E2A24; border-bottom:2px solid #EDF4EF;
+}
+html[data-theme="bloc-notes"][data-sombre="1"] .app-tete nav a,
+html[data-theme="bloc-notes"][data-sombre="1"] .pastilles button,
+html[data-theme="bloc-notes"][data-sombre="1"] .bouton-hasard,
+html[data-theme="bloc-notes"][data-sombre="1"] .mini,
+html[data-theme="bloc-notes"][data-sombre="1"] .coche {
+  background:#1E2A24; border:2px solid #EDF4EF; color:#EDF4EF;
+  box-shadow: 2px 2px 0 rgba(237,244,239,.22);
+}
+html[data-theme="bloc-notes"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="bloc-notes"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="bloc-notes"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background:#9BD95C; color:#132009; border-color:#EDF4EF;
+}
+html[data-theme="bloc-notes"][data-sombre="1"] .heros h1 span { color:#C2EC96; }
+
+/* ─────────────────────── LIQUID GLASS de nuit (le verre fumé d'iOS) */
+html[data-theme="liquid"][data-sombre="1"],
+html[data-theme="liquid"][data-sombre="1"] [data-matiere] {
+  --papier:#0B1220; --carte:rgba(40,52,74,.6); --carte-creuse:rgba(30,40,58,.5);
+  --bord:rgba(255,255,255,.16); --bord-fort:rgba(255,255,255,.28);
+  --encre:#EDF2FA; --encre-douce:#BCC8DC; --encre-tenue:#A2B0C8;
+  --accent:#7CA3FF; --accent-pale:rgba(124,163,255,.16); --accent-sombre:#A8C2FF;
+  --sur-accent:#08101F;
+}
+html[data-theme="liquid"][data-sombre="1"] body {
+  background-image:
+    radial-gradient(ellipse 70% 50% at 12% 6%,  rgba(40,90,190,.5), transparent 62%),
+    radial-gradient(ellipse 60% 45% at 88% 12%, rgba(95,60,170,.45), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% 98%, rgba(20,110,110,.4), transparent 64%);
+}
+html[data-theme="liquid"][data-sombre="1"] .carte-matiere,
+html[data-theme="liquid"][data-sombre="1"] .chapitre,
+html[data-theme="liquid"][data-sombre="1"] .encart,
+html[data-theme="liquid"][data-sombre="1"] .bandeau-plan,
+html[data-theme="liquid"][data-sombre="1"] .feuille,
+html[data-theme="liquid"][data-sombre="1"] .app-tete {
+  border:.5px solid rgba(255,255,255,.18);
+  background: linear-gradient(180deg, rgba(56,70,96,.66), rgba(30,40,58,.54));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(0,0,0,.3),
+    0 8px 30px rgba(0,0,0,.45);
+}
+html[data-theme="liquid"][data-sombre="1"] .app-tete nav a,
+html[data-theme="liquid"][data-sombre="1"] .pastilles button,
+html[data-theme="liquid"][data-sombre="1"] .bouton-hasard,
+html[data-theme="liquid"][data-sombre="1"] .mini,
+html[data-theme="liquid"][data-sombre="1"] .bouton-rond,
+html[data-theme="liquid"][data-sombre="1"] .coche {
+  border:.5px solid rgba(255,255,255,.2); color:#EDF2FA;
+  background: linear-gradient(180deg, rgba(64,80,108,.72), rgba(36,48,68,.6));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 2px 10px rgba(0,0,0,.4);
+}
+html[data-theme="liquid"][data-sombre="1"] .app-tete nav a[aria-current="page"],
+html[data-theme="liquid"][data-sombre="1"] .pastilles button[aria-pressed="true"],
+html[data-theme="liquid"][data-sombre="1"] .coche[aria-pressed="true"] {
+  background: linear-gradient(180deg, #6E97FF, #3F6BE0); color:#08101F;
+}
+html[data-theme="liquid"][data-sombre="1"] .recherche input {
+  background: rgba(30,40,58,.6); color:#EDF2FA; border:.5px solid rgba(255,255,255,.2);
+}
+
+/* ───────────────────────────── ZELLIGE de nuit (mosaïque à la lampe) */
+html[data-theme="zellige"][data-sombre="1"],
+html[data-theme="zellige"][data-sombre="1"] [data-matiere] {
+  --papier:#111F1B; --carte:#1A2B26; --carte-creuse:#152420;
+  --bord:#32463F; --bord-fort:#4C665C;
+  --encre:#E9F2EE; --encre-douce:#BCD2C9; --encre-tenue:#A2BBB1;
+  --accent:#49BCA6; --accent-pale:rgba(73,188,166,.14); --accent-sombre:#7FD6C5;
+  --sur-accent:#04150F;
+}
+html[data-theme="zellige"][data-sombre="1"] body {
+  background-image:
+    repeating-linear-gradient( 45deg, rgba(73,188,166,.06) 0 2px, transparent 2px 18px),
+    repeating-linear-gradient(-45deg, rgba(216,178,120,.05) 0 2px, transparent 2px 18px);
+}
+
+/* ═══════════════════════ Les titres des univers, rendus incassables ════
+   Trois ingrédients qui s'additionnent : une police à chasse fixe, des
+   capitales, et un interlettrage. Chacun élargit le titre ; ensemble, un
+   intitulé long de chapitre ne tient plus dans un téléphone étroit et pousse
+   la page entière — mesuré à 320 px : +10 sur Voxel, +25 sur Détermination,
+   +41 sur Midgar. La signature typographique est conservée ; c'est le droit
+   de se couper qui manquait, et l'interlettrage qui se resserre en dessous
+   de 560 px. Androïde avait déjà reçu ce traitement, pour la même raison. */
+html[data-theme="voxel"] h1,        html[data-theme="voxel"] h2,
+html[data-theme="pixel"] h1,        html[data-theme="pixel"] h2,
+html[data-theme="terminal"] h1,     html[data-theme="terminal"] h2,
+html[data-theme="matrix"] h1,       html[data-theme="matrix"] h2,
+html[data-theme="crt"] h1,          html[data-theme="crt"] h2,
+html[data-theme="midgar"] h1,       html[data-theme="midgar"] h2,
+html[data-theme="midgar"] h3,
+html[data-theme="determination"] h1, html[data-theme="determination"] h2,
+html[data-theme="velours"] h1,      html[data-theme="velours"] h2,
+html[data-theme="velours"] h3 { overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  html[data-theme="midgar"] h1,        html[data-theme="midgar"] h3,
+  html[data-theme="pixel"] h1,         html[data-theme="pixel"] h2,
+  html[data-theme="determination"] h1, html[data-theme="determination"] h2,
+  html[data-theme="velours"] h1,       html[data-theme="velours"] h2,
+  html[data-theme="velours"] h3 { letter-spacing:.01em; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1432,6 +2501,9 @@ html[data-theme="zellige"] body {
   color: var(--encre-douce); font-size: 0.8121rem; font-weight: 600;
   white-space: nowrap;
 }
+.app-tete nav a { display: inline-flex; align-items: center; gap: .38rem; }
+.app-tete nav a .ico { width: 17px; height: 17px; flex: 0 0 auto; opacity: .78; }
+.app-tete nav a[aria-current="page"] .ico { opacity: 1; }
 .app-tete nav a:hover { background: var(--carte-creuse); color: var(--encre); }
 .app-tete nav a[aria-current="page"] { color: var(--accent-sombre); background: var(--accent-pale); }
 
@@ -1640,6 +2712,82 @@ html[data-theme="zellige"] body {
 }
 .bouton-rond:hover { background: var(--carte-creuse); color: var(--accent-sombre); border-color: var(--bord); }
 .bouton-rond svg { width: 18px; height: 18px; }
+
+/* ── le bouton du monde 3D ───────────────────────────────────────────────
+   Ahmed : « au lieu de mettre un bouton Monde 3D je préfère le mettre à la
+   droite de paramètres, on écrit 3D, et avec le curseur y'a un effet 3D sur
+   le bouton ».
+
+   Il est donc tout à droite, écrit « 3D », et il se comporte comme un objet :
+   il s'incline vers le pointeur, sa face se détache du fond, et le relief du
+   texte se creuse du même côté. Les deux rotations viennent du script
+   (--rx / --ry) ; ici on ne décrit que la matière.
+
+   Aucune couleur écrite en dur : l'accent de la page fait le relief, donc le
+   bouton se repeint avec les quarante thèmes comme le reste. */
+.bouton-3d {
+  /* La MÊME boîte que la loupe, la lune et l'engrenage : 36 × 36, fond
+     transparent, bordure invisible. Ahmed : « donne la même taille pour les
+     trois ». Il était le seul à montrer sa boîte en permanence, et c'est ce
+     qui le faisait paraître plus gros — ce n'était pas sa taille, c'était
+     son fond. Trois boutons côte à côte doivent être trois fois le même
+     objet, sans quoi l'œil cherche pourquoi l'un est différent. */
+  position: relative; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; padding: 0;
+  border-radius: 10px; text-decoration: none;
+  font-family: var(--mono); font-weight: 800; font-size: 0.7727rem;
+  letter-spacing: .03em; color: var(--encre-douce);
+  background: transparent; border: 1px solid transparent;
+  transform-style: preserve-3d;
+  transform: perspective(240px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform .26s cubic-bezier(.22,.7,.3,1), color .18s,
+              background .18s, border-color .18s, box-shadow .26s;
+}
+.bouton-3d:hover, .bouton-3d:focus-visible {
+  color: var(--accent-sombre); background: var(--carte-creuse);
+  border-color: var(--accent);
+  box-shadow: 0 10px 22px var(--accent-pale);
+}
+/* L'ÉPAISSEUR. Ahmed : « mets le bouton lui-même en 3D, donc quand je mets
+   le curseur dessus le bouton a du relief ». Une inclinaison seule ne fait
+   pas un volume : il faut voir la TRANCHE. C'est une seconde face, posée
+   six unités en arrière et décalée de trois pixels — l'épaisseur du bouton,
+   littéralement. Elle n'existe qu'au survol : au repos, le bouton est plat
+   comme ses deux voisins. */
+.bouton-3d::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--accent-pale); border: 1px solid var(--bord);
+  transform: translateZ(-6px) translate(3px, 4px);
+  opacity: 0; transition: opacity .26s;
+}
+.bouton-3d:hover::before, .bouton-3d:focus-visible::before { opacity: 1; }
+/* La face avance vers le lecteur : c'est ce translateZ qui fait que
+   l'inclinaison se lit comme un volume et non comme un cisaillement. */
+.b3d-face { position: relative; z-index: 1; transform: translateZ(7px);
+  transition: text-shadow .26s; }
+.bouton-3d:hover .b3d-face, .bouton-3d:focus-visible .b3d-face {
+  text-shadow: 1px 1px 0 var(--accent-pale), 2px 2px 0 var(--accent-pale),
+               3px 3px 0 var(--accent-pale), 4px 4px 0 var(--accent-pale),
+               5px 6px 10px rgba(60, 45, 25, .22);
+}
+.b3d-lueur {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(56px circle at var(--mx, 50%) var(--my, 50%),
+              var(--accent-pale), transparent 72%);
+  opacity: 0; transition: opacity .26s;
+}
+.bouton-3d:hover .b3d-lueur, .bouton-3d:focus-visible .b3d-lueur { opacity: 1; }
+/* Un objet qui bouge sous la souris est précisément ce qui gêne quand on a
+   demandé moins d'animation. Le bouton reste, l'effet part. */
+@media (prefers-reduced-motion: reduce) {
+  .bouton-3d { transform: none; transition: color .18s, border-color .18s; }
+  .b3d-face { transform: none; }
+  .bouton-3d::before { display: none; }
+}
+html[data-anim="0"] .bouton-3d { transform: none; }
+html[data-anim="0"] .b3d-face { transform: none; }
+html[data-anim="0"] .bouton-3d::before { display: none; }
 
 .voile {
   position: fixed; inset: 0; z-index: 90; opacity: 0;
@@ -1979,19 +3127,71 @@ html[data-anim="0"] .apparait { opacity: 1; }
    titre : c'est le titre qui cède. Le badge de la classe identifie le site à
    lui seul, et le lien reste étiqueté pour les lecteurs d'écran. */
 @media (max-width: 420px) {
-  .app-tete { gap: .3rem; padding: .6rem .55rem; }
-  .app-tete nav a { padding: .4rem .45rem; }
-  .app-tete nav { gap: .15rem; }
+  /* Quatre destinations au lieu de trois : sous 420 px la barre ne tient
+     plus sur une ligne, il lui manque une quarantaine de pixels. On a essayé
+     de les prendre sur les pastilles — le banc du site refuse toute cible
+     tactile sous 34 px, et il a raison : un bouton qu'on rate deux fois sur
+     trois ne vaut pas la ligne qu'il économise. La barre passe donc à deux
+     rangées, et on l'assume : le badge seul en haut, la navigation étalée
+     en dessous. Les écarts sont resserrés, les cibles gardent leur taille. */
+  .app-tete { gap: .25rem; padding: .55rem .35rem; }
+  /* « flex: 1 1 auto » et non « 1 0 100% » : imposer la pleine largeur
+     envoyait la barre sur une deuxième ligne même à 420 px, où elle tenait
+     encore à côté du badge. Là, elle reste sur la ligne tant qu'elle y entre,
+     et quand elle n'y entre plus elle occupe toute la sienne. */
+  .app-tete nav { gap: .1rem; flex: 1 1 auto; }
   .app-marque .nom { display: none; }
+  /* Le titre parti, le lien d'accueil se réduisait au badge : 27 px de large,
+     sous le seuil de 34 px que le banc du site refuse. C'est le lien le plus
+     souvent visé sur un téléphone. Il reprend une taille qu'on atteint. */
+  .app-marque .sigle { width: 34px; height: 34px; }
 }
-/* Sous 620 px, la barre garde le logo, « Outils » et les trois commandes.
-   « Accueil » est déjà le logo, « À propos » est dans le pied de page. */
-@media (max-width: 620px) {
-  .app-tete nav a.secondaire { display: none; }
+/* La barre d'application, mesurée plutôt que devinée.
+   Avec ses cinq liens et le titre entier, elle réclame 841 px — mesuré dans
+   le navigateur, pas estimé. Le seuil des liens secondaires était fixé à
+   620 px : entre 620 et 841 px, la barre débordait et décalait TOUTE la page
+   de plusieurs dizaines de pixels. Le défaut existait déjà à quatre liens ;
+   l'arrivée de « Planning » n'a fait qu'élargir la bande.
+   « Accueil » est déjà le logo, « À propos » est repris dans le pied : ce
+   sont eux qui cèdent, puis la queue du titre — le badge de la classe
+   identifie le site à lui seul. */
+@media (max-width: 900px) {
+  /* Le pictogramme remplace le mot au lieu de supprimer le lien. Avant,
+     « Accueil » et « À propos » disparaissaient purement et simplement sous
+     620 px — sur le seul appareil où l'on navigue vraiment. */
+  /* Sous ce seuil, les libellés des liens cèdent la place au seul picto.
+     Le bouton 3D, lui, N'A que son libellé — il n'a pas de picto à montrer
+     à sa place, et sans cette exception il devenait une case vide. */
+  .app-tete nav a:not(.bouton-3d) span { display: none; }
+  /* 19 px de dessin + 2 × 8 px = 35 px : au-dessus du plancher de 34 px que
+     le banc tactile exige. Mesuré, pas estimé — la première valeur essayée
+     (.42rem) donnait 32 px, et serait passée inaperçue à l'œil. */
+  .app-tete nav a { padding: .5rem .56rem; }
+  .app-tete nav a .ico { width: 19px; height: 19px; }
+  .app-marque .nom-long { display: none; }
 }
+/* Le filet. Un seuil est toujours calculé pour une police, une langue et un
+   nombre de liens donnés ; le jour où l'un des trois change, il ment. Ici la
+   barre passe à la ligne au lieu de pousser la page : elle peut devenir
+   haute, elle ne peut plus déborder. */
+/* Entre 481 et 620 px, la barre reprenait d'un coup son pas large : les
+   trois liens passaient de 236 à 260 px et elle repartait sur deux rangées
+   à 520 et 560 px — mesuré. Le pas compact tient jusqu'à ce que la place
+   soit vraiment là. */
+@media (min-width: 481px) and (max-width: 620px) {
+  .app-tete { gap: .45rem; padding: .6rem .7rem; }
+  .app-tete nav a { font-size: .7879rem; }
+  .app-marque { font-size: .8485rem; }
+  .app-marque .sigle { width: 27px; height: 27px; }
+}
+
+.app-tete { flex-wrap: wrap; }
+/* « flex: none » interdisait à la barre de rétrécir : sans ce remplacement,
+   les deux règles ci-dessous ne serviraient à rien. */
+.app-tete nav { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 480px) {
   .app-tete { gap: .5rem; padding: .6rem .8rem; }
-  .app-tete nav a { padding: .38rem .5rem; font-size: .7879rem; }
+  .app-tete nav a { font-size: .7879rem; }
   .app-marque { font-size: .8485rem; }
   .app-marque .sigle { width: 27px; height: 27px; }
   .app-marque .nom-long { display: none; }
@@ -2698,3 +3898,782 @@ td.etat.sur   { color: var(--vert); }
   background: var(--accent-pale); border-left: 3px solid var(--accent);
   font-size: .8485rem; line-height: 1.6; color: var(--encre);
 }
+
+/* ══════════════════════════════════════════════════════════ le planning */
+/* Le bandeau du prochain cours. Il n'apparaît que si le JavaScript a trouvé
+   quelque chose à y mettre : écrit vide, il laisserait un trait sans objet. */
+.plan-prochain {
+  margin: 1.4rem 0 0; padding: .7rem 1rem; border-radius: var(--r);
+  background: var(--accent-pale); border-left: 3px solid var(--accent);
+  font-size: .8788rem; font-weight: 600; color: var(--encre); line-height: 1.5;
+}
+.plan-barre {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .8rem; margin: 1.6rem 0 1rem; padding: .35rem;
+  background: var(--carte-creuse); border: 1px solid var(--bord);
+  border-radius: var(--r);
+}
+.plan-barre strong {
+  flex: 1; text-align: center; font-size: .8485rem; font-weight: 700;
+  color: var(--encre);
+}
+.plan-barre button {
+  min-width: 40px; min-height: 40px; padding: 0 .7rem;
+  font-size: 1rem; font-family: inherit; cursor: pointer;
+  color: var(--encre); background: var(--carte);
+  border: 1px solid var(--bord); border-radius: var(--r);
+  transition: border-color .14s, background .14s;
+}
+.plan-barre button:hover:not(:disabled) { border-color: var(--accent); }
+/* Un bouton désactivé reste lisible : on éteint le geste, pas le texte. */
+.plan-barre button:disabled { opacity: .45; cursor: default; }
+
+.plan-jour { margin-bottom: 1.4rem; }
+.plan-jour h3 {
+  margin: 0 0 .6rem; font-size: .7273rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--encre-douce);
+}
+.plan-jour ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.plan-creneau {
+  display: grid; grid-template-columns: 5.4rem 1fr; gap: .2rem .9rem;
+  align-items: baseline; padding: .7rem .9rem; border-radius: var(--r);
+  background: var(--carte); border: 1px solid var(--bord);
+  border-left: 3px solid var(--bord-fort);
+}
+.plan-creneau.prochain { border-left-color: var(--accent); }
+.plan-creneau.encours {
+  border-color: var(--accent); border-left-color: var(--accent);
+  background: var(--accent-pale); box-shadow: var(--ombre);
+}
+/* L'heure : le début porte l'information, la fin la complète. Les deux dans
+   la même colonne, l'une sous l'autre, pour que les lignes s'alignent. */
+.plan-h { grid-row: span 2; font-family: var(--mono); line-height: 1.35; }
+.plan-h b { display: block; font-size: .9091rem; font-weight: 700; color: var(--encre); }
+.plan-h i { display: block; font-style: normal; font-size: .7576rem; color: var(--encre-douce); }
+/* Empilées sans marque, « 09:30 » et « 12:30 » se lisent comme deux débuts.
+   Le tiret dit que la seconde est une borne de fin. Et c'est un tiret, pas
+   une flèche : une flèche lie une grandeur à sa valeur, jamais deux bornes
+   d'un même intervalle. */
+.plan-h i::before { content: "\2013\00a0"; }
+.plan-cours { font-size: .8788rem; font-weight: 600; color: var(--encre); line-height: 1.45; }
+.plan-salle { font-size: .7879rem; color: var(--encre-douce); line-height: 1.45; }
+
+.plan-abo {
+  margin-top: 2.4rem; padding: 1.1rem 1.2rem; border-radius: var(--r-l);
+  background: var(--carte-creuse); border: 1px solid var(--bord);
+}
+.plan-abo h2 { margin: 0 0 .5rem; font-size: 1rem; color: var(--encre); }
+.plan-abo p { margin: 0 0 .8rem; font-size: .8485rem; line-height: 1.65; color: var(--encre); }
+.plan-url { display: flex; flex-wrap: wrap; gap: .5rem; align-items: stretch; }
+.plan-url code {
+  flex: 1 1 14rem; min-width: 0; padding: .6rem .7rem;
+  font-family: var(--mono); font-size: .7576rem; color: var(--encre);
+  background: var(--papier); border: 1px solid var(--bord);
+  border-radius: var(--r);
+  /* Une URL ne contient pas d'espace : sans cela elle élargit la page. */
+  overflow-wrap: anywhere; word-break: break-all; line-height: 1.5;
+}
+.plan-url button {
+  min-height: 40px; padding: 0 1rem; cursor: pointer;
+  font-family: inherit; font-size: .7879rem; font-weight: 700;
+  color: var(--sur-accent); background: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--r);
+}
+.plan-url button:hover { background: var(--accent-sombre); border-color: var(--accent-sombre); }
+.plan-note { margin: .8rem 0 0 !important; font-size: .7879rem; color: var(--encre-douce); }
+
+/* ── La même semaine, lue à trois tailles ────────────────────────────── */
+/* Téléphone : l'heure se resserre, le reste prend la place. */
+@media (max-width: 30rem) {
+  .plan-creneau { grid-template-columns: 4.4rem 1fr; padding: .6rem .7rem; }
+  .plan-jour h3 { font-size: .6970rem; }
+  .plan-barre strong { font-size: .7879rem; }
+  .plan-abo { padding: .9rem .8rem; }
+}
+/* À partir de 60 rem, les jours se rangent côte à côte, comme sur l'écran
+   du hall : une semaine se lit d'un coup d'œil au lieu de se dérouler.
+   « auto-fit » suit le nombre réel de jours — deux jours donnent deux
+   colonnes, pas deux colonnes et un trou.
+   Le « :not([hidden]) » n'est pas un ornement : « display: grid » l'emporte
+   sur le « display: none » de l'attribut hidden, et les huit semaines
+   s'afficheraient toutes à la fois. */
+@media (min-width: 60rem) {
+  .plan-semaine:not([hidden]) {
+    display: grid; align-items: start; gap: 0 1.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  }
+  .plan-jour { margin-bottom: .6rem; }
+  /* Une colonne par jour : la ligne devient large, l'intitulé et la salle
+     peuvent se ranger l'un à côté de l'autre plutôt que l'un sous l'autre. */
+  .plan-creneau { grid-template-columns: 5.4rem 1fr; padding: .8rem 1rem; }
+}
+
+/* ════════════════════════════════ le bandeau du planning, sur l'accueil */
+/* Trois boîtes identiques ne disent pas quoi regarder. Ici UN cours domine —
+   celui qui vient, ou celui qui se déroule — et le reste de la journée tient
+   sur une ligne. Le bandeau prend la couleur de la matière du cours en
+   vedette : « data-matiere » redéfinit --accent sur n'importe quel élément,
+   et les quarante thèmes le suivent sans une couleur écrite en dur. */
+.bandeau-plan {
+  position: relative; overflow: hidden;
+  padding: .85rem 1.1rem .95rem 1.35rem; border-radius: var(--r-l);
+  background: var(--carte); border: 1px solid var(--bord);
+  box-shadow: var(--ombre);
+}
+/* Le liseré de matière, posé en ::before pour qu'il épouse les coins. */
+.bandeau-plan::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: 4px;
+  background: var(--accent);
+}
+
+.bp-tete {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem .7rem;
+  margin-bottom: .6rem;
+}
+.bp-jour {
+  font-size: .7273rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--accent-sombre);
+}
+.bp-delai {
+  padding: .1rem .45rem; border-radius: 999px;
+  background: var(--carte-creuse); color: var(--encre-douce);
+  font-size: .6970rem; font-weight: 600; white-space: nowrap;
+}
+/* Imminent ou en cours : le délai cesse d'être une mention et devient l'info. */
+.bp-delai.vif { background: var(--accent-pale); color: var(--accent-sombre); }
+.bp-tout {
+  margin-left: auto; font-size: .7576rem; font-weight: 600;
+  color: var(--encre-douce); text-decoration: none; white-space: nowrap;
+}
+.bp-tout::after { content: " \2192"; }
+.bp-tout:hover { color: var(--accent-sombre); }
+
+/* ── Le cours qui domine ─────────────────────────────────────────────── */
+.bp-vedette {
+  display: grid; grid-template-columns: auto 1fr; gap: 0 1rem;
+  align-items: center;
+}
+.bp-h { line-height: 1.1; text-align: right; font-variant-numeric: tabular-nums; }
+.bp-h b {
+  display: block; font-size: 1.4545rem; font-weight: 700; color: var(--encre);
+  letter-spacing: -.01em;
+}
+.bp-h i {
+  display: block; margin-top: .1rem; font-style: normal;
+  font-size: .7273rem; color: var(--encre-douce);
+}
+.bp-txt { min-width: 0; }
+.bp-titre {
+  display: block; font-size: 1.0303rem; font-weight: 700; line-height: 1.3;
+  color: var(--encre);
+}
+.bp-lieu {
+  display: block; margin-top: .15rem; font-size: .7879rem; color: var(--encre-douce);
+}
+/* La jauge n'apparaît que pendant le cours : elle dit d'un coup d'œil s'il
+   reste dix minutes ou deux heures. */
+.bp-jauge {
+  grid-column: 1 / -1; margin-top: .7rem; height: 3px; border-radius: 999px;
+  background: var(--carte-creuse); overflow: hidden;
+}
+.bp-jauge i { display: block; height: 100%; background: var(--accent); }
+
+/* ── Le reste de la journée ──────────────────────────────────────────── */
+/* Chaque cours porte son horaire complet et sa salle : c'est ce qu'on vient
+   chercher un matin, et l'abréger obligeait à ouvrir le planning pour rien.
+   Une ligne par cours, pas des pastilles en enfilade : trois informations
+   ne tiennent pas côte à côte sans qu'on ait à les démêler. */
+.bp-suite {
+  display: grid; gap: .1rem;
+  margin: .85rem 0 0; padding: .7rem 0 0; list-style: none;
+  border-top: 1px solid var(--bord);
+}
+.bp-suite li {
+  display: grid; grid-template-columns: auto 1fr auto; gap: .1rem .55rem;
+  align-items: baseline; padding: .32rem .3rem; border-radius: var(--r);
+  font-size: .7879rem; color: var(--encre-douce);
+}
+.bp-suite li:hover { background: var(--carte-creuse); }
+/* La pastille porte la matière du cours : on repère « maths » sans lire. */
+.bp-suite li b {
+  position: relative; padding-left: .85rem; font-weight: 700;
+  color: var(--encre); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.bp-suite li b::before {
+  content: ""; position: absolute; left: 0; top: .42em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+}
+.bp-suite li span { color: var(--encre); font-weight: 600; min-width: 0; }
+/* L'horaire complet en bout de ligne, aligné à droite : on lit la colonne
+   des débuts d'un trait, et la durée reste disponible sans la chercher. */
+.bp-suite li u {
+  grid-column: 3; text-decoration: none; font-size: .7273rem;
+  color: var(--encre-douce); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bp-suite li i {
+  grid-column: 2 / -1; font-style: normal; font-size: .7273rem;
+  color: var(--encre-douce);
+}
+.bp-suite li.passe { opacity: .45; }
+
+/* Téléphone : la vedette garde sa hiérarchie, l'heure passe au-dessus pour
+   laisser l'intitulé occuper toute la largeur au lieu de se couper en trois. */
+@media (max-width: 26rem) {
+  .bandeau-plan { padding: .8rem .85rem .85rem 1.1rem; }
+  .bp-vedette { grid-template-columns: 1fr; gap: .25rem; }
+  .bp-h { display: flex; align-items: baseline; gap: .4rem; text-align: left; }
+  .bp-h b { font-size: 1.2727rem; }
+  .bp-h i { margin-top: 0; }
+  .bp-suite li { grid-template-columns: auto 1fr; }
+  .bp-suite li u { grid-column: 2; justify-self: start; }
+  .bp-suite li i { grid-column: 1 / -1; padding-left: .85rem; }
+}
+
+/* Le bandeau se pose juste sous la barre du haut, avant le titre : c'est la
+   première question qu'on se pose en ouvrant le site un matin de cours, et
+   elle ne mérite pas qu'on fasse défiler. Il n'est pas dans « .contenu », il
+   reprend donc lui-même sa largeur et ses marges. */
+.bandeau-hote {
+  max-width: var(--large-app, 1120px); margin: 0 auto;
+  padding: 1.1rem clamp(1rem, 4vw, 2.4rem) 0;
+}
+.bandeau-hote:empty { display: none; }
+.bandeau-hote .bandeau-plan { margin-bottom: 0; }
+
+/* ── Trois cibles tactiles remises au-dessus du seuil ────────────────── */
+/* Le banc du site refuse toute cible sous 34 px. Ces trois-là y passaient
+   encore, et la première pour une raison instructive : la règle qui remonte
+   le badge à 34 px vivait dans le bloc « max-width: 420px », mais le bloc
+   « max-width: 480px » — plus bas dans le fichier, donc prioritaire à
+   égalité de spécificité — le ramenait à 27. Deux media queries qui se
+   recouvrent se départagent par l'ORDRE, pas par la largeur. D'où cette
+   reprise, placée après toutes les autres. */
+@media (max-width: 480px) {
+  .app-marque .sigle { width: 34px; height: 34px; }
+}
+/* « Tout le planning » : un lien qu'on vise au pouce, pas une note de bas de
+   page. Il garde sa ligne de texte et gagne sa hauteur en rembourrage. */
+.bp-tout {
+  display: inline-flex; align-items: center; min-height: 34px;
+  padding: 0 .1rem;
+}
+/* Le téléchargement de l'agenda devient un bouton discret : c'est une action,
+   et une action se vise. */
+.plan-note a {
+  display: inline-flex; align-items: center; min-height: 34px;
+  padding: 0 .7rem; border-radius: var(--r); text-decoration: none;
+  border: 1px solid var(--bord); background: var(--carte);
+  font-weight: 600; color: var(--encre);
+}
+.plan-note a:hover { border-color: var(--accent); color: var(--accent-sombre); }
+
+/* ── La grille des matières, et ce qui ne peut pas se couper ─────────── */
+/* « minmax(270px, 1fr) » impose 270 px de large au minimum : dès que la
+   colonne disponible descend en dessous, la carte dépasse au lieu de
+   rétrécir. Le « min(270px, 100%) » lui rend le droit de se réduire.
+   Et un intitulé long rendu à chasse fixe — « Probabilités conditionnelles
+   — exercices » sur le thème Voxel — ne se coupe pas tout seul : il poussait
+   la page de 8 px à 375. Défaut invisible pour le banc, qui n'a pas
+   d'historique et n'affichait donc jamais la carte « Vu récemment ». */
+.grille-matieres { grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr)); }
+.grille-matieres > * { min-width: 0; }
+.recents li a, .carte-matiere.reprise b, .carte-matiere.reprise span {
+  overflow-wrap: anywhere;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   L'ATELIER C / C++
+
+   Une contrainte a dicté presque tout le reste : dans cette feuille, « pre »
+   n'a que DEUX fonds — #23211E à l'écran, #F4F1EC à l'impression — et aucun
+   des quarante thèmes ne les redéfinit. Les dix teintes de code (.j-*) ont
+   été mesurées contre ces deux fonds-là et passent toutes AA.
+
+   L'éditeur et la console se posent donc sur CETTE surface, et pas sur une
+   surface neuve : le code qu'on y écrit prend exactement les couleurs qu'il
+   a dans les fiches, sur les quarante thèmes, sans une mesure de plus. Tout
+   ce qui entoure — barre, cartes de diagnostic, tiroir — vit au contraire
+   dans les variables du thème et se repeint avec lui.
+
+   Aucune couleur n'est écrite en dur hors de cette surface héritée.
+   ═══════════════════════════════════════════════════════════════════════ */
+#atelier {
+  padding-bottom: 1.3rem;
+
+  /* La hauteur des deux cadres se compte EN LIGNES, pas en pourcentage
+     d'écran. Ahmed : « il affiche que 16 lignes […] on peut tellement en
+     mettre plus genre 30 ». Une hauteur en « vh » donne un nombre de lignes
+     différent sur chaque machine — 16 chez lui, 23 ici — et personne ne peut
+     dire combien on en verra. Ici le calcul part de l'interligne réel, donc
+     30 lignes sont 30 lignes partout. Et comme tout est en rem, le réglage
+     de taille du lecteur les conserve : agrandir le texte n'enlève pas de
+     lignes, ça agrandit le cadre.
+
+     Le « min(…, 86vh) » empêche le cadre de dépasser un écran court, et le
+     « max(22rem, …) » l'empêche de devenir inutilisable sur un écran très
+     court. Les 3,85rem couvrent l'onglet du haut, le rembourrage ET les deux
+     bordures d'un pixel : mesuré, parce que 3,6rem donnait 29 lignes — à deux
+     pixels près, et deux pixels coûtent une ligne entière. */
+  --edi-police: .8061rem;
+  --edi-inter: 1.66;
+  --edi-lignes: 30;
+  --h-volet: calc(var(--edi-lignes) * var(--edi-police) * var(--edi-inter) + 3.85rem);
+}
+/* « hidden » perd contre une règle de display, et toutes celles d'ici en
+   posent une. Sans ce rappel, « Arrêter » s'affiche en permanence — ce qui
+   invite à cliquer sur une commande sans objet. */
+#atelier [hidden] { display: none !important; }
+
+/* ── la barre de commandes ───────────────────────────────────────────
+   Quatre groupes, pas davantage (Miller) : lancer · langage · réglage ·
+   ressources. L'état est à droite, seul, pour qu'on sache toujours où le
+   chercher sans le confondre avec une commande. */
+.at-barre {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  margin-bottom: 1rem;
+}
+.at-barre button { font: inherit; cursor: pointer; }
+
+.at-lancer {
+  display: inline-flex; align-items: center; gap: .5rem;
+  min-height: 42px; padding: 0 1.1rem;
+  background: var(--accent); color: var(--sur-accent);
+  border: 1px solid var(--accent); border-radius: 7px;
+  font-size: .9394rem; font-weight: 700;
+  transition: background .14s, transform .08s;
+}
+.at-lancer:hover:not(:disabled) { background: var(--accent-sombre); border-color: var(--accent-sombre); }
+.at-lancer:active:not(:disabled) { transform: translateY(1px); }
+.at-lancer:disabled { opacity: .55; cursor: default; }
+.at-lancer .at-triangle { font-size: .82em; }
+.at-lancer kbd {
+  font-family: var(--mono); font-size: .72em; opacity: .78;
+  border: 1px solid currentColor; border-radius: 4px; padding: .05em .35em;
+  background: none; color: inherit;
+}
+.at-stop {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 42px; padding: 0 .9rem; border-radius: 7px;
+  background: var(--rouge-pale); color: var(--rouge);
+  border: 1px solid var(--rouge-bord); font-weight: 650; font-size: .8788rem;
+}
+.at-stop:hover { border-color: var(--rouge); }
+
+/* Segments : un seul état allumé, et c'est le couple accent / sur-accent —
+   le seul dont le contraste est garanti sur les quarante thèmes. */
+.at-segments {
+  display: inline-flex; border: 1px solid var(--bord-fort);
+  border-radius: 7px; overflow: hidden; background: var(--carte-creuse);
+}
+.at-segments button {
+  min-height: 42px; padding: 0 .95rem; border: 0; background: none;
+  color: var(--encre-douce); font-weight: 650; font-size: .8788rem;
+  font-family: var(--mono); letter-spacing: -.01em;
+}
+.at-segments button + button { border-left: 1px solid var(--bord-fort); }
+.at-segments button:hover { color: var(--encre); background: var(--carte); }
+.at-segments button[aria-pressed="true"] { background: var(--accent); color: var(--sur-accent); }
+
+.at-bascule, .at-creux {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 42px; padding: 0 .85rem; border-radius: 7px;
+  background: var(--carte-creuse); color: var(--encre-douce);
+  border: 1px solid var(--bord-fort); font-weight: 600; font-size: .8485rem;
+}
+.at-bascule:hover, .at-creux:hover { border-color: var(--accent); color: var(--encre); }
+.at-coche {
+  width: 15px; height: 15px; border-radius: 4px; flex: none;
+  border: 1.5px solid var(--bord-fort); background: var(--carte);
+  position: relative;
+}
+.at-bascule[aria-pressed="true"] { color: var(--encre); border-color: var(--accent); }
+.at-bascule[aria-pressed="true"] .at-coche { background: var(--accent); border-color: var(--accent); }
+.at-bascule[aria-pressed="true"] .at-coche::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--sur-accent); border-width: 0 2px 2px 0; transform: rotate(42deg);
+}
+
+/* L'état et sa jauge. Loi de Doherty : passé 400 ms sans signe de vie, on
+   croit que c'est cassé. Le téléchargement du compilateur dure bien plus,
+   donc il se montre — en mégaoctets, pas en pourcentage abstrait. */
+.at-jauge-boite { margin-left: auto; min-width: 0; text-align: right; }
+.at-etat {
+  margin: 0; font-size: .7879rem; font-weight: 600; color: var(--encre-douce);
+  line-height: 1.35; overflow-wrap: anywhere;
+}
+.at-etat.e-ok { color: var(--vert); }
+.at-etat.e-avert { color: var(--ambre-sombre); }
+.at-etat.e-erreur { color: var(--rouge); }
+.at-jauge {
+  margin-top: .3rem; height: 5px; width: min(220px, 40vw); margin-left: auto;
+  border-radius: 999px; background: var(--carte-creuse);
+  border: 1px solid var(--bord); overflow: hidden;
+}
+.at-jauge::before {
+  content: ""; display: block; height: 100%; width: var(--part, 0%);
+  background: var(--accent); transition: width .2s linear;
+}
+
+/* ── le tiroir des exemples ──────────────────────────────────────────── */
+.at-tiroir {
+  margin: 0 0 1rem; padding: 1rem 1.1rem 1.1rem;
+  background: var(--carte-creuse); border: 1px solid var(--bord);
+  border-radius: var(--r);
+}
+.at-tiroir-tete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.at-tiroir-tete h3 { margin: 0; font-size: .97rem; font-weight: 700; color: var(--encre); }
+.at-tiroir-tete button {
+  min-width: 34px; min-height: 34px; border-radius: 7px; cursor: pointer;
+  background: var(--carte); border: 1px solid var(--bord-fort); color: var(--encre-douce);
+  font: inherit;
+}
+.at-tiroir-tete button:hover { border-color: var(--accent); color: var(--encre); }
+.at-liste-ex { margin-top: .8rem; display: grid; gap: 1rem; }
+.at-ex-groupe h4 {
+  margin: 0 0 .45rem; font-size: .697rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--encre-tenue);
+}
+.at-ex-groupe { display: grid; gap: .4rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); }
+.at-ex-groupe h4 { grid-column: 1 / -1; }
+.at-ex {
+  display: flex; flex-direction: column; gap: .15rem; text-align: left;
+  min-height: 44px; padding: .55rem .75rem; border-radius: var(--r);
+  background: var(--carte); border: 1px solid var(--bord); color: var(--encre);
+  font: inherit; min-width: 0;
+}
+.at-ex:hover { border-color: var(--accent); }
+.at-ex b { font-size: .8485rem; font-weight: 650; overflow-wrap: anywhere; }
+.at-ex span { font-size: .7576rem; color: var(--encre-douce); line-height: 1.45; overflow-wrap: anywhere; }
+.at-vide { margin: 0; font-size: .8182rem; color: var(--encre-tenue); }
+
+/* ── les deux volets ─────────────────────────────────────────────────
+   « auto-fit » avec un minimum en « min(…, 100%) » : sous 340 px la colonne
+   a le droit de rétrécir au lieu de pousser la page hors de l'écran. C'est
+   la correction déjà faite sur la grille des matières, pour la même raison. */
+.at-grille {
+  display: grid; gap: .9rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+}
+.at-volet {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--bord-fort); border-radius: var(--r); overflow: hidden;
+  background: #23211E;
+  /* « resize » du navigateur plutôt qu'une poignée en JavaScript : c'est la
+     même que celle d'un textarea, elle existe déjà dans la tête de tout le
+     monde, elle marche au clavier des lecteurs d'écran, et elle ne coûte pas
+     une ligne. Elle exige seulement « overflow » différent de visible. */
+  resize: vertical;
+}
+.at-volet-code   { height: max(22rem, min(var(--h-volet), 86vh)); min-height: 220px; }
+.at-volet-sortie { height: max(22rem, min(var(--h-volet), 86vh)); min-height: 180px; }
+.at-volet::-webkit-resizer { background: none; }
+.at-poignee-note {
+  margin: .45rem 0 0; font-size: .7273rem; color: var(--encre-tenue); text-align: right;
+}
+.at-volet-tete {
+  display: flex; align-items: center; gap: .5rem; padding: .4rem .7rem;
+  background: rgba(255,255,255,.055); border-bottom: 1px solid rgba(255,255,255,.09);
+}
+/* Les teintes posées sur ce fond sombre, mesurées contre #23211E — et
+   contre #1D1B19 pour la marge, qui porte un voile noir de 18 %.
+   Aucune ne descend sous 4,5:1 :
+     #EDE7DC 13,05  texte de l'éditeur et sortie du programme
+     #D8D1C4 10,58  bouton « Fin de saisie »
+     #F7C46B  9,99  stderr, gardes, « attend une saisie »
+     #9CD67F  9,44  ce que l'étudiant a tapé
+     #FF9E93  8,08  arrêt et marge d'erreur
+     #B8B0A2  7,47  libellé d'onglet
+     #82AAFF  6,99  note d'information
+     #A79F92  6,13  notes de la console
+     #938E86  5,28  numéros de ligne (sur la marge)
+   Elles s'ajoutent aux dix teintes de code (.j-*), déjà mesurées contre le
+   même fond : c'est tout l'intérêt de poser l'atelier sur la surface des
+   blocs de code plutôt que d'en inventer une. */
+.at-onglet {
+  font-family: var(--mono); font-size: .7273rem; font-weight: 600;
+  color: #B8B0A2; letter-spacing: -.01em;
+}
+
+/* ── l'éditeur ───────────────────────────────────────────────────────
+   Un textarea transparent posé sur un <pre> peint. Les deux doivent avoir
+   EXACTEMENT la même police, la même taille, le même interligne et le même
+   rembourrage : un dixième de pixel d'écart et le curseur dérive en bout de
+   ligne. D'où les valeurs partagées par une variable. */
+.edi {
+  --edi-pad: .8rem;   /* les deux autres mesures sont posées sur #atelier */
+  display: grid; grid-template-columns: auto 1fr;
+  flex: 1; min-height: 0;
+}
+.edi-marge {
+  overflow: hidden; padding: var(--edi-pad) 0;
+  background: rgba(0,0,0,.18); border-right: 1px solid rgba(255,255,255,.07);
+  text-align: right; user-select: none;
+}
+.edi-num {
+  display: block; width: 100%; box-sizing: border-box; border: 0; background: none;
+  padding: 0 .55rem 0 .7rem; cursor: default;
+  font-family: var(--mono); font-size: var(--edi-police); line-height: var(--edi-inter);
+  /* Mesuré, pas choisi. #6F6A62 — la première valeur essayée — tombait à
+     3,20:1 sur le fond de la marge : sous le seuil AA, sur un texte qu'on
+     lit pour se rendre à une ligne d'erreur. #938E86 tient 5,28:1 sur la
+     marge et 4,94:1 sur le volet. */
+  color: #938E86; text-align: right;
+}
+.edi-num.a-erreur, .edi-num.a-avert { font-weight: 700; }
+.edi-num.a-erreur { color: #FF9E93; background: rgba(255,120,110,.16); }
+.edi-num.a-avert  { color: #F7C46B; background: rgba(247,180,90,.14); }
+
+.edi-champ { position: relative; min-width: 0; overflow: hidden; }
+.edi-peint, .edi-saisie {
+  margin: 0; padding: var(--edi-pad) .9rem;
+  font-family: var(--mono); font-size: var(--edi-police); line-height: var(--edi-inter);
+  white-space: pre; tab-size: 4; letter-spacing: normal; word-spacing: normal;
+  border: 0; box-sizing: border-box;
+}
+.edi-peint {
+  position: absolute; inset: 0; overflow: visible; pointer-events: none;
+  /* Le fond des blocs de code, répété tel quel. Poser « background: none »
+     ici cassait un invariant que le banc de contraste vérifie : sur tout le
+     site, un <pre> n'a que DEUX fonds, #23211E à l'écran et #F4F1EC à
+     l'impression. C'est cet invariant qui autorise UNE seule palette de
+     coloration pour les quarante thèmes. Le rendu est identique — le volet
+     porte déjà la même couleur — mais la règle redevient vraie. */
+  background: #23211E; color: #EDE7DC; border-radius: 0; will-change: transform;
+}
+.edi-saisie {
+  position: relative; width: 100%; height: 100%; display: block;
+  overflow: auto; resize: none; outline: none;
+  background: transparent; color: transparent; caret-color: #FFD79A;
+}
+.edi-saisie::selection { background: rgba(130,170,255,.3); color: transparent; }
+.edi-saisie:focus { outline: none; }
+.edi-champ:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* ── la console ──────────────────────────────────────────────────────── */
+.con { flex: 1; display: flex; min-height: 0; }
+.con-flux {
+  flex: 1; margin: 0; padding: .8rem .9rem; overflow: auto;
+  background: #23211E; border-radius: 0;   /* même invariant que .edi-peint */
+  font-family: var(--mono); font-size: .8061rem; line-height: 1.6;
+  color: #EDE7DC; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.con-prog { color: #EDE7DC; }
+.con-prog.con-err { color: #F7C46B; }
+.con-saisie { color: #9CD67F; font-weight: 700; }
+.con-saisie::before { content: "› "; opacity: .65; }
+.con-note { color: #A79F92; font-style: italic; }
+.con-note.con-stop { color: #FF9E93; font-style: normal; font-weight: 650; }
+.con-note.con-garde { color: #F7C46B; font-style: normal; font-weight: 650; }
+.con-note.con-info { color: #82AAFF; font-style: normal; }
+
+.at-entree {
+  padding: .55rem .7rem .65rem;
+  background: rgba(255,255,255,.055); border-top: 1px solid rgba(255,255,255,.09);
+}
+.at-entree label {
+  display: block; margin-bottom: .35rem;
+  font-size: .7273rem; font-weight: 650; color: #F7C46B;
+}
+.at-entree-rangee { display: flex; gap: .4rem; }
+.at-entree input {
+  flex: 1; min-width: 0; min-height: 38px; box-sizing: border-box;
+  padding: .4rem .6rem; border-radius: 6px;
+  font-family: var(--mono); font-size: .8061rem;
+  background: rgba(0,0,0,.3); color: #EDE7DC;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.at-entree input:focus { outline: none; border-color: #9CD67F; box-shadow: 0 0 0 2px rgba(156,214,127,.25); }
+.at-entree button {
+  min-height: 38px; padding: 0 .85rem; border-radius: 6px; cursor: pointer;
+  font: inherit; font-size: .8182rem; font-weight: 650;
+  background: var(--accent); color: var(--sur-accent); border: 1px solid var(--accent);
+}
+.at-entree button:hover { background: var(--accent-sombre); }
+.at-entree .at-eof {
+  background: rgba(255,255,255,.1); color: #D8D1C4;
+  border-color: rgba(255,255,255,.22); font-weight: 600;
+}
+.at-entree .at-eof:hover { background: rgba(255,255,255,.18); color: #fff; }
+@media (max-width: 480px) {
+  .at-entree-rangee { flex-wrap: wrap; }
+  .at-entree input { flex: 1 1 100%; }
+}
+
+/* ── plein écran ─────────────────────────────────────────────────────
+   Un éditeur se juge à la quantité de code qu'on voit d'un coup. Sur une
+   fiche de cours on garde le contexte autour ; quand on code pour de bon,
+   on veut l'écran. Le geste est réversible d'une touche (Échap), ce qui est
+   la condition pour qu'il soit sans risque. */
+#atelier.at-grand {
+  position: fixed; inset: 0; z-index: 90; margin: 0; border-radius: 0;
+  border: 0; box-shadow: none; overflow: auto;
+  padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
+  background: var(--papier);
+}
+#atelier.at-grand .at-volet-code,
+#atelier.at-grand .at-volet-sortie { height: auto; }
+/* 7,5 rem : la barre de commandes et le rembourrage, mesurés. Le reste de
+   la hauteur va aux deux cadres, ce qui est tout l'objet du plein écran. */
+#atelier.at-grand .at-grille { min-height: calc(100vh - 7.5rem); }
+#atelier.at-grand .at-volet { resize: none; }
+#atelier.at-grand .at-poignee-note { display: none; }
+body.at-fige { overflow: hidden; }
+
+.at-icone { gap: .4rem; }
+/* Deux coins opposés plutôt qu'un carré plein : c'est le signe d'« agrandir »
+   qu'on reconnaît sans le lire, et il tient en deux pseudo-éléments. */
+.at-ic-plein { position: relative; width: 14px; height: 14px; flex: none; }
+.at-ic-plein::before, .at-ic-plein::after {
+  content: ""; position: absolute; width: 7px; height: 7px;
+  border: 1.6px solid currentColor;
+}
+.at-ic-plein::before { top: 0; left: 0; border-width: 1.6px 0 0 1.6px; }
+.at-ic-plein::after { bottom: 0; right: 0; border-width: 0 1.6px 1.6px 0; }
+#at-plein[aria-pressed="true"] { border-color: var(--accent); color: var(--encre); }
+#at-plein[aria-pressed="true"] .at-ic-plein { background: var(--accent-pale); }
+
+/* ── la notice repliée ───────────────────────────────────────────────
+   Ahmed : « c'est une note d'info on peut la mettre en discret genre on
+   clic ça apparaît ». Elle sert une fois, quand on découvre l'outil ; elle
+   ne doit pas occuper la moitié de l'écran à chaque visite. */
+.at-notice {
+  margin-top: 1.6rem; border-top: 1px solid var(--bord); padding-top: .9rem;
+}
+.at-notice > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: .5rem;
+  min-height: 34px; font-size: .8485rem; font-weight: 650; color: var(--encre-douce);
+}
+.at-notice > summary::-webkit-details-marker { display: none; }
+.at-notice > summary::before {
+  content: "›"; display: inline-block; flex: none;
+  width: 20px; height: 20px; border-radius: 999px; text-align: center;
+  line-height: 19px; font-weight: 800;
+  background: var(--carte-creuse); border: 1px solid var(--bord-fort);
+  transition: transform .18s var(--ease, ease);
+}
+.at-notice[open] > summary::before { transform: rotate(90deg); }
+.at-notice > summary:hover { color: var(--encre); }
+.at-notice-corps { padding-top: .7rem; }
+.at-notice-corps p { font-size: .8485rem; line-height: 1.6; color: var(--encre-douce); }
+.at-notice-corps > p:first-child { margin-top: 0; }
+
+/* ── les cartes de diagnostic ────────────────────────────────────────
+   Norman : un message d'erreur nomme la cause ET l'action. Trois niveaux,
+   et chacun reprend un couple fond/texte déjà mesuré sur les quarante
+   thèmes — jamais une teinte inventée pour l'occasion. */
+.at-diag-tete {
+  margin: 1.4rem 0 .6rem; font-size: .7273rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue);
+}
+.at-diags { display: grid; gap: .6rem; }
+.at-diag {
+  padding: .8rem .95rem .85rem; border-radius: var(--r);
+  border: 1px solid var(--bord); background: var(--carte-creuse);
+  border-left: 4px solid var(--bord-fort);
+}
+.at-diag.d-erreur { background: var(--rouge-pale); border-color: var(--rouge-bord); border-left-color: var(--rouge); }
+.at-diag.d-avert  { background: var(--ambre-pale); border-color: var(--ambre-bord); border-left-color: var(--ambre-sombre); }
+.at-diag.d-garde  { background: var(--violet-pale); border-color: var(--violet-bord); border-left-color: var(--violet); }
+.at-diag.d-fichier { background: var(--vert-pale); border-color: var(--vert-bord); border-left-color: var(--vert); }
+
+.at-diag-tete, .at-diag h4 { overflow-wrap: anywhere; }
+.at-diag .at-diag-tete {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  margin: 0 0 .5rem; text-transform: none; letter-spacing: normal;
+}
+.at-diag h4 { margin: 0; font-size: .9091rem; font-weight: 700; color: var(--encre); flex: 1 1 12rem; }
+.at-puce {
+  flex: none; width: 22px; height: 22px; border-radius: 999px;
+  display: grid; place-items: center; font-size: .7273rem; font-weight: 800;
+}
+.d-erreur .at-puce { background: var(--rouge); color: #fff; }
+.d-avert .at-puce  { background: var(--ambre-sombre); color: #fff; }
+.d-garde .at-puce  { background: var(--violet); color: #fff; }
+.d-fichier .at-puce { background: var(--vert); color: #fff; }
+
+.at-aller {
+  flex: none; min-height: 34px; padding: 0 .65rem; border-radius: 7px; cursor: pointer;
+  font: inherit; font-size: .7576rem; font-weight: 650; font-family: var(--mono);
+  background: var(--carte); border: 1px solid var(--bord-fort); color: var(--encre-douce);
+}
+.at-aller:hover { border-color: var(--accent); color: var(--accent-sombre); }
+
+.at-extrait { margin: .35rem 0 .55rem; padding: .6rem .75rem; font-size: .7576rem; }
+.at-extrait mark {
+  background: rgba(255,160,90,.26); color: inherit;
+  border-bottom: 2px solid #F7A66B; border-radius: 2px; padding: 0 1px;
+}
+.at-pourquoi { margin: 0 0 .35rem; font-size: .8485rem; line-height: 1.55; color: var(--encre); }
+.at-remede { margin: 0; font-size: .8485rem; line-height: 1.55; color: var(--encre); }
+.at-remede b { font-weight: 700; }
+.at-notes { margin: .45rem 0 0; padding-left: 1.1rem; }
+.at-notes li { font-size: .7879rem; color: var(--encre-douce); line-height: 1.5; margin-bottom: .2rem; }
+.at-source { margin: .5rem 0 0; font-size: .7273rem; color: var(--encre-douce); }
+.at-nomfic { margin: .4rem 0 .1rem; font-family: var(--mono); font-size: .7879rem; font-weight: 650; color: var(--encre); }
+.at-vo { margin-top: .5rem; }
+.at-vo summary {
+  cursor: pointer; font-size: .7273rem; color: var(--encre-tenue);
+  min-height: 24px; display: inline-flex; align-items: center;
+}
+.at-vo code { display: block; margin-top: .3rem; font-size: .7576rem; }
+.at-relancer {
+  min-height: 34px; padding: 0 .75rem; border-radius: 7px; cursor: pointer; font: inherit;
+  font-size: .7879rem; font-weight: 650;
+  background: var(--carte); border: 1px solid var(--bord-fort); color: var(--encre);
+}
+.at-relancer:hover { border-color: var(--violet); color: var(--violet); }
+
+.at-tableau { font-size: .8182rem; }
+.at-tableau td { vertical-align: top; }
+
+/* ── téléphone ───────────────────────────────────────────────────────
+   Sous 720 px les deux volets s'empilent : deux colonnes de 170 px ne
+   servent ni à écrire ni à lire. Les hauteurs se resserrent pour que
+   l'éditeur ET le début de la console tiennent dans un écran. */
+@media (max-width: 720px) {
+  #atelier { --edi-lignes: 20; }
+  .at-volet-code   { height: max(18rem, min(var(--h-volet), 62vh)); }
+  .at-volet-sortie { height: max(12rem, min(calc(var(--h-volet) * .62), 38vh)); }
+  .at-poignee-note { display: none; }
+  .at-jauge-boite { margin-left: 0; text-align: left; width: 100%; }
+  .at-jauge { margin-left: 0; width: 100%; }
+  .at-lancer { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 420px) {
+  .at-lancer kbd { display: none; }
+  .at-bascule { font-size: .7879rem; }
+}
+
+
+/* ── Curseurs de thème — engendré par publier.py ────────────
+   Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en
+   PNG 32 px par _pilotage/scripts/curseurs.py. Un « .ani » ne peut
+   pas servir de curseur en CSS et Safari ne lit pas les « .cur » :
+   tout est ramené au PNG, seul format que tous les navigateurs
+   acceptent. */
+html[data-curseur="1"][data-theme="androide"] { cursor: url("curseurs/androide-defaut.png") 0 1, auto; }
+html[data-curseur="1"][data-theme="androide"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/androide-lien.png") 0 1, pointer; }
+html[data-curseur="1"][data-theme="androide"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/androide-texte.png") 15 15, text; }
+html[data-curseur="1"][data-theme="console-blanche"] { cursor: url("curseurs/console-blanche-defaut.png") 8 2, auto; }
+html[data-curseur="1"][data-theme="console-blanche"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/console-blanche-lien.png") 8 2, pointer; }
+html[data-curseur="1"][data-theme="console-blanche"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/console-blanche-texte.png") 15 15, text; }
+html[data-curseur="1"][data-theme="console-blanche"] :is(button:disabled,input:disabled,[aria-disabled="true"]) { cursor: url("curseurs/console-blanche-interdit.png") 7 2, not-allowed; }
+html[data-curseur="1"][data-theme="console-blanche"] :is(a,button,summary,label,[role="button"],.coche):active { cursor: url("curseurs/console-blanche-actif.png") 9 11, pointer; }
+html[data-curseur="1"][data-theme="determination"] { cursor: url("curseurs/determination-defaut.png") 0 0, auto; }
+html[data-curseur="1"][data-theme="determination"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/determination-lien.png") 0 0, pointer; }
+html[data-curseur="1"][data-theme="determination"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/determination-texte.png") 5 9, text; }
+html[data-curseur="1"][data-theme="determination"] :is(button:disabled,input:disabled,[aria-disabled="true"]) { cursor: url("curseurs/determination-interdit.png") 0 0, not-allowed; }
+html[data-curseur="1"][data-theme="grand-large"] { cursor: url("curseurs/grand-large-defaut.png") 0 0, auto; }
+html[data-curseur="1"][data-theme="grand-large"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/grand-large-lien.png") 1 1, pointer; }
+html[data-curseur="1"][data-theme="grand-large"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/grand-large-texte.png") 4 4, text; }
+html[data-curseur="1"][data-theme="grand-large"] :is(button:disabled,input:disabled,[aria-disabled="true"]) { cursor: url("curseurs/grand-large-interdit.png") 7 7, not-allowed; }
+html[data-curseur="1"][data-theme="velours"] { cursor: url("curseurs/velours-defaut.png") 3 2, auto; }
+html[data-curseur="1"][data-theme="velours"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/velours-lien.png") 4 4, pointer; }
+html[data-curseur="1"][data-theme="velours"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/velours-texte.png") 16 16, text; }
+html[data-curseur="1"][data-theme="velours"] :is(button:disabled,input:disabled,[aria-disabled="true"]) { cursor: url("curseurs/velours-interdit.png") 13 2, not-allowed; }
+html[data-curseur="1"][data-theme="voxel"] { cursor: url("curseurs/voxel-defaut.png") 1 1, auto; }
+html[data-curseur="1"][data-theme="voxel"] :is(a,button,summary,label,select,[role="button"],.coche,.pastilles button) { cursor: url("curseurs/voxel-lien.png") 1 1, pointer; }
+html[data-curseur="1"][data-theme="voxel"] :is(p,li,td,th,dd,blockquote,pre,code,input,textarea,h1,h2,h3,h4) { cursor: url("curseurs/voxel-texte.png") 15 15, text; }
+html[data-curseur="1"][data-theme="voxel"] :is(button:disabled,input:disabled,[aria-disabled="true"]) { cursor: url("curseurs/voxel-interdit.png") 15 15, not-allowed; }

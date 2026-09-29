@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAT &amp; PAT — QCM | BTS CIEL</title>
+<meta name="description" content="Dix questions sur les trois formes de traduction d'adresses, le vocabulaire, la configuration et le dépannage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 12</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>NAT &amp; PAT — QCM</h1>
+  <p class="chapeau">10 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 10</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Quelles sont les trois formes de NAT ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Statique, dynamique, PAT</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Entrante, sortante, bidirectionnelle</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Publique, privée, mixte</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Locale, globale, régionale</span></button>
+      </div>
+      <p class="qcm-why" hidden><b>Statique</b> : une privée pour une publique, fixe — c'est ce qu'on fait pour un serveur joignable de l'extérieur. <b>Dynamique</b> : plusieurs pour plusieurs, piochées dans un pool. <b>PAT</b> : plusieurs pour <b>une seule</b>, départagées par le numéro de port — c'est ce que fait votre box.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>Sur quoi la PAT distingue-t-elle deux machines internes ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Sur leur adresse MAC</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Sur leur numéro de port source</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Sur le protocole employé</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Sur l'ordre d'arrivée des paquets</span></button>
+      </div>
+      <p class="qcm-why" hidden>Toutes sortent avec la <b>même</b> adresse publique : seule la paire <code>adresse:port</code> les différencie. Le routeur attribue un port source unique à chaque conversation et tient la table de correspondance. C'est ce qui permet à des milliers de machines de partager une adresse.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">3</span>La NAT est configurée, le trafic passe, mais rien n'est traduit. Que vérifier d'abord ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le masque du pool</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>La distance administrative</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La table de routage</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Que ip nat inside et ip nat outside sont déclarés sur les bonnes interfaces</span></button>
+      </div>
+      <p class="qcm-why" hidden>Sans ces deux déclarations, le routeur ne sait pas <b>où est le dedans et où est le dehors</b> : il route normalement, sans traduire, et rien ne signale l'oubli. C'est la première chose à regarder, avant le pool et avant l'ACL.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">4</span>Que comptent les « Hits » de show ip nat statistics ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Les paquets effectivement traduits</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Les adresses restantes dans le pool</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Les collisions de ports</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Les paquets rejetés</span></button>
+      </div>
+      <p class="qcm-why" hidden>La méthode de test propre : <code>clear ip nat statistics</code>, faire passer du trafic, puis regarder. <b>Les Hits montent</b> = la NAT travaille. <b>Ils restent à zéro</b> alors que le trafic passe = soit il ne traverse pas les interfaces déclarées, soit l'ACL ne le sélectionne pas.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">5</span>À quoi sert la liste de contrôle d'accès dans une NAT dynamique ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>À bloquer les intrus venant de l'extérieur</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>À désigner quels hôtes internes ont le droit d'être traduits</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>À limiter le débit</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>À chiffrer les traductions</span></button>
+      </div>
+      <p class="qcm-why" hidden>Ici l'ACL ne filtre pas : elle <b>sélectionne</b>. C'est un usage déroutant au début — la même syntaxe sert à interdire dans un contexte et à désigner dans un autre. Un hôte absent de l'ACL n'est pas bloqué, il est simplement <b>non traduit</b>, donc injoignable depuis Internet.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">6</span>Le pool s'appelle NAT-POOL1 mais la règle référence nat-pool1. Que se passe-t-il ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>IOS corrige automatiquement</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Cela fonctionne, la casse est ignorée</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le nom est sensible à la casse : la règle ne s'applique pas</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le routeur refuse la commande</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le nom du pool est <b>sensible à la casse</b>, et IOS accepte la commande sans broncher : on obtient une règle qui désigne un pool inexistant. Symptôme identique à un oubli d'interface — rien n'est traduit, rien ne le dit.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">7</span>Dans show ip nat translations, que désigne « Inside local » ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>L'adresse publique vue depuis Internet</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>L'adresse privée de la machine interne</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>L'adresse du serveur distant</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>L'adresse de la passerelle</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le vocabulaire se lit sur deux axes : <b>inside/outside</b> = de quel côté est la machine ; <b>local/global</b> = de quel point de vue on regarde l'adresse. <b>Inside local</b> = la machine interne, vue de l'intérieur — son adresse privée. <b>Inside global</b> = la même machine, vue d'Internet.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">8</span>Que fait le mot overload à la fin d'une règle de NAT ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il active la PAT : plusieurs machines derrière une seule adresse</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il augmente la taille du pool</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il active la journalisation</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il double la bande passante</span></button>
+      </div>
+      <p class="qcm-why" hidden><b>Un mot, deux comportements</b> : sans lui, une adresse du pool est réservée à une machine à la fois et la suivante attend ; avec lui, toutes partagent la même adresse grâce aux ports. C'est le mot qui transforme une NAT dynamique en PAT.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">9</span>Quelle forme de NAT pour un serveur web interne joignable depuis Internet ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>NAT dynamique</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>PAT</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>NAT statique</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Aucune : il faut une adresse publique sur le serveur</span></button>
+      </div>
+      <p class="qcm-why" hidden>Une correspondance <b>fixe et permanente</b> : l'adresse publique doit toujours désigner le même serveur, sans quoi personne ne peut le joindre. Les deux autres formes ne créent une entrée qu'au moment où une machine <b>interne</b> sort — l'inverse de ce qu'on veut ici.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">10</span>Pourquoi la NAT est-elle apparue ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Pour chiffrer le trafic sortant</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce que les adresses IPv4 publiques n'étaient plus assez nombreuses</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Pour accélérer le routage</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Pour remplacer le DHCP</span></button>
+      </div>
+      <p class="qcm-why" hidden>32 bits donnent environ 4 milliards d'adresses, largement insuffisantes. La NAT a permis à des réseaux entiers de vivre en adressage privé derrière quelques adresses publiques. Elle a repoussé la pénurie de vingt ans — au prix d'un Internet où l'on n'est plus joignable par défaut.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-dhcp/qcm.html"><span>Chapitre précédent</span><b>DHCP</b></a><a class="suiv" href="../13-depannage-wireshark/qcm.html"><span>Chapitre suivant</span><b>Dépannage &amp; Wireshark</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>

@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C | BTS CIEL</title>
-<meta name="description" content="Cours complet : compilation, squelette d'un programme, identificateurs et mots-clés, types, déclaration et constantes, opérateurs, printf et scanf, if/switch, while/do-while/for, break/continue/goto.">
+<meta name="description" content="Cours complet : compilation, squelette d'un programme, types, opérateurs, printf et scanf, conditions et boucles, puis les fonctions (prototype, portée, les quatre formes) et les tableaux.">
 <meta name="theme-color" content="#FDF5E6">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=5f6e2ccc">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -28,6 +28,14 @@
     <li><a href="#conditions">10 · Les conditions</a></li>
     <li><a href="#boucles">11 · Les boucles</a></li>
     <li><a href="#branchement">12 · <code>break</code>, <code>continue</code>, <code>goto</code></a></li>
+    <li><a href="#pourquoi-fonctions">13 · Pourquoi découper en fonctions</a></li>
+    <li><a href="#anatomie">14 · L'anatomie d'une fonction</a></li>
+    <li><a href="#formes">15 · Les quatre formes</a></li>
+    <li><a href="#appel">16 · L'appel : arguments et retour</a></li>
+    <li><a href="#prototype">17 · Le prototype, et l'ordre dans le fichier</a></li>
+    <li><a href="#portee">18 · Variables locales et globales</a></li>
+    <li><a href="#tableaux">19 · Les tableaux en C</a></li>
+    <li><a href="#passer">20 · Passer un tableau à une fonction</a></li>
   </ol>
 </nav>
 
@@ -35,13 +43,15 @@
 
 <header class="fiche-tete">
   <div class="fil">
-    <span class="matiere">Informatique &amp; Développement</span>
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
     <span class="sep">/</span><span>Chapitre 12</span>
   </div>
 
   <h1>Langage C</h1>
   <p class="chapeau">Le premier langage du BTS où l'on doit <em>traduire</em> son programme avant
-     de le lancer — et où le type de chaque variable est une déclaration, pas une devinette.</p>
+     de le lancer — et où le type de chaque variable est une déclaration, pas une devinette.
+     Le chapitre couvre les deux séances : d'abord le langage lui-même, jusqu'aux boucles ;
+     ensuite le découpage en <strong>fonctions</strong> et les <strong>tableaux</strong>.</p>
 
   <div class="flash">
     <span class="pastille">📌</span>
@@ -56,6 +66,13 @@
          <strong>code de format</strong> (<code>%d</code>, <code>%f</code>, <code>%c</code>),
          on lit avec <code>scanf</code> — et là, <strong>le <code>&amp;</code> est
          obligatoire</strong>.</p>
+      <p>Une fonction a <strong>un type de retour, un nom, des paramètres et un corps</strong>.
+         Elle se décline en quatre formes, selon qu'elle reçoit des données ou non et qu'elle
+         en renvoie ou non ; <code>void</code> dit « ne renvoie rien ». Le
+         <strong>prototype</strong> l'annonce avant <code>main</code> pour que le compilateur
+         la connaisse. Une variable déclarée dans une fonction n'existe que là.
+         Et un <strong>tableau passé à une fonction perd sa taille</strong> : il faut la
+         transmettre à part — c'est la seule vraie difficulté du chapitre.</p>
     </div>
   </div>
 
@@ -64,7 +81,9 @@
     <code>#scanf</code> <code>#code-de-format</code> <code>#typage-statique</code>
     <code>#casse</code> <code>#point-virgule</code> <code>#accolades</code>
     <code>#if-else</code> <code>#switch</code> <code>#while</code> <code>#for</code>
-    <code>#break</code> <code>#continue</code>
+    <code>#break</code> <code>#continue</code> <code>#fonction</code> <code>#void</code>
+    <code>#return</code> <code>#parametres</code> <code>#arguments</code> <code>#prototype</code>
+    <code>#portee</code> <code>#tableau</code> <code>#indice</code>
   </p>
 </header>
 
@@ -240,12 +259,12 @@
 
   <p>Tout programme C, du plus court au plus long, a la même ossature.</p>
 
-<div class="bloc-code"><span class="langue">C — le programme minimal</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C — le programme minimal</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    printf("Bonjour");
-    return 0;
+    <span class="j-fn">printf</span>(<span class="j-txt">"Bonjour"</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 
   <div class="tableau">
@@ -286,9 +305,9 @@ int main()
   <p>Un <strong>identificateur</strong> est un nom que vous choisissez : celui d'une variable,
      d'une fonction, d'un tableau.</p>
 
-<div class="bloc-code"><span class="langue">C</span><pre><code>int   adresseIP;
-int   nombrePaquets;
-float debit;</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span>   adresseIP;
+<span class="j-typ">int</span>   nombrePaquets;
+<span class="j-typ">float</span> debit;</code></pre></div>
 
   <div class="tableau">
   <table>
@@ -309,10 +328,10 @@ float debit;</code></pre></div>
 
   <h3>Les mots-clés</h3>
   <p>Ce sont les mots réservés au langage. Ils ont un sens fixé et ne peuvent pas servir de nom.</p>
-<div class="bloc-code"><span class="langue">C — quelques mots-clés</span><pre><code>int     float   char    void    const
-if      else    switch  case    default
-for     while   do      break   continue
-return  struct  sizeof  goto</code></pre></div>
+<div class="bloc-code"><span class="langue">C — quelques mots-clés</span><pre><code><span class="j-typ">int</span>     <span class="j-typ">float</span>   <span class="j-typ">char</span>    <span class="j-typ">void</span>    <span class="j-mc">const</span>
+<span class="j-mc">if</span>      <span class="j-mc">else</span>    <span class="j-mc">switch</span>  <span class="j-mc">case</span>    <span class="j-mc">default</span>
+<span class="j-mc">for</span>     <span class="j-mc">while</span>   <span class="j-mc">do</span>      <span class="j-mc">break</span>   <span class="j-mc">continue</span>
+<span class="j-mc">return</span>  <span class="j-mc">struct</span>  <span class="j-mc">sizeof</span>  <span class="j-mc">goto</span></code></pre></div>
 
   <h3>Les séparateurs</h3>
   <div class="tableau">
@@ -332,22 +351,22 @@ return  struct  sizeof  goto</code></pre></div>
   </div>
 
   <h3>Les commentaires</h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>// Cette variable contient le nombre de paquets
-int nombrePaquets;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-com">// Cette variable contient le nombre de paquets</span>
+<span class="j-typ">int</span> nombrePaquets;
 
-/*
+<span class="j-com">/*
    Calcul du débit réseau
    à partir du nombre de paquets
-*/</code></pre></div>
+*/</span></code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ La casse n'est pas un détail de présentation</div>
-<div class="bloc-code"><span class="langue">C</span><pre><code>int nombre;     // ces trois lignes déclarent
-int Nombre;     // TROIS variables
-int NOMBRE;     // différentes
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> nombre;     <span class="j-com">// ces trois lignes déclarent</span>
+<span class="j-typ">int</span> Nombre;     <span class="j-com">// TROIS variables</span>
+<span class="j-typ">int</span> NOMBRE;     <span class="j-com">// différentes</span>
 
-int  age = 20;  // correct
-Int  age = 20;  // ERREUR : « Int » n'existe pas</code></pre></div>
+<span class="j-typ">int</span>  age = <span class="j-num">20</span>;  <span class="j-com">// correct</span>
+Int  age = <span class="j-num">20</span>;  <span class="j-com">// ERREUR : « Int » n'existe pas</span></code></pre></div>
     <p>Les mots réservés s'écrivent <strong>en minuscules</strong>. C'est la source d'erreur
        numéro un quand on vient d'un langage plus tolérant.</p>
     <p class="rap">Sous Linux c'est la même logique : <code>ls</code> est une commande,
@@ -394,10 +413,10 @@ Int  age = 20;  // ERREUR : « Int » n'existe pas</code></pre></div>
     <div class="titre">🧰 Vérifier soi-même la taille d'un type</div>
     <p>L'opérateur <code>sizeof</code> donne la taille en octets. Les valeurs ci-dessus ne sont
        pas à croire sur parole : elles se mesurent.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>printf("int    : %zu octets\n", sizeof(int));
-printf("char   : %zu octets\n", sizeof(char));
-printf("float  : %zu octets\n", sizeof(float));
-printf("double : %zu octets\n", sizeof(double));</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"int    : %zu octets\n"</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+<span class="j-fn">printf</span>(<span class="j-txt">"char   : %zu octets\n"</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">char</span>));
+<span class="j-fn">printf</span>(<span class="j-txt">"float  : %zu octets\n"</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">float</span>));
+<span class="j-fn">printf</span>(<span class="j-txt">"double : %zu octets\n"</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">double</span>));</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>int    : 4 octets
 char   : 1 octets
 float  : 4 octets
@@ -412,8 +431,8 @@ double : 8 octets</code></pre></div>
        (<code>char</code>, 1 octet). Les <strong>guillemets doubles</strong> entourent une
        <strong>chaîne</strong>, qui occupe un octet par caractère <em>plus un</em> pour marquer
        la fin.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>char lettre = 'A';     // un caractère
-char mot[]  = "A";     // une chaîne : 'A' puis le marqueur de fin</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">char</span> lettre = <span class="j-txt">'A'</span>;     <span class="j-com">// un caractère</span>
+<span class="j-typ">char</span> mot[]  = <span class="j-txt">"A"</span>;     <span class="j-com">// une chaîne : 'A' puis le marqueur de fin</span></code></pre></div>
   </div>
 </section>
 
@@ -425,12 +444,12 @@ char mot[]  = "A";     // une chaîne : 'A' puis le marqueur de fin</code></pre>
      <strong>un type</strong> et <strong>une valeur qui peut changer</strong>.
      <strong>Toute variable doit être déclarée avant d'être utilisée.</strong></p>
 
-<div class="bloc-code"><span class="langue">C — déclaration</span><pre><code>int nombrePC;          // un entier
-int a, b, c;           // trois entiers d'un coup</code></pre></div>
+<div class="bloc-code"><span class="langue">C — déclaration</span><pre><code><span class="j-typ">int</span> nombrePC;          <span class="j-com">// un entier</span>
+<span class="j-typ">int</span> a, b, c;           <span class="j-com">// trois entiers d'un coup</span></code></pre></div>
 
-<div class="bloc-code"><span class="langue">C — initialisation : déclaration + première valeur</span><pre><code>int   a = 80;
-float b = 100.5;
-char  c = 'O';</code></pre></div>
+<div class="bloc-code"><span class="langue">C — initialisation : déclaration + première valeur</span><pre><code><span class="j-typ">int</span>   a = <span class="j-num">80</span>;
+<span class="j-typ">float</span> b = <span class="j-num">100.5</span>;
+<span class="j-typ">char</span>  c = <span class="j-txt">'O'</span>;</code></pre></div>
 
   <p>Au lieu d'écrire <code>int a;</code> puis <code>a = 80;</code>, on écrit directement
      <code>int a = 80;</code>. C'est la même chose en une ligne.</p>
@@ -461,10 +480,10 @@ char  c = 'O';</code></pre></div>
   </div>
   <p>Pour <strong>nommer</strong> une constante et empêcher toute modification, on utilise le
      mot-clé <code>const</code> :</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>const float PI = 3.14159;
-const int   PORT_HTTP = 80;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">const</span> <span class="j-typ">float</span> PI = <span class="j-num">3.14159</span>;
+<span class="j-mc">const</span> <span class="j-typ">int</span>   PORT_HTTP = <span class="j-num">80</span>;
 
-PI = 3;     // ERREUR de compilation : PI est constante</code></pre></div>
+PI = <span class="j-num">3</span>;     <span class="j-com">// ERREUR de compilation : PI est constante</span></code></pre></div>
   <div class="encart savoir">
     <div class="titre">💡 Nommer une constante vaut mieux que répéter un nombre</div>
     <p>Écrire <code>PORT_HTTP</code> plutôt que <code>80</code> à cinq endroits, c'est trois
@@ -513,13 +532,13 @@ PI = 3;     // ERREUR de compilation : PI est constante</code></pre></div>
     <p>Les deux ajoutent 1. La différence est <strong>ce qu'ils renvoient</strong> :
        <code>a++</code> renvoie l'<strong>ancienne</strong> valeur puis incrémente ;
        <code>++a</code> incrémente <strong>d'abord</strong> et renvoie la nouvelle.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>int a = 5;
-int r1 = a++;          // r1 reçoit l'ANCIENNE valeur
-printf("a++ : renvoie %d, a vaut ensuite %d\n", r1, a);
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> a = <span class="j-num">5</span>;
+<span class="j-typ">int</span> r1 = a++;          <span class="j-com">// r1 reçoit l'ANCIENNE valeur</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"a++ : renvoie %d, a vaut ensuite %d\n"</span>, r1, a);
 
-int b = 5;
-int r2 = ++b;          // r2 reçoit la NOUVELLE valeur
-printf("++b : renvoie %d, b vaut ensuite %d\n", r2, b);</code></pre></div>
+<span class="j-typ">int</span> b = <span class="j-num">5</span>;
+<span class="j-typ">int</span> r2 = ++b;          <span class="j-com">// r2 reçoit la NOUVELLE valeur</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"++b : renvoie %d, b vaut ensuite %d\n"</span>, r2, b);</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>a++ : renvoie 5, a vaut ensuite 6
 ++b : renvoie 6, b vaut ensuite 6</code></pre></div>
     <p><strong>Tant que <code>a++</code> est seul sur sa ligne</strong>, la différence ne se voit
@@ -556,8 +575,8 @@ printf("++b : renvoie %d, b vaut ensuite %d\n", r2, b);</code></pre></div>
        « et, ou, ou exclusif », juste au-dessus de <code>&amp;&amp;</code> <code>||</code>
        « et logique, ou logique ». Rien ne dit que <strong>les premiers travaillent bit par
        bit</strong> et les seconds sur des conditions. La confusion est garantie.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>printf("%d %d %d %d\n", 5 & 3, 5 | 3, 5 ^ 3, 5 << 1);   // bit à bit
-printf("%d %d %d\n",    5 && 3, 5 || 3, !5);              // logique</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"%d %d %d %d\n"</span>, <span class="j-num">5</span> &amp; <span class="j-num">3</span>, <span class="j-num">5</span> | <span class="j-num">3</span>, <span class="j-num">5</span> ^ <span class="j-num">3</span>, <span class="j-num">5</span> &lt;&lt; <span class="j-num">1</span>);   <span class="j-com">// bit à bit</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"%d %d %d\n"</span>,    <span class="j-num">5</span> &amp;&amp; <span class="j-num">3</span>, <span class="j-num">5</span> || <span class="j-num">3</span>, !<span class="j-num">5</span>);              <span class="j-com">// logique</span></code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>1 7 6 10
 1 1 0</code></pre></div>
     <p><code>5 &amp; 3</code> vaut <strong>1</strong> : en binaire <code>101 &amp; 011 = 001</code>,
@@ -574,9 +593,9 @@ printf("%d %d %d\n",    5 && 3, 5 || 3, !5);              // logique</code></pre
     <div class="titre">⚠️ La division entière : <code>6 / 7</code> vaut <code>0</code></div>
     <p>Quand les deux opérandes sont des entiers, <code>/</code> fait une division
        <strong>entière</strong> : la partie décimale est jetée, pas arrondie.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>printf("%d\n",  6 / 7);      // 0     ← deux entiers
-printf("%f\n",  6.0 / 7);    // 0.857143  ← un réel suffit à changer le calcul
-printf("%d %d\n", 7 / 2, 7 % 2);   // 3 1  ← quotient et reste</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>,  <span class="j-num">6</span> / <span class="j-num">7</span>);      <span class="j-com">// 0     ← deux entiers</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"%f\n"</span>,  <span class="j-num">6.0</span> / <span class="j-num">7</span>);    <span class="j-com">// 0.857143  ← un réel suffit à changer le calcul</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"%d %d\n"</span>, <span class="j-num">7</span> / <span class="j-num">2</span>, <span class="j-num">7</span> % <span class="j-num">2</span>);   <span class="j-com">// 3 1  ← quotient et reste</span></code></pre></div>
     <p class="rap">C'est le piège classique des moyennes : <code>somme / nombre</code> entre
        entiers renverra 15 et non 15.5. Pour un résultat réel, il faut qu'au moins une des deux
        valeurs le soit.</p>
@@ -585,9 +604,9 @@ printf("%d %d\n", 7 / 2, 7 % 2);   // 3 1  ← quotient et reste</code></pre></d
   <h3>L'opérateur ternaire</h3>
   <p>Le seul opérateur à trois opérandes. Il tient un <code>if…else</code> sur une ligne.</p>
 <div class="bloc-code"><span class="langue">C</span><pre><code>condition ? expression_si_vrai : expression_si_faux</code></pre></div>
-<div class="bloc-code"><span class="langue">C — exemple</span><pre><code>int a = 10;
-int b = 20;
-int max = (a &gt; b) ? a : b;     // a > b est faux  →  max = b = 20</code></pre></div>
+<div class="bloc-code"><span class="langue">C — exemple</span><pre><code><span class="j-typ">int</span> a = <span class="j-num">10</span>;
+<span class="j-typ">int</span> b = <span class="j-num">20</span>;
+<span class="j-typ">int</span> max = (a &gt; b) ? a : b;     <span class="j-com">// a &gt; b est faux  →  max = b = 20</span></code></pre></div>
 
   <div class="quiz">
     <div class="titre">🤔 <code>int a = 15, b = 23;</code> — que vaut <code>(a&gt;b) ? b : a</code> ?</div>
@@ -610,7 +629,7 @@ int max = (a &gt; b) ? a : b;     // a > b est faux  →  max = b = 20</code></p
 
   <p><code>printf</code> vient de <code>stdio.h</code>. Dans sa forme la plus simple, elle
      affiche un texte tel quel :</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>printf("bonjour !");</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"bonjour !"</span>);</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie</span><pre><code>bonjour !</code></pre></div>
 
   <div class="encart corrige">
@@ -631,8 +650,8 @@ int max = (a &gt; b) ? a : b;     // a > b est faux  →  max = b = 20</code></p
   <p>Pour afficher une variable, on place dans la chaîne un <strong>code de format</strong> —
      un marqueur qui dit à <code>printf</code> <em>de quel type</em> est la valeur à insérer.</p>
 
-<div class="bloc-code"><span class="langue">C</span><pre><code>int age = 20;
-printf("%d", age);        // 20</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> age = <span class="j-num">20</span>;
+<span class="j-fn">printf</span>(<span class="j-txt">"%d"</span>, age);        <span class="j-com">// 20</span></code></pre></div>
 
   <div class="tableau">
   <table>
@@ -651,15 +670,15 @@ printf("%d", age);        // 20</code></pre></div>
   </div>
 
   <h3>Plusieurs valeurs, et le nombre de décimales</h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>int   age    = 20;
-float taille = 1.75;
-char  lettre = 'a';
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span>   age    = <span class="j-num">20</span>;
+<span class="j-typ">float</span> taille = <span class="j-num">1.75</span>;
+<span class="j-typ">char</span>  lettre = <span class="j-txt">'a'</span>;
 
-printf("age : %d\n", age);
-printf("taille : %f\n", taille);
-printf("taille : %.2f\n", taille);
-printf("lettre : %c\n", lettre);
-printf("age : %d ans, moyenne : %.2f/20\n", age, 15.5);</code></pre></div>
+<span class="j-fn">printf</span>(<span class="j-txt">"age : %d\n"</span>, age);
+<span class="j-fn">printf</span>(<span class="j-txt">"taille : %f\n"</span>, taille);
+<span class="j-fn">printf</span>(<span class="j-txt">"taille : %.2f\n"</span>, taille);
+<span class="j-fn">printf</span>(<span class="j-txt">"lettre : %c\n"</span>, lettre);
+<span class="j-fn">printf</span>(<span class="j-txt">"age : %d ans, moyenne : %.2f/20\n"</span>, age, <span class="j-num">15.5</span>);</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>age : 20
 taille : 1.750000
 taille : 1.75
@@ -707,7 +726,7 @@ age : 20 ans, moyenne : 15.50/20</code></pre></div>
   <p><code>scanf</code> récupère au clavier une donnée saisie par l'utilisateur. Elle vient elle
      aussi de <code>stdio.h</code>.</p>
 
-<div class="bloc-code"><span class="langue">C — la forme à connaître</span><pre><code>scanf("code_format", &amp;variable);</code></pre></div>
+<div class="bloc-code"><span class="langue">C — la forme à connaître</span><pre><code><span class="j-fn">scanf</span>(<span class="j-txt">"code_format"</span>, &amp;variable);</code></pre></div>
 
   <div class="encart analogie">
     <div class="titre">🔍 Pourquoi ce <code>&amp;</code> — l'analogie de la boîte aux lettres</div>
@@ -723,16 +742,16 @@ age : 20 ans, moyenne : 15.50/20</code></pre></div>
        <code>scanf</code> écrit → <code>&amp;</code> obligatoire.</p>
   </div>
 
-<div class="bloc-code"><span class="langue">C — lire un entier puis un réel</span><pre><code>int   age;
-float note;
+<div class="bloc-code"><span class="langue">C — lire un entier puis un réel</span><pre><code><span class="j-typ">int</span>   age;
+<span class="j-typ">float</span> note;
 
-printf("Entrez votre age : ");
-scanf("%d", &amp;age);
+<span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre age : "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, &amp;age);
 
-printf("Entrez votre note : ");
-scanf("%f", &amp;note);
+<span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre note : "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, &amp;note);
 
-printf("\nVous avez %d ans et votre note est %.2f/20\n", age, note);</code></pre></div>
+<span class="j-fn">printf</span>(<span class="j-txt">"\nVous avez %d ans et votre note est %.2f/20\n"</span>, age, note);</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle — saisies : 20 puis 15.5</span><pre><code>Entrez votre age : 20
 Entrez votre note : 15.5
 
@@ -765,10 +784,10 @@ Vous avez 20 ans et votre note est 15.50/20</code></pre></div>
   <div class="encart corrige">
     <div class="titre">🔧 Corrigé — l'exemple « lire un nombre réel » lit une variable et en affiche une autre</div>
     <p>Le cours donne :</p>
-<div class="bloc-code"><span class="langue">C — tel qu'imprimé : ne compile pas</span><pre><code>float note;
-printf("Entrez votre note : ");
-scanf("%f", &amp;note);
-printf("votre note est %.2f/20\n", age);   /* ← age ! */</code></pre></div>
+<div class="bloc-code"><span class="langue">C — tel qu'imprimé : ne compile pas</span><pre><code><span class="j-typ">float</span> note;
+<span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre note : "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, &amp;note);
+<span class="j-fn">printf</span>(<span class="j-txt">"votre note est %.2f/20\n"</span>, age);   <span class="j-com">/* ← age ! */</span></code></pre></div>
     <p>Le programme lit dans <code>note</code> puis affiche <code>age</code> — une variable qui
        n'est même pas déclarée dans l'extrait. Deux fautes à la fois : le programme ne compile
        pas, et s'il compilait il afficherait autre chose que ce qu'on vient de saisir.</p>
@@ -813,29 +832,29 @@ printf("votre note est %.2f/20\n", age);   /* ← age ! */</code></pre></div>
   </div>
 
   <h3><code>if</code> — exécuter si</h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>int age = 20;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> age = <span class="j-num">20</span>;
 
-if (age &gt;= 18) {
-    printf("Majeur\n");
+<span class="j-mc">if</span> (age &gt;= <span class="j-num">18</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"Majeur\n"</span>);
 }</code></pre></div>
 
   <h3><code>if…else</code> — choisir entre deux</h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>int age;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> age;
 
-printf("entrez votre age : ");
-scanf("%d", &amp;age);
+<span class="j-fn">printf</span>(<span class="j-txt">"entrez votre age : "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, &amp;age);
 
-if (age &gt;= 18) {
-    printf("majeur\n");
-} else {
-    printf("mineur\n");
+<span class="j-mc">if</span> (age &gt;= <span class="j-num">18</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"majeur\n"</span>);
+} <span class="j-mc">else</span> {
+    <span class="j-fn">printf</span>(<span class="j-txt">"mineur\n"</span>);
 }</code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ <code>=</code> affecte, <code>==</code> compare</div>
     <p>C'est <strong>l'erreur la plus coûteuse du langage</strong>, parce qu'elle compile.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>if (age == 18) { … }    // compare : « age vaut-il 18 ? »
-if (age = 18)  { … }    // AFFECTE 18 à age, puis teste 18 → toujours vrai !</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">if</span> (age == <span class="j-num">18</span>) { … }    <span class="j-com">// compare : « age vaut-il 18 ? »</span>
+<span class="j-mc">if</span> (age = <span class="j-num">18</span>)  { … }    <span class="j-com">// AFFECTE 18 à age, puis teste 18 → toujours vrai !</span></code></pre></div>
     <p>En C, une condition est vraie dès qu'elle est <strong>différente de zéro</strong>. Donc
        <code>if (age = 18)</code> met 18 dans <code>age</code>, évalue 18, le trouve non nul, et
        entre <strong>systématiquement</strong> dans le bloc — en ayant au passage écrasé la
@@ -847,9 +866,9 @@ if (age = 18)  { … }    // AFFECTE 18 à age, puis teste 18 → toujours vrai 
   <div class="encart piege">
     <div class="titre">⚠️ Les accolades ne sont facultatives qu'en apparence</div>
     <p>Sans accolades, un <code>if</code> ne gouverne <strong>qu'une seule instruction</strong> :</p>
-<div class="bloc-code"><span class="langue">C — ce que l'indentation laisse croire</span><pre><code>if (n &gt; 0)
-    printf("positif\n");
-    printf("on continue\n");     // s'affiche TOUJOURS</code></pre></div>
+<div class="bloc-code"><span class="langue">C — ce que l'indentation laisse croire</span><pre><code><span class="j-mc">if</span> (n &gt; <span class="j-num">0</span>)
+    <span class="j-fn">printf</span>(<span class="j-txt">"positif\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"on continue\n"</span>);     <span class="j-com">// s'affiche TOUJOURS</span></code></pre></div>
     <p>La seconde ligne n'appartient pas au <code>if</code> : l'indentation ne fait pas la
        syntaxe en C — contrairement à Python, où elle <em>est</em> la syntaxe.</p>
     <p class="rap">Mettez les accolades même pour une ligne. Vous en ajouterez une deuxième un
@@ -860,64 +879,64 @@ if (age = 18)  { … }    // AFFECTE 18 à age, puis teste 18 → toujours vrai 
   <p>Adapté quand on compare <strong>une variable à plusieurs valeurs précises</strong> : un
      menu, un choix d'option, un jour de la semaine, un code d'état.</p>
 
-<div class="bloc-code"><span class="langue">C — la forme</span><pre><code>switch (expression) {
-    case valeur1:
-        // instructions
-        break;
-    case valeur2:
-        // instructions
-        break;
-    default:
-        // si aucune valeur ne correspond
+<div class="bloc-code"><span class="langue">C — la forme</span><pre><code><span class="j-mc">switch</span> (expression) {
+    <span class="j-mc">case</span> valeur1:
+        <span class="j-com">// instructions</span>
+        <span class="j-mc">break</span>;
+    <span class="j-mc">case</span> valeur2:
+        <span class="j-com">// instructions</span>
+        <span class="j-mc">break</span>;
+    <span class="j-mc">default</span>:
+        <span class="j-com">// si aucune valeur ne correspond</span>
 }</code></pre></div>
 
-<div class="bloc-code"><span class="langue">C — un menu complet</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C — un menu complet</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main(void)
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
-    int choix;
+    <span class="j-typ">int</span> choix;
 
-    printf("1 - ajouter\n");
-    printf("2 - modifier\n");
-    printf("3 - supprimer\n");
-    printf("votre choix : ");
-    scanf("%d", &amp;choix);
+    <span class="j-fn">printf</span>(<span class="j-txt">"1 - ajouter\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"2 - modifier\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"3 - supprimer\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"votre choix : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, &amp;choix);
 
-    switch (choix) {
-        case 1:
-            printf("Ajouter\n");
-            break;
-        case 2:
-            printf("Modifier\n");
-            break;
-        case 3:
-            printf("Supprimer\n");
-            break;
-        default:
-            printf("Choix invalide\n");
+    <span class="j-mc">switch</span> (choix) {
+        <span class="j-mc">case</span> <span class="j-num">1</span>:
+            <span class="j-fn">printf</span>(<span class="j-txt">"Ajouter\n"</span>);
+            <span class="j-mc">break</span>;
+        <span class="j-mc">case</span> <span class="j-num">2</span>:
+            <span class="j-fn">printf</span>(<span class="j-txt">"Modifier\n"</span>);
+            <span class="j-mc">break</span>;
+        <span class="j-mc">case</span> <span class="j-num">3</span>:
+            <span class="j-fn">printf</span>(<span class="j-txt">"Supprimer\n"</span>);
+            <span class="j-mc">break</span>;
+        <span class="j-mc">default</span>:
+            <span class="j-fn">printf</span>(<span class="j-txt">"Choix invalide\n"</span>);
     }
-    return 0;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 
   <h3>Regrouper plusieurs <code>case</code></h3>
   <p>Plusieurs valeurs peuvent mener au même bloc : il suffit d'enchaîner les <code>case</code>
      sans <code>break</code> entre eux.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>char reponse;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">char</span> reponse;
 
-printf("Voulez-vous continuer ? ");
-scanf(" %c", &amp;reponse);
+<span class="j-fn">printf</span>(<span class="j-txt">"Voulez-vous continuer ? "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">" %c"</span>, &amp;reponse);
 
-switch (reponse) {
-    case 'o':
-    case 'O':
-        printf("Oui\n");
-        break;
-    case 'n':
-    case 'N':
-        printf("Non\n");
-        break;
-    default:
-        printf("Reponse incorrecte\n");
+<span class="j-mc">switch</span> (reponse) {
+    <span class="j-mc">case</span> <span class="j-txt">'o'</span>:
+    <span class="j-mc">case</span> <span class="j-txt">'O'</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"Oui\n"</span>);
+        <span class="j-mc">break</span>;
+    <span class="j-mc">case</span> <span class="j-txt">'n'</span>:
+    <span class="j-mc">case</span> <span class="j-txt">'N'</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"Non\n"</span>);
+        <span class="j-mc">break</span>;
+    <span class="j-mc">default</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"Reponse incorrecte\n"</span>);
 }</code></pre></div>
 
   <div class="encart piege">
@@ -966,16 +985,16 @@ switch (reponse) {
   </div>
 
   <h3><code>while</code></h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int i = 1;
-    while (i &lt;= 5) {
-        printf("%d\n", i);
+    <span class="j-typ">int</span> i = <span class="j-num">1</span>;
+    <span class="j-mc">while</span> (i &lt;= <span class="j-num">5</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);
         i++;
     }
-    return 0;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie</span><pre><code>1
 2
@@ -988,16 +1007,16 @@ int main()
   <h3><code>do…while</code></h3>
   <p>Même travail, mais la condition est évaluée <strong>après</strong> le bloc : celui-ci est
      donc exécuté <strong>au moins une fois</strong>.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int i = 1;
-    do {
-        printf("%d\n", i);
+    <span class="j-typ">int</span> i = <span class="j-num">1</span>;
+    <span class="j-mc">do</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);
         i++;
-    } while (i &lt;= 5);
-    return 0;
+    } <span class="j-mc">while</span> (i &lt;= <span class="j-num">5</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 
   <div class="encart piege">
@@ -1020,18 +1039,18 @@ int main()
   <h3><code>for</code></h3>
   <p>Trois parties entre parenthèses, séparées par des points-virgules :
      <strong>initialisation</strong>, <strong>condition</strong>, <strong>modification</strong>.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>for (initialisation; condition; modification) {
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">for</span> (initialisation; condition; modification) {
     instructions;
 }</code></pre></div>
-<div class="bloc-code"><span class="langue">C — exemple</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C — exemple</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int i;
-    for (i = 1; i &lt;= 5; i++) {
-        printf("%d\n", i);
+    <span class="j-typ">int</span> i;
+    <span class="j-mc">for</span> (i = <span class="j-num">1</span>; i &lt;= <span class="j-num">5</span>; i++) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);
     }
-    return 0;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 
   <div class="encart corrige">
@@ -1051,9 +1070,9 @@ int main()
     <p>Un point-virgule juste après la parenthèse fermante donne à la boucle un
        <strong>corps vide</strong>. Elle tourne bel et bien — mais sans rien faire — et
        l'instruction qui suit ne s'exécute qu'<strong>une seule fois</strong>, après la boucle.</p>
-<div class="bloc-code"><span class="langue">C — programme ① de l'exercice 8</span><pre><code>int n = 5, i;
-for (i = 2; i &lt; n; i++);      // ← le corps de la boucle, c'est ce « ; »
-printf("%d\n", i);</code></pre></div>
+<div class="bloc-code"><span class="langue">C — programme ① de l'exercice 8</span><pre><code><span class="j-typ">int</span> n = <span class="j-num">5</span>, i;
+<span class="j-mc">for</span> (i = <span class="j-num">2</span>; i &lt; n; i++);      <span class="j-com">// ← le corps de la boucle, c'est ce « ; »</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>5</code></pre></div>
     <p>La boucle incrémente <code>i</code> de 2 jusqu'à ce que <code>i &lt; 5</code> devienne
        faux : <code>i</code> vaut alors <strong>5</strong>. Le <code>printf</code>, qui n'a
@@ -1096,17 +1115,17 @@ printf("%d\n", i);</code></pre></div>
   <h3><code>break</code> — sortir immédiatement</h3>
   <p>Quitte la boucle (<code>for</code>, <code>while</code>, <code>do…while</code>) ou le
      <code>switch</code> dans lequel on se trouve, et reprend après.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int i;
-    for (i = 1; i &lt;= 10; i++) {
-        if (i == 5)
-            break;
-        printf("%d\n", i);
+    <span class="j-typ">int</span> i;
+    <span class="j-mc">for</span> (i = <span class="j-num">1</span>; i &lt;= <span class="j-num">10</span>; i++) {
+        <span class="j-mc">if</span> (i == <span class="j-num">5</span>)
+            <span class="j-mc">break</span>;
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);
     }
-    return 0;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie</span><pre><code>1
 2
@@ -1117,17 +1136,17 @@ int main()
 
   <h3><code>continue</code> — passer au tour suivant</h3>
   <p>Abandonne la fin du tour en cours mais <strong>reste dans la boucle</strong>.</p>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int i;
-    for (i = 1; i &lt;= 5; i++) {
-        if (i == 3)
-            continue;
-        printf("%d\n", i);
+    <span class="j-typ">int</span> i;
+    <span class="j-mc">for</span> (i = <span class="j-num">1</span>; i &lt;= <span class="j-num">5</span>; i++) {
+        <span class="j-mc">if</span> (i == <span class="j-num">3</span>)
+            <span class="j-mc">continue</span>;
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, i);
     }
-    return 0;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie</span><pre><code>1
 2
@@ -1145,16 +1164,16 @@ int main()
   </div>
 
   <h3><code>goto</code> — sauter à une étiquette</h3>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    printf("debut du programme\n");
-    goto fin;
-    printf("cette instruction ne sera pas executee\n");
+    <span class="j-fn">printf</span>(<span class="j-txt">"debut du programme\n"</span>);
+    <span class="j-mc">goto</span> fin;
+    <span class="j-fn">printf</span>(<span class="j-txt">"cette instruction ne sera pas executee\n"</span>);
 fin:
-    printf("fin du programme\n");
-    return 0;
+    <span class="j-fn">printf</span>(<span class="j-txt">"fin du programme\n"</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
 <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>debut du programme
 fin du programme</code></pre></div>
@@ -1177,9 +1196,626 @@ fin du programme</code></pre></div>
   </div>
 </section>
 
+<!-- ================================================================= 13 -->
+<section id="pourquoi-fonctions">
+  <h2><span class="num">13</span>Pourquoi découper en fonctions</h2>
+
+  <p>Une fonction est un <strong>bloc d'instructions qui réalise une tâche précise</strong>.
+     Elle permet de découper un programme en parties indépendantes et réutilisables.</p>
+
+  <p>L'argument du cours tient en un exemple. Sans fonction, le calcul d'un carré se réécrit
+     à chaque fois :</p>
+
+  <div class="bloc-code"><span class="langue">C — sans fonction</span><pre><code>carre = nombre * nombre;</code></pre></div>
+
+  <p>Avec une fonction, il s'écrit une fois et se réutilise :</p>
+
+  <div class="bloc-code"><span class="langue">C — avec une fonction</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">int</span> <span class="j-fn">carre</span>(<span class="j-typ">int</span> nombre)
+{
+    <span class="j-mc">return</span> nombre * nombre;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> a = <span class="j-fn">carre</span>(<span class="j-num">5</span>);
+    <span class="j-typ">int</span> b = <span class="j-fn">carre</span>(<span class="j-num">10</span>);
+    <span class="j-typ">int</span> c = <span class="j-fn">carre</span>(<span class="j-num">20</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"%d %d %d\n"</span>, a, b, c);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>25 100 400</code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">🔍 Une fonction, c'est une commande qu'on invente</div>
+    <p>Vous utilisez <code>printf</code> sans jamais avoir lu son code. Vous savez ce qu'elle
+       fait, ce qu'elle attend, ce qu'elle rend — cela suffit.</p>
+    <p>Écrire une fonction, c'est fabriquer une commande de plus, avec la même promesse : celui
+       qui l'appelle n'a pas besoin de savoir comment elle s'y prend. <strong>Le découpage n'est
+       pas une coquetterie d'écriture, c'est ce qui permet d'oublier des détails.</strong></p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Vous en écrivez déjà une depuis le premier jour</div>
+    <p><code>main</code> est une fonction. Son type de retour est <code>int</code>, elle ne prend
+       pas de paramètre, et son <code>return 0;</code> final est sa valeur de retour — celle que
+       le système d'exploitation récupère pour savoir si le programme s'est bien terminé.</p>
+    <p class="rap">Tout ce que dit ce chapitre s'applique donc à quelque chose que vous écrivez
+       déjà sans y penser.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 14 -->
+<section id="anatomie">
+  <h2><span class="num">14</span>L'anatomie d'une fonction</h2>
+
+  <p>Une fonction est constituée de quatre éléments, toujours dans le même ordre.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 720 258" role="img" aria-label="Dissection d'une fonction C : le type de retour, le nom, les paramètres entre parenthèses, puis le corps entre accolades avec l'instruction return">
+      <style>
+        .fn-co{fill:var(--carte-creuse);stroke:var(--bord-fort);stroke-width:1.3}
+        .fn-tx{font:700 19px var(--mono);fill:var(--encre)}
+        .fn-hi{font:700 19px var(--mono)}
+        .fn-t1{fill:var(--accent)}
+        .fn-t2{fill:var(--vert)}
+        .fn-t3{fill:var(--violet)}
+        .fn-t4{fill:var(--ambre-sombre)}
+        .fn-fl{stroke-width:1.4;fill:none}
+        .fn-f1{stroke:var(--accent)} .fn-f2{stroke:var(--vert)}
+        .fn-f3{stroke:var(--violet)} .fn-f4{stroke:var(--ambre-sombre)}
+        .fn-lb{font:700 11px var(--sans);text-anchor:middle}
+        .fn-l1{fill:var(--accent)} .fn-l2{fill:var(--vert)}
+        .fn-l3{fill:var(--violet)} .fn-l4{fill:var(--ambre-sombre)}
+        .fn-sb{font:600 10px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+      </style>
+      <rect class="fn-co" x="120" y="76" width="486" height="118" rx="8"/>
+      <text class="fn-hi fn-t1" x="140" y="108">int</text>
+      <text class="fn-hi fn-t2" x="186" y="108">additionner</text>
+      <text class="fn-tx" x="322" y="108">(</text>
+      <text class="fn-hi fn-t3" x="334" y="108">int a, int b</text>
+      <text class="fn-tx" x="480" y="108">)</text>
+      <text class="fn-tx" x="140" y="136">{</text>
+      <text class="fn-hi fn-t4" x="164" y="164">return a + b;</text>
+      <text class="fn-tx" x="140" y="188">}</text>
+
+      <path class="fn-fl fn-f1" d="M150 70 V44 H210"/>
+      <text class="fn-lb fn-l1" x="268" y="40">type de retour</text>
+      <text class="fn-sb" x="268" y="54">ce qu'elle rend</text>
+
+      <path class="fn-fl fn-f2" d="M250 70 V26 H392"/>
+      <text class="fn-lb fn-l2" x="440" y="22">nom</text>
+      <text class="fn-sb" x="440" y="36">ce qu'on écrit pour l'appeler</text>
+
+      <path class="fn-fl fn-f3" d="M400 118 V214 H330"/>
+      <text class="fn-lb fn-l3" x="252" y="218">paramètres</text>
+      <text class="fn-sb" x="252" y="232">ce qu'elle reçoit</text>
+
+      <path class="fn-fl fn-f4" d="M470 164 H620"/>
+      <text class="fn-lb fn-l4" x="660" y="160">corps</text>
+      <text class="fn-sb" x="660" y="174">le travail</text>
+    </svg>
+    <figcaption>Les quatre éléments d'une fonction. Le corps est le seul qui contienne des
+      instructions ; les trois autres sont un contrat passé avec celui qui appellera.</figcaption>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La syntaxe, dans les deux cas</div>
+    <div class="bloc-code"><span class="langue">C — avec valeur de retour</span><pre><code>type_retour <span class="j-fn">nom_fonction</span>(paramètres)
+{
+    instructions;
+    <span class="j-mc">return</span> valeur;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">C — sans valeur de retour</span><pre><code><span class="j-typ">void</span> <span class="j-fn">nom_fonction</span>(paramètres)
+{
+    instructions;
+}</code></pre></div>
+    <p class="rap">Quand la fonction ne rend rien, le type de retour est <code>void</code>.
+       Ce n'est pas « rien » : c'est un type à part entière, qui veut dire « vide ».</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Pas de point-virgule après l'accolade fermante</div>
+    <p>Une <strong>définition</strong> de fonction se termine par <code>}</code>, sans
+       point-virgule. Un <strong>prototype</strong>, lui, en porte un — c'est justement ce qui
+       les distingue (section 5).</p>
+  </div>
+</section>
+
+<!-- ================================================================= 15 -->
+<section id="formes">
+  <h2><span class="num">15</span>Les quatre formes</h2>
+
+  <p>Une fonction se classe selon deux questions indépendantes : <strong>reçoit-elle des
+     données ?</strong> et <strong>en renvoie-t-elle une ?</strong> Deux questions, deux
+     réponses possibles chacune : quatre formes.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Les quatre formes, et un exemple de chacune</caption>
+      <thead><tr><th scope="col"></th><th scope="col">Sans valeur de retour</th><th scope="col">Avec valeur de retour</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Sans paramètre</th>
+            <td><code>void afficherBonjour()</code></td>
+            <td><code>int saisirNombre()</code></td></tr>
+        <tr><th scope="row">Avec paramètres</th>
+            <td><code>void afficherCarre(int n)</code></td>
+            <td><code>int carre(int n)</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Sans paramètre, sans retour</h3>
+  <p>Elle ne reçoit rien et ne rend rien : elle agit, c'est tout.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">void</span> <span class="j-fn">afficherBonjour</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"Bonjour !\n"</span>);
+}
+
+<span class="j-typ">void</span> <span class="j-fn">afficherCarre</span>(<span class="j-typ">int</span> n)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"Le carré de %d est %d\n"</span>, n, n * n);
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-fn">afficherBonjour</span>();
+    <span class="j-fn">afficherCarre</span>(<span class="j-num">5</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>Bonjour !
+Le carré de 5 est 25</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — deux exemples du polycopié ne compilent pas</div>
+    <p>Le cours définit <code>void affichercarre(int n)</code> puis l'appelle
+       <code>afficherCarre(5);</code>. Et plus loin, il définit
+       <code>int saisirnombre()</code> puis appelle <code>saisirNombre();</code>.</p>
+    <p><strong>Le C distingue les majuscules des minuscules.</strong> Ces deux appels désignent
+       des fonctions qui n'existent pas, et le compilateur les refuse :</p>
+    <div class="bloc-code"><span class="langue">C — ne compile pas</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">void</span> <span class="j-fn">affichercarre</span>(<span class="j-typ">int</span> n)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"Le carré de %d est %d\n"</span>, n, n * n);
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-fn">afficherCarre</span>(<span class="j-num">5</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    <p class="rap">Message obtenu :
+       <code>call to undeclared function 'afficherCarre'</code> — et le compilateur ajoute même
+       <em>did you mean 'affichercarre'?</em>. Les exemples publiés ici portent la casse
+       corrigée, et <code>verif-c.py</code> compile chacun d'eux à chaque contrôle.</p>
+  </div>
+
+  <h3>Sans paramètre, avec retour</h3>
+  <p>Typiquement, une fonction de saisie : elle ne reçoit rien, elle rend ce que
+     l'utilisateur a tapé.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-fn">saisirNombre</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> n;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Entrez un nombre : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, &amp;n);
+    <span class="j-mc">return</span> n;
+}</code></pre></div>
+  <p>À l'appel, la valeur revient et se range dans une variable :</p>
+  <div class="bloc-code"><span class="langue">C — l'appel</span><pre><code><span class="j-typ">int</span> nombre;
+nombre = <span class="j-fn">saisirNombre</span>();</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>()</code> vide et <code>(void)</code> ne disent pas la même chose</div>
+    <p>En C, <code>int saisirNombre()</code> signifie « je ne dis rien sur les paramètres » —
+       le compilateur ne vérifiera donc pas les appels. <code>int saisirNombre(void)</code>
+       signifie « aucun paramètre », et là il vérifie.</p>
+    <p class="rap">Le polycopié écrit <code>()</code>, qui fonctionne. Écrire
+       <code>(void)</code> ne coûte rien et fait travailler le compilateur pour vous. Les deux
+       sont acceptés en épreuve.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 16 -->
+<section id="appel">
+  <h2><span class="num">16</span>L'appel : arguments et retour</h2>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Paramètre et argument : deux mots, deux moments</div>
+    <p>Un <strong>paramètre</strong> est une variable déclarée dans la <em>définition</em> de la
+       fonction. Un <strong>argument</strong> est la valeur fournie lors de l'<em>appel</em>.</p>
+    <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-fn">additionner</span>(<span class="j-typ">int</span> a, <span class="j-typ">int</span> b)   <span class="j-com">/* a et b sont les PARAMÈTRES */</span>
+{
+    <span class="j-mc">return</span> a + b;
+}
+
+<span class="j-fn">additionner</span>(<span class="j-num">10</span>, <span class="j-num">20</span>);           <span class="j-com">/* 10 et 20 sont les ARGUMENTS */</span></code></pre></div>
+    <p class="rap">Le paramètre est un contenant, l'argument est le contenu. Le premier est
+       écrit une fois ; le second change à chaque appel.</p>
+  </div>
+
+  <p>L'appel lui-même s'écrit de deux façons, selon qu'il y a une valeur à récupérer :</p>
+
+  <div class="bloc-code"><span class="langue">C — les deux formes d'appel</span><pre><code><span class="j-fn">nom_fonction</span>(arguments);              <span class="j-com">/* sans retour : on l'exécute */</span>
+
+variable = <span class="j-fn">nom_fonction</span>(arguments);   <span class="j-com">/* avec retour : on range le résultat */</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Une valeur retournée et non rangée est perdue</div>
+    <p>Écrire <code>carre(4);</code> sur une ligne à part est accepté par le compilateur : le
+       calcul se fait, et le résultat part à la poubelle. Rien ne le signale.</p>
+    <p class="rap">C'est une des erreurs les plus difficiles à voir en TP, parce que le
+       programme compile, tourne, et n'affiche simplement pas ce qu'on attendait.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Que vaut <code>resultat</code> après <code>resultat = carre(4);</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>16.</strong> La fonction reçoit 4 comme argument, calcule
+         <code>4 × 4</code>, et <code>return</code> renvoie 16 à l'endroit de l'appel.</p>
+      <p class="rap">L'appel est <em>remplacé</em> par la valeur retournée :
+         <code>resultat = carre(4);</code> devient, au moment de l'exécution,
+         <code>resultat = 16;</code>. C'est la bonne façon de se représenter
+         <code>return</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================= 17 -->
+<section id="prototype">
+  <h2><span class="num">17</span>Le prototype, et l'ordre dans le fichier</h2>
+
+  <p>Le compilateur lit le fichier <strong>de haut en bas</strong>. Quand il rencontre un appel,
+     il doit déjà connaître la fonction : son nom, son type de retour, le nombre et le type de
+     ses paramètres.</p>
+
+  <p>Il y a donc deux façons d'organiser un programme, et les deux sont justes.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Deux organisations possibles</caption>
+      <thead><tr><th scope="col">Avec prototype</th><th scope="col">Sans prototype</th></tr></thead>
+      <tbody>
+        <tr><td>le prototype, puis <code>main</code>, puis les définitions</td>
+            <td>les définitions, puis <code>main</code></td></tr>
+        <tr><td><code>main</code> se lit en premier</td>
+            <td>aucune ligne à écrire deux fois</td></tr>
+        <tr><td>indispensable dès que deux fonctions s'appellent l'une l'autre</td>
+            <td>suffit tant que l'ordre reste simple</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bloc-code"><span class="langue">C — avec prototype</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">int</span> <span class="j-fn">additionner</span>(<span class="j-typ">int</span> a, <span class="j-typ">int</span> b);        <span class="j-com">/* le PROTOTYPE, avec un point-virgule */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> resultat;
+    resultat = <span class="j-fn">additionner</span>(<span class="j-num">5</span>, <span class="j-num">3</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"résultat = %d\n"</span>, resultat);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">additionner</span>(<span class="j-typ">int</span> a, <span class="j-typ">int</span> b)         <span class="j-com">/* la DÉFINITION, sans point-virgule */</span>
+{
+    <span class="j-mc">return</span> a + b;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>résultat = 8</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Prototype ou définition : la différence tient à un caractère</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-fn">additionner</span>(<span class="j-typ">int</span> a, <span class="j-typ">int</span> b);                       <span class="j-com">/* prototype  → ; */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">additionner</span>(<span class="j-typ">int</span> a, <span class="j-typ">int</span> b) { <span class="j-mc">return</span> a + b; }      <span class="j-com">/* définition → { } */</span></code></pre></div>
+    <p class="rap">Le prototype <strong>annonce</strong> l'existence de la fonction ; la
+       définition <strong>contient</strong> ses instructions. Un fichier peut avoir les deux,
+       jamais deux définitions.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 C'est exactement ce que fait <code>#include &lt;stdio.h&gt;</code></div>
+    <p>Ce fichier ne contient pas le code de <code>printf</code> : il contient son
+       <strong>prototype</strong>. Voilà pourquoi on l'inclut en première ligne — pour que le
+       compilateur connaisse <code>printf</code> avant de rencontrer le premier appel.</p>
+    <p class="rap">Le mécanisme que vous apprenez ici est celui que vous utilisez depuis le
+       début, sans l'avoir nommé.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 18 -->
+<section id="portee">
+  <h2><span class="num">18</span>Variables locales et globales</h2>
+
+  <p>La <strong>portée</strong> d'une variable, c'est la partie du programme où elle existe.</p>
+
+  <h3>Locale : déclarée dans une fonction</h3>
+  <p>Elle n'est accessible que dans la fonction où elle est déclarée, et elle disparaît quand
+     la fonction se termine.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">void</span> <span class="j-fn">calculer</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> resultat = <span class="j-num">0</span>;      <span class="j-com">/* locale à calculer() */</span>
+    resultat = <span class="j-num">10</span> + <span class="j-num">20</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, resultat);
+}</code></pre></div>
+  <p><code>resultat</code> ne peut pas être utilisée dans <code>main</code> : elle n'y existe
+     pas.</p>
+
+  <h3>Globale : déclarée en dehors de toute fonction</h3>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">int</span> val = <span class="j-num">0</span>;               <span class="j-com">/* globale : visible partout */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">carre</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">return</span> val * val;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    val = <span class="j-num">2</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"le carré de 2 est : %d\n"</span>, <span class="j-fn">carre</span>());
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>le carré de 2 est : 4</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La version globale marche, et c'est le problème</div>
+    <p>Ici <code>carre()</code> ne prend aucun paramètre : elle lit <code>val</code>. Pour
+       savoir ce qu'elle calcule, il faut chercher qui a modifié <code>val</code>, où, et
+       quand. La fonction n'est plus lisible seule.</p>
+    <p>Et elle n'est plus réutilisable : impossible de s'en servir pour un autre nombre sans
+       d'abord écrire <code>val = …</code>.</p>
+  </div>
+
+  <div class="bloc-code"><span class="langue">C — la version autonome</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">int</span> <span class="j-fn">carre</span>(<span class="j-typ">int</span> val)
+{
+    <span class="j-mc">return</span> val * val;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> resultat;
+    resultat = <span class="j-fn">carre</span>(<span class="j-num">2</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"le carré de 2 est : %d\n"</span>, resultat);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>le carré de 2 est : 4</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La bonne pratique, telle que le cours la formule</div>
+    <p><strong>Privilégier les variables locales et le passage de paramètres</strong> chaque
+       fois que c'est possible. Une fonction qui reçoit tout ce dont elle a besoin se comprend
+       sans rien lire d'autre — et se réutilise ailleurs sans rien préparer.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 19 -->
+<section id="tableaux">
+  <h2><span class="num">19</span>Les tableaux en C</h2>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Pourquoi cette section est ici</div>
+    <p>Le TP 3 s'intitule « les fonctions <em>et les tableaux</em> », et ses exercices 5 à 9
+       en demandent. Or le polycopié ne donne les tableaux qu'en <strong>pseudo-code</strong>,
+       au chapitre 1 — la syntaxe C, elle, n'apparaît que dans une ligne du chapitre 2 :
+       <code>int notes[5];</code>.</p>
+    <p class="rap">Cette section comble l'écart. La notion est au
+       <a href="../11-algorithmique/cours.html#tableaux">chapitre 11</a>, en algorithmique ;
+       ici, c'est le C.</p>
+  </div>
+
+  <p>Un tableau stocke <strong>plusieurs valeurs du même type</strong>, sous un seul nom. On
+     accède à chacune par son <strong>indice</strong>, qui commence à <strong>0</strong>.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 700 176" role="img" aria-label="Un tableau de cinq entiers en mémoire : cases contiguës d'indice 0 à 4, le nom du tableau désignant la première case">
+      <style>
+        .tb-ca{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .tb-vl{font:700 17px var(--mono);fill:var(--accent-sombre);text-anchor:middle}
+        .tb-ix{font:700 12px var(--mono);fill:var(--encre-douce);text-anchor:middle}
+        .tb-lb{font:700 11px var(--sans);fill:var(--encre);text-anchor:middle}
+        .tb-sb{font:600 10px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .tb-ac{stroke:var(--ambre-sombre);stroke-width:1.4;fill:none}
+        .tb-am{font:700 11px var(--sans);fill:var(--ambre-sombre);text-anchor:middle}
+      </style>
+      <text class="tb-lb" x="350" y="24">int derniers_octets[5] = {10, 20, 30, 40, 50};</text>
+      <rect class="tb-ca" x="150" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="230" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="310" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="390" y="56" width="80" height="48" rx="4"/>
+      <rect class="tb-ca" x="470" y="56" width="80" height="48" rx="4"/>
+      <text class="tb-vl" x="190" y="87">10</text>
+      <text class="tb-vl" x="270" y="87">20</text>
+      <text class="tb-vl" x="350" y="87">30</text>
+      <text class="tb-vl" x="430" y="87">40</text>
+      <text class="tb-vl" x="510" y="87">50</text>
+      <text class="tb-ix" x="190" y="122">[0]</text>
+      <text class="tb-ix" x="270" y="122">[1]</text>
+      <text class="tb-ix" x="350" y="122">[2]</text>
+      <text class="tb-ix" x="430" y="122">[3]</text>
+      <text class="tb-ix" x="510" y="122">[4]</text>
+      <text class="tb-sb" x="350" y="142">cinq cases contiguës en mémoire — indices de 0 à 4</text>
+      <path class="tb-ac" d="M96 80 H142"/>
+      <text class="tb-am" x="62" y="76">le nom</text>
+      <text class="tb-sb" x="62" y="92">= la 1re case</text>
+      <text class="tb-sb" x="596" y="80">il n'y a pas de [5]</text>
+      <text class="tb-sb" x="596" y="96">c'est hors du tableau</text>
+    </svg>
+    <figcaption>Le nom du tableau désigne l'adresse de sa première case. Un tableau de cinq
+      éléments s'arrête à l'indice 4 — <code>[5]</code> sort déjà du tableau.</figcaption>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Déclarer, puis parcourir</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> derniers_octets[<span class="j-num">5</span>] = {<span class="j-num">10</span>, <span class="j-num">20</span>, <span class="j-num">30</span>, <span class="j-num">40</span>, <span class="j-num">50</span>};
+    <span class="j-typ">int</span> i;
+
+    <span class="j-mc">for</span> (i = <span class="j-num">0</span>; i &lt; <span class="j-num">5</span>; i++)
+    {
+        <span class="j-fn">printf</span>(<span class="j-txt">"octet %d : %d\n"</span>, i, derniers_octets[i]);
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">sortie</span><pre><code>octet 0 : 10
+octet 1 : 20
+octet 2 : 30
+octet 3 : 40
+octet 4 : 50</code></pre></div>
+    <p class="rap">La boucle va <strong>de 0 à taille − 1</strong>, donc la condition s'écrit
+       <code>i &lt; 5</code> et non <code>i &lt;= 5</code>. C'est la faute la plus fréquente du
+       chapitre.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le C ne vérifie jamais les indices</div>
+    <p>Écrire <code>derniers_octets[7]</code> dans un tableau de 5 cases ne produit
+       <strong>aucune erreur</strong> : ni à la compilation, ni à l'exécution. Le programme lit
+       ou écrit simplement ce qui se trouve à côté en mémoire.</p>
+    <p>Le résultat est imprévisible — parfois une valeur absurde, parfois un plantage, parfois
+       rien du tout pendant des semaines. <strong>C'est la source numéro un de bogues en
+       C</strong>, et l'origine d'une grande partie des failles de sécurité.</p>
+    <p class="rap">Personne ne vous protégera : c'est à la boucle d'être juste.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Saisir dans un tableau : le <code>&amp;</code> ne disparaît pas</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">float</span> temperatures[<span class="j-num">7</span>];
+<span class="j-typ">int</span> i;
+
+<span class="j-mc">for</span> (i = <span class="j-num">0</span>; i &lt; <span class="j-num">7</span>; i++)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"Température %d : "</span>, i + <span class="j-num">1</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, &amp;temperatures[i]);
+}</code></pre></div>
+    <p class="rap"><code>temperatures[i]</code> est une variable comme une autre :
+       <code>scanf</code> a besoin de son adresse, donc du <code>&amp;</code>. On affiche
+       <code>i + 1</code> pour parler à l'utilisateur en « première, deuxième… » tout en
+       gardant l'indice <code>i</code> pour le tableau.</p>
+  </div>
+</section>
+
+<!-- ================================================================= 20 -->
+<section id="passer">
+  <h2><span class="num">20</span>Passer un tableau à une fonction</h2>
+
+  <p>C'est le point qui fait échouer les exercices 8 et 9 du TP, et il tient en une phrase :
+     <strong>un tableau passé à une fonction perd sa taille.</strong></p>
+
+  <div class="bloc-code"><span class="langue">C — la démonstration</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">void</span> <span class="j-fn">combien</span>(<span class="j-typ">int</span> t[])
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"dans la fonction : sizeof(t) = %zu\n"</span>, <span class="j-mc">sizeof</span>(t));
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> mesures[<span class="j-num">10</span>];
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"dans main       : sizeof(mesures) = %zu\n"</span>, <span class="j-mc">sizeof</span>(mesures));
+    <span class="j-fn">combien</span>(mesures);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>dans main       : sizeof(mesures) = 40
+dans la fonction : sizeof(t) = 8</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ 40 octets deviennent 8</div>
+    <p>Dans <code>main</code>, <code>sizeof</code> rend <strong>40</strong> : dix entiers de
+       quatre octets. Dans la fonction, il rend <strong>8</strong> — la taille d'une
+       <em>adresse</em>.</p>
+    <p>Car ce n'est pas le tableau qui est transmis, c'est l'adresse de sa première case. La
+       fonction n'a donc aucun moyen de savoir combien de cases suivent.</p>
+    <p class="rap">D'où la règle absolue : <strong>on passe toujours la taille en second
+       paramètre.</strong></p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 La forme à retenir</div>
+    <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
+
+<span class="j-typ">float</span> <span class="j-fn">CalculerMoyenne</span>(<span class="j-typ">float</span> t[], <span class="j-typ">int</span> n)
+{
+    <span class="j-typ">float</span> somme = <span class="j-num">0</span>.0f;
+    <span class="j-typ">int</span> i;
+
+    <span class="j-mc">for</span> (i = <span class="j-num">0</span>; i &lt; n; i++)
+    {
+        somme = somme + t[i];
+    }
+    <span class="j-mc">return</span> somme / n;
+}
+
+<span class="j-typ">float</span> <span class="j-fn">Maximum</span>(<span class="j-typ">float</span> t[], <span class="j-typ">int</span> n)
+{
+    <span class="j-typ">float</span> max = t[<span class="j-num">0</span>];
+    <span class="j-typ">int</span> i;
+
+    <span class="j-mc">for</span> (i = <span class="j-num">1</span>; i &lt; n; i++)
+    {
+        <span class="j-mc">if</span> (t[i] &gt; max)
+        {
+            max = t[i];
+        }
+    }
+    <span class="j-mc">return</span> max;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">float</span> debits[<span class="j-num">8</span>] = {<span class="j-num">95</span>, <span class="j-num">102</span>, <span class="j-num">98</span>, <span class="j-num">110</span>, <span class="j-num">105</span>, <span class="j-num">97</span>, <span class="j-num">115</span>, <span class="j-num">101</span>};
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Débit moyen : %.2f Mb/s\n"</span>, <span class="j-fn">CalculerMoyenne</span>(debits, <span class="j-num">8</span>));
+    <span class="j-fn">printf</span>(<span class="j-txt">"Débit maximum : %.0f Mb/s\n"</span>, <span class="j-fn">Maximum</span>(debits, <span class="j-num">8</span>));
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    <div class="bloc-code"><span class="langue">sortie</span><pre><code>Débit moyen : 102.88 Mb/s
+Débit maximum : 115 Mb/s</code></pre></div>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Une conséquence qui arrange : la fonction peut modifier le tableau</div>
+    <p>Comme la fonction reçoit l'adresse et non une copie, ce qu'elle écrit dans
+       <code>t[i]</code> est écrit dans le tableau d'origine. C'est exactement ce qui permet à
+       <code>SaisirTableau()</code> de remplir un tableau déclaré dans <code>main</code> sans
+       rien retourner.</p>
+    <p class="rap">Avec une variable simple, c'est l'inverse : la fonction reçoit une copie, et
+       la modifier ne change rien chez l'appelant. <strong>Tableau et variable simple ne se
+       comportent pas pareil</strong> — c'est la distinction à garder en tête.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 <code>Maximum</code> commence sa boucle à <code>i = 1</code>. Pourquoi ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que <code>max</code> a été <strong>initialisé avec <code>t[0]</code></strong> :
+         la case 0 est déjà prise en compte, la comparer à elle-même ne servirait à rien.</p>
+      <p><strong>Pourquoi ne pas initialiser <code>max</code> à 0 ?</strong> Parce que si
+         toutes les valeurs étaient négatives, la fonction renverrait 0 — une valeur qui ne
+         figure pas dans le tableau.</p>
+      <p class="rap">Partir de la première valeur réelle est la seule initialisation juste,
+         quelles que soient les données.</p>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
+    <p class="recap-part"><strong>Le langage</strong></p>
     <ul>
       <li><strong>Compilé</strong> : écrire <code>.c</code> → compiler → exécuter. Une erreur de
           syntaxe est refusée <em>avant</em> le lancement.</li>
@@ -1208,6 +1844,30 @@ fin du programme</code></pre></div>
       <li><strong>Choisir sa boucle</strong> : nombre de tours connu → <code>for</code> ; au
           moins un passage → <code>do…while</code> ; sinon <code>while</code>.</li>
     </ul>
+    <p class="recap-part"><strong>Fonctions et tableaux</strong></p>
+    <ul>
+      <li><strong>Type de retour · nom · paramètres · corps</strong> — toujours dans cet ordre.
+          <code>void</code> quand il n'y a rien à rendre.</li>
+      <li><strong>Paramètre</strong> = la variable de la définition. <strong>Argument</strong>
+          = la valeur de l'appel.</li>
+      <li><strong>Le prototype se termine par <code>;</code></strong>, la définition par
+          <code>}</code>. Sans prototype, la définition doit précéder l'appel.</li>
+      <li><strong>Le C distingue majuscules et minuscules</strong> :
+          <code>afficherCarre</code> et <code>affichercarre</code> sont deux fonctions
+          différentes — dont une seule existe.</li>
+      <li><strong>Une valeur retournée et non rangée est perdue</strong>, sans le moindre
+          avertissement.</li>
+      <li><strong>Locale par défaut, globale en dernier recours.</strong> Une fonction qui
+          reçoit tout ce dont elle a besoin se lit seule.</li>
+      <li><strong>Les indices vont de 0 à taille − 1</strong> : la boucle s'écrit
+          <code>i &lt; n</code>, jamais <code>i &lt;= n</code>.</li>
+      <li><strong>Le C ne vérifie aucun indice.</strong> Sortir du tableau ne provoque aucune
+          erreur — seulement un bogue plus tard.</li>
+      <li><strong>Un tableau passé à une fonction perd sa taille</strong> :
+          <code>sizeof</code> y rend 8, pas 40. On passe toujours <code>n</code> à côté.</li>
+      <li><strong>Mais la fonction peut le modifier</strong>, puisqu'elle en reçoit l'adresse.
+          C'est ce qui fait marcher <code>SaisirTableau()</code>.</li>
+    </ul>
   </div>
 
   <div class="sources">
@@ -1217,18 +1877,22 @@ fin du programme</code></pre></div>
           année 2026-2027, séance du 18/09/2026 (112 diapositives : chapitres 1 à 3)</li>
       <li>TP2 — Langage C, deux versions du 18/09/2026 (4 puis 8 exercices)</li>
       <li>notes personnelles d'élève — compilateur en ligne, Code::Blocks</li>
-    </ul>
+          <li>Polycopié « Algorithmique et programmation », chapitre 4 — les fonctions
+          (28 diapositives, pages 113 à 140)</li>
+      <li>Le même polycopié, chapitre 1 pour la notion de tableau en pseudo-code et chapitre 2
+          pour la déclaration en C</li>
+      <li>Sujet « TP 3 : les fonctions et les tableaux », neuf exercices</li>
+</ul>
     <p class="rap">Toutes les sorties annoncées « sortie réelle » ont été obtenues en compilant
        et en exécutant le programme, pas en le lisant.</p>
   </div>
 </footer>
 
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><a class="suiv" href="../13-fonctions-tableaux-c/cours.html"><span>Chapitre suivant</span><b>Fonctions et tableaux en C</b></a></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=5f6e2ccc"></script>
-<script src="../../assets/recherche.js?v=5f6e2ccc"></script>
-<script src="../../assets/app.js?v=5f6e2ccc"></script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
 </body>
 </html>

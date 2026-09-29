@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=5f6e2ccc">
+<link rel="stylesheet" href="../assets/fiche.css?v=77c15c61">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -13,6 +13,15 @@
   .ok { color: var(--vert); font-weight: 700; }
   .ko { color: var(--rouge); font-weight: 700; }
   #cadre { position: fixed; left: -9999px; top: 0; width: 1100px; height: 900px; border: 0; }
+  /* Le village doit être À L'ÉCRAN pour être mesuré : un cadre rangé à
+     -9999px n'a pas d'occasion de rendre, le navigateur lui coupe ses images,
+     et la ruée ne finit jamais — on mesurerait des cartes arrêtées en vol. Il
+     vient donc devant, et l'état passe par-dessus lui. */
+  #cadre.devant { left: 0; top: 0; z-index: 40; box-shadow: 0 0 0 2px var(--accent); }
+  #banniere { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: none; padding: .5rem .9rem; font-family: var(--mono); font-size: 12.6px;
+    background: var(--encre); color: var(--fond); }
+  #banniere.vu { display: block; }
 </style>
 </head>
 <body data-matiere="reseau">
@@ -21,8 +30,12 @@
 
 <h1>Contrôle du contraste</h1>
 <p class="chapeau">Chaque texte du site est mesuré contre son fond réel, sur
-   <strong>les 24 ambiances × 9 accents</strong>, soit 216 combinaisons.
+   <strong>les 40 thèmes</strong> — les 24 ambiances et les 16 univers de jeu
+   ou d'écran — sur 17 pages.
    Seuil AA : 4,5:1, ramené à 3:1 pour le grand texte.</p>
+<p class="chapeau">Le <strong>village 3D</strong> a sa propre campagne, plus bas :
+   son axe n'est pas les thèmes mais les deux heures, et sous son texte il n'y a
+   pas une couleur de feuille de style — il y a un rendu, dont on lit les pixels.</p>
 
 <div class="encart outils">
   <div class="titre">🧰 Pourquoi un outil plutôt qu'un coup d'œil</div>
@@ -40,10 +53,36 @@
    <span id="etat" style="color:var(--encre-tenue);font-size:13.5px"></span></p>
 
 <div class="journal" id="journal"></div>
+
+<h2>Le village en trois dimensions</h2>
+<p>Le village ne se mesure pas comme une fiche : son texte n'existe pas au
+   chargement — les cartes de chapitre sont bâties quand on entre sur un
+   parvis, l'enseigne quand on est dans l'allée, le sous-titre quand on vise un
+   bâtiment. Le banc les fait donc <strong>apparaître</strong>, puis il lit les
+   pixels du rendu sous chacun d'eux.</p>
+<p>Un fond qui est une image ne se juge pas comme un fond qui est une couleur :
+   la boîte d'un titre couvre du ciel, un toit et de la pierre, donc elle
+   contient forcément un pixel de la luminance exacte de l'encre. Le verdict
+   porte donc sur le <strong>cinquième centile</strong> — le rapport que 95 % de
+   la surface du texte tient au moins — et la part de surface qui échoue est
+   dite à côté. S'y ajoute une mesure qui n'est dans aucune norme : la
+   <strong>taille vue</strong>. Une carte de chapitre est un élément HTML
+   projeté en trois dimensions ; ce que l'œil reçoit n'est pas ce qu'écrit la
+   feuille de style, et un texte de huit pixels reste illisible à sept
+   contre un.</p>
+
+<p><button class="lancer" id="go-monde" style="font:inherit;font-weight:650;cursor:pointer;
+   background:var(--accent);color:var(--sur-accent);border:0;border-radius:8px;
+   padding:.6rem 1.3rem">Mesurer le village</button>
+   <span id="etat2" style="color:var(--encre-tenue);font-size:13.5px"></span></p>
+
+<div class="journal" id="journal2"></div>
 <iframe id="cadre" title="cadre de mesure"></iframe>
 
 </main>
 </div>
+
+<p id="banniere" aria-live="polite"></p>
 
 <script>
 /* Les 40 thèmes, y compris les quinze « jeux et écrans ». Le sélecteur
@@ -56,6 +95,13 @@ const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"]);
+/* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
+   au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
+   la moitié du site sans contrôle — et c'est justement la moitié neuve. */
+const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
+  "determination","velours","neon-lime","androide","grand-large","cahier-rose",
+  "console-blanche","bloc-notes","liquid","zellige"]);
+function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 /* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
    interligne serré ne change pas le contraste, mais une largeur « pleine »
    déplace les éléments, donc les fonds mesurés derrière eux. */
@@ -76,21 +122,227 @@ function couleur(s) {
 }
 const sur = (a, b) => { const k = a[3];
   return [a[0]*k + b[0]*(1-k), a[1]*k + b[1]*(1-k), a[2]*k + b[2]*(1-k), 1]; };
+/* « sur » suppose le fond OPAQUE et rend un alpha de 1. Poser un voile sur un
+   fond lui-même translucide avec elle, c'est décréter opaque ce qui ne l'est
+   pas — et cesser de remonter les ancêtres trop tôt. C'est ce qui faisait
+   mesurer « Cahier rose » de nuit contre une réglure rose : le vrai fond, à
+   deux niveaux au-dessus, était presque noir. « surA » garde l'alpha, pour
+   que la remontée continue tant qu'on ne touche pas une surface pleine. */
+const surA = (a, b) => { const ka = a[3], kb = b[3], k = ka + kb*(1-ka);
+  if (k <= 0) return [0,0,0,0];
+  return [(a[0]*ka + b[0]*kb*(1-ka))/k, (a[1]*ka + b[1]*kb*(1-ka))/k,
+          (a[2]*ka + b[2]*kb*(1-ka))/k, k]; };
 const lum = c => { const f = v => { v /= 255;
   return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); };
   return .2126*f(c[0]) + .7152*f(c[1]) + .0722*f(c[2]); };
 const ratio = (a, b) => { const x = lum(a), y = lum(b);
   return (Math.max(x,y) + .05) / (Math.min(x,y) + .05); };
 
-function fondReel(el, vue) {
-  const pile = []; let e = el;
-  while (e) { const c = couleur(vue.getComputedStyle(e).backgroundColor);
-    if (c[3] > 0) { pile.push(c); if (c[3] >= 1) break; } e = e.parentElement; }
-  if (!pile.length) return [255,255,255,1];
-  let b = pile[pile.length-1]; if (b[3] < 1) b = sur(b, [255,255,255,1]);
-  for (let i = pile.length-2; i >= 0; i--) b = sur(pile[i], b);
-  return b;
+/* ── Le fond réel, dégradés compris ──────────────────────────────────────
+   Première version : elle ne lisait que « backgroundColor ». Or une carte
+   peinte au dégradé — « linear-gradient(#FFFFFF, #F6F9FB) » — a un
+   backgroundColor TRANSPARENT : le banc passait au travers et mesurait le
+   texte contre la couleur de la page, deux niveaux plus haut.
+
+   Conséquence mesurée le 27/09/2026 : sur « Console blanche » de nuit, les
+   cartes restaient blanches (règle écrite pour la face claire, sans garde de
+   face) pendant que le texte passait en blanc cassé. Illisible à l'œil, et
+   le banc répondait « OK » — il comparait du blanc à la page sombre.
+
+   On rend donc TOUS les fonds possibles : la couleur unie s'il y en a une,
+   sinon chaque arrêt du dégradé. L'appelant garde le pire rapport, ce qui
+   est la seule lecture honnête d'un fond qui change d'un bout à l'autre. */
+function couleursFond(el, vue) { return couleursFondDe(vue.getComputedStyle(el)); }
+/* La même lecture, à partir d'un style DÉJÀ obtenu : un pseudo-élément n'a pas
+   de nœud à qui demander le sien. */
+function couleursFondDe(cs) {
+  const c = couleur(cs.backgroundColor);
+  /* L'IMAGE est peinte PAR-DESSUS la couleur, pas à sa place. Une première
+     version lisait la couleur d'abord et s'arrêtait là : elle voyait le
+     « --carte » sombre d'une carte recouverte d'un dégradé blanc, c'est-à-dire
+     l'inverse de ce que le lecteur a sous les yeux.
+
+     Mais tout dégradé n'est pas une surface. Deuxième version trop stricte :
+     elle prenait le pire arrêt de N'IMPORTE quel dégradé, y compris les
+     lignes de cahier de « Cahier rose » — un motif rayé dont 26 pixels sur 27
+     sont transparents. Mesurer un texte contre le trait rose d'une réglure
+     n'a aucun sens : on ne lit pas sur le trait.
+
+     La distinction qui compte est l'OPACITÉ :
+       · dégradé opaque (tous ses arrêts pleins) → c'est la surface. On garde
+         ses deux extrêmes, et le pire des deux ; le lecteur voit vraiment les
+         deux couleurs ;
+       · dégradé translucide ou répété → c'est un VOILE. On le réduit à sa
+         couleur moyenne pondérée par l'alpha, posée sur ce qu'il y a dessous,
+         exactement comme le navigateur le compose. */
+  const bi = cs.backgroundImage;
+  if (bi && bi !== "none" && /gradient/.test(bi)) {
+    const m = bi.match(/rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}/g) || [];
+    const stops = m.map(couleur);
+    const dessous = c[3] > 0 ? c : null;
+    if (stops.length) {
+      const opaque = stops.every(x => x[3] >= 0.9);
+      if (opaque && !/repeating/.test(bi)) {
+        const ext = stops.length > 2 ? [stops[0], stops[stops.length - 1]] : stops;
+        return dessous ? ext.map(x => surA(x, dessous)) : ext;
+      }
+      /* Voile : une seule couche, moyenne pondérée — et l'alpha est CONSERVÉ,
+         pour que la remontée continue jusqu'à une surface pleine. */
+      let a = 0, r = 0, g = 0, b = 0;
+      for (const x of stops) { a += x[3]; r += x[0] * x[3]; g += x[1] * x[3]; b += x[2] * x[3]; }
+      const moy = a > 0 ? [r / a, g / a, b / a, a / stops.length] : null;
+      if (moy && moy[3] > 0.02) {
+        return [dessous ? surA(moy, dessous) : moy];
+      }
+    }
+  }
+  if (c[3] > 0) return [c];
+  return [];
 }
+
+/* ── La PLAQUE d'un pseudo-élément ───────────────────────────────────────
+   Le fond d'un « ::before » est un vrai fond. Le titre du village tient sur
+   n'importe quel ciel grâce à « .pont-tete::before » : une ombre radiale,
+   derrière le texte, qui s'inverse avec l'heure — sombre de nuit, claire de
+   jour. La feuille de style le dit en clair : « une ombre douce derrière lui
+   le rend lisible sur n'importe quel fond ».
+
+   La première version de ce banc l'ignorait « pour rester stricte ». Elle
+   condamnait donc le mécanisme même qui fait tenir le texte, et annonçait
+   1,0:1 sur un titre parfaitement lisible. C'est la troisième fois que ce
+   banc se fait prendre par la même erreur, sous trois formes : la réglure de
+   « Cahier rose » prise pour une surface, le fond du <pre> pris pour le
+   thème, et maintenant une plaque prise pour rien. Sévérité n'est pas
+   vérité : un banc qui crie à tort finit par ne plus être lu, et le jour où
+   il a raison personne ne regarde.
+
+   Reste à ne pas compter une plaque qui ne couvre pas. On vérifie donc
+   qu'elle est bien posée par-dessus (absolue ou fixe) et qu'elle est au moins
+   aussi grande que l'élément. Une plaque décalée loin sur le côté passerait
+   à travers ce test — il n'en existe aucune ici, et le test coûte deux
+   lectures de style. */
+function plaquesDe(el, vue, boite) {
+  const out = [];
+  if (!boite) return out;
+  const propre = vue.getComputedStyle(el);
+  /* La plaque est positionnée par rapport au premier ancêtre POSITIONNÉ. Si ce
+     n'est pas son propre élément, on ne sait pas où elle tombe sans remonter
+     toute la chaîne — et une plaque dont on ignore la place ne doit pas être
+     comptée. On s'en tient donc au cas vérifiable, qui est le seul du dépôt. */
+  if (propre.position === "static") return out;
+  const cadre = el.getBoundingClientRect();
+  const x0 = cadre.left + parseFloat(propre.borderLeftWidth || 0);
+  const y0 = cadre.top + parseFloat(propre.borderTopWidth || 0);
+  for (const quoi of ["::before", "::after"]) {
+    const cs = vue.getComputedStyle(el, quoi);
+    if (!cs || cs.content === "none" || cs.content === "normal") continue;
+    if (cs.position !== "absolute" && cs.position !== "fixed") continue;
+    const c = couleursFondDe(cs);
+    if (!c.length) continue;
+    const l = parseFloat(cs.width), h = parseFloat(cs.height);
+    if (!(l > 0) || !(h > 0)) continue;
+    /* La translation est dans la matrice : « left: 50% » plus
+       « translateX(-50%) » centre la plaque, et ne pas lire ce -50 % la
+       décale d'une demi-largeur — assez pour croire qu'elle ne couvre rien. */
+    const m = (cs.transform || "").match(/matrix\(([^)]+)\)/);
+    const t = m ? m[1].split(",").map(Number) : null;
+    const tx = t ? t[4] : 0, ty = t ? t[5] : 0;
+    let gauche = parseFloat(cs.left), haut = parseFloat(cs.top);
+    if (!isFinite(gauche)) {
+      const d = parseFloat(cs.right);
+      gauche = isFinite(d) ? el.clientWidth - d - l : 0;
+    }
+    if (!isFinite(haut)) {
+      const d = parseFloat(cs.bottom);
+      haut = isFinite(d) ? el.clientHeight - d - h : 0;
+    }
+    const px = x0 + gauche + tx, py = y0 + haut + ty;
+    /* LA question, et celle que la première version posait de travers : la
+       plaque couvre-t-elle LE TEXTE ? Elle la comparait à son propre élément.
+       « .pont-tete » est large de 1184 pixels et centre son titre ; la plaque
+       en fait 864, soit moins que le conteneur et bien plus que le texte. Le
+       test échouait, la plaque était jetée, et le banc condamnait le titre le
+       mieux protégé de la page. Une plaque se juge sur ce qu'elle protège. */
+    if (px > boite.left + 1 || py > boite.top + 1
+        || px + l < boite.right - 1 || py + h < boite.bottom - 1) continue;
+    /* « z-index » négatif : la plaque passe SOUS le fond propre de l'élément.
+       Positif ou absent : elle passe dessus. Les deux existent dans ce dépôt,
+       et l'ordre change le résultat dès que les deux sont translucides. */
+    out.push({ dessous: parseFloat(cs.zIndex) < 0, couleurs: c });
+  }
+  return out;
+}
+
+/* Les calques entre un texte et ce qu'il y a dessous, du plus haut au plus
+   bas. Séparé du calcul des rapports parce que le village demande de composer
+   les MÊMES calques sur des dizaines de fonds différents — un par pixel de
+   rendu — et qu'il serait absurde de relire la feuille de style à chaque
+   pixel. */
+function calquesDe(el, vue, avecPlaques, boite) {
+  const niveaux = []; let e = el;
+  while (e) {
+    /* Avec un socle, « body » n'est pas un calque. Le village peint son fond
+       en --nuit, mais personne ne le voit jamais : la toile WebGL le couvre
+       entièrement. S'arrêter sur lui, c'est mesurer un texte contre une
+       couleur qui n'est nulle part à l'écran. */
+    if (avecPlaques && (e.tagName === "BODY" || e.tagName === "HTML")) break;
+    const plaques = avecPlaques ? plaquesDe(e, vue, boite) : [];
+    /* UN FOND DÉCOUPÉ SUR LE TEXTE N'EST PAS UN FOND. « background-clip: text »
+       ne peint le dégradé qu'à l'intérieur des lettres de l'élément : derrière
+       un descendant, il n'y a rien. Le compter comme surface revient à mesurer
+       le « em » du titre contre le dégradé de son propre h1 — c'est-à-dire à
+       comparer une encre à une encre, et à trouver 1,0:1 quoi qu'on fasse.
+       Neuf des dix-huit alertes venaient de là. */
+    const csE = vue.getComputedStyle(e);
+    const clipE = csE.webkitBackgroundClip || csE.backgroundClip || "";
+    const propre = /text/.test(clipE) ? [] : couleursFond(e, vue);
+    const pile = [];
+    for (const p of plaques) if (!p.dessous) pile.push(p.couleurs);
+    if (propre.length) pile.push(propre);
+    for (const p of plaques) if (p.dessous) pile.push(p.couleurs);
+    let ferme = false;
+    for (const cs of pile) {
+      niveaux.push(cs.length > 2 ? [cs[0], cs[cs.length - 1]] : cs);
+      if (cs.every(c => c[3] >= 1)) { ferme = true; break; }
+    }
+    if (ferme) break;
+    e = e.parentElement;
+  }
+  return niveaux;
+}
+
+/* Poser une pile de calques sur UN fond. Les calques viennent de haut en
+   bas ; on compose depuis le bas, comme le navigateur. */
+function composer(niveaux, base) {
+  let fonds = [];
+  for (const c of niveaux[niveaux.length - 1])
+    fonds.push(c[3] >= 1 ? c : sur(c, base));
+  for (let i = niveaux.length - 2; i >= 0; i--) {
+    const suivant = [];
+    for (const dessous of fonds)
+      for (const dessus of niveaux[i]) suivant.push(sur(dessus, dessous));
+    fonds = suivant.slice(0, 4);
+  }
+  return fonds;
+}
+
+/* Le fond réel : les calques, posés sur le socle. Le SOCLE est ce qu'il y a
+   sous le dernier calque translucide quand la feuille de style ne dit plus
+   rien. Pour une fiche, c'est le blanc du navigateur. Pour le village, ce
+   sont les pixels du rendu — et ce n'est pas un détail de politesse :
+   composer sur du blanc un verre de nuit rend le fond plus clair qu'il n'est,
+   donc le rapport plus flatteur. L'erreur irait exactement dans le sens qui
+   rassure. */
+function fondsReels(el, vue, socle) {
+  const base = socle && socle.length ? socle : [[255,255,255,1]];
+  const niveaux = calquesDe(el, vue, !!socle);
+  if (!niveaux.length) return base;
+  const out = [];
+  for (const b of base) for (const f of composer(niveaux, b)) out.push(f);
+  return out.slice(0, 8);
+}
+
+function fondReel(el, vue) { return fondsReels(el, vue)[0]; }
 
 function mesurer(doc, vue) {
   const out = [];
@@ -98,14 +350,26 @@ function mesurer(doc, vue) {
     const t = [...el.childNodes].filter(n => n.nodeType === 3)
                 .map(n => n.textContent.trim()).join("");
     if (t.length < 3) continue;
-    if (el.closest("pre, svg, .copier")) continue;  // fonds fixes, hors ambiance
+    /* Le fond d'un <pre> ne suit pas le thème : il vaut #23211E partout.
+       L'exclure du balayage des 40 thèmes évite 40 mesures identiques.
+       Mais depuis que le code est COLORÉ, ce <pre> contient dix couleurs
+       de texte — et cette ligne les rendait invisibles au banc. Elles
+       sont mesurées à part, par mesurerCode(), une fois par page : leur
+       fond ne dépendant pas du thème, une fois suffit. */
+    if (el.closest("pre, svg, .copier")) continue;
     const cs = vue.getComputedStyle(el);
     if (cs.visibility === "hidden" || cs.display === "none") continue;
     const px = parseFloat(cs.fontSize), gras = parseInt(cs.fontWeight, 10) >= 700;
     const seuil = (px >= 24 || (px >= 18.66 && gras)) ? 3 : 4.5;
-    const f = fondReel(el, vue);
-    let c = couleur(cs.color); if (c[3] < 1) c = sur(c, f);
-    const r = ratio(c, f);
+    /* Le pire des fonds possibles : un dégradé qui passe du blanc au gris
+       clair doit être jugé sur celui qui met le texte le plus en danger. */
+    const fonds = fondsReels(el, vue);
+    let f = fonds[0], r = Infinity;
+    for (const cand of fonds) {
+      let cc = couleur(cs.color); if (cc[3] < 1) cc = sur(cc, cand);
+      const rr = ratio(cc, cand);
+      if (rr < r) { r = rr; f = cand; }
+    }
     if (r < seuil) out.push({
       sig: el.tagName.toLowerCase() + (typeof el.className === "string" && el.className
            ? "." + el.className.split(" ").filter(Boolean).slice(0,2).join(".") : ""),
@@ -114,18 +378,99 @@ function mesurer(doc, vue) {
   return out;
 }
 
+/* ── Les couleurs du code ────────────────────────────────────────────────
+   Deux choses à vérifier, et la seconde est la plus importante :
+
+     · chaque teinte de jeton tient le seuil AA sur le fond du <pre> ;
+     · AUCUN thème ne redéfinit ce fond. C'est l'hypothèse qui permet de
+       n'avoir qu'une palette ; tant qu'elle n'est pas vérifiée, elle n'est
+       qu'une croyance. */
+const JETONS = new Set();
+function mesurerCode(doc, vue) {
+  const out = [];
+  const pre = doc.querySelector("pre");
+  if (!pre) return out;
+  const fond = couleur(vue.getComputedStyle(pre).backgroundColor);
+  const vus = new Set();
+  for (const el of doc.querySelectorAll('pre [class^="j-"]')) {
+    const cls = el.className;
+    if (vus.has(cls)) continue;
+    vus.add(cls);
+    JETONS.add(cls);
+    const cs = vue.getComputedStyle(el);
+    let c = couleur(cs.color); if (c[3] < 1) c = sur(c, fond);
+    const r = ratio(c, fond);
+    if (r < 4.5) out.push({ sig: "code ." + cls, r: +r.toFixed(2), seuil: 4.5,
+                            txt: el.textContent.trim().slice(0, 20) });
+  }
+  return out;
+}
+
+/* Le fond du <pre> est-il vraiment le même sur ce thème-ci ? */
+function fondDuCode(doc, vue) {
+  const pre = doc.querySelector("pre");
+  return pre ? vue.getComputedStyle(pre).backgroundColor : "";
+}
+
 function charger(url) {
   return new Promise(res => {
     const f = document.getElementById("cadre");
-    f.onload = () => res(f);
+    /* La PAGE était dé-cachée, pas sa FEUILLE DE STYLE. L'URL du CSS porte
+       l'empreinte de build (« ?v=2a06103d ») : elle ne change pas quand on
+       retouche le fichier, et le navigateur ressert alors sa copie. Le banc
+       mesurait des couleurs qui n'existaient plus sur le disque — vérifié en
+       cassant une teinte exprès : le disque disait #8C8578, le banc lisait
+       #948D80 et annonçait « OK ».
+
+       Le même défaut avait déjà été corrigé sur verif-rendu.html. Il était
+       revenu ici, sur un autre outil : un banc qui mesure une version périmée
+       est pire qu'inutile, puisqu'il rassure. */
+    const rafraichirStyles = doc => Promise.all(
+      [...doc.querySelectorAll('link[rel="stylesheet"]')].map(l => new Promise(ok => {
+        l.addEventListener("load", ok, { once: true });
+        l.addEventListener("error", ok, { once: true });
+        const h = l.getAttribute("href").split(/[?&]m=\d+/)[0];
+        l.href = h + (h.includes("?") ? "&" : "?") + "m=" + Date.now();
+      })));
+    f.onload = async () => { await rafraichirStyles(f.contentDocument); res(f); };
     f.src = url + "?m=" + Date.now();
   });
+}
+
+/* ── Neutraliser le service worker avant de mesurer ───────────────────────
+   Le site est une application installable : un service worker met en cache
+   les pages, les feuilles de style et les scripts, et les ressert HORS
+   RÉSEAU. Un banc qui mesure par-dessus lui ne mesure donc pas le site
+   publié, mais la copie que le navigateur avait gardée — et il le fait sans
+   rien en dire.
+
+   Ce n'est pas une crainte théorique. En retirant « recherche.js » du disque
+   pour vérifier que le contrôle de la recherche savait crier, le banc a
+   répondu « rien à signaler » : le worker resservait l'index depuis son
+   cache. La mesure était juste, l'objet mesuré ne l'était pas. C'est la
+   troisième fois que ce dépôt se fait prendre par un cache — après la
+   feuille de style des deux bancs, et la page elle-même.
+
+   On le désinscrit donc, et l'on vide ses caches, avant chaque campagne. */
+async function sansServiceWorker() {
+  let workers = 0;
+  if (navigator.serviceWorker) {
+    for (const r of await navigator.serviceWorker.getRegistrations()) {
+      await r.unregister(); workers++;
+    }
+  }
+  let noms = [];
+  try { noms = await caches.keys(); } catch (e) {}
+  for (const k of noms) { try { await caches.delete(k); } catch (e) {} }
+  return workers + " worker(s) désinscrit(s), " + noms.length + " cache(s) vidé(s)";
 }
 
 document.getElementById("go").addEventListener("click", async () => {
   const j = document.getElementById("journal"), e = document.getElementById("etat");
   const bouton = document.getElementById("go");
   bouton.disabled = true; j.innerHTML = "";
+  e.textContent = "neutralisation du cache hors ligne…";
+  const etatCache = await sansServiceWorker();
   /* Un outil ajoute des couples de couleurs que nulle fiche n'utilise : les
      cartes de résultat du calculateur, les pastilles « en clair / chiffré »,
      les trois états du compteur de mots. Non échantillonnés, ils n'étaient
@@ -136,36 +481,507 @@ document.getElementById("go").addEventListener("click", async () => {
                  "../outils/sous-reseau.html", "../outils/convertisseur.html",
                  "../outils/masques.html", "../outils/packet-tracer.html",
                  "../outils/ports.html", "../outils/compte-rendu.html",
+                 "../outils/langage-c.html",
                  "../03-mathematiques/index.html",
                  "../03-mathematiques/12-integrales-primitives/cours.html",
                  "../01-informatique-dev/12-langage-c/exercices.html",
+                 /* Le banc annonçait 7 teintes de code sur 10 : les pages
+                    échantillonnées ne contenaient ni HTML, ni CSS, ni PHP,
+                    donc « j-bal », « j-att » et « j-var » n'étaient mesurées
+                    nulle part. Deux pages de plus, et les dix sont couvertes. */
+                 "../01-informatique-dev/01-html/cours.html",
+                 "../01-informatique-dev/09-bases-de-donnees-sql/cours.html",
                  "../05-culture-generale/06-theme-le-vrai-du-faux/fiche-revision.html"];
   const pire = {}; let n = 0;
+  let fondRef = null; const fondsCode = new Set();
   for (const p of pages) {
+    let codeFait = false;
     const f = await charger(p);
     const doc = f.contentDocument, vue = f.contentWindow, d = doc.documentElement;
     d.dataset.anim = "0";   // sinon on mesure une couleur en pleine transition
     for (const a of AMB) {
-      d.dataset.theme = a; d.dataset.sombre = SOMBRES.has(a) ? "1" : "0";
+      for (const face of faces(a)) {
+      d.dataset.theme = a; d.dataset.sombre = face;
       for (const lg of LARGEURS) {
         d.dataset.largeur = lg;
         doc.body.offsetHeight;
         n++;
-        for (const x of mesurer(doc, vue)) {
+        const fc = fondDuCode(doc, vue);
+        if (fc && fondRef === null) fondRef = fc;
+        else if (fc && fc !== fondRef) fondsCode.add(a + "/" + face + " : " + fc);
+        let duCode = [];
+        if (!codeFait) { duCode = mesurerCode(doc, vue); codeFait = true; }
+        for (const x of mesurer(doc, vue).concat(duCode)) {
           const k = p.replace("../","") + " · " + x.sig + " — " + x.txt;
-          if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: a + "/" + lg };
+          const ou = a + (face === "1" ? " (nuit)" : " (jour)") + "/" + lg;
+          if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: ou };
         }
+      }
       }
     }
     e.textContent = p.replace("../","") + " — " + n + " combinaisons mesurées";
   }
   const echecs = Object.entries(pire).sort((a,b) => a[1].r - b[1].r);
-  j.innerHTML = "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" +
+  const alerteFond = fondsCode.size
+    ? "<p class=\"ko\">⚠️ le fond des blocs de code n'est PAS le même partout — "
+      + "une seule palette de coloration ne suffit plus : "
+      + [...fondsCode].slice(0, 4).join(" · ") + "</p>"
+    : "<p>fond des blocs de code : " + fondRef + " sur les 40 thèmes — "
+      + "une palette suffit.</p>";
+  /* Un banc qui ne mesure rien annonce « OK ». Le nombre de teintes
+     réellement rencontrées est donc affiché, et zéro est signalé comme une
+     panne du banc — pas comme une réussite. */
+  const alerteJetons = JETONS.size
+    ? "<p>" + JETONS.size + " teintes de code mesurées : "
+      + [...JETONS].sort().join(" ") + "</p>"
+    : "<p class=\"ko\">⚠️ AUCUNE teinte de code mesurée — le banc n'a rencontré "
+      + "aucun bloc coloré. Ce n'est pas une réussite, c'est un angle mort.</p>";
+  j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>" +
+    "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons +
     (echecs.length
       ? '<p class="ko">' + echecs.length + " élément(s) sous le seuil :</p>" +
         echecs.map(([k,v]) => "<p>" + v.r + " &lt; " + v.seuil + "  (" + v.ou + ")  " + k + "</p>").join("")
       : '<p class="ok">OK — aucun texte sous le seuil AA, sur aucune combinaison.</p>');
   bouton.disabled = false;
+});
+
+/* ═══════════════════════════════════ le village ══════════════════════════
+   Le village a sa propre campagne, et ce n'est pas un caprice d'organisation :
+   les trois hypothèses du banc des fiches y sont fausses, chacune suffisant à
+   rendre la mesure muette.
+
+     · L'AXE n'est pas les quarante thèmes, ce sont les DEUX HEURES. Le
+       sélecteur de thème n'existe pas là-bas ; le soleil, si. Croiser
+       « data-theme » sur le village, c'est croiser un attribut que personne
+       ne lit — quarante mesures identiques.
+
+     · LE TEXTE N'EXISTE PAS au chargement. Les cartes de chapitre sont bâties
+       quand on entre sur un parvis, les enseignes ne sont visibles que dans
+       l'allée, le sous-titre vit cinq secondes après un survol. Charger la
+       page et balayer le DOM, c'est mesurer une page vide — et une page vide
+       passe. Le banc les fait donc apparaître, un état après l'autre.
+
+     · SOUS LE TEXTE, IL N'Y A AUCUNE COULEUR CSS. Il y a un rendu. Le fond
+       réel d'une carte, c'est 93 % de blanc posé sur des pixels de château.
+       Le banc des fiches, faute de mieux, compose sur du blanc : de nuit,
+       cela rend le fond plus clair qu'il n'est, donc le rapport plus
+       flatteur — l'erreur exactement dans le sens qui rassure.
+
+   On lit donc les vrais pixels : un rendu, puis « readPixels » dans le même
+   bloc synchrone, et sous chaque texte on garde le pixel le plus clair ET le
+   plus sombre de sa boîte. Le pire des deux est le verdict.
+
+   Et comme les cartes sont des éléments HTML projetés en trois dimensions,
+   leur texte n'a pas à l'écran la taille écrite dans la feuille de style. On
+   mesure donc aussi ce facteur — parce que c'est lui qui décide du seuil AA,
+   et parce qu'un texte de huit pixels reste un texte de huit pixels, même à
+   sept contre un. */
+
+const attendre = ms => new Promise(r => setTimeout(r, ms));
+async function attendreQue(test, quoi, max = 25000) {
+  const t0 = performance.now();
+  while (!test()) {
+    if (performance.now() - t0 > max) throw new Error("délai dépassé — " + quoi);
+    await attendre(60);
+  }
+}
+/* L'attente QUI NE TUE PAS LA CAMPAGNE. Le village n'anime que s'il reçoit des
+   images, et un cadre dont le volet est masqué n'en reçoit plus : la ruée
+   reste en vol, « entre » ne revient jamais, et la première version jetait les
+   vingt-cinq états restants pour un seul qui n'était pas prêt.
+
+   Or l'échec d'une attente n'est pas l'échec de la mesure : les cartes sont
+   bâties dès l'appel, seule leur opacité dépend de l'arrivée. Une carte restée
+   transparente est écartée d'elle-même, sans rien fausser. On note donc le
+   retard, on mesure ce qui est là, et on continue — et le rapport dit combien
+   d'états ont été manqués, parce qu'une couverture incomplète qui se présente
+   comme complète est pire qu'une panne. */
+async function patienter(test, quoi, journal, max = 16000) {
+  const t0 = performance.now();
+  while (!test()) {
+    if (performance.now() - t0 > max) { journal.push(quoi); return false; }
+    await attendre(60);
+  }
+  return true;
+}
+
+/* L'ENCRE, et le piège du titre peint au dégradé. « .pont-tete h1 » et
+   « .aide-boite h2 » sont remplis par un dégradé rendu visible par
+   « background-clip: text » : leur « color » ne veut alors plus rien dire — il
+   vaut transparent — et leur fond n'est pas un fond, c'est leur encre. Un banc
+   qui lit « color » trouve du transparent et hurle à tort ; un banc qui compte
+   ce fond comme un fond mesure le texte contre lui-même et se tait à tort. */
+function encresDe(el, vue) {
+  const cs = vue.getComputedStyle(el);
+  const remp = cs.webkitTextFillColor || cs.textFillColor || "";
+  const clip = cs.webkitBackgroundClip || cs.backgroundClip || "";
+  if (remp && couleur(remp)[3] === 0 && /text/.test(clip)) {
+    const m = cs.backgroundImage.match(/rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}/g) || [];
+    const st = m.map(couleur).filter(c => c[3] > 0.5);
+    if (st.length) return { cs, encres: st, fondEstLEncre: true };
+  }
+  const c = couleur(remp && couleur(remp)[3] > 0 ? remp : cs.color);
+  return { cs, encres: [c], fondEstLEncre: false };
+}
+
+/* Le pixel du dessous, pour de vrai. « readPixels » lit le tampon de dessin,
+   et ce tampon n'est effacé qu'à la COMPOSITION suivante : on peut donc rendre
+   une fois puis lire autant de boîtes qu'on veut — à une condition, qui est
+   toute la subtilité : ne pas rendre la main au navigateur entre les deux. Pas
+   un « await » entre le rendu et les lectures. */
+function sondeur(f) {
+  const vue = f.contentWindow, C = vue.CIEL;
+  C.rendu.render(C.scene, C.camera);
+  const gl = C.rendu.getContext();
+  const L = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
+  const ech = L / vue.innerWidth;
+  let lus = 0, vides = 0;
+  function bloc(bx, by, bw, bh, sac) {
+    const px = new Uint8Array(bw * bh * 4);
+    gl.readPixels(bx, by, bw, bh, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const n = bw * bh, pas = Math.max(1, Math.round(Math.sqrt(n / ECHANTILLONS)));
+    for (let p = 0; p < n; p += pas) {
+      const i = p * 4;
+      lus++;
+      /* La toile est demandée SANS couche alpha : un pixel entièrement nul
+         veut donc dire « rien de dessiné ici », pas « noir ». C'est le
+         garde-fou du banc sur lui-même — s'il ne lit que du vide, il n'a rien
+         mesuré, et il doit le dire au lieu d'annoncer un succès. */
+      if (!px[i] && !px[i+1] && !px[i+2] && !px[i+3]) { vides++; continue; }
+      sac.push([px[i], px[i+1], px[i+2], 1]);
+    }
+  }
+  const socle = (r) => {
+    const x0 = Math.max(0, Math.min(L - 1, Math.floor(r.left * ech)));
+    const x1 = Math.max(x0 + 1, Math.min(L, Math.ceil(r.right * ech)));
+    const h0 = Math.max(0, Math.min(H - 1, Math.floor(r.top * ech)));
+    const h1 = Math.max(h0 + 1, Math.min(H, Math.ceil(r.bottom * ech)));
+    /* « readPixels » compte les lignes depuis le BAS du tampon, la boîte
+       depuis le haut de la fenêtre. Oublier ce retournement, c'est mesurer un
+       texte du haut de l'écran contre les pavés de l'allée. */
+    const w = x1 - x0, h = h1 - h0, y0 = H - h1;
+    const sac = [];
+    if (w * h <= 240000) bloc(x0, y0, w, h, sac);
+    else {
+      /* Une boîte immense — la fenêtre de lecture couvre presque l'écran.
+         Neuf sondes valent mieux qu'un tampon de vingt mégaoctets. */
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++)
+        bloc(Math.min(L - 10, x0 + Math.round(i * (w - 10) / 2)),
+             Math.min(H - 10, y0 + Math.round(j * (h - 10) / 2)), 8, 8, sac);
+    }
+    return sac.length ? sac : null;
+  };
+  return { socle, bilan: () => ({ lus: lus, vides: vides }) };
+}
+
+/* ── La boîte DU TEXTE, et non celle de l'élément ────────────────────────
+   Un « h1 » centré occupe toute la largeur de son conteneur : sa boîte fait
+   1184 pixels quand ses lettres en font quatre cents. Deux conséquences, et
+   les deux faussaient la mesure dans le même sens, celui qui condamne :
+
+     · les pixels lus sous « la boîte » étaient surtout des pixels que le
+       texte ne couvre pas — du ciel de part et d'autre du titre. C'est ce qui
+       donnait « 43 % de la surface » sur un titre dont la plaque protège
+       100 % des lettres ;
+     · la plaque, large de 864 pixels, ne « couvrait » pas une boîte de 1184,
+       et se faisait jeter — alors qu'elle couvre le texte deux fois.
+
+   On demande donc au navigateur les rectangles des LIGNES de texte, ce qu'il
+   sait faire exactement, plutôt que de raisonner sur une boîte. */
+function boiteDuTexte(el, vue) {
+  const plage = vue.document.createRange();
+  let g = 0, h = 0, d = 0, b = 0, eu = false;
+  for (const n of el.childNodes) {
+    if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+    plage.selectNodeContents(n);
+    for (const c of plage.getClientRects()) {
+      if (c.width < 0.5 || c.height < 0.5) continue;
+      if (!eu) { g = c.left; h = c.top; d = c.right; b = c.bottom; eu = true; }
+      else { g = Math.min(g, c.left); h = Math.min(h, c.top);
+             d = Math.max(d, c.right); b = Math.max(b, c.bottom); }
+    }
+  }
+  return eu ? { left: g, top: h, right: d, bottom: b,
+                width: d - g, height: b - h } : null;
+}
+
+const AU_VILLAGE = [".hud", ".hud *", ".pont-tete", ".pont-tete *",
+  ".boussole", ".boussole *", ".soustitre", ".soustitre *",
+  ".lecture", ".lecture *", ".aide", ".aide *",
+  ".calque3d .carte", ".calque3d .carte *",
+  ".calque3d .enseigne", ".calque3d .enseigne *"].join(", ");
+
+/* « hidden » ne suffit pas : les cartes attendent leur entrée à opacité nulle,
+   et une carte à opacité nulle n'est pas un texte illisible, c'est un texte
+   absent. On remonte donc toute la lignée. */
+function visibleVraiment(el, vue) {
+  let e = el;
+  while (e && e.nodeType === 1) {
+    const cs = vue.getComputedStyle(e);
+    if (cs.display === "none" || cs.visibility === "hidden") return false;
+    if (parseFloat(cs.opacity) < 0.08) return false;
+    e = e.parentElement;
+  }
+  return true;
+}
+
+function mesurerVillage(f, sonde, ou, pire, compte) {
+  const doc = f.contentDocument, vue = f.contentWindow;
+  for (const el of doc.querySelectorAll(AU_VILLAGE)) {
+    const t = [...el.childNodes].filter(n => n.nodeType === 3)
+                .map(n => n.textContent.trim()).filter(Boolean).join(" ");
+    if (t.length < 2) continue;
+    if (el.closest("svg")) continue;
+    if (!visibleVraiment(el, vue)) continue;
+    const r = boiteDuTexte(el, vue);
+    if (!r || r.width < 1 || r.height < 1) continue;
+    /* Hors de la fenêtre, il n'y a pas de pixel à lire — et une carte qui
+       déborde du cadre n'est pas un défaut de contraste. */
+    if (r.right <= 1 || r.bottom <= 1
+        || r.left >= vue.innerWidth - 1 || r.top >= vue.innerHeight - 1) continue;
+    const base = sonde(r);
+    if (!base) { compte.sansSocle++; continue; }
+    const enc = encresDe(el, vue);
+    /* On lit la feuille de style UNE fois, puis on compose ces calques sur
+       chaque pixel. Passer par « fondsReels » serait plus court et faux : elle
+       rend une liste TRONQUÉE de fonds — huit au plus, ce qui convient à deux
+       arrêts de dégradé et détruit une distribution de soixante-quatre
+       pixels. C'était le défaut de la première version : le centile,
+       calculé sur huit valeurs dont trois encres, retombait sur le minimum et
+       le banc annonçait de nouveau 1,0:1. Une correction qui laisse le même
+       chiffre n'est pas une correction. */
+    const cible = enc.fondEstLEncre ? el.parentElement : el;
+    const niveaux = calquesDe(cible, vue, true, r);
+    /* Si le dernier calque est opaque, le rendu ne passe pas à travers : un
+       seul pixel suffit, et soixante-trois comparaisons identiques en
+       moins. */
+    const opaque = niveaux.length
+      && niveaux[niveaux.length - 1].every(c => c[3] >= 1);
+    const pixels = opaque ? [base[0]] : base;
+    /* L'échelle à l'écran. Une carte de chapitre est un élément HTML de 230
+       pixels projeté en 3D : sa feuille de style dit « .55rem », et ce que
+       l'œil reçoit vaut .55rem × cette échelle. C'est la taille VUE qui décide
+       du seuil, pas celle qui est écrite. On garde le plus petit des deux
+       rapports — largeur et hauteur — pour qu'une carte inclinée ne se fasse
+       pas passer pour une carte plus grande qu'elle. */
+    const racine3D = el.closest(".carte, .enseigne");
+    let k = 1;
+    if (racine3D && racine3D.offsetWidth && racine3D.offsetHeight) {
+      const rr = racine3D.getBoundingClientRect();
+      k = Math.min(rr.width / racine3D.offsetWidth, rr.height / racine3D.offsetHeight);
+    }
+    const pxVu = parseFloat(enc.cs.fontSize) * k;
+    const gras = parseInt(enc.cs.fontWeight, 10) >= 700;
+    const seuil = (pxVu >= 24 || (pxVu >= 18.66 && gras)) ? 3 : 4.5;
+    /* Un rapport PAR PIXEL, et pour chaque pixel la pire des encres : les
+       trois arrêts d'un titre en dégradé sont dans les mêmes lettres, donc
+       c'est bien le plus mauvais qui décide de ce qu'on lit là. */
+    const rs = [];
+    for (const p of pixels) {
+      const fonds = niveaux.length ? composer(niveaux, p) : [p];
+      let pire = Infinity;
+      for (const e2 of enc.encres) for (const fond of fonds) {
+        let c = e2; if (c[3] < 1) c = sur(c, fond);
+        const rr = ratio(c, fond);
+        if (rr < pire) pire = rr;
+      }
+      rs.push(pire);
+    }
+    rs.sort((a, b) => a - b);
+    /* LE VERDICT, et c'est là que la première version s'est trompée.
+       Elle gardait le PIRE PIXEL. Sur une surface CSS — deux arrêts d'un
+       dégradé, deux couleurs que le lecteur voit vraiment — c'est la bonne
+       lecture. Sur un rendu, c'est absurde : la boîte d'un titre couvre du
+       ciel, un toit, une ombre et de la pierre, donc elle contient forcément
+       un pixel de la luminance exacte de l'encre. Le banc annonçait 1,0:1 sur
+       vingt textes parfaitement lisibles, et il l'aurait annoncé quoi qu'on
+       change — aucune couleur ne peut battre « un pixel quelque part ».
+
+       Un pixel n'est pas une lecture. On garde donc le CINQUIÈME CENTILE : le
+       rapport que 95 % de la surface du texte tient au moins. Et l'on
+       rapporte à côté la part de la surface qui échoue, parce qu'un titre
+       dont 2 % du fond est défavorable se lit, et qu'un titre dont 40 % du
+       fond est défavorable ne se lit pas. */
+    const r5 = rs[Math.floor((rs.length - 1) * 0.05)];
+    const part = rs.filter(x => x < seuil).length / rs.length;
+    compte.n++;
+    const sig = el.tagName.toLowerCase() +
+      (typeof el.className === "string" && el.className
+        ? "." + el.className.split(" ").filter(Boolean).slice(0, 2).join(".") : "");
+    const cle = sig + " — " + t.slice(0, 26);
+    const x = pire[cle] || (pire[cle] = { r: Infinity, seuil: seuil, ou: "",
+                                          part: 0, px: Infinity, ouPx: "" });
+    if (r5 < x.r) { x.r = +r5.toFixed(2); x.seuil = seuil; x.ou = ou;
+                    x.part = Math.round(part * 100); }
+    if (pxVu < x.px) { x.px = +pxVu.toFixed(1); x.ouPx = ou; }
+  }
+}
+
+/* Deux écrans, parce que le mur de cartes dépend de la FORME de l'écran : sur
+   un portable la grille se resserre, la carte rétrécit, et son texte avec
+   elle. C'est le seul cas où la taille vue devient critique — donc le seul
+   qu'il serait absurde de ne pas mesurer. */
+const ECRANS = [[1280, 800], [390, 740]];
+/* Le nombre de pixels de rendu gardés par boîte. Assez pour une
+   distribution, assez peu pour que vingt-huit états tiennent en une minute :
+   à soixante-quatre échantillons, le cinquième centile est le troisième plus
+   mauvais — pas une valeur exacte, mais une valeur robuste, et c'est tout ce
+   qu'on lui demande. */
+const ECHANTILLONS = 64;
+/* Onze pixels. Ce n'est pas une norme : le WCAG ne fixe AUCUNE taille
+   minimale — il ne parle que de contraste et de zoom. C'est le plancher des
+   deux maisons qui en fixent un, Apple (11 pt) et Google (12 sp). En dessous,
+   on ne lit pas, on devine. Le banc le compte donc à part : un texte de huit
+   pixels à 7:1 tient la norme et rate son travail. */
+const PLANCHER_PX = 11;
+
+document.getElementById("go-monde").addEventListener("click", async () => {
+  const b = document.getElementById("go-monde");
+  const j = document.getElementById("journal2");
+  const et = document.getElementById("etat2");
+  const ban = document.getElementById("banniere");
+  const f = document.getElementById("cadre");
+  b.disabled = true; j.innerHTML = "";
+  const dire = (m) => { et.textContent = m; ban.textContent = m; };
+  ban.classList.add("vu");
+  f.classList.add("devant");
+  const pire = {}, compte = { n: 0, sansSocle: 0, etats: 0 };
+  const retards = [];
+  const bilan = { lus: 0, vides: 0 };
+  let souci = "", heureGardee = null;
+  try { heureGardee = localStorage.getItem("ciel-monde-heure"); } catch (err) {}
+
+  const releve = (ou) => {
+    const s = sondeur(f);
+    mesurerVillage(f, s.socle, ou, pire, compte);
+    compte.etats++;
+    const x = s.bilan(); bilan.lus += x.lus; bilan.vides += x.vides;
+  };
+
+  try {
+    dire("neutralisation du cache hors ligne…");
+    const etatCache = await sansServiceWorker();
+    j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>";
+    for (const [L, H] of ECRANS) {
+      f.style.width = L + "px"; f.style.height = H + "px";
+      dire(L + "×" + H + " — on bâtit le village…");
+      await new Promise(res => { f.onload = res;
+                                 f.src = "../monde/index.html?m=" + Date.now(); });
+      const vue = f.contentWindow, doc = f.contentDocument;
+      await attendreQue(() => vue.CIEL, "le village n'a pas démarré en "
+                                        + L + "×" + H, 40000);
+      await patienter(() => doc.body.classList.contains("entre"),
+                      "entrée en " + L + "×" + H, retards);
+      await attendre(900);
+      const C = vue.CIEL;
+      for (const h of ["nuit", "jour"]) {
+        C.poserHeure(h);
+        await attendre(800);
+        /* L'allée : les enseignes, le titre, la boussole, son invite — et
+           l'aide, qui s'ouvre d'elle-même au premier passage. On la mesure
+           donc ici, puis on la referme pour qu'elle ne couvre pas les
+           parvis. */
+        /* Le titre de l'allée s'efface tout seul au bout de cinq secondes.
+           Mesuré après, il est invisible — donc écarté, donc jamais mesuré, et
+           le banc annonçait un succès qu'il n'avait pas constaté. C'est le même
+           angle mort que la feuille de réglages et que l'historique : ce qui
+           n'apparaît qu'à un moment doit être ramené avant d'être regardé. */
+        doc.body.classList.remove("titre-parti");
+        C.taireSousTitre(); await attendre(480);
+        C.sousTitrer(4); await attendre(300);
+        dire(h + " " + L + "×" + H + " — allée");
+        releve(h + "/" + L + "×" + H + " · allée");
+        const aide = doc.getElementById("aide");
+        if (!aide.hidden) { doc.getElementById("aide-ok").click(); await attendre(200); }
+
+        for (let i = 0; i < C.matieres.length; i++) {
+          const nom = C.matieres[i].pole.court || C.matieres[i].pole.titre;
+          C.allerA(i);
+          await patienter(() => doc.body.classList.contains("entre"),
+                          h + "/" + L + "×" + H + " · " + nom, retards);
+          await attendre(1000);
+          dire(h + " " + L + "×" + H + " — " + nom + " · " + compte.n + " textes");
+          releve(h + "/" + L + "×" + H + " · " + nom);
+        }
+
+        /* La fenêtre de lecture, avec une vraie fiche dedans : son chrome est
+           du village, son corps est du site — et c'est ici, et nulle part
+           ailleurs, que les deux se superposent. */
+        const carte = doc.querySelector(".calque3d .carte");
+        if (carte) {
+          carte.click();
+          const corps = doc.getElementById("lecture-corps");
+          await patienter(() => !doc.getElementById("lecture").hidden
+                                && corps.textContent.trim().length > 40,
+                          h + "/" + L + "×" + H + " · lecture", retards);
+          await attendre(800);
+          dire(h + " " + L + "×" + H + " — fenêtre de lecture");
+          releve(h + "/" + L + "×" + H + " · lecture");
+          doc.getElementById("lecture-fermer").click();
+          await attendre(400);
+        }
+        C.allerA(-1);
+        await patienter(() => doc.body.classList.contains("entre"),
+                        h + "/" + L + "×" + H + " · retour", retards);
+        await attendre(700);
+      }
+    }
+  } catch (err) { souci = String((err && err.message) || err); }
+
+  f.classList.remove("devant");
+  f.style.width = "1100px"; f.style.height = "900px";
+  f.src = "about:blank";
+  ban.classList.remove("vu");
+  try {
+    if (heureGardee === null) localStorage.removeItem("ciel-monde-heure");
+    else localStorage.setItem("ciel-monde-heure", heureGardee);
+  } catch (err) {}
+
+  const l = [j.innerHTML];
+  l.push("<p>" + compte.etats + " états mesurés — deux écrans, deux heures,"
+    + " l'allée, les cinq parvis et la fenêtre de lecture — " + compte.n
+    + " textes, " + bilan.lus + " pixels de rendu lus sous eux"
+    + (bilan.vides ? " (dont " + bilan.vides + " vides)" : "") + ".</p>");
+  if (souci) l.push('<p class="ko">⚠️ campagne interrompue : ' + souci + "</p>");
+  if (!compte.n)
+    l.push('<p class="ko">⚠️ AUCUN texte mesuré — le banc n\'a pas vu le village.'
+      + " Ce n'est pas une réussite, c'est une panne du banc.</p>");
+  else if (bilan.lus && bilan.vides === bilan.lus)
+    l.push('<p class="ko">⚠️ tous les pixels lus sont vides — le rendu n\'a pas été'
+      + " capté, donc aucun fond mesuré ne vaut rien.</p>");
+  if (retards.length)
+    l.push('<p class="ko">⚠️ ' + retards.length + " état(s) mesurés avant d'être"
+      + " prêts — le cadre n'a pas reçu ses images à temps. Laisser le volet"
+      + " visible pendant la campagne : " + retards.slice(0, 6).join(" · ")
+      + "</p>");
+  if (compte.sansSocle)
+    l.push("<p>" + compte.sansSocle + " texte(s) écartés : aucun pixel de rendu"
+      + " sous eux.</p>");
+  const ent = Object.entries(pire);
+  const echecs = ent.filter(x => x[1].r < x[1].seuil).sort((a, b) => a[1].r - b[1].r);
+  /* L'enseigne est DANS la scène : sa taille à l'écran dépend d'où se tient
+     le visiteur, pas d'un calcul. Lui opposer un plancher, c'est produire une
+     alerte que rien ne peut éteindre — et trente alertes inextinguibles font
+     qu'on n'ouvre plus le rapport. Son contraste, lui, reste mesuré. */
+  const menus = ent.filter(x => x[1].px < PLANCHER_PX && !/\.ens-|\.enseigne/.test(x[0]))
+                   .sort((a, b) => a[1].px - b[1].px);
+  l.push(echecs.length
+    ? '<p class="ko">' + echecs.length + " texte(s) sous le seuil AA :</p>"
+      + echecs.map(x => "<p>" + x[1].r + " &lt; " + x[1].seuil + "  ("
+          + x[1].part + " % de la surface)  (" + x[1].ou + ")  "
+          + x[0] + "</p>").join("")
+    : '<p class="ok">OK — aucun texte du village sous le seuil AA sur 95 % de'
+      + " sa surface, ni de jour ni de nuit, ni sur portable.</p>");
+  l.push(menus.length
+    ? '<p class="ko">' + menus.length + " texte(s) sous " + PLANCHER_PX
+      + " pixels à l'écran (hors norme, mais illisible) :</p>"
+      + menus.map(x => "<p>" + x[1].px + " px  (" + x[1].ouPx + ")  " + x[0]
+          + "</p>").join("")
+    : '<p class="ok">OK — aucun texte plus petit que ' + PLANCHER_PX
+      + " pixels à l'écran.</p>");
+  j.innerHTML = l.join("");
+  dire("");
+  b.disabled = false;
 });
 </script>
 </body>

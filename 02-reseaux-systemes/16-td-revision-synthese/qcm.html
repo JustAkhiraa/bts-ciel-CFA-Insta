@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TD de révision — la synthèse — QCM | BTS CIEL</title>
+<meta name="description" content="Douze questions de synthèse : OSI, VLSM, configuration de base, VLAN et trunk, routage inter-VLAN et ordre de vérification.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 16</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>TD de révision — la synthèse — QCM</h1>
+  <p class="chapeau">12 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 12</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">1</span>Comment un switch, équipement de couche 2, peut-il segmenter un domaine de broadcast ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il lit l'adresse IP de destination avant de diffuser</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il refuse de recopier une diffusion vers les ports d'un autre VLAN</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il transforme la diffusion en unicast</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il ne le peut pas : seul un routeur y parvient</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le VLAN n'est pas une fonction de routage : c'est une <b>cloison logique</b> à l'intérieur du switch, qui applique une règle d'appartenance de port. Aucune adresse IP n'est lue, il reste bien en couche 2. C'est aussi pourquoi le VLAN ne suffit pas à faire communiquer deux services : <b>cloisonner n'est pas router</b>.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">2</span>Que segmente un switch, et que segmente un routeur ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le switch segmente les broadcasts, le routeur les collisions</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Les deux segmentent les collisions</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le switch segmente les collisions, le routeur les broadcasts</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Aucun des deux ne segmente quoi que ce soit</span></button>
+      </div>
+      <p class="qcm-why" hidden>Chaque port d'un switch est son propre <b>domaine de collision</b> — les machines n'y disputent plus le média. Le <b>domaine de broadcast</b>, lui, est l'ensemble des machines qu'atteint une diffusion : il est segmenté par un routeur, ou par un VLAN. C'est le couple à retenir.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>Un service a besoin de 500 hôtes. Quel masque retenir, et pourquoi ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>/24, car 254 adresses suffisent avec de la réutilisation</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>/22, pour garder de la marge</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>/23, car /24 ne donne que 254 adresses et /23 en donne 510</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>/25, car on coupe ensuite en deux</span></button>
+      </div>
+      <p class="qcm-why" hidden>On cherche la <b>plus petite puissance de 2</b> qui couvre le besoin plus deux adresses — réseau et broadcast. En contrôle, écrivez toujours le masque immédiatement inférieur et pourquoi il ne suffit pas : c'est ce qui prouve que le masque choisi est le plus petit possible, et non le premier qui marche.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">4</span>Quel est le contrôle le plus rapide d'un découpage VLSM ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Vérifier que tous les masques sont identiques</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Vérifier que le broadcast d'un bloc, plus un, donne le réseau du suivant</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Vérifier que le premier bloc commence par .0</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Compter le nombre total d'adresses obtenues</span></button>
+      </div>
+      <p class="qcm-why" hidden>172.16.1.255 + 1 = 172.16.2.0, puis 172.16.2.127 + 1 = 172.16.2.128 : chaque bloc commence exactement là où le précédent finit. Si ce n'est pas le cas, il y a un <b>trou ou un recouvrement</b>. Et l'on sert toujours <b>du plus gros au plus petit</b>, sans quoi le découpage laisse des espaces inutilisables.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">5</span>Pourquoi configure-t-on une adresse IP sur interface vlan 1 d'un switch de couche 2 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Pour qu'il puisse router entre les VLAN</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Pour qu'il attribue des adresses aux postes</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Pour qu'il apprenne les adresses MAC plus vite</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Pour pouvoir l'administrer à distance, en SSH ou en Telnet</span></button>
+      </div>
+      <p class="qcm-why" hidden>Cette adresse ne sert pas à commuter : c'est une <b>porte d'entrée</b> de couche 3 pour qu'on puisse parler à l'équipement. Le switch reste de couche 2. <code>ip default-gateway</code> complète le dispositif : sans elle, on ne peut l'administrer que depuis son propre sous-réseau.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">6</span>service password-encryption protège-t-elle vraiment les mots de passe ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Non : le chiffrement type 7 est réversible et cassé en quelques secondes</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Oui, c'est le chiffrement le plus robuste de l'IOS</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Oui, à condition de la saisir avant les mots de passe</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Non, elle ne fait qu'afficher un avertissement</span></button>
+      </div>
+      <p class="qcm-why" hidden>Elle protège d'un <b>regard par-dessus l'épaule</b>, pas d'un attaquant : des outils publics rendent le clair instantanément. La vraie protection est <code>enable secret</code>, qui <b>hache</b>. La formule à retenir : <code>service password-encryption</code> est un cache-misère, <code>enable secret</code> une vraie protection.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>Le VLAN 30 est oublié dans switchport trunk allowed vlan. Quel est le symptôme ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le trunk refuse de monter et le lien reste down</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un message d'erreur apparaît dans les journaux du switch</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le VLAN 30 fonctionne en local mais ne sort pas, sans aucune alerte</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Tous les VLAN cessent de fonctionner</span></button>
+      </div>
+      <p class="qcm-why" hidden>Les trames sont <b>silencieusement jetées</b> à l'entrée du trunk. Le VLAN existe, les ports sont affectés, le ping intra-VLAN passe — mais rien ne sort. C'est la panne la plus vicieuse du TD, parce qu'elle ressemble à un problème de routage. Toujours passer par <code>show interfaces trunk</code> avant de soupçonner le routeur.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">8</span>Après avoir créé les sous-interfaces d'un router-on-a-stick, que faut-il faire sur l'interface physique ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Lui donner l'adresse du premier VLAN</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Lui retirer toute adresse IP et l'allumer</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La laisser telle quelle : les sous-interfaces suffisent</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>La passer en mode trunk</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>no ip address</code> : ce sont les sous-interfaces qui portent les adresses, une adresse restante entrerait en conflit. <code>no shutdown</code> : les sous-interfaces sont <b>portées par</b> la physique — si le tronc est éteint, les trois le sont aussi, quoi qu'on ait configuré dessus. C'est la deuxième cause de « le ping inter-VLAN ne passe pas ».</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">9</span>Trois SVI sont configurées sur un switch de niveau 3 et le trafic ne passe toujours pas d'un VLAN à l'autre. Que manque-t-il ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Un no shutdown sur le trunk</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Une route statique par VLAN</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La commande ip routing</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Un protocole de routage dynamique</span></button>
+      </div>
+      <p class="qcm-why" hidden>Un switch de niveau 3 sort d'usine avec le <b>routage désactivé</b> : il se comporte en switch de couche 2. Une seule commande, et on l'oublie tout le temps. Contrôle : <code>show ip route</code> doit lister les trois réseaux marqués <code>C</code> — connectés.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">10</span>Quel est l'argument décisif contre le router-on-a-stick quand le trafic inter-VLAN devient important ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Chaque paquet inter-VLAN traverse deux fois le même lien, ce qui divise le débit utile par deux</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le nombre de sous-interfaces est plafonné à trois</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Les sous-interfaces ne gèrent pas le 802.1Q</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le routeur perd sa configuration au redémarrage</span></button>
+      </div>
+      <p class="qcm-why" hidden>Un fichier du VLAN 10 vers le VLAN 20 voyage SW → R puis R → SW : un lien à 1 Gb/s ne laisse que <b>500 Mb/s utiles</b>. Ce n'est pas une question de goût, c'est une division par deux. Le switch de niveau 3 commute en matériel, dans le fond de panier — bien plus cher, mais sans ce goulot.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">11</span>Pourquoi éviter le VLAN 1 pour les ports d'accès ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Parce qu'il est limité à 24 ports</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce qu'il ne supporte pas le 802.1Q</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Parce qu'il est réservé au trafic de diffusion</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Parce que tout équipement non configuré y atterrit et qu'il porte le trafic de service</span></button>
+      </div>
+      <p class="qcm-why" hidden>Trois raisons, dans l'ordre : c'est le VLAN <b>par défaut de tout le monde</b>, donc potentiellement celui des interfaces d'administration ; il porte CDP, DTP, STP et VTP, qu'on n'expose pas au trafic utilisateur ; et un attaquant le sait — c'est le premier essayé, y compris pour le VLAN hopping. La pratique : VLAN 1 inutilisé, administration dans un VLAN dédié.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">12</span>Dans quel ordre diagnostique-t-on une maquette qui ne ping pas ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Du routage vers le câble, en partant de show ip route</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>De bas en haut : interfaces, puis VLAN, puis trunk, puis routes, puis ping</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>En redémarrant tous les équipements d'abord</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>En commençant par le ping inter-VLAN, le plus significatif</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>show ip interface brief</code> (up/up), <code>show vlan brief</code>, <code>show interfaces trunk</code>, <code>show ip route</code>, puis le ping <b>intra</b>-VLAN avant l'<b>inter</b>-VLAN. Si l'intra échoue, le problème est en couche 2 et le routeur n'y est pour rien. Inutile de chercher une erreur de routage si le câble est sur le mauvais port.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../15-projet-techshop/qcm.html"><span>Chapitre précédent</span><b>Projet TechShop</b></a><a class="suiv" href="../17-atelier-infrastructure/qcm.html"><span>Chapitre suivant</span><b>Atelier — infrastructure complète</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>

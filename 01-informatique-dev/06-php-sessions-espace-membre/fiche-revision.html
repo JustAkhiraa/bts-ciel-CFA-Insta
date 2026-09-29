@@ -6,15 +6,15 @@
 <title>Sessions PHP — fiche de révision | BTS CIEL</title>
 <meta name="description" content="Fiche recto-verso imprimable : cycle d'une session, GET/POST, validation, garde de page privée, déconnexion et pannes classiques.">
 <meta name="theme-color" content="#FDF5E6">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=5f6e2ccc">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
 
 <header class="fiche-tete">
   <div class="fil">
-    <span class="matiere">Informatique &amp; Développement</span>
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
     <span class="sep">/</span><span>Chapitre 06</span>
     <span class="sep">/</span><span class="badge">Fiche de révision</span>
   </div>
@@ -38,13 +38,13 @@
 
   <article class="memo">
     <h2>Le cycle</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>session_start();      // 1re LIGNE
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-typ">session_start</span>();      <span class="j-com">// 1re LIGNE</span>
 
-$_SESSION["user"] = "Paul";
-echo $_SESSION["user"];
+<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>] = <span class="j-txt">"Paul"</span>;
+<span class="j-mc">echo</span> <span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>];
 
-$_SESSION = [];
-session_destroy();</code></pre></div>
+<span class="j-var">$_SESSION</span> = [];
+<span class="j-typ">session_destroy</span>();</code></pre></div>
     <p><code>session_start()</code> sur <strong>chaque</strong> page concernée.</p>
   </article>
 
@@ -74,28 +74,28 @@ session_destroy();</code></pre></div>
 
   <article class="memo">
     <h2>Valider</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>if ($_SERVER["REQUEST_METHOD"]
-    === "POST") { … }
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-mc">if</span> (<span class="j-var">$_SERVER</span>[<span class="j-txt">"REQUEST_METHOD"</span>]
+    === <span class="j-txt">"POST"</span>) { … }
 
-$x = trim($_POST["x"] ?? "");
-strlen($mdp) &lt; 6
-filter_var($m, FILTER_VALIDATE_EMAIL)</code></pre></div>
+<span class="j-var">$x</span> = <span class="j-typ">trim</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"x"</span>] ?? <span class="j-txt">""</span>);
+<span class="j-typ">strlen</span>(<span class="j-var">$mdp</span>) &lt; <span class="j-num">6</span>
+<span class="j-typ">filter_var</span>(<span class="j-var">$m</span>, FILTER_VALIDATE_EMAIL)</code></pre></div>
     <p><code>trim()</code> sur le nom et l'email — <strong>jamais</strong> sur un mot de passe.</p>
   </article>
 
   <article class="memo">
     <h2>Compteur</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>$_SESSION["visites"] =
-   ($_SESSION["visites"] ?? 0) + 1;</code></pre></div>
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] =
+   (<span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] ?? <span class="j-num">0</span>) + <span class="j-num">1</span>;</code></pre></div>
     <p><code>??</code> = « ou, si ça n'existe pas, alors… »</p>
   </article>
 
   <article class="memo alerte">
     <h2>⚡ Le garde</h2>
-<div class="bloc-code"><span class="langue">php — page PRIVÉE</span><pre><code>session_start();
-if (!isset($_SESSION["user"])) {
-    header("Location: login.php");
-    exit();          // ← indispensable
+<div class="bloc-code"><span class="langue">php — page PRIVÉE</span><pre><code><span class="j-typ">session_start</span>();
+<span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>])) {
+    <span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);
+    <span class="j-typ">exit</span>();          <span class="j-com">// ← indispensable</span>
 }</code></pre></div>
     <p><strong>Jamais sur <code>login.php</code></strong> → sinon
        <code>ERR_TOO_MANY_REDIRECTS</code>.</p>
@@ -111,16 +111,16 @@ if (!isset($_SESSION["user"])) {
 
   <article class="memo">
     <h2>Connexion / déconnexion</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>// login
-$_SESSION["user"] = $login;
-header("Location: accueil.php");
-exit();
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-com">// login</span>
+<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>] = <span class="j-var">$login</span>;
+<span class="j-typ">header</span>(<span class="j-txt">"Location: accueil.php"</span>);
+<span class="j-typ">exit</span>();
 
-// logout
-$_SESSION = [];
-session_destroy();
-header("Location: login.php");
-exit();</code></pre></div>
+<span class="j-com">// logout</span>
+<span class="j-var">$_SESSION</span> = [];
+<span class="j-typ">session_destroy</span>();
+<span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);
+<span class="j-typ">exit</span>();</code></pre></div>
   </article>
 
   <article class="memo">
@@ -139,9 +139,9 @@ exit();</code></pre></div>
 
   <article class="memo">
     <h2>Déboguer</h2>
-<div class="bloc-code"><span class="langue">php</span><pre><code>echo "&lt;pre&gt;";
-print_r($_SESSION);
-echo "&lt;/pre&gt;";</code></pre></div>
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-mc">echo</span> <span class="j-txt">"&lt;pre&gt;"</span>;
+<span class="j-typ">print_r</span>(<span class="j-var">$_SESSION</span>);
+<span class="j-mc">echo</span> <span class="j-txt">"&lt;/pre&gt;"</span>;</code></pre></div>
     <p>Vide → <code>session_start()</code> oublié.<br>
        Rempli mais refusé → <strong>clé mal orthographiée</strong>.</p>
     <p>À retirer avant de rendre.</p>
@@ -163,8 +163,7 @@ echo "&lt;/pre&gt;";</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-php/fiche-revision.html"><span>Chapitre précédent</span><b>PHP</b></a><a class="suiv" href="../07-python/fiche-revision.html"><span>Chapitre suivant</span><b>Python</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=5f6e2ccc"></script>
-<script src="../../assets/recherche.js?v=5f6e2ccc"></script>
-<script src="../../assets/app.js?v=5f6e2ccc"></script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
 </body>
 </html>
