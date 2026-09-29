@@ -239,7 +239,14 @@ const scene = new THREE.Scene();
    profondeur — sans elle, le château au bout paraît à trois pas. */
 scene.fog = new THREE.Fog(0x1B2C48, 180, 1250);
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
+/* Le plan proche vaut 3, et non 1. C'est lui qui commande la précision de la
+   PROFONDEUR sur toute la scène : un tampon en 16 bits — ce qu'ont beaucoup de
+   téléphones — ne distingue à 150 unités que 0,34 unité avec un plan proche à
+   1, contre 0,11 avec un plan proche à 3. Rien n'est jamais plus près que
+   trois unités de l'œil : la caméra est à hauteur d'homme et les obstacles la
+   repoussent avant qu'elle ne touche un mur. C'est donc trois unités gagnées
+   sur rien, et trois fois moins de surfaces qui clignotent. */
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 3, 6000);
 const rendu = new THREE.WebGLRenderer({
   canvas: toile, antialias: devicePixelRatio < 2, powerPreference: "high-performance",
 });
@@ -1164,12 +1171,28 @@ function batirChateau(c) {
 
   /* Le corps de garde, la porte et la herse. */
   g.add(bloc(M.pierre, 150, 130, 96, 0, 89, 0));
-  g.add(bloc(M.sombre, 42, 56, 4, 0, 52, 49));
+  /* ── La porte, et la profondeur qu'elle réclame ────────────────────────
+     La herse était posée à z = 50 sur 2 d'épaisseur, la porte à z = 49 sur 4 :
+     leurs faces avant tombaient toutes deux EXACTEMENT sur z = 51. Deux
+     surfaces coplanaires, c'est un tirage au sort par pixel — et sur le
+     téléphone d'Ahmed cela donnait une bouillie noire et bleue en travers de
+     l'entrée du château.
+
+     Ce n'est pas un défaut « de téléphone ». Le tampon de profondeur y est
+     souvent en 16 bits au lieu de 24 : avec un plan proche à 1 et une porte à
+     150 unités, la plus petite différence que la carte sache distinguer vaut
+     0,34 unité. Un écart de zéro n'avait donc aucune chance, et un écart d'un
+     dixième n'en aurait pas eu davantage.
+
+     Les trois plans sont maintenant séparés de deux unités — six fois la
+     précision la plus mauvaise —, et le plan proche de la caméra passe de 1 à
+     3 (voir plus haut), ce qui triple cette précision partout. */
+  g.add(bloc(M.sombre, 42, 56, 4, 0, 52, 48));
   const arc = new THREE.Mesh(new THREE.CircleGeometry(21, 22, 0, Math.PI), M.sombre);
-  arc.position.set(0, 80, 49);
+  arc.position.set(0, 80, 50.2);
   g.add(arc);
-  for (let k = -3; k <= 3; k++) g.add(bloc(M.metal, 2.4, 52, 2, k * 6.6, 52, 50));
-  for (let k = 0; k < 4; k++) g.add(bloc(M.metal, 42, 2.4, 2, 0, 34 + k * 14, 50));
+  for (let k = -3; k <= 3; k++) g.add(bloc(M.metal, 2.4, 52, 2, k * 6.6, 52, 52.4));
+  for (let k = 0; k < 4; k++) g.add(bloc(M.metal, 42, 2.4, 2, 0, 34 + k * 14, 52.4));
   g.add(bloc(M.pierreC, 56, 6, 8, 0, 100, 50));
 
   /* Le donjon, plus haut, en retrait. */
@@ -1854,6 +1877,13 @@ const PASSANTS = {
   },
 };
 
+/* Les emprises que rien de vivant ne traverse. Elles sont calculées ici, et
+   non reprises d'OBSTACLES : cette liste-là est bâtie plus bas, pour le
+   marcheur, et un passant placé avant elle lirait un tableau vide — c'est-à-
+   dire un village sans murs, ce qui est précisément le défaut qu'on corrige. */
+const MURS = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }));
+MURS.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 8 });
+
 {
   const rnd = semeur(1789);
   /* Le peuplement : beaucoup de gens, quelques bêtes. L'ordre compte — les
@@ -1887,10 +1917,55 @@ const PASSANTS = {
       : info.bete === "chat"
         ? cote * (V.demiAllee + 2 + rnd() * 7)
         : (V.demiAllee - 12) * (rnd() * 2 - 1);
-    let z0 = -150 + rnd() * 330;
-    if (Math.abs(z0 - V.zFontaine) < 62) z0 += 96;
+    /* ── Un passant ne traverse pas un mur ────────────────────────────────
+       Ahmed : « les personnages, ils marchent à travers les murs ». C'était
+       vrai, et c'était visible surtout des moutons : leur voie les envoie sur
+       l'herbe, à quatre-vingts unités de l'axe — c'est-à-dire en plein dans
+       l'emprise des bâtiments, qui sont à cent dix-huit et larges de cent.
+
+       On ne leur donne pas une détection de collision : dix silhouettes qui
+       piétinent contre une façade sont plus laides qu'une qui la traverse. On
+       RACCOURCIT leur trajet. Chaque va-et-vient est une ligne droite à x
+       fixe ; il suffit donc de le tailler avant le premier bâtiment qu'il
+       rencontrerait. Un passant qui va moins loin ne se remarque pas ; un
+       passant qui sort d'un mur, si. */
+    const libre = (x, z, p) => {
+      for (const m of MURS) {
+        const dx = x - m.x;
+        if (Math.abs(dx) >= m.r) continue;              // la voie passe à côté
+        const demi = Math.sqrt(m.r * m.r - dx * dx);    // la corde traversée
+        if (z > m.z + demi) p = Math.min(p, z - m.z - demi);
+        else if (z < m.z - demi) p = Math.min(p, m.z - demi - z);
+        else return 0;                                  // le départ est dedans
+      }
+      return p;
+    };
+    const voulue = (info.bas ? 26 : 60) + rnd() * (info.bas ? 60 : 150);
+    /* On BALAIE la voie plutôt que de tenter sa chance. Une première version
+       tirait huit points au hasard et, si aucun n'était libre, gardait le
+       dernier — donc parfois un passant planté à l'intérieur du château, ce
+       que la mesure a immédiatement trouvé : un sur dix-huit, à 79 unités dans
+       la pierre. Un repli qui laisse le défaut en place n'est pas un repli.
+
+       Vingt-quatre positions le long de l'allée, on garde celle qui offre le
+       plus de champ. C'est déterministe, c'est exhaustif à trois unités près,
+       et ça ne peut pas rendre un emplacement occupé. */
+    let z0 = 0, portee = 0;
+    for (let k = 0; k < 24; k++) {
+      const z = -170 + k * (340 / 23) + (rnd() - 0.5) * 6;
+      if (Math.abs(z - V.zFontaine) < 30) continue;
+      const p = Math.min(voulue, libre(voie, z, voulue));
+      if (p > portee) { portee = p; z0 = z; }
+    }
+    /* Si toute la voie est bouchée — une voie qui longerait une façade sur
+       toute sa longueur —, on ramène le passant dans l'allée, qui est libre
+       par construction. */
+    if (portee < 10) {
+      z0 = V.zFontaine + 84;
+      portee = Math.max(10, libre(voie, z0, voulue));
+    }
     VIVANTS.push({ o: g, role, x: voie, z0,
-                   portee: (info.bas ? 26 : 60) + rnd() * (info.bas ? 60 : 150),
+                   portee,
                    v: (info.bas ? 2.4 : 7) + rnd() * (info.bas ? 3 : 6),
                    saut: info.bas ? 0.25 : 0.8,
                    queue: info.queue || null, queueX: info.queueX || 0,
@@ -2708,6 +2783,13 @@ function poserHeure(h) {
      figés — un ciel de carte postale au lieu d'un ciel. */
   uCiel.cloudScale.value = 0.00026;
   uCiel.cloudSpeed.value = 0.00006;
+  /* Ahmed : « si possible mettre un soleil ». Sky.js sait dessiner le disque,
+     il était simplement laissé éteint : le ciel avait la LUMIÈRE du soleil et
+     sa couleur, mais pas l'astre. On l'allume de jour seulement — la nuit, le
+     soleil est sous l'horizon à -8°, et un disque qui perce le sol n'est plus
+     un soleil, c'est une lampe posée dans l'herbe. La lune, elle, a déjà son
+     propre volume dans la scène. */
+  uCiel.showSunDisc.value = h === "jour" ? 1 : 0;
   rendu.toneMappingExposure = H.expo;
   cuireEnvironnement();
   scene.environmentIntensity = H.reflets;
@@ -2934,10 +3016,55 @@ function fermerLecture() {
 }
 $("lecture-fermer").addEventListener("click", fermerLecture);
 
+/* ── Le QCM, qui marche pour de bon ─────────────────────────────────────
+   Ahmed : « les QCM sont moches et fonctionnent pas en 3D ». Les deux moitiés
+   de la phrase avaient la même cause : le script de la page du QCM est retiré
+   à l'injection — c'est une règle saine, on ne fait pas tourner le script d'une
+   page étrangère —, et sans lui les boutons ne répondaient plus. J'avais
+   « compensé » en ouvrant toutes les explications, c'est-à-dire en affichant le
+   corrigé sous chaque énoncé. Un QCM dont les réponses sont écrites n'est pas
+   un QCM difficile à utiliser : ce n'est plus un QCM.
+
+   Or la page n'a pas besoin de son script : son balisage porte déjà tout. La
+   bonne réponse est dans « data-bon », l'explication dans « .qcm-why », le
+   rang dans « data-i ». Vingt lignes suffisent donc à le faire fonctionner
+   ici, et elles ne dépendent que de ce qui est écrit dans le HTML — si le
+   gabarit change, elles cessent de trouver leurs crochets au lieu de mentir. */
+function brancherQcm(corps) {
+  const questions = [...corps.querySelectorAll(".qcm-q")];
+  if (!questions.length) return;
+  const score = corps.querySelector(".qcm-tete .sc");
+  const jauge = corps.querySelector(".qcm-tete .av > span");
+  let bons = 0, faites = 0;
+  const compter = () => {
+    if (score) score.textContent = bons + " / " + questions.length;
+    if (jauge) jauge.style.width = (faites / questions.length * 100) + "%";
+  };
+  compter();
+  for (const q of questions) {
+    const bon = Number(q.dataset.bon);
+    const choix = [...q.querySelectorAll(".qcm-opt")];
+    const pourquoi = q.querySelector(".qcm-why");
+    for (const o of choix) o.addEventListener("click", () => {
+      /* On ne répond qu'une fois : rouvrir une question déjà faite
+         permettrait de « corriger » son score après coup, ce qui vide le
+         QCM de son seul intérêt — savoir ce qu'on sait. */
+      if (q.dataset.fait) return;
+      q.dataset.fait = "1";
+      faites++;
+      if (Number(o.dataset.i) === bon) { bons++; o.classList.add("juste"); }
+      else { o.classList.add("faux"); if (choix[bon]) choix[bon].classList.add("juste"); }
+      for (const x of choix) x.disabled = true;
+      if (pourquoi) pourquoi.hidden = false;
+      compter();
+    });
+  }
+}
+
 async function afficherFiche(url) {
   const corps = $("lecture-corps");
   corps.scrollTop = 0;
-  if (cache.has(url)) { corps.innerHTML = cache.get(url); return; }
+  if (cache.has(url)) { corps.innerHTML = cache.get(url); brancherQcm(corps); return; }
   corps.innerHTML = '<p class="lecture-attente">Lecture de la fiche…</p>';
   try {
     const r = await fetch("../" + url, { cache: "force-cache" });
@@ -2963,13 +3090,21 @@ async function afficherFiche(url) {
     /* Les quiz et les QCM ont besoin du script de la page, absent ici : on
        ouvre les réponses plutôt que de laisser des boutons morts. */
     main.querySelectorAll(".quiz button").forEach((n) => n.remove());
-    main.querySelectorAll(".reponse, .qcm-why").forEach((n) => n.removeAttribute("hidden"));
+    /* Les quiz du cours perdent leur bouton, donc on ouvre leur réponse. Le
+       QCM, lui, GARDE ses boutons : son balisage porte la bonne réponse dans
+       « data-bon », et c'est tout ce qu'il faut pour le faire fonctionner ici
+       (voir brancherQcm). Ouvrir ses explications d'office, comme le faisait
+       la version précédente, revenait à publier le corrigé au-dessus de
+       l'énoncé — Ahmed : « les QCM sont moches et fonctionnent pas en 3D ».
+       Ils ne fonctionnaient pas parce qu'on leur avait donné les réponses. */
+    main.querySelectorAll(".reponse").forEach((n) => n.removeAttribute("hidden"));
 
     const html = main.innerHTML +
       `<a class="lecture-ouvrir" href="../${url}" target="_blank" rel="noopener">` +
       `Ouvrir cette fiche sur le site</a>`;
     cache.set(url, html);
     corps.innerHTML = html;
+    brancherQcm(corps);
   } catch (e) {
     corps.innerHTML =
       '<p class="lecture-echec">Cette fiche n\'a pas pu être lue ici.</p>' +
@@ -2992,6 +3127,53 @@ function reveler() {
     () => document.body.classList.add("entre")));
 }
 function fovVoulu() { return camera.aspect < 0.95 ? FOV_ETROIT : FOV_LARGE; }
+
+/* ── La résolution qui s'ajuste d'elle-même ─────────────────────────────
+   L'idée vient de l'écosystème de three.js — c'est l'« AdaptiveDpr » de
+   drei —, et c'est la seule de cette liste de projets qui serve vraiment
+   ici : les autres imposeraient React, un framework entier ou un visualiseur
+   de modèles, c'est-à-dire exactement la dépendance que ce dépôt refuse.
+   Trente lignes suffisent à la reprendre, sans rien charger.
+
+   Le principe : une machine lente ne doit pas rendre moins de village, elle
+   doit le rendre sur moins de pixels. Un portable d'entrée de gamme dessine
+   deux fois trop de pixels pour son GPU et rame ; en tombant à 1 pixel par
+   point au lieu de 2, il retrouve soixante images par seconde et perd un peu
+   de finesse sur les bords — un échange que personne ne remarque en marchant,
+   et que tout le monde remarque à l'inverse.
+
+   Deux précautions valent la peine d'être dites :
+
+     · on mesure une MÉDIANE sur soixante images, pas la dernière. Une image
+       isolée à 40 ms arrive à chaque changement d'heure, quand
+       l'environnement se recuit ; réagir à celle-là ferait clignoter la
+       résolution ;
+     · on ne remonte qu'après une marge nette (13 ms contre 22 ms pour
+       descendre). Sans cet écart, la résolution oscillerait entre deux
+       valeurs, chacune provoquant l'autre. */
+const ECHELLE_MAX = Math.min(devicePixelRatio || 1, 2);
+const PALIERS = [ECHELLE_MAX, Math.max(1, ECHELLE_MAX * 0.75), 1, 0.75];
+let palier = 0, duree = [], depuisChangement = 0;
+
+function ajusterResolution(dt) {
+  depuisChangement += dt;
+  duree.push(dt * 1000);
+  if (duree.length < 60) return;
+  const trie = duree.slice().sort((a, b) => a - b);
+  const mediane = trie[30];
+  duree.length = 0;
+  /* Une seconde de répit après chaque changement : le temps que le pilote
+     réalloue ses tampons, les premières images sont lentes par construction,
+     et les prendre pour un verdict ferait descendre en cascade. */
+  if (depuisChangement < 1) return;
+  const avant = palier;
+  if (mediane > 22 && palier < PALIERS.length - 1) palier++;
+  else if (mediane < 13 && palier > 0) palier--;
+  if (palier === avant) return;
+  depuisChangement = 0;
+  rendu.setPixelRatio(PALIERS[palier]);
+  rendu.setSize(innerWidth, innerHeight);
+}
 
 let t0 = performance.now();
 
@@ -3171,16 +3353,48 @@ function image(now) {
   requestAnimationFrame(image);
 }
 
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+/* ── Se recadrer, y compris quand le téléphone tourne ───────────────────
+   Ahmed : « j'aimerais bien sur tél, si je tourne mon écran, que l'écran
+   s'adapte ». Il le faisait déjà — mais mal, et sur iOS pas du tout.
+
+   Deux corrections. D'abord « orientationchange » : Safari le déclenche AVANT
+   d'avoir fini de retourner la fenêtre, si bien qu'un recadrage immédiat lit
+   les anciennes dimensions et fige le village en travers. On recadre donc
+   trois fois — tout de suite, puis après deux images, puis après un tiers de
+   seconde —, ce qui coûte trois recalculs et garantit d'attraper la bonne.
+
+   Ensuite la hauteur : « innerHeight » sur iOS inclut les barres d'outils,
+   même rétractées. C'est la même erreur que « 100vh » côté feuille de style,
+   et elle donne un village rendu plus haut que ce qu'on voit — donc décalé.
+   « visualViewport » donne la hauteur réellement visible, et il prévient
+   quand elle change. */
+/* La toile est posée en « inset: 0 » avec une largeur et une hauteur de
+   100 % : elle suit donc le viewport de MISE EN PAGE, celui que donnent
+   innerWidth et innerHeight — et le tampon de dessin doit faire exactement la
+   même taille, sans quoi l'image est étirée ou posée dans un coin. C'est ce
+   qui est arrivé en essayant de la caler sur « visualViewport » : cette
+   mesure-là décrit ce qu'on VOIT après pincement, pas la boîte qu'occupe la
+   toile. Elle reste utile comme signal — elle prévient quand les barres d'iOS
+   bougent — mais pas comme mesure. */
+function recadrer() {
+  const l = innerWidth, h = innerHeight;
+  camera.aspect = l / h;
   camera.fov = fovVoulu();
   camera.updateProjectionMatrix();
-  rendu.setSize(innerWidth, innerHeight);
-  rendu3D.setSize(innerWidth, innerHeight);
+  rendu.setSize(l, h);
+  rendu3D.setSize(l, h);
   /* Le nombre de colonnes dépend de la FORME de l'écran : il faut refaire
      le mur de cartes, pas seulement recadrer. */
   placerCible();
   batirCartes();
+}
+
+addEventListener("resize", recadrer);
+if (window.visualViewport) visualViewport.addEventListener("resize", recadrer);
+addEventListener("orientationchange", () => {
+  recadrer();
+  requestAnimationFrame(() => requestAnimationFrame(recadrer));
+  setTimeout(recadrer, 320);
 });
 
 /* ── Ouverture ───────────────────────────────────────────────────────── */
@@ -3214,7 +3428,45 @@ catch (e) { aide.hidden = false; }
    le sous-titre n'existe que pendant cinq secondes, après un survol. Un banc
    qui ne peut pas le FAIRE APPARAÎTRE ne le mesure jamais — et déclare que
    tout va bien. */
+/* ── Ce que CE navigateur-ci fournit vraiment ───────────────────────────
+   Ahmed : « ça ne ressemble pas à la même chose avec Firefox et Edge ; Firefox
+   est plus beau et a plus de trucs. » Je n'ai ni son Firefox ni son Edge, et
+   deviner à distance ce qu'une carte graphique accorde à un navigateur, c'est
+   exactement le genre de raisonnement qui a fait perdre une journée trois fois
+   dans ce dépôt. On ne devine donc pas : on relève.
+
+   Les cinq lignes qui décident de l'aspect du village, dans l'ordre où elles
+   comptent — le pilote réellement utilisé (une repli logiciel ne dit pas son
+   nom autrement), la version de WebGL, le nombre de bits de profondeur (16 ou
+   24 : c'est lui qui fait clignoter deux surfaces proches), la possibilité de
+   cuire l'environnement en virgule flottante (sans elle, le cuivre et le métal
+   perdent leur reflet), et le réglage « réduire les animations » du système,
+   qui éteint à lui seul l'inclinaison des cartes et l'élan de la ruée.
+
+   À lancer dans les deux navigateurs : CIEL.diagnostic() */
+function diagnostic() {
+  const gl = rendu.getContext();
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const flottant = !!(gl.getExtension("EXT_color_buffer_float")
+                   || gl.getExtension("EXT_color_buffer_half_float")
+                   || gl.getExtension("OES_texture_float"));
+  return {
+    navigateur: navigator.userAgent,
+    pilote: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "(masqué)",
+    webgl: rendu.capabilities.isWebGL2 ? 2 : 1,
+    bitsDeProfondeur: gl.getParameter(gl.DEPTH_BITS),
+    virguleFlottante: flottant,
+    ombres: rendu.shadowMap.enabled + " / " + rendu.shadowMap.type,
+    pixels: rendu.getPixelRatio(),
+    animationsReduites: CALME,
+    appelsDeRendu: rendu.info.render.calls,
+    triangles: rendu.info.render.triangles,
+    textureMax: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+  };
+}
+
 window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
-                poserHeure, allerA, ciel, sousTitrer, taireSousTitre };
+                poserHeure, allerA, ciel, sousTitrer, taireSousTitre,
+                diagnostic };
 
 requestAnimationFrame(image);
