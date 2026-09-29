@@ -84,12 +84,42 @@ body.jour {
    pas un élément, on ferme la catégorie. */
 [hidden] { display: none !important; }
 
+/* ── iPhone : pourquoi le village devenait inutilisable ─────────────────
+   JustAkhiraa : « sur mon iPhone 15 je peux rien faire, je suis bloqué, la fenêtre
+   est zoomée et je peux même pas appuyer sur retour ou fermer la croix ».
+
+   Deux causes, et la première est une unité de mesure.
+
+   « 100vh » sur iOS ne vaut PAS la hauteur visible : c'est la hauteur de
+   l'écran barres d'outils RÉTRACTÉES — 852 points sur un iPhone 15, quand on
+   n'en voit que 745. La fenêtre de lecture faisait donc 852 de haut, et comme
+   elle est centrée, la moitié du débordement passait AU-DESSUS du bord
+   supérieur : une cinquantaine de points, c'est-à-dire exactement la barre qui
+   porte la croix de fermeture. Elle n'était pas cachée par un bug, elle était
+   hors de l'écran, et rien ne pouvait défiler pour aller la chercher puisque
+   tout est en « overflow: hidden ». « dvh » est la même mesure, prise sur la
+   hauteur RÉELLEMENT visible, et elle suit les barres quand elles bougent.
+
+   La seconde cause est le double-tap. Sur une page dont tout est fixe, un
+   zoom accidentel déplace la vue sans rien laisser à faire défiler : on reste
+   coincé dans un coin du village. « touch-action: manipulation » retire le
+   double-tap-pour-zoomer sans retirer le pincement — celui-là reste, parce
+   qu'on ne prend pas à quelqu'un le droit d'agrandir ce qu'il lit. */
 html, body {
-  margin: 0; height: 100%; overflow: hidden;
+  margin: 0; height: 100%; height: 100dvh; overflow: hidden;
   font-family: var(--sans); color: var(--encre);
   background: var(--nuit);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
+/* En paysage, l'encoche et le coin arrondi passent sur les CÔTÉS : sans ces
+   deux retraits, « Le site » et l'aide se retrouvent sous le bord arrondi de
+   l'écran, visibles mais intouchables. */
+.hud-haut { padding-left: max(1rem, env(safe-area-inset-left));
+            padding-right: max(1rem, env(safe-area-inset-right)); }
+.boussole { padding-left: max(.8rem, env(safe-area-inset-left));
+            padding-right: max(.8rem, env(safe-area-inset-right)); }
 body { transition: color .5s ease; }
 
 /* « touch-action: none » : sans cette ligne, glisser le doigt sur le village
@@ -329,8 +359,16 @@ body.jour .carte-dedans { box-shadow: 0 16px 38px rgba(16, 40, 76, .26),
   -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   margin-top: .2rem; font-size: .74rem; line-height: 1.34;
   color: var(--encre-douce); }
+/* « Réduire les animations » veut dire moins de MOUVEMENT, pas moins de
+   relief. La règle coupait le « transform » en entier : la carte perdait du
+   même coup son inclinaison sous le pointeur — ce qui est demandé — et sa
+   perspective — ce qui ne l'est pas, puisqu'elle ne bouge pas. Un village vu
+   par quelqu'un qui a désactivé les animations de son système devenait donc
+   une page de rectangles plats, et c'est peut-être ce qu'JustAkhiraa voit dans Edge.
+   On fige l'inclinaison à zéro, on garde la profondeur. */
 @media (prefers-reduced-motion: reduce) {
-  .carte-dedans { transition: none; transform: none; }
+  .carte-dedans { transition: none;
+    transform: perspective(640px) rotateX(0deg) rotateY(0deg) translateZ(0); }
 }
 
 /* ═══════════════════════════════════ le titre ═══════════════════════════
@@ -573,26 +611,58 @@ body.a-bouge .invite, body.en-matiere .invite {
    rend lisible sur n'importe quelle façade — et qui s'efface toute seule.
    Une étiquette permanente collée au pointeur devient un meuble ; celle-ci
    dit ce qu'il faut, une fois, puis se tait. */
+/* ── Corrigé : il était au milieu, il est maintenant au bord ────────────
+   JustAkhiraa : « ce texte est relou quand je marche ; mets-le discret quelque
+   part, il doit être visible mais pas chiant comme ça. »
+
+   Il avait raison, et la faute était de m'être arrêté au mot « sous-titre ».
+   Au cinéma, le sous-titre est en bas au milieu parce que c'est là que le
+   regard revient entre deux plans, et parce qu'il ne dure qu'une réplique.
+   Ici, le regard n'est pas en bas : il est droit devant, sur le village. Et
+   la ligne ne se déclenche pas une fois, elle se déclenche à CHAQUE bâtiment
+   qu'on croise — donc tout le temps, quand on marche. Une plaque sombre d'un
+   tiers d'écran, qui revient tous les trois pas, au centre du champ.
+
+   Elle passe donc en haut, sous le bandeau, en UNE ligne, sans plaque pleine
+   et sans ombre portée : une barre fine, du côté où l'œil est déjà allé
+   chercher « Le site » et l'heure. Le nom reste lisible, le reste se dit à
+   voix basse, et rien ne couvre plus ce qu'on regarde. */
 .soustitre {
-  position: fixed; z-index: 24; left: 50%; bottom: 22%;
-  transform: translate(-50%, 10px);
-  margin: 0; padding: .6rem 1.15rem; border-radius: 13px;
-  display: flex; flex-direction: column; align-items: center; gap: .1rem;
-  text-align: center; pointer-events: none; max-width: min(92vw, 34rem);
-  background: rgba(6, 10, 22, .86);
-  border: 1px solid color-mix(in srgb, var(--c, #6FC8FF) 48%, transparent);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, .45);
-  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-  opacity: 0; transition: opacity .38s ease, transform .38s ease;
+  position: fixed; z-index: 24; left: 50%;
+  top: calc(max(.7rem, env(safe-area-inset-top)) + 3.4rem);
+  transform: translate(-50%, -6px);
+  margin: 0; padding: .32rem .8rem; border-radius: 999px;
+  display: flex; align-items: baseline; gap: .5rem;
+  text-align: center; pointer-events: none; max-width: min(92vw, 40rem);
+  background: rgba(6, 10, 22, .58);
+  border: 1px solid color-mix(in srgb, var(--c, #6FC8FF) 34%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; transition: opacity .3s ease, transform .3s ease;
 }
-.soustitre.vu { opacity: 1; transform: translate(-50%, 0); }
-.soustitre b { font-size: 1.02rem; font-weight: 720; letter-spacing: -.01em;
-  color: #F2F7FF; }
-/* Mesuré à 3,84:1 sur la plaque : un accent à 72 % reste un accent, et un
-   accent saturé sur du presque-noir ne passe pas le seuil. À 52 %, la teinte
-   se voit encore et la ligne se lit. */
-.soustitre span { font-family: var(--mono); font-size: .72rem;
-  letter-spacing: .04em; color: color-mix(in srgb, var(--c, #6FC8FF) 52%, #FFF); }
+body.jour .soustitre { background: rgba(244, 249, 253, .72); }
+.soustitre.vu { opacity: .94; transform: translate(-50%, 0); }
+/* En marchant, elle s'efface encore : on ne lit pas en courant, et c'est
+   exactement le moment où elle gênait. */
+body.a-bouge .soustitre.vu { opacity: .55; }
+.soustitre b { font-size: .82rem; font-weight: 700; letter-spacing: -.005em;
+  white-space: nowrap; color: #F2F7FF; }
+body.jour .soustitre b { color: #0D1B2E; }
+/* Mesuré à 3,84:1 sur l'ancienne plaque : un accent à 72 % reste un accent, et
+   un accent saturé sur du presque-noir ne passe pas le seuil. À 52 %, la
+   teinte se voit encore et la ligne se lit. */
+/* .7rem et non .68 : le banc l'a relevée à 10,9 pixels à l'écran, soit un
+   dixième sous le plancher. Un dixième de pixel sous un seuil reste sous le
+   seuil — sinon le seuil ne veut plus rien dire. */
+.soustitre span { font-family: var(--mono); font-size: .7rem;
+  letter-spacing: .03em; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+  color: color-mix(in srgb, var(--c, #6FC8FF) 52%, #FFF); }
+body.jour .soustitre span {
+  color: color-mix(in srgb, var(--c, #14618F) 62%, #0B1A2C); }
+/* Sur un téléphone, la seconde ligne ne tient pas à côté de la première : on
+   garde le nom, qui est l'information, et on laisse tomber le décompte, qui
+   est déjà sur l'enseigne et sur la pastille. */
+@media (max-width: 620px) { .soustitre span { display: none; } }
 @media (prefers-reduced-motion: reduce) { .soustitre { transition: none; } }
 
 /* ── le titre qui se dit puis se tait ─────────────────────────────────
@@ -740,6 +810,7 @@ body.titre-parti:not(.en-matiere) .pont {
 .lecture {
   position: fixed; z-index: 50; left: 50%; top: 50%;
   width: min(1480px, 96vw); height: min(94vh, 1180px);
+  height: min(94dvh, 1180px);
   display: flex; flex-direction: column; overflow: hidden;
   border-radius: 22px;
   background: var(--verre-fort);
@@ -884,6 +955,67 @@ body.jour .lecture-corps {
 .lecture-corps .formule { font-family: var(--mono); font-size: .92rem;
   text-align: center; margin: 1rem 0; padding: .8rem;
   border-radius: 10px; background: color-mix(in srgb, var(--encre) 6%, transparent); }
+/* ── Le QCM dans le village ──────────────────────────────────────────────
+   Il arrivait sans une seule règle : ses boutons retombaient donc sur le
+   dessin par défaut du navigateur — des rectangles blancs à texte noir, posés
+   sur du verre sombre —, et la lettre du choix collait à son libellé faute
+   d'espacement. « Moche » était exact, et ce n'était pas une question de goût :
+   aucune règle ne les visait.
+
+   Trois états, et trois seulement : au repos, juste, faux. La bonne réponse
+   s'allume toujours, même quand on s'est trompé — c'est ce qu'on est venu
+   apprendre. */
+.lecture-corps .qcm-tete { display: flex; align-items: center; gap: .8rem;
+  margin: 0 0 1.2rem; }
+.lecture-corps .qcm-tete .sc { font-family: var(--mono); font-size: .86rem;
+  font-weight: 700; color: var(--c); flex: 0 0 auto; }
+.lecture-corps .qcm-tete .av { flex: 1 1 auto; height: 5px; border-radius: 999px;
+  background: color-mix(in srgb, var(--encre) 12%, transparent); overflow: hidden; }
+.lecture-corps .qcm-tete .av > span { display: block; height: 100%; width: 0;
+  background: var(--c); transition: width .3s ease; }
+.lecture-corps .qcm-q { margin: 0 0 1.6rem; }
+.lecture-corps .qcm-n { display: inline-flex; align-items: center;
+  justify-content: center; min-width: 1.5rem; height: 1.5rem; margin-right: .5rem;
+  border-radius: 999px; font-family: var(--mono); font-size: .72rem;
+  font-weight: 700; color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, transparent); }
+.lecture-corps .qcm-opts { display: grid; gap: .4rem; margin-top: .7rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
+.lecture-corps .qcm-opt {
+  display: flex; align-items: center; gap: .6rem; width: 100%;
+  font: inherit; font-size: .86rem; text-align: left; cursor: pointer;
+  padding: .55rem .7rem; border-radius: 11px; color: var(--encre);
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--encre) 18%, transparent);
+  transition: background .15s, border-color .15s, transform .1s; }
+.lecture-corps .qcm-opt:hover:not(:disabled) {
+  border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
+.lecture-corps .qcm-opt:active:not(:disabled) { transform: translateY(1px); }
+.lecture-corps .qcm-opt:disabled { cursor: default; }
+.lecture-corps .qcm-lt { flex: 0 0 auto; display: inline-flex;
+  align-items: center; justify-content: center; width: 1.55rem; height: 1.55rem;
+  border-radius: 8px; font-family: var(--mono); font-size: .76rem;
+  font-weight: 700; color: var(--encre-douce);
+  background: color-mix(in srgb, var(--encre) 12%, transparent); }
+.lecture-corps .qcm-opt.juste { border-color: #62E88A;
+  background: color-mix(in srgb, #62E88A 18%, transparent); }
+.lecture-corps .qcm-opt.juste .qcm-lt { color: #08321A;
+  background: #62E88A; }
+.lecture-corps .qcm-opt.faux { border-color: #FF8B8B;
+  background: color-mix(in srgb, #FF8B8B 16%, transparent); }
+.lecture-corps .qcm-opt.faux .qcm-lt { color: #3A0C0C; background: #FF8B8B; }
+body.jour .lecture-corps .qcm-opt.juste { border-color: #1F7A42;
+  background: color-mix(in srgb, #1F7A42 14%, transparent); }
+body.jour .lecture-corps .qcm-opt.juste .qcm-lt { background: #1F7A42; color: #FFF; }
+body.jour .lecture-corps .qcm-opt.faux { border-color: #A82C2C;
+  background: color-mix(in srgb, #A82C2C 12%, transparent); }
+body.jour .lecture-corps .qcm-opt.faux .qcm-lt { background: #A82C2C; color: #FFF; }
+.lecture-corps .qcm-why { margin-top: .6rem; padding: .6rem .8rem;
+  border-radius: 10px; font-size: .86rem; line-height: 1.6;
+  color: var(--encre-douce);
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  border-left: 3px solid var(--c); }
+
 .lecture-corps .reponse { margin-top: .6rem; padding-top: .6rem;
   border-top: 1px dashed var(--trait); }
 
@@ -942,7 +1074,14 @@ body.jour .lecture-corps {
 
 /* ── téléphone ───────────────────────────────────────────────────────── */
 @media (max-width: 620px) {
-  .lecture { width: 100vw; height: 100vh; border-radius: 0; border: 0; }
+  /* Ancrée en HAUT, pas centrée. Même si la hauteur visible change en cours
+     de route — les barres d'iOS apparaissent et disparaissent au défilement —,
+     une fenêtre ancrée en haut ne peut pas pousser sa barre de titre hors de
+     l'écran. Centrée, elle le fait au premier point de trop. */
+  .lecture { width: 100vw; height: 100dvh; border-radius: 0; border: 0;
+    top: 0; left: 0; transform: none; }
+  .lecture.glisse { transform: translateY(14px) scale(.985); }
+  .lecture > header { padding-top: max(1.5rem, env(safe-area-inset-top)); }
   /* Le chapeau de l'accueil mange l'écran d'un téléphone, et le village est
      justement ce qu'on veut voir. Le titre reste. */
   .accueil-tete p { display: none; }
