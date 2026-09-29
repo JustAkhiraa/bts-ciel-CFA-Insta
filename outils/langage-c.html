@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier C et C++ — BTS CIEL</title>
+<meta name="description" content="Écrire, compiler et exécuter du C et du C++ directement dans le navigateur, avec les erreurs expliquées en français et les fautes d'exécution signalées à la ligne près.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" href="../assets/icone.svg">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="dev">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav data-monde="../monde/index.html">
+    <a href="../index.html" aria-label="Accueil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Accueil</span></a>
+    <a href="../planning.html" aria-label="Planning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Planning</span></a>
+    <a href="../devoirs.html" aria-label="Devoirs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12l2 2 4-4"/></svg><span>Devoirs</span></a>
+    <a href="../outils/index.html" aria-current="page" aria-label="Outils"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6a3.5 3.5 0 1 0 4 4L21 12l-9 9-3-3 9-9z"/><path d="M7 7 3 3"/></svg><span>Outils</span></a>
+    <a href="../a-propos.html" aria-label="À propos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.2"/></svg><span>À propos</span></a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#dev">Informatique &amp; développement</a> <span>/</span>
+    <span>Atelier C et C++</span></div>
+
+  <div class="tete-matiere">
+    <h1>Atelier C et C++</h1>
+    <p>clang compile <b>dans votre navigateur</b> — rien n'est envoyé nulle part. Et il est réglé pour dire ce qu'aucun TP ne dit : <b>case hors du tableau</b>, <b>variable non initialisée</b>, <b>division par zéro</b>, avec le numéro de ligne.</p>
+  </div>
+
+  <section class="outil outil-plein" id="atelier">
+    <div class="at-barre" role="toolbar" aria-label="Commandes de l'atelier">
+      <button type="button" id="at-executer" class="at-lancer">
+        <span class="at-triangle" aria-hidden="true">▶</span>
+        <span class="lib">Exécuter</span>
+        <kbd data-raccourci="CMD ⏎"></kbd>
+      </button>
+      <button type="button" id="at-arreter" class="at-stop" hidden>
+        <span aria-hidden="true">■</span> Arrêter
+      </button>
+
+      <div class="at-segments" id="at-langue" role="group" aria-label="Langage">
+        <button type="button" data-langue="c" aria-pressed="true">C</button>
+        <button type="button" data-langue="c++" aria-pressed="false">C++</button>
+      </div>
+
+      <button type="button" id="at-strict" class="at-bascule" aria-pressed="true"
+              title="Ajoute les contrôles d'exécution : case hors du tableau, division par zéro, pointeur nul">
+        <span class="at-coche" aria-hidden="true"></span> Contrôles d'exécution
+      </button>
+
+      <button type="button" id="at-exemples" class="at-creux" aria-expanded="false"
+              aria-controls="at-tiroir">Exemples</button>
+      <button type="button" id="at-partager" class="at-creux">Partager</button>
+      <button type="button" id="at-plein" class="at-creux at-icone" aria-pressed="false"
+              title="Plein écran (F11 du site, Échap pour sortir)">
+        <span class="at-ic-plein" aria-hidden="true"></span>
+        <span class="at-lib-plein">Agrandir</span>
+      </button>
+
+      <div class="at-jauge-boite">
+        <p class="at-etat" id="at-etat" role="status" aria-live="polite"></p>
+        <div class="at-jauge" id="at-jauge" hidden role="progressbar"
+             aria-label="Téléchargement du compilateur" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+
+    <div class="at-tiroir" id="at-tiroir" hidden>
+      <div class="at-tiroir-tete">
+        <h3>Partir d'un programme</h3>
+        <button type="button" id="at-fermer-tiroir" aria-label="Fermer les exemples">✕</button>
+      </div>
+      <div class="at-liste-ex" id="at-liste-exemples">
+        <p class="at-vide">Chargement…</p>
+      </div>
+    </div>
+
+    <div class="at-grille">
+      <div class="at-volet at-volet-code">
+        <div class="at-volet-tete"><span class="at-onglet" id="at-nom-fichier">programme.c</span></div>
+        <div class="edi">
+          <div class="edi-marge" aria-hidden="true"></div>
+          <div class="edi-champ">
+            <pre class="edi-peint" aria-hidden="true"></pre>
+            <textarea class="edi-saisie" spellcheck="false" autocapitalize="off"
+                      autocomplete="off" autocorrect="off" wrap="off"
+                      aria-label="Votre programme. Tabulation insère une indentation ; Échap puis Tabulation quitte le champ."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="at-volet at-volet-sortie">
+        <div class="at-volet-tete"><span class="at-onglet">Console</span></div>
+        <div class="con">
+          <pre class="con-flux" role="log" aria-live="polite" aria-label="Sortie du programme"></pre>
+        </div>
+        <div class="at-entree" id="at-entree" hidden>
+          <label for="at-champ-entree">Le programme attend une saisie</label>
+          <div class="at-entree-rangee">
+            <input type="text" id="at-champ-entree" autocomplete="off" spellcheck="false"
+                   placeholder="tapez puis Entrée">
+            <button type="button" id="at-envoyer">Envoyer</button>
+            <button type="button" id="at-fin-saisie" class="at-eof"
+                    title="Dire au programme qu'il n'y a plus rien à lire">Fin de saisie</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="at-poignee-note">Les deux cadres s'agrandissent : tirez leur coin inférieur droit.</p>
+
+    <h3 class="at-diag-tete" id="at-diag-tete" hidden></h3>
+    <div class="at-diags" id="at-diagnostics"></div>
+
+    <details class="at-notice">
+      <summary>Six fautes que votre PC ne vous dira pas, et comment cet atelier les nomme</summary>
+      <div class="at-notice-corps">
+        <p>Un programme qui compile sans un mot et qui affiche n'importe quoi : c'est la
+           situation la plus coûteuse du premier semestre, parce qu'il n'y a rien à lire
+           pour comprendre. Cet atelier compile avec <b>clang</b> — le même compilateur que
+           sous macOS et dans beaucoup d'entreprises — mais il ajoute une instrumentation
+           que personne n'active en cours. Résultat : la faute est nommée, avec sa ligne.</p>
+
+        <div class="tableau-conteneur">
+          <table class="at-tableau">
+            <thead>
+              <tr><th>La faute</th><th>Un gcc ordinaire</th><th>Cet atelier</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>Case hors du tableau</b><br><code>t[7]</code> sur <code>int t[5]</code></td>
+                  <td>Rien. Il lit la mémoire du voisin et continue.</td>
+                  <td>« Case hors du tableau : indice 7 », ligne et colonne.</td></tr>
+              <tr><td><b>Variable jamais initialisée</b></td>
+                  <td>Une valeur différente à chaque exécution.</td>
+                  <td>Avertissement à la compilation, et à l'exécution un nombre
+                      <b>reproductible</b> que l'atelier reconnaît et explique.</td></tr>
+              <tr><td><b>Le <code>&amp;</code> oublié dans <code>scanf</code></b></td>
+                  <td>Rien, sans <code>-Wall</code>.</td>
+                  <td>« Le &amp; est oublié dans scanf », avec la règle et son exception.</td></tr>
+              <tr><td><b>Division par zéro</b></td>
+                  <td>Le programme meurt sans dire où.</td>
+                  <td>« Division par zéro », ligne et colonne.</td></tr>
+              <tr><td><b><code>return</code> manquant</b></td>
+                  <td>Rien. La fonction renvoie ce qui traînait.</td>
+                  <td>Le chemin fautif est nommé à la compilation.</td></tr>
+              <tr><td><b>Boucle sans fin</b></td>
+                  <td>Le terminal se fige.</td>
+                  <td>Arrêt au bout de 5 secondes, et la question à se poser.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Le programme tourne <b>dans votre navigateur</b>, jamais sur un serveur : rien de
+           ce que vous écrivez ne quitte votre appareil. La machine est en <b>32 bits</b> —
+           un pointeur y occupe donc 4 octets, contre 8 sur votre PC. C'est la seule
+           différence visible, et elle ne se remarque que sur <code>sizeof(int *)</code>.
+           Les fichiers ouverts avec <code>fopen</code> existent le temps de l'exécution,
+           et leur contenu est affiché sous la console à la fin.</p>
+
+        <p class="note">Compilateur <b>clang 8.0.1</b> et éditeur de liens <b>lld</b>, portés
+           en WebAssembly par le projet <b>wasm-clang</b> (Apache 2.0 avec exception LLVM),
+           bibliothèque standard <b>wasi-libc</b> et <b>libc++</b>. Environ 60 Mo téléchargés
+           une seule fois, puis conservés par le navigateur. Les licences sont livrées à côté
+           du moteur : <code>outils/c/LICENCE-llvm.txt</code> et
+           <code>outils/c/LICENCE-wasm-clang.txt</code>.</p>
+      </div>
+    </details>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="ports.html"><span>Outil précédent</span><b>Ports et protocoles</b></a>
+    <a class="suiv" href="compte-rendu.html"><span>Outil suivant</span><b>Compteur de mots</b></a>
+  </nav>
+</main>
+
+<script>
+/* L'atelier est trop gros pour vivre dans la page : il est en deux fichiers,
+   chargés juste après, et le moteur lui-même est dans « c/ ». */
+</script>
+<script src="c/traductions.js"></script>
+<script src="c/atelier.js"></script>
+
+<script src="../assets/fiche.js?v=77c15c61"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/app.js?v=77c15c61"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

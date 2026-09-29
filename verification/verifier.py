@@ -55,7 +55,10 @@ DOSSIERS_IGNORES = {".git", ".github", "verification", "node_modules"}
 # des données personnelles : seul « .html » était lu. Un nom déposé dans
 # README.md, LICENSE ou PRODUCT.md serait parti en ligne sans un mot — et ces
 # trois-là sont justement ceux qu'on écrit à la main.
-TEXTES = (".md", ".txt", ".json", ".webmanifest", ".yml", ".yaml", ".csv")
+# « .py » est arrivé le jour où l'outillage de mise à jour automatique a été
+# publié : du code Python vit désormais dans le dépôt public, et rien ne le
+# relisait. Un nom laissé dans un commentaire serait parti en ligne.
+TEXTES = (".md", ".txt", ".json", ".webmanifest", ".yml", ".yaml", ".csv", ".py")
 SANS_EXTENSION = {"LICENSE", "NOTICE", "AUTHORS", "CITATION"}
 
 
@@ -339,6 +342,28 @@ def main():
             if combien > 1:
                 pbs.append((rel, f"identifiant « {ident} » présent {combien} fois"))
 
+        # ── 1 ter. une page sans issue ────────────────────────────────
+        # Ahmed : « j'arrive pas à revenir à l'accueil ». Les fiches de
+        # révision et les QCM n'avaient AUCUN lien vers le pôle ni vers
+        # l'accueil — 72 pages sans retour, et rien ne le disait : chacun de
+        # ces liens manquants est un lien qui n'existe pas, donc invisible
+        # pour un contrôle qui ne cherche que les liens MORTS.
+        #
+        # On vérifie donc l'inverse : tout ce qui se lit doit mener ailleurs.
+        # L'accueil lui-même en est dispensé, il EST la destination.
+        # Le chemin attendu dépend de la PROFONDEUR : « ../index.html » est
+        # l'accueil depuis outils/, mais seulement l'index du pôle depuis un
+        # chapitre. Première version trop indulgente — elle acceptait le lien
+        # vers le pôle et ne voyait donc rien quand j'ai retiré le lien vers
+        # l'accueil pour l'éprouver. Un contrôle qu'on ne met pas en échec
+        # n'est pas un contrôle.
+        if rel != "index.html" and not rel.startswith("verification/"):
+            profondeur = rel.count("/")
+            attendu = "../" * profondeur + "index.html"
+            if f'href="{attendu}"' not in hl:
+                pbs.append((rel, f"aucun lien vers l'accueil ({attendu}) : "
+                                 "page sans issue"))
+
         # ── 2. dépendances externes ───────────────────────────────────
         for balise, u in re.findall(
                 r'<\s*(link|script|img|iframe|source|video|audio|object|embed)\b[^>]*?'
@@ -357,19 +382,37 @@ def main():
                 pbs.append((rel, f"lien mort : {u}"))
 
     # ── 4. chaque chapitre a ses trois fiches ─────────────────────────
+    # Un PÔLE porte un numéro d'ordre : « 01-informatique-dev »,
+    # « 02-reseaux-systemes »… La première version se contentait de « un
+    # dossier de premier niveau qui contient un index.html », ce qui est vrai
+    # d'« outils/ » aussi : le jour où l'atelier C a déposé son moteur dans
+    # « outils/c/ », le contrôle a réclamé trois fiches de cours à un dossier
+    # de binaires. On nomme donc ce qu'est un pôle, au lieu de le deviner.
+    POLE = re.compile(r"^\d{2}-[a-z0-9-]+$")
+    n_poles = n_chap = 0
     for pole in sorted(os.listdir(RACINE)):
         d = os.path.join(RACINE, pole)
-        if not os.path.isdir(d) or pole.startswith((".", "_")) or pole in DOSSIERS_IGNORES:
+        if not os.path.isdir(d) or not POLE.match(pole):
             continue
         if not os.path.isfile(os.path.join(d, "index.html")):
+            pbs.append((pole, "pôle sans index.html"))
             continue
+        n_poles += 1
         for chap in sorted(os.listdir(d)):
             c = os.path.join(d, chap)
-            if not os.path.isdir(c):
+            if not os.path.isdir(c) or chap == "sources":
                 continue
+            n_chap += 1
             for f in ("cours.html", "exercices.html", "fiche-revision.html"):
                 if not os.path.isfile(os.path.join(c, f)):
                     pbs.append((f"{pole}/{chap}", f"{f} manquant"))
+    # Un plancher, sinon le contrôle se désarme tout seul : le jour où le motif
+    # ne reconnaît plus rien, « 0 chapitre contrôlé, 0 anomalie » passerait pour
+    # une réussite. Déjà arrivé sur la table des ports — voir CLAUDE.md § 10.
+    if n_poles < 5 or n_chap < 50:
+        pbs.append(("verification/verifier.py",
+                    f"le contrôle ne reconnaît plus que {n_poles} pôle(s) et "
+                    f"{n_chap} chapitre(s) : c'est LE CONTRÔLE qui est cassé"))
 
     # ── 5. l'index de recherche ───────────────────────────────────────
     ir = os.path.join(RACINE, "assets", "recherche.js")

@@ -6,8 +6,8 @@
 <title>PHP — sessions et espace membre | BTS CIEL</title>
 <meta name="description" content="Cours complet : HTTP sans mémoire, cycle d'une session, GET vs POST, validation serveur, compteur de visites, authentification, page protégée et déconnexion.">
 <meta name="theme-color" content="#FDF5E6">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=5f6e2ccc">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -31,7 +31,7 @@
 
 <header class="fiche-tete">
   <div class="fil">
-    <span class="matiere">Informatique &amp; Développement</span>
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
     <span class="sep">/</span><span>Chapitre 06</span>
   </div>
 
@@ -122,15 +122,15 @@
 <section id="cycle">
   <h2><span class="num">02</span>Le cycle d'une session</h2>
 
-<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
-session_start();                    // 1. ouvrir — TOUTE PREMIÈRE LIGNE
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-typ">session_start</span>();                    <span class="j-com">// 1. ouvrir — TOUTE PREMIÈRE LIGNE</span>
 
-$_SESSION["user"] = "Paul";         // 2. écrire
+<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>] = <span class="j-txt">"Paul"</span>;         <span class="j-com">// 2. écrire</span>
 
-echo $_SESSION["user"];             // 3. lire        → Paul
+<span class="j-mc">echo</span> <span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>];             <span class="j-com">// 3. lire        → Paul</span>
 
-session_destroy();                  // 4. détruire
-?&gt;</code></pre></div>
+<span class="j-typ">session_destroy</span>();                  <span class="j-com">// 4. détruire</span>
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="tableau">
   <table>
@@ -177,15 +177,15 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   <p>Le premier exercice du TP demande de faire la <strong>même chose</strong> avec les deux
      méthodes, puis de comparer. Le résultat est le même, la façon dont il voyage ne l'est pas.</p>
 
-<div class="bloc-code"><span class="langue">html — en POST</span><pre><code>&lt;form action="traitement.php" method="post"&gt;
-    &lt;input type="text" name="nom"&gt;
-    &lt;input type="text" name="prenom"&gt;
-    &lt;input type="submit"&gt;
-&lt;/form&gt;</code></pre></div>
+<div class="bloc-code"><span class="langue">html — en POST</span><pre><code><span class="j-bal">&lt;form</span> <span class="j-att">action</span>=<span class="j-txt">"traitement.php"</span> <span class="j-att">method</span>=<span class="j-txt">"post"</span><span class="j-bal">&gt;</span>
+    <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"text"</span> <span class="j-att">name</span>=<span class="j-txt">"nom"</span><span class="j-bal">&gt;</span>
+    <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"text"</span> <span class="j-att">name</span>=<span class="j-txt">"prenom"</span><span class="j-bal">&gt;</span>
+    <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"submit"</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;/form</span><span class="j-bal">&gt;</span></code></pre></div>
 
-<div class="bloc-code"><span class="langue">php — traitement.php</span><pre><code>$nom    = htmlspecialchars($_POST["nom"]);
-$prenom = htmlspecialchars($_POST["prenom"]);
-echo "Bonjour $nom $prenom";</code></pre></div>
+<div class="bloc-code"><span class="langue">php — traitement.php</span><pre><code><span class="j-var">$nom</span>    = <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"nom"</span>]);
+<span class="j-var">$prenom</span> = <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"prenom"</span>]);
+<span class="j-mc">echo</span> <span class="j-txt">"Bonjour $nom $prenom"</span>;</code></pre></div>
 
   <p>En <strong>GET</strong>, il suffit de changer <code>method="get"</code> et
      <code>$_POST</code> en <code>$_GET</code>. Mais l'URL devient :</p>
@@ -224,28 +224,28 @@ echo "Bonjour $nom $prenom";</code></pre></div>
   <p>Le deuxième exercice : un email non vide, un mot de passe d'au moins 6 caractères, et des
      messages d'erreur.</p>
 
-<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
-$erreurs = [];
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-var">$erreurs</span> = [];
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+<span class="j-mc">if</span> (<span class="j-var">$_SERVER</span>[<span class="j-txt">"REQUEST_METHOD"</span>] === <span class="j-txt">"POST"</span>) {
 
-    if (!isset($_POST["email"]) || trim($_POST["email"]) === "") {
-        $erreurs[] = "L'email est obligatoire.";
+    <span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"email"</span>]) || <span class="j-typ">trim</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"email"</span>]) === <span class="j-txt">""</span>) {
+        <span class="j-var">$erreurs</span>[] = <span class="j-txt">"L'email est obligatoire."</span>;
     }
 
-    if (!isset($_POST["password"]) || strlen($_POST["password"]) &lt; 6) {
-        $erreurs[] = "Le mot de passe doit faire au moins 6 caractères.";
+    <span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"password"</span>]) || <span class="j-typ">strlen</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"password"</span>]) &lt; <span class="j-num">6</span>) {
+        <span class="j-var">$erreurs</span>[] = <span class="j-txt">"Le mot de passe doit faire au moins 6 caractères."</span>;
     }
 
-    if (count($erreurs) === 0) {
-        echo "&lt;p class='success'&gt;Connexion réussie&lt;/p&gt;";
-    } else {
-        foreach ($erreurs as $e) {
-            echo "&lt;p class='error'&gt;" . htmlspecialchars($e) . "&lt;/p&gt;";
+    <span class="j-mc">if</span> (<span class="j-typ">count</span>(<span class="j-var">$erreurs</span>) === <span class="j-num">0</span>) {
+        <span class="j-mc">echo</span> <span class="j-txt">"&lt;p class='success'&gt;Connexion réussie&lt;/p&gt;"</span>;
+    } <span class="j-mc">else</span> {
+        <span class="j-mc">foreach</span> (<span class="j-var">$erreurs</span> <span class="j-mc">as</span> <span class="j-var">$e</span>) {
+            <span class="j-mc">echo</span> <span class="j-txt">"&lt;p class='error'&gt;"</span> . <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$e</span>) . <span class="j-txt">"&lt;/p&gt;"</span>;
         }
     }
 }
-?&gt;</code></pre></div>
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart outils">
     <div class="titre">🧰 <code>$_SERVER["REQUEST_METHOD"]</code> : le bon garde-fou</div>
@@ -272,17 +272,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
   <p>Première vraie utilisation de la mémoire : compter les passages sur la page.</p>
 
-<div class="bloc-code"><span class="langue">php</span><pre><code>&lt;?php
-session_start();
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-typ">session_start</span>();
 
-if (!isset($_SESSION["visites"])) {
-    $_SESSION["visites"] = 1;        // première visite
-} else {
-    $_SESSION["visites"]++;          // les suivantes
+<span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>])) {
+    <span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] = <span class="j-num">1</span>;        <span class="j-com">// première visite</span>
+} <span class="j-mc">else</span> {
+    <span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>]++;          <span class="j-com">// les suivantes</span>
 }
 
-echo "Vous avez visité cette page " . $_SESSION["visites"] . " fois.";
-?&gt;</code></pre></div>
+<span class="j-mc">echo</span> <span class="j-txt">"Vous avez visité cette page "</span> . <span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] . <span class="j-txt">" fois."</span>;
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ Le test <code>isset()</code> n'est pas optionnel</div>
@@ -290,7 +290,7 @@ echo "Vous avez visité cette page " . $_SESSION["visites"] . " fois.";
        émet alors un <em>Warning: Undefined array key</em>, et le compteur démarre à 1 par
        accident plutôt que par décision.</p>
     <p>La forme condensée, courante en PHP moderne :</p>
-<div class="bloc-code"><span class="langue">php</span><pre><code>$_SESSION["visites"] = ($_SESSION["visites"] ?? 0) + 1;</code></pre></div>
+<div class="bloc-code"><span class="langue">php</span><pre><code><span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] = (<span class="j-var">$_SESSION</span>[<span class="j-txt">"visites"</span>] ?? <span class="j-num">0</span>) + <span class="j-num">1</span>;</code></pre></div>
     <p><code>??</code> signifie « ou, si ça n'existe pas, alors… ». Une ligne au lieu de cinq.</p>
   </div>
 </section>
@@ -302,24 +302,24 @@ echo "Vous avez visité cette page " . $_SESSION["visites"] . " fois.";
   <p>Identifiants attendus : <code>admin</code> / <code>1234</code>, vérifiés <strong>sans base de
      données</strong>.</p>
 
-<div class="bloc-code"><span class="langue">php — login.php</span><pre><code>&lt;?php
-session_start();
-$erreur = "";
+<div class="bloc-code"><span class="langue">php — login.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-typ">session_start</span>();
+<span class="j-var">$erreur</span> = <span class="j-txt">""</span>;
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+<span class="j-mc">if</span> (<span class="j-var">$_SERVER</span>[<span class="j-txt">"REQUEST_METHOD"</span>] === <span class="j-txt">"POST"</span>) {
 
-    $login = trim($_POST["login"] ?? "");
-    $mdp   = $_POST["password"] ?? "";
+    <span class="j-var">$login</span> = <span class="j-typ">trim</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"login"</span>] ?? <span class="j-txt">""</span>);
+    <span class="j-var">$mdp</span>   = <span class="j-var">$_POST</span>[<span class="j-txt">"password"</span>] ?? <span class="j-txt">""</span>;
 
-    if (strtolower($login) === "admin" &amp;&amp; $mdp === "1234") {
-        $_SESSION["user"] = $login;           // on mémorise
-        header("Location: accueil.php");      // on redirige
-        exit();                               // ← ET ON S'ARRÊTE
-    } else {
-        $erreur = "Identifiants incorrects";
+    <span class="j-mc">if</span> (<span class="j-typ">strtolower</span>(<span class="j-var">$login</span>) === <span class="j-txt">"admin"</span> &amp;&amp; <span class="j-var">$mdp</span> === <span class="j-txt">"1234"</span>) {
+        <span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>] = <span class="j-var">$login</span>;           <span class="j-com">// on mémorise</span>
+        <span class="j-typ">header</span>(<span class="j-txt">"Location: accueil.php"</span>);      <span class="j-com">// on redirige</span>
+        <span class="j-typ">exit</span>();                               <span class="j-com">// ← ET ON S'ARRÊTE</span>
+    } <span class="j-mc">else</span> {
+        <span class="j-var">$erreur</span> = <span class="j-txt">"Identifiants incorrects"</span>;
     }
 }
-?&gt;</code></pre></div>
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ <code>exit()</code> après <code>header("Location: …")</code></div>
@@ -367,18 +367,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <p>Une page réservée doit vérifier, <strong>avant tout affichage</strong>, que l'utilisateur est
      bien connecté. On appelle cela un <strong>garde</strong>.</p>
 
-<div class="bloc-code"><span class="langue">php — accueil.php (page privée)</span><pre><code>&lt;?php
-session_start();
+<div class="bloc-code"><span class="langue">php — accueil.php (page privée)</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-typ">session_start</span>();
 
-if (!isset($_SESSION["user"])) {          // le garde
-    header("Location: login.php");
-    exit();
+<span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>])) {          <span class="j-com">// le garde</span>
+    <span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);
+    <span class="j-typ">exit</span>();
 }
 
-// À partir d'ici, on est certain que l'utilisateur est connecté.
-include "header.php";
-echo "&lt;h2&gt;Bonjour " . htmlspecialchars($_SESSION["user"]) . " !&lt;/h2&gt;";
-?&gt;</code></pre></div>
+<span class="j-com">// À partir d'ici, on est certain que l'utilisateur est connecté.</span>
+<span class="j-mc">include</span> <span class="j-txt">"header.php"</span>;
+<span class="j-mc">echo</span> <span class="j-txt">"&lt;h2&gt;Bonjour "</span> . <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>]) . <span class="j-txt">" !&lt;/h2&gt;"</span>;
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart piege">
     <div class="titre">🔧 Corrigé — le garde ne va PAS sur la page de connexion</div>
@@ -434,15 +434,15 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
 <section id="deconnexion">
   <h2><span class="num">08</span>La déconnexion</h2>
 
-<div class="bloc-code"><span class="langue">php — logout.php</span><pre><code>&lt;?php
-session_start();
+<div class="bloc-code"><span class="langue">php — logout.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<span class="j-typ">session_start</span>();
 
-$_SESSION = [];        // 1. on vide le tableau
-session_destroy();     // 2. on détruit la session côté serveur
+<span class="j-var">$_SESSION</span> = [];        <span class="j-com">// 1. on vide le tableau</span>
+<span class="j-typ">session_destroy</span>();     <span class="j-com">// 2. on détruit la session côté serveur</span>
 
-header("Location: login.php");
-exit();
-?&gt;</code></pre></div>
+<span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);
+<span class="j-typ">exit</span>();
+<span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ <code>session_destroy()</code> seul ne vide pas <code>$_SESSION</code></div>
@@ -533,8 +533,7 @@ exit();
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-php/cours.html"><span>Chapitre précédent</span><b>PHP</b></a><a class="suiv" href="../07-python/cours.html"><span>Chapitre suivant</span><b>Python</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=5f6e2ccc"></script>
-<script src="../../assets/recherche.js?v=5f6e2ccc"></script>
-<script src="../../assets/app.js?v=5f6e2ccc"></script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
 </body>
 </html>

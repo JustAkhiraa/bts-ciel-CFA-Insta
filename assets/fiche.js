@@ -92,7 +92,59 @@
         }
       });
       bloc.appendChild(b);
+      essayer(bloc, pre);
     });
+  }
+
+  /* --- 4 bis. « Essayer » : du cours à l'atelier, d'un clic -------------
+     Un programme lu n'apprend pas grand-chose ; un programme qu'on casse
+     et qu'on relance, si. Le bouton porte le code jusqu'à l'atelier C, qui
+     le compile et l'exécute dans le navigateur.
+
+     Le code n'est PAS recopié dans la page : il est lu au moment du clic.
+     Encoder les quarante-huit programmes du site dans autant de liens
+     aurait alourdi les deux fiches de langage C de plusieurs dizaines de
+     kilo-octets, pour un bouton qu'on presse une fois.
+
+     Le bouton n'apparaît que sur le site PUBLIÉ, reconnu à sa feuille de
+     style : le dépôt privé charge « assets/theme.css » et n'a pas de
+     dossier « outils/ ». Poser un lien qui ne mène nulle part serait pire
+     que de ne rien poser. */
+  var BASE_ATELIER = (function () {
+    var l = document.querySelector('link[href*="assets/fiche.css"]');
+    if (!l) return null;
+    var h = l.getAttribute("href");
+    return h.slice(0, h.indexOf("assets/fiche.css"));
+  })();
+
+  function langueDuBloc(bloc) {
+    var e = bloc.querySelector(".langue");
+    if (!e) return "";
+    var t = e.textContent.split(/\s+[—–]\s+/)[0].trim().toLowerCase();
+    return t.normalize ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : t;
+  }
+
+  function essayer(bloc, pre) {
+    if (!BASE_ATELIER || bloc.querySelector(".essayer")) return;
+    var langue = langueDuBloc(bloc);
+    if (langue !== "c" && langue !== "c++") return;
+    var code = pre.innerText;
+    if (!/\bint\s+main\s*\(/.test(code)) return;   // un fragment ne s'exécute pas
+
+    var a = document.createElement("a");
+    a.className = "essayer";
+    a.textContent = "Essayer";
+    a.setAttribute("title", "Ouvrir ce programme dans l'atelier C");
+    a.href = BASE_ATELIER + "outils/langage-c.html";
+    a.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      var octets = new TextEncoder().encode(pre.innerText);
+      var bin = "";
+      for (var i = 0; i < octets.length; i++) bin += String.fromCharCode(octets[i]);
+      var b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
+      window.open(a.href + "#p=" + b64 + "&l=" + langue, "_blank", "noopener");
+    });
+    bloc.appendChild(a);
   }
 
   /* --- 5. Quiz : révélation de la réponse ------------------------------- */
@@ -144,225 +196,21 @@
     });
   }
 
-  /* --- 7. Coloration syntaxique (maison, zéro dépendance) --------------- */
-  /* On ne colorie QUE les langages reconnus. Un bloc « calcul », « méthode »
-     ou un schéma ASCII reste en texte brut : la couleur y nuirait.          */
+  /* --- 7. Coloration syntaxique : elle a déménagé ----------------------- */
+  /* Elle vivait ici, et elle peignait 10 blocs sur les 74 d'un chapitre de
+     langage C — parce que « langueDe » n'avait tout simplement AUCUNE règle
+     pour le C, ni « REGLES » de famille « c ». Le défaut ne se voyait pas :
+     une langue non reconnue ne produit pas d'erreur, elle produit du gris.
 
-  function ech(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-  function jeton(cls, s) {
-    return cls ? '<span class="tok-' + cls + '">' + ech(s) + "</span>" : ech(s);
-  }
-
-  /* Tokeniseur générique : les règles ne doivent contenir que des groupes
-     NON capturants (?:…), sinon la détection de la règle gagnante casse.    */
-  function tokeniser(texte, regles) {
-    var re = new RegExp(regles.map(function (r) { return "(" + r[1] + ")"; }).join("|"), "g");
-    var out = "", dernier = 0, m;
-    while ((m = re.exec(texte)) !== null) {
-      if (m[0] === "") { re.lastIndex++; continue; }
-      if (m.index > dernier) out += ech(texte.slice(dernier, m.index));
-      var cls = null;
-      for (var i = 1; i < m.length; i++) { if (m[i] !== undefined) { cls = regles[i - 1][0]; break; } }
-      out += jeton(cls, m[0]);
-      dernier = m.index + m[0].length;
-    }
-    return out + ech(texte.slice(dernier));
-  }
-
-  /* HTML : analyseur dédié — il faut distinguer nom de balise et attributs. */
-  var REGLES_INTERIEUR = [
-    ["str", "\"[^\"]*\"|'[^']*'"],
-    ["att", "[\\w:.-]+(?=\\s*=)"],
-    ["pun", "=|\\/?>"],
-    ["att", "[\\w:.-]+"]
-  ];
-  function colorierBalise(s) {
-    var m = /^(<\/?)([a-zA-Z][\w:-]*)/.exec(s);
-    if (!m) return ech(s);
-    return jeton("pun", m[1]) + jeton("key", m[2]) +
-           tokeniser(s.slice(m[0].length), REGLES_INTERIEUR);
-  }
-  function colorierHtml(t) {
-    var out = "", i = 0, n = t.length;
-    while (i < n) {
-      if (t.slice(i, i + 4) === "<!--") {
-        var f = t.indexOf("-->", i); f = f < 0 ? n : f + 3;
-        out += jeton("com", t.slice(i, f)); i = f; continue;
-      }
-      if (t.slice(i, i + 2) === "<!") {
-        var g = t.indexOf(">", i); g = g < 0 ? n : g + 1;
-        out += jeton("met", t.slice(i, g)); i = g; continue;
-      }
-      if (t[i] === "<" && /[a-zA-Z\/]/.test(t[i + 1] || "")) {
-        var j = i + 1, q = null;
-        while (j < n) {
-          var c = t[j];
-          if (q) { if (c === q) q = null; }
-          else if (c === '"' || c === "'") q = c;
-          else if (c === ">") break;
-          j++;
-        }
-        out += colorierBalise(t.slice(i, Math.min(j + 1, n)));
-        i = j + 1; continue;
-      }
-      var k = t.indexOf("<", i + 1); if (k < 0) k = n;
-      out += ech(t.slice(i, k)); i = k;
-    }
-    return out;
-  }
-
-  /* CSS : petit automate — il faut savoir si l'on est dans un bloc, et si
-     l'on a passé le « : » (donc côté valeur plutôt que côté propriété).     */
-  function colorierCss(t) {
-    var out = "", i = 0, n = t.length, dansBloc = false, apresColon = false, m;
-    var reste = function () { return t.slice(i); };
-    while (i < n) {
-      var c = t[i];
-      if (c === "/" && t[i + 1] === "*") {
-        var f = t.indexOf("*/", i + 2); f = f < 0 ? n : f + 2;
-        out += jeton("com", t.slice(i, f)); i = f; continue;
-      }
-      if (c === '"' || c === "'") {
-        var j = i + 1; while (j < n && t[j] !== c && t[j] !== "\n") j++;
-        out += jeton("str", t.slice(i, j + 1)); i = j + 1; continue;
-      }
-      if (c === "{") { dansBloc = true;  apresColon = false; out += jeton("pun", c); i++; continue; }
-      if (c === "}") { dansBloc = false; apresColon = false; out += jeton("pun", c); i++; continue; }
-      if (c === ";") { apresColon = false; out += jeton("pun", c); i++; continue; }
-      if (c === ":") {
-        if (dansBloc) { apresColon = true; out += jeton("pun", c); i++; continue; }
-        m = /^::?[a-zA-Z][\w-]*/.exec(reste());
-        if (m) { out += jeton("val", m[0]); i += m[0].length; continue; }
-        out += jeton("pun", c); i++; continue;
-      }
-      if (c === "@" && (m = /^@[\w-]+/.exec(reste()))) { out += jeton("met", m[0]); i += m[0].length; continue; }
-      if (c === "!" && (m = /^!important/.exec(reste())))  { out += jeton("met", m[0]); i += m[0].length; continue; }
-      if (c === "#") {
-        m = /^#[0-9a-fA-F]{3,8}\b/.exec(reste());
-        if (m) { out += jeton("num", m[0]); i += m[0].length; continue; }
-        m = /^#[-\w]+/.exec(reste());
-        if (m) { out += jeton("key", m[0]); i += m[0].length; continue; }
-      }
-      if (c === "." && !dansBloc && (m = /^\.[-\w]+/.exec(reste()))) {
-        out += jeton("key", m[0]); i += m[0].length; continue;
-      }
-      if ((m = /^-{0,2}[a-zA-Z][\w-]*/.exec(reste()))) {
-        out += jeton(dansBloc ? (apresColon ? "val" : "att") : null, m[0]);
-        i += m[0].length; continue;
-      }
-      if ((m = /^\d*\.?\d+[a-z%]*/.exec(reste()))) { out += jeton("num", m[0]); i += m[0].length; continue; }
-      out += ech(c); i++;
-    }
-    return out;
-  }
-
-  var MOTS = {
-    js: "var|let|const|function|return|if|else|for|while|do|switch|case|break|continue|new|this|typeof|instanceof|null|undefined|true|false|class|extends|try|catch|finally|throw|async|await|of|in|document|window|console",
-    python: "def|class|return|if|elif|else|for|while|in|not|and|or|import|from|as|with|try|except|finally|raise|lambda|None|True|False|self|print|len|range|str|int|float|list|dict|set|tuple|open|pass|global",
-    php: "function|return|if|elseif|else|foreach|for|while|do|switch|case|break|continue|echo|print|require|include|require_once|include_once|class|new|public|private|protected|static|try|catch|finally|throw|null|true|false|array|isset|empty|unset|die|exit",
-    sql: "SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|DATABASE|ALTER|DROP|JOIN|INNER|LEFT|RIGHT|FULL|OUTER|ON|AS|AND|OR|NOT|NULL|ORDER|BY|GROUP|HAVING|LIMIT|DISTINCT|COUNT|SUM|AVG|MIN|MAX|PRIMARY|KEY|FOREIGN|REFERENCES|INT|VARCHAR|TEXT|DATE|BOOLEAN|DEFAULT|AUTO_INCREMENT|LIKE|BETWEEN|IN|EXISTS|UNION",
-    bash: "sudo|apt|apt-get|install|update|upgrade|systemctl|service|restart|start|stop|enable|status|nano|vim|cat|less|ls|cd|pwd|mkdir|rmdir|rm|cp|mv|touch|chmod|chown|grep|find|which|man|echo|export|source|tar|unzip|wget|curl|ssh|scp|ping|ipconfig|ifconfig|traceroute|tracert|netstat|nslookup|arp|route|python|python3|pip|node|npm|git|md5sum|john|zip2john",
-    algo: "Algorithme|Constantes?|Variables?|D\u00e9but|Fin(?:Si|Pour|TantQue|Fonction)?|Si|Alors|Sinon|Pour|allant|de|\u00e0|Tant que|R\u00e9p\u00e9ter|Jusqu'\u00e0|Fonction|Retourner|Lire|Afficher|ET|OU|NON|Vrai|Faux|entier|r\u00e9el|caract\u00e8re|cha\u00eene|bool\u00e9en|tableau",
-    cisco: "interface|ip|address|no|shutdown|description|switchport|mode|access|trunk|vlan|encapsulation|dot1q|native|router|rip|version|network|default-gateway|route|nat|inside|outside|source|list|pool|overload|permit|deny|access-list|hostname|enable|secret|password|configure|terminal|line|console|vty|login|service|banner|copy|running-config|startup-config|show|exit|end|write|memory|duplex|speed|helper-address|dhcp|excluded-address|domain-name|dns-server|default-router|username|transport|input|ssh|telnet|spanning-tree|portfast|vtp|name|state|priority|brief|netmask|passive-interface|clock|bandwidth"
-  };
-  function motsCles(l) { return "\\b(?:" + MOTS[l] + ")\\b"; }
-  var IP = "\\b\\d{1,3}(?:\\.\\d{1,3}){3}\\b";
-
-  var REGLES = {
-    js: [["com", "\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/"],
-         ["str", "\"[^\"\\n]*\"|'[^'\\n]*'|`[^`]*`"],
-         ["key", motsCles("js")],
-         ["att", "\\b[A-Za-z_$][\\w$]*(?=\\s*\\()"],
-         ["num", "\\b\\d+(?:\\.\\d+)?\\b"],
-         ["pun", "[{}()\\[\\];,.]"]],
-    python: [["com", "#[^\\n]*"],
-         ["str", "\"\"\"[\\s\\S]*?\"\"\"|'''[\\s\\S]*?'''|\"[^\"\\n]*\"|'[^'\\n]*'"],
-         ["met", "@[\\w.]+"],
-         ["key", motsCles("python")],
-         ["att", "\\b[A-Za-z_][\\w]*(?=\\s*\\()"],
-         ["num", "\\b\\d+(?:\\.\\d+)?\\b"],
-         ["pun", "[{}()\\[\\]:;,.]"]],
-    php: [["com", "\\/\\/[^\\n]*|#[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/"],
-         ["met", "<\\?php|\\?>"],
-         ["str", "\"[^\"\\n]*\"|'[^'\\n]*'"],
-         ["val", "\\$[A-Za-z_]\\w*"],
-         ["key", motsCles("php")],
-         ["num", "\\b\\d+(?:\\.\\d+)?\\b"],
-         ["pun", "[{}()\\[\\];,.]"]],
-    sql: [["com", "--[^\\n]*"],
-         ["str", "'[^'\\n]*'"],
-         ["key", "\\b(?:" + MOTS.sql + ")\\b"],
-         ["num", "\\b\\d+(?:\\.\\d+)?\\b"],
-         ["pun", "[();,*]"]],
-    bash: [["com", "[\u2190\u2192][^\\n]*"],
-         ["com", "#[^\\n]*"],
-         ["str", "\"[^\"\\n]*\"|'[^'\\n]*'"],
-         ["num", IP],
-         ["key", motsCles("bash")],
-         ["val", "(?:^|\\s)-{1,2}[A-Za-z][\\w-]*"],
-         ["num", "\\b\\d+\\b"]],
-    cisco: [["com", "[\u2190\u2192][^\\n]*"],
-         ["com", "![^\\n]*"],
-         /* le prompt « Switch(config-if)# » n'est pas une commande : on le neutralise */
-         ["pun", "(?:^|\\n)[A-Za-z][\\w.-]*(?:\\([\\w-]+\\))?[>#]"],
-         ["str", "\"[^\"\\n]*\""],
-         ["num", IP],
-         ["key", motsCles("cisco")],
-         ["num", "\\b\\d+\\b"]],
-    algo: [["com", "\\/\\/[^\\n]*"],
-         ["str", "\"[^\"\\n]*\""],
-         ["key", motsCles("algo")],
-         ["met", "\u2190"],
-         ["att", "\\b[A-Za-z_][\\wÀ-ÿ]*(?=\\s*\\()"],
-         ["num", "\\b\\d+(?:[.,]\\d+)?\\b"],
-         ["pun", "[()\\[\\],;]|[<>=\u2260\u2264\u2265+*/%-]"]],
-    conf: [["com", "[\u2190\u2192][^\\n]*"],
-         ["com", "#[^\\n]*"],
-         ["str", "\"[^\"\\n]*\""],
-         ["num", IP],
-         ["att", "(?:^|\\n)[ \\t]*[A-Za-z][\\w-]*"],
-         ["num", "\\b\\d+\\b"]]
-  };
-
-  function langueDe(bloc, code) {
-    var e = bloc.querySelector(".langue");
-    var t = (bloc.getAttribute("data-lang") || (e ? e.textContent : "")).toLowerCase();
-    if (t) {
-      if (/cisco|\bios\b/.test(t))                    return "cisco";
-      if (/^\/etc\//.test(t))                         return "conf";
-      if (/bash|shell|powershell|terminal|windows/.test(t)) return "bash";
-      if (/\bhtml\b|\.html/.test(t))                  return "html";
-      if (/\bcss\b|\.css/.test(t))                    return "css";
-      if (/javascript|\bjs\b|\.js/.test(t))           return "js";
-      if (/python|\.py\b/.test(t))                    return "python";
-      if (/\bphp\b/.test(t))                          return "php";
-      if (/\bsql\b/.test(t))                          return "sql";
-      if (/algo|pseudo/.test(t))                      return "algo";
-      // étiquette en français (« calcul », « méthode »…) : on retombe sur
-      // la détection par le contenu, qui reste prudente.
-    }
-    // sans étiquette reconnue : on ne devine que si c'est franc
-    if (/<\/[a-zA-Z][\w-]*>|<!DOCTYPE/i.test(code))                     return "html";
-    if (/[^\n]*\{[^}]*:[^;]*;/.test(code) || /@media/.test(code))       return "css";
-    return null;
-  }
-
-  function coloriserCode() {
-    document.querySelectorAll(".bloc-code pre code").forEach(function (code) {
-      var bloc = code.closest(".bloc-code");
-      if (!bloc || code.getAttribute("data-colorie")) return;
-      var brut = code.textContent;
-      var l = langueDe(bloc, brut);
-      if (!l) return;
-      var html = l === "html" ? colorierHtml(brut)
-               : l === "css"  ? colorierCss(brut)
-               : tokeniser(brut, REGLES[l]);
-      code.innerHTML = html;
-      code.setAttribute("data-colorie", l);
-    });
-  }
+     Elle est désormais faite à la PUBLICATION, par
+     _pilotage/scripts/coloration.py :
+       · la page arrive colorée, sans clignotement au chargement ;
+       · elle reste colorée si JavaScript est coupé ;
+       · le nombre de blocs colorés est ANNONCÉ à chaque publication, donc
+         une langue oubliée se voit tout de suite ;
+       · 220 lignes de moins à télécharger sur chaque page.
+     Le dépôt privé, lui, garde son code nu — c'est ce qui permet à
+     verif-c.py d'en extraire les programmes et de les compiler. */
 
   /* --- 8. Démonstrations : le code à gauche, le résultat à droite -------- */
   var STYLE_APERCU =
@@ -444,7 +292,6 @@
     tableauxDefilables();
     construireSommaire();
     sommaireMobile();
-    coloriserCode();
     apercus();
     boutonsCopier();
     quiz();

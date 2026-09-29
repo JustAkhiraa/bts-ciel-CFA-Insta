@@ -10,8 +10,8 @@
   /* ───────────────────────────────────────────────── état persistant */
   var CLE = "bts-ciel";
   var DEFAUTS = {
-    theme: "", taille: "normal", largeur: "normal", police: "systeme",
-    interligne: "normal", anim: 1, reponses: 0, faits: [],
+    theme: "", variante: "", taille: "normal", largeur: "normal", police: "systeme",
+    interligne: "normal", anim: 1, curseur: 1, reponses: 0, faits: [],
     derniere: null, recents: []
   };
   var S = (function () {
@@ -79,6 +79,41 @@
     ]}
   ];
 
+  /* Les univers ont DEUX faces. « Voxel » n'est pas un thème sombre : c'est
+     une forme — des panneaux biseautés, une ombre d'un pixel, des cadres
+     carrés — et cette forme vaut de jour comme de nuit. Le bouton jour/nuit
+     ne doit donc pas quitter Voxel pour « Clair », il doit retourner Voxel.
+     Le drapeau est posé ici, sur tout le groupe, plutôt que recopié seize
+     fois : ajouter un univers, c'est l'ajouter à ce groupe, point. */
+  (function () {
+    var g = GROUPES[GROUPES.length - 1];
+    for (var i = 0; i < g.items.length; i++) g.items[i].duo = true;
+  })();
+
+  /* ── Réparer le souvenir des deux camps ─────────────────────────────────
+     « memoClair » et « memoSombre » retiennent le dernier thème de chaque
+     camp, pour qu'un aller-retour sur le bouton jour/nuit ne renvoie pas au
+     thème par défaut. Deux valeurs ne doivent jamais y entrer :
+
+       · un univers — depuis qu'ils ont deux faces, Voxel n'est plus « un
+         thème sombre » : le bouton retourne sa face au lieu d'en sortir, donc
+         l'univers n'appartient à aucun camp ;
+       · un identifiant disparu du catalogue — data-theme resterait sur une
+         valeur qu'aucune règle CSS ne décrit.
+
+     Le contrôle se fait ICI, au chargement, et pas seulement au moment
+     d'écrire : un navigateur qui a connu la version précédente a gardé
+     « voxel » dans son memo, et depuis « Clair » la lune y ramenait. C'est le
+     défaut qu'Ahmed a vu, et qu'aucun banc ne pouvait voir — un banc part
+     toujours d'un localStorage vide. Un réglage enregistré hier est une
+     entrée comme une autre : il se valide. */
+  function memoValide(id) {
+    var t = id ? trouverTheme(id) : null;
+    return (t && !t.duo) ? id : "";
+  }
+  S.memoClair  = memoValide(S.memoClair);
+  S.memoSombre = memoValide(S.memoSombre);
+
   var TAILLES = [
     { id: "petit", nom: "Petit" }, { id: "normal", nom: "Normal" },
     { id: "grand", nom: "Grand" }, { id: "tres-grand", nom: "Très grand" }
@@ -96,11 +131,19 @@
     { id: "aere", nom: "Aéré" }
   ];
 
-  function theme(id) {
+  /* Deux lectures du catalogue, et la distinction compte : « trouverTheme »
+     sait répondre « celui-là n'existe pas », « theme » retombe toujours sur
+     quelque chose d'affichable. Valider un identifiant enregistré demande la
+     première ; peindre la page demande la seconde. */
+  function trouverTheme(id) {
     for (var g = 0; g < GROUPES.length; g++)
       for (var i = 0; i < GROUPES[g].items.length; i++)
         if (GROUPES[g].items[i].id === id) return GROUPES[g].items[i];
-    return GROUPES[0].items[0];
+    return null;
+  }
+
+  function theme(id) {
+    return trouverTheme(id) || GROUPES[0].items[0];
   }
 
   function systemeSombre() {
@@ -112,6 +155,9 @@
     var d = document.documentElement;
     var t = theme(S.theme);
     var sombre = t.sombre === null ? systemeSombre() : t.sombre;
+    /* Sur un univers, la face choisie prime sur la face native. Ailleurs,
+       « variante » n'a pas de sens : le thème EST sa face. */
+    if (t.duo && S.variante) sombre = (S.variante === "sombre");
 
     d.dataset.theme      = S.theme || (sombre ? "dark" : "light");
     d.dataset.sombre     = sombre ? "1" : "0";
@@ -120,6 +166,11 @@
     d.dataset.police     = S.police || "systeme";
     d.dataset.interligne = S.interligne || "normal";
     d.dataset.anim       = S.anim ? "1" : "0";
+    /* Six univers portent leur propre curseur. Un curseur imposé est le genre
+       de fantaisie dont on se lasse, et il gêne qui a du mal à viser : il se
+       coupe d'un geste, et la feuille engendrée est entièrement sous cet
+       attribut. */
+    d.dataset.curseur    = S.curseur ? "1" : "0";
 
     /* La barre d'état du téléphone doit suivre le fond réel du thème, pas une
        valeur figée : sur « Voxel » elle restait crème au-dessus d'un fond noir. */
@@ -244,6 +295,10 @@
           '<span class="interrupteur"></span></button>' +
         '<button type="button" class="bascule" data-bascule="anim" aria-pressed="' + !!S.anim + '">' +
           '<span class="txt"><b>Animations</b><span>Transitions et défilement doux</span></span>' +
+          '<span class="interrupteur"></span></button>' +
+        '<button type="button" class="bascule" data-bascule="curseur" aria-pressed="' + !!S.curseur + '">' +
+          '<span class="txt"><b>Curseurs de thème</b>' +
+          '<span>Activés ou non</span></span>' +
           '<span class="interrupteur"></span></button></div>' +
 
         '<div class="reglage"><h3>Progression</h3>' +
@@ -259,6 +314,10 @@
       var sel = e.target.closest("select[data-champ]");
       if (!sel) return;
       S[sel.dataset.champ] = sel.value;
+      /* Chaque thème s'ouvre sur SA face native. Sans cette remise à zéro,
+         « Voxel en clair » suivi de « Matrix » donnerait un Matrix clair —
+         un réglage retenu d'un thème qu'on vient de quitter. */
+      if (sel.dataset.champ === "theme") S.variante = "";
       enregistrer(); appliquer();
     });
 
@@ -271,6 +330,7 @@
         GROUPES.forEach(function (g) { g.items.forEach(function (o) { if (o.id) tous.push(o); }); });
         var choisi = tous[Math.floor(Math.random() * tous.length)];
         S.theme = choisi.id;
+        S.variante = "";
         feuille.querySelector("#choix-theme").value = choisi.id;
         enregistrer(); appliquer(); toast(choisi.nom);
         return;
@@ -360,9 +420,21 @@
      camp, pour qu'un aller-retour ne renvoie pas sur le thème par défaut. */
   function basculerClairSombre() {
     var sombre = document.documentElement.dataset.sombre === "1";
+    /* Dans un univers, on retourne l'univers — on n'en sort pas. Basculer
+       depuis Voxel renvoyait sur « Clair » : le geste perdait le thème
+       qu'on venait de choisir. */
+    if (theme(S.theme).duo) {
+      S.variante = sombre ? "clair" : "sombre";
+      enregistrer(); appliquer(); peindreBascule();
+      return;
+    }
     var cible = sombre ? (S.memoClair || "light") : (S.memoSombre || "dark");
-    if (sombre) S.memoSombre = S.theme || "dark"; else S.memoClair = S.theme || "light";
+    if (sombre) S.memoSombre = memoValide(S.theme) || "dark";
+    else        S.memoClair  = memoValide(S.theme) || "light";
     S.theme = cible;
+    /* On quitte un univers : sa face choisie ne doit pas s'appliquer au
+       prochain, sinon « Voxel en clair » rendrait « Matrix » clair aussi. */
+    S.variante = "";
     enregistrer(); appliquer(); peindreBascule();
     var sel = feuille && feuille.querySelector("#choix-theme");
     if (sel) sel.value = S.theme;
@@ -480,6 +552,49 @@
     peindreBascule();
     tete.appendChild(btnJour);
     tete.appendChild(outil("bouton-rond", "Réglages", ICONE_REGLAGES, ouvrir));
+    poserBouton3D(tete);
+  }
+
+  /* ── le bouton du monde 3D ────────────────────────────────────────────
+     Ahmed : « au lieu de mettre un bouton Monde 3D je préfère le mettre à la
+     droite de paramètres, on écrit 3D, et avec le curseur y'a un effet 3D
+     sur le bouton ».
+
+     Il est posé APRÈS les réglages, donc tout à droite, et il n'apparaît que
+     si le monde est réellement publié — l'adresse vient de l'attribut
+     « data-monde » écrit par publier.py. Un bouton sans sa page, c'est un
+     lien mort sur les 241 pages d'un coup.
+
+     L'effet suit le pointeur : deux rotations, et le relief du texte qui se
+     creuse du même côté. Il est coupé si le lecteur a désactivé les
+     animations ou si son système en demande moins — un objet qui bouge sous
+     la souris est exactement ce qui gêne alors. */
+  function poserBouton3D(tete) {
+    var url = tete.dataset.monde;
+    if (!url) return;
+    var a = document.createElement("a");
+    a.className = "bouton-3d";
+    a.href = url;
+    a.setAttribute("aria-label", "Le village 3D — les mêmes fiches, en trois dimensions");
+    a.innerHTML = '<span class="b3d-face">3D</span>' +
+                  '<span class="b3d-lueur" aria-hidden="true"></span>';
+    tete.appendChild(a);
+
+    var calme = window.matchMedia &&
+                matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!S.anim || calme) return;
+    a.addEventListener("pointermove", function (e) {
+      var r = a.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      a.style.setProperty("--rx", ((0.5 - y) * 22).toFixed(1) + "deg");
+      a.style.setProperty("--ry", ((x - 0.5) * 26).toFixed(1) + "deg");
+      a.style.setProperty("--mx", (x * 100).toFixed(0) + "%");
+      a.style.setProperty("--my", (y * 100).toFixed(0) + "%");
+    });
+    a.addEventListener("pointerleave", function () {
+      a.style.setProperty("--rx", "0deg"); a.style.setProperty("--ry", "0deg");
+      a.style.setProperty("--mx", "50%");  a.style.setProperty("--my", "50%");
+    });
   }
 
   /* ───────────────────────────────────────────────── outils de texte
@@ -497,22 +612,81 @@
     });
   }
 
+  /* ── L'index ne se charge qu'au moment de chercher ────────────────────
+     Il pesait 73 Ko compressés sur CHAQUE page, alors qu'il ne sert qu'à la
+     recherche et au tirage au hasard. On l'injecte à la demande.
+
+     C'est un <script> et non un fetch(), pour la même raison qu'avant : une
+     fiche ouverte depuis Fichiers sur iPhone est en « file:// », où fetch est
+     refusé mais où une balise <script> passe. */
+  var _index = null;
+  function chargerIndex() {
+    if (_index) return _index;
+    _index = new Promise(function (ok) {
+      if (Array.isArray(window.__INDEX)) return ok(window.__INDEX);
+      var sc = document.createElement("script");
+      /* L'URL doit porter l'empreinte de build, comme celle de la feuille de
+         style. Sans elle, deux choses cassent d'un coup : le service worker,
+         qui a mis en cache « recherche.js?v=… » et ne reconnaîtrait pas
+         « recherche.js » tout court — donc plus de recherche hors ligne ; et
+         la fraîcheur, un navigateur pouvant resservir l'index de la semaine
+         dernière. On relit la version sur le lien de la feuille, qui est la
+         seule ressource dont on est sûr qu'elle est là. */
+      var l = document.querySelector('link[rel="stylesheet"][href*="assets/fiche.css"]');
+      var v = l && (l.getAttribute("href").match(/[?&]v=([\w.-]+)/) || [])[1];
+      sc.src = racine() + "assets/recherche.js" + (v ? "?v=" + v : "");
+      sc.onload = function () { ok(window.__INDEX || []); };
+      sc.onerror = function () { ok(null); };   // null = « pas chargé », pas « vide »
+      document.head.appendChild(sc);
+    });
+    return _index;
+  }
+
   /* Un seul moteur, deux surfaces : le champ de l'accueil et la palette qui
      s'ouvre par-dessus n'importe quelle page. Sans cela le second aurait
      redécrit la recherche, et les deux auraient divergé à la première
      retouche. */
+  /* ── Chercher, puis classer ───────────────────────────────────────────
+     La clé « k » est une LISTE DE MOTS séparés par des espaces. On exige donc
+     que le terme tapé commence un mot, au lieu d'apparaître n'importe où :
+     sans cela « py » trouvait Bootstrap (dans « ty-pe ») et « poo » trouvait
+     DHCP (dans « pool »). Le début de mot garde la recherche au fil de la
+     frappe — « prob » trouve « probabilites » — et supprime le hasard.
+
+     Et les résultats sont CLASSÉS. Sans classement, « css » rendait quarante
+     fiches dans l'ordre du fichier, la vraie page CSS noyée au milieu. Un
+     terme qui est le titre passe devant un terme qui n'est qu'un mot du
+     contenu ; c'est presque toujours ce qu'on cherchait. */
   function trouver(terme) {
     var data = window.__INDEX;
     if (!Array.isArray(data)) return null;
     var mots = normaliser(terme).split(/\s+/).filter(Boolean);
-    return data.filter(function (e) {
-      return mots.every(function (mot) { return e.k.indexOf(mot) !== -1; });
-    });
+    if (!mots.length) return [];
+    var out = [];
+    for (var i = 0; i < data.length; i++) {
+      var e = data[i], k = " " + e.k, titre = " " + normaliser(e.t), ok = true, score = 3;
+      for (var j = 0; j < mots.length; j++) {
+        if (k.indexOf(" " + mots[j]) === -1) { ok = false; break; }
+      }
+      if (!ok) continue;
+      var premier = mots[0];
+      if (normaliser(e.t) === premier) score = 0;
+      else if (titre.indexOf(" " + premier) === 1) score = 1;
+      else if (titre.indexOf(" " + premier) !== -1) score = 2;
+      else if (e.g && (" " + e.g).indexOf(" " + premier) !== -1) score = 2.5;
+      out.push({ e: e, s: score, n: e.t.length });
+    }
+    out.sort(function (a, b) { return a.s - b.s || a.n - b.n; });
+    return out.map(function (x) { return x.e; });
   }
 
   function peindre(boite, terme, base) {
     terme = terme.trim();
     if (terme.length < 2) { boite.innerHTML = ""; return; }
+    if (!Array.isArray(window.__INDEX)) {
+      chargerIndex().then(function () { peindre(boite, terme, base); });
+      return;
+    }
     var t = trouver(terme);
     if (t === null) {
       boite.innerHTML = '<p class="r-vide">L\'index de recherche n\'a pas pu être chargé.</p>';
@@ -565,7 +739,7 @@
 
     function chercher() { peindre(boite, champ.value, base); }
     champ.addEventListener("input", chercher);
-    champ.addEventListener("focus", chercher);
+    champ.addEventListener("focus", function () { chargerIndex(); chercher(); });
     document.addEventListener("click", function (e) {
       if (!e.target.closest(".recherche")) boite.innerHTML = "";
     });
@@ -748,10 +922,11 @@
 
   /* ────────────────────────────────────────────────── fiche au hasard */
   function hasard() {
-    var data = window.__INDEX;
-    if (!Array.isArray(data) || !data.length) return;
-    var e = data[Math.floor(Math.random() * data.length)];
-    location.href = racine() + e.u;
+    chargerIndex().then(function (data) {
+      if (!Array.isArray(data) || !data.length) return;
+      var e = data[Math.floor(Math.random() * data.length)];
+      location.href = racine() + e.u;
+    });
   }
 
   function brancherHasard() {
@@ -765,6 +940,7 @@
      ouvre la palette partout ailleurs. Cmd/Ctrl-K ouvre toujours la palette,
      y compris depuis un champ de saisie. */
   function chercherMaintenant() {
+    chargerIndex();          // pendant que le lecteur tape la première lettre
     var champ = document.getElementById("q");
     if (champ && champ.offsetParent !== null) { champ.focus(); champ.select(); }
     else ouvrirPalette();

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHP — sessions &amp; espace membre — QCM | BTS CIEL</title>
+<meta name="description" content="Dix questions sur le cycle d'une session, le garde d'une page privée, exit(), et la validation des saisies.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="dev">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; développement</a>
+    <span class="sep">/</span><span>Chapitre 6</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>PHP — sessions &amp; espace membre — QCM</h1>
+  <p class="chapeau">10 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 10</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Qu'est-ce qu'une session ajoute à HTTP ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Une mémoire : le navigateur garde un jeton, le serveur garde les données</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le chiffrement des échanges</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La possibilité d'envoyer un formulaire en POST</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Un cache des pages déjà visitées</span></button>
+      </div>
+      <p class="qcm-why" hidden>HTTP est <b>sans mémoire</b> : chaque requête arrive comme si c'était la première. La session lui en donne une, et le partage est asymétrique — le navigateur ne reçoit qu'un <b>identifiant</b>, les <b>données restent sur le serveur</b>. C'est précisément ce qui la rend plus sûre qu'un cookie.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>Le message « headers already sent » apparaît. Pourquoi ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>La session a expiré</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Quelque chose a déjà été envoyé au navigateur avant session_start() ou header()</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le fichier dépasse la taille autorisée</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le cookie est refusé par le navigateur</span></button>
+      </div>
+      <p class="qcm-why" hidden>Les <b>en-têtes HTTP partent avant le corps</b> de la page. Dès qu'un seul caractère est sorti — un espace, une ligne vide avant <code>&lt;?php</code>, un <code>echo</code> de débogage — il est trop tard pour poser un cookie de session ou une redirection.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>Après header("Location: login.php"), qu'est-ce qui est indispensable ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Un session_destroy()</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un echo pour confirmer</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Un exit()</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Rien, la redirection est immédiate</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>header()</code> <b>ajoute un en-tête, il n'arrête rien</b> : le reste du script continue de s'exécuter et de produire du HTML. Sans <code>exit()</code>, la page privée peut donc être <b>entièrement envoyée</b> à un visiteur non connecté — le navigateur redirige, mais le contenu est déjà parti.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">4</span>Sur quelle page ne faut-il SURTOUT PAS mettre le garde de session ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>accueil.php</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>profil.php</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>commande.php</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>login.php</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le garde renvoie vers <code>login.php</code> quand personne n'est connecté. Le placer <b>sur</b> <code>login.php</code> fait que cette page se redirige vers elle-même, indéfiniment : le navigateur finit par afficher <code>ERR_TOO_MANY_REDIRECTS</code>. La page de connexion est la seule qui doit rester libre.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>Que fait l'opérateur ?? dans $_SESSION["visites"] ?? 0 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il donne 0 si la clé n'existe pas ou vaut null</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il compare deux valeurs</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il convertit en entier</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il vérifie que la session est démarrée</span></button>
+      </div>
+      <p class="qcm-why" hidden>Lire une clé absente déclenche un avertissement <i>Undefined array key</i>. <code>??</code> — l'opérateur de <b>coalescence</b> — fournit une valeur de repli, et n'agit que sur <b>l'absence ou <code>null</code></b>. À la différence de <code>?:</code>, il laisse donc passer un <code>0</code> légitime.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Sur quoi n'applique-t-on jamais trim() ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le nom</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le mot de passe</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>L'adresse e-mail</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le sujet d'un message</span></button>
+      </div>
+      <p class="qcm-why" hidden>Une espace peut faire <b>partie</b> du mot de passe choisi. La retirer en silence rend la connexion impossible à celui qui a tapé le bon mot de passe — et le rend incompréhensible, puisque rien ne le signale. Sur le nom et l'e-mail au contraire, l'espace de bord est toujours une faute de frappe.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>print_r($_SESSION) n'affiche rien du tout. Quelle est la cause la plus probable ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>La clé est mal orthographiée</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le visiteur a refusé les cookies</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>session_start() a été oublié sur cette page</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>$_SESSION est réservé à l'écriture</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le partage est net : <b>tableau vide</b> = la session n'a pas été démarrée <b>sur cette page</b> — <code>session_start()</code> se remet à chaque fichier concerné. <b>Tableau rempli mais valeur refusée</b> = la clé n'est pas écrite pareil aux deux endroits. Deux symptômes, deux causes.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">8</span>Dans un espace membre à quatre fichiers, lequel ne porte pas de garde ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>accueil.php</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>logout.php</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>header.php</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>login.php</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>login.php</code> doit rester <b>accessible sans être connecté</b> : c'est la porte d'entrée. <code>accueil.php</code> est gardé, <code>logout.php</code> détruit la session puis redirige, et les fichiers communs (<code>header</code>, <code>footer</code>) sont inclus par les pages gardées.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">9</span>En dehors d'un exercice, comment vérifie-t-on un mot de passe ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Avec password_hash() à l'inscription et password_verify() à la connexion</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>En comparant les chaînes avec ===</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>En chiffrant avec md5() des deux côtés</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>En stockant le mot de passe dans $_SESSION</span></button>
+      </div>
+      <p class="qcm-why" hidden>Un mot de passe ne se conserve <b>jamais en clair</b>, et pas davantage en <code>md5()</code>, cassé depuis longtemps. <code>password_hash()</code> produit une empreinte salée ; <code>password_verify()</code> la compare. On ne déchiffre rien : <b>on recompare</b>.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">10</span>Quelle méthode permet de partager un lien qui rouvre la même recherche ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>POST, car les données sont dans le corps</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>GET, car les données sont dans l'URL</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Les deux, le navigateur les mémorise</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Aucune : il faut une session</span></button>
+      </div>
+      <p class="qcm-why" hidden>Avec GET, les critères sont <b>dans l'adresse</b> : le lien se copie, se met en favori, se partage. C'est justement pourquoi GET ne convient pas à ce qui est sensible — la même visibilité qui rend l'URL partageable la met dans l'historique et les journaux du serveur.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-php/qcm.html"><span>Chapitre précédent</span><b>PHP</b></a><a class="suiv" href="../07-python/qcm.html"><span>Chapitre suivant</span><b>Python</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>
