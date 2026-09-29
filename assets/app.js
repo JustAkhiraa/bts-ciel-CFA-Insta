@@ -75,7 +75,8 @@
       { id: "console-blanche", nom: "Console blanche", sombre: false },
       { id: "bloc-notes", nom: "Bloc-notes", sombre: false },
       { id: "liquid", nom: "Liquid Glass", sombre: false },
-      { id: "zellige", nom: "Zellige", sombre: false }
+      { id: "zellige", nom: "Zellige", sombre: false },
+      { id: "console-bleue", nom: "Console bleue", sombre: true }
     ]}
   ];
 
