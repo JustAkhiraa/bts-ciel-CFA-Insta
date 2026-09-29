@@ -2,8 +2,8 @@
    chaque fiche visitee s'y ajoute ensuite.
    VERSION est l'empreinte du site publie : elle change des qu'un
    octet change, ce qui purge l'ancien cache a l'activation. */
-const VERSION='bts-ciel-a41eb6515b';
-const COQUILLE=["./", "./index.html", "./a-propos.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/fiche.css?v=5f6e2ccc", "./assets/app.js?v=5f6e2ccc", "./assets/fiche.js?v=5f6e2ccc", "./assets/recherche.js?v=5f6e2ccc", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html"];
+const VERSION='bts-ciel-dca261226c';
+const COQUILLE=["./", "./index.html", "./a-propos.html", "./devoirs.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/fiche.css?v=77c15c61", "./assets/app.js?v=77c15c61", "./assets/fiche.js?v=77c15c61", "./assets/recherche.js?v=77c15c61", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./assets/fond-voxel-clair.webp", "./planning.html", "./planning.ics", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html"];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting()));
@@ -11,9 +11,34 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(cles => Promise.all(cles.filter(c => c !== VERSION).map(c => caches.delete(c))))
+    .then(cles => Promise.all(cles.filter(c => c !== VERSION && c !== MOTEUR)
+                                  .map(c => caches.delete(c))))
     .then(() => self.clients.claim()));
 });
+
+/* Le compilateur de l'atelier C pese soixante megaoctets et ne change
+   JAMAIS : ce sont des binaires figes. Il a donc son propre cache, que
+   l'activation ne purge pas — sans quoi chaque publication du site
+   obligerait a les retelecharger. Le nom porte sa propre version : le jour
+   ou le moteur change, on la bouge, et l'ancien cache part. */
+const MOTEUR = 'bts-ciel-moteur-c-1';
+/* Une comparaison de noms plutot qu'une expression reguliere : la coquille
+   du service worker vit dans une chaine Python, ou chaque antislash devrait
+   etre double. Un antislash qui se perd dans un heredoc a deja coute une
+   journee sur ce depot (voir l'echappement iCalendar). */
+const MOTEUR_FIC = ['clang', 'lld', 'sysroot.tar', 'memfs', 'garde.o'];
+function estMoteur(chemin) {
+  const i = chemin.lastIndexOf('/outils/c/');
+  return i >= 0 && MOTEUR_FIC.indexOf(chemin.slice(i + 10)) >= 0;
+}
+
+function moteur(r) {
+  return caches.open(MOTEUR).then(c => c.match(r).then(hit => hit || fetch(r).then(rep => {
+    /* Un quota depasse ne doit pas faire echouer la reponse elle-meme. */
+    if (rep && rep.status === 200) c.put(r, rep.clone()).catch(() => {});
+    return rep;
+  })));
+}
 
 function garder(rep, r) {
   /* On ne met en cache que ce qui a reellement ete servi. */
@@ -26,7 +51,9 @@ function garder(rep, r) {
 
 self.addEventListener('fetch', e => {
   const r = e.request;
-  if (r.method !== 'GET' || new URL(r.url).origin !== location.origin) return;
+  const u = new URL(r.url);
+  if (r.method !== 'GET' || u.origin !== location.origin) return;
+  if (estMoteur(u.pathname)) { e.respondWith(moteur(r)); return; }
 
   /* Une PAGE se relit sur le reseau d'abord : le corpus grandit au fil de
      l'annee, et une fiche corrigee doit arriver. Hors ligne, on retombe sur

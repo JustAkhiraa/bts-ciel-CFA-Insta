@@ -1,0 +1,962 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   CIEL — l'habillage du monde.
+
+   Ce monde est INDÉPENDANT du site : il ne charge ni sa feuille de style ni
+   ses quarante thèmes. JustAkhiraa : « les fiches se lisent en monde 3D, ce monde
+   est indépendant de l'autre mais ils partagent les mêmes données ». Le
+   partage se fait par « donnees.json », pas par du style commun.
+
+   Deux ambiances, depuis qu'il a fait remarquer que « c'est le ciel la nuit,
+   donc mets un mode jour » : la nuit et le plein jour. Tout ce qui est écrit
+   ici tient dans les deux, et c'est « body.jour » qui bascule.
+
+   Le monde est devenu un VILLAGE — JustAkhiraa : « j'imagine un village avec des
+   immeubles stylés, une allée centrale avec fontaine au milieu, château au
+   bout comme l'allée du château d'Hyrule, et quand on clique sur un immeuble
+   on a un effet comme si on avançait vite et on arrive devant ». D'où trois
+   objets de plus ici : l'ENSEIGNE accrochée devant chaque bâtiment, le VOILE
+   qui estompe le village quand on lit ses cartes, et la RUÉE — les lignes de
+   vitesse du trajet.
+
+   UN SEUL langage d'objet : la carte. Les matières et les chapitres sont
+   dessinés pareil, parce que ce sont les deux étages de la même chose. Elle
+   porte un reflet holographique et s'incline sous le pointeur — JustAkhiraa :
+   « sur CodePen j'ai déjà vu des cartes Pokémon ultra stylées ». C'est ce
+   qui fait la différence entre une tuile et un objet qu'on a envie de
+   prendre.
+
+   Et le texte reste du texte : les titres sont du HTML posé par-dessus la
+   scène, jamais dessinés dedans. Dessinés dedans, ils grossissaient en
+   approchant jusqu'à se recouvrir, et se pixellisaient.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* Trois propriétés DÉCLARÉES : sans cette déclaration, le navigateur traite
+   « --rx » comme une chaîne quelconque et refuse de l'animer — la carte
+   saute d'un état à l'autre au lieu de s'incliner. Déclarées, elles
+   s'interpolent comme n'importe quel angle. C'est ce qui rend l'entrée et
+   le suivi du pointeur fluides. */
+@property --rx { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@property --ry { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@property --ent { syntax: "<number>"; initial-value: 0; inherits: false; }
+
+:root {
+  /* Le ciel, pas l'espace : --nuit est le bleu du ZÉNITH, --horizon la
+     teinte basse. Un fond noir semé d'étoiles, c'est le vide
+     interstellaire ; un ciel a un horizon. */
+  --nuit: #070C24;
+  --horizon: #16405E;
+  --voile: rgba(7, 12, 36, .78);
+  --encre: #EAF0FC;
+  --encre-douce: #AEBDD8;
+  --trait: rgba(150, 180, 235, .24);
+  /* Le verre des cartes est plus DENSE depuis qu'elles se posent devant
+     une façade couverte de fenêtres et de créneaux : à 62 % on lisait le
+     château à travers le titre du chapitre. */
+  --verre: rgba(16, 26, 54, .78);
+  --verre-fort: rgba(20, 32, 64, .86);
+  --c-matiere: #54BEF8;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --arrondi: 16px;
+}
+/* Le plein jour : encre foncée, verre clair. Les mêmes composants, deux
+   jeux de valeurs — aucune règle n'est réécrite plus bas. */
+body.jour {
+  --voile: rgba(236, 244, 252, .78);
+  --encre: #0D1B2E;
+  --encre-douce: #33506F;
+  --trait: rgba(20, 60, 110, .22);
+  /* Le verre du jour était à 74 % : posé devant une façade de pierre
+     claire sous un ciel clair, il n'y avait plus d'écart entre la carte et
+     ce qu'il y a derrière. Une carte doit être une SURFACE, pas un voile. */
+  --verre: rgba(255, 255, 255, .93);
+  --verre-fort: rgba(255, 255, 255, .84);
+}
+
+* { box-sizing: border-box; }
+
+/* L'attribut « hidden » ne vaut qu'un display de feuille par défaut : toute
+   règle qui pose un display le bat. .secours est en « display: grid », et le
+   panneau « ce navigateur ne peut pas afficher le monde 3D » restait donc
+   affiché EN PERMANENCE, par-dessus tout — le monde tournait derrière,
+   invisible. Trouvé à la toute première exécution, et c'est le deuxième
+   endroit du dépôt où ce piège frappe le même jour : l'atelier C affichait
+   son bouton « Arrêter » en continu pour la même raison. On ne corrige donc
+   pas un élément, on ferme la catégorie. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  font-family: var(--sans); color: var(--encre);
+  background: var(--nuit);
+  -webkit-font-smoothing: antialiased;
+}
+body { transition: color .5s ease; }
+
+/* « touch-action: none » : sans cette ligne, glisser le doigt sur le village
+   fait défiler la page au lieu de tourner la tête — le navigateur s'empare
+   du geste avant nous, et aucun script n'y peut rien après coup. */
+#scene { touch-action: none; cursor: grab; }
+#scene.tenu { cursor: grabbing; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+  touch-action: none; }
+
+/* ── le chargement ───────────────────────────────────────────────────── */
+.chargement {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-content: center;
+  gap: 1.1rem; justify-items: center; background: var(--nuit);
+  transition: opacity .5s ease;
+}
+.chargement.parti { opacity: 0; pointer-events: none; }
+.chargement p { color: var(--encre-douce); font-size: .8rem; letter-spacing: .18em;
+  text-transform: uppercase; margin: 0; }
+.logo-ciel { width: 58px; height: 58px; border-radius: 50%;
+  border: 2px solid rgba(120, 180, 250, .3); border-top-color: #6FC8FF;
+  animation: tourne 1s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .logo-ciel { animation: none; } }
+
+/* ── le repli ────────────────────────────────────────────────────────── */
+.secours { position: fixed; inset: 0; display: grid; place-content: center;
+  gap: .9rem; padding: 2rem; text-align: center; background: var(--nuit);
+  z-index: 50; color: #EAF0FC; }
+.secours h1 { font-size: 1.3rem; margin: 0; font-weight: 700; }
+.secours p { margin: 0; color: #AEBDD8; max-width: 34rem; }
+.secours a { color: #6FC8FF; }
+
+/* ── le bandeau du haut ──────────────────────────────────────────────── */
+.hud { position: fixed; z-index: 30; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.hud-haut { top: 0; left: 0; right: 0; display: flex; align-items: center;
+  gap: .6rem; padding: max(.7rem, env(safe-area-inset-top)) 1rem .7rem; }
+.retour, .rond {
+  font: inherit; font-size: .8rem; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 38px;
+  padding: .4rem .8rem; border-radius: 999px; color: var(--encre);
+  background: var(--verre); border: 1px solid var(--trait);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: background .18s, border-color .18s, color .3s;
+}
+.rond { min-width: 38px; justify-content: center; padding: .4rem; }
+.retour:hover, .rond:hover { border-color: rgba(120, 190, 255, .6);
+  background: var(--verre-fort); }
+.retour svg, .rond svg { width: 17px; height: 17px; }
+/* Mesuré à 1,06:1 en plein jour : « CIEL » était le seul élément du bandeau
+   sans fond, posé à même le ciel, entre deux boutons qui, eux, ont leur
+   pastille. Ce n'était pas un choix, c'était un oubli — et il se corrige en
+   lui donnant ce que ses voisins ont déjà. */
+.titre-monde { margin: 0 auto 0 0; font-family: var(--mono); font-size: .8rem;
+  letter-spacing: .3em; color: var(--encre);
+  padding: .4rem .8rem; border-radius: 999px;
+  background: var(--verre); border: 1px solid var(--trait);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2); }
+.titre-monde span { letter-spacing: .06em; color: var(--encre-douce);
+  font-size: .72rem; margin-left: .5rem; }
+/* Un seul des deux glyphes à la fois : celui de l'heure OPPOSÉE, puisque le
+   bouton dit où l'on va, pas où l'on est. */
+#btn-heure .ic-jour { display: block; }
+#btn-heure .ic-nuit { display: none; }
+body.jour #btn-heure .ic-jour { display: none; }
+body.jour #btn-heure .ic-nuit { display: block; }
+
+/* ═══════════════════════════════════ LA CARTE ═══════════════════════════
+   L'objet unique du monde : une matière et un chapitre sont la même chose à
+   deux étages. Quatre couches empilées, et chacune a un rôle :
+
+     .carte-holo   la nappe holographique, en « color-dodge », qui ne
+                   s'allume qu'au survol — c'est elle qui fait la carte à
+                   collectionner ;
+     .carte-lueur  le point de lumière qui suit le pointeur ;
+     le contenu    toujours AU-DESSUS des deux, sinon le reflet mange le
+                   titre — et un titre illisible annule tout le reste ;
+     la bordure    en couleur de matière, parce que la couleur seule ne doit
+                   jamais porter une information.
+
+   L'inclinaison vient du script (--rx / --ry), pas d'une animation : elle
+   suit la main, ce qui est tout l'effet.
+
+   Et elle se pose sur .carte-dedans, jamais sur .carte : CSS3DRenderer écrit
+   SA matrice dans le « transform » de l'élément racine, à chaque image. Un
+   relief posé là est effacé à l'image suivante — c'est ce qui se passait
+   depuis le premier jour, le script écrivait --rx et --ry dans le vide. La
+   doublure porte donc tout le dessin de la carte, et la racine ne garde que
+   la place qu'elle occupe dans le monde. */
+.carte {
+  position: relative; display: block; padding: 0; border: 0; background: none;
+  font: inherit; color: var(--encre); cursor: pointer;
+}
+.carte-dedans {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; gap: .45rem;
+  text-align: left;
+  padding: .62rem .78rem .66rem; border-radius: 13px; gap: .2rem;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--c) 16%, transparent),
+                    transparent 46%),
+    var(--verre);
+  border: 1px solid color-mix(in srgb, var(--c) 42%, var(--trait));
+  box-shadow: 0 14px 34px rgba(0, 8, 26, .38),
+              inset 0 1px 0 rgba(255, 255, 255, .16);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  overflow: hidden; isolation: isolate;
+  /* Un seul « transform » porte TOUT : l'entrée et l'inclinaison. Deux
+     transformations sur le même élément, la seconde écrase la première —
+     c'est pour ça que l'entrée passe par une variable et non par une
+     animation séparée. */
+  transform:
+    perspective(640px)
+    rotateX(calc(var(--rx, 0deg) + (1 - var(--ent)) * -18deg))
+    rotateY(var(--ry, 0deg))
+    translateY(calc((1 - var(--ent)) * 22px))
+    scale(calc(.9 + var(--ent) * .1));
+  opacity: var(--ent);
+  transition: --ent .55s cubic-bezier(.2,.9,.25,1) var(--d, 0ms),
+              transform .16s ease-out, box-shadow .28s, border-color .28s;
+}
+body.entre .carte-dedans { --ent: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .carte-dedans { transition: opacity .3s ease var(--d, 0ms); }
+}
+.carte:hover .carte-dedans, .carte:focus-visible .carte-dedans {
+  box-shadow: 0 22px 52px rgba(0, 8, 26, .48),
+              0 0 0 1px color-mix(in srgb, var(--c) 70%, transparent),
+              0 0 34px color-mix(in srgb, var(--c) 28%, transparent);
+  border-color: color-mix(in srgb, var(--c) 78%, transparent);
+}
+.carte:focus-visible { outline: none; }
+.carte:focus-visible .carte-dedans { outline: 2px solid var(--c); outline-offset: 3px; }
+
+.carte-holo, .carte-lueur {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity .3s ease; z-index: 0;
+}
+/* Le foil : deux trames superposées. La première est un arc-en-ciel très
+   serré, la seconde une nervure sombre à contre-angle ; « difference » les
+   croise, et c'est ce croisement qui fait le miroitement d'une carte à
+   collectionner. Une seule des deux donnerait un dégradé de savon.
+   Les deux trames se déplacent avec le pointeur : le reflet reste accroché
+   à la main, et c'est tout l'effet. */
+.carte-holo {
+  background-image:
+    repeating-linear-gradient(103deg,
+      hsl(340 92% 68% / .72) 0%, hsl(36 92% 68% / .72) 4%,
+      hsl(88 88% 66% / .72) 8%, hsl(176 92% 66% / .72) 12%,
+      hsl(232 92% 70% / .72) 16%, hsl(292 92% 70% / .72) 20%,
+      hsl(340 92% 68% / .72) 24%),
+    repeating-linear-gradient(-17deg,
+      #0b1024 0%, hsl(200 12% 58%) 3.4%, hsl(200 26% 66%) 4.2%,
+      hsl(200 12% 58%) 5%, #0b1024 9.6%, #0b1024 12%);
+  background-blend-mode: difference;
+  background-size: 260% 260%, 210% 210%;
+  background-position: var(--mx, 50%) var(--my, 50%),
+                       calc(100% - var(--mx, 50%)) calc(100% - var(--my, 50%));
+  mix-blend-mode: color-dodge;
+  filter: brightness(.82) contrast(2.3) saturate(1.25);
+}
+/* Le grain : une poussière de paillettes, qui ne s'allume qu'au survol et
+   se déplace à contresens du foil. C'est ce détail qui fait qu'on rapproche
+   la carte de l'œil. */
+.carte-paillettes {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity .3s ease; z-index: 0;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.9) 0.6px, transparent 1.1px),
+    radial-gradient(circle at 50% 50%, rgba(180,230,255,.7) 0.5px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: var(--mx, 50%) var(--my, 50%),
+                       calc(50% - var(--mx, 50%)) calc(50% - var(--my, 50%));
+  mix-blend-mode: color-dodge;
+}
+.carte-lueur {
+  background: radial-gradient(180px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255,255,255,.34), transparent 62%);
+  mix-blend-mode: soft-light;
+}
+.carte:hover .carte-holo, .carte:focus-visible .carte-holo { opacity: .58; }
+.carte:hover .carte-lueur, .carte:focus-visible .carte-lueur { opacity: 1; }
+.carte:hover .carte-paillettes, .carte:focus-visible .carte-paillettes { opacity: .5; }
+/* Au survol, la carte AVANCE : un peu plus grande, un peu plus proche.
+   Sans ce pas en avant, l'inclinaison seule se lit comme un défaut
+   d'affichage plutôt que comme une réaction. */
+.carte:hover .carte-dedans, .carte:focus-visible .carte-dedans {
+  transform:
+    perspective(640px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+    translateZ(14px) scale(1.035);
+}
+/* En plein jour, « color-dodge » sur du blanc délave tout : on descend le
+   reflet et on le passe en « overlay », qui garde le texte lisible. */
+/* En plein jour, « color-dodge » sur du blanc délave tout : on passe le
+   reflet en « overlay », qui garde le texte lisible. */
+body.jour .carte-holo { mix-blend-mode: overlay;
+  filter: brightness(1) contrast(1.5) saturate(1.1); }
+body.jour .carte:hover .carte-holo { opacity: .4; }
+body.jour .carte-paillettes { mix-blend-mode: overlay; }
+body.jour .carte-dedans { box-shadow: 0 16px 38px rgba(16, 40, 76, .26),
+                                      0 2px 6px rgba(16, 40, 76, .14),
+                                      inset 0 1px 0 rgba(255,255,255,.9); }
+
+.carte-dedans > :not(.carte-holo):not(.carte-lueur):not(.carte-paillettes) {
+  position: relative; z-index: 1; }
+/* Mesuré à 4,14:1 pour les mathématiques la nuit — la seule des cinq teintes
+   à ne pas passer sur le verre. Plutôt que de retoucher une couleur de
+   matière pour un seul usage, on tire le numéro VERS L'ENCRE : il garde sa
+   teinte, il gagne le contraste, et les cinq matières suivent la même règle
+   au lieu d'avoir chacune son exception. */
+.carte-no {
+  font-family: var(--mono); font-size: .74rem; letter-spacing: .14em;
+  color: color-mix(in srgb, var(--c) 68%, var(--encre)); font-weight: 700;
+}
+/* ── Ce que dit une carte, et à quelle taille ────────────────────────────
+   La carte était descendue à 230 × 132 pour qu'on en voie douze au lieu de
+   trois. Mesure faite de ce que l'œil reçoit vraiment — un élément HTML
+   projeté en 3D n'a pas à l'écran la taille écrite ici —, le compte était le
+   suivant : pastilles à 8,0 pixels, numéro à 8,4, sous-titre à 9,9. Aucune
+   norme ne fixe de taille minimale ; Apple s'arrête à 11 points, Google à 11.
+   En dessous, on ne lit pas, on devine.
+
+   Agrandir la carte aurait rendu un tiers des chapitres invisibles, et c'est
+   précisément ce qu'JustAkhiraa avait refusé. Ce qui devait céder, c'est donc le
+   CONTENU, et la ligne de pastilles était le candidat évident : quatre
+   étiquettes au plus petit corps de la page, qui répètent les quatre onglets
+   que le clic suivant affiche en grand. Elles disaient « Cours, Exercices,
+   Fiche, QCM » — c'est-à-dire la même chose sur presque toutes les cartes.
+   Retirées, tout le reste respire : le titre passe à 14 pixels, le
+   sous-titre à 11,8, et la carte perd de la hauteur au lieu d'en gagner. */
+.carte-texte b { display: block; font-size: .88rem; font-weight: 720;
+  line-height: 1.24; letter-spacing: -.012em; }
+.carte-sous { display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  margin-top: .2rem; font-size: .74rem; line-height: 1.34;
+  color: var(--encre-douce); }
+@media (prefers-reduced-motion: reduce) {
+  .carte-dedans { transition: none; transform: none; }
+}
+
+/* ═══════════════════════════════════ le titre ═══════════════════════════
+   Il ne porte plus que le titre : les cartes, elles, vivent DANS la scène.
+   « pointer-events: none » est indispensable — une couche plein écran
+   au-dessus des cartes 3D leur volerait tous les clics. */
+.calque3d { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+.calque3d > div { pointer-events: none; }
+.calque3d .carte, .calque3d .enseigne { pointer-events: auto; }
+
+.pont {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 14; pointer-events: none;
+  padding: calc(env(safe-area-inset-top) + 4.2rem) clamp(1rem, 4vw, 2.6rem) 0;
+}
+.pont-tete { max-width: 74rem; margin: 0 auto; text-align: center; }
+.pont-tete h1 {
+  margin: 0; font-size: clamp(1.5rem, 4.4vw, 2.4rem); font-weight: 780;
+  letter-spacing: -.024em; line-height: 1.1;
+  background: linear-gradient(120deg, var(--encre), var(--c-matiere) 120%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+/* Le décompte « 12 chapitres · 48 fiches » est à chasse fixe parce que
+   c'est une mesure. Le chapeau de l'accueil est une PHRASE : la règle visait
+   le premier et attrapait le second, qui se lisait comme du code. */
+.pont-tete > p { margin: .4rem 0 0; font-size: .85rem; color: var(--encre-douce);
+  font-family: var(--mono); letter-spacing: .04em; }
+/* L'entrée : les cartes apparaissent l'une après l'autre. Le retard vient du
+   script (--d), remis à zéro toutes les quatorze — au-delà, l'attente se voit
+   plus que l'effet. L'inclinaison NE PEUT PAS être dans le même « transform »
+   que l'entrée : CSS3DRenderer pose déjà une matrice sur le parent, et c'est
+   lui qui porte la position dans le monde. On n'anime donc ici que ce qui est
+   propre à la carte. */
+/* « --f » est la netteté, posée à chaque image par le script : une carte
+   hors de la bande visible s'efface. L'entrée, elle, force l'opacité à zéro
+   tant que « entre » n'est pas posé — d'où le !important, qui doit battre la
+   valeur calculée. */
+.calque3d .carte { opacity: var(--f, 1); transition: opacity .35s ease var(--d, 0ms); }
+body:not(.entre) .calque3d .carte { opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .calque3d .carte { transition: none; }
+}
+
+/* ── l'accueil ──────────────────────────────────────────────────────── */
+.accueil-tete { text-align: center; }
+.accueil-tete h1 {
+  margin: 0; font-size: clamp(1.8rem, 6vw, 3.1rem); font-weight: 800;
+  letter-spacing: -.03em; line-height: 1.04;
+}
+.accueil-tete h1 em { font-style: normal;
+  background: linear-gradient(100deg, #6FC8FF, #A98BFF 55%, #FF9ED2);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; }
+/* Mesuré à 1,60:1 en plein jour. Ces trois pastels sont des couleurs de NUIT,
+   choisies pour briller sur un ciel noir ; posées sur la plaque claire du
+   jour, elles s'effacent. Le village a déjà ses teintes de jour — les mêmes
+   que les accents de matière en plein soleil —, elles n'étaient simplement pas
+   branchées ici. */
+body.jour .accueil-tete h1 em {
+  background: linear-gradient(100deg, #14618F, #6A34A8 55%, #A82C2C);
+  -webkit-background-clip: text; background-clip: text; }
+.accueil-tete p { margin: .6rem auto 0; max-width: 36rem; font-size: .92rem;
+  line-height: 1.55; color: var(--encre-douce); }
+/* ═══════════════════════════════════ L'ENSEIGNE ═════════════════════════
+   Le nom d'un bâtiment, accroché devant lui, DANS la scène.
+
+   Les matières étaient des cartes, comme les chapitres. Dans un village
+   elles n'ont plus besoin de l'être : le bâtiment EST la matière, on clique
+   dessus. L'enseigne ne fait donc plus que ce qu'aucune silhouette ne sait
+   faire — écrire le nom, et dire combien de chapitres et de fiches attendent
+   derrière la porte.
+
+   C'est un vrai <button> : atteignable au clavier, annoncé par un lecteur
+   d'écran, et c'est LUI qu'on touche du doigt sur un téléphone. Viser un toit
+   de pagode avec un pouce ne marche pas ; viser une plaque de trois cents
+   pixels, oui.
+
+   Le relief se fait sur .ens-plaque, jamais sur l'enseigne elle-même, pour
+   la raison écrite plus haut : la racine appartient à CSS3DRenderer. */
+.enseigne {
+  position: relative; display: block; padding: 0; border: 0; background: none;
+  font: inherit; color: var(--encre); cursor: pointer;
+  transition: opacity .55s ease var(--d, 0ms);
+}
+/* La potence : une tige et sa traverse. Deux dégradés, et la plaque est
+   SUSPENDUE au lieu d'être posée en l'air. */
+.ens-crochet {
+  position: absolute; left: 50%; top: 4px; width: 7px; height: 22px;
+  transform: translateX(-50%); border-radius: 2px;
+  background: linear-gradient(90deg, #5A4C3C, #A3907A 42%, #4E4234);
+}
+.ens-crochet::before {
+  content: ""; position: absolute; left: 50%; top: -5px;
+  width: 30px; height: 7px; transform: translateX(-50%); border-radius: 4px;
+  background: linear-gradient(180deg, #B6A188, #61523F);
+}
+.ens-plaque {
+  position: absolute; left: 0; right: 0; top: 22px; bottom: 0;
+  display: flex; align-items: center; gap: 14px; padding: 0 20px;
+  border-radius: 18px;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--c) 20%, transparent),
+                    transparent 54%),
+    var(--verre-fort);
+  border: 1px solid color-mix(in srgb, var(--c) 46%, var(--trait));
+  box-shadow: 0 20px 44px rgba(0, 8, 26, .46),
+              inset 0 1px 0 rgba(255, 255, 255, .18);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  transition: transform .26s cubic-bezier(.2, .86, .24, 1),
+              box-shadow .26s, border-color .26s;
+}
+.ens-ic {
+  width: 52px; height: 52px; flex: 0 0 auto; border-radius: 15px;
+  display: grid; place-items: center; font-family: var(--mono);
+  font-size: 1.2rem; font-weight: 700; color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);
+}
+.ens-txt { display: block; text-align: left; min-width: 0; }
+.ens-txt b { display: block; font-size: 1.3rem; font-weight: 760;
+  letter-spacing: -.02em; line-height: 1.1; }
+/* L'enseigne est DANS la scène : sa taille à l'écran dépend d'où l'on se
+   tient, pas d'un calcul. On ne peut donc rien lui garantir — c'est le prix
+   d'un monde en trois dimensions, et c'est pour ça que le nom du bâtiment est
+   trois fois plus gros que son décompte. On agrandit quand même le décompte :
+   à 0,8 rem il tombait sous neuf pixels dès qu'on reculait. */
+.ens-txt i { display: block; margin-top: .26rem; font-style: normal;
+  font-family: var(--mono); font-size: .95rem; letter-spacing: .03em;
+  color: var(--encre-douce); }
+/* Le survol vient du SCRIPT autant que du pointeur : viser le bâtiment en 3D
+   allume son enseigne, et viser l'enseigne allume l'anneau au sol du
+   bâtiment. Les deux sont le même bouton. */
+.enseigne.survol .ens-plaque, .enseigne:focus-visible .ens-plaque {
+  transform: translateY(-10px);
+  border-color: color-mix(in srgb, var(--c) 82%, transparent);
+  box-shadow: 0 30px 62px rgba(0, 8, 26, .5),
+              0 0 0 1px color-mix(in srgb, var(--c) 64%, transparent),
+              0 0 44px color-mix(in srgb, var(--c) 34%, transparent);
+}
+.enseigne:focus-visible { outline: none; }
+.enseigne:focus-visible .ens-plaque { outline: 2px solid var(--c);
+  outline-offset: 4px; }
+/* Pendant la ruée, les enseignes s'effacent : on ne fonce pas dans un
+   panneau. Elles reviennent à l'arrivée, avec les cartes. */
+body.en-ruee .enseigne, body:not(.entre) .enseigne { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .enseigne { transition: none; }
+  .ens-plaque { transition: box-shadow .26s, border-color .26s; }
+  .enseigne.survol .ens-plaque { transform: none; }
+}
+
+/* ═══════════════════════════════════ LE VOILE ═══════════════════════════
+   Devant un bâtiment, le village s'estompe. Ce n'est pas une coquetterie :
+   les cartes sont posées DEVANT une façade couverte de poutres, de fenêtres
+   et de créneaux, et un texte sur un fond chargé ne se lit pas. Le voile
+   descend le contraste du décor de deux crans, et les cartes reprennent le
+   dessus. Il est entre le WebGL et les cartes, jamais au-dessus d'elles. */
+.voile {
+  position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+  transition: opacity .75s ease;
+  background: radial-gradient(125% 92% at 50% 44%,
+    color-mix(in srgb, var(--nuit) 30%, transparent),
+    color-mix(in srgb, var(--nuit) 84%, transparent));
+}
+/* En plein jour, le voile reste SOMBRE et s'allège : les cartes y sont
+   blanches, et un voile clair les ferait disparaître dans le ciel. Un voile
+   n'a pas pour rôle de suivre l'ambiance, mais de créer l'écart. */
+body.jour .voile {
+  background: radial-gradient(125% 92% at 50% 44%,
+    rgba(10, 26, 48, .14), rgba(10, 26, 48, .46));
+}
+body.en-matiere .voile { opacity: 1; }
+
+/* ═══════════════════════════════════ LA RUÉE ════════════════════════════
+   « Un effet comme si on avançait vite. » Les lignes de vitesse sont un
+   dégradé conique répété : des rayons qui partent du centre de l'écran, donc
+   du point vers lequel on file. Le masque en creuse le milieu — sinon elles
+   barrent l'image au lieu de l'étirer.
+
+   Tout est piloté par --ruee, que la boucle pose entre 0 et 1 en forme de
+   cloche : rien au départ, tout au milieu du trajet, rien à l'arrivée. */
+.ruee {
+  position: fixed; inset: -18%; z-index: 5; pointer-events: none;
+  opacity: calc(var(--ruee, 0) * .8);
+  transform: scale(calc(1 + var(--ruee, 0) * .28));
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255, 255, 255, .55) 0deg .2deg, transparent .2deg 2.4deg);
+  mask: radial-gradient(closest-side, transparent 24%, #000 76%);
+  -webkit-mask: radial-gradient(closest-side, transparent 24%, #000 76%);
+  will-change: opacity, transform;
+}
+body.jour .ruee { background: repeating-conic-gradient(from 0deg at 50% 50%,
+  rgba(255, 255, 255, .85) 0deg .2deg, transparent .2deg 2.4deg); }
+@media (prefers-reduced-motion: reduce) { .ruee { display: none; } }
+
+/* ── l'invite : comment on marche ─────────────────────────────────────
+   Elle ne dit pas qu'on PEUT se déplacer, elle dit COMMENT — et elle
+   disparaît au premier pas, parce qu'elle n'a plus rien à apprendre à
+   personne. Une aide permanente devient un meuble qu'on ne lit plus. */
+.invite {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .72rem; color: var(--encre-douce);
+  padding: .4rem .85rem; border-radius: 999px;
+  background: var(--verre); border: 1px solid var(--trait);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: opacity .5s ease, transform .5s ease;
+}
+.invite kbd { font-family: var(--mono); font-size: .68rem; color: var(--encre);
+  padding: .08rem .34rem; border-radius: 5px;
+  background: color-mix(in srgb, var(--encre) 12%, transparent);
+  border: 1px solid var(--trait); }
+/* ── Dire le geste QU'ON A SOUS LA MAIN ──────────────────────────────────
+   « ZQSD pour marcher » sur un écran tactile promet une touche qui n'existe
+   pas, et tait le manche du pouce, qui est le seul moyen d'avancer là. Le
+   critère est le POINTEUR, pas la largeur : une tablette large est tactile, un
+   petit portable ne l'est pas. Ce n'est pas la taille de l'écran qui décide du
+   geste, c'est ce avec quoi on le touche. */
+.au-doigt { display: none; }
+@media (pointer: coarse) {
+  .au-clavier { display: none; }
+  .au-doigt { display: inline; }
+  dd.au-doigt { display: block; }
+}
+.invite b { font-weight: 600; color: var(--encre); }
+/* Effacée, elle gardait sa PLACE : « opacity: 0 » ne retire rien de la mise en
+   page. Sur un téléphone, c'étaient quarante pixels de boussole conservés pour
+   une phrase invisible, pris sur la bande où s'affichent les cartes — et elle
+   est invisible tout le temps qu'on choisit un chapitre, c'est-à-dire tout le
+   temps qui compte. Elle se replie donc vraiment. */
+body.a-bouge .invite, body.en-matiere .invite {
+  opacity: 0; transform: translateY(6px); pointer-events: none;
+  max-height: 0; padding-top: 0; padding-bottom: 0;
+  border-top-width: 0; border-bottom-width: 0; overflow: hidden; }
+
+/* ── le sous-titre ────────────────────────────────────────────────────
+   JustAkhiraa : « quand je regarde un bâtiment, écrire comme s'il y avait des
+   sous-titres le nom de la matière, et la retirer au bout de 5 s ». C'est
+   donc un vrai sous-titre : en bas, centré, sur une plaque sombre qui le
+   rend lisible sur n'importe quelle façade — et qui s'efface toute seule.
+   Une étiquette permanente collée au pointeur devient un meuble ; celle-ci
+   dit ce qu'il faut, une fois, puis se tait. */
+.soustitre {
+  position: fixed; z-index: 24; left: 50%; bottom: 22%;
+  transform: translate(-50%, 10px);
+  margin: 0; padding: .6rem 1.15rem; border-radius: 13px;
+  display: flex; flex-direction: column; align-items: center; gap: .1rem;
+  text-align: center; pointer-events: none; max-width: min(92vw, 34rem);
+  background: rgba(6, 10, 22, .86);
+  border: 1px solid color-mix(in srgb, var(--c, #6FC8FF) 48%, transparent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .45);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  opacity: 0; transition: opacity .38s ease, transform .38s ease;
+}
+.soustitre.vu { opacity: 1; transform: translate(-50%, 0); }
+.soustitre b { font-size: 1.02rem; font-weight: 720; letter-spacing: -.01em;
+  color: #F2F7FF; }
+/* Mesuré à 3,84:1 sur la plaque : un accent à 72 % reste un accent, et un
+   accent saturé sur du presque-noir ne passe pas le seuil. À 52 %, la teinte
+   se voit encore et la ligne se lit. */
+.soustitre span { font-family: var(--mono); font-size: .72rem;
+  letter-spacing: .04em; color: color-mix(in srgb, var(--c, #6FC8FF) 52%, #FFF); }
+@media (prefers-reduced-motion: reduce) { .soustitre { transition: none; } }
+
+/* ── le titre qui se dit puis se tait ─────────────────────────────────
+   JustAkhiraa : « quand je marche y'a écrit ça, c'est moche, écris-le et retire-
+   le, en plus on arrive pas à lire ». Un titre permanent sur un village,
+   c'est deux fautes : il cache ce qu'on est venu voir, et posé tantôt sur
+   une façade claire tantôt sur une sombre, il n'est lisible nulle part.
+   Il se dit cinq secondes, et il s'en va. Le temps qu'il est là, une ombre
+   douce derrière lui le rend lisible sur n'importe quel fond. */
+/* ── Le titre tient sur une PLAQUE, plus sur un voile ────────────────────
+   Il y avait ici une ombre radiale, et le commentaire promettait qu'elle
+   rendait le titre « lisible sur n'importe quel fond ». Mesure faite, en
+   plein jour, des pixels réellement présents derrière ses lettres : la
+   luminance va de 0,006 à 0,74 sur la largeur du titre. Ce n'est pas un fond,
+   c'est un bâtiment à contre-jour. Aucune encre ne tient sur les deux, et
+   aucun voile ne rattrape un écart pareil — un voile ne fait que rapprocher
+   les deux extrêmes d'un centième.
+
+   Le village sait déjà résoudre ça, et il le fait partout ailleurs : les
+   cartes, les pastilles, les enseignes, l'invite sont toutes posées sur du
+   VERRE. Le titre était le seul à flotter. Il est donc posé lui aussi — même
+   verre, même trait, même flou — et le flou n'est pas décoratif : il écrase
+   l'écart du fond avant de le recouvrir, ce qu'une couleur seule ne sait pas
+   faire. */
+.pont-tete {
+  position: relative; width: fit-content;
+  max-width: min(74rem, 92vw);
+  padding: .85rem 1.5rem .95rem; border-radius: 20px;
+  background: var(--verre); border: 1px solid var(--trait);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 18px 44px rgba(0, 6, 22, .3);
+}
+.pont { transition: opacity .9s ease, transform .9s ease; }
+body.titre-parti:not(.en-matiere) .pont {
+  opacity: 0; transform: translateY(-14px); pointer-events: none;
+}
+
+/* ── le manche du pouce ───────────────────────────────────────────────
+   Il n'occupe aucune place tant qu'on ne s'en sert pas : le script le pose
+   là où le pouce touche et le retire au relâchement. C'est ce qui permet de
+   marcher sur un téléphone sans rien retirer de l'écran. */
+.manche {
+  position: fixed; z-index: 22; width: 104px; height: 104px;
+  border-radius: 50%; pointer-events: none;
+  background: var(--verre); border: 1px solid var(--trait);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.manche-poignee {
+  position: absolute; left: 50%; top: 50%; width: 44px; height: 44px;
+  margin: -22px 0 0 -22px; border-radius: 50%;
+  background: color-mix(in srgb, var(--encre) 24%, transparent);
+  border: 1px solid var(--trait);
+}
+
+/* ── la boussole : la seule navigation ───────────────────────────────── */
+.boussole { position: fixed; z-index: 20; left: 0; right: 0;
+  bottom: max(.8rem, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; gap: .45rem;
+  padding: 0 .8rem; pointer-events: none; }
+.boussole > * { pointer-events: auto; }
+.chips { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; }
+.chip {
+  font: inherit; font-size: .74rem; cursor: pointer; min-height: 38px;
+  padding: .4rem .8rem; border-radius: 999px; color: var(--encre);
+  background: var(--verre); border: 1px solid var(--trait);
+  display: inline-flex; align-items: center; gap: .42rem;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: border-color .15s, background .15s, transform .12s;
+}
+.chip:hover { border-color: var(--c, #6FC8FF); background: var(--verre-fort); }
+.chip:active { transform: translateY(1px); }
+.chip i { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--c); box-shadow: 0 0 10px var(--c); }
+.chip em { font-style: normal; font-family: var(--mono); font-size: .72rem;
+  color: var(--encre-douce); }
+.chip[aria-pressed="true"] { border-color: var(--c); background: var(--verre-fort); }
+.chip[aria-pressed="true"] em { color: var(--encre); }
+.chip-tout { --c: #8FB6E8; font-size: .73rem; }
+.chip-tout .fleche { font-family: var(--mono); }
+
+/* ── Sur un téléphone, la boussole prenait la place des cartes ───────────
+   Mesuré sur un écran de 812 pixels de haut : la boussole en occupait 297,
+   dont 166 pour cinq pastilles repliées sur quatre rangées. Avec le titre, la
+   garniture mangeait 42 % de l'écran, et il ne restait de quoi montrer que
+   DEUX chapitres sur douze — le reproche exact qu'JustAkhiraa avait fait des cartes,
+   revenu par la porte de la navigation.
+
+   Les cinq matières tiennent sur une seule rangée si on les laisse défiler
+   latéralement. Ce n'est pas un pis-aller : cinq éléments qui défilent sur une
+   ligne se parcourent d'un pouce, alors que quatre rangées empilées obligent à
+   lire de haut en bas pour retrouver la bonne. Le défilement reste DANS la
+   boussole — « overflow-x » sur un conteneur ne pousse jamais la page. */
+@media (pointer: coarse) {
+  .chips { flex-wrap: nowrap; justify-content: flex-start;
+    overflow-x: auto; scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    max-width: 100%; padding: 2px 0 6px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; scroll-snap-align: center; }
+  /* Sans cette marge, la première et la dernière pastille collent au bord et
+     l'on ne voit pas qu'il y en a d'autres à côté. */
+  .chips::before, .chips::after { content: ""; flex: 0 0 .4rem; }
+}
+
+/* ── l'aide ──────────────────────────────────────────────────────────── */
+.aide { position: fixed; inset: 0; z-index: 40; display: grid; place-content: center;
+  padding: 1.4rem; background: var(--voile);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.aide-boite { max-width: 31rem; background: var(--verre-fort);
+  border: 1px solid var(--trait); border-radius: 18px; padding: 1.5rem;
+  box-shadow: 0 24px 60px rgba(0,6,20,.5);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.aide-boite h2 { margin: 0 0 1rem; font-size: 1.06rem; }
+.aide dl { display: grid; grid-template-columns: auto 1fr; gap: .55rem .9rem;
+  margin: 0 0 1.1rem; font-size: .84rem; align-items: baseline; }
+.aide dt { color: var(--encre-douce); }
+.aide dd { margin: 0; }
+.aide kbd { font-family: var(--mono); font-size: .74rem; padding: .1rem .38rem;
+  border-radius: 5px; border: 1px solid var(--trait);
+  background: color-mix(in srgb, var(--encre) 8%, transparent); }
+.aide-note { font-size: .8rem; color: var(--encre-douce); margin: 0 0 1.2rem;
+  line-height: 1.55; }
+.aide-boite button { font: inherit; cursor: pointer; width: 100%; min-height: 42px;
+  border-radius: 11px; border: 1px solid var(--trait); color: var(--encre);
+  background: color-mix(in srgb, var(--encre) 10%, transparent); font-weight: 650; }
+.aide-boite button:hover { border-color: #6FC8FF; }
+
+/* ═══════════════════════════════════ le panneau de lecture ═════════════
+   « La fiche du cours en 2D c'est plat, ça n'a pas d'interface. » Le monde
+   ne charge pas la feuille du site : sans les règles ci-dessous, une fiche
+   importée arrive en texte nu — encarts effacés, tableaux sans filets, et
+   surtout du CODE SANS COULEURS. Les teintes de code sont reprises à
+   l'identique de theme.css, où elles ont été mesurées contre ce même fond
+   #23211E : elles restent donc valables ici sans nouvelle mesure. */
+/* JustAkhiraa : « le contenu du cours au milieu de la page en grosse carte en 3D,
+   mets le cours beau aussi ». C'était un tiroir collé à droite : le cours y
+   arrivait de biais, dans une colonne étroite, comme un panneau de
+   réglages. Un cours n'est pas un réglage — c'est CE POUR QUOI le village
+   existe. Il se pose donc au centre, en grand, et il arrive en basculant
+   vers nous : la même carte que sur le parvis, ouverte.
+
+   L'ombre de cent « vmax » sert de fond : elle assombrit tout l'écran sans
+   qu'il faille un second élément par-dessus le village. */
+.lecture {
+  position: fixed; z-index: 50; left: 50%; top: 50%;
+  width: min(1480px, 96vw); height: min(94vh, 1180px);
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 22px;
+  background: var(--verre-fort);
+  border: 1px solid color-mix(in srgb, var(--c) 34%, var(--trait));
+  box-shadow: 0 40px 110px rgba(0, 6, 20, .62),
+              0 0 0 1px color-mix(in srgb, var(--c) 22%, transparent),
+              0 0 0 100vmax var(--voile);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  transform: translate(-50%, -50%) perspective(1700px);
+  transform-origin: 50% 50%;
+  opacity: 1;
+  transition: transform .42s cubic-bezier(.22,.9,.26,1), opacity .3s ease;
+}
+/* L'état d'entrée ET de sortie : basculée en arrière, un peu plus bas,
+   un peu plus petite. C'est le mouvement d'une carte qu'on retourne. */
+.lecture.glisse {
+  opacity: 0;
+  transform: translate(-50%, -44%) perspective(1700px) rotateX(11deg) scale(.93);
+}
+@media (prefers-reduced-motion: reduce) { .lecture { transition: opacity .2s; } }
+.lecture > header { position: relative; padding: 1.5rem 4rem 1.2rem 2rem;
+  border-bottom: 1px solid var(--trait);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 18%, transparent),
+                              transparent 70%); }
+.lecture-matiere { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--c); font-weight: 700; }
+.lecture h2 { margin: .3rem 0 .2rem; font-size: 1.62rem; line-height: 1.16;
+  letter-spacing: -.02em; }
+.lecture > header p { margin: 0; font-size: .84rem; color: var(--encre-douce); }
+/* La croix en haut à droite : quarante-six pixels, au-dessus de tout le
+   reste du panneau. C'est la seule sortie, et on doit la trouver sans la
+   chercher. */
+#lecture-fermer { position: absolute; z-index: 3;
+  top: 1rem; right: 1rem; width: 46px; height: 46px; font-size: 1.05rem;
+  border-radius: 50%; cursor: pointer; font: inherit; font-size: 1rem;
+  color: var(--encre); background: var(--verre); border: 1px solid var(--trait); }
+#lecture-fermer:hover { border-color: var(--c); }
+.lecture-onglets { display: flex; gap: .3rem; padding: .7rem 2rem;
+  border-bottom: 1px solid var(--trait); flex-wrap: wrap; }
+.lecture-onglets button { font: inherit; font-size: .78rem; cursor: pointer;
+  min-height: 34px; padding: .35rem .8rem; border-radius: 9px;
+  color: var(--encre-douce); background: transparent; border: 1px solid transparent; }
+.lecture-onglets button:hover { color: var(--encre); }
+.lecture-onglets button[aria-pressed="true"] { color: var(--encre);
+  border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+/* Une mesure de lecture, pas une pleine largeur : au-delà de soixante-dix
+   signes par ligne, l'œil perd le début de la ligne suivante. La carte est
+   large ; le TEXTE, lui, reste à sa bonne largeur, centré. */
+/* ── Les jetons de la fiche, dans la fenêtre de lecture ──────────────────
+   JustAkhiraa, capture à l'appui : « y'a des erreurs et bugs bizarres là ». Les
+   schémas s'affichaient en RECTANGLES NOIRS, légende noire comprise.
+
+   Ce n'est pas un défaut d'affichage, c'est une règle de CSS qu'on oublie :
+   un schéma de fiche est un SVG dont les formes sont peintes en
+   « fill: var(--carte) ». Ces jetons appartiennent à la feuille du site, que
+   le village ne charge pas. Or une déclaration dont la variable n'existe pas
+   n'est pas ignorée — elle devient invalide à la valeur calculée, et la
+   propriété retombe sur sa valeur INITIALE. Pour « background-color », c'est
+   transparent : personne ne voit rien, et l'on ne s'aperçoit de rien. Pour
+   « fill », en SVG, c'est le NOIR. D'où les boîtes noires — et c'est pour
+   cela que le reste de la fiche semblait normal.
+
+   On ne recopie pas la palette du site : elle a quarante thèmes, le village
+   en a deux, et une copie aurait dérivé au premier changement. On DÉRIVE les
+   jetons de ceux du village — l'encre, la couleur de la matière — pour qu'ils
+   suivent l'heure d'eux-mêmes. Les six teintes d'encart sont exactement les
+   constantes déjà écrites plus bas : un schéma et l'encart qui le commente
+   doivent parler la même langue. */
+.lecture-corps {
+  --papier: transparent;
+  --carte: color-mix(in srgb, var(--encre) 7%, transparent);
+  --carte-creuse: color-mix(in srgb, var(--encre) 4%, transparent);
+  --bord: color-mix(in srgb, var(--encre) 18%, transparent);
+  --bord-fort: color-mix(in srgb, var(--encre) 38%, transparent);
+  --encre-tenue: color-mix(in srgb, var(--encre) 66%, transparent);
+  --accent: var(--c, #6FC8FF);
+  --accent-sombre: var(--c, #6FC8FF);
+  --accent-pale: color-mix(in srgb, var(--c, #6FC8FF) 20%, transparent);
+  --rouge: #FF8B8B;  --rouge-pale:  color-mix(in srgb, #FF8B8B 20%, transparent);
+  --vert: #62E88A;   --vert-pale:   color-mix(in srgb, #62E88A 20%, transparent);
+  --ambre: #FFC46B;  --ambre-pale:  color-mix(in srgb, #FFC46B 20%, transparent);
+  --ambre-sombre: #FFC46B;
+  --violet: #CE96FF; --violet-pale: color-mix(in srgb, #CE96FF 20%, transparent);
+}
+/* De jour, les mêmes six teintes seraient des taches pâles sur du blanc. Ce
+   sont les versions foncées, celles-là mêmes que le village utilise déjà pour
+   les accents de matière en plein soleil. */
+body.jour .lecture-corps {
+  --rouge: #A82C2C; --vert: #1F7A42; --ambre: #8F5300;
+  --ambre-sombre: #6B3F00; --violet: #6A34A8;
+}
+
+.lecture-corps > * { max-width: 70ch; margin-left: auto; margin-right: auto; }
+.lecture-corps > .tableau-conteneur, .lecture-corps > .bloc-code,
+.lecture-corps > table { max-width: 88ch; }
+.lecture-corps { flex: 1 1 auto; overflow-y: auto;
+  padding: 2rem clamp(1.2rem, 4vw, 3rem) 5rem;
+  font-size: .9rem; line-height: 1.68; }
+
+/* ── ce que la fiche apporte avec elle ──────────────────────────────── */
+.lecture-corps > .fil, .lecture-corps .badge { display: none; }
+.lecture-corps h1 { font-size: 1.9rem; line-height: 1.16; margin: 0 0 .7rem;
+  letter-spacing: -.024em; }
+.lecture-corps h2 { font-size: 1.1rem; margin: 2rem 0 .6rem; line-height: 1.25;
+  padding-bottom: .4rem; border-bottom: 1px solid var(--trait); }
+.lecture-corps h3 { font-size: .97rem; margin: 1.4rem 0 .4rem; }
+.lecture-corps p { color: var(--encre); margin: .85rem 0; line-height: 1.68; }
+.lecture-corps .chapeau { font-size: 1rem; color: var(--encre-douce); }
+.lecture-corps a { color: var(--c); }
+.lecture-corps ul, .lecture-corps ol { padding-left: 1.2rem; }
+.lecture-corps li { margin: .3rem 0; }
+.lecture-corps strong, .lecture-corps b { color: var(--encre); font-weight: 700; }
+
+/* Les encarts : six teintes sémantiques, ramenées au fond de verre. Sans
+   elles, « piège d'examen » et « analogie » se lisent comme du texte
+   courant — et c'est précisément ce qu'on vient chercher dans une fiche. */
+.lecture-corps .encart {
+  margin: 1.1rem 0; padding: .9rem 1rem; border-radius: 12px;
+  border: 1px solid var(--trait); border-left: 3px solid var(--e, var(--c));
+  background: color-mix(in srgb, var(--e, var(--c)) 10%, transparent);
+}
+.lecture-corps .encart .titre { display: block; font-weight: 720; font-size: .86rem;
+  margin-bottom: .35rem; color: var(--e, var(--c)); }
+.lecture-corps .encart p:first-of-type { margin-top: 0; }
+.lecture-corps .encart p:last-child { margin-bottom: 0; }
+.lecture-corps .analogie { --e: #6FC8FF; }
+.lecture-corps .outils   { --e: #62E88A; }
+.lecture-corps .piege    { --e: #FF8B8B; }
+.lecture-corps .savoir   { --e: #FFC46B; }
+.lecture-corps .methode  { --e: #CE96FF; }
+.lecture-corps .corrige  { --e: #FF9ED2; }
+.lecture-corps .memo, .lecture-corps .exo {
+  margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px;
+  border: 1px solid var(--trait); background: color-mix(in srgb, var(--encre) 5%, transparent); }
+.lecture-corps .no, .lecture-corps .num { font-family: var(--mono); color: var(--c);
+  font-weight: 700; margin-right: .4rem; }
+.lecture-corps .niveau { font-size: .72rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--encre-douce); margin-left: .4rem; }
+.lecture-corps .rap { display: block; margin-top: .5rem; font-size: .84rem;
+  color: var(--encre-douce); font-style: italic; }
+.lecture-corps .formule { font-family: var(--mono); font-size: .92rem;
+  text-align: center; margin: 1rem 0; padding: .8rem;
+  border-radius: 10px; background: color-mix(in srgb, var(--encre) 6%, transparent); }
+.lecture-corps .reponse { margin-top: .6rem; padding-top: .6rem;
+  border-top: 1px dashed var(--trait); }
+
+/* Le code. Fond #23211E dans les deux ambiances : c'est l'invariant du
+   site, celui qui autorise UNE seule palette de coloration — et il vaut ici
+   pour la même raison. */
+.lecture-corps .bloc-code { position: relative; margin: 1.1rem 0; }
+.lecture-corps .langue { position: absolute; top: 0; left: 1rem;
+  transform: translateY(-50%); z-index: 2;
+  font-family: var(--mono); font-size: .6rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: .16rem .55rem; border-radius: 5px;
+  background: var(--c); color: #061020; }
+.lecture-corps pre { margin: 0; background: #23211E; color: #EDE7DC;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
+  padding: 1.05rem 1.1rem; overflow-x: auto;
+  font-family: var(--mono); font-size: .79rem; line-height: 1.62; }
+.lecture-corps pre code { background: none; padding: 0; border: 0;
+  font: inherit; color: inherit; }
+.lecture-corps :not(pre) > code { font-family: var(--mono); font-size: .88em;
+  padding: .1em .38em; border-radius: 5px; overflow-wrap: break-word;
+  background: color-mix(in srgb, var(--encre) 10%, transparent);
+  border: 1px solid var(--trait); color: var(--encre); }
+
+/* Les dix teintes de code du site, reprises À L'IDENTIQUE de theme.css.
+   Elles y ont été mesurées contre ce même fond #23211E — la plus juste à
+   4,78:1 — donc elles restent valables ici sans nouvelle mesure. Sans ces
+   dix lignes, tout le code des fiches arrive en gris uniforme, ce qui est
+   exactement ce qu'JustAkhiraa a signalé. */
+.lecture-corps .j-com { color: #948D80; font-style: italic; }
+.lecture-corps .j-mc  { color: #E58AC9; }
+.lecture-corps .j-typ { color: #6FC3DF; }
+.lecture-corps .j-txt { color: #C3E88D; }
+.lecture-corps .j-num { color: #F7A66B; }
+.lecture-corps .j-fn  { color: #82AAFF; }
+.lecture-corps .j-bal { color: #E5C07B; }
+.lecture-corps .j-att { color: #8FD4C1; }
+.lecture-corps .j-var { color: #F09E9E; }
+.lecture-corps .j-pre { color: #C8A2E8; }
+
+.lecture-corps .tableau-conteneur, .lecture-corps .tableau { overflow-x: auto; }
+.lecture-corps table { border-collapse: collapse; width: 100%; font-size: .82rem;
+  margin: 1rem 0; }
+.lecture-corps th, .lecture-corps td { border: 1px solid var(--trait);
+  padding: .5rem .6rem; text-align: left; vertical-align: top; }
+.lecture-corps th { background: color-mix(in srgb, var(--c) 14%, transparent);
+  font-weight: 700; }
+.lecture-corps img, .lecture-corps svg { max-width: 100%; height: auto; }
+.lecture-attente, .lecture-echec { color: var(--encre-douce); font-size: .86rem; }
+.lecture-ouvrir { display: inline-flex; align-items: center; gap: .4rem;
+  margin-top: 2rem; min-height: 40px; padding: .5rem 1rem; border-radius: 10px;
+  text-decoration: none; font-size: .82rem; font-weight: 650;
+  color: var(--encre); background: color-mix(in srgb, var(--c) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); }
+.lecture-ouvrir:hover { border-color: var(--c); }
+
+/* ── téléphone ───────────────────────────────────────────────────────── */
+@media (max-width: 620px) {
+  .lecture { width: 100vw; height: 100vh; border-radius: 0; border: 0; }
+  /* Le chapeau de l'accueil mange l'écran d'un téléphone, et le village est
+     justement ce qu'on veut voir. Le titre reste. */
+  .accueil-tete p { display: none; }
+  /* Sur un parvis, la même règle vaut pour la même raison : « L'observatoire ·
+     12 chapitres · 48 fiches » est déjà écrit sur l'enseigne du bâtiment devant
+     lequel on se tient, et sur la pastille de la matière juste en dessous. Ces
+     trois lignes coûtaient quarante pixels pris sur la bande des cartes —
+     c'est-à-dire un chapitre de moins affiché pour une information déjà
+     donnée deux fois. */
+  .pont-tete > p { display: none; }
+  .pont-tete { padding: .6rem 1.1rem .7rem; }
+  .titre-monde span { display: none; }
+  .pont { padding-top: calc(env(safe-area-inset-top) + 4rem); padding-bottom: 11rem; }
+  .chips { gap: .3rem; }
+  .chip { font-size: .72rem; padding: .35rem .6rem; }
+  .chip em { display: none; }
+}

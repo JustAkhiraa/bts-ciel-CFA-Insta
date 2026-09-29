@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adressage IPv4 &amp; VLSM — QCM | BTS CIEL</title>
+<meta name="description" content="Dix questions sur l'anatomie d'une adresse, les classes, les adresses réservées, le masque, le ET logique et le découpage en sous-réseaux.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 4</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>Adressage IPv4 &amp; VLSM — QCM</h1>
+  <p class="chapeau">10 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 10</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Sur combien de bits tient une adresse IPv4, et comment se lit-elle ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>32 bits, en deux parties : réseau et hôte</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>32 bits, en quatre parties indépendantes</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>64 bits, en deux parties</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>48 bits, comme une adresse MAC</span></button>
+      </div>
+      <p class="qcm-why" hidden>32 bits, écrits en quatre octets décimaux pour la lisibilité humaine. La lecture qui compte n'est pas celle des quatre nombres mais celle des <b>deux parties</b> : le réseau (le quartier) et l'hôte (le numéro dans la rue). C'est le masque qui dit où passe la frontière.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>Que donne un ET logique entre une adresse et son masque ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>L'adresse de diffusion</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>L'adresse du réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le nombre d'hôtes disponibles</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>La passerelle par défaut</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le masque porte des 1 sur la partie réseau : le ET les laisse passer. Il porte des 0 sur la partie hôte : le ET les efface. Ce qui reste est donc l'adresse <b>du réseau</b>. <code>192.0.0.131</code> ET <code>255.255.255.192</code> donne <code>192.0.0.128</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>Dans un bloc, que désigne l'adresse dont tous les bits d'hôte valent 1 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>La première adresse utilisable</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>La passerelle</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>L'adresse de diffusion, la dernière du bloc</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>L'adresse du réseau</span></button>
+      </div>
+      <p class="qcm-why" hidden>Bits d'hôte <b>tous à 0</b> = adresse de <b>réseau</b>, la première ; <b>tous à 1</b> = adresse de <b>diffusion</b>, la dernière. Aucune des deux ne s'attribue à une machine — c'est de là que vient le <code>− 2</code> de la formule des hôtes utilisables.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">4</span>Combien d'hôtes utilisables dans un /26 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>64</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>63</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>30</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>62</span></button>
+      </div>
+      <p class="qcm-why" hidden>Un <code>/26</code> laisse <code>32 − 26 = 6</code> bits d'hôte, soit <code>2⁶ = 64</code> adresses, moins celle du réseau et celle de diffusion : <b>62</b>. Le piège est de soustraire avant d'élever à la puissance, ou d'oublier de soustraire du tout.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>Quels sont les poids des huit bits d'un octet, du plus fort au plus faible ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>128 64 32 16 8 4 2 1</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>1 2 4 8 16 32 64 128</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>256 128 64 32 16 8 4 2</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>100 80 60 40 20 10 5 1</span></button>
+      </div>
+      <p class="qcm-why" hidden>C'est la table à connaître par cœur : elle sert à lire un masque en trois secondes. <code>11000000</code> = 128 + 64 = <b>192</b> ; <code>11100000</code> = 128 + 64 + 32 = <b>224</b>. Sans elle, chaque conversion devient un calcul ; avec elle, une lecture.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Quelle plage privée appartient à la classe B ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>192.168.0.0 à 192.168.255.255</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>172.16.0.0 à 172.31.255.255</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>172.0.0.0 à 172.255.255.255</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>10.0.0.0 à 10.255.255.255</span></button>
+      </div>
+      <p class="qcm-why" hidden>C'est le <b>piège de la plage 172</b> : elle ne couvre pas tout le 172, mais seulement <b>172.16 à 172.31</b>. <code>172.15.0.0</code> et <code>172.32.0.0</code> sont publiques. Les deux autres plages privées, elles, sont franches : tout le <code>10.</code> et tout le <code>192.168.</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>Qu'est-ce que le subnetting ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Relier deux réseaux par un routeur</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Traduire des adresses privées en publiques</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Emprunter des bits à la partie hôte pour créer des sous-réseaux</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Attribuer des adresses automatiquement</span></button>
+      </div>
+      <p class="qcm-why" hidden>On déplace la frontière vers la droite : chaque bit pris à la partie hôte <b>double</b> le nombre de sous-réseaux et <b>divise par deux</b> le nombre d'hôtes de chacun. Le masque s'allonge d'autant — c'est exactement ce que dit un <code>/26</code> au lieu d'un <code>/24</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">8</span>Qu'autorise le VLSM que le subnetting classique n'autorise pas ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Des sous-réseaux de tailles différentes selon les besoins</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Plus de 254 hôtes par sous-réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>L'usage d'adresses publiques en interne</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le routage entre deux classes différentes</span></button>
+      </div>
+      <p class="qcm-why" hidden><i>Variable Length Subnet Mask</i> : une liaison entre deux routeurs n'a besoin que de <b>2</b> adresses, un service de 100. Leur donner le même masque gaspillerait des centaines d'adresses. Le VLSM découpe grand d'abord, puis redécoupe ce qui reste — d'où la méthode : <b>du plus gros au plus petit</b>.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">9</span>Un masque est-il valide s'il s'écrit 255.255.192.255 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Oui, tous les octets sont inférieurs à 256</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Oui, si le réseau est petit</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Non : un masque ne peut pas dépasser 255.255.255.0</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Non : les 1 doivent être contigus, sans trou</span></button>
+      </div>
+      <p class="qcm-why" hidden>Un masque se lit en binaire : une suite de <b>1 contigus</b> suivie de <b>0 contigus</b>. <code>255.255.192.255</code> donne <code>…11000000 11111111</code> — des 1 après des 0. La frontière réseau/hôte doit être un seul point, pas plusieurs.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">10</span>Combien d'hôtes utilisables sur un /30, et à quoi sert-il ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>2 hôtes : une liaison point à point entre deux routeurs</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>4 hôtes : un petit bureau</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>6 hôtes : une salle de classe</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>30 hôtes : un service</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>/30</code> laisse <b>2</b> bits d'hôte : <code>2² − 2 = 2</code> adresses utilisables — exactement les deux extrémités d'un câble entre routeurs. Attention à la limite de la formule : elle ne vaut que <b>jusqu'au /30</b>. Un <code>/31</code> porte deux adresses utilisables (RFC 3021) et un <code>/32</code> en désigne une seule.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../03-modele-osi-tcp-ip/qcm.html"><span>Chapitre précédent</span><b>Modèle OSI &amp; TCP/IP</b></a><a class="suiv" href="../05-administration-linux/qcm.html"><span>Chapitre suivant</span><b>Administration Linux</b></a></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
+</body>
+</html>

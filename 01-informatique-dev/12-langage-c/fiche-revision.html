@@ -4,22 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C — fiche de révision | BTS CIEL</title>
-<meta name="description" content="Fiche recto-verso imprimable : squelette d'un programme, types, codes de format printf et scanf, opérateurs, if/switch, while/do-while/for, break/continue, et les huit pièges qui coûtent des points.">
+<meta name="description" content="Fiche imprimable : squelette d'un programme, types, codes de format printf et scanf, opérateurs, if/switch, while/do-while/for, puis les fonctions (prototype, portée, les quatre formes), les tableaux, et les pièges qui coûtent des points.">
 <meta name="theme-color" content="#FDF5E6">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1"}catch(e){}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=5f6e2ccc">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=77c15c61">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
 
 <header class="fiche-tete">
   <div class="fil">
-    <span class="matiere">Informatique &amp; Développement</span>
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
     <span class="sep">/</span><span>Chapitre 12</span>
     <span class="sep">/</span><span class="badge">Fiche de révision</span>
   </div>
   <h1>Langage C</h1>
-  <p class="chapeau">Recto-verso. À relire la veille.
+  <p class="chapeau">Les deux séances sur une seule fiche : le langage, puis les fonctions
+     et les tableaux. À relire la veille.
      <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
 </header>
 
@@ -29,13 +30,13 @@
 
   <article class="memo alerte">
     <h2>⚡ Le squelette, par cœur</h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>#include &lt;stdio.h&gt;
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> &lt;stdio.h&gt;
 
-int main()
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
 {
-    int age = 20;
-    printf("%d\n", age);
-    return 0;
+    <span class="j-typ">int</span> age = <span class="j-num">20</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, age);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
     <p><code>#include</code> donne <code>printf</code>/<code>scanf</code> ·
        l'exécution commence à <code>main</code> · <code>return 0</code> = tout s'est bien passé.</p>
@@ -72,8 +73,8 @@ int main()
 
   <article class="memo alerte">
     <h2>⚡ <code>printf</code> lit · <code>scanf</code> écrit</h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>printf("%d\n", age);      /* pas de &amp; */
-scanf("%d", &amp;age);        /* &amp; OBLIGATOIRE */</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, age);      <span class="j-com">/* pas de &amp; */</span>
+<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, &amp;age);        <span class="j-com">/* &amp; OBLIGATOIRE */</span></code></pre></div>
     <p><code>scanf</code> doit <strong>ranger</strong> quelque chose dans la variable : elle a
        besoin de son <strong>adresse</strong>, pas de son contenu. On donne l'adresse de la boîte
        aux lettres, pas ce qu'il y a dedans.</p>
@@ -119,12 +120,12 @@ scanf("%d", &amp;age);        /* &amp; OBLIGATOIRE */</code></pre></div>
 
   <article class="memo">
     <h2>Conditions</h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>if (n &gt; 0) {
-    printf("positif\n");
-} else if (n &lt; 0) {
-    printf("negatif\n");
-} else {
-    printf("nul\n");
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">if</span> (n &gt; <span class="j-num">0</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"positif\n"</span>);
+} <span class="j-mc">else</span> <span class="j-mc">if</span> (n &lt; <span class="j-num">0</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"negatif\n"</span>);
+} <span class="j-mc">else</span> {
+    <span class="j-fn">printf</span>(<span class="j-txt">"nul\n"</span>);
 }</code></pre></div>
     <p><strong>Intervalle</strong> → <code>if…else if</code>.
        <strong>Liste de valeurs</strong> → <code>switch</code>.</p>
@@ -132,16 +133,16 @@ scanf("%d", &amp;age);        /* &amp; OBLIGATOIRE */</code></pre></div>
 
   <article class="memo">
     <h2><code>switch</code></h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>switch (choix) {
-    case 1:
-        printf("un\n");
-        break;
-    case 'o':
-    case 'O':
-        printf("oui\n");
-        break;
-    default:
-        printf("autre\n");
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">switch</span> (choix) {
+    <span class="j-mc">case</span> <span class="j-num">1</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"un\n"</span>);
+        <span class="j-mc">break</span>;
+    <span class="j-mc">case</span> <span class="j-txt">'o'</span>:
+    <span class="j-mc">case</span> <span class="j-txt">'O'</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"oui\n"</span>);
+        <span class="j-mc">break</span>;
+    <span class="j-mc">default</span>:
+        <span class="j-fn">printf</span>(<span class="j-txt">"autre\n"</span>);
 }</code></pre></div>
     <p><strong>Un <code>break</code> par <code>case</code></strong>, sinon l'exécution continue
        en cascade. Deux <code>case</code> collés = regroupement volontaire.</p>
@@ -149,11 +150,11 @@ scanf("%d", &amp;age);        /* &amp; OBLIGATOIRE */</code></pre></div>
 
   <article class="memo">
     <h2>Les trois boucles</h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>while (i &lt;= 5) { … }        /* 0 tour possible */
+<div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">while</span> (i &lt;= <span class="j-num">5</span>) { … }        <span class="j-com">/* 0 tour possible */</span>
 
-do { … } while (i &lt;= 5);    /* 1 tour minimum  */
+<span class="j-mc">do</span> { … } <span class="j-mc">while</span> (i &lt;= <span class="j-num">5</span>);    <span class="j-com">/* 1 tour minimum  */</span>
 
-for (i = 1; i &lt;= 5; i++) { … }</code></pre></div>
+<span class="j-mc">for</span> (i = <span class="j-num">1</span>; i &lt;= <span class="j-num">5</span>; i++) { … }</code></pre></div>
     <p>Nombre de tours <strong>connu</strong> → <code>for</code> ·
        au moins <strong>un passage</strong> (saisie à valider) → <code>do…while</code> ·
        sinon <code>while</code>.</p>
@@ -209,16 +210,16 @@ for (i = 1; i &lt;= 5; i++) { … }</code></pre></div>
 
   <article class="memo">
     <h2>Découper un entier</h2>
-<div class="bloc-code"><span class="langue">C</span><pre><code>n % 10          /* dernier chiffre    */
-n / 10          /* retire ce chiffre  */
-(n / 10) % 10   /* chiffre des dizaines */</code></pre></div>
+<div class="bloc-code"><span class="langue">C</span><pre><code>n % <span class="j-num">10</span>          <span class="j-com">/* dernier chiffre    */</span>
+n / <span class="j-num">10</span>          <span class="j-com">/* retire ce chiffre  */</span>
+(n / <span class="j-num">10</span>) % <span class="j-num">10</span>   <span class="j-com">/* chiffre des dizaines */</span></code></pre></div>
     <p>Ces deux opérations suffisent à inverser un nombre, compter ses chiffres ou les
        permuter — exercices 4 et 7.</p>
   </article>
 
   <article class="memo">
     <h2>Compiler et lancer</h2>
-<div class="bloc-code"><span class="langue">terminal — macOS / Linux</span><pre><code>cc programme.c -o programme
+<div class="bloc-code"><span class="langue">terminal — macOS / Linux</span><pre><code><span class="j-fn">cc</span> programme.c <span class="j-att">-o</span> programme
 ./programme</code></pre></div>
     <p>Sur le poste : <strong>Code::Blocks</strong> (MinGW).
        Sans rien installer : un compilateur C <strong>en ligne</strong>.</p>
@@ -227,13 +228,134 @@ n / 10          /* retire ce chiffre  */
        erreur, pas la dernière.</p>
   </article>
 
+
+  <article class="memo alerte">
+    <h2>⚡ L'anatomie</h2>
+    <div class="formule">type_retour nom(paramètres)<br>{ instructions ; return valeur ; }</div>
+    <p><strong>Quatre éléments, toujours dans cet ordre.</strong> <code>void</code> quand il
+       n'y a rien à rendre.</p>
+    <p>Définition → se termine par <code>}</code>, <strong>sans</strong> point-virgule.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les quatre formes</h2>
+    <div class="tableau">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">sans retour</th><th scope="col">avec retour</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">sans par.</th><td><code>void f()</code></td><td><code>int f()</code></td></tr>
+          <tr><th scope="row">avec par.</th><td><code>void f(int n)</code></td><td><code>int f(int n)</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Deux questions indépendantes : <strong>reçoit-elle ?</strong> et
+       <strong>rend-elle ?</strong></p>
+  </article>
+
+  <article class="memo">
+    <h2>Paramètre ≠ argument</h2>
+    <p><strong>Paramètre</strong> — la variable de la <em>définition</em>.<br>
+       <strong>Argument</strong> — la valeur de l'<em>appel</em>.</p>
+    <p><code>int additionner(int a, int b)</code> → <code>a</code>, <code>b</code> paramètres<br>
+       <code>additionner(10, 20);</code> → 10, 20 arguments</p>
+    <p>Le paramètre est le contenant, l'argument le contenu.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Le prototype</h2>
+    <div class="formule">int additionner(int a, int b);</div>
+    <p><strong>Le point-virgule</strong> est ce qui le distingue d'une définition.</p>
+    <p>Il permet d'écrire <code>main</code> en premier. Sans prototype, la définition doit
+       précéder l'appel.</p>
+    <p>C'est exactement ce que contient <code>&lt;stdio.h&gt;</code> : le prototype de
+       <code>printf</code>, pas son code.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Portée des variables</h2>
+    <p><strong>Locale</strong> — déclarée dans une fonction, n'existe que là, disparaît à la
+       sortie.</p>
+    <p><strong>Globale</strong> — déclarée hors de toute fonction, visible partout.</p>
+    <p><strong>Bonne pratique :</strong> locale par défaut, et on passe ce dont la fonction a
+       besoin en paramètre. Une fonction qui reçoit tout se lit seule et se réutilise.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les tableaux</h2>
+    <div class="formule">float temperatures[7];</div>
+    <p><strong>Indices de 0 à taille − 1.</strong> La boucle s'écrit <code>i &lt; n</code>,
+       <strong>jamais</strong> <code>i &lt;= n</code>.</p>
+    <p>Saisie : <code>scanf("%f", &amp;t[i]);</code> — le <code>&amp;</code> ne disparaît pas.</p>
+    <p><strong>Le C ne vérifie aucun indice.</strong> Sortir du tableau ne provoque aucune
+       erreur : juste un bogue, plus tard.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Passer un tableau</h2>
+    <div class="formule">float Moyenne(float t[], int n)</div>
+    <p><strong>Un tableau passé perd sa taille.</strong> <code>sizeof</code> y rend 8 — la
+       taille d'une adresse — et non 40.</p>
+    <p>Donc : <strong>toujours <code>n</code> en second paramètre.</strong></p>
+    <p>En échange, la fonction reçoit l'adresse : elle peut <strong>remplir</strong> le
+       tableau. C'est pour ça que <code>SaisirTableau()</code> ne retourne rien.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Moyenne et maximum</h2>
+    <p><code>somme = 0.0f;</code> avant la boucle — <strong>toujours initialiser</strong>.</p>
+    <p><code>max = t[0];</code> puis boucle <code>i = 1</code>.</p>
+    <p>Partir de <code>max = 0</code> est faux dès qu'une valeur est négative : on
+       renverrait 0, qui n'est pas dans le tableau.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ La division entière</h2>
+    <div class="formule">(float) perdus / envoyes * 100</div>
+    <p>Deux <code>int</code> divisés donnent un <code>int</code> : <code>25 / 500</code> vaut
+       <strong>0</strong>.</p>
+    <p>Ça compile, ça tourne, et ça affiche <code>0.00 %</code>.</p>
+    <p>Autre écriture juste : <code>perdus * 100.0 / envoyes</code>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les fautes silencieuses</h2>
+    <p><strong>La casse.</strong> <code>afficherCarre</code> ≠ <code>affichercarre</code>.
+       Deux exemples du polycopié ne compilent pas pour ça.</p>
+    <p><strong><code>0 &lt;= v &lt;= 255</code></strong> compile et est <em>toujours vraie</em>.
+       Il faut <code>0 &lt;= v &amp;&amp; v &lt;= 255</code>.</p>
+    <p><strong><code>carre(4);</code> seul</strong> — le résultat part à la poubelle.</p>
+    <p><strong><code>(a + b) / 2</code></strong> — sans parenthèses, la division passe
+       avant.</p>
+    <p><strong><code>%%</code></strong> pour afficher un pourcentage.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Écrire une fonction, dans l'ordre</h2>
+    <p><strong>1.</strong> de quoi a-t-elle besoin ? → les paramètres<br>
+       <strong>2.</strong> rend-elle une valeur ? → le type, ou <code>void</code><br>
+       <strong>3.</strong> le corps — une seule tâche<br>
+       <strong>4.</strong> l'appel — où ranger le résultat ?</p>
+    <p><strong>Le test :</strong> une fonction se décrit en une phrase <em>sans « et »</em>.
+       S'il y a un « et », il y a deux fonctions.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le TP 3, en un coup d'œil</h2>
+    <p><strong>1–4</strong> fonctions simples : moyenne, octet IPv4 valide, débit, taux de
+       perte.</p>
+    <p><strong>5–7</strong> tableaux : 7 températures, 8 débits, recherche dans 10 valeurs.</p>
+    <p><strong>8–9</strong> découpage : CPU en 4 fonctions, notes en 5.</p>
+    <p>Résultats à retrouver : <code>20.00</code> · <code>12.00 Mo/s</code> ·
+       <code>5.00 %</code> · <code>22.4 °C</code> · <code>102.88 Mb/s</code> ·
+       <code>58.40 %</code> · <code>11.50</code> et 7 admis.</p>
+  </article>
+
 </section>
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/fiche-revision.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><a class="suiv" href="../13-fonctions-tableaux-c/fiche-revision.html"><span>Chapitre suivant</span><b>Fonctions et tableaux en C</b></a></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/fiche-revision.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=5f6e2ccc"></script>
-<script src="../../assets/recherche.js?v=5f6e2ccc"></script>
-<script src="../../assets/app.js?v=5f6e2ccc"></script>
+<script src="../../assets/fiche.js?v=77c15c61"></script>
+<script src="../../assets/app.js?v=77c15c61"></script>
 </body>
 </html>
