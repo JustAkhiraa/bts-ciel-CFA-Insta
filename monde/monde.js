@@ -98,30 +98,43 @@ function direPuisTaire() {
    le nom de la matière, et la retirer au bout de 5 s ». Il part tout seul :
    une étiquette qui colle au pointeur devient un meuble au bout d'une
    minute. */
-let minuteurSousTitre = 0, derniereVisee = -1;
-function sousTitrer(i) {
+let minuteurSousTitre = 0, derniereVisee = "";
+/* Le fond commun aux deux : la CLÉ dit ce qu'on regarde. Une clé de texte et
+   non un numéro, parce que la matière 2 et la boutique 2 sont deux choses
+   différentes — avec un numéro nu, viser l'une après l'autre ne rafraîchissait
+   rien, et c'est le genre de collision qui ne se voit qu'une fois sur cinq. */
+function direSousTitre(cle, titre, ligne, couleur) {
   const el = $("soustitre");
-  if (i < 0 || i === derniereVisee) return;
-  derniereVisee = i;
-  const m = matieres[i];
-  el.innerHTML = `<b>${ech(m.pole.titre)}</b>` +
-    `<span>${ech(m.L.lieu)} · ${m.pole.chapitres.length} chapitres ·` +
-    ` cliquez pour entrer</span>`;
-  el.style.setProperty("--c", m.css);
+  if (!cle || cle === derniereVisee) return;
+  derniereVisee = cle;
+  el.innerHTML = `<b>${ech(titre)}</b><span>${ech(ligne)}</span>`;
+  el.style.setProperty("--c", couleur);
   el.hidden = false;
   requestAnimationFrame(() => el.classList.add("vu"));
   clearTimeout(minuteurSousTitre);
   minuteurSousTitre = setTimeout(() => {
     el.classList.remove("vu");
-    setTimeout(() => { el.hidden = true; derniereVisee = -1; }, 420);
+    setTimeout(() => { el.hidden = true; derniereVisee = ""; }, 420);
   }, 5000);
+}
+function sousTitrer(i) {
+  if (i < 0) return;
+  const m = matieres[i];
+  direSousTitre("m" + i, m.pole.titre,
+    `${m.L.lieu} · ${m.pole.chapitres.length} chapitres · cliquez pour entrer`,
+    m.css);
+}
+function nommerBoutique(i) {
+  const b = BOUTIQUES[i];
+  direSousTitre("b" + i, b.nom, "boutique · cliquez pour entrer",
+                "#" + b.couleur.toString(16).padStart(6, "0"));
 }
 function taireSousTitre() {
   const el = $("soustitre");
   clearTimeout(minuteurSousTitre);
   el.classList.remove("vu");
   setTimeout(() => { el.hidden = true; }, 420);
-  derniereVisee = -1;
+  derniereVisee = "";
 }
 
 /* Les accents du site, rendus lumineux : les originaux sont taillés pour du
@@ -239,7 +252,14 @@ const scene = new THREE.Scene();
    profondeur — sans elle, le château au bout paraît à trois pas. */
 scene.fog = new THREE.Fog(0x1B2C48, 180, 1250);
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 1, 6000);
+/* Le plan proche vaut 3, et non 1. C'est lui qui commande la précision de la
+   PROFONDEUR sur toute la scène : un tampon en 16 bits — ce qu'ont beaucoup de
+   téléphones — ne distingue à 150 unités que 0,34 unité avec un plan proche à
+   1, contre 0,11 avec un plan proche à 3. Rien n'est jamais plus près que
+   trois unités de l'œil : la caméra est à hauteur d'homme et les obstacles la
+   repoussent avant qu'elle ne touche un mur. C'est donc trois unités gagnées
+   sur rien, et trois fois moins de surfaces qui clignotent. */
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 3, 6000);
 const rendu = new THREE.WebGLRenderer({
   canvas: toile, antialias: devicePixelRatio < 2, powerPreference: "high-performance",
 });
@@ -535,6 +555,10 @@ const CONES = [];
 const FLAQUES = [];
 const TOURNE = [];     // ce qui tourne doucement : engrenage, anneau, parabole
 const BALANCE = [];    // ce qui se balance : les enseignes de fer
+/* Les emprises des échoppes. Elles sont remplies à leur construction, bien
+   avant que le marcheur n'ait sa liste d'obstacles : les déclarer ici évite
+   de faire dépendre un bloc de l'ordre d'exécution d'un autre. */
+const OBSTACLES_BOUT = [];
 
 function fenetre(l, h, x, y, z, rotY) {
   const m = new THREE.MeshBasicMaterial({ color: 0xFFC066, fog: true });
@@ -579,6 +603,38 @@ function pyramide(mat, rBas, rHaut, h, x, y, z) {
   o.position.set(x || 0, y || 0, z || 0);
   return o;
 }
+/* ── Le seuil : trois marches entre le sol et la porte ──────────────────
+   JustAkhiraa : « les bâtiments sont beaux mais des fois ils ont aucun sens ».
+   Voici le défaut qu'il voyait sans pouvoir le nommer, et il revenait sur la
+   moitié du village.
+
+   Chaque bâtiment est posé sur un soubassement de pierre — douze unités pour
+   l'atelier, quatorze pour l'observatoire — qui DÉPASSE le corps de quelques
+   unités. Les portes, elles, avaient été dessinées depuis le sol. Résultat :
+   leur partie basse était enterrée dans la pierre, et ce qu'on voyait était
+   une porte qui commence à mi-hauteur, devant un socle qu'on ne peut pas
+   franchir. Aucune maçonnerie ne fait ça. Le château, lui, avait ses marches
+   depuis le premier jour — c'est en le comparant aux quatre autres que
+   l'anomalie saute aux yeux.
+
+   Une porte commence au NIVEAU DU PLANCHER, et le plancher est le dessus du
+   soubassement. Il faut donc deux choses ensemble : remonter la porte, et
+   donner de quoi y monter. L'une sans l'autre laisse soit une porte enterrée,
+   soit une porte en l'air. */
+function marches(mat, largeur, hauteur, zFace, n) {
+  const g = new THREE.Group();
+  const h = hauteur / n;
+  for (let k = 0; k < n; k++) {
+    /* Chaque marche est plus LARGE et plus PROFONDE que celle du dessus :
+       c'est ce qui donne l'emmarchement en pyramide qu'on lit de loin, et
+       c'est aussi la seule façon de les voir quand on arrive de face. */
+    const l = largeur + (n - k) * 7;
+    const p = 7 + (n - k) * 5;
+    g.add(bloc(mat, l, h, p, 0, h / 2 + k * h, zFace + p / 2 - (n - k) * 2.5));
+  }
+  return g;
+}
+
 /* La tache sombre sous un volume. Ce n'est pas une ombre calculée — il n'y
    en a aucune dans le village — mais elle fait le même travail : poser
    l'objet sur le sol au lieu de le laisser flotter. */
@@ -853,18 +909,21 @@ function batirAtelier(c) {
   g.add(pignon(M.tuile, 100, 34, 58, 0, 96, 0));
   g.add(bloc(M.bois, 104, 3, 62, 0, 96, 0));
 
-  /* La grande porte cintrée, ouverte sur le rouge de la forge. */
-  g.add(bloc(M.sombre, 34, 30, 2, 0, 19, 29.4));
+  /* La grande porte cintrée, ouverte sur le rouge de la forge. Elle part du
+     PLANCHER — le dessus du soubassement, à douze — et non du sol : sa moitié
+     basse était sinon noyée dans la pierre. Trois marches y mènent. */
+  g.add(marches(M.pierreC, 40, 12, 32, 3));
+  g.add(bloc(M.sombre, 34, 32, 2, 0, 28, 29.4));
   const arc = new THREE.Mesh(new THREE.CircleGeometry(17, 20, 0, Math.PI), M.sombre);
-  arc.position.set(0, 34, 29.4);
+  arc.position.set(0, 44, 29.4);
   g.add(arc);
   const forge = new THREE.MeshBasicMaterial({ color: 0xFF7A33, fog: true });
   FENETRES.push(forge);
   const feu = new THREE.Mesh(PLAN, forge);
   feu.scale.set(24, 16, 1);
-  feu.position.set(0, 12, 29.6);
+  feu.position.set(0, 22, 29.6);
   g.add(feu);
-  g.add(lueur(54, 0, 14, 32));
+  g.add(lueur(54, 0, 24, 32));
 
   for (const x of [-34, 34]) {
     g.add(fenetre(16, 13, x, 32, 29.4));
@@ -934,13 +993,28 @@ function batirObservatoire(c) {
   g.add(lun);
   g.add(cyl(M.sombre, 6.6, 6.6, 3, 14, 0, 150, 34).rotateX(Math.PI / 2.9));
 
+  /* ── Les fenêtres suivent le FRUIT de la tour ─────────────────────────
+     Elles étaient toutes posées au rayon 48,6, quelle que soit leur hauteur.
+     Or la tour n'est pas un cylindre : elle va de 48 à la base à 42 sous la
+     corniche. Les fenêtres du haut flottaient donc à quatre unités du mur,
+     dans le vide — et c'est très visible de trois quarts.
+
+     Le rayon se calcule maintenant à leur hauteur. C'est la même règle que
+     partout ailleurs dans ce dépôt : une valeur qui dépend d'une autre ne
+     s'écrit pas en dur, elle se déduit. */
+  const rayonA = (y) => 48 - (y - 14) / 92 * 6;
   for (let k = 0; k < 6; k++) {
     const a = -0.9 + k * 0.36;
-    g.add(fenetre(11, 16, Math.sin(a) * 48.6, 34 + (k % 2) * 34,
-                  Math.cos(a) * 48.6, a));
+    const y = 40 + (k % 2) * 32;
+    const r = rayonA(y) + 0.6;          // 0,6 devant le mur, jamais dedans
+    g.add(fenetre(11, 16, Math.sin(a) * r, y, Math.cos(a) * r, a));
   }
-  g.add(bloc(M.sombre, 20, 30, 2, 0, 15, 48.4));
-  g.add(bloc(M.bois, 24, 3, 4, 0, 31, 49));
+  /* La porte commence au plancher — le dessus du soubassement, à quatorze —
+     et trois marches y montent. Elle partait du sol, donc ses quatorze
+     premières unités étaient enterrées dans la pierre du socle. */
+  g.add(marches(M.pierreC, 26, 14, 50, 3));
+  g.add(bloc(M.sombre, 20, 30, 2, 0, 29, rayonA(29) + 0.5));
+  g.add(bloc(M.bois, 24, 3, 4, 0, 45.5, rayonA(45) + 1));
 
   /* L'anneau. Il est incliné : à plat il se confondrait avec la corniche. */
   {
@@ -984,6 +1058,25 @@ function batirColombages(c) {
   toit.rotation.y = Math.PI / 2;
   g.add(toit);
   g.add(bloc(M.bois, 110, 3, 66, 0, 114, 0));
+
+  /* ── Une maison sans porte ────────────────────────────────────────────
+     Celle-ci n'en avait aucune. Douze fenêtres, trois étages, un toit
+     d'ardoise, et pas une ouverture pour entrer : c'est le défaut le plus
+     net des cinq bâtiments, et il était invisible tant qu'on ne cherchait
+     pas ce qui MANQUE. On relit les façades en se demandant ce qu'elles
+     devraient avoir, pas seulement si ce qu'elles ont est bien placé.
+
+     Elle est à colombages : sa porte est donc en chêne, encadrée de deux
+     poteaux et d'un linteau, avec une imposte au-dessus. Elle part du
+     plancher — quatorze, le dessus du soubassement de brique — et trois
+     marches y montent. */
+  g.add(marches(M.pierreC, 30, 14, 30, 3));
+  g.add(bloc(M.bois,   26, 3, 2.4, 0, 45.5, 27.7));          // le linteau
+  for (const sx of [-1, 1])
+    g.add(bloc(M.bois, 3, 30, 2.4, sx * 11.5, 29, 27.7));    // les poteaux
+  g.add(bloc(M.sombre, 20, 30, 1.6, 0, 29, 27.5));           // le vantail
+  g.add(fenetre(16, 5, 0, 48.5, 27.6));                      // l'imposte
+  g.add(cyl(M.or, 0.55, 0.55, 1.6, 8, 6.5, 29, 28.6).rotateX(Math.PI / 2));
 
   /* Les colombages : verticaux, une ceinture, deux croix de Saint-André.
      Posés sur la façade ET sur les deux côtés, sinon la maison est en
@@ -1164,12 +1257,28 @@ function batirChateau(c) {
 
   /* Le corps de garde, la porte et la herse. */
   g.add(bloc(M.pierre, 150, 130, 96, 0, 89, 0));
-  g.add(bloc(M.sombre, 42, 56, 4, 0, 52, 49));
+  /* ── La porte, et la profondeur qu'elle réclame ────────────────────────
+     La herse était posée à z = 50 sur 2 d'épaisseur, la porte à z = 49 sur 4 :
+     leurs faces avant tombaient toutes deux EXACTEMENT sur z = 51. Deux
+     surfaces coplanaires, c'est un tirage au sort par pixel — et sur le
+     téléphone d'JustAkhiraa cela donnait une bouillie noire et bleue en travers de
+     l'entrée du château.
+
+     Ce n'est pas un défaut « de téléphone ». Le tampon de profondeur y est
+     souvent en 16 bits au lieu de 24 : avec un plan proche à 1 et une porte à
+     150 unités, la plus petite différence que la carte sache distinguer vaut
+     0,34 unité. Un écart de zéro n'avait donc aucune chance, et un écart d'un
+     dixième n'en aurait pas eu davantage.
+
+     Les trois plans sont maintenant séparés de deux unités — six fois la
+     précision la plus mauvaise —, et le plan proche de la caméra passe de 1 à
+     3 (voir plus haut), ce qui triple cette précision partout. */
+  g.add(bloc(M.sombre, 42, 56, 4, 0, 52, 48));
   const arc = new THREE.Mesh(new THREE.CircleGeometry(21, 22, 0, Math.PI), M.sombre);
-  arc.position.set(0, 80, 49);
+  arc.position.set(0, 80, 50.2);
   g.add(arc);
-  for (let k = -3; k <= 3; k++) g.add(bloc(M.metal, 2.4, 52, 2, k * 6.6, 52, 50));
-  for (let k = 0; k < 4; k++) g.add(bloc(M.metal, 42, 2.4, 2, 0, 34 + k * 14, 50));
+  for (let k = -3; k <= 3; k++) g.add(bloc(M.metal, 2.4, 52, 2, k * 6.6, 52, 52.4));
+  for (let k = 0; k < 4; k++) g.add(bloc(M.metal, 42, 2.4, 2, 0, 34 + k * 14, 52.4));
   g.add(bloc(M.pierreC, 56, 6, 8, 0, 100, 50));
 
   /* Le donjon, plus haut, en retrait. */
@@ -1471,6 +1580,69 @@ function fondre() {
   scene.add(collines);
 }
 
+/* ══════════════════════════════════════════════ les boutiques ════════
+   JustAkhiraa : « je veux plus de monde à explorer et des boutiques, parce que
+   quand je regarde derrière moi c'est le vide » — et, plus précisément :
+   « dans les maisons autour il y a des immeubles à visiter, et en easter egg,
+   quand tu entres dans une certaine boutique tu peux utiliser un des outils,
+   comme l'atelier pour coder en C ».
+
+   Le village avait cinq bâtiments, un par matière, et cinquante maisons
+   muettes. La partie SUD — derrière le point de départ, entre la fontaine et
+   le portail — n'était qu'un décor qu'on tourne le dos à. C'est pourtant le
+   premier endroit qu'on voit en se retournant.
+
+   Sept échoppes y ouvrent, et chacune abrite un outil du site. Ce n'est pas
+   un gadget : un convertisseur binaire cherché dans un menu est un
+   convertisseur ; le même, trouvé derrière la porte d'une boutique qui
+   s'appelle « La Table de Conversion », se retient. C'est la seule raison de
+   les mettre là — pas la décoration, la MÉMOIRE DU LIEU.
+
+   Le plan est déclaré AVANT la rue : c'est lui qui réserve la place, sinon
+   les cinquante maisons bâtissent par-dessus. */
+const BOUTIQUES = [
+  { nom: "L'Atelier du C", enseigne: "{;}", couleur: 0x62E88A,
+    outil: "outils/langage-c.html", cote: -1, z: 262,
+    tenancier: "Maître Clang",
+    bonjour: "Bonjour ! Vous voulez coder en C ? Entrez, la forge est chaude — "
+           + "et ici le compilateur vous dit ce qui cloche, avec la ligne." },
+  { nom: "Le Bureau des Masques", enseigne: "/24", couleur: 0x54BEF8,
+    outil: "outils/sous-reseau.html", cote: 1, z: 246,
+    tenancier: "Dame VLSM",
+    bonjour: "Un réseau à découper ? Posez votre adresse sur le comptoir, "
+           + "je vous dis combien d'hôtes il vous reste." },
+  { nom: "La Table de Conversion", enseigne: "0b", couleur: 0xFFB05A,
+    outil: "outils/convertisseur.html", cote: -1, z: 214,
+    tenancier: "Le changeur",
+    bonjour: "Binaire, hexadécimal, décimal — je change tout, et je montre "
+           + "les quatre octets de couleurs différentes." },
+  { nom: "Le Comptoir des Ports", enseigne: "22", couleur: 0xCE96FF,
+    outil: "outils/ports.html", cote: 1, z: 198,
+    tenancier: "Le portier",
+    bonjour: "Vingt-deux, quatre-vingts, quatre cent quarante-trois… "
+           + "Dites-moi un numéro, je vous dis qui frappe." },
+  { nom: "L'Écritoire", enseigne: "EN", couleur: 0xFF9ED2,
+    outil: "outils/compte-rendu.html", cote: -1, z: 166,
+    tenancier: "La scribe",
+    bonjour: "Un compte rendu à rendre ? Je compte les mots pendant que "
+           + "vous écrivez, et je vous dis si le barème tient." },
+  { nom: "La Halle aux Câbles", enseigne: "⇄", couleur: 0x7FD6C5,
+    outil: "outils/packet-tracer.html", cote: 1, z: 150,
+    tenancier: "Le câbleur",
+    bonjour: "Packet Tracer ? J'ai les blocs de commandes tout prêts, "
+           + "avec votre nom d'hôte et votre mot de passe dedans." },
+  { nom: "Le Grenier des Masques", enseigne: "255", couleur: 0xFF7B7B,
+    outil: "outils/masques.html", cote: -1, z: 134,
+    tenancier: "Le compteur",
+    bonjour: "Trente-trois lignes, du /0 au /32, recalculées à chaque "
+           + "publication. Aucune n'est recopiée d'un livre." },
+];
+/* La largeur d'une échoppe et son recul par rapport au pavé. La façade
+   s'aligne sur le premier rang de maisons : une boutique en retrait passerait
+   pour une remise. */
+const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
+for (const b of BOUTIQUES) { b.x = b.cote * BOUT_X; b.rot = b.cote > 0 ? -Math.PI / 2 : Math.PI / 2; }
+
 /* ── La rue : une cinquantaine de maisons qui bordent l'allée ──────────
    Elles n'ont pas de porte à ouvrir ni de nom : ce sont des VOISINES. Leur
    rôle est de fermer la rue des deux côtés, pour que l'allée soit une rue
@@ -1481,8 +1653,11 @@ function fondre() {
   const rnd = semeur(20252027);
   const MURS = [M.platre, M.pierreC, M.brique, M.pierre];
   const TOITS = [M.tuile, M.ardoise, M.tuile];
-  /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. */
-  const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }));
+  /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. Les
+     sept échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
+     par-dessus, et l'on cliquerait sur une porte qui ne mène nulle part. */
+  const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }))
+    .concat(BOUTIQUES.map((b) => ({ x: b.x, z: b.z, r: BOUT_L / 2 + 14 })));
   /* La PLACE devant chaque bâtiment : un couloir ouvert dans l'axe de sa
      façade, où l'on se tient pour lire ses chapitres. Rien n'y est bâti —
      c'est ce qui manquait le jour où la caméra s'est retrouvée dans le mur
@@ -1582,6 +1757,99 @@ function fondre() {
   /* Un plancher : si la rue se vidait, le village redeviendrait cinq objets
      dans un pré, et rien à l'écran ne le dirait. */
   if (posees < 24) console.warn("village : seulement " + posees + " maisons");
+}
+
+/* ── Les échoppes se bâtissent ──────────────────────────────────────────
+   Chacune est une petite maison, mais trois détails suffisent à la faire lire
+   comme un COMMERCE plutôt que comme une habitation : un store rayé qui
+   avance sur la rue, une vitrine large et éclairée jusqu'au sol, et une
+   enseigne en potence perpendiculaire à la façade — celle qu'on lit en
+   remontant la rue, pas celle qu'on lit de face. Les maisons voisines n'ont
+   aucun des trois. */
+const groupesBout = [];
+{
+  const rnd = semeur(7331);
+  BOUTIQUES.forEach((b, i) => {
+    const g = new THREE.Group();
+    g.position.set(b.x, 0, b.z);
+    g.rotation.y = b.rot;
+    g.userData.boutique = i;
+
+    const mur = [M.platre, M.pierreC, M.brique][i % 3];
+    const h = 44 + rnd() * 10;
+    g.add(bloc(mur, BOUT_L, h, BOUT_P, 0, h / 2, 0));
+    g.add(pignon(M.tuile, BOUT_L + 4, 13, BOUT_P + 4, 0, h, 0));
+    g.add(bloc(M.pierreC, BOUT_L + 2, 2.4, BOUT_P + 2, 0, h + 1, 0));
+
+    /* La devanture, à z + P/2 : tout ce qui suit est sur la façade qui donne
+       sur l'allée. Les plans sont séparés d'au moins une unité — la leçon de
+       la herse du château, où deux surfaces coplanaires clignotaient. */
+    const f = BOUT_P / 2;
+    g.add(bloc(M.bois, BOUT_L, 3.2, 1.2, 0, 25.6, f + 0.6));      // le linteau
+    const vitre = fenetre(BOUT_L - 7, 15, 0, 17, f + 1.4);
+    g.add(vitre);
+    for (const sx of [-1, 1])                                      // les montants
+      g.add(bloc(M.bois, 1.4, 16, 1.6, sx * (BOUT_L / 2 - 2.2), 17, f + 1.5));
+    g.add(bloc(M.bois, BOUT_L - 6, 1.2, 2.2, 0, 8.8, f + 1.6));    // l'appui
+
+    /* La porte : un panneau sombre, un seuil de pierre, une poignée. C'est
+       elle qu'on vise, et elle doit se distinguer de la vitrine. */
+    g.add(bloc(M.sombre, 9, 19, 1.2, BOUT_L / 2 - 8, 9.5, f + 1.1));
+    g.add(bloc(M.bois, 10.6, 1.4, 2.4, BOUT_L / 2 - 8, 19.6, f + 1.4));
+    g.add(bloc(M.pierreC, 12, 1.2, 5, BOUT_L / 2 - 8, 0.6, f + 3));
+    const poignee = cyl(M.or, 0.5, 0.5, 1.4, 8, BOUT_L / 2 - 12, 9.6, f + 2.1);
+    poignee.rotation.x = Math.PI / 2;
+    g.add(poignee);
+
+    /* Le store rayé. Deux plans inclinés d'une teinte et de l'autre : à cette
+       distance, c'est la RAYURE qu'on reconnaît, pas le tissu. */
+    const teinte = lambert(b.couleur);
+    const blanc = lambert(0xF4EFE6);
+    for (let k = 0; k < 8; k++) {
+      const p = bloc(k % 2 ? teinte : blanc, BOUT_L / 8, 0.8, 11,
+                     -BOUT_L / 2 + BOUT_L / 8 * (k + 0.5), 28.4, f + 5);
+      p.rotation.x = 0.36;
+      g.add(p);
+    }
+    g.add(bloc(M.bois, BOUT_L + 1, 1.4, 1.4, 0, 30.4, f + 0.9));
+    for (const sx of [-1, 1]) {                                    // les bras
+      const bras = bloc(M.bois, 0.9, 11, 0.9, sx * (BOUT_L / 2 - 1), 28, f + 5);
+      bras.rotation.x = 0.36;
+      g.add(bras);
+    }
+
+    /* L'enseigne en potence : une plaque perpendiculaire, portée par une
+       ferrure. Elle se balance — le village a déjà ce mouvement pour les
+       enseignes de fer, on le réutilise. */
+    const potence = new THREE.Group();
+    potence.position.set(-BOUT_L / 2 + 3, 36, f + 1.5);
+    potence.add(bloc(M.metal, 12, 0.7, 0.7, 6, 0, 0));
+    const plaque = new THREE.Group();
+    plaque.position.set(11, -5.5, 0);
+    plaque.add(bloc(M.bois, 0.8, 9, 13, 0, 0, 0));
+    plaque.add(bloc(teinte, 1.4, 7, 11, 0.2, 0, 0));
+    potence.add(plaque);
+    /* BALANCE contient des DESCRIPTEURS, pas des objets : { o, v, a }. Y
+       pousser la plaque nue a fait planter la boucle de rendu entière au
+       premier tour — donc le village entier, pour une enseigne. Une liste
+       partagée a une forme, et rien ne la rappelle à celui qui l'alimente. */
+    BALANCE.push({ o: plaque, v: 1.1 + rnd() * 0.3, a: 0.07 });
+    g.add(potence);
+
+    /* La lanterne au-dessus de la porte : c'est elle qui dit, la nuit, qu'une
+       boutique est ouverte. */
+    const m = new THREE.MeshBasicMaterial({ color: 0xFFB454, fog: true });
+    LANTERNES.push(m);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.4, 2.6), m)
+          .translateX(BOUT_L / 2 - 8).translateY(23.5).translateZ(f + 2.4));
+    g.add(lueur(20, BOUT_L / 2 - 8, 23.5, f + 2.4));
+
+    scene.add(g);
+    groupesBout.push(g);
+    /* On ne traverse pas une échoppe : elle entre dans les obstacles comme
+       les cinq bâtiments. */
+    OBSTACLES_BOUT.push({ x: b.x, z: b.z, r: Math.max(BOUT_L, BOUT_P) / 2 + 6 });
+  });
 }
 
 /* ── Les cônes de lumière ───────────────────────────────────────────────
@@ -1854,6 +2122,14 @@ const PASSANTS = {
   },
 };
 
+/* Les emprises que rien de vivant ne traverse. Elles sont calculées ici, et
+   non reprises d'OBSTACLES : cette liste-là est bâtie plus bas, pour le
+   marcheur, et un passant placé avant elle lirait un tableau vide — c'est-à-
+   dire un village sans murs, ce qui est précisément le défaut qu'on corrige. */
+const MURS = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }));
+MURS.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 8 });
+for (const o of OBSTACLES_BOUT) MURS.push(o);
+
 {
   const rnd = semeur(1789);
   /* Le peuplement : beaucoup de gens, quelques bêtes. L'ordre compte — les
@@ -1887,10 +2163,55 @@ const PASSANTS = {
       : info.bete === "chat"
         ? cote * (V.demiAllee + 2 + rnd() * 7)
         : (V.demiAllee - 12) * (rnd() * 2 - 1);
-    let z0 = -150 + rnd() * 330;
-    if (Math.abs(z0 - V.zFontaine) < 62) z0 += 96;
+    /* ── Un passant ne traverse pas un mur ────────────────────────────────
+       JustAkhiraa : « les personnages, ils marchent à travers les murs ». C'était
+       vrai, et c'était visible surtout des moutons : leur voie les envoie sur
+       l'herbe, à quatre-vingts unités de l'axe — c'est-à-dire en plein dans
+       l'emprise des bâtiments, qui sont à cent dix-huit et larges de cent.
+
+       On ne leur donne pas une détection de collision : dix silhouettes qui
+       piétinent contre une façade sont plus laides qu'une qui la traverse. On
+       RACCOURCIT leur trajet. Chaque va-et-vient est une ligne droite à x
+       fixe ; il suffit donc de le tailler avant le premier bâtiment qu'il
+       rencontrerait. Un passant qui va moins loin ne se remarque pas ; un
+       passant qui sort d'un mur, si. */
+    const libre = (x, z, p) => {
+      for (const m of MURS) {
+        const dx = x - m.x;
+        if (Math.abs(dx) >= m.r) continue;              // la voie passe à côté
+        const demi = Math.sqrt(m.r * m.r - dx * dx);    // la corde traversée
+        if (z > m.z + demi) p = Math.min(p, z - m.z - demi);
+        else if (z < m.z - demi) p = Math.min(p, m.z - demi - z);
+        else return 0;                                  // le départ est dedans
+      }
+      return p;
+    };
+    const voulue = (info.bas ? 26 : 60) + rnd() * (info.bas ? 60 : 150);
+    /* On BALAIE la voie plutôt que de tenter sa chance. Une première version
+       tirait huit points au hasard et, si aucun n'était libre, gardait le
+       dernier — donc parfois un passant planté à l'intérieur du château, ce
+       que la mesure a immédiatement trouvé : un sur dix-huit, à 79 unités dans
+       la pierre. Un repli qui laisse le défaut en place n'est pas un repli.
+
+       Vingt-quatre positions le long de l'allée, on garde celle qui offre le
+       plus de champ. C'est déterministe, c'est exhaustif à trois unités près,
+       et ça ne peut pas rendre un emplacement occupé. */
+    let z0 = 0, portee = 0;
+    for (let k = 0; k < 24; k++) {
+      const z = -170 + k * (340 / 23) + (rnd() - 0.5) * 6;
+      if (Math.abs(z - V.zFontaine) < 30) continue;
+      const p = Math.min(voulue, libre(voie, z, voulue));
+      if (p > portee) { portee = p; z0 = z; }
+    }
+    /* Si toute la voie est bouchée — une voie qui longerait une façade sur
+       toute sa longueur —, on ramène le passant dans l'allée, qui est libre
+       par construction. */
+    if (portee < 10) {
+      z0 = V.zFontaine + 84;
+      portee = Math.max(10, libre(voie, z0, voulue));
+    }
     VIVANTS.push({ o: g, role, x: voie, z0,
-                   portee: (info.bas ? 26 : 60) + rnd() * (info.bas ? 60 : 150),
+                   portee,
                    v: (info.bas ? 2.4 : 7) + rnd() * (info.bas ? 3 : 6),
                    saut: info.bas ? 0.25 : 0.8,
                    queue: info.queue || null, queueX: info.queueX || 0,
@@ -1898,6 +2219,151 @@ const PASSANTS = {
                    broute: info.bete === "mouton",
                    phase: rnd() * Math.PI * 2 });
   });
+}
+
+/* ══════════════════════════════════════════════ les scénettes ════════
+   JustAkhiraa : « mets des passants aussi en dehors du chemin, et même des
+   immobiles, d'autres qui parlent entre eux, d'autres qui dansent avec une
+   radio qui sort des notes de musique ».
+
+   C'est la demande la plus juste de toute la série, et voici pourquoi : les
+   dix-huit passants du village vont tous d'un point à un autre. Aucun ne
+   s'arrête, aucun ne regarde un autre, aucun n'a de raison d'être là. Un
+   village où tout le monde marche n'est pas un village, c'est un couloir.
+
+   Ce qui manque n'est pas le nombre, c'est le MOTIF. Trois suffisent :
+
+     · quelqu'un qui attend quelque part — devant sa porte, au bord de la
+       fontaine. Il ne fait rien, et c'est précisément ce qui donne envie de
+       s'approcher ;
+     · deux ou trois qui se font face. Deux silhouettes tournées l'une vers
+       l'autre se lisent comme une conversation avant même qu'un mot
+       s'affiche — c'est de la posture, pas du texte ;
+     · un qui danse près d'une radio. Le seul mouvement du village qui ne
+       serve à aller nulle part.
+
+   Les répliques n'apparaissent qu'à PORTÉE DE VOIX — quarante-cinq unités,
+   à peu près la largeur de l'allée. Des bulles visibles d'un bout à l'autre
+   du village en feraient un panneau publicitaire ; là, il faut s'approcher,
+   et c'est ce qui les rend vivantes. */
+const SCENETTES = [];
+{
+  const rnd = semeur(1848);
+  /* Les bulles vont dans « monde3D », PAS dans « scene ». Le village a deux
+     graphes qui partagent la même caméra : l'un est rendu par WebGL, l'autre
+     par CSS3DRenderer, et chacun ignore le contenu de l'autre. Une bulle
+     rangée dans la scène WebGL n'apparaît donc jamais, sans la moindre
+     erreur — le renderer CSS ne la parcourt simplement pas. C'est exactement
+     ce qui vient d'arriver : sept bulles construites, zéro dans le document. */
+  const BULLES = new THREE.Group();
+  monde3D.add(BULLES);
+
+  /* Un groupe de silhouettes tournées les unes vers les autres. L'angle est
+     calculé, pas tiré au sort : chacun regarde le CENTRE du cercle. */
+  function attroupement(x, z, roles, rayonCercle) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    roles.forEach((role, k) => {
+      const p = new THREE.Group();
+      const a = (k / roles.length) * Math.PI * 2 + 0.4;
+      p.position.set(Math.cos(a) * rayonCercle, 0, Math.sin(a) * rayonCercle);
+      /* Tourné vers le centre : atan2 de l'opposé de sa propre position. */
+      p.rotation.y = Math.atan2(-p.position.x, -p.position.z);
+      PASSANTS[role](p, rnd);
+      g.add(p);
+    });
+    scene.add(g);
+    return g;
+  }
+
+  /* La bulle : un élément HTML posé dans la scène, comme les enseignes. Du
+     texte dessiné en 3D serait flou de près et illisible de loin ; celui-ci
+     reste net à toute distance et un lecteur d'écran le lit. */
+  function bulle(x, y, z, lignes, couleur) {
+    const el = document.createElement("div");
+    el.className = "bulle";
+    el.style.setProperty("--c", couleur);
+    el.textContent = lignes[0];
+    const o = new CSS3DSprite(el);
+    o.position.set(x, y, z);
+    /* L'échelle se déduit d'une largeur VOULUE, elle ne se choisit pas au
+       jugé : la bulle fait 240 pixels de large, on la veut à peu près neuf
+       unités dans le village — la largeur d'un passant et demi. À 0,16, elle
+       en faisait cinquante-six et remplissait l'écran à dix pas. */
+    o.scale.setScalar(9 / 240);
+    BULLES.add(o);
+    return { el, o, lignes, k: 0, prochaine: 3 + rnd() * 3 };
+  }
+
+  const DITS = {
+    marche: ["Le château, c'est tout au bout.", "Vous cherchez quoi ?",
+             "Moi j'ai commencé par les réseaux.", "Bonne journée !"],
+    boutique: ["Entrez donc, c'est ouvert.", "J'ai ce qu'il vous faut.",
+               "On ferme tard, ce soir."],
+    danse: ["♪", "♫", "Ça, c'est de la musique !", "♪♪"],
+  };
+
+  /* 1 — Deux qui discutent au bord de la fontaine, là où l'on arrive. */
+  {
+    const x = -V.rFontaine - 14, z = V.zFontaine + 30;
+    attroupement(x, z, ["japonais", "cowboy"], 7);
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.marche, "#6FC8FF"), x, z });
+  }
+  /* 2 — Trois devant la pagode, qui refont le monde. */
+  {
+    const x = V.demiAllee + 22, z = -30;
+    attroupement(x, z, ["ninja", "mib", "japonais"], 8);
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.marche, "#CE96FF"), x, z });
+  }
+  /* 3 — Les tenanciers, plantés devant leur porte. Immobiles, tournés vers
+     l'allée : c'est l'attitude de quelqu'un qui attend le client. */
+  BOUTIQUES.forEach((b, i) => {
+    if (i % 2) return;                       // un sur deux : pas une haie d'honneur
+    const p = new THREE.Group();
+    p.position.set(b.x - b.cote * (BOUT_P / 2 + 7), 0, b.z + 6);
+    p.rotation.y = b.cote > 0 ? Math.PI / 2 : -Math.PI / 2;
+    PASSANTS[["japonais", "mib", "cowboy", "ninja"][i % 4]](p, rnd);
+    scene.add(p);
+    SCENETTES.push({
+      bulle: bulle(p.position.x, 17, p.position.z, DITS.boutique,
+                   "#" + b.couleur.toString(16).padStart(6, "0")),
+      x: p.position.x, z: p.position.z,
+    });
+  });
+  /* 4 — Le danseur et sa radio. Il ne va nulle part, et c'est tout l'objet :
+     le seul mouvement du village qui ne mène à rien. */
+  {
+    const x = -V.demiAllee - 20, z = 96;
+    const p = new THREE.Group();
+    p.position.set(x, 0, z);
+    PASSANTS.cowboy(p, rnd);
+    scene.add(p);
+
+    /* La radio : une boîte, deux haut-parleurs, une poignée, une antenne. */
+    const r = new THREE.Group();
+    r.position.set(x + 9, 0, z + 2);
+    r.add(bloc(lambert(0x2A2E36), 13, 8, 5, 0, 8, 0));
+    for (const sx of [-1, 1])
+      r.add(cyl(lambert(0x14161C), 2.4, 2.4, 1, 12, sx * 3.4, 8, 2.6).rotateX(Math.PI / 2));
+    r.add(cyl(M.metal, 0.4, 0.4, 5, 6, 0, 13.6, 0).rotateZ(0.5));
+    r.add(bloc(M.bois, 2, 1, 5, 0, 3.4, 0));
+    scene.add(r);
+
+    /* Les notes : des sprites qui montent et se dissipent. Trois suffisent —
+       au-delà, ce n'est plus une radio, c'est un feu d'artifice. */
+    const notes = [];
+    for (let k = 0; k < 3; k++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: TEX.lueur, transparent: true, opacity: 0, depthWrite: false,
+        blending: THREE.AdditiveBlending, color: 0xFFE9A0, fog: true }));
+      s.scale.setScalar(5);
+      s.position.set(x + 9, 13, z + 2);
+      scene.add(s);
+      notes.push({ s, t: k * 0.9 });
+    }
+    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.danse, "#FFB05A"),
+                     x, z, danseur: p, notes, radio: r });
+  }
 }
 
 /* ── Les chats assis ────────────────────────────────────────────────────
@@ -2034,6 +2500,7 @@ const OBSTACLES = [];
 matieres.forEach((m) => OBSTACLES.push(
   { x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 14 }));
 OBSTACLES.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 9 });
+for (const o of OBSTACLES_BOUT) OBSTACLES.push(o);
 for (const sx of [-1, 1])
   OBSTACLES.push({ x: sx * (V.demiAllee + 6), z: V.zPortail, r: 13 });
 const BORNES = { x: 250, zMin: -158, zMax: V.zPortail + 70 };
@@ -2204,7 +2671,11 @@ function marquerSurvol(i, oui) {
    incompatibles sur un portable. C'est de l'arithmétique, pas un réglage.
    Ce qui cède, c'est la taille du DESSIN : une carte de chapitre n'a besoin
    que d'un numéro, d'un titre, d'une ligne et de ses quatre pastilles. */
-const CARTE_PX = [236, 112], ECHELLE = 0.105;
+/* 130 et non 112 : la carte reprend sa rangée de pastilles, et il lui faut de
+   quoi la porter. Dix-huit points de plus, pas vingt-huit — à 140 la grille
+   perdait une rangée entière (huit chapitres à l'écran au lieu de douze), et
+   c'est trop cher payé pour du blanc. Mesuré à chaque essai, pas estimé. */
+const CARTE_PX = [236, 130], ECHELLE = 0.105;
 const CARTE_L = CARTE_PX[0] * ECHELLE, CARTE_H = CARTE_PX[1] * ECHELLE;
 /* L'écart entre deux cartes. Il valait 19 % de leur largeur — assez pour
    coûter une rangée entière sur un téléphone : trois écarts de 45 pixels, c'est
@@ -2252,7 +2723,21 @@ function carteChapitre(chap, m, k) {
       `<span class="carte-texte"><b>${ech(chap.titre)}</b>` +
       (chap.sous ? `<span class="carte-sous">${ech(chap.sous)}</span>` : "") +
       `</span>` +
+      /* ── Les pastilles reviennent, à une taille qui se lit ─────────────
+         JustAkhiraa les avait vues sur une version plus ancienne : « sur les côtés
+         des cartes y'avait un petit truc stylé comme des diamants ». C'était
+         cette ligne-là. Je l'avais retirée parce que ses étiquettes
+         arrivaient à HUIT pixels à l'œil — et huit pixels, ce n'est pas du
+         petit texte, c'est du texte qu'on devine.
 
+         Les retirer était une façon de régler le problème ; ce n'était pas
+         la seule. Elles reviennent à 0,7 rem, la carte gagne la hauteur qu'il
+         faut pour les porter, et le seuil de la grille — qui s'exprime en
+         pixels du plus petit texte — se charge du reste : il montrera
+         simplement moins de cartes à la fois. Le compromis est dit en clair
+         plutôt que tranché à ma place. */
+      `<span class="carte-pied">${chap.fiches.map(
+          (f) => `<i>${ech(f[0])}</i>`).join("")}</span>` +
     `</span>`;
   inclinaison(c);
   c.addEventListener("click", () =>
@@ -2353,7 +2838,11 @@ function reculPour(demiL, demiH) {
    C'est la même règle que pour les marges : une valeur doit s'exprimer dans
    l'unité de ce qu'elle borne. */
 const PX_PLANCHER = 11;            // ni norme ni caprice : Apple 11 pt, Google 11 sp
-const PX_PLUS_PETIT = 0.74 * 16;   // .carte-sous, le plus petit corps de la carte
+/* Le plus petit corps dessiné sur la carte. C'est .carte-pied i depuis que la
+   rangée de pastilles est revenue : 0,7 rem, contre 0,74 pour le sous-titre.
+   Cette ligne EST le contrat — si quelqu'un rapetisse une pastille sans la
+   mettre à jour ici, le seuil devient faux en silence. */
+const PX_PLUS_PETIT = 0.7 * 16;
 const SEUIL_LISIBLE = PX_PLANCHER / PX_PLUS_PETIT;
 function rapportEcran(col, lignesVues) {
   const largeur = col * CARTE_L + (col - 1) * JEU;
@@ -2708,6 +3197,13 @@ function poserHeure(h) {
      figés — un ciel de carte postale au lieu d'un ciel. */
   uCiel.cloudScale.value = 0.00026;
   uCiel.cloudSpeed.value = 0.00006;
+  /* JustAkhiraa : « si possible mettre un soleil ». Sky.js sait dessiner le disque,
+     il était simplement laissé éteint : le ciel avait la LUMIÈRE du soleil et
+     sa couleur, mais pas l'astre. On l'allume de jour seulement — la nuit, le
+     soleil est sous l'horizon à -8°, et un disque qui perce le sol n'est plus
+     un soleil, c'est une lampe posée dans l'herbe. La lune, elle, a déjà son
+     propre volume dans la scène. */
+  uCiel.showSunDisc.value = h === "jour" ? 1 : 0;
   rendu.toneMappingExposure = H.expo;
   cuireEnvironnement();
   scene.environmentIntensity = H.reflets;
@@ -2786,10 +3282,25 @@ function matiereSous(objet) {
     if (o.userData && o.userData.matiere !== undefined) return o.userData.matiere;
   return -1;
 }
+function boutiqueSous(objet) {
+  for (let o = objet; o; o = o.parent)
+    if (o.userData && o.userData.boutique !== undefined) return o.userData.boutique;
+  return -1;
+}
 function viserBatiment() {
   if (vue.matiere >= 0 || ruee.actif) return;
   rayon.setFromCamera(souris, camera);
-  const t = rayon.intersectObjects(groupesBat, true)[0];
+  const t = rayon.intersectObjects(groupesBat.concat(groupesBout), true)[0];
+  const b = t ? boutiqueSous(t.object) : -1;
+  /* Une échoppe visée se signale comme un bâtiment : le curseur change et la
+     ligne du haut donne son nom. Sans ce retour, rien ne dit qu'une porte
+     s'ouvre — et une porte dont on ne sait pas qu'elle s'ouvre est un mur. */
+  if (b >= 0) {
+    marquerSurvol(-1, false);
+    toile.style.cursor = "pointer";
+    nommerBoutique(b);
+    return;
+  }
   marquerSurvol(t ? matiereSous(t.object) : -1, !!t);
 }
 
@@ -2855,11 +3366,16 @@ toile.addEventListener("pointerup", (e) => {
   if (parcouru === null || parcouru > 9 || vue.matiere >= 0 || ruee.actif) return;
   majSouris(e);
   rayon.setFromCamera(souris, camera);
-  const t = rayon.intersectObjects(groupesBat, true)[0];
-  if (t) {
-    const i = matiereSous(t.object);
-    if (i >= 0) allerA(i);
-  }
+  /* Les deux familles sont interrogées d'un seul coup, et c'est le plus
+     PROCHE qui gagne. Les interroger l'une après l'autre ferait passer une
+     échoppe devant le château qu'elle cache, ou l'inverse — et le résultat
+     dépendrait de l'ordre des deux lignes, ce qui n'est pas une règle. */
+  const t = rayon.intersectObjects(groupesBat.concat(groupesBout), true)[0];
+  if (!t) return;
+  const b = boutiqueSous(t.object);
+  if (b >= 0) { ouvrirBoutique(b); return; }
+  const i = matiereSous(t.object);
+  if (i >= 0) allerA(i);
 });
 
 addEventListener("keydown", (e) => {
@@ -2927,6 +3443,37 @@ function ouvrirLecture(d) {
   if (chap.fiches[0]) afficherFiche(chap.fiches[0][1]);
 }
 
+/* ── Entrer dans une échoppe ────────────────────────────────────────────
+   Une fiche est INJECTÉE dans la fenêtre : on lui retire son script, parce
+   qu'on ne fait pas tourner le code d'une page étrangère dans la sienne. Un
+   OUTIL, lui, n'est que son script — un convertisseur sans JavaScript est un
+   tableau vide, et l'atelier C est un compilateur WebAssembly de soixante
+   mégaoctets. L'injecter reviendrait à livrer une coquille.
+
+   Il entre donc dans un « iframe » : le navigateur lui donne son propre
+   document, ses propres scripts et son propre cloisonnement, et l'outil
+   fonctionne exactement comme sur le site. C'est la seule solution qui ne
+   demande ni de dupliquer l'outil, ni de lui faire confiance. */
+function ouvrirBoutique(i) {
+  const b = BOUTIQUES[i];
+  const c = "#" + b.couleur.toString(16).padStart(6, "0");
+  lecture.style.setProperty("--c", c);
+  $("lecture-matiere").textContent = "Boutique";
+  $("lecture-titre").textContent = b.nom;
+  $("lecture-sous").textContent = b.tenancier;
+  $("lecture-onglets").innerHTML = "";
+  $("lecture-corps").innerHTML =
+    `<p class="bonjour"><span class="bonjour-qui" aria-hidden="true">☻</span>` +
+    `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
+    `<iframe class="boutique-outil" src="../${b.outil}" title="${ech(b.nom)}"` +
+    ` loading="lazy"></iframe>` +
+    `<a class="lecture-ouvrir" href="../${b.outil}" target="_blank" rel="noopener">` +
+    `Ouvrir l'outil en grand</a>`;
+  lecture.hidden = false;
+  lecture.classList.add("glisse");
+  requestAnimationFrame(() => lecture.classList.remove("glisse"));
+}
+
 function fermerLecture() {
   if (lecture.hidden) return;
   lecture.classList.add("glisse");
@@ -2934,10 +3481,55 @@ function fermerLecture() {
 }
 $("lecture-fermer").addEventListener("click", fermerLecture);
 
+/* ── Le QCM, qui marche pour de bon ─────────────────────────────────────
+   JustAkhiraa : « les QCM sont moches et fonctionnent pas en 3D ». Les deux moitiés
+   de la phrase avaient la même cause : le script de la page du QCM est retiré
+   à l'injection — c'est une règle saine, on ne fait pas tourner le script d'une
+   page étrangère —, et sans lui les boutons ne répondaient plus. J'avais
+   « compensé » en ouvrant toutes les explications, c'est-à-dire en affichant le
+   corrigé sous chaque énoncé. Un QCM dont les réponses sont écrites n'est pas
+   un QCM difficile à utiliser : ce n'est plus un QCM.
+
+   Or la page n'a pas besoin de son script : son balisage porte déjà tout. La
+   bonne réponse est dans « data-bon », l'explication dans « .qcm-why », le
+   rang dans « data-i ». Vingt lignes suffisent donc à le faire fonctionner
+   ici, et elles ne dépendent que de ce qui est écrit dans le HTML — si le
+   gabarit change, elles cessent de trouver leurs crochets au lieu de mentir. */
+function brancherQcm(corps) {
+  const questions = [...corps.querySelectorAll(".qcm-q")];
+  if (!questions.length) return;
+  const score = corps.querySelector(".qcm-tete .sc");
+  const jauge = corps.querySelector(".qcm-tete .av > span");
+  let bons = 0, faites = 0;
+  const compter = () => {
+    if (score) score.textContent = bons + " / " + questions.length;
+    if (jauge) jauge.style.width = (faites / questions.length * 100) + "%";
+  };
+  compter();
+  for (const q of questions) {
+    const bon = Number(q.dataset.bon);
+    const choix = [...q.querySelectorAll(".qcm-opt")];
+    const pourquoi = q.querySelector(".qcm-why");
+    for (const o of choix) o.addEventListener("click", () => {
+      /* On ne répond qu'une fois : rouvrir une question déjà faite
+         permettrait de « corriger » son score après coup, ce qui vide le
+         QCM de son seul intérêt — savoir ce qu'on sait. */
+      if (q.dataset.fait) return;
+      q.dataset.fait = "1";
+      faites++;
+      if (Number(o.dataset.i) === bon) { bons++; o.classList.add("juste"); }
+      else { o.classList.add("faux"); if (choix[bon]) choix[bon].classList.add("juste"); }
+      for (const x of choix) x.disabled = true;
+      if (pourquoi) pourquoi.hidden = false;
+      compter();
+    });
+  }
+}
+
 async function afficherFiche(url) {
   const corps = $("lecture-corps");
   corps.scrollTop = 0;
-  if (cache.has(url)) { corps.innerHTML = cache.get(url); return; }
+  if (cache.has(url)) { corps.innerHTML = cache.get(url); brancherQcm(corps); return; }
   corps.innerHTML = '<p class="lecture-attente">Lecture de la fiche…</p>';
   try {
     const r = await fetch("../" + url, { cache: "force-cache" });
@@ -2963,13 +3555,21 @@ async function afficherFiche(url) {
     /* Les quiz et les QCM ont besoin du script de la page, absent ici : on
        ouvre les réponses plutôt que de laisser des boutons morts. */
     main.querySelectorAll(".quiz button").forEach((n) => n.remove());
-    main.querySelectorAll(".reponse, .qcm-why").forEach((n) => n.removeAttribute("hidden"));
+    /* Les quiz du cours perdent leur bouton, donc on ouvre leur réponse. Le
+       QCM, lui, GARDE ses boutons : son balisage porte la bonne réponse dans
+       « data-bon », et c'est tout ce qu'il faut pour le faire fonctionner ici
+       (voir brancherQcm). Ouvrir ses explications d'office, comme le faisait
+       la version précédente, revenait à publier le corrigé au-dessus de
+       l'énoncé — JustAkhiraa : « les QCM sont moches et fonctionnent pas en 3D ».
+       Ils ne fonctionnaient pas parce qu'on leur avait donné les réponses. */
+    main.querySelectorAll(".reponse").forEach((n) => n.removeAttribute("hidden"));
 
     const html = main.innerHTML +
       `<a class="lecture-ouvrir" href="../${url}" target="_blank" rel="noopener">` +
       `Ouvrir cette fiche sur le site</a>`;
     cache.set(url, html);
     corps.innerHTML = html;
+    brancherQcm(corps);
   } catch (e) {
     corps.innerHTML =
       '<p class="lecture-echec">Cette fiche n\'a pas pu être lue ici.</p>' +
@@ -2992,6 +3592,53 @@ function reveler() {
     () => document.body.classList.add("entre")));
 }
 function fovVoulu() { return camera.aspect < 0.95 ? FOV_ETROIT : FOV_LARGE; }
+
+/* ── La résolution qui s'ajuste d'elle-même ─────────────────────────────
+   L'idée vient de l'écosystème de three.js — c'est l'« AdaptiveDpr » de
+   drei —, et c'est la seule de cette liste de projets qui serve vraiment
+   ici : les autres imposeraient React, un framework entier ou un visualiseur
+   de modèles, c'est-à-dire exactement la dépendance que ce dépôt refuse.
+   Trente lignes suffisent à la reprendre, sans rien charger.
+
+   Le principe : une machine lente ne doit pas rendre moins de village, elle
+   doit le rendre sur moins de pixels. Un portable d'entrée de gamme dessine
+   deux fois trop de pixels pour son GPU et rame ; en tombant à 1 pixel par
+   point au lieu de 2, il retrouve soixante images par seconde et perd un peu
+   de finesse sur les bords — un échange que personne ne remarque en marchant,
+   et que tout le monde remarque à l'inverse.
+
+   Deux précautions valent la peine d'être dites :
+
+     · on mesure une MÉDIANE sur soixante images, pas la dernière. Une image
+       isolée à 40 ms arrive à chaque changement d'heure, quand
+       l'environnement se recuit ; réagir à celle-là ferait clignoter la
+       résolution ;
+     · on ne remonte qu'après une marge nette (13 ms contre 22 ms pour
+       descendre). Sans cet écart, la résolution oscillerait entre deux
+       valeurs, chacune provoquant l'autre. */
+const ECHELLE_MAX = Math.min(devicePixelRatio || 1, 2);
+const PALIERS = [ECHELLE_MAX, Math.max(1, ECHELLE_MAX * 0.75), 1, 0.75];
+let palier = 0, duree = [], depuisChangement = 0;
+
+function ajusterResolution(dt) {
+  depuisChangement += dt;
+  duree.push(dt * 1000);
+  if (duree.length < 60) return;
+  const trie = duree.slice().sort((a, b) => a - b);
+  const mediane = trie[30];
+  duree.length = 0;
+  /* Une seconde de répit après chaque changement : le temps que le pilote
+     réalloue ses tampons, les premières images sont lentes par construction,
+     et les prendre pour un verdict ferait descendre en cascade. */
+  if (depuisChangement < 1) return;
+  const avant = palier;
+  if (mediane > 22 && palier < PALIERS.length - 1) palier++;
+  else if (mediane < 13 && palier > 0) palier--;
+  if (palier === avant) return;
+  depuisChangement = 0;
+  rendu.setPixelRatio(PALIERS[palier]);
+  rendu.setSize(innerWidth, innerHeight);
+}
 
 let t0 = performance.now();
 
@@ -3119,6 +3766,44 @@ function image(now) {
     if (v.broute && v.tete)
       v.tete.rotation.x = 0.36 + Math.sin(t * 0.55 + v.phase) * 0.34;
   }
+  /* ── Les scénettes ────────────────────────────────────────────────────
+     Une bulle ne s'affiche qu'à PORTÉE DE VOIX, et son opacité suit la
+     distance : elle apparaît en s'approchant au lieu de surgir. Le seuil est
+     à quarante-cinq unités, la largeur de l'allée — de l'autre trottoir on
+     voit qu'on parle, on ne lit pas ce qui se dit. */
+  for (const s of SCENETTES) {
+    const d = Math.hypot(oeil.pos.x - s.x, oeil.pos.z - s.z);
+    const pres = Math.max(0, Math.min(1, (58 - d) / 13));
+    s.bulle.el.style.opacity = pres.toFixed(2);
+    if (pres > 0.05) {
+      /* On ne change de réplique que si elle est LUE : faire tourner un texte
+         invisible, c'est arriver au milieu d'une phrase qu'on n'a pas vue
+         commencer. */
+      s.bulle.prochaine -= dt;
+      if (s.bulle.prochaine <= 0) {
+        s.bulle.k = (s.bulle.k + 1) % s.bulle.lignes.length;
+        s.bulle.el.textContent = s.bulle.lignes[s.bulle.k];
+        s.bulle.prochaine = 3.2 + (s.bulle.k % 3) * 0.9;
+      }
+    }
+    if (s.danseur) {
+      /* La danse : un rebond, un balancement, et un quart de tour qui va et
+         vient. Trois sinusoïdes de périodes différentes — la même période
+         partout donnerait un métronome, pas un danseur. */
+      s.danseur.position.y = Math.abs(Math.sin(t * 4.2)) * 2.4;
+      s.danseur.rotation.z = Math.sin(t * 2.1) * 0.13;
+      s.danseur.rotation.y = Math.sin(t * 1.35) * 0.8;
+      for (const n of s.notes) {
+        n.t += dt;
+        const u = (n.t % 2.6) / 2.6;
+        n.s.position.y = 13 + u * 22;
+        n.s.position.x = s.x + 9 + Math.sin(u * 7 + n.t) * 4;
+        /* Elle naît, elle monte, elle s'efface : une note qui disparaît net
+           en haut de sa course se lit comme un défaut d'affichage. */
+        n.s.material.opacity = Math.sin(u * Math.PI) * 0.75;
+      }
+    }
+  }
   for (const c of CHATS_ASSIS) {
     /* Trois mouvements très lents, et rien de plus : la queue qui balaie, la
        tête qui suit quelque chose qu'on ne voit pas, et le souffle — deux
@@ -3171,16 +3856,48 @@ function image(now) {
   requestAnimationFrame(image);
 }
 
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+/* ── Se recadrer, y compris quand le téléphone tourne ───────────────────
+   JustAkhiraa : « j'aimerais bien sur tél, si je tourne mon écran, que l'écran
+   s'adapte ». Il le faisait déjà — mais mal, et sur iOS pas du tout.
+
+   Deux corrections. D'abord « orientationchange » : Safari le déclenche AVANT
+   d'avoir fini de retourner la fenêtre, si bien qu'un recadrage immédiat lit
+   les anciennes dimensions et fige le village en travers. On recadre donc
+   trois fois — tout de suite, puis après deux images, puis après un tiers de
+   seconde —, ce qui coûte trois recalculs et garantit d'attraper la bonne.
+
+   Ensuite la hauteur : « innerHeight » sur iOS inclut les barres d'outils,
+   même rétractées. C'est la même erreur que « 100vh » côté feuille de style,
+   et elle donne un village rendu plus haut que ce qu'on voit — donc décalé.
+   « visualViewport » donne la hauteur réellement visible, et il prévient
+   quand elle change. */
+/* La toile est posée en « inset: 0 » avec une largeur et une hauteur de
+   100 % : elle suit donc le viewport de MISE EN PAGE, celui que donnent
+   innerWidth et innerHeight — et le tampon de dessin doit faire exactement la
+   même taille, sans quoi l'image est étirée ou posée dans un coin. C'est ce
+   qui est arrivé en essayant de la caler sur « visualViewport » : cette
+   mesure-là décrit ce qu'on VOIT après pincement, pas la boîte qu'occupe la
+   toile. Elle reste utile comme signal — elle prévient quand les barres d'iOS
+   bougent — mais pas comme mesure. */
+function recadrer() {
+  const l = innerWidth, h = innerHeight;
+  camera.aspect = l / h;
   camera.fov = fovVoulu();
   camera.updateProjectionMatrix();
-  rendu.setSize(innerWidth, innerHeight);
-  rendu3D.setSize(innerWidth, innerHeight);
+  rendu.setSize(l, h);
+  rendu3D.setSize(l, h);
   /* Le nombre de colonnes dépend de la FORME de l'écran : il faut refaire
      le mur de cartes, pas seulement recadrer. */
   placerCible();
   batirCartes();
+}
+
+addEventListener("resize", recadrer);
+if (window.visualViewport) visualViewport.addEventListener("resize", recadrer);
+addEventListener("orientationchange", () => {
+  recadrer();
+  requestAnimationFrame(() => requestAnimationFrame(recadrer));
+  setTimeout(recadrer, 320);
 });
 
 /* ── Ouverture ───────────────────────────────────────────────────────── */
@@ -3214,7 +3931,45 @@ catch (e) { aide.hidden = false; }
    le sous-titre n'existe que pendant cinq secondes, après un survol. Un banc
    qui ne peut pas le FAIRE APPARAÎTRE ne le mesure jamais — et déclare que
    tout va bien. */
+/* ── Ce que CE navigateur-ci fournit vraiment ───────────────────────────
+   JustAkhiraa : « ça ne ressemble pas à la même chose avec Firefox et Edge ; Firefox
+   est plus beau et a plus de trucs. » Je n'ai ni son Firefox ni son Edge, et
+   deviner à distance ce qu'une carte graphique accorde à un navigateur, c'est
+   exactement le genre de raisonnement qui a fait perdre une journée trois fois
+   dans ce dépôt. On ne devine donc pas : on relève.
+
+   Les cinq lignes qui décident de l'aspect du village, dans l'ordre où elles
+   comptent — le pilote réellement utilisé (une repli logiciel ne dit pas son
+   nom autrement), la version de WebGL, le nombre de bits de profondeur (16 ou
+   24 : c'est lui qui fait clignoter deux surfaces proches), la possibilité de
+   cuire l'environnement en virgule flottante (sans elle, le cuivre et le métal
+   perdent leur reflet), et le réglage « réduire les animations » du système,
+   qui éteint à lui seul l'inclinaison des cartes et l'élan de la ruée.
+
+   À lancer dans les deux navigateurs : CIEL.diagnostic() */
+function diagnostic() {
+  const gl = rendu.getContext();
+  const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const flottant = !!(gl.getExtension("EXT_color_buffer_float")
+                   || gl.getExtension("EXT_color_buffer_half_float")
+                   || gl.getExtension("OES_texture_float"));
+  return {
+    navigateur: navigator.userAgent,
+    pilote: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "(masqué)",
+    webgl: rendu.capabilities.isWebGL2 ? 2 : 1,
+    bitsDeProfondeur: gl.getParameter(gl.DEPTH_BITS),
+    virguleFlottante: flottant,
+    ombres: rendu.shadowMap.enabled + " / " + rendu.shadowMap.type,
+    pixels: rendu.getPixelRatio(),
+    animationsReduites: CALME,
+    appelsDeRendu: rendu.info.render.calls,
+    triangles: rendu.info.render.triangles,
+    textureMax: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+  };
+}
+
 window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
-                poserHeure, allerA, ciel, sousTitrer, taireSousTitre };
+                poserHeure, allerA, ciel, sousTitrer, taireSousTitre,
+                diagnostic };
 
 requestAnimationFrame(image);

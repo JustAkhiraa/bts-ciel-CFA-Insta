@@ -133,7 +133,7 @@ prévoir pour l'instant.
   recalcul des 33 masques, relecture des 28 ports et des 25 blocs de commandes.
 - `verification/qa.html` — 1 186 mesures de rendu : débordement horizontal, cibles
   tactiles, erreurs de console, ressources manquantes et étiquettes de schéma
-  superposées, sur 182 pages × 40 thèmes × 3 largeurs.
+  superposées, sur 182 pages × 41 thèmes × 3 largeurs.
 - `verification/contraste.html` — 960 combinaisons de contraste mesurées dans un
   navigateur, au seuil AA, sur 12 pages dont les 6 outils.
 - `LICENSE` — MIT pour le code, CC BY-NC-SA 4.0 pour le contenu pédagogique.
@@ -160,7 +160,7 @@ l'établissement, aucune mention d'un partenariat.
 Aucune exigence réglementaire ne s'applique. Une exigence de confort a été posée
 par l'auteur, et elle est tenue **par la mesure, pas par l'estimation** :
 
-- **Contraste AA** sur les 40 thèmes, mesuré dans un navigateur sur les fonds
+- **Contraste AA** sur les 41 thèmes, mesuré dans un navigateur sur les fonds
   réels, transparences composées.
 - **Cibles tactiles ≥ 34 px**, vérifiées sur les 182 pages.
 - **Réglages de lecture** : taille du texte, largeur de ligne, police,
