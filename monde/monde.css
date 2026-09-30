@@ -215,6 +215,41 @@ body.jour #btn-heure .ic-nuit { display: block; }
   position: relative; display: block; padding: 0; border: 0; background: none;
   font: inherit; color: var(--encre); cursor: pointer;
 }
+/* ── Les quatre coins montés ──────────────────────────────────────────────
+   Ce sont les « diamants » qu'il cherchait depuis trois séances. Ils
+   n'existaient dans aucune feuille de style : c'est Firefox qui les
+   fabriquait tout seul, en n'appliquant pas le « border-radius » de la carte
+   à son « backdrop-filter ». Le fond flouté remplissait donc la boîte CARRÉE,
+   et débordait aux quatre angles que la carte arrondie laisse découverts.
+   Edge, Brave et Chrome — qui découpent correctement — n'en montraient rien,
+   et c'est tout le mystère du « Firefox est plus beau ».
+
+   Un défaut qui plaît reste un défaut : il ne vit que dans un moteur, et il
+   disparaîtra le jour où Mozilla le corrigera. On le dessine donc à la main.
+   La plaque est un rectangle à peine arrondi, posé DERRIÈRE la doublure et
+   deux pixels plus grande qu'elle : on ne la voit qu'aux angles, exactement
+   comme l'accident d'origine, mais partout et sous notre contrôle. Comme
+   c'est maintenant une décision, elle prend la couleur de la matière — ce que
+   le hasard ne savait pas faire. */
+.carte::before {
+  content: ""; position: absolute; inset: -2px; z-index: 0;
+  border-radius: 5px; pointer-events: none;
+  background: color-mix(in srgb, var(--c) 15%, var(--verre));
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 24%, transparent);
+  transition: background .28s ease, box-shadow .28s ease;
+}
+/* La doublure passe DEVANT la plaque, sinon la carte disparaît sous elle. */
+.carte-dedans { z-index: 1; }
+/* Au survol, la carte se soulève de ses coins : la plaque s'allume et reste
+   visible parce qu'elle déborde de deux pixels — sans ce débord, le
+   grandissement de 3,5 % de la doublure la recouvrirait entièrement, et
+   l'effet s'éteindrait juste au moment où on le regarde. */
+.carte:hover::before, .carte:focus-visible::before {
+  background: color-mix(in srgb, var(--c) 32%, var(--verre));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 52%, transparent);
+}
 .carte-dedans {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; gap: .45rem;
@@ -360,16 +395,6 @@ body.jour .carte-dedans { box-shadow: 0 16px 38px rgba(16, 40, 76, .26),
   -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   margin-top: .2rem; font-size: .74rem; line-height: 1.34;
   color: var(--encre-douce); }
-.carte-pied { display: flex; flex-wrap: nowrap; gap: .26rem; margin-top: auto;
-  padding-top: .45rem; }
-.carte-pied i {
-  font-style: normal; font-size: .7rem; letter-spacing: .03em;
-  padding: .16rem .42rem; border-radius: 999px; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-  background: color-mix(in srgb, var(--c) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
-  color: var(--encre);
-}
 /* « Réduire les animations » veut dire moins de MOUVEMENT, pas moins de
    relief. La règle coupait le « transform » en entier : la carte perdait du
    même coup son inclinaison sous le pointeur — ce qui est demandé — et sa
@@ -804,10 +829,36 @@ body.titre-parti:not(.en-matiere) .pont {
 }
 
 /* ── l'aide ──────────────────────────────────────────────────────────── */
-.aide { position: fixed; inset: 0; z-index: 40; display: grid; place-content: center;
-  padding: 1.4rem; background: var(--voile);
+/* ── Le panneau d'accueil, et pourquoi on ne pouvait pas le fermer ───────
+   « sur mon iphone 15 je peux pas car quand je démarre le monde en 3D y'a le
+   message, du coup je peux pas le voir en entier et donc pas possible de
+   cliquer sur la croix. »
+
+   C'était « place-content: center » sur une grille en position fixe. Quand le
+   contenu est plus HAUT que la fenêtre, un contenu centré déborde des DEUX
+   côtés — la moitié du dépassement part au-dessus du bord supérieur, hors
+   d'atteinte, et il n'y a rien à faire défiler pour aller la chercher. Sur un
+   écran d'ordinateur le panneau tient, donc le défaut n'existe pas ; sur un
+   téléphone tenu à la verticale, le bouton « Compris » tombe sous le bord.
+
+   C'est la même faute que pour la fenêtre de lecture, corrigée le 29
+   septembre — je n'avais corrigé que la fenêtre, pas le panneau. Une cause
+   commune se corrige partout où elle sévit, sinon elle revient par la porte
+   d'à côté.
+
+   La bonne forme : un conteneur qui DÉFILE, et une boîte à « margin: auto ».
+   La marge automatique centre tant que ça tient et cède dès que ça ne tient
+   plus, au lieu de couper. */
+.aide { position: fixed; inset: 0; z-index: 40;
+  display: flex; justify-content: center;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  padding: max(1.4rem, env(safe-area-inset-top))
+           max(1.4rem, env(safe-area-inset-right))
+           max(1.4rem, env(safe-area-inset-bottom))
+           max(1.4rem, env(safe-area-inset-left));
+  background: var(--voile);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.aide-boite { max-width: 31rem; background: var(--verre-fort);
+.aide-boite { max-width: 31rem; margin: auto; background: var(--verre-fort);
   border: 1px solid var(--trait); border-radius: 18px; padding: 1.5rem;
   box-shadow: 0 24px 60px rgba(0,6,20,.5);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
@@ -825,6 +876,16 @@ body.titre-parti:not(.en-matiere) .pont {
   border-radius: 11px; border: 1px solid var(--trait); color: var(--encre);
   background: color-mix(in srgb, var(--encre) 10%, transparent); font-weight: 650; }
 .aide-boite button:hover { border-color: #6FC8FF; }
+/* Sur un écran tactile, le bouton se COLLE au bas de la boîte. Pouvoir faire
+   défiler jusqu'à lui suffisait à réparer la panne ; l'avoir toujours sous le
+   pouce évite d'avoir à le chercher. On ne demande pas à quelqu'un de
+   parcourir un mode d'emploi pour avoir le droit de le fermer. */
+@media (pointer: coarse) {
+  .aide-boite { padding-bottom: .9rem; }
+  .aide-boite button { position: sticky; bottom: 0; margin-top: .4rem;
+    background: var(--verre-fort); backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px); min-height: 48px; }
+}
 
 /* ═══════════════════════════════════ le panneau de lecture ═════════════
    « La fiche du cours en 2D c'est plat, ça n'a pas d'interface. » Le monde
@@ -1104,21 +1165,39 @@ body.jour .lecture-corps .qcm-opt.faux .qcm-lt { background: #A82C2C; color: #FF
    boutique SAIT FAIRE, avant qu'on ait cherché dans l'outil. « Un réseau à
    découper ? Posez votre adresse sur le comptoir » en apprend plus long, et
    plus vite, qu'un titre « Calculateur de sous-réseau ». */
-.lecture-corps .bonjour { display: flex; gap: .8rem; align-items: flex-start;
-  max-width: 62ch; margin: 0 auto 1.2rem; padding: .85rem 1rem;
-  border-radius: 14px; font-size: .92rem; line-height: 1.6;
-  color: var(--encre);
-  background: color-mix(in srgb, var(--c) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent); }
+/* La boutique est un CADRE : l'outil dessous, la parole par-dessus. Tant que
+   le bonjour était un frère de l'outil dans le flux, il lui volait sa hauteur
+   — et une parole qu'on a lue ne doit plus rien coûter. */
+.lecture-corps .boutique { position: relative; width: 100%;
+  height: min(74dvh, 920px); border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--trait); background: #FFF; }
+.lecture-corps .bonjour { position: absolute; z-index: 2;
+  left: .7rem; right: .7rem; top: .7rem;
+  display: flex; gap: .7rem; align-items: flex-start;
+  padding: .7rem .9rem; border-radius: 13px;
+  font-size: .9rem; line-height: 1.55; color: var(--encre); cursor: pointer;
+  background: color-mix(in srgb, var(--c) 16%, var(--verre-fort));
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 6, 20, .28);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: opacity .45s ease, transform .45s ease; }
+.lecture-corps .bonjour.parti { opacity: 0; transform: translateY(-.5rem);
+  pointer-events: none; }
 .lecture-corps .bonjour-qui { flex: 0 0 auto; display: inline-flex;
-  align-items: center; justify-content: center; width: 2.1rem; height: 2.1rem;
-  border-radius: 50%; font-size: 1.1rem; color: var(--c);
-  background: color-mix(in srgb, var(--c) 22%, transparent); }
+  align-items: center; justify-content: center; width: 2rem; height: 2rem;
+  border-radius: 50%; font-size: 1.05rem; color: var(--c);
+  background: color-mix(in srgb, var(--c) 26%, transparent); }
 /* L'outil vit dans son propre document : il garde donc ses scripts, et
-   l'atelier C compile pour de bon à l'intérieur de la boutique. */
-.lecture-corps .boutique-outil { display: block; width: 100%; max-width: none;
-  height: min(72vh, 900px); border: 1px solid var(--trait);
-  border-radius: 14px; background: #FFF; }
+   l'atelier C compile pour de bon à l'intérieur de la boutique. Il remplit
+   tout le cadre dès la première image — plus rien ne le pousse vers le bas. */
+.lecture-corps .boutique-outil { position: absolute; inset: 0; display: block;
+  width: 100%; height: 100%; max-width: none; border: 0; background: #FFF; }
+/* Qui a demandé moins d'animations n'a pas demandé à ce qu'une parole reste
+   collée à l'écran : elle s'efface, sans glisser. */
+@media (prefers-reduced-motion: reduce) {
+  .lecture-corps .bonjour { transition: opacity .2s ease; }
+  .lecture-corps .bonjour.parti { transform: none; }
+}
 
 .lecture-attente, .lecture-echec { color: var(--encre-douce); font-size: .86rem; }
 .lecture-ouvrir { display: inline-flex; align-items: center; gap: .4rem;

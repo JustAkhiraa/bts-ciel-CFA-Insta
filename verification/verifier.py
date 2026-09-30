@@ -115,6 +115,28 @@ def textes():
                 yield os.path.join(dp, f)
 
 
+def balises_fermees(h, rel, pbs):
+    """Chaque <script> et chaque <style> se referme-t-il ?
+
+    Ajouté le 30 septembre 2026, après m'être fait avoir. En glissant un
+    second script dans l'en-tête, j'ai mangé le « </script> » du premier. Le
+    navigateur referme alors le premier script sur le « </script> » du
+    second : les deux ne font plus qu'un, ce bloc unique ne compile pas, et
+    AUCUN des deux ne s'exécute. Le thème ne s'applique plus, la détection du
+    cadre non plus — pour un fragment de sept caractères, invisible à la
+    relecture.
+
+    C'est un contrôle grossier : on COMPTE. Une balise ouvrante de plus qu'une
+    fermante, et on le dit. Un contrôle grossier qui tourne à chaque
+    publication vaut mieux qu'un contrôle fin qui n'existe pas."""
+    for balise in ("script", "style"):
+        ouvre = len(re.findall(r"<\s*" + balise + r"\b", h, re.I))
+        ferme = len(re.findall(r"<\s*/\s*" + balise + r"\s*>", h, re.I))
+        if ouvre != ferme:
+            pbs.append((rel, f"<{balise}> ouvert {ouvre} fois, fermé {ferme} fois "
+                             f"— un bloc non refermé avale le suivant"))
+
+
 def personnel(h, rel, pbs):
     """Contrôle 1, isolé : il s'applique à TOUT fichier lisible, pas aux
     seules pages. Les contrôles de liens et de dépendances, eux, n'ont de
@@ -365,6 +387,7 @@ def main():
 
         # ── 1. données personnelles ───────────────────────────────────
         personnel(h, rel, pbs)
+        balises_fermees(h, rel, pbs)
 
         # on neutralise les exemples de code avant les contrôles de liens
         hl = re.sub(r"(?is)<pre\b.*?</pre>", " ", h)
