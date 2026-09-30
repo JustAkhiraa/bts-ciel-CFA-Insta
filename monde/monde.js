@@ -2671,11 +2671,11 @@ function marquerSurvol(i, oui) {
    incompatibles sur un portable. C'est de l'arithmétique, pas un réglage.
    Ce qui cède, c'est la taille du DESSIN : une carte de chapitre n'a besoin
    que d'un numéro, d'un titre, d'une ligne et de ses quatre pastilles. */
-/* 130 et non 112 : la carte reprend sa rangée de pastilles, et il lui faut de
-   quoi la porter. Dix-huit points de plus, pas vingt-huit — à 140 la grille
-   perdait une rangée entière (huit chapitres à l'écran au lieu de douze), et
-   c'est trop cher payé pour du blanc. Mesuré à chaque essai, pas estimé. */
-const CARTE_PX = [236, 130], ECHELLE = 0.105;
+/* Retour à 112. La carte avait grandi pour porter une rangée de pastilles
+   dont il s'avère qu'elle n'était pas ce qu'il cherchait ; sans elle, la
+   hauteur retombe et la grille retrouve ses dix-sept chapitres d'un coup,
+   comme sur la capture qu'il veut retrouver. */
+const CARTE_PX = [236, 112], ECHELLE = 0.105;
 const CARTE_L = CARTE_PX[0] * ECHELLE, CARTE_H = CARTE_PX[1] * ECHELLE;
 /* L'écart entre deux cartes. Il valait 19 % de leur largeur — assez pour
    coûter une rangée entière sur un téléphone : trois écarts de 45 pixels, c'est
@@ -2723,21 +2723,29 @@ function carteChapitre(chap, m, k) {
       `<span class="carte-texte"><b>${ech(chap.titre)}</b>` +
       (chap.sous ? `<span class="carte-sous">${ech(chap.sous)}</span>` : "") +
       `</span>` +
-      /* ── Les pastilles reviennent, à une taille qui se lit ─────────────
-         JustAkhiraa les avait vues sur une version plus ancienne : « sur les côtés
-         des cartes y'avait un petit truc stylé comme des diamants ». C'était
-         cette ligne-là. Je l'avais retirée parce que ses étiquettes
-         arrivaient à HUIT pixels à l'œil — et huit pixels, ce n'est pas du
-         petit texte, c'est du texte qu'on devine.
+      /* ── Les « diamants » : ce n'était pas ça ──────────────────────────
+         J'avais cru reconnaître, dans « sur les côtés des cartes y'avait un
+         petit truc stylé comme des diamants », cette rangée de pastilles. Je
+         l'ai remise, elle a coûté une rangée de chapitres, ses étiquettes
+         arrivaient tronquées — « Co… Exercic… Fic… Q… » — et ce n'était
+         toujours pas ce qu'il avait vu.
 
-         Les retirer était une façon de régler le problème ; ce n'était pas
-         la seule. Elles reviennent à 0,7 rem, la carte gagne la hauteur qu'il
-         faut pour les porter, et le seuil de la grille — qui s'exprime en
-         pixels du plus petit texte — se charge du reste : il montrera
-         simplement moins de cartes à la fois. Le compromis est dit en clair
-         plutôt que tranché à ma place. */
-      `<span class="carte-pied">${chap.fiches.map(
-          (f) => `<i>${ech(f[0])}</i>`).join("")}</span>` +
+         Le 30 septembre il a envoyé six captures : quatre sous Windows, deux
+         sous macOS. Les deux Firefox montrent quatre CARRÉS aux angles de
+         chaque carte ; les deux Edge et le Brave, rien. Ce sont eux, les
+         diamants — et ce n'est pas du style, c'est un défaut de rendu :
+         Firefox n'applique pas le « border-radius » au « backdrop-filter »,
+         donc le fond flouté déborde aux quatre angles de la boîte carrée que
+         la carte arrondie ne couvre pas.
+
+         Il aime ce défaut. On ne peut pas le garder comme tel — il n'existe
+         que dans un moteur, et il disparaîtra à la première correction de
+         Mozilla. On le DESSINE donc, dans .carte::before, où il devient le
+         même partout et se laisse habiller par thème. Un accident qu'on aime
+         se transforme en décision, ou il finit par se perdre.
+
+         La rangée de pastilles repart : elle ne portait rien qu'on ne sache
+         déjà, elle se tronquait, et elle coûtait cinq chapitres à l'écran. */
     `</span>`;
   inclinaison(c);
   c.addEventListener("click", () =>
@@ -2838,11 +2846,11 @@ function reculPour(demiL, demiH) {
    C'est la même règle que pour les marges : une valeur doit s'exprimer dans
    l'unité de ce qu'elle borne. */
 const PX_PLANCHER = 11;            // ni norme ni caprice : Apple 11 pt, Google 11 sp
-/* Le plus petit corps dessiné sur la carte. C'est .carte-pied i depuis que la
-   rangée de pastilles est revenue : 0,7 rem, contre 0,74 pour le sous-titre.
-   Cette ligne EST le contrat — si quelqu'un rapetisse une pastille sans la
-   mettre à jour ici, le seuil devient faux en silence. */
-const PX_PLUS_PETIT = 0.7 * 16;
+/* Le plus petit corps dessiné sur la carte. La rangée de pastilles partie,
+   c'est de nouveau .carte-sous, à 0,74 rem. Cette ligne EST le contrat — si
+   quelqu'un ajoute un texte plus petit sans la mettre à jour, le seuil
+   devient faux en silence, et c'est exactement ce qui s'est produit. */
+const PX_PLUS_PETIT = 0.74 * 16;
 const SEUIL_LISIBLE = PX_PLANCHER / PX_PLUS_PETIT;
 function rapportEcran(col, lignesVues) {
   const largeur = col * CARTE_L + (col - 1) * JEU;
@@ -3462,13 +3470,38 @@ function ouvrirBoutique(i) {
   $("lecture-titre").textContent = b.nom;
   $("lecture-sous").textContent = b.tenancier;
   $("lecture-onglets").innerHTML = "";
+  /* ── Le bonjour se dit, puis il s'efface ───────────────────────────────
+     « quand j'ouvre un outil j'ai un message qui prend de la place, c'est pas
+     ergonomique. » La phrase du tenancier était un pavé posé AU-DESSUS de
+     l'outil : elle repoussait vers le bas la seule chose qu'on venait
+     chercher, et elle restait là pour toujours alors qu'on ne la lit
+     qu'une fois.
+
+     Elle devient ce qu'elle est : une parole. Posée par-dessus le haut de
+     l'outil, elle s'efface d'elle-même au bout de six secondes — ou au
+     premier clic, pour qui lit vite. L'outil, lui, prend toute la hauteur
+     dès la première image. Ce qu'on dit une fois ne doit pas occuper la
+     place de ce qu'on utilise tout le temps. */
   $("lecture-corps").innerHTML =
-    `<p class="bonjour"><span class="bonjour-qui" aria-hidden="true">☻</span>` +
-    `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
-    `<iframe class="boutique-outil" src="../${b.outil}" title="${ech(b.nom)}"` +
-    ` loading="lazy"></iframe>` +
+    `<div class="boutique">` +
+      `<iframe class="boutique-outil" src="../${b.outil}" title="${ech(b.nom)}"` +
+      ` loading="lazy"></iframe>` +
+      `<p class="bonjour" role="status">` +
+        `<span class="bonjour-qui" aria-hidden="true">☻</span>` +
+        `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
+    `</div>` +
     `<a class="lecture-ouvrir" href="../${b.outil}" target="_blank" rel="noopener">` +
     `Ouvrir l'outil en grand</a>`;
+  const dit = $("lecture-corps").querySelector(".bonjour");
+  if (dit) {
+    const taire = () => dit.classList.add("parti");
+    dit.addEventListener("click", taire);
+    /* Le compte à rebours est rangé sur l'élément : si l'on ouvre une autre
+       boutique avant la fin, le nouveau panneau ne se fait pas taire par le
+       minuteur de l'ancien. Un minuteur sans propriétaire finit toujours par
+       agir sur ce qu'il n'a pas créé. */
+    dit.dataset.minuteur = setTimeout(taire, 6000);
+  }
   lecture.hidden = false;
   lecture.classList.add("glisse");
   requestAnimationFrame(() => lecture.classList.remove("glisse"));
