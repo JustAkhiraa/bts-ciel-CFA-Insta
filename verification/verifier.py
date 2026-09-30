@@ -19,13 +19,38 @@ from urllib.parse import unquote, urlparse
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ── 1. ce qui ne doit jamais apparaître ───────────────────────────────────
-# Prénoms et noms des personnes citées dans le dépôt privé. La liste est en
-# clair ici : c'est elle qu'on relit avant de publier.
-INTERDITS = [
-    "JustAkhiraa", "JustAkhiraa", "JustAkhiraa", "un camarade", "un camarade", "un camarade", "un camarade",
-    "un camarade", "un camarade", "un camarade", "un camarade", "un camarade",
-    "un camarade", "un camarade",
-]
+# La liste des noms NE FIGURE PLUS ICI, et c'est tout le correctif du
+# 30 septembre 2026.
+#
+# Elle était en clair, avec ce commentaire : « c'est elle qu'on relit avant de
+# publier ». Sauf que ce fichier est COPIÉ DANS LE DÉPÔT PUBLIC. Le garde-fou
+# publiait donc, noir sur blanc, l'annuaire exact qu'il avait pour mission de
+# retenir : un élève, ses professeurs, deux camarades. Aucun des cinq contrôles
+# ne pouvait s'en apercevoir, parce que le dossier « verification » était dans
+# DOSSIERS_IGNORES — il ne se relisait pas lui-même.
+#
+# La liste vit maintenant dans le dépôt PRIVÉ, à « _pilotage/noms-prives.txt »,
+# et n'est jamais copiée. On la désigne par la variable d'environnement
+# NOMS_PRIVES. La publication la fournit ; l'intégration continue du dépôt
+# public, elle, ne l'a pas — et c'est voulu : un nom ne peut entrer dans le
+# dépôt public que PAR la publication, donc c'est là, en amont, qu'il faut le
+# retenir. Contrôler après coup, c'est fermer l'écurie après le cheval.
+#
+# Quand la liste manque, le contrôle 1 ne passe pas en silence : il se déclare
+# non exécuté. Un contrôle muet et un contrôle réussi doivent se distinguer.
+def charger_interdits():
+    chemin = os.environ.get("NOMS_PRIVES")
+    if not chemin or not os.path.exists(chemin):
+        return None
+    noms = []
+    for ligne in open(chemin, encoding="utf-8"):
+        ligne = ligne.split("#")[0].strip()
+        if ligne:
+            noms.append(ligne)
+    return noms or None
+
+
+INTERDITS = charger_interdits()
 # Motifs génériques : une adresse ou un numéro qui traînerait.
 # Le « (?<![\w-]) » évite de confondre un numéro avec un morceau de nom de
 # fichier — « capture-2026-06-01-194001 » n'est pas un téléphone.
@@ -48,7 +73,9 @@ TOLERES = {
     "06 12 34 56 78",                         # placeholder d'un champ de formulaire
 }
 
-DOSSIERS_IGNORES = {".git", ".github", "verification", "node_modules"}
+# « verification » n'est plus ignoré : c'est de là que venait la fuite. Un
+# outil de contrôle publié est un fichier publié comme un autre.
+DOSSIERS_IGNORES = {".git", ".github", "node_modules"}
 
 
 # Les fichiers de texte publiés à côté des pages. Ils échappaient au contrôle
@@ -58,7 +85,16 @@ DOSSIERS_IGNORES = {".git", ".github", "verification", "node_modules"}
 # « .py » est arrivé le jour où l'outillage de mise à jour automatique a été
 # publié : du code Python vit désormais dans le dépôt public, et rien ne le
 # relisait. Un nom laissé dans un commentaire serait parti en ligne.
-TEXTES = (".md", ".txt", ".json", ".webmanifest", ".yml", ".yaml", ".csv", ".py")
+# « .js » et « .css » sont arrivés le 30 septembre 2026, après le même constat
+# que pour « .py » — mais en pire, parce que ce dépôt-ci est surtout fait de
+# JavaScript et de CSS commentés en français. SOIXANTE occurrences d'un prénom
+# dormaient dans les commentaires de monde.js, monde.css, app.js et theme.css :
+# le contrôle ne lisait que le HTML et les fichiers de texte, et un commentaire
+# n'est ni l'un ni l'autre. La leçon vaut au-delà d'ici : un contrôle ne
+# protège que les fichiers qu'on a pensé à lui donner, et la liste des formats
+# est plus facile à oublier que la règle elle-même.
+TEXTES = (".md", ".txt", ".json", ".webmanifest", ".yml", ".yaml", ".csv",
+          ".py", ".js", ".mjs", ".css", ".svg")
 SANS_EXTENSION = {"LICENSE", "NOTICE", "AUTHORS", "CITATION"}
 
 
@@ -83,6 +119,8 @@ def personnel(h, rel, pbs):
     """Contrôle 1, isolé : il s'applique à TOUT fichier lisible, pas aux
     seules pages. Les contrôles de liens et de dépendances, eux, n'ont de
     sens que sur du HTML."""
+    if INTERDITS is None:
+        return                       # signalé une fois dans main(), pas ici
     for mot in INTERDITS:
         m = re.search(re.escape(mot), h, re.I)
         if m:
@@ -302,6 +340,13 @@ def main():
     pbs, n = [], 0
     fichiers = sorted(pages())
 
+    if INTERDITS is None:
+        print("   contrôle 1 NON EXÉCUTÉ : liste des noms privés absente.")
+        print("   (normal dans le dépôt public ; la relecture a lieu à la publication)")
+    else:
+        print(f"   contrôle 1 : {len(INTERDITS)} nom(s) recherché(s) dans "
+              f"tout ce qui est publié, code et commentaires compris")
+
     for p in sorted(textes()):
         try:
             personnel(open(p, encoding="utf-8").read(), os.path.relpath(p, RACINE), pbs)
@@ -372,7 +417,15 @@ def main():
 
         # ── 3. liens morts ────────────────────────────────────────────
         for u in re.findall(r'(?:src|href)\s*=\s*["\']([^"\'#][^"\']*)', hl):
-            if re.match(r"^(https?:|mailto:|tel:|data:|//)", u):
+            # « about: », « blob: » et « javascript: » ne désignent aucun
+            # fichier : les chercher sur le disque ne peut donner qu'un faux
+            # positif. Le premier est arrivé le jour où « verification » a
+            # cessé d'être ignoré — un « f.src = "about:blank" » écrit dans un
+            # script, lu comme un attribut HTML parce que ce contrôle relit le
+            # fichier en entier, balises et code mêlés. Filtrer le SCHÉMA règle
+            # les trois cas d'un coup, et c'est plus juste que d'apprendre à
+            # reconnaître un script.
+            if re.match(r"^(https?:|mailto:|tel:|data:|about:|blob:|javascript:|//)", u):
                 continue
             cible = unquote(urlparse(u).path)
             if not cible:
@@ -440,7 +493,12 @@ def main():
         if len(pbs) > 60:
             print(f"   … et {len(pbs) - 60} autres")
         sys.exit(1)
-    print("OK — aucune donnée personnelle, aucune dépendance externe, aucun lien mort.")
+    if INTERDITS is None:
+        print("OK — aucune dépendance externe, aucun lien mort. "
+              "(données personnelles : non contrôlé ici)")
+    else:
+        print("OK — aucune donnée personnelle, aucune dépendance externe, "
+              "aucun lien mort.")
 
 
 main()

@@ -603,6 +603,38 @@ function pyramide(mat, rBas, rHaut, h, x, y, z) {
   o.position.set(x || 0, y || 0, z || 0);
   return o;
 }
+/* ── Le seuil : trois marches entre le sol et la porte ──────────────────
+   JustAkhiraa : « les bâtiments sont beaux mais des fois ils ont aucun sens ».
+   Voici le défaut qu'il voyait sans pouvoir le nommer, et il revenait sur la
+   moitié du village.
+
+   Chaque bâtiment est posé sur un soubassement de pierre — douze unités pour
+   l'atelier, quatorze pour l'observatoire — qui DÉPASSE le corps de quelques
+   unités. Les portes, elles, avaient été dessinées depuis le sol. Résultat :
+   leur partie basse était enterrée dans la pierre, et ce qu'on voyait était
+   une porte qui commence à mi-hauteur, devant un socle qu'on ne peut pas
+   franchir. Aucune maçonnerie ne fait ça. Le château, lui, avait ses marches
+   depuis le premier jour — c'est en le comparant aux quatre autres que
+   l'anomalie saute aux yeux.
+
+   Une porte commence au NIVEAU DU PLANCHER, et le plancher est le dessus du
+   soubassement. Il faut donc deux choses ensemble : remonter la porte, et
+   donner de quoi y monter. L'une sans l'autre laisse soit une porte enterrée,
+   soit une porte en l'air. */
+function marches(mat, largeur, hauteur, zFace, n) {
+  const g = new THREE.Group();
+  const h = hauteur / n;
+  for (let k = 0; k < n; k++) {
+    /* Chaque marche est plus LARGE et plus PROFONDE que celle du dessus :
+       c'est ce qui donne l'emmarchement en pyramide qu'on lit de loin, et
+       c'est aussi la seule façon de les voir quand on arrive de face. */
+    const l = largeur + (n - k) * 7;
+    const p = 7 + (n - k) * 5;
+    g.add(bloc(mat, l, h, p, 0, h / 2 + k * h, zFace + p / 2 - (n - k) * 2.5));
+  }
+  return g;
+}
+
 /* La tache sombre sous un volume. Ce n'est pas une ombre calculée — il n'y
    en a aucune dans le village — mais elle fait le même travail : poser
    l'objet sur le sol au lieu de le laisser flotter. */
@@ -877,18 +909,21 @@ function batirAtelier(c) {
   g.add(pignon(M.tuile, 100, 34, 58, 0, 96, 0));
   g.add(bloc(M.bois, 104, 3, 62, 0, 96, 0));
 
-  /* La grande porte cintrée, ouverte sur le rouge de la forge. */
-  g.add(bloc(M.sombre, 34, 30, 2, 0, 19, 29.4));
+  /* La grande porte cintrée, ouverte sur le rouge de la forge. Elle part du
+     PLANCHER — le dessus du soubassement, à douze — et non du sol : sa moitié
+     basse était sinon noyée dans la pierre. Trois marches y mènent. */
+  g.add(marches(M.pierreC, 40, 12, 32, 3));
+  g.add(bloc(M.sombre, 34, 32, 2, 0, 28, 29.4));
   const arc = new THREE.Mesh(new THREE.CircleGeometry(17, 20, 0, Math.PI), M.sombre);
-  arc.position.set(0, 34, 29.4);
+  arc.position.set(0, 44, 29.4);
   g.add(arc);
   const forge = new THREE.MeshBasicMaterial({ color: 0xFF7A33, fog: true });
   FENETRES.push(forge);
   const feu = new THREE.Mesh(PLAN, forge);
   feu.scale.set(24, 16, 1);
-  feu.position.set(0, 12, 29.6);
+  feu.position.set(0, 22, 29.6);
   g.add(feu);
-  g.add(lueur(54, 0, 14, 32));
+  g.add(lueur(54, 0, 24, 32));
 
   for (const x of [-34, 34]) {
     g.add(fenetre(16, 13, x, 32, 29.4));
@@ -958,13 +993,28 @@ function batirObservatoire(c) {
   g.add(lun);
   g.add(cyl(M.sombre, 6.6, 6.6, 3, 14, 0, 150, 34).rotateX(Math.PI / 2.9));
 
+  /* ── Les fenêtres suivent le FRUIT de la tour ─────────────────────────
+     Elles étaient toutes posées au rayon 48,6, quelle que soit leur hauteur.
+     Or la tour n'est pas un cylindre : elle va de 48 à la base à 42 sous la
+     corniche. Les fenêtres du haut flottaient donc à quatre unités du mur,
+     dans le vide — et c'est très visible de trois quarts.
+
+     Le rayon se calcule maintenant à leur hauteur. C'est la même règle que
+     partout ailleurs dans ce dépôt : une valeur qui dépend d'une autre ne
+     s'écrit pas en dur, elle se déduit. */
+  const rayonA = (y) => 48 - (y - 14) / 92 * 6;
   for (let k = 0; k < 6; k++) {
     const a = -0.9 + k * 0.36;
-    g.add(fenetre(11, 16, Math.sin(a) * 48.6, 34 + (k % 2) * 34,
-                  Math.cos(a) * 48.6, a));
+    const y = 40 + (k % 2) * 32;
+    const r = rayonA(y) + 0.6;          // 0,6 devant le mur, jamais dedans
+    g.add(fenetre(11, 16, Math.sin(a) * r, y, Math.cos(a) * r, a));
   }
-  g.add(bloc(M.sombre, 20, 30, 2, 0, 15, 48.4));
-  g.add(bloc(M.bois, 24, 3, 4, 0, 31, 49));
+  /* La porte commence au plancher — le dessus du soubassement, à quatorze —
+     et trois marches y montent. Elle partait du sol, donc ses quatorze
+     premières unités étaient enterrées dans la pierre du socle. */
+  g.add(marches(M.pierreC, 26, 14, 50, 3));
+  g.add(bloc(M.sombre, 20, 30, 2, 0, 29, rayonA(29) + 0.5));
+  g.add(bloc(M.bois, 24, 3, 4, 0, 45.5, rayonA(45) + 1));
 
   /* L'anneau. Il est incliné : à plat il se confondrait avec la corniche. */
   {
@@ -1008,6 +1058,25 @@ function batirColombages(c) {
   toit.rotation.y = Math.PI / 2;
   g.add(toit);
   g.add(bloc(M.bois, 110, 3, 66, 0, 114, 0));
+
+  /* ── Une maison sans porte ────────────────────────────────────────────
+     Celle-ci n'en avait aucune. Douze fenêtres, trois étages, un toit
+     d'ardoise, et pas une ouverture pour entrer : c'est le défaut le plus
+     net des cinq bâtiments, et il était invisible tant qu'on ne cherchait
+     pas ce qui MANQUE. On relit les façades en se demandant ce qu'elles
+     devraient avoir, pas seulement si ce qu'elles ont est bien placé.
+
+     Elle est à colombages : sa porte est donc en chêne, encadrée de deux
+     poteaux et d'un linteau, avec une imposte au-dessus. Elle part du
+     plancher — quatorze, le dessus du soubassement de brique — et trois
+     marches y montent. */
+  g.add(marches(M.pierreC, 30, 14, 30, 3));
+  g.add(bloc(M.bois,   26, 3, 2.4, 0, 45.5, 27.7));          // le linteau
+  for (const sx of [-1, 1])
+    g.add(bloc(M.bois, 3, 30, 2.4, sx * 11.5, 29, 27.7));    // les poteaux
+  g.add(bloc(M.sombre, 20, 30, 1.6, 0, 29, 27.5));           // le vantail
+  g.add(fenetre(16, 5, 0, 48.5, 27.6));                      // l'imposte
+  g.add(cyl(M.or, 0.55, 0.55, 1.6, 8, 6.5, 29, 28.6).rotateX(Math.PI / 2));
 
   /* Les colombages : verticaux, une ceinture, deux croix de Saint-André.
      Posés sur la façade ET sur les deux côtés, sinon la maison est en
@@ -2602,7 +2671,11 @@ function marquerSurvol(i, oui) {
    incompatibles sur un portable. C'est de l'arithmétique, pas un réglage.
    Ce qui cède, c'est la taille du DESSIN : une carte de chapitre n'a besoin
    que d'un numéro, d'un titre, d'une ligne et de ses quatre pastilles. */
-const CARTE_PX = [236, 112], ECHELLE = 0.105;
+/* 130 et non 112 : la carte reprend sa rangée de pastilles, et il lui faut de
+   quoi la porter. Dix-huit points de plus, pas vingt-huit — à 140 la grille
+   perdait une rangée entière (huit chapitres à l'écran au lieu de douze), et
+   c'est trop cher payé pour du blanc. Mesuré à chaque essai, pas estimé. */
+const CARTE_PX = [236, 130], ECHELLE = 0.105;
 const CARTE_L = CARTE_PX[0] * ECHELLE, CARTE_H = CARTE_PX[1] * ECHELLE;
 /* L'écart entre deux cartes. Il valait 19 % de leur largeur — assez pour
    coûter une rangée entière sur un téléphone : trois écarts de 45 pixels, c'est
@@ -2650,7 +2723,21 @@ function carteChapitre(chap, m, k) {
       `<span class="carte-texte"><b>${ech(chap.titre)}</b>` +
       (chap.sous ? `<span class="carte-sous">${ech(chap.sous)}</span>` : "") +
       `</span>` +
+      /* ── Les pastilles reviennent, à une taille qui se lit ─────────────
+         JustAkhiraa les avait vues sur une version plus ancienne : « sur les côtés
+         des cartes y'avait un petit truc stylé comme des diamants ». C'était
+         cette ligne-là. Je l'avais retirée parce que ses étiquettes
+         arrivaient à HUIT pixels à l'œil — et huit pixels, ce n'est pas du
+         petit texte, c'est du texte qu'on devine.
 
+         Les retirer était une façon de régler le problème ; ce n'était pas
+         la seule. Elles reviennent à 0,7 rem, la carte gagne la hauteur qu'il
+         faut pour les porter, et le seuil de la grille — qui s'exprime en
+         pixels du plus petit texte — se charge du reste : il montrera
+         simplement moins de cartes à la fois. Le compromis est dit en clair
+         plutôt que tranché à ma place. */
+      `<span class="carte-pied">${chap.fiches.map(
+          (f) => `<i>${ech(f[0])}</i>`).join("")}</span>` +
     `</span>`;
   inclinaison(c);
   c.addEventListener("click", () =>
@@ -2751,7 +2838,11 @@ function reculPour(demiL, demiH) {
    C'est la même règle que pour les marges : une valeur doit s'exprimer dans
    l'unité de ce qu'elle borne. */
 const PX_PLANCHER = 11;            // ni norme ni caprice : Apple 11 pt, Google 11 sp
-const PX_PLUS_PETIT = 0.74 * 16;   // .carte-sous, le plus petit corps de la carte
+/* Le plus petit corps dessiné sur la carte. C'est .carte-pied i depuis que la
+   rangée de pastilles est revenue : 0,7 rem, contre 0,74 pour le sous-titre.
+   Cette ligne EST le contrat — si quelqu'un rapetisse une pastille sans la
+   mettre à jour ici, le seuil devient faux en silence. */
+const PX_PLUS_PETIT = 0.7 * 16;
 const SEUIL_LISIBLE = PX_PLANCHER / PX_PLUS_PETIT;
 function rapportEcran(col, lignesVues) {
   const largeur = col * CARTE_L + (col - 1) * JEU;
