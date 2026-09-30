@@ -1,5 +1,5 @@
 /* CSS3DRenderer — three.js r186, licence MIT (voir LICENSE dans ce dossier).
-   Extrait de examples/jsm/renderers/ des archives fournies par Ahmed.
+   Extrait de examples/jsm/renderers/ des archives fournies par JustAkhiraa.
 
    UNE SEULE modification : l'import « from 'three' » pointe vers le fichier
    voisin, faute de carte d'importation dans la page.

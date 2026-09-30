@@ -1,5 +1,5 @@
 /* ImprovedNoise — three.js r186, licence MIT (voir LICENSE ici).
-   Extrait de examples/jsm/math/ des archives fournies par Ahmed, avec UNE
+   Extrait de examples/jsm/math/ des archives fournies par JustAkhiraa, avec UNE
    seule retouche : l'import « three » devient le chemin du fichier local.
 
    Le bruit de Perlin amélioré, de Ken Perlin lui-même. Il sert ici à donner

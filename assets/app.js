@@ -75,7 +75,8 @@
       { id: "console-blanche", nom: "Console blanche", sombre: false },
       { id: "bloc-notes", nom: "Bloc-notes", sombre: false },
       { id: "liquid", nom: "Liquid Glass", sombre: false },
-      { id: "zellige", nom: "Zellige", sombre: false }
+      { id: "zellige", nom: "Zellige", sombre: false },
+      { id: "console-bleue", nom: "Console bleue", sombre: true }
     ]}
   ];
 
@@ -104,7 +105,7 @@
      Le contrôle se fait ICI, au chargement, et pas seulement au moment
      d'écrire : un navigateur qui a connu la version précédente a gardé
      « voxel » dans son memo, et depuis « Clair » la lune y ramenait. C'est le
-     défaut qu'Ahmed a vu, et qu'aucun banc ne pouvait voir — un banc part
+     défaut qu'JustAkhiraa a vu, et qu'aucun banc ne pouvait voir — un banc part
      toujours d'un localStorage vide. Un réglage enregistré hier est une
      entrée comme une autre : il se valide. */
   function memoValide(id) {
@@ -556,7 +557,7 @@
   }
 
   /* ── le bouton du monde 3D ────────────────────────────────────────────
-     Ahmed : « au lieu de mettre un bouton Monde 3D je préfère le mettre à la
+     JustAkhiraa : « au lieu de mettre un bouton Monde 3D je préfère le mettre à la
      droite de paramètres, on écrit 3D, et avec le curseur y'a un effet 3D
      sur le bouton ».
 

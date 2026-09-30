@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=77c15c61">
+<link rel="stylesheet" href="../assets/fiche.css?v=2e946b22">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -30,7 +30,7 @@
 
 <h1>Contrôle du contraste</h1>
 <p class="chapeau">Chaque texte du site est mesuré contre son fond réel, sur
-   <strong>les 40 thèmes</strong> — les 24 ambiances et les 16 univers de jeu
+   <strong>les 41 thèmes</strong> — les 24 ambiances et les 17 univers de jeu
    ou d'écran — sur 17 pages.
    Seuil AA : 4,5:1, ramené à 3:1 pour le grand texte.</p>
 <p class="chapeau">Le <strong>village 3D</strong> a sa propre campagne, plus bas :
@@ -85,22 +85,24 @@
 <p id="banniere" aria-live="polite"></p>
 
 <script>
-/* Les 40 thèmes, y compris les quinze « jeux et écrans ». Le sélecteur
+/* Les 41 thèmes, y compris les quinze « jeux et écrans ». Le sélecteur
    d'accent a disparu des réglages : il n'y a plus qu'un axe à croiser. */
 const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","frost",
   "peachlight","mintlight","marble","dark","emerald","ocean","mocha","nordic","carbon",
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
-  "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige"];
+  "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
+  "console-bleue"];
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
-  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"]);
+  "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
+  "console-bleue"]);
 /* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
    au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
    la moitié du site sans contrôle — et c'est justement la moitié neuve. */
 const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
   "determination","velours","neon-lime","androide","grand-large","cahier-rose",
-  "console-blanche","bloc-notes","liquid","zellige"]);
+  "console-blanche","bloc-notes","liquid","zellige","console-bleue"]);
 function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 /* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
    interligne serré ne change pas le contraste, mais une largeur « pleine »
@@ -351,7 +353,7 @@ function mesurer(doc, vue) {
                 .map(n => n.textContent.trim()).join("");
     if (t.length < 3) continue;
     /* Le fond d'un <pre> ne suit pas le thème : il vaut #23211E partout.
-       L'exclure du balayage des 40 thèmes évite 40 mesures identiques.
+       L'exclure du balayage des 41 thèmes évite 40 mesures identiques.
        Mais depuis que le code est COLORÉ, ce <pre> contient dix couleurs
        de texte — et cette ligne les rendait invisibles au banc. Elles
        sont mesurées à part, par mesurerCode(), une fois par page : leur
@@ -526,7 +528,7 @@ document.getElementById("go").addEventListener("click", async () => {
     ? "<p class=\"ko\">⚠️ le fond des blocs de code n'est PAS le même partout — "
       + "une seule palette de coloration ne suffit plus : "
       + [...fondsCode].slice(0, 4).join(" · ") + "</p>"
-    : "<p>fond des blocs de code : " + fondRef + " sur les 40 thèmes — "
+    : "<p>fond des blocs de code : " + fondRef + " sur les 41 thèmes — "
       + "une palette suffit.</p>";
   /* Un banc qui ne mesure rien annonce « OK ». Le nombre de teintes
      réellement rencontrées est donc affiché, et zéro est signalé comme une
