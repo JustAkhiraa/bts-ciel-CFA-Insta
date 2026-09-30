@@ -1,5 +1,5 @@
 /* Sky — three.js r186, licence MIT (voir LICENSE dans ce dossier).
-   Extrait de examples/jsm/objects/ des archives fournies par Ahmed, avec UNE
+   Extrait de examples/jsm/objects/ des archives fournies par JustAkhiraa, avec UNE
    seule retouche : l'import « three » devient le chemin du fichier local.
    Aucun CDN, aucune étape de construction.
 
@@ -8,7 +8,7 @@
    halo autour de l'astre et le rouge de l'horizon au couchant. Cette version
    porte en plus une couche de NUAGES animés (cloudCoverage, cloudSpeed…).
    Un dégradé peint à la main ne sait rien faire de tout ça.
-   Ahmed avait donné le lien de l'exemple « animation / keyframes » de
+   JustAkhiraa avait donné le lien de l'exemple « animation / keyframes » de
    three.js — ce ciel-là est celui qui s'y trouve.
 */
 import {

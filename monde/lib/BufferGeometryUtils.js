@@ -1,5 +1,5 @@
 /* BufferGeometryUtils — three.js r186, licence MIT (voir LICENSE ici).
-   Extrait de examples/jsm/utils/ des archives fournies par Ahmed, avec UNE
+   Extrait de examples/jsm/utils/ des archives fournies par JustAkhiraa, avec UNE
    seule retouche : l'import « three » devient le chemin du fichier local.
 
    On n'en utilise qu'une fonction, mergeGeometries, et elle vaut le poids du
