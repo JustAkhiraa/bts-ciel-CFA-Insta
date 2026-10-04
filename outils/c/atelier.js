@@ -132,6 +132,9 @@
     const saisie = $(".edi-saisie", racine);
     const peint = $(".edi-peint", racine);
     const marge = $(".edi-marge", racine);
+    const tete = racine.closest(".at-volet");
+    const etat = tete && tete.querySelector(".edi-etat");
+    const formRenom = tete && tete.querySelector(".edi-renommer");
     let langue = "c";
     let marques = [];
 
@@ -140,7 +143,11 @@
       peint.innerHTML = peindre(t, langue) + "\n";
       /* Après la coloration, jamais avant : surligner d'abord reviendrait à
          faire colorer des balises qu'on vient d'insérer. */
-      if (typeof motCourant === "string" && motCourant) surligner(motCourant);
+      if (typeof motCourant === "string" && motCourant) {
+        surligner(motCourant, posCourante);
+        const [k, n] = rangOccurrence(motCourant, posCourante);
+        direEtat(motCourant, k, n);
+      } else direEtat("", -1, 0);
       const n = t.split("\n").length;
       if (marge.childElementCount !== n || marge.dataset.marques !== String(marques.length)) {
         marge.dataset.marques = String(marques.length);
@@ -233,14 +240,18 @@
        expression régulière — ce serait colorer des balises. On marche sur les
        NŒUDS DE TEXTE du rendu et on découpe ceux qui portent le mot : le texte
        n'est pas modifié d'un caractère, il est seulement enveloppé. */
-    function surligner(mot) {
+    function surligner(mot, posActive) {
       if (!mot || mot.length < 2) return;
       const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      /* On relève TOUS les nœuds de texte avec leur position absolue AVANT
+         la moindre découpe : splitText change l'arbre sous les pieds du
+         marcheur, et c'est cette position qui dit laquelle des occurrences
+         est celle où se trouve le curseur. */
       const marcheur = document.createTreeWalker(peint, NodeFilter.SHOW_TEXT);
       const noeuds = [];
-      let nd;
-      while ((nd = marcheur.nextNode())) if (re.test(nd.nodeValue)) { re.lastIndex = 0; noeuds.push(nd); }
-      for (const noeud of noeuds) {
+      let nd, debut = 0;
+      while ((nd = marcheur.nextNode())) { noeuds.push([nd, debut]); debut += nd.nodeValue.length; }
+      for (const [noeud, base] of noeuds) {
         const trouves = [];
         re.lastIndex = 0;
         let m;
@@ -251,32 +262,157 @@
           const milieu = noeud.splitText(deb);
           milieu.splitText(lg);
           const marque = document.createElement("span");
-          marque.className = "edi-occ";
+          marque.className = "edi-occ" + (base + deb === posActive ? " actif" : "");
           milieu.parentNode.insertBefore(marque, milieu);
           marque.appendChild(milieu);
         }
       }
     }
 
-    let motCourant = "";
+    /* Le rang de l'occurrence où est le curseur, et le nombre total.
+       Calculé sur le TEXTE, qui fait foi — pas sur la peinture. */
+    function rangOccurrence(mot, pos) {
+      if (!mot) return [-1, 0];
+      const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      const t = saisie.value;
+      let m, n = 0, k = -1;
+      while ((m = re.exec(t))) { if (m.index === pos) k = n; n++; }
+      return [k, n];
+    }
+
+    /* F2 — renommer toutes les occurrences d'un coup.
+
+       C'est le geste que Ctrl+D ne peut PAS rendre ici, et il faut le dire
+       franchement : dans VS Code, Ctrl+D AJOUTE un curseur, puis l'on tape
+       une fois pour toutes les occurrences. Un <textarea> n'a qu'un curseur
+       — ce n'est pas un manque de code, c'est la plateforme : le champ natif
+       du navigateur n'expose qu'une sélection. Ctrl+D DÉPLACE donc la
+       sélection d'une occurrence à la suivante, et F2 offre l'autre geste de
+       VS Code, celui qui atteint le but visé : renommer partout. */
+    function motVise() {
+      const sel = saisie.value.slice(saisie.selectionStart, saisie.selectionEnd);
+      if (sel && /^[A-Za-z_]\w*$/.test(sel)) return sel;
+      const m = motAutour(saisie.value, saisie.selectionStart);
+      return m ? m[0] : "";
+    }
+
+    function ouvrirRenommage() {
+      if (!formRenom) return false;
+      const mot = motVise();
+      if (!mot) return false;
+      const champ = formRenom.querySelector("input");
+      const [, n] = rangOccurrence(mot, -1);
+      formRenom.dataset.mot = mot;
+      champ.value = mot;
+      champ.removeAttribute("aria-invalid");
+      formRenom.hidden = false;
+      direEtat(mot, -1, n);
+      champ.focus();
+      champ.select();
+      return true;
+    }
+
+    function fermerRenommage() {
+      if (!formRenom || formRenom.hidden) return;
+      formRenom.hidden = true;
+      saisie.focus();
+    }
+
+    function renommerPartout(ancien, neuf) {
+      if (!ancien || !neuf || ancien === neuf) return 0;
+      if (!/^[A-Za-z_]\w*$/.test(neuf)) return -1;
+      const re = new RegExp("\\b" + ancien.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      const avant = saisie.value;
+      let n = 0;
+      const apres = avant.replace(re, () => { n++; return neuf; });
+      if (!n) return 0;
+      /* Un seul remplacement pour tout le texte : un seul coup d'annulation.
+         Remplacer occurrence par occurrence en demanderait autant qu'il y en
+         a, et Ctrl+Z deviendrait une corvée.
+
+         Et il faut RENDRE LE FOCUS au champ de code avant d'écrire :
+         execCommand agit sur l'élément actif, qui est à cet instant la petite
+         zone de saisie du renommage. Sans cette ligne, la commande réussissait
+         — elle renvoyait true, donc la reprise de secours ne se déclenchait
+         pas — et le programme restait intact pendant que l'état annonçait
+         fièrement « 7 occurrences renommées ». Mesuré : 7 « compteur »
+         toujours là, 0 « total ». */
+      saisie.focus();
+      const pos = Math.min(saisie.selectionStart, apres.length);
+      remplacer(0, avant.length, apres, pos, pos);
+      motCourant = ""; posCourante = -1;
+      majOccurrences();
+      return n;
+    }
+
+    let motCourant = "", posCourante = -1;
+
+    /* Ce que l'éditeur sait et que le lecteur ne voit pas, il le DIT.
+       C'est tout le défaut qu'il a signalé : « ctrl d ça sélectionne tous
+       les mêmes mots ». Les occurrences étaient marquées AVANT même qu'on
+       presse la touche — par le seul fait de poser le curseur dans un mot —
+       et toutes de la même façon. Rien ne distinguait donc celle où l'on
+       était, et appuyer sur Ctrl+D ne changeait rien de visible. */
+    function direEtat(mot, k, n) {
+      if (!etat) return;
+      if (!mot || n === 0) { etat.textContent = ""; return; }
+      etat.textContent = n === 1
+        ? mot + " · 1 seule fois"
+        : mot + " · " + (k >= 0 ? k + 1 : "–") + " sur " + n;
+    }
+
     function majOccurrences() {
       const t = saisie.value;
       const sel = t.slice(saisie.selectionStart, saisie.selectionEnd);
-      let mot = "";
-      if (sel && /^[A-Za-z_]\w*$/.test(sel)) mot = sel;
+      let mot = "", pos = -1;
+      if (sel && /^[A-Za-z_]\w*$/.test(sel)) { mot = sel; pos = saisie.selectionStart; }
       else if (saisie.selectionStart === saisie.selectionEnd) {
         const m = motAutour(t, saisie.selectionStart);
-        if (m) mot = m[0];
+        if (m) { mot = m[0]; pos = m.index; }
       }
-      if (mot === motCourant) return;
+      /* La POSITION fait partie de l'état. Sans elle, Ctrl+D déplaçait bien
+         la sélection d'une occurrence à la suivante — le mot, lui, ne
+         changeait pas — et l'on sortait d'ici sans rien redessiner : la
+         marque active restait sur place. Le geste marchait, il ne se voyait
+         pas. */
+      if (mot === motCourant && pos === posCourante) return;
       motCourant = mot;
+      posCourante = pos;
       redessiner();
     }
 
     saisie.addEventListener("input", redessiner);
     saisie.addEventListener("keyup", majOccurrences);
     saisie.addEventListener("click", majOccurrences);
-    saisie.addEventListener("blur", () => { motCourant = ""; redessiner(); });
+    saisie.addEventListener("blur", (e) => {
+      /* Passer dans le champ de renommage ne doit pas effacer le surlignage :
+         c'est précisément ce qu'on est en train de renommer. */
+      if (formRenom && !formRenom.hidden && formRenom.contains(e.relatedTarget)) return;
+      motCourant = ""; posCourante = -1; redessiner();
+    });
+
+    if (formRenom) {
+      const champRenom = formRenom.querySelector("input");
+      formRenom.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const neuf = champRenom.value.trim();
+        const n = renommerPartout(formRenom.dataset.mot, neuf);
+        if (n === -1) {
+          champRenom.setAttribute("aria-invalid", "true");
+          if (etat) etat.textContent = "Un nom de C : lettres, chiffres, souligné — jamais de chiffre en tête.";
+          champRenom.focus();
+          return;
+        }
+        fermerRenommage();
+        if (n > 0 && etat)
+          etat.textContent = n + (n > 1 ? " occurrences renommées" : " occurrence renommée") + " en " + neuf;
+      });
+      formRenom.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") { ev.preventDefault(); fermerRenommage(); }
+      });
+      const annuler = formRenom.querySelector("button[type=button]");
+      if (annuler) annuler.addEventListener("click", fermerRenommage);
+    }
     saisie.addEventListener("scroll", () => {
       peint.style.transform = "translate(" + -saisie.scrollLeft + "px," + -saisie.scrollTop + "px)";
       marge.scrollTop = saisie.scrollTop;
@@ -303,6 +439,13 @@
           (e.key === "d" || e.key === "D")) {
         e.preventDefault();
         if (occurrenceSuivante()) majOccurrences();
+        return;
+      }
+      /* F2 — le renommage. VS Code l'a aussi, et c'est le seul des deux
+         gestes qu'un champ natif puisse tenir en entier. */
+      if (e.key === "F2") {
+        e.preventDefault();
+        ouvrirRenommage();
         return;
       }
       /* Alt+Z : le retour à la ligne visuel, comme dans VS Code. */
