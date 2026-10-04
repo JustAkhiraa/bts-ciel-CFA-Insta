@@ -300,6 +300,13 @@ document.getElementById("go").onclick = async () => {
       f.style.width = w + "px";
       const doc = f.contentDocument;
       doc.documentElement.dataset.anim = "0";
+      /* Les replis s'ouvrent avant la mesure. Un <details> fermé cache sa
+         largeur autant que son texte : une ligne qui déborde à 375 px ne
+         déborde pas tant que personne ne l'a dépliée, et le banc annonçait
+         alors un succès portant sur la seule ligne de titre. Depuis que les
+         sujets d'entraînement vivent dans un repli, cela fait dix corrigés
+         entiers qui échappaient au contrôle. */
+      for (const dt of doc.querySelectorAll("details")) dt.open = true;
       doc.body.offsetHeight;
       n++;
       const d = deborde(doc, w);
