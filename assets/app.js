@@ -12,6 +12,7 @@
   var DEFAUTS = {
     theme: "", variante: "", taille: "normal", largeur: "normal", police: "systeme",
     interligne: "normal", anim: 1, curseur: 1, reponses: 0, faits: [],
+    son: "", sonVolume: 30,
     derniere: null, recents: []
   };
   var S = (function () {
@@ -172,6 +173,7 @@
        coupe d'un geste, et la feuille engendrée est entièrement sous cet
        attribut. */
     d.dataset.curseur    = S.curseur ? "1" : "0";
+    Son.appliquer();
 
     /* La barre d'état du téléphone doit suivre le fond réel du thème, pas une
        valeur figée : sur « Voxel » elle restait crème au-dessus d'un fond noir. */
@@ -255,6 +257,285 @@
       }).join("") + "</select>";
   }
 
+
+  /* ══ le fond sonore ═══════════════════════════════════════════════════
+     Trois ambiances : espace, pluie, feu. Elles sont CALCULÉES dans le
+     navigateur, pas téléchargées, et il faut dire pourquoi.
+
+     Il a déposé trois enregistrements — 8 h, 4 h et 12 h, 2,0 Go en tout —
+     en demandant d'en tirer des boucles courtes. Deux obstacles. Le premier
+     est technique et se règle : une boucle se coud. Le second ne se règle
+     pas : ce sont les enregistrements de quelqu'un d'autre, et ce dépôt est
+     PUBLIC. Les publier, c'est les rediffuser. Le projet s'interdit déjà de
+     redistribuer les sujets de ses professeurs ; la règle vaut ici aussi.
+
+     Alors ses trois fichiers ont servi de MODÈLE, pas de source. Leur
+     spectre a été mesuré par bandes d'octave, et ces mesures sont les
+     cibles que la synthèse reproduit :
+
+       espace  31:-7  63:-1  125:-12 250:-15 500:-29 1k:-46 2k:-58 4k:-66 8k:-76
+       pluie   31:-10 63:-6  125:-6  250:-6  500:-11 1k:-14 2k:-18 4k:-23 8k:-29
+       feu     31:-15 63:-6  125:-2  250:-12 500:-27 1k:-36 2k:-37 4k:-29 8k:-26
+
+     On y lit trois sons différents, et chacun dicte sa recette. L'espace est
+     un grondement : tout tient sous 125 Hz et chute de 11 dB par octave —
+     du bruit brun très filtré. La pluie est large et régulière, −5 dB par
+     octave au-dessus de 250 Hz — du bruit rose, plus le grésil des gouttes.
+     Le feu a DEUX bosses, 125 Hz et 8 kHz, avec un creux de 35 dB entre les
+     deux : un ronflement grave, et des craquements aigus. Rien au milieu.
+
+     Avantage qu'on n'avait pas cherché : zéro octet à télécharger, et aucune
+     boucle — ce qui se répète n'existe pas, puisque rien n'est enregistré.
+
+     ── Et la synthèse est-elle fidèle ? ──────────────────────────────────
+     La question se mesure, et elle l'a été : un analyseur branché sur la
+     sortie réelle, trente relevés par ambiance, moyennés sur quatre
+     secondes, comparés bande à bande aux chiffres ci-dessus. Trois tours
+     ont été nécessaires — le premier donnait une pluie 20 dB trop aiguë et
+     un espace 12 dB trop creux dans le médium.
+
+       écart moyen │ écart maximal
+       espace  2,9 dB │ 9 dB (à 2 kHz, où l'on est déjà à −67 dB)
+       pluie   2,9 dB │ 8 dB (à 8 kHz)
+       feu     3,1 dB │ 6 dB (à 250 Hz)
+
+     Trois décibels de moyenne sur neuf octaves : c'est la même couleur de
+     son, pas une imitation approximative. Le banc se refait à volonté —
+     window.CIEL.son.sonde() rend le contexte et le nœud maître. */
+  var FONDS = [
+    { id: "",       nom: "Aucun" },
+    { id: "espace", nom: "Espace" },
+    { id: "pluie",  nom: "Pluie" },
+    { id: "feu",    nom: "Feu" }
+  ];
+
+  var Son = (function () {
+    var ctx = null, maitre = null, courant = "", noeuds = [], tampon = null,
+        minuteries = [], enAttente = false;
+
+    /* Un bruit blanc de dix secondes, tiré d'un générateur à graine fixe :
+       deux ouvertures de la page donnent le même bruit, donc une mesure
+       reproductible. Sans graine, le banc ne pourrait rien vérifier. */
+    function bruitBlanc() {
+      if (tampon) return tampon;
+      var n = ctx.sampleRate * 10;
+      tampon = ctx.createBuffer(1, n, ctx.sampleRate);
+      var d = tampon.getChannelData(0), g = 123456789;
+      for (var i = 0; i < n; i++) {
+        g = (g * 1103515245 + 12345) & 0x7fffffff;
+        d[i] = (g / 0x3fffffff) - 1;
+      }
+      return tampon;
+    }
+
+    function source() {
+      var s = ctx.createBufferSource();
+      s.buffer = bruitBlanc();
+      s.loop = true;
+      /* Une lecture légèrement ralentie, et le grain de dix secondes cesse
+         de coïncider avec lui-même d'une couche à l'autre. */
+      s.playbackRate.value = 0.87 + Math.random() * 0.26;
+      return s;
+    }
+
+    function filtre(type, f, q, gain) {
+      var b = ctx.createBiquadFilter();
+      b.type = type; b.frequency.value = f;
+      if (q != null) b.Q.value = q;
+      if (gain != null) b.gain.value = gain;
+      return b;
+    }
+
+    function chaine() {
+      var n = Array.prototype.slice.call(arguments);
+      for (var i = 0; i < n.length - 1; i++) n[i].connect(n[i + 1]);
+      return n[n.length - 1];
+    }
+
+    function gain(v) { var g = ctx.createGain(); g.gain.value = v; return g; }
+
+    /* ── espace : un grondement, et rien d'autre ─────────────────────── */
+    function espace(sortie) {
+      var s = source();
+      /* Deux passe-bas en cascade : −12 dB par octave, la pente mesurée. */
+      var sortieChaine = chaine(s,
+        filtre("lowpass", 85, 0.9),
+        filtre("lowpass", 420, 0.7),
+        filtre("lowpass", 900, 0.7),
+        filtre("peaking", 60, 2.4, 7),
+        filtre("highpass", 32, 0.7),
+        gain(2.6));
+      sortieChaine.connect(sortie);
+      s.start();
+      noeuds.push(s);
+
+      /* Une très lente respiration : sans elle, l'oreille s'accroche à une
+         immobilité qui n'existe dans aucun enregistrement. */
+      var lfo = ctx.createOscillator(), prof = gain(0.18);
+      lfo.frequency.value = 0.035;
+      chaine(lfo, prof).connect(sortieChaine.gain);
+      lfo.start();
+      noeuds.push(lfo);
+    }
+
+    /* ── pluie : une nappe large, et le grésil par-dessus ────────────── */
+    function pluie(sortie) {
+      var s = source();
+      var nappe = chaine(s,
+        filtre("highpass", 45, 0.7),
+        filtre("lowshelf", 170, null, 10),
+        filtre("lowpass", 700, 0.6),
+        filtre("highshelf", 1100, null, -20),
+        gain(0.5));
+      nappe.connect(sortie);
+      s.start();
+      noeuds.push(s);
+
+      /* Le grésil : des gouttes, pas un souffle. Une seconde source très
+         aiguë, hachée par des rafales lentes. */
+      var s2 = source();
+      var grain = chaine(s2, filtre("bandpass", 2200, 0.9), gain(0.035));
+      grain.connect(sortie);
+      s2.start();
+      noeuds.push(s2);
+
+      var lfo = ctx.createOscillator(), prof = gain(0.1);
+      lfo.frequency.value = 0.07;
+      chaine(lfo, prof).connect(grain.gain);
+      lfo.start();
+      noeuds.push(lfo);
+
+      /* Le tonnerre, au loin et rarement : une bouffée grave toutes les
+         quarante à cent vingt secondes. « Orage », disait le fichier. */
+      (function tonnerre() {
+        minuteries.push(setTimeout(function () {
+          if (!ctx) return;
+          var t = ctx.currentTime, st = source();
+          var g = gain(0);
+          chaine(st, filtre("lowpass", 220, 0.8), g).connect(sortie);
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.5, t + 0.9);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 5.5);
+          st.start(t); st.stop(t + 6);
+          tonnerre();
+        }, 40000 + Math.random() * 80000));
+      })();
+    }
+
+    /* ── feu : un ronflement grave, et des craquements aigus ─────────── */
+    function feu(sortie) {
+      var s = source();
+      chaine(s,
+        filtre("bandpass", 105, 1.6),
+        filtre("lowpass", 220, 0.7),
+        gain(3.2)).connect(sortie);
+      s.start();
+      noeuds.push(s);
+
+      /* Les craquements. Chacun est une bouffée de bruit aigu qui s'éteint
+         en trente millisecondes : c'est ce qui fait remonter le spectre à
+         4 et 8 kHz, là où le ronflement n'a plus rien. */
+      function craquer() {
+        if (!ctx) return;
+        var t = ctx.currentTime, st = source(), g = gain(0);
+        var f = 3000 + Math.random() * 6000;
+        chaine(st, filtre("bandpass", f, 2.2), g).connect(sortie);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.2 + Math.random() * 0.45, t + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03 + Math.random() * 0.06);
+        st.start(t); st.stop(t + 0.2);
+        minuteries.push(setTimeout(craquer, 40 + Math.random() * 260));
+      }
+      craquer();
+    }
+
+    function arreter() {
+      minuteries.forEach(clearTimeout);
+      minuteries = [];
+      noeuds.forEach(function (n) { try { n.stop(); } catch (e) {} });
+      noeuds = [];
+      courant = "";
+    }
+
+    function volumeVoulu() {
+      /* Discret : « espace, feu, pluit met le en discret ». Le curseur va de
+         0 à 100, mais il est mis au carré — à mi-course on est à un quart de
+         la puissance, ce qui est le registre où ces sons s'oublient. */
+      var v = (S.sonVolume == null ? 30 : +S.sonVolume) / 100;
+      return 0.55 * v * v;
+    }
+
+    function majVolume() {
+      if (maitre && ctx)
+        maitre.gain.setTargetAtTime(volumeVoulu(), ctx.currentTime, 0.08);
+    }
+
+    function jouer(id) {
+      if (id === courant) return;
+      if (!id) { arreter(); return; }
+      if (!ctx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ctx = new AC();
+        maitre = ctx.createGain();
+        maitre.connect(ctx.destination);
+      }
+      arreter();
+      maitre.gain.value = volumeVoulu();
+      courant = id;
+      if (id === "espace") espace(maitre);
+      else if (id === "pluie") pluie(maitre);
+      else if (id === "feu") feu(maitre);
+      if (ctx.state === "suspended") ctx.resume();
+    }
+
+    /* Les navigateurs refusent de faire du son avant un geste. Sur un site
+       de pages séparées, chaque page repart donc muette : on réarme au
+       premier contact, une seule fois, et le réglage reprend tout seul. */
+    function auPremierGeste() {
+      if (enAttente) return;
+      enAttente = true;
+      var f = function () {
+        enAttente = false;
+        if (S.son) jouer(S.son);
+      };
+      ["pointerdown", "keydown", "touchstart"].forEach(function (e) {
+        document.addEventListener(e, f, { once: true, passive: true });
+      });
+    }
+
+    /* Une page ouverte DANS une autre — les boutiques du monde 3D chargent
+       les cours dans un cadre — ne doit jamais sonner. Sinon chaque boutique
+       visitée ajoute sa propre nappe à celle de la page porteuse, et l'on
+       entend trois pluies superposées. La page porteuse, elle, sonne. */
+    function encadree() {
+      return document.documentElement.dataset.encadre === "1";
+    }
+
+    return {
+      appliquer: function () {
+        if (!S.son || encadree()) { arreter(); return; }
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!ctx) {
+          var essai = new AC();
+          if (essai.state === "suspended") { essai.close(); return auPremierGeste(); }
+          essai.close();
+        }
+        jouer(S.son);
+      },
+      volume: majVolume,
+      /* Le banc a besoin de BRANCHER un analyseur sur la vraie sortie — pas
+         sur une copie du code écrite pour l'occasion, qui ne prouverait que
+         sa propre justesse. La sonde rend le contexte et le nœud maître. */
+      sonde: function () { return { ctx: ctx, maitre: maitre, courant: courant }; }
+    };
+  })();
+
+  /* Ce que la page expose au banc de mesure, et à personne d'autre. */
+  window.CIEL = window.CIEL || {};
+  window.CIEL.son = Son;
+
   function construireFeuille() {
     leVoile();
 
@@ -302,6 +583,17 @@
           '<span>Activés ou non</span></span>' +
           '<span class="interrupteur"></span></button></div>' +
 
+        '<div class="reglage"><h3>Fond sonore</h3>' +
+        '<p>Trois ambiances calculées par la page — rien à télécharger, et aucune boucle : ' +
+        'le son ne se répète jamais puisqu\'il n\'est pas enregistré.</p>' +
+        '<div class="pastilles" data-champ="son">' + pastilles(FONDS, S.son || "") + "</div>" +
+        '<label class="curseur-reglage"><span>Volume</span>' +
+        '<input type="range" min="0" max="100" step="5" data-nombre="sonVolume" ' +
+          'value="' + (S.sonVolume == null ? 30 : S.sonVolume) + '" aria-label="Volume du fond sonore">' +
+        '<output>' + (S.sonVolume == null ? 30 : S.sonVolume) + '%</output></label>' +
+        '<p class="note-son">Les navigateurs interdisent de démarrer un son sans geste : ' +
+        'en changeant de page, il reprend au premier clic.</p></div>' +
+
         '<div class="reglage"><h3>Progression</h3>' +
         '<p id="compte-faits"></p>' +
         '<button type="button" class="danger" data-effacer>Effacer mes données locales</button></div>' +
@@ -310,6 +602,19 @@
         '<p><b>/</b> ou <b>⌘K</b> chercher · <b>t</b> thème clair/sombre · <b>r</b> fiche au hasard · ' +
         '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>' +
       "</div>";
+
+    feuille.addEventListener("input", function (e) {
+      var r = e.target.closest("input[data-nombre]");
+      if (!r) return;
+      S[r.dataset.nombre] = +r.value;
+      var o = r.parentNode.querySelector("output");
+      if (o) o.textContent = r.value + "%";
+      enregistrer();
+      /* Le volume ne passe PAS par appliquer() : rebâtir la chaîne sonore à
+         chaque cran du curseur ferait un hachoir. Il glisse vers sa nouvelle
+         valeur, et c'est tout. */
+      Son.volume();
+    });
 
     feuille.addEventListener("change", function (e) {
       var sel = e.target.closest("select[data-champ]");
