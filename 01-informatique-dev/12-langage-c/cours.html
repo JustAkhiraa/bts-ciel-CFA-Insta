@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : compilation, squelette d'un programme, types, opérateurs, printf et scanf, conditions et boucles, puis les fonctions (prototype, portée, les quatre formes) et les tableaux.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=23279a04">
+<link rel="stylesheet" href="../../assets/fiche.css?v=1b7c7834">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -36,6 +36,7 @@
     <li><a href="#portee">18 · Variables locales et globales</a></li>
     <li><a href="#tableaux">19 · Les tableaux en C</a></li>
     <li><a href="#passer">20 · Passer un tableau à une fonction</a></li>
+    <li><a href="#deux-dimensions">21 · Les tableaux à deux dimensions</a></li>
   </ol>
 </nav>
 
@@ -1812,6 +1813,165 @@ Débit maximum : 115 Mb/s</code></pre></div>
   </div>
 </section>
 
+<!-- ================================================================= 21 -->
+<section id="deux-dimensions">
+  <h2><span class="num">21</span>Les tableaux à deux dimensions</h2>
+
+  <p>Un tableau à une dimension est une <strong>liste</strong>. Un tableau à deux dimensions
+     est un <strong>tableau au sens courant du mot</strong> : des lignes et des colonnes. On
+     l'appelle aussi une <em>matrice</em>, et c'est la forme naturelle de tout ce qui se
+     croise — des serveurs et des jours, des utilisateurs et des tentatives, des capteurs et
+     des relevés.</p>
+
+  <h3>Déclarer : deux tailles, dans cet ordre</h3>
+  <p>On écrit <strong>le nombre de lignes d'abord</strong>, puis le nombre de colonnes.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-var">trafic</span>[<span class="j-num">3</span>][<span class="j-num">4</span>];      <span class="j-com">/* 3 lignes, 4 colonnes → 12 cases */</span>
+<span class="j-typ">float</span> <span class="j-var">temperatures</span>[<span class="j-num">5</span>][<span class="j-num">4</span>];
+<span class="j-typ">int</span> <span class="j-var">grille</span>[<span class="j-num">2</span>][<span class="j-num">2</span>] <span class="j-op">=</span> { {<span class="j-num">1</span>, <span class="j-num">2</span>}, {<span class="j-num">3</span>, <span class="j-num">4</span>} };</code></pre></div>
+  <p class="rap">Le nombre total de cases est le <strong>produit</strong> des deux tailles :
+     <code>3 × 4 = 12</code>. C'est ce que demande la question « taille d'un tableau à deux
+     dimensions ».</p>
+
+  <h3>Accéder : deux indices, et toujours à partir de 0</h3>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-var">trafic</span>[<span class="j-num">0</span>][<span class="j-num">0</span>] <span class="j-op">=</span> <span class="j-num">120</span>;     <span class="j-com">/* premiere ligne, premiere colonne */</span>
+<span class="j-var">trafic</span>[<span class="j-num">2</span>][<span class="j-num">3</span>] <span class="j-op">=</span> <span class="j-num">30</span>;      <span class="j-com">/* DERNIERE ligne, DERNIERE colonne d'un [3][4] */</span>
+<span class="j-fn">printf</span>(<span class="j-txt">"%d"</span>, <span class="j-var">trafic</span>[<span class="j-num">1</span>][<span class="j-num">2</span>]);</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>trafic[3][4]</code> n'existe pas dans <code>int trafic[3][4]</code></div>
+    <p>La déclaration donne des <strong>tailles</strong> ; l'accès donne des
+       <strong>indices</strong>. Avec 3 lignes, les indices valides sont 0, 1 et 2 — jamais 3.
+       Le dernier élément d'un <code>[3][4]</code> est donc <code>[2][3]</code>.</p>
+    <p class="rap">C'est la même règle qu'à une dimension, appliquée deux fois. Et le C ne
+       proteste pas : il lit la mémoire d'à côté, et affiche n'importe quoi.</p>
+  </div>
+
+  <h3>Initialiser à la déclaration</h3>
+  <p>Des accolades dans des accolades : une paire par ligne.</p>
+  <div class="bloc-code"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-com">/* 3 lignes, 4 colonnes : le trafic de trois commutateurs sur quatre ports */</span>
+    <span class="j-typ">int</span> <span class="j-var">trafic</span>[<span class="j-num">3</span>][<span class="j-num">4</span>] <span class="j-op">=</span> {
+        { <span class="j-num">120</span>,  <span class="j-num">80</span>, <span class="j-num">200</span>,  <span class="j-num">45</span> },
+        {  <span class="j-num">90</span>, <span class="j-num">150</span>,  <span class="j-num">60</span>, <span class="j-num">110</span> },
+        { <span class="j-num">200</span>, <span class="j-num">170</span>,  <span class="j-num">95</span>,  <span class="j-num">30</span> }
+    };
+    <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">j</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">3</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-num">4</span>; <span class="j-var">j</span><span class="j-op">++</span>)
+            <span class="j-fn">printf</span>(<span class="j-txt">"%6d"</span>, <span class="j-var">trafic</span>[<span class="j-var">i</span>][<span class="j-var">j</span>]);
+        <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\ntrafic[1][2] vaut %d\n"</span>, <span class="j-var">trafic</span>[<span class="j-num">1</span>][<span class="j-num">2</span>]);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>   120    80   200    45
+    90   150    60   110
+   200   170    95    30
+
+trafic[1][2] vaut 60</code></pre></div>
+  <p class="rap">Les accolades intérieures ne sont pas obligatoires pour le compilateur —
+     <code>{120, 80, 200, 45, 90, …}</code> marche aussi. Elles le sont pour le lecteur :
+     sans elles, personne ne voit où finit une ligne.</p>
+
+  <h3>Parcourir : une boucle dans une boucle</h3>
+  <p>C'est le geste à retenir du chapitre, et il est toujours le même.</p>
+  <div class="bloc-code"><span class="langue">C — le squelette</span><pre><code><span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">LIGNES</span>; <span class="j-var">i</span><span class="j-op">++</span>) {       <span class="j-com">/* la boucle du dehors : les lignes */</span>
+    <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">COLONNES</span>; <span class="j-var">j</span><span class="j-op">++</span>) { <span class="j-com">/* la boucle du dedans : les colonnes */</span>
+        <span class="j-com">/* ici, on travaille sur tableau[i][j] */</span>
+    }
+}</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Ce qui change selon la boucle qu'on met dehors</div>
+    <p>Pour une somme <strong>par ligne</strong>, la remise à zéro va <em>dans</em> la boucle
+       des lignes. Pour une somme <strong>par colonne</strong>, on échange les deux boucles :
+       <code>j</code> dehors, <code>i</code> dedans.</p>
+    <p class="rap">Trois des six questions du TP 4 ne demandent rien d'autre que de choisir
+       laquelle des deux boucles met-on à l'extérieur.</p>
+  </div>
+
+  <div class="bloc-code"><span class="langue">C — sommes par ligne, puis par colonne</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-pre">#define</span> <span class="j-var">LIGNES</span>   <span class="j-num">3</span>
+<span class="j-pre">#define</span> <span class="j-var">COLONNES</span> <span class="j-num">4</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">trafic</span>[<span class="j-var">LIGNES</span>][<span class="j-var">COLONNES</span>] <span class="j-op">=</span> {
+        { <span class="j-num">120</span>,  <span class="j-num">80</span>, <span class="j-num">200</span>,  <span class="j-num">45</span> },
+        {  <span class="j-num">90</span>, <span class="j-num">150</span>,  <span class="j-num">60</span>, <span class="j-num">110</span> },
+        { <span class="j-num">200</span>, <span class="j-num">170</span>,  <span class="j-num">95</span>,  <span class="j-num">30</span> }
+    };
+    <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">j</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">LIGNES</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">COLONNES</span>; <span class="j-var">j</span><span class="j-op">++</span>)
+            <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">trafic</span>[<span class="j-var">i</span>][<span class="j-var">j</span>];
+        <span class="j-fn">printf</span>(<span class="j-txt">"commutateur %d : %d\n"</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">somme</span>);
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">COLONNES</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+        <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">LIGNES</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+            <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">trafic</span>[<span class="j-var">i</span>][<span class="j-var">j</span>];
+        <span class="j-fn">printf</span>(<span class="j-txt">"port %d : %d\n"</span>, <span class="j-var">j</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">somme</span>);
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie</span><pre><code>commutateur 1 : 445
+commutateur 2 : 410
+commutateur 3 : 495
+port 1 : 410
+port 2 : 400
+port 3 : 355
+port 4 : 185</code></pre></div>
+
+  <h3>Remplir au clavier</h3>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">LIGNES</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+    <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">COLONNES</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Ligne %d, colonne %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">j</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">tableau</span>[<span class="j-var">i</span>][<span class="j-var">j</span>]);
+    }</code></pre></div>
+  <p class="rap">Le <code>&amp;</code> est là, comme toujours avec <code>scanf</code> sur un
+     entier : on donne l'<strong>adresse</strong> de la case. Et <code>i + 1</code> dans le
+     message, parce qu'on parle à un humain qui compte à partir de 1.</p>
+
+  <h3>Passer une matrice à une fonction</h3>
+  <p>Même règle qu'à une dimension — le tableau n'est pas copié — avec une obligation de
+     plus.</p>
+  <div class="bloc-code"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-fn">totalLigne</span>(<span class="j-typ">int</span> <span class="j-var">t</span>[][<span class="j-num">5</span>], <span class="j-typ">int</span> <span class="j-var">ligne</span>);   <span class="j-com">/* la 2e taille est OBLIGATOIRE */</span>
+<span class="j-typ">int</span> <span class="j-fn">totalLigne</span>(<span class="j-typ">int</span> <span class="j-var">t</span>[<span class="j-num">4</span>][<span class="j-num">5</span>], <span class="j-typ">int</span> <span class="j-var">ligne</span>);  <span class="j-com">/* ou les deux, au choix */</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La seconde taille ne s'omet jamais</div>
+    <p>À une dimension, <code>int t[]</code> suffit. À deux dimensions, le compilateur doit
+       savoir <strong>la longueur d'une ligne</strong> pour calculer où commence la suivante :
+       <code>t[i][j]</code> se trouve en mémoire à la position <code>i × COLONNES + j</code>.
+       Sans <code>COLONNES</code>, il ne peut rien calculer.</p>
+    <p class="rap"><code>int t[][]</code> est donc refusé, et le message —
+       <em>array has incomplete element type</em> — ne dit pas franchement ce qui manque.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Combien de cases dans <code>float mesures[5][4]</code>, et quelle est la dernière ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>20 cases</strong> — 5 × 4 — et la dernière est
+         <code>mesures[4][3]</code>.</p>
+      <p>5 lignes numérotées 0 à 4, 4 colonnes numérotées 0 à 3. L'erreur consiste à écrire
+         <code>mesures[5][4]</code>, qui est la déclaration, pas un élément.</p>
+      <p class="rap">Un moyen simple de ne jamais se tromper : la dernière case est toujours
+         <strong>la taille moins un</strong>, dans chaque dimension.</p>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -1892,7 +2052,7 @@ Débit maximum : 115 Mb/s</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=23279a04"></script>
-<script src="../../assets/app.js?v=23279a04"></script>
+<script src="../../assets/fiche.js?v=1b7c7834"></script>
+<script src="../../assets/app.js?v=1b7c7834"></script>
 </body>
 </html>

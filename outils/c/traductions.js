@@ -59,6 +59,14 @@ const TRADUCTIONS = (function () {
     /* Avant la règle générique : « traduire » rend la PREMIÈRE entrée qui
        correspond, et « cout » est un identifiant inconnu comme un autre. Rangée
        après, cette entrée n'aurait jamais été atteinte. */
+    /* La faute que le cours démontre lui-même : « 0 <= v <= 255 » compile,
+       et vaut toujours vrai. clang la signale par ces deux messages, et ils
+       n'étaient pas traduits — le banc l'a dit dès que le corpus a cessé
+       d'être écrit à la main et s'est mis à contenir le programme fautif. */
+    { m: /^use of logical '(&&|\|\|)' with constant operand/,
+      titre: "Une comparaison enchaînée ne veut pas dire ce qu'on croit",
+      explication: "En C, « 0 <= v <= 255 » se lit de gauche à droite : « (0 <= v) <= 255 ». La première comparaison donne 0 ou 1, et 0 comme 1 sont toujours inférieurs à 255. La condition est donc TOUJOURS vraie, quelle que soit la valeur.",
+      remede: "Écrivez les deux comparaisons en entier, reliées par && : « 0 <= v && v <= 255 »." },
     { m: /^use of undeclared identifier '(?:cout|cin|endl|string|vector)'/,
       titre: "Ce nom appartient à l'espace de noms std",
       explication: "Sans instruction contraire, les noms de la bibliothèque standard du C++ sont préfixés par « std:: ».",
