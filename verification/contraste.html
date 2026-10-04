@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=533e5183">
+<link rel="stylesheet" href="../assets/fiche.css?v=4d64e7e5">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -501,6 +501,22 @@ document.getElementById("go").addEventListener("click", async () => {
     const f = await charger(p);
     const doc = f.contentDocument, vue = f.contentWindow, d = doc.documentElement;
     d.dataset.anim = "0";   // sinon on mesure une couleur en pleine transition
+    /* ── Ce qui est replié n'est jamais mesuré ──────────────────────────
+       Troisième fois que ce même angle mort se présente : la feuille de
+       réglages, puis l'historique de l'accueil, et maintenant les corrigés.
+       Les corrections des exercices de révision, comme les réponses des quiz,
+       arrivent « hidden ». Le banc les traversait sans rien voir et annonçait
+       un succès portant sur la moitié de la page.
+
+       On les ouvre TOUTES avant de mesurer. Ce n'est pas tricher avec la
+       page : c'est la regarder comme la regarde quelqu'un qui cherche la
+       réponse — et c'est à ce moment-là, précisément, qu'un texte illisible
+       coûte le plus cher. */
+    for (const r of doc.querySelectorAll(".reponse, .dev-revisions .reponse")) {
+      r.hidden = false;
+      r.removeAttribute("hidden");
+      if (r.style.display === "none") r.style.display = "";
+    }
     for (const a of AMB) {
       for (const face of faces(a)) {
       d.dataset.theme = a; d.dataset.sombre = face;
