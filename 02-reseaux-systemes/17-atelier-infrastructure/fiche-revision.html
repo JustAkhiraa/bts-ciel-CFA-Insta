@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche recto-verso imprimable : l'ordre de montage d'une infrastructure, le plan d'adressage, les commandes clés de chaque étage et les pièges qui coûtent une heure de TP.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=18062820">
+<link rel="stylesheet" href="../../assets/fiche.css?v=582d83a1">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -66,6 +66,10 @@
        <strong><code>209.165.200.233</code></strong>.</p>
     <p><code>.225</code> appartient au <code>209.165.200.224/29</code> voisin — celui du pool
        NAT.</p>
+    <p>Second désaccord, sur <code>172.16.2.0/30</code> : le tableau donne <code>.1</code> à
+       R2 et <code>.2</code> à R3, le schéma dit l'inverse. Les deux marchent — sur un /30 il
+       n'y a que deux adresses. On suit le <strong>schéma</strong>, puisque le sujet y renvoie
+       partout. Si la question tombe : citer le schéma <em>et</em> signaler la contradiction.</p>
   </article>
 
   <article class="memo">
@@ -89,8 +93,11 @@
        une seule ligne couvre les deux <code>/30</code>.</p>
     <p>Sans <code>no auto-summary</code>, les <code>/30</code> sont annoncés en
        <code>/16</code> et le découpage est perdu.</p>
-    <p>Sur R2 : <code>default-information originate</code>, sinon personne n'apprend la sortie
-       Internet.</p>
+    <p><code>passive-interface</code> sur les LAN : le réseau reste annoncé, les mises à
+       jour cessent d'être diffusées sur le segment.</p>
+    <p>Sur R2, <code>default-information originate</code> propagerait la sortie Internet —
+       mais le sujet donne déjà à R1 et R3 leur propre route par défaut. Elle devient
+       nécessaire dès qu'on retire ces routes statiques.</p>
   </article>
 
   <article class="memo">
@@ -168,13 +175,45 @@
     <p>Et vérifier que le <strong>pare-feu du poste</strong> laisse revenir la réponse.</p>
   </article>
 
+
+  <article class="memo alerte">
+    <h2>⚡ Mots de passe : trois commandes, trois niveaux</h2>
+    <p><code>enable secret class</code> — empreinte <strong>non réversible</strong>. C'est ce
+       que le sujet appelle « chiffré ».</p>
+    <p><code>enable password</code> — en <strong>clair</strong> dans la configuration. Le faux
+       jumeau.</p>
+    <p><code>service password-encryption</code> — brouille ceux restés en clair (console,
+       vty) en <strong>type 7</strong>, qui se défait en ligne en une seconde. Elle masque,
+       elle ne protège pas.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le masque générique de la liste 1</h2>
+    <p><code>access-list 1 permit 192.168.4.0 0.0.3.255</code></p>
+    <p>Un <strong>0</strong> dit « ce bit doit correspondre », un <strong>1</strong> dit
+       « peu importe ». Deux bits libres dans le troisième octet :</p>
+    <p><code>4, 5, 6, 7</code> — le bloc ne se referme qu'à 7. Résumer les trois loopbacks de
+       R3 en autorise forcément un quatrième, qui n'existe pas.</p>
+    <p>Le pool, lui : <code>ip nat pool INTERNET 209.165.200.225 209.165.200.228 netmask
+       255.255.255.248</code></p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les deux horloges à ne pas confondre</h2>
+    <p><code>clock rate 128000</code> — en configuration d'<strong>interface</strong>, côté
+       DCE seulement. Elle manque ? L'interface reste <code>down / down</code> sans raison
+       apparente.</p>
+    <p><code>clock set 09:00:00 5 march 2016</code> — en mode <strong>privilégié</strong>,
+       <code>R2#</code>, jamais depuis <code>R2(config)#</code>.</p>
+    <p>Puis <code>ntp master 5</code> sur R2 : ses clients seront en strate <strong>6</strong>.</p>
+  </article>
 </section>
 
 
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/fiche-revision.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=18062820"></script>
-<script src="../../assets/app.js?v=18062820"></script>
+<script src="../../assets/fiche.js?v=582d83a1"></script>
+<script src="../../assets/app.js?v=582d83a1"></script>
 </body>
 </html>

@@ -7,7 +7,7 @@
 <meta name="description" content="Monter une infrastructure entière : lire une topologie, calculer le plan d'adressage, l'ordre de montage qui évite les impasses, puis VLAN, inter-VLAN, RIPv2, DHCP, NAT et NTP.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=18062820">
+<link rel="stylesheet" href="../../assets/fiche.css?v=582d83a1">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -22,6 +22,7 @@
     <li><a href="#services">4 · Les trois services : DHCP, NAT, NTP</a></li>
     <li><a href="#ipv6">5 · IPv6 en parallèle</a></li>
     <li><a href="#verifier">6 · Vérifier, dans le bon ordre</a></li>
+    <li><a href="#memo">7 · Le mémo des commandes</a></li>
   </ol>
 </nav>
 
@@ -484,6 +485,347 @@ reload</code></pre></div>
   </div>
 </section>
 
+<!-- ================================================================= 7 -->
+<section id="memo">
+  <h2><span class="num">07</span> Le mémo des commandes</h2>
+
+  <p>Les six sections précédentes expliquent <em>pourquoi</em>. Celle-ci donne le
+     <em>comment</em>, dans l'ordre où on le tape, pour la maquette BIO-H en entier. C'est la
+     partie qu'on révise la veille : chaque bloc est une configuration réelle, pas un extrait
+     de documentation.</p>
+
+  <h3>7.1 · Remettre un équipement à zéro</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch# erase <span class="j-mc">startup-config</span>
+Switch# delete <span class="j-mc">vlan</span>.dat
+Switch# reload</code></pre></div>
+  <p class="rap">Sur un routeur, <code>delete vlan.dat</code> n'a pas lieu d'être : il n'y a
+     pas de base VLAN. Sur un commutateur, l'oublier laisse les VLAN du binôme précédent.</p>
+
+  <h3>7.2 · Les paramètres de base — les cinq équipements, mot pour mot</h3>
+  <p>Le sujet demande exactement la même chose sur R1, R2, R3, S1 et S3, à l'exception du nom.
+     Un seul bloc, qu'on recopie cinq fois en changeant une ligne.</p>
+  <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Router&gt; <span class="j-mc">enable</span>
+Router# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
+Router(config)# <span class="j-mc">no</span> <span class="j-mc">ip</span> domain-lookup
+Router(config)# <span class="j-mc">hostname</span> R1
+R1(config)# <span class="j-mc">enable</span> <span class="j-mc">secret</span> class
+R1(config)# <span class="j-mc">banner</span> <span class="j-mc">motd</span> #Unauthorized Access is Prohibited!#
+R1(config)# <span class="j-mc">line</span> <span class="j-mc">console</span> <span class="j-num">0</span>
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">password</span> cisco
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">login</span>
+R1(config-<span class="j-mc">line</span>)#  logging synchronous
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">exit</span>
+R1(config)# <span class="j-mc">line</span> vty <span class="j-num">0</span> <span class="j-num">15</span>
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">password</span> cisco
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">login</span>
+R1(config-<span class="j-mc">line</span>)#  <span class="j-mc">exit</span>
+R1(config)# <span class="j-mc">service</span> <span class="j-mc">password</span>-encryption
+R1(config)# <span class="j-mc">end</span>
+R1# <span class="j-mc">copy</span> <span class="j-mc">running-config</span> <span class="j-mc">startup-config</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « Mot de passe chiffré » ne veut pas dire <code>service password-encryption</code></div>
+    <p>Le sujet écrit « mot de passe <strong>chiffré</strong> en mode d'exécution privilégié ».
+       C'est <code>enable secret</code>, qui range une empreinte non réversible. Son faux
+       jumeau, <code>enable password</code>, écrit le mot de passe <strong>en clair</strong>
+       dans la configuration.</p>
+    <p><code>service password-encryption</code> est encore autre chose : il brouille les mots
+       de passe restés en clair — console, vty — avec un codage de <strong>type 7</strong>,
+       qui se défait en ligne en une seconde. Il décourage le regard par-dessus l'épaule, il
+       ne protège de personne.</p>
+    <p class="rap">Trois commandes, trois niveaux : <code>enable secret</code> protège,
+       <code>service password-encryption</code> masque, <code>enable password</code> ne fait
+       ni l'un ni l'autre.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>no ip domain-lookup</code> : la commande qui fait gagner trois minutes</div>
+    <p>Sans elle, chaque faute de frappe en mode privilégié est prise pour un nom d'hôte, et
+       l'équipement passe plusieurs secondes à chercher un serveur DNS qui n'existe pas. On ne
+       peut rien taper pendant ce temps.</p>
+  </div>
+
+  <h3>7.3 · Les interfaces et les routes par défaut</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
+R1(config-if)#  <span class="j-mc">description</span> Liaison serie vers R2
+R1(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.1.1</span> <span class="j-num">255.255.255.252</span>
+R1(config-if)#  ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">1</span>::<span class="j-num">1</span>/<span class="j-num">64</span>
+R1(config-if)#  <span class="j-mc">clock</span> <span class="j-mc">rate</span> <span class="j-num">128000</span>
+R1(config-if)#  <span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+R1(config-if)#  <span class="j-mc">exit</span>
+R1(config)# <span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
+R1(config)# ipv6 unicast-routing
+R1(config)# ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>clock rate</code> ne se pose que d'un seul côté</div>
+    <p>Sur une liaison série, un seul équipement cadence le lien : celui qui porte le câble
+       <strong>DCE</strong>. Le sujet le dit sans le dire — il demande
+       <code>clock rate 128000</code> sur <strong>R1 S0/0/0</strong> et sur
+       <strong>R2 S0/0/1</strong>. Donc R1 est DCE face à R2, et R2 est DCE face à R3.</p>
+    <p class="rap">Si l'horloge manque, l'interface reste <code>down / down</code> alors que
+       le câble est branché et que les deux adresses sont justes. C'est le défaut le plus
+       déroutant de l'atelier, parce que rien n'a l'air faux.</p>
+  </div>
+
+  <h3>7.4 · Le routage inter-VLAN : trois sous-interfaces sur un seul câble</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">1.21</span>
+R1(config-subif)#  <span class="j-mc">description</span> LAN Accounting
+R1(config-subif)#  <span class="j-mc">encapsulation</span> dot1Q <span class="j-num">21</span>
+R1(config-subif)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">255.255.255.0</span>
+R1(config-subif)# <span class="j-mc">interface</span> g0/<span class="j-num">1.23</span>
+R1(config-subif)#  <span class="j-mc">description</span> LAN Engineering
+R1(config-subif)#  <span class="j-mc">encapsulation</span> dot1Q <span class="j-num">23</span>
+R1(config-subif)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.23.1</span> <span class="j-num">255.255.255.0</span>
+R1(config-subif)# <span class="j-mc">interface</span> g0/<span class="j-num">1.99</span>
+R1(config-subif)#  <span class="j-mc">description</span> LAN Management
+R1(config-subif)#  <span class="j-mc">encapsulation</span> dot1Q <span class="j-num">99</span>
+R1(config-subif)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.99.1</span> <span class="j-num">255.255.255.0</span>
+R1(config-subif)# <span class="j-mc">exit</span>
+R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">1</span>
+R1(config-if)#  <span class="j-mc">no</span> <span class="j-mc">shutdown</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Deux oublis qui tuent l'inter-VLAN</div>
+    <p><strong>L'encapsulation se déclare avant l'adresse.</strong> Une sous-interface sans
+       <code>encapsulation dot1Q</code> ne sait pas quelle étiquette lire : IOS refuse
+       l'adresse, ou l'accepte et ne route rien.</p>
+    <p><strong>L'interface physique doit être allumée.</strong> Les sous-interfaces suivent
+       leur parente : <code>g0/1</code> restée <code>shutdown</code> éteint les trois d'un
+       coup, et le symptôme ressemble à une panne DHCP.</p>
+    <p class="rap">On appelle ce montage un <strong>router-on-a-stick</strong> : un seul câble
+       physique, trois réseaux logiques qui s'y croisent.</p>
+  </div>
+
+  <h3>7.5 · Le commutateur : VLAN, adresse d'administration, agrégations, ports d'accès</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — S1</span><pre><code>S1(config)# <span class="j-mc">vlan</span> <span class="j-num">21</span>
+S1(config-<span class="j-mc">vlan</span>)#  name Comptabilite
+S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">vlan</span> <span class="j-num">23</span>
+S1(config-<span class="j-mc">vlan</span>)#  name Engineering
+S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">vlan</span> <span class="j-num">99</span>
+S1(config-<span class="j-mc">vlan</span>)#  name Gestion
+S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">exit</span>
+S1(config)# <span class="j-mc">interface</span> <span class="j-mc">vlan</span> <span class="j-num">99</span>
+S1(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.99.2</span> <span class="j-num">255.255.255.0</span>
+S1(config-if)#  <span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+S1(config-if)# <span class="j-mc">exit</span>
+S1(config)# <span class="j-mc">ip</span> default-gateway <span class="j-num">192.168.99.1</span>
+S1(config)# <span class="j-mc">interface</span> f0/<span class="j-num">3</span>
+S1(config-if)#  <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
+S1(config-if)#  <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">1</span>
+S1(config-if)# <span class="j-mc">interface</span> f0/<span class="j-num">5</span>
+S1(config-if)#  <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
+S1(config-if)#  <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">1</span>
+S1(config-if)# <span class="j-mc">exit</span>
+S1(config)# <span class="j-mc">interface</span> range f0/<span class="j-num">1</span>-<span class="j-num">2</span>, f0/<span class="j-num">4</span>, f0/<span class="j-num">6</span>-<span class="j-num">24</span>, g0/<span class="j-num">1</span>-<span class="j-num">2</span>
+S1(config-if-range)#  <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>
+S1(config-if-range)# <span class="j-mc">exit</span>
+S1(config)# <span class="j-mc">interface</span> f0/<span class="j-num">6</span>
+S1(config-if)#  <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">21</span>
+S1(config-if)# <span class="j-mc">exit</span>
+S1(config)# <span class="j-mc">interface</span> range f0/<span class="j-num">1</span>-<span class="j-num">2</span>, f0/<span class="j-num">4</span>, f0/<span class="j-num">7</span>-<span class="j-num">24</span>, g0/<span class="j-num">1</span>-<span class="j-num">2</span>
+S1(config-if-range)#  <span class="j-mc">shutdown</span></code></pre></div>
+  <p class="rap">Sur S3, tout est identique à trois détails près : l'adresse est
+     <code>192.168.99.3</code>, il n'y a qu'une agrégation (<code>f0/3</code>), et le port
+     d'accès du VLAN 21 est <code>f0/18</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un commutateur n'a pas de table de routage</div>
+    <p>Son adresse vit sur une <strong>interface virtuelle de VLAN</strong> — ici
+       <code>interface vlan 99</code> — et sa sortie se déclare avec
+       <code>ip default-gateway</code>, <strong>pas</strong> avec <code>ip route</code>.
+       Un commutateur de niveau 2 ne route rien : il a une adresse pour qu'on puisse
+       l'administrer, c'est tout.</p>
+    <p class="rap">Et cette interface ne monte que si le VLAN 99 <strong>existe</strong> et
+       qu'au moins un port actif le porte. Une agrégation suffit — c'est pour cela que les
+       deux commutateurs se joignent par le <code>f0/3</code>.</p>
+  </div>
+
+  <h3>7.6 · RIPv2 sur les trois routeurs</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">router</span> rip
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.23.0</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.99.0</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> g0/<span class="j-num">1.21</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> g0/<span class="j-num">1.23</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> g0/<span class="j-num">1.99</span>
+R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-summary</code></pre></div>
+
+  <div class="bloc-code"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">router</span> rip
+R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
+R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
+R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">10.0.0.0</span>
+R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> <span class="j-typ">loopback 0</span>
+R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-summary</code></pre></div>
+  <p class="rap">Le sujet précise « ignorez le réseau G0/0 » : le lien vers Internet
+     <strong>ne s'annonce pas</strong> en RIP. Il n'a rien à faire dans un protocole interne,
+     et c'est la NAT qui s'occupe de ce qui sort.</p>
+
+  <div class="bloc-code"><span class="langue">Cisco IOS — R3</span><pre><code>R3(config)# <span class="j-mc">router</span> rip
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.4.0</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.5.0</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.6.0</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> <span class="j-typ">loopback 4</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> <span class="j-typ">loopback 5</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> <span class="j-typ">loopback 6</span>
+R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-summary</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>network</code> n'accepte pas de masque, et c'est tout le piège</div>
+    <p>On écrit <code>network 172.16.0.0</code>, pas <code>network 172.16.1.0 /30</code> :
+       la commande attend une adresse de réseau <strong>par classe</strong>. Une seule ligne
+       couvre donc les deux liaisons série <code>172.16.1.0/30</code> et
+       <code>172.16.2.0/30</code>.</p>
+    <p><code>no auto-summary</code> répare l'effet de bord : sans elle, RIP annonce aux
+       voisins <code>172.16.0.0/16</code> au lieu des deux /30 réels, et les routes se
+       chevauchent.</p>
+    <p class="rap">Sur R3, <code>network 192.168.4.0</code>, <code>.5.0</code> et
+       <code>.6.0</code> font bien trois lignes : chaque /24 est une classe C distincte.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi <code>passive-interface</code> sur les LAN</div>
+    <p>Une interface passive <strong>continue d'annoncer son réseau</strong> aux autres
+       routeurs, mais cesse d'<em>envoyer</em> des mises à jour sur le segment. Sur un LAN
+       d'utilisateurs, personne n'écoute RIP : ces diffusions sont du bruit toutes les trente
+       secondes, et un renseignement offert à qui pose un analyseur de trames.</p>
+    <p class="rap">Le même raisonnement vaut pour les loopbacks de R2 et R3 : il n'y a
+       personne au bout d'une interface logique.</p>
+  </div>
+
+  <h3>7.7 · DHCP sur R1</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">192.168.21.20</span>
+R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.23.1</span> <span class="j-num">192.168.23.20</span>
+R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> ACCT
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span> <span class="j-num">255.255.255.0</span>
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">default-router</span> <span class="j-num">192.168.21.1</span>
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">dns-server</span> <span class="j-num">10.10.10.10</span>
+R1(<span class="j-mc">dhcp</span>-config)#  domain-name ccna-sa.com
+R1(<span class="j-mc">dhcp</span>-config)# <span class="j-mc">exit</span>
+R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> ENGNR
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">network</span> <span class="j-num">192.168.23.0</span> <span class="j-num">255.255.255.0</span>
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">default-router</span> <span class="j-num">192.168.23.1</span>
+R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">dns-server</span> <span class="j-num">10.10.10.10</span>
+R1(<span class="j-mc">dhcp</span>-config)#  domain-name ccna-sa.com</code></pre></div>
+  <p class="rap">Les noms de pools sont imposés par le sujet — <code>ACCT</code> et
+     <code>ENGNR</code> — et ils sont sensibles à la casse.</p>
+
+  <h3>7.8 · NAT statique et dynamique sur R2</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">10.10.10.10</span> <span class="j-num">209.165.200.229</span>
+
+R2(config)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
+R2(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
+R2(config-if)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">1</span>
+R2(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
+R2(config-if)# <span class="j-mc">interface</span> <span class="j-typ">loopback 0</span>
+R2(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
+R2(config-if)# <span class="j-mc">interface</span> g0/<span class="j-num">0</span>
+R2(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">outside</span>
+R2(config-if)# <span class="j-mc">exit</span>
+
+R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.21.0</span> <span class="j-num">0.0.0.255</span>
+R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.23.0</span> <span class="j-num">0.0.0.255</span>
+R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.4.0</span> <span class="j-num">0.0.3.255</span>
+R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">pool</span> INTERNET <span class="j-num">209.165.200.225</span> <span class="j-num">209.165.200.228</span> netmask <span class="j-num">255.255.255.248</span>
+R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> INTERNET</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le masque générique qui résume les trois loopbacks de R3</div>
+    <div class="bloc-code"><span class="langue">calcul</span><pre><code>À autoriser : 192.168.4.0/24, 192.168.5.0/24, 192.168.6.0/24
+
+4  = 0000 0100
+5  = 0000 0101
+6  = 0000 0110
+7  = 0000 0111   ← le bloc ne se referme qu'à 7
+     ^^^^^^ 6 bits communs, 2 bits qui varient
+
+→ résumé : 192.168.4.0/22   masque générique 0.0.3.255
+
+access-list 1 permit 192.168.4.0 0.0.3.255</code></pre></div>
+    <p class="rap">Un masque générique est l'inverse d'un masque de sous-réseau : un
+       <strong>0</strong> veut dire « ce bit doit correspondre », un <strong>1</strong> veut
+       dire « peu importe ». <code>0.0.3.255</code> laisse donc varier les deux derniers bits
+       du troisième octet — exactement 4, 5, 6 et 7.</p>
+  </div>
+
+  <h3>7.9 · NTP : R2 serveur, R1 client</h3>
+  <div class="bloc-code"><span class="langue">Cisco IOS — R2 puis R1</span><pre><code>R2# <span class="j-mc">clock</span> set <span class="j-num">09</span>:<span class="j-num">00</span>:<span class="j-num">00</span> <span class="j-num">5</span> march <span class="j-num">2016</span>
+R2# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
+R2(config)# ntp master <span class="j-num">5</span>
+
+R1(config)# ntp server <span class="j-num">172.16.1.2</span>
+R1(config)# ntp update-calendar
+R1(config)# <span class="j-mc">end</span>
+R1# <span class="j-mc">show</span> ntp status
+R1# <span class="j-mc">show</span> ntp associations</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>clock set</code> ne se tape pas en mode de configuration</div>
+    <p>Régler l'heure n'est pas configurer l'équipement : c'est une commande du
+       <strong>mode d'exécution privilégié</strong>, <code>R2#</code>, et elle est refusée
+       depuis <code>R2(config)#</code>. La date s'écrit à l'anglaise :
+       <code>5 march 2016</code>.</p>
+    <p class="rap">Et la synchronisation ne se voit pas tout de suite :
+       <code>show ntp status</code> annonce <code>unsynchronized</code> pendant quelques
+       minutes avant de basculer. Ce n'est pas une panne, c'est le protocole qui mesure.</p>
+  </div>
+
+  <h3>7.10 · Les commandes de vérification, par étage</h3>
+  <div class="tableau">
+    <table>
+      <caption>Ce qu'on tape pour prouver que chaque étage tient</caption>
+      <thead><tr><th scope="col">Étage</th><th scope="col">Commande</th><th scope="col">Ce qu'on y lit</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Interfaces</th><td><code>show ip interface brief</code></td><td>adresse, état, protocole — en une page</td></tr>
+        <tr><td></td><td><code>show interfaces s0/0/0</code></td><td>l'encapsulation et l'horloge du lien série</td></tr>
+        <tr><th scope="row">VLAN</th><td><code>show vlan brief</code></td><td>les VLAN déclarés et les ports qui les portent</td></tr>
+        <tr><td></td><td><code>show interfaces trunk</code></td><td>les agrégations, leur VLAN natif, les VLAN autorisés</td></tr>
+        <tr><th scope="row">Routage</th><td><code>show ip protocols</code></td><td>version de RIP, réseaux annoncés, interfaces passives</td></tr>
+        <tr><td></td><td><code>show ip route rip</code></td><td>les routes apprises par RIP, et elles seules</td></tr>
+        <tr><td></td><td><code>show running-config | section rip</code></td><td>la section RIP de la configuration en cours</td></tr>
+        <tr><th scope="row">DHCP</th><td><code>show ip dhcp binding</code></td><td>quel poste a reçu quelle adresse</td></tr>
+        <tr><td></td><td><code>show ip dhcp pool</code></td><td>l'état des réserves, et s'il reste des baux</td></tr>
+        <tr><th scope="row">NAT</th><td><code>show ip nat translations</code></td><td>les traductions en cours</td></tr>
+        <tr><td></td><td><code>show ip nat statistics</code></td><td>les compteurs, et les interfaces inside/outside</td></tr>
+        <tr><th scope="row">NTP</th><td><code>show ntp status</code></td><td>synchronisé ou non, et à quelle strate</td></tr>
+        <tr><td></td><td><code>show ntp associations</code></td><td>le serveur interrogé et l'écart mesuré</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les trois questions du sujet, et leurs réponses</div>
+    <p>L'étape 4 de la partie RIP pose trois questions à remplir. Les voici :</p>
+    <ul>
+      <li>afficher l'identifiant de processus, les réseaux annoncés et les interfaces
+          passives → <code>show ip protocols</code> ;</li>
+      <li>n'afficher que les routes RIP → <code>show ip route rip</code> ;</li>
+      <li>afficher la section RIP de la configuration en cours →
+          <code>show running-config | section rip</code>.</li>
+    </ul>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — le schéma et le tableau se contredisent sur 172.16.2.0/30</div>
+    <p>Le tableau de tâches demande « la première adresse disponible » pour
+       <strong>R2 S0/0/1</strong> et « l'adresse disponible suivante » pour
+       <strong>R3 S0/0/1</strong>, ce qui donnerait R2 = <code>.1</code> et
+       R3 = <code>.2</code>. Le schéma de topologie porte l'inverse : <code>.2</code> du côté
+       de R2, <code>.1</code> du côté de R3.</p>
+    <p>Les deux attributions fonctionnent — sur un /30, il n'y a que deux adresses et aucune
+       n'est privilégiée. Le site suit le <strong>schéma</strong>, parce que le sujet
+       lui-même renvoie partout à « consultez le schéma topologique pour obtenir les
+       informations sur l'adresse ».</p>
+    <p class="rap">Si la question tombe, la bonne réponse est de dire les deux : citer le
+       schéma, signaler la contradiction. C'est ce qu'on attend d'un technicien devant une
+       documentation qui se contredit — pas de deviner, mais de relever.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -529,7 +871,7 @@ reload</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/cours.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=18062820"></script>
-<script src="../../assets/app.js?v=18062820"></script>
+<script src="../../assets/fiche.js?v=582d83a1"></script>
+<script src="../../assets/app.js?v=582d83a1"></script>
 </body>
 </html>
