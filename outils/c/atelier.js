@@ -143,7 +143,11 @@
       peint.innerHTML = peindre(t, langue) + "\n";
       /* Après la coloration, jamais avant : surligner d'abord reviendrait à
          faire colorer des balises qu'on vient d'insérer. */
-      if (typeof motCourant === "string" && motCourant) {
+      if (multi.length > 1) {
+        peindreMulti();
+        direEtat("", -1, 0);
+        if (etat) etat.textContent = multi.length + " sélections — tapez pour les changer toutes";
+      } else if (typeof motCourant === "string" && motCourant) {
         surligner(motCourant, posCourante);
         const [k, n] = rangOccurrence(motCourant, posCourante);
         direEtat(motCourant, k, n);
@@ -198,30 +202,142 @@
       return null;
     }
 
-    /* Ctrl/Cmd+D — d'abord le mot sous le curseur, puis l'occurrence
-       suivante, en bouclant. Rien n'est modifié : on sélectionne. */
-    function occurrenceSuivante() {
-      const t = saisie.value;
-      let cible = t.slice(saisie.selectionStart, saisie.selectionEnd);
-      if (!cible || !/^[A-Za-z_]\w*$/.test(cible)) {
-        const m = motAutour(t, saisie.selectionStart);
-        if (!m) return false;
-        saisie.setSelectionRange(m.index, m.index + m[0].length);
-        return true;
-      }
-      const re = new RegExp("\\b" + cible.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
-      re.lastIndex = saisie.selectionEnd;
-      let m = re.exec(t);
-      if (!m) { re.lastIndex = 0; m = re.exec(t); }   // on boucle au début
-      if (!m) return false;
-      saisie.setSelectionRange(m.index, m.index + m[0].length);
-      /* Sans ce recentrage, la sélection suivante peut tomber hors du cadre
+    /* ── Ctrl/Cmd+D : AJOUTER une sélection, pas la déplacer ───────────
+
+       « imagine je selectionne int je clic sur ctrl d et ca me selection
+       celui de base plus le prochain si je clic encore ca m'ajoute encore
+       le prochain ». C'est exactement ce que fait VS Code, et ma première
+       version faisait autre chose : elle DÉPLAÇAIT la sélection d'une
+       occurrence à la suivante. J'avais écrit qu'un <textarea> n'a qu'un
+       curseur et qu'on ne pouvait pas faire mieux. C'est vrai du champ
+       natif ; ce n'est pas vrai de l'éditeur, puisque la peinture est à
+       nous. Les sélections en trop s'y dessinent, et la frappe est
+       appliquée à toutes.
+
+       « multi » garde les intervalles DANS L'ORDRE DU TEXTE. Le champ natif
+       en porte une — la dernière ajoutée, pour que le défilement la suive.
+       Les autres sont peintes. */
+    let multi = [];
+    /* « remplacer » déclenche un événement « input », et l'écouteur d'input
+       abandonne les sélections multiples — c'est ce qu'il doit faire pour un
+       collage ou une dictée. Pendant NOTRE écriture, il ne doit pas : ce
+       drapeau fait la différence entre les deux. */
+    let enFrappeMultiple = false;
+
+    function echapperRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+    function oublierMulti() {
+      if (!multi.length) return false;
+      multi = [];
+      redessiner();
+      return true;
+    }
+
+    function montrer(pos) {
+      /* Sans ce recentrage, la sélection ajoutée peut tomber hors du cadre
          et l'on croit que rien ne s'est passé. */
-      const avant = t.slice(0, m.index).split("\n").length - 1;
+      const t = saisie.value;
+      const avant = t.slice(0, pos).split("\n").length - 1;
       const hLigne = saisie.scrollHeight / Math.max(1, t.split("\n").length);
       const y = avant * hLigne;
       if (y < saisie.scrollTop || y > saisie.scrollTop + saisie.clientHeight - hLigne * 2)
         saisie.scrollTop = Math.max(0, y - saisie.clientHeight / 2);
+    }
+
+    function ajouterOccurrence() {
+      const t = saisie.value;
+      // Premier appui : on part de ce qui est sélectionné, ou du mot sous le
+      // curseur s'il n'y a rien de sélectionné.
+      if (!multi.length) {
+        let d = saisie.selectionStart, f = saisie.selectionEnd;
+        if (d === f) {
+          const m = motAutour(t, d);
+          if (!m) return false;
+          d = m.index; f = m.index + m[0].length;
+        }
+        saisie.setSelectionRange(d, f);
+        multi = [{ d: d, f: f }];
+        redessiner();
+        return true;
+      }
+      const cible = t.slice(multi[0].d, multi[0].f);
+      if (!cible) return false;
+      // Un mot entier se cherche entre limites de mot ; un fragment
+      // quelconque — « 5) » — se cherche tel quel.
+      const mot = /^[A-Za-z_]\w*$/.test(cible);
+      const re = new RegExp((mot ? "\\b" : "") + echapperRegex(cible) + (mot ? "\\b" : ""), "g");
+      const pris = new Set(multi.map((x) => x.d));
+      const depuis = multi[multi.length - 1].f;
+      let trouve = null;
+      re.lastIndex = depuis;
+      let m;
+      while ((m = re.exec(t))) { if (!pris.has(m.index)) { trouve = m; break; } }
+      if (!trouve) {                       // on boucle au début du texte
+        re.lastIndex = 0;
+        while ((m = re.exec(t))) { if (!pris.has(m.index)) { trouve = m; break; } }
+      }
+      if (!trouve) return false;           // toutes les occurrences sont prises
+      multi.push({ d: trouve.index, f: trouve.index + trouve[0].length });
+      multi.sort((a, b) => a.d - b.d);
+      saisie.setSelectionRange(trouve.index, trouve.index + trouve[0].length);
+      montrer(trouve.index);
+      redessiner();
+      return true;
+    }
+
+    /* Toutes les sélections, toutes les occurrences : Ctrl+Shift+L. */
+    function toutesLesOccurrences() {
+      const t = saisie.value;
+      let cible = multi.length ? t.slice(multi[0].d, multi[0].f)
+                               : t.slice(saisie.selectionStart, saisie.selectionEnd);
+      if (!cible) {
+        const m = motAutour(t, saisie.selectionStart);
+        if (!m) return false;
+        cible = m[0];
+      }
+      const mot = /^[A-Za-z_]\w*$/.test(cible);
+      const re = new RegExp((mot ? "\\b" : "") + echapperRegex(cible) + (mot ? "\\b" : ""), "g");
+      const tous = [];
+      let m;
+      while ((m = re.exec(t))) tous.push({ d: m.index, f: m.index + m[0].length });
+      if (!tous.length) return false;
+      multi = tous;
+      const dernier = tous[tous.length - 1];
+      saisie.setSelectionRange(dernier.d, dernier.f);
+      redessiner();
+      return true;
+    }
+
+    /* La frappe, appliquée à TOUTES les sélections. De la fin vers le début :
+       chaque remplacement déplace ce qui suit, et traiter l'inverse ferait
+       dériver tous les intervalles d'après. Un seul écrit pour tout le texte,
+       donc un seul coup d'annulation. */
+    function frapperPartout(texte, avant, apres) {
+      if (multi.length < 2) return false;
+      const t = saisie.value;
+      const rangs = multi.slice().sort((a, b) => a.d - b.d);
+      let out = t, neuf = [];
+      for (let i = rangs.length - 1; i >= 0; i--) {
+        let { d, f } = rangs[i];
+        if (d === f) { d = Math.max(0, d - avant); f = Math.min(t.length, f + apres); }
+        out = out.slice(0, d) + texte + out.slice(f);
+        neuf.unshift({ d: d, f: f, pose: d + texte.length });
+      }
+      // Les positions d'arrivée se recalculent de gauche à droite : chaque
+      // remplacement décale ce qui suit de (longueur insérée − longueur ôtée).
+      let decalage = 0;
+      const apresCoup = [];
+      for (const r of neuf) {
+        const p = r.d + decalage + texte.length;
+        apresCoup.push({ d: p, f: p });
+        decalage += texte.length - (r.f - r.d);
+      }
+      const fin = apresCoup[apresCoup.length - 1];
+      enFrappeMultiple = true;
+      try { remplacer(0, t.length, out, fin.d, fin.f); }
+      finally { enFrappeMultiple = false; }
+      multi = apresCoup;
+      redessiner();
       return true;
     }
 
@@ -241,7 +357,13 @@
        NŒUDS DE TEXTE du rendu et on découpe ceux qui portent le mot : le texte
        n'est pas modifié d'un caractère, il est seulement enveloppé. */
     function surligner(mot, posActive) {
-      if (!mot || mot.length < 2) return;
+      /* Le seuil était à DEUX lettres, et c'était une erreur : « i » est le
+         compteur de boucle de tout le langage C, donc le mot qu'on suit le
+         plus souvent des yeux. Mesuré sur son exemple : l'état annonçait
+         « i · 1 sur 4 » pendant que ZÉRO occurrence était marquée.
+         Les limites de mot font déjà le tri — le « i » de « int », de
+         « include » ou de « printf » n'est pas une occurrence de « i ». */
+      if (!mot) return;
       const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
       /* On relève TOUS les nœuds de texte avec leur position absolue AVANT
          la moindre découpe : splitText change l'arbre sous les pieds du
@@ -266,6 +388,41 @@
           milieu.parentNode.insertBefore(marque, milieu);
           marque.appendChild(milieu);
         }
+      }
+    }
+
+    /* Envelopper un intervalle du texte peint dans un <span>. Les nœuds
+       sont relevés AVEC leur position absolue avant la moindre découpe :
+       splitText change l'arbre sous les pieds du marcheur. */
+    function marquerIntervalle(d, f, classe) {
+      if (f <= d) return;
+      const marcheur = document.createTreeWalker(peint, NodeFilter.SHOW_TEXT);
+      const noeuds = [];
+      let nd, base = 0;
+      while ((nd = marcheur.nextNode())) { noeuds.push([nd, base]); base += nd.nodeValue.length; }
+      /* De la fin vers le début : un intervalle peut couvrir plusieurs
+         nœuds — un mot-clé coloré suivi d'un espace, par exemple. */
+      for (let i = noeuds.length - 1; i >= 0; i--) {
+        const [noeud, deb] = noeuds[i];
+        const fin = deb + noeud.nodeValue.length;
+        const a = Math.max(d, deb), b = Math.min(f, fin);
+        if (b <= a) continue;
+        let cible = noeud;
+        if (b < fin) cible.splitText(b - deb);
+        if (a > deb) cible = cible.splitText(a - deb);
+        const marque = document.createElement("span");
+        marque.className = classe;
+        cible.parentNode.insertBefore(marque, cible);
+        marque.appendChild(cible);
+      }
+    }
+
+    function peindreMulti() {
+      if (multi.length < 2) return;
+      for (let i = multi.length - 1; i >= 0; i--) {
+        const r = multi[i];
+        if (r.f > r.d) marquerIntervalle(r.d, r.f, "edi-sel");
+        else marquerIntervalle(r.d, r.d + 1, "edi-sel vide");
       }
     }
 
@@ -381,9 +538,14 @@
       redessiner();
     }
 
-    saisie.addEventListener("input", redessiner);
+    saisie.addEventListener("input", () => {
+      /* Une frappe ordinaire — collage, dictée, saisie tactile — n'a touché
+         qu'une sélection : les autres ne veulent plus rien dire. */
+      if (multi.length > 1 && !enFrappeMultiple) multi = [];
+      redessiner();
+    });
     saisie.addEventListener("keyup", majOccurrences);
-    saisie.addEventListener("click", majOccurrences);
+    saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(); });
     saisie.addEventListener("blur", (e) => {
       /* Passer dans le champ de renommage ne doit pas effacer le surlignage :
          c'est précisément ce qu'on est en train de renommer. */
@@ -429,17 +591,55 @@
     saisie.addEventListener("keydown", (e) => {
       const d = saisie.selectionStart, f = saisie.selectionEnd, t = saisie.value;
 
-      if (e.key === "Escape") { echappe = true; return; }
+      if (e.key === "Escape") {
+        /* Échap abandonne d'abord les sélections multiples, comme dans
+           VS Code : on sort d'un état avant de sortir du champ. */
+        if (oublierMulti()) { e.preventDefault(); return; }
+        echappe = true; return;
+      }
 
       /* Ctrl+D sur PC, Cmd+D sur Mac — c'est la touche que chacun a dans les
          doigts, et elle ouvre un marque-page dans les deux navigateurs si on
          ne l'arrête pas. « preventDefault » n'est pas une précaution ici,
          c'est la condition pour que le geste existe. */
-      if ((e.ctrlKey || e.metaKey) && !e.altKey &&
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey &&
           (e.key === "d" || e.key === "D")) {
         e.preventDefault();
-        if (occurrenceSuivante()) majOccurrences();
+        ajouterOccurrence();
+        majOccurrences();
         return;
+      }
+      /* Ctrl/Cmd+Shift+L — toutes les occurrences d'un coup. */
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey &&
+          (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        toutesLesOccurrences();
+        return;
+      }
+
+      /* ── la frappe quand plusieurs sélections sont posées ─────────────
+         Le champ natif n'en connaît qu'une : si on le laissait écrire, il
+         ne toucherait que celle-là. On prend donc la main sur les touches
+         qui MODIFIENT, et sur elles seulement — les autres (flèches, Tab,
+         Ctrl+quelque chose) retombent plus bas, et la plupart abandonnent
+         les sélections, ce qui est le comportement de VS Code. */
+      if (multi.length > 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key.length === 1) {
+          e.preventDefault(); frapperPartout(e.key, 0, 0); return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault(); frapperPartout("\n", 0, 0); return;
+        }
+        if (e.key === "Backspace") {
+          e.preventDefault(); frapperPartout("", 1, 0); return;
+        }
+        if (e.key === "Delete") {
+          e.preventDefault(); frapperPartout("", 0, 1); return;
+        }
+        if (e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End" ||
+            e.key === "PageUp" || e.key === "PageDown") {
+          oublierMulti();           // on ne les retient pas, on navigue
+        }
       }
       /* F2 — le renommage. VS Code l'a aussi, et c'est le seul des deux
          gestes qu'un champ natif puisse tenir en entier. */
@@ -486,7 +686,16 @@
          non vides sont déjà commentées : c'est ce qui décide du sens, et
          c'est ce que fait VS Code. Une bascule ligne par ligne donnerait un
          bloc à moitié commenté au second appui. */
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === "/") {
+      /* Le commentaire de ligne. VS Code l'écrit « ⌘/ » sur un clavier
+         américain — mais sur un clavier FRANÇAIS, le menu affiche
+         « ⇧⌘: », parce que le « / » d'un AZERTY se tape avec Maj. Les deux
+         notations désignent la même touche physique, et son navigateur
+         rapporte tantôt « / » tantôt « : » selon la disposition. On accepte
+         donc les deux, avec ou sans Maj, sur Mac comme sur PC — plutôt que
+         de parier sur une disposition. */
+      if ((e.ctrlKey || e.metaKey) && !e.altKey &&
+          (e.key === "/" || e.key === ":" || e.code === "Slash" ||
+           e.code === "Period" || e.code === "Semicolon")) {
         e.preventDefault();
         const [dl, fl] = bornesLignes();
         const lignes = t.slice(dl, fl).split("\n");
@@ -495,6 +704,38 @@
           : toutes ? l.replace(/^(\s*)\/\/ ?/, "$1")
                    : l.replace(/^(\s*)/, "$1// ")).join("\n");
         remplacer(dl, fl, neuf, dl, dl + neuf.length);
+        return;
+      }
+
+      /* Maj+Alt+A — le commentaire de BLOC, le second de sa capture
+         d'écran. Même raccourci sur Mac et sur Windows, c'est l'un des rares
+         que VS Code n'a pas eu besoin de dédoubler.
+
+         Sur une sélection, on l'entoure ; sans sélection, on entoure la
+         ligne. Et si l'on est DÉJÀ dans un bloc commenté, on l'enlève —
+         « afficher/masquer », dit le menu, pas « ajouter ». */
+      if (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey &&
+          (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
+        e.preventDefault();
+        let [dd, ff] = [d, f];
+        if (dd === ff) [dd, ff] = bornesLignes();
+        const dedans = t.slice(dd, ff);
+        const avant = t.slice(0, dd), apres = t.slice(ff);
+        const ouvert = /\/\*\s?$/.test(avant) && /^\s?\*\//.test(apres);
+        if (/^\/\*[\s\S]*\*\/$/.test(dedans.trim())) {
+          // la sélection EST le bloc : on le retire
+          const nu = dedans.trim().replace(/^\/\*\s?/, "").replace(/\s?\*\/$/, "");
+          remplacer(dd, ff, nu, dd, dd + nu.length);
+        } else if (ouvert) {
+          // le bloc entoure la sélection : on retire les deux bouts
+          const d2 = avant.replace(/\/\*\s?$/, "").length;
+          const f2 = ff + (apres.length - apres.replace(/^\s?\*\//, "").length);
+          const nu = t.slice(dd, ff);
+          remplacer(d2, f2, nu, d2, d2 + nu.length);
+        } else {
+          const nu = "/* " + dedans + " */";
+          remplacer(dd, ff, nu, dd + 3, dd + 3 + dedans.length);
+        }
         return;
       }
 
