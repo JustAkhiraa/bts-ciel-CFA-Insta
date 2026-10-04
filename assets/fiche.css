@@ -288,6 +288,10 @@ pre code { font: inherit; color: inherit; background: none; padding: 0; border: 
    pas en dessous du seuil : le premier gris essayé (#8C8578) tombait à
    4,39:1. */
 .j-com { color: #948D80; font-style: italic; }
+/* Sauf dans un bloc de calcul : les colonnes y sont alignées à l'espace près,
+   et l'italique qu'un navigateur SYNTHÉTISE faute de monospace penché suffit
+   à les faire glisser. La couleur reste, la pente part. */
+.bloc-code[data-fam="calcul"] .j-com { font-style: normal; }
 .j-mc  { color: #E58AC9; }
 .j-typ { color: #6FC3DF; }
 .j-txt { color: #C3E88D; }
@@ -5395,9 +5399,16 @@ body.at-fige { overflow: hidden; }
    La vignette reprend le signe que tout le monde connaît déjà : un carré
    arrondi, une grille de petites pastilles dedans, le nom dessous. On
    n'apprend rien à personne, et c'est tout l'intérêt. */
+/* « C'est pas sur la même ligne » : à 7,5 rem de large minimum, deux
+   dossiers seulement tenaient dans le tiroir, et le troisième passait seul à
+   la ligne. Mesuré sur son tiroir : 300 px utiles, 0,6 rem de gouttière —
+   il faut descendre sous 5,8 rem pour en loger trois. À 5,6 rem, trois
+   colonnes font 93 px chacune ; quatre n'en feraient que 68 et ne tiennent
+   donc pas. La vignette fait 3,1 rem, « 7 exercices » environ 4,4 rem : la
+   tuile ne perd rien. */
 .at-dossiers {
   display: grid; gap: .6rem; margin-top: .5rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(7.5rem, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(5.6rem, 100%), 1fr));
 }
 .at-dossier {
   display: flex; flex-direction: column; align-items: center; gap: .35rem;
@@ -5410,10 +5421,17 @@ body.at-fige { overflow: hidden; }
   border-color: var(--accent); transform: translateY(-2px); }
 .at-dossier b { font-size: .86rem; }
 .at-dossier > span:last-child { font-size: .74rem; color: var(--encre-douce); }
-/* La grille 3×3 du dossier. « auto-flow » plutôt qu'un nombre de colonnes
-   figé : à deux exercices, deux pastilles ; à neuf, la grille pleine. */
+/* La grille 3×3 du dossier — et les RANGÉES comptent autant que les
+   colonnes. Sans « grid-template-rows », trois exercices formaient une seule
+   rangée qui s'étirait sur toute la hauteur : trois gros barreaux au lieu de
+   trois pastilles. « le TP 4 il est moche », et il l'était.
+   Trois rangées d'un tiers chacune, alignées en haut : à trois exercices on
+   remplit la première rangée, à neuf la grille entière — exactement ce que
+   fait un dossier d'applications sur un téléphone. */
 .at-dossier-grille {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr); grid-auto-rows: 1fr;
+  align-content: start; justify-content: start; gap: 3px;
   width: 3.1rem; height: 3.1rem; padding: 5px; border-radius: 11px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);

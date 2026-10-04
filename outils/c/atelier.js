@@ -1350,10 +1350,15 @@
       sac.addEventListener("keydown", (e) => {
         if (e.key === "Escape") { e.stopPropagation(); fermerDossier(); }
       });
-      listeEx.addEventListener("click", (e) => {
-        const b = e.target.closest(".at-ex");
-        if (!b) return;
+      /* Charger un exemple dans l'éditeur. C'était une fonction anonyme
+         accrochée à la seule liste — et la bulle carrée est posée À CÔTÉ de
+         cette liste, pas dedans : « quand je clic dessus ca affiche bien les
+         exo mais pas possible de cliquer sur eux ». Les boutons étaient bien
+         là, visibles et focalisables ; aucun écouteur ne les entendait. Le
+         geste est donc nommé une fois et branché aux DEUX endroits. */
+      function charger(b) {
         const x = groupes[b.dataset.g][+b.dataset.i];
+        if (!x) return;
         fermerDossier();
         editeur.valeur = x.code;
         poserLangue(x.langue || devine(x.code));
@@ -1365,7 +1370,13 @@
         $("#at-diag-tete").hidden = true;
         if (x.source) console2.note("Programme tiré de : " + x.source, "info");
         editeur.focus();
-      });
+      }
+      const auClic = (e) => {
+        const b = e.target.closest(".at-ex");
+        if (b) charger(b);
+      };
+      listeEx.addEventListener("click", auClic);
+      sac.addEventListener("click", auClic);
     }).catch(() => { listeEx.innerHTML = "<p class=\"at-vide\">Exemples indisponibles.</p>"; });
 
     const tiroir = $("#at-tiroir");
