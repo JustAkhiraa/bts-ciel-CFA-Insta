@@ -296,6 +296,15 @@ pre code { font: inherit; color: inherit; background: none; padding: 0; border: 
 .j-bal { color: #E5C07B; }
 .j-att { color: #8FD4C1; }
 .j-var { color: #F09E9E; }
+/* Les opérateurs. Comptés sur les 90 blocs de C publiés, ils forment le plus
+   gros trou de la coloration : 130 « = », 80 « < », 57 « > », 40 « ++ » — près
+   de cinq cents signes sans couleur, au milieu d'un code qui en a partout
+   ailleurs. Teinte choisie par mesure, pas à l'œil : 7,78:1 sur le #23211E des
+   blocs de code, et la plus ÉLOIGNÉE de l'encre courante parmi cinq candidates
+   — un opérateur doit se distinguer du texte sans crier plus fort qu'un
+   mot-clé. Désaturée exprès, pour ne pas se confondre avec le bleu franc des
+   appels de fonction. */
+.j-op  { color: #A9B6C4; }
 .j-pre { color: #C8A2E8; }
 /* « overflow-wrap » ne coupe qu'en dernier recours — un mot qui ne tient pas
    seul sur sa ligne. Sans lui, un chemin comme
@@ -450,6 +459,7 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   .j-bal { color: #7A5A00; }
   .j-att { color: #0D6B57; }
   .j-var { color: #A32020; }
+  .j-op  { color: #4A5560; }
   .j-pre { color: #6B3FA0; }
   .demo { grid-template-columns: 1fr; }
   .demo .apercu { break-inside: avoid; }
@@ -4846,6 +4856,11 @@ td.etat.sur   { color: var(--vert); }
 
 /* ── le tiroir des exemples ──────────────────────────────────────────── */
 .at-tiroir {
+  /* « position: relative » n'est pas décoratif : c'est lui qui donne au
+     panneau de dossier un repère. Sans ancêtre positionné, une boîte en
+     « position: absolute » remonte jusqu'à la page et va se coller dans un
+     coin de l'écran, très loin du dossier qu'on vient d'ouvrir. */
+  position: relative;
   margin: 0 0 1rem; padding: 1rem 1.1rem 1.1rem;
   background: var(--carte-creuse); border: 1px solid var(--bord);
   border-radius: var(--r);
@@ -5289,6 +5304,79 @@ body.at-fige { overflow: hidden; }
 /* La note des raccourcis : elle vit sur la même ligne que celle des poignées,
    et elle passe dessous dès que la place manque. */
 .at-raccourcis { display: inline-block; margin-left: .5rem; }
+
+/* ═══════════════ les TP en dossiers, comme sur un téléphone ═══════════════
+   « Comme les dossiers d'applications sur iPhone : quand tu cliques, ça ouvre
+   une sorte de bulle carrée avec toutes les apps dedans. »
+
+   Quinze corrigés à la file, c'est une liste qu'on parcourt des yeux sans la
+   lire. Regroupés, ce sont deux objets — et « celui de quel TP ? » est la
+   seule question qu'on se pose en ouvrant ce tiroir.
+
+   La vignette reprend le signe que tout le monde connaît déjà : un carré
+   arrondi, une grille de petites pastilles dedans, le nom dessous. On
+   n'apprend rien à personne, et c'est tout l'intérêt. */
+.at-dossiers {
+  display: grid; gap: .6rem; margin-top: .5rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(7.5rem, 100%), 1fr));
+}
+.at-dossier {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  padding: .7rem .5rem .6rem; border-radius: 14px; cursor: pointer;
+  background: var(--carte-creuse); border: 1px solid var(--bord);
+  color: var(--encre); font: inherit; text-align: center;
+  transition: border-color .18s ease, transform .18s ease;
+}
+.at-dossier:hover, .at-dossier:focus-visible {
+  border-color: var(--accent); transform: translateY(-2px); }
+.at-dossier b { font-size: .86rem; }
+.at-dossier > span:last-child { font-size: .74rem; color: var(--encre-douce); }
+/* La grille 3×3 du dossier. « auto-flow » plutôt qu'un nombre de colonnes
+   figé : à deux exercices, deux pastilles ; à neuf, la grille pleine. */
+.at-dossier-grille {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+  width: 3.1rem; height: 3.1rem; padding: 5px; border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+}
+.at-vignette {
+  border-radius: 3px; min-height: 0;
+  background: color-mix(in srgb, var(--accent) 62%, transparent);
+}
+
+/* La bulle carrée. Elle se pose PAR-DESSUS la liste, dans le tiroir, et ne
+   déplace rien : ouvrir un dossier ne doit pas faire sauter ce qu'on était en
+   train de lire. */
+.at-sac {
+  position: absolute; inset: auto .6rem .6rem; z-index: 3;
+  max-height: 72%; overflow: auto;
+  padding: .7rem; border-radius: 16px;
+  background: var(--carte); border: 1px solid var(--bord-fort);
+  box-shadow: 0 18px 44px rgba(0, 6, 20, .34);
+}
+.at-sac-tete { display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; margin-bottom: .55rem; }
+.at-sac-tete h5 { margin: 0; font-size: .9rem; letter-spacing: .04em; }
+.at-sac-fermer {
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--bord); background: var(--carte-creuse);
+  color: var(--encre); font: inherit; line-height: 1;
+}
+.at-sac-fermer:hover { border-color: var(--accent); }
+.at-sac-grille { display: grid; gap: .45rem; }
+/* Le numéro est celui de la LISTE, pas celui du sujet : les corrigés publiés
+   ne reprennent pas la numérotation de la feuille de la professeure, et
+   l'inventer serait affirmer quelque chose de faux à la veille d'un TP. Il
+   sert à se repérer dans le dossier, et le titre dit le reste. */
+.at-ex-sac { position: relative; padding-left: 2.4rem; }
+.at-ex-sac > i {
+  position: absolute; left: .7rem; top: .62rem; font-style: normal;
+  width: 1.3rem; height: 1.3rem; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────

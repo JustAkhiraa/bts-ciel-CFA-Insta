@@ -56,24 +56,54 @@
     "catch", "throw", "operator", "friend", "explicit", "constexpr", "noexcept",
     "nullptr", "true", "false", "auto", "mutable", "final", "static_cast",
     "dynamic_cast", "const_cast", "reinterpret_cast", "decltype");
+  /* Les types à taille fixe de <stdint.h> et les constantes de la
+     bibliothèque standard manquaient : « uint8_t », « EOF », « stdin ». Ce
+     sont des mots qu'un élève de BTS rencontre dès le premier TP de fichiers,
+     et qui sortaient en gris au milieu d'une ligne colorée. */
   const C_TYP = MOTS("int", "float", "double", "char", "void", "long", "short",
-    "unsigned", "signed", "bool", "FILE", "size_t", "ssize_t", "time_t", "NULL");
+    "unsigned", "signed", "bool", "_Bool", "FILE", "size_t", "ssize_t", "time_t",
+    "ptrdiff_t", "wchar_t", "va_list", "clock_t",
+    "int8_t", "int16_t", "int32_t", "int64_t",
+    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+    "NULL", "EOF", "stdin", "stdout", "stderr", "true", "false");
   const CPP_TYP = MOTS("std", "string", "vector", "map", "set", "pair", "cout", "cin",
     "cerr", "endl", "ostream", "istream", "ifstream", "ofstream", "fstream",
     "unique_ptr", "shared_ptr", "array", "list", "queue", "stack", "deque");
   const CHAINE = '"(?:\\\\.|[^"\\\\\\n])*"' + "|'(?:\\\\.|[^'\\\\\\n])*'";
-  const NOMBRE = "\\b0[xX][0-9A-Fa-f]+\\b|\\b\\d+(?:[.,]\\d+)?\\b";
+  /* Le SUFFIXE fait partie du nombre : « 3.14f » est un littéral flottant, pas
+     un nombre suivi d'une variable nommée f. Sans lui, le « f » restait gris —
+     six fois dans le code publié, et à chaque fois au milieu d'un nombre
+     coloré, ce qui se voit. L'exposant aussi : « 1e-9 ». */
+  const NOMBRE = "\\b0[xX][0-9A-Fa-f]+[uUlL]*\\b|" +
+                 "\\b\\d+(?:[.,]\\d+)?(?:[eE][-+]?\\d+)?[fFlLuU]*\\b";
   const APPEL = "\\b[A-Za-z_]\\w*(?=\\s*\\()";
+
+  /* L'en-tête entre chevrons. « #include » était coloré, « <stdio.h> » non :
+     mesuré sur les 90 blocs de C publiés, « stdio » sortait 41 fois en gris et
+     « h » 43 fois. Il passe AVANT les opérateurs, sinon le « < » serait lu
+     comme une comparaison et le nom partirait en clair. */
+  const ENTETE = "<[A-Za-z0-9_/.]+\\.h(?:pp)?>";
+  /* Les opérateurs. Près de cinq cents signes sans couleur dans le code
+     publié : 130 « = », 80 « < », 57 « > », 40 « ++ ». C'était le plus gros
+     trou, et il ne se voyait pas parce qu'un signe gris au milieu d'un mot
+     coloré passe pour de la ponctuation. */
+  const OPERATEUR = "[-+*/%=<>!&|^~?:]+";
+  /* Les identifiants, en DERNIER. L'ordre des alternatives est la priorité :
+     placé plus haut, « var » avalerait les mots-clés, les types et les appels,
+     qui sont tous des identifiants eux aussi. */
+  const IDENT = "\\b[A-Za-z_]\\w*\\b";
 
   function scanneur(cpp) {
     const regles = [
       ["com", "/\\*[\\s\\S]*?\\*/|//[^\\n]*"],
       ["pre", "(?:^|(?<=\\n))[ \\t]*#[A-Za-z_]+"],
-      ["txt", CHAINE],
+      ["txt", ENTETE + "|" + CHAINE],
       ["mc", cpp ? C_MC + "|" + CPP_MC : C_MC],
       ["typ", cpp ? C_TYP + "|" + CPP_TYP : C_TYP],
       ["fn", APPEL],
       ["num", NOMBRE],
+      ["op", OPERATEUR],
+      ["var", IDENT],
     ];
     return new RegExp(regles.map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
   }
@@ -288,6 +318,112 @@
         saisie.setAttribute("aria-label",
           "Votre programme. Retour à la ligne " + (on ? "activé" : "désactivé") +
           " (Alt+Z). Ctrl+D sélectionne l'occurrence suivante du mot.");
+        return;
+      }
+
+      /* ═══ Les gestes d'édition de VS Code ═══════════════════════════
+         « Ajoute un max de fonctionnalités de VS Code. » Ceux qui suivent ont
+         été choisis sur un critère : ce qu'on fait DIX FOIS par séance en
+         écrivant du C. Commenter un bloc d'essai, déplacer une ligne mal
+         placée, dupliquer une ligne presque identique, supprimer une ligne.
+         Pas la palette de commandes ni le minimap — on n'a pas mille
+         fichiers, on en a un.
+
+         Tous passent par « remplacer », qui écrit avec execCommand : c'est ce
+         qui garde l'ANNULATION du système. Un éditeur qui casse Ctrl+Z est
+         pire qu'un éditeur sans raccourcis. */
+      function bornesLignes() {
+        const dl = t.lastIndexOf("\n", d - 1) + 1;
+        let fl = t.indexOf("\n", f);
+        if (fl === -1) fl = t.length;
+        return [dl, fl];
+      }
+
+      /* Ctrl+/ — commenter ou décommenter. On regarde si TOUTES les lignes
+         non vides sont déjà commentées : c'est ce qui décide du sens, et
+         c'est ce que fait VS Code. Une bascule ligne par ligne donnerait un
+         bloc à moitié commenté au second appui. */
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === "/") {
+        e.preventDefault();
+        const [dl, fl] = bornesLignes();
+        const lignes = t.slice(dl, fl).split("\n");
+        const toutes = lignes.every((l) => !l.trim() || /^\s*\/\//.test(l));
+        const neuf = lignes.map((l) => !l.trim() ? l
+          : toutes ? l.replace(/^(\s*)\/\/ ?/, "$1")
+                   : l.replace(/^(\s*)/, "$1// ")).join("\n");
+        remplacer(dl, fl, neuf, dl, dl + neuf.length);
+        return;
+      }
+
+      /* Alt+↑ / Alt+↓ — déplacer la ligne. Shift en plus : la dupliquer. */
+      if (e.altKey && !e.ctrlKey && !e.metaKey &&
+          (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        e.preventDefault();
+        const [dl, fl] = bornesLignes();
+        const bloc = t.slice(dl, fl);
+        if (e.shiftKey) {
+          if (e.key === "ArrowDown")
+            remplacer(fl, fl, "\n" + bloc, d + bloc.length + 1, f + bloc.length + 1);
+          else
+            remplacer(dl, dl, bloc + "\n", d, f);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          if (dl === 0) return;                      // déjà tout en haut
+          const pl = t.lastIndexOf("\n", dl - 2) + 1;
+          const prec = t.slice(pl, dl - 1);
+          const neuf = bloc + "\n" + prec;
+          remplacer(pl, fl, neuf, d - (dl - pl), f - (dl - pl));
+        } else {
+          if (fl >= t.length) return;                // déjà tout en bas
+          let nf = t.indexOf("\n", fl + 1);
+          if (nf === -1) nf = t.length;
+          const suiv = t.slice(fl + 1, nf);
+          const neuf = suiv + "\n" + bloc;
+          const dec = suiv.length + 1;
+          remplacer(dl, nf, neuf, d + dec, f + dec);
+        }
+        return;
+      }
+
+      /* Ctrl+Shift+K — supprimer la ligne entière. On emporte le retour à la
+         ligne QUI SUIT, sauf sur la dernière ligne où il faut prendre celui
+         d'avant : sinon on laisse une ligne vide à la place de la ligne
+         supprimée, et le geste n'a servi à rien. */
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "K" || e.key === "k")) {
+        e.preventDefault();
+        const [dl, fl] = bornesLignes();
+        const fin = fl < t.length ? fl + 1 : fl;
+        const deb = (fin === fl && dl > 0) ? dl - 1 : dl;
+        remplacer(deb, fin, "", deb, deb);
+        return;
+      }
+
+      /* Ctrl+Entrée — une ligne en dessous sans couper la courante ;
+         Ctrl+Maj+Entrée — une ligne au-dessus. Le creux est repris, sinon on
+         retombe en colonne zéro au milieu d'un bloc. */
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        const [dl, fl] = bornesLignes();
+        const creux = (t.slice(dl).match(/^[ \t]*/) || [""])[0];
+        if (e.shiftKey)
+          remplacer(dl, dl, creux + "\n", dl + creux.length, dl + creux.length);
+        else
+          remplacer(fl, fl, "\n" + creux, fl + 1 + creux.length, fl + 1 + creux.length);
+        return;
+      }
+
+      /* Début — d'abord le premier caractère NON BLANC, puis la colonne zéro
+         au second appui. C'est le « smart home » de VS Code, et il sert
+         justement parce que le code est indenté. */
+      if (e.key === "Home" && !e.ctrlKey && !e.metaKey) {
+        const dl = t.lastIndexOf("\n", d - 1) + 1;
+        const prem = dl + (t.slice(dl).match(/^[ \t]*/) || [""])[0].length;
+        const cible = d === prem ? dl : prem;
+        e.preventDefault();
+        if (e.shiftKey) saisie.setSelectionRange(Math.min(cible, f), Math.max(cible, f));
+        else saisie.setSelectionRange(cible, cible);
+        majOccurrences();
         return;
       }
 
@@ -969,16 +1105,113 @@
     fetch(base + "exemples.json").then((r) => r.json()).then((ex) => {
       const groupes = {};
       ex.forEach((e) => { (groupes[e.groupe] = groupes[e.groupe] || []).push(e); });
-      listeEx.innerHTML = Object.keys(groupes).map((g) =>
-        '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" +
-        groupes[g].map((e, i) =>
-          '<button type="button" class="at-ex" data-g="' + ech(g) + '" data-i="' + i + '">' +
-          "<b>" + ech(e.titre) + "</b><span>" + ech(e.quoi || "") + "</span></button>").join("") +
-        "</div>").join("");
+      /* ── Les TP deviennent des DOSSIERS ──────────────────────────────
+         JustAkhiraa : « tu leur donnes un nom genre TP 2, et comme les dossiers
+         d'applications sur iPhone ou Android : quand tu cliques sur un
+         dossier, ça ouvre une sorte de bulle carrée avec toutes les apps
+         dedans. Tu fais pareil : TP 1, TP 2, et quand tu cliques ça te propose
+         Ex 1, Ex 2. »
+
+         Quinze corrigés à la file, c'est une liste qu'on parcourt des yeux
+         sans la lire. Regroupés par TP, ce sont deux objets au lieu de quinze
+         — et c'est la seule question qu'on se pose vraiment en ouvrant ce
+         tiroir : « celui de quel TP ? ».
+
+         La reconnaissance se fait sur le TITRE, pas sur le nom du groupe :
+         « TP 2 · Note sur 20 ». Aucune liste de groupes à tenir à jour, et un
+         TP 4 ajouté demain fabrique son dossier tout seul. Un groupe dont
+         aucun titre ne porte ce préfixe reste une liste à plat : on ne range
+         pas en dossiers ce qui n'a pas de familles. */
+      const PREFIXE_TP = /^(TP\s*\d+)\s*[·:-]\s*(.+)$/;
+
+      function enFamilles(items) {
+        const fam = new Map();
+        const seuls = [];
+        items.forEach((e, i) => {
+          const m = PREFIXE_TP.exec(e.titre || "");
+          if (!m) { seuls.push({ e: e, i: i }); return; }
+          const cle = m[1].replace(/\s+/g, " ");
+          if (!fam.has(cle)) fam.set(cle, []);
+          fam.get(cle).push({ e: e, i: i, court: m[2] });
+        });
+        return { fam: fam, seuls: seuls };
+      }
+
+      const carte = (g, o, titre) =>
+        '<button type="button" class="at-ex" data-g="' + ech(g) + '" data-i="' + o.i + '">' +
+        "<b>" + ech(titre) + "</b><span>" + ech(o.e.quoi || "") + "</span></button>";
+
+      listeEx.innerHTML = Object.keys(groupes).map((g) => {
+        const { fam, seuls } = enFamilles(groupes[g]);
+        let corps = seuls.map((o) => carte(g, o, o.e.titre)).join("");
+        if (fam.size) {
+          corps += '<div class="at-dossiers">' + [...fam.keys()].map((cle) => {
+            const liste = fam.get(cle);
+            /* Les vignettes du dossier : une par exercice, neuf au plus —
+               au-delà, une grille 3×3 ne montre plus rien et c'est le compte
+               écrit dessous qui renseigne. C'est exactement ce que fait un
+               téléphone, et pour la même raison. */
+            const vignettes = liste.slice(0, 9)
+              .map(() => '<span class="at-vignette"></span>').join("");
+            return '<button type="button" class="at-dossier" data-g="' + ech(g) +
+                   '" data-tp="' + ech(cle) + '">' +
+                   '<span class="at-dossier-grille">' + vignettes + "</span>" +
+                   "<b>" + ech(cle) + "</b><span>" + liste.length +
+                   (liste.length > 1 ? " exercices" : " exercice") + "</span></button>";
+          }).join("") + "</div>";
+        }
+        return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
+      }).join("");
+
+      /* La « bulle carrée » : un seul panneau, rempli à la demande. En
+         fabriquer un par dossier aurait mis quinze boutons cachés dans la
+         page, tous atteignables au clavier alors qu'aucun n'est visible. */
+      const sac = document.createElement("div");
+      sac.className = "at-sac";
+      sac.hidden = true;
+      sac.setAttribute("role", "dialog");
+      sac.setAttribute("aria-modal", "false");
+      listeEx.parentNode.appendChild(sac);
+      let rendeur = null;
+
+      function ouvrirDossier(g, cle, bouton) {
+        const liste = enFamilles(groupes[g]).fam.get(cle) || [];
+        sac.innerHTML =
+          '<div class="at-sac-tete"><h5>' + ech(cle) + "</h5>" +
+          '<button type="button" class="at-sac-fermer" aria-label="Fermer le dossier">✕</button></div>' +
+          '<div class="at-sac-grille">' + liste.map((o, k) =>
+            '<button type="button" class="at-ex at-ex-sac" data-g="' + ech(g) +
+            '" data-i="' + o.i + '"><i>' + (k + 1) + "</i>" +
+            "<b>" + ech(o.court) + "</b><span>" + ech(o.e.quoi || "") +
+            "</span></button>").join("") + "</div>";
+        sac.hidden = false;
+        rendeur = bouton;
+        const premier = sac.querySelector(".at-ex");
+        premier && premier.focus();
+      }
+      function fermerDossier() {
+        if (sac.hidden) return;
+        sac.hidden = true;
+        rendeur && rendeur.focus();
+        rendeur = null;
+      }
+      listeEx.addEventListener("click", (e) => {
+        const d = e.target.closest(".at-dossier");
+        if (d) ouvrirDossier(d.dataset.g, d.dataset.tp, d);
+      });
+      sac.addEventListener("click", (e) => {
+        if (e.target.closest(".at-sac-fermer")) fermerDossier();
+      });
+      /* Échap referme le dossier AVANT le tiroir : c'est l'ordre dans lequel
+         on les a ouverts, et c'est celui qu'on attend en appuyant. */
+      sac.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { e.stopPropagation(); fermerDossier(); }
+      });
       listeEx.addEventListener("click", (e) => {
         const b = e.target.closest(".at-ex");
         if (!b) return;
         const x = groupes[b.dataset.g][+b.dataset.i];
+        fermerDossier();
         editeur.valeur = x.code;
         poserLangue(x.langue || devine(x.code));
         if (x.entree) { entreeCumul = ""; champEntree.value = ""; }
