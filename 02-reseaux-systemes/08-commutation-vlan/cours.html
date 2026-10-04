@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : table MAC, apprentissage et transfert, VLAN, types et plages, trunk 802.1Q, VLAN natif, routage inter-VLAN et router-on-a-stick.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=1b7c7834">
+<link rel="stylesheet" href="../../assets/fiche.css?v=2bc46a81">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -320,7 +320,7 @@
      <strong>20 — Student</strong>, <strong>99 — Gestion</strong>.</p>
 
   <h3>Étape 1 — créer les VLAN</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>S1# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 S1(config)# <span class="j-mc">vlan</span> <span class="j-num">10</span>
 S1(config-<span class="j-mc">vlan</span>)# name Enseignants
 S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">exit</span>
@@ -334,7 +334,7 @@ S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">end</span>
 S1# <span class="j-mc">show</span> <span class="j-mc">vlan</span> brief          ← VÉRIFIER que les <span class="j-typ">VLAN </span>sont créés</code></pre></div>
 
   <h3>Étape 2 — affecter les ports</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! un seul port</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! un seul port</span>
 S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">18</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>          ← le port devient un port D'ACCÈS
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">20</span>       ← on l'affecte au <span class="j-typ">VLAN 20</span>
@@ -387,7 +387,7 @@ S1# <span class="j-mc">show</span> <span class="j-mc">vlan</span> brief         
   </div>
 
   <h3>Modifier et supprimer</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! changer l'appartenance d'un port</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! changer l'appartenance d'un port</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">30</span>       ← ressaisir la commande suffit
 S1(config-if)# <span class="j-mc">no</span> <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span>       ← replace l'<span class="j-mc">interface</span> sur le <span class="j-typ">VLAN 1</span>
 
@@ -516,7 +516,7 @@ S1# <span class="j-mc">show</span> interfaces fa0/<span class="j-num">18</span> 
   </div>
 
   <h3>Configurer un trunk</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">1</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">1</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>                    ← liaison permanente en <span class="j-mc">trunk</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">99</span>          ← <span class="j-typ">VLAN </span>natif AUTRE que le <span class="j-typ">VLAN 1</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> allowed <span class="j-mc">vlan</span> <span class="j-num">10,20</span>,<span class="j-num">99</span>   ← liste des <span class="j-typ">VLAN </span>autorisés
@@ -530,7 +530,7 @@ S1# <span class="j-mc">show</span> interfaces <span class="j-mc">trunk</span>   
      configurée avant le mode trunk</strong> (<code>switchport trunk encapsulation dot1q</code>).</p>
 
   <h3>Revenir à l'état par défaut</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config-if)# <span class="j-mc">no</span> <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> allowed <span class="j-mc">vlan</span>     ← tous les <span class="j-typ">VLAN </span>à nouveau autorisés
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>S1(config-if)# <span class="j-mc">no</span> <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> allowed <span class="j-mc">vlan</span>     ← tous les <span class="j-typ">VLAN </span>à nouveau autorisés
 S1(config-if)# <span class="j-mc">no</span> <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span>      ← <span class="j-typ">VLAN </span>natif = <span class="j-typ">VLAN 1</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>               ← repasser le port en <span class="j-mc">mode</span> accès</code></pre></div>
 </section>
@@ -662,14 +662,14 @@ S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</spa
      <strong>passerelle par défaut</strong> de son VLAN.</p>
 
   <h3>Côté commutateur</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS — S1</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">2</span>                       ← le port relié au routeur
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — S1</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">2</span>                       ← le port relié au routeur
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">99</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> allowed <span class="j-mc">vlan</span> <span class="j-num">10,20</span>,<span class="j-num">99</span>
 S1(config-if)# <span class="j-mc">end</span></code></pre></div>
 
   <h3>Côté routeur</h3>
-<div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R1</span><pre><code>R1# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 
 <span class="j-com">! ── une sous-interface par VLAN ──</span>
 R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">0.10</span>                     ← .<span class="j-num">10</span> par convention = <span class="j-typ">VLAN 10</span>
@@ -748,7 +748,7 @@ R1(config-if)# <span class="j-mc">end</span></code></pre></div>
       <p>Ses trames circulent <strong>sans étiquette</strong>. Une sous-interface configurée en
          <code>encapsulation dot1q 99</code> tout court attend une étiquette 99 : elle ignore donc
          totalement ce trafic.</p>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">0.99</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">0.99</span>
 R1(config-subif)# <span class="j-mc">encapsulation</span> dot1q <span class="j-num">99</span> native
 R1(config-subif)# <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.17.99.1</span> <span class="j-num">255.255.255.0</span></code></pre></div>
       <p><strong>Deux autres causes à écarter avant de conclure :</strong> la SVI du commutateur
@@ -822,7 +822,7 @@ R1(config-subif)# <span class="j-mc">ip</span> <span class="j-mc">address</span>
     <li>Le téléphone peut ou non étiqueter les trames venant du PC.</li>
   </ul>
 
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">18</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>S1(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">18</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>
 S1(config-if)# <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">20</span>       ← <span class="j-typ">VLAN </span>de DONNÉES (le PC)
 S1(config-if)# <span class="j-mc">switchport</span> voice <span class="j-mc">vlan</span> <span class="j-num">150</span>       ← <span class="j-typ">VLAN </span>VOIX (le téléphone)
@@ -883,7 +883,7 @@ S1# <span class="j-mc">show</span> interfaces fa0/<span class="j-num">18</span> 
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../07-configuration-cisco/cours.html"><span>Chapitre précédent</span><b>Configuration Cisco</b></a><a class="suiv" href="../09-routage-statique/cours.html"><span>Chapitre suivant</span><b>Routage statique</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=1b7c7834"></script>
-<script src="../../assets/app.js?v=1b7c7834"></script>
+<script src="../../assets/fiche.js?v=2bc46a81"></script>
+<script src="../../assets/app.js?v=2bc46a81"></script>
 </body>
 </html>

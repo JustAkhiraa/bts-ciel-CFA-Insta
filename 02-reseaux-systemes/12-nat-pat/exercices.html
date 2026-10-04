@@ -7,7 +7,7 @@
 <meta name="description" content="Exercices corrigés : vocabulaire NAT, configuration statique, dynamique et PAT, lecture de table de traduction et dépannage.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=1b7c7834">
+<link rel="stylesheet" href="../../assets/fiche.css?v=2bc46a81">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -188,7 +188,7 @@
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
         <h4>1 — NAT statique</h4>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">192.168.10.254</span> <span class="j-num">209.165.201.5</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">192.168.10.254</span> <span class="j-num">209.165.201.5</span>
 
 R2(config)# <span class="j-mc">interface</span> fa0/<span class="j-num">0</span>
 R2(config-if)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
@@ -197,7 +197,7 @@ R2(config)# <span class="j-mc">interface</span> s0/<span class="j-num">1</span>/
 R2(config-if)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">outside</span></code></pre></div>
 
         <h4>2 — NAT dynamique</h4>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">pool</span> NAT-POOL1 <span class="j-num">209.165.200.226</span> <span class="j-num">209.165.200.240</span> netmask <span class="j-num">255.255.255.224</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">pool</span> NAT-POOL1 <span class="j-num">209.165.200.226</span> <span class="j-num">209.165.200.240</span> netmask <span class="j-num">255.255.255.224</span>
 R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.0.0</span> <span class="j-num">0.0.255.255</span>
 R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> NAT-POOL1
 
@@ -208,7 +208,7 @@ R2(config)# <span class="j-mc">interface</span> s0/<span class="j-num">1</span>/
 R2(config-if)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">outside</span></code></pre></div>
 
         <h4>3 — PAT sur l'interface</h4>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.0.0</span> <span class="j-num">0.0.255.255</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.0.0</span> <span class="j-num">0.0.255.255</span>
 R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">interface</span> s0/<span class="j-num">1</span>/<span class="j-num">0</span> <span class="j-mc">overload</span>
 <span class="j-com">!                                                        └── le mot-clé PAT</span>
 
@@ -344,7 +344,7 @@ udp   209.165.200.225:1520   192.168.1.12:1520    8.8.8.8:53       8.8.8.8:53</c
         <h4>1 — Table vide</h4>
         <p><strong>Cause :</strong> <code>ip nat inside</code> ou <code>ip nat outside</code> est
            manquant — ou, plus vicieux, les deux sont <strong>inversés</strong>.</p>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2# <span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> statistics
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2# <span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> statistics
 
 Outside interfaces:  <span class="j-typ">Serial0/1/0</span>        ← doit être l'<span class="j-mc">interface</span> vers INTERNET
 Inside interfaces:   <span class="j-typ">FastEthernet0/0</span>    ← doit être l'<span class="j-mc">interface</span> vers le LAN</code></pre></div>
@@ -355,7 +355,7 @@ Inside interfaces:   <span class="j-typ">FastEthernet0/0</span>    ← doit êtr
         <p><strong>Cause :</strong> <strong>NAT dynamique avec un pool de trois adresses</strong>, et
            le mot-clé <code>overload</code> manquant. Chaque poste monopolise une adresse publique
            pour toute la durée de sa session.</p>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">no</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> NAT-POOL1
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2(config)# <span class="j-mc">no</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> NAT-POOL1
 R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> NAT-POOL1 <span class="j-mc">overload</span>
 R2# clear <span class="j-mc">ip</span> <span class="j-mc">nat</span> translation *</code></pre></div>
 
@@ -366,7 +366,7 @@ R2# clear <span class="j-mc">ip</span> <span class="j-mc">nat</span> translation
            externe qui contacte l'adresse publique arrive sur un routeur qui n'a
            <strong>aucune entrée correspondante</strong> : il ne sait pas à qui remettre le paquet
            et le rejette.</p>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! exposer le serveur avec une adresse publique dédiée</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! exposer le serveur avec une adresse publique dédiée</span>
 R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">192.168.10.254</span> <span class="j-num">209.165.201.5</span>
 
 <span class="j-com">! ou, si l'on n'a qu'une adresse publique : rediriger un seul port</span>
@@ -386,7 +386,7 @@ R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span cla
         <p><strong>Cause :</strong> l'<strong>ACL</strong> ne sélectionne plus le trafic, ou le
            <strong>nom du pool</strong> ne correspond plus — souvent une différence de casse
            introduite lors de la modification.</p>
-<div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>R2# <span class="j-mc">show</span> <span class="j-mc">access</span>-lists
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2# <span class="j-mc">show</span> <span class="j-mc">access</span>-lists
     <span class="j-num">10</span> matches            ← si le compteur reste à <span class="j-num">0</span>, l'ACL ne voit pas le trafic
 
 R2# <span class="j-mc">show</span> <span class="j-mc">running-config</span> | include <span class="j-mc">nat</span>
@@ -441,7 +441,7 @@ R2# <span class="j-mc">show</span> <span class="j-mc">running-config</span> | in
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-dhcp/exercices.html"><span>Chapitre précédent</span><b>DHCP</b></a><a class="suiv" href="../13-depannage-wireshark/exercices.html"><span>Chapitre suivant</span><b>Dépannage &amp; Wireshark</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=1b7c7834"></script>
-<script src="../../assets/app.js?v=1b7c7834"></script>
+<script src="../../assets/fiche.js?v=2bc46a81"></script>
+<script src="../../assets/app.js?v=2bc46a81"></script>
 </body>
 </html>

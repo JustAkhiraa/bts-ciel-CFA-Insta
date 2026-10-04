@@ -7,7 +7,7 @@
 <meta name="description" content="Monter une infrastructure entière : lire une topologie, calculer le plan d'adressage, l'ordre de montage qui évite les impasses, puis VLAN, inter-VLAN, RIPv2, DHCP, NAT et NTP.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=1b7c7834">
+<link rel="stylesheet" href="../../assets/fiche.css?v=2bc46a81">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -225,12 +225,12 @@
 
   <div class="encart outils">
     <div class="titre">🧰 Les deux /30, calculés</div>
-    <div class="bloc-code"><span class="langue">calcul</span><pre><code>172.16.1.0/30   masque 255.255.255.252
-  réseau     172.16.1.0
-  utilisables 172.16.1.1  et  172.16.1.2      ← 2² − 2 = 2 adresses
-  diffusion  172.16.1.3
+    <div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code><span class="j-num">172.16.1.0</span><span class="j-op">/</span><span class="j-num">30</span>   masque <span class="j-num">255.255.255.252</span>
+<span class="j-com">  réseau   </span>  <span class="j-num">172.16.1.0</span>
+  utilisables <span class="j-num">172.16.1.1</span>  et  <span class="j-num">172.16.1.2</span>      <span class="j-com">← 2² − 2 = 2 adresses</span>
+<span class="j-com">  diffusion</span>  <span class="j-num">172.16.1.3</span>
 
-Un /30 pour une liaison point à point : deux extrémités, deux adresses.
+Un <span class="j-op">/</span><span class="j-num">30</span> pour une liaison point à point : deux extrémités, deux adresses.
 C'est exactement ce qu'il faut, et rien de plus.</code></pre></div>
     <p class="rap">Le <code>/30</code> n'est pas un choix esthétique : sur une liaison série
        entre deux routeurs, un <code>/24</code> gaspillerait 252 adresses. C'est la
@@ -242,17 +242,17 @@ C'est exactement ce qu'il faut, et rien de plus.</code></pre></div>
     <p>Le tableau de tâches du sujet demande de poser <code>209.165.200.225</code> comme
        passerelle par défaut du serveur Internet. C'est <strong>impossible</strong>, et le
        calcul le montre en deux lignes :</p>
-    <div class="bloc-code"><span class="langue">calcul</span><pre><code>Le lien R2 ↔ Internet est 209.165.200.232/29 (topologie)
-  réseau       209.165.200.232
-  utilisables  de 209.165.200.233 à 209.165.200.238
-  diffusion    209.165.200.239
+    <div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>Le lien R2 ↔ Internet est <span class="j-num">209.165.200.232</span><span class="j-op">/</span><span class="j-num">29</span> (topologie)
+<span class="j-com">  réseau     </span>  <span class="j-num">209.165.200.232</span>
+<span class="j-com">  utilisables</span>  de <span class="j-num">209.165.200.233</span> à <span class="j-num">209.165.200.238</span>
+<span class="j-com">  diffusion  </span>  <span class="j-num">209.165.200.239</span>
 
-Le serveur Internet porte .238 : il est bien dans ce /29.
-209.165.200.225 ne l'est PAS — il appartient au /29 voisin, 209.165.200.224/29.
+Le serveur Internet porte .238 : il est bien dans ce <span class="j-op">/</span><span class="j-num">29</span>.
+<span class="j-num">209.165.200.225</span> ne l'est PAS — il appartient au <span class="j-op">/</span><span class="j-num">29</span> voisin, <span class="j-num">209.165.200.224</span><span class="j-op">/</span><span class="j-num">29</span>.
 
-Une passerelle doit être dans le même sous-réseau que la machine.
+Une passerelle doit être dans le même sous<span class="j-op">-</span>réseau que la machine.
 Donc la passerelle du serveur est la première adresse disponible du lien :
-  209.165.200.233, c'est-à-dire l'interface G0/0 de R2.</code></pre></div>
+  <span class="j-num">209.165.200.233</span>, c'est<span class="j-op">-</span>à<span class="j-op">-</span>dire l'interface G0<span class="j-op">/</span><span class="j-num">0</span> de R2.</code></pre></div>
     <p>D'où vient <code>209.165.200.225</code> ? Du <strong>pool NAT</strong> : le sujet fait
        traduire les adresses privées vers <code>209.165.200.225</code> à
        <code>209.165.200.228</code>, et le serveur web vers <code>209.165.200.229</code> —
@@ -312,7 +312,7 @@ Donc la passerelle du serveur est la première adresse disponible du lien :
     <div class="titre">🧭 Remettre à zéro avant de commencer</div>
     <p>Un équipement de salle de TP porte la configuration du binôme précédent. Deux commandes,
        et non une :</p>
-    <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>erase <span class="j-mc">startup-config</span>
+    <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>erase <span class="j-mc">startup-config</span>
 delete <span class="j-mc">vlan</span>.dat
 reload</code></pre></div>
     <p class="rap"><code>erase startup-config</code> ne touche pas à la base VLAN, qui vit
@@ -336,11 +336,11 @@ reload</code></pre></div>
        globale, qui réserve les adresses pour les configurations statiques — passerelle,
        imprimantes, serveurs. Le sujet demande de réserver les <strong>vingt premières</strong>
        adresses de chaque VLAN.</p>
-    <div class="bloc-code"><span class="langue">calcul</span><pre><code>VLAN 21 — réseau 192.168.21.0/24
+    <div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>VLAN <span class="j-num">21</span> — réseau <span class="j-num">192.168.21.0</span><span class="j-op">/</span><span class="j-num">24</span>
 
-  adresses exclues   de 192.168.21.1 à 192.168.21.20
-  passerelle         192.168.21.1   (dans la plage exclue : c'est le but)
-  premier bail       192.168.21.21</code></pre></div>
+<span class="j-com">  adresses exclues </span>  de <span class="j-num">192.168.21.1</span> à <span class="j-num">192.168.21.20</span>
+<span class="j-com">  passerelle       </span>  <span class="j-num">192.168.21.1</span>   (dans la plage exclue : c'est le but)
+<span class="j-com">  premier bail     </span>  <span class="j-num">192.168.21.21</span></code></pre></div>
     <p class="rap">Oubliez l'exclusion, et le premier poste qui démarre reçoit
        <code>192.168.21.1</code> — l'adresse de la passerelle. Le VLAN entier perd sa sortie,
        et le symptôme n'a l'air d'avoir aucun rapport avec DHCP.</p>
@@ -463,7 +463,7 @@ reload</code></pre></div>
 
   <div class="encart outils">
     <div class="titre">🧰 Les commandes de contrôle, groupées</div>
-    <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">terminal</span> length <span class="j-num">0</span>            ← supprime la pagination --More--
+    <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">terminal</span> length <span class="j-num">0</span>            ← supprime la pagination --More--
 
 <span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">interface</span> brief      ← toutes les interfaces : up/up ?
 <span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">route</span>                ← les réseaux distants sont-ils appris ?
@@ -495,7 +495,7 @@ reload</code></pre></div>
      de documentation.</p>
 
   <h3>7.1 · Remettre un équipement à zéro</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Switch# erase <span class="j-mc">startup-config</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>Switch# erase <span class="j-mc">startup-config</span>
 Switch# delete <span class="j-mc">vlan</span>.dat
 Switch# reload</code></pre></div>
   <p class="rap">Sur un routeur, <code>delete vlan.dat</code> n'a pas lieu d'être : il n'y a
@@ -504,7 +504,7 @@ Switch# reload</code></pre></div>
   <h3>7.2 · Les paramètres de base — les cinq équipements, mot pour mot</h3>
   <p>Le sujet demande exactement la même chose sur R1, R2, R3, S1 et S3, à l'exception du nom.
      Un seul bloc, qu'on recopie cinq fois en changeant une ligne.</p>
-  <div class="bloc-code"><span class="langue">Cisco IOS</span><pre><code>Router&gt; <span class="j-mc">enable</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>Router&gt; <span class="j-mc">enable</span>
 Router# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 Router(config)# <span class="j-mc">no</span> <span class="j-mc">ip</span> domain-lookup
 Router(config)# <span class="j-mc">hostname</span> R1
@@ -546,7 +546,7 @@ R1# <span class="j-mc">copy</span> <span class="j-mc">running-config</span> <spa
   </div>
 
   <h3>7.3 · Les interfaces et les routes par défaut</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
 R1(config-if)#  <span class="j-mc">description</span> Liaison serie vers R2
 R1(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.1.1</span> <span class="j-num">255.255.255.252</span>
 R1(config-if)#  ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">1</span>::<span class="j-num">1</span>/<span class="j-num">64</span>
@@ -569,7 +569,7 @@ R1(config)# ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span>
   </div>
 
   <h3>7.4 · Le routage inter-VLAN : trois sous-interfaces sur un seul câble</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">1.21</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">interface</span> g0/<span class="j-num">1.21</span>
 R1(config-subif)#  <span class="j-mc">description</span> LAN Accounting
 R1(config-subif)#  <span class="j-mc">encapsulation</span> dot1Q <span class="j-num">21</span>
 R1(config-subif)#  <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">255.255.255.0</span>
@@ -598,7 +598,7 @@ R1(config-if)#  <span class="j-mc">no</span> <span class="j-mc">shutdown</span><
   </div>
 
   <h3>7.5 · Le commutateur : VLAN, adresse d'administration, agrégations, ports d'accès</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — S1</span><pre><code>S1(config)# <span class="j-mc">vlan</span> <span class="j-num">21</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — S1</span><pre><code>S1(config)# <span class="j-mc">vlan</span> <span class="j-num">21</span>
 S1(config-<span class="j-mc">vlan</span>)#  name Comptabilite
 S1(config-<span class="j-mc">vlan</span>)# <span class="j-mc">vlan</span> <span class="j-num">23</span>
 S1(config-<span class="j-mc">vlan</span>)#  name Engineering
@@ -642,7 +642,7 @@ S1(config-if-range)#  <span class="j-mc">shutdown</span></code></pre></div>
   </div>
 
   <h3>7.6 · RIPv2 sur les trois routeurs</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">router</span> rip
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">router</span> rip
 R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
 R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span>
@@ -653,7 +653,7 @@ R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interfa
 R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">passive-interface</span> g0/<span class="j-num">1.99</span>
 R1(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-summary</code></pre></div>
 
-  <div class="bloc-code"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">router</span> rip
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">router</span> rip
 R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
 R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">10.0.0.0</span>
@@ -663,7 +663,7 @@ R2(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-
      <strong>ne s'annonce pas</strong> en RIP. Il n'a rien à faire dans un protocole interne,
      et c'est la NAT qui s'occupe de ce qui sort.</p>
 
-  <div class="bloc-code"><span class="langue">Cisco IOS — R3</span><pre><code>R3(config)# <span class="j-mc">router</span> rip
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R3</span><pre><code>R3(config)# <span class="j-mc">router</span> rip
 R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">version</span> <span class="j-num">2</span>
 R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">network</span> <span class="j-num">192.168.4.0</span>
@@ -698,7 +698,7 @@ R3(config-<span class="j-mc">router</span>)#  <span class="j-mc">no</span> auto-
   </div>
 
   <h3>7.7 · DHCP sur R1</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">192.168.21.20</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R1</span><pre><code>R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">192.168.21.20</span>
 R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.23.1</span> <span class="j-num">192.168.23.20</span>
 R1(config)# <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> ACCT
 R1(<span class="j-mc">dhcp</span>-config)#  <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span> <span class="j-num">255.255.255.0</span>
@@ -715,7 +715,7 @@ R1(<span class="j-mc">dhcp</span>-config)#  domain-name ccna-sa.com</code></pre>
      <code>ENGNR</code> — et ils sont sensibles à la casse.</p>
 
   <h3>7.8 · NAT statique et dynamique sur R2</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">10.10.10.10</span> <span class="j-num">209.165.200.229</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R2</span><pre><code>R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">10.10.10.10</span> <span class="j-num">209.165.200.229</span>
 
 R2(config)# <span class="j-mc">interface</span> s0/<span class="j-num">0</span>/<span class="j-num">0</span>
 R2(config-if)#  <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
@@ -735,17 +735,17 @@ R2(config)# <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span cla
 
   <div class="encart outils">
     <div class="titre">🧰 Le masque générique qui résume les trois loopbacks de R3</div>
-    <div class="bloc-code"><span class="langue">calcul</span><pre><code>À autoriser : 192.168.4.0/24, 192.168.5.0/24, 192.168.6.0/24
+    <div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>À autoriser : <span class="j-num">192.168.4.0</span><span class="j-op">/</span><span class="j-num">24</span>, <span class="j-num">192.168.5.0</span><span class="j-op">/</span><span class="j-num">24</span>, <span class="j-num">192.168.6.0</span><span class="j-op">/</span><span class="j-num">24</span>
 
-4  = 0000 0100
-5  = 0000 0101
-6  = 0000 0110
-7  = 0000 0111   ← le bloc ne se referme qu'à 7
-     ^^^^^^ 6 bits communs, 2 bits qui varient
+<span class="j-num">4</span>  <span class="j-op">=</span> <span class="j-num">0000</span> <span class="j-num">0100</span>
+<span class="j-num">5</span>  <span class="j-op">=</span> <span class="j-num">0000</span> <span class="j-num">0101</span>
+<span class="j-num">6</span>  <span class="j-op">=</span> <span class="j-num">0000</span> <span class="j-num">0110</span>
+<span class="j-num">7</span>  <span class="j-op">=</span> <span class="j-num">0000</span> <span class="j-num">0111</span>   <span class="j-com">← le bloc ne se referme qu'à 7</span>
+     <span class="j-op">^^^^^^</span> <span class="j-num">6</span> bits communs, <span class="j-num">2</span> bits qui varient
 
-→ résumé : 192.168.4.0/22   masque générique 0.0.3.255
+<span class="j-op">→</span> résumé : <span class="j-num">192.168.4.0</span><span class="j-op">/</span><span class="j-num">22</span>   masque générique <span class="j-num">0.0.3.255</span>
 
-access-list 1 permit 192.168.4.0 0.0.3.255</code></pre></div>
+access<span class="j-op">-</span>list <span class="j-num">1</span> permit <span class="j-num">192.168.4.0</span> <span class="j-num">0.0.3.255</span></code></pre></div>
     <p class="rap">Un masque générique est l'inverse d'un masque de sous-réseau : un
        <strong>0</strong> veut dire « ce bit doit correspondre », un <strong>1</strong> veut
        dire « peu importe ». <code>0.0.3.255</code> laisse donc varier les deux derniers bits
@@ -753,7 +753,7 @@ access-list 1 permit 192.168.4.0 0.0.3.255</code></pre></div>
   </div>
 
   <h3>7.9 · NTP : R2 serveur, R1 client</h3>
-  <div class="bloc-code"><span class="langue">Cisco IOS — R2 puis R1</span><pre><code>R2# <span class="j-mc">clock</span> set <span class="j-num">09</span>:<span class="j-num">00</span>:<span class="j-num">00</span> <span class="j-num">5</span> march <span class="j-num">2016</span>
+  <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R2 puis R1</span><pre><code>R2# <span class="j-mc">clock</span> set <span class="j-num">09</span>:<span class="j-num">00</span>:<span class="j-num">00</span> <span class="j-num">5</span> march <span class="j-num">2016</span>
 R2# <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 R2(config)# ntp master <span class="j-num">5</span>
 
@@ -871,7 +871,7 @@ R1# <span class="j-mc">show</span> ntp associations</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/cours.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=1b7c7834"></script>
-<script src="../../assets/app.js?v=1b7c7834"></script>
+<script src="../../assets/fiche.js?v=2bc46a81"></script>
+<script src="../../assets/app.js?v=2bc46a81"></script>
 </body>
 </html>
