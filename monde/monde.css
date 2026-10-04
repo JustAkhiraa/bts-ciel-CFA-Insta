@@ -1000,12 +1000,59 @@ body.jour .lecture-corps {
   --ambre-sombre: #6B3F00; --violet: #6A34A8;
 }
 
+/* ── La mesure de lecture ne vaut que pour la PROSE ──────────────────────
+   « quand je pars sur un outil ou un cours, l'espace vide et la taille sur
+   laquelle je dois lire est trop petite, c'est vraiment pas ergonomique pour
+   la lecture ; n'oublie pas que c'est un cours et un outil. »
+
+   Mesuré avant de corriger : le panneau fait 1480 px de large, l'outil n'en
+   occupait que 635. **845 pixels jetés, 57 % du panneau** — et le tableau des
+   masques se trouvait coupé à droite pendant que deux bandes vides occupaient
+   la moitié de l'écran.
+
+   La cause tient en une ligne : « .lecture-corps > * { max-width: 70ch } ».
+   Soixante-dix caractères est la bonne mesure pour un PARAGRAPHE — en dessous
+   on saccade, au-dessus l'œil perd la ligne suivante. Mais ce n'est une bonne
+   mesure QUE pour du texte au fil. Un tableau de trente-trois lignes, un
+   schéma, un bloc de code, un outil entier : ceux-là veulent toute la place,
+   et les brider à la largeur d'un paragraphe, c'est les rendre illisibles pour
+   obéir à une règle qui ne les concerne pas.
+
+   On garde donc la mesure, et on en SORT ce qui n'est pas de la prose. */
 .lecture-corps > * { max-width: 70ch; margin-left: auto; margin-right: auto; }
+.lecture-corps > .boutique,
+.lecture-corps > .tableau,
+.lecture-corps > .demo,
+.lecture-corps > figure,
+.lecture-corps > svg,
+.lecture-corps .tableau { max-width: none; width: 100%; }
 .lecture-corps > .tableau-conteneur, .lecture-corps > .bloc-code,
 .lecture-corps > table { max-width: 88ch; }
+/* La taille du texte monte de 0,9 à 1 rem — de 14,4 px à 16. C'était l'autre
+   moitié de son reproche, et elle ne se règle pas avec de la largeur : un
+   cours se lit, et 14 px dans un panneau sombre à bout de bras, ce n'est pas
+   une mesure de confort, c'est une mesure de place. Le creux du bas passe de
+   5 à 2,5 rem : il servait à dégager la dernière ligne du bord, cinq rem n'y
+   ont jamais été nécessaires. */
 .lecture-corps { flex: 1 1 auto; overflow-y: auto;
-  padding: 2rem clamp(1.2rem, 4vw, 3rem) 5rem;
-  font-size: .9rem; line-height: 1.68; }
+  padding: 1.6rem clamp(1rem, 3vw, 2.4rem) 2.5rem;
+  font-size: 1rem; line-height: 1.68; }
+
+/* ── Un outil prend tout le panneau ──────────────────────────────────────
+   Quand le corps ne porte qu'une boutique, il cesse d'être une colonne de
+   lecture : il devient un cadre. Plus de défilement propre, plus de creux,
+   et l'outil occupe la hauteur disponible jusqu'au bord. C'est « :has() » qui
+   permet de le dire sans une ligne de script — la feuille sait reconnaître ce
+   qu'elle contient. */
+.lecture-corps:has(> .boutique) {
+  display: flex; padding: .7rem; overflow: hidden; }
+.lecture-corps:has(> .boutique) > .boutique {
+  flex: 1 1 auto; height: auto; margin: 0; }
+/* L'en-tête se tasse aussi : devant un outil, « BOUTIQUE / Le Grenier des
+   Masques / Le compteur » répète ce que l'outil affiche déjà en grand, et lui
+   prenait cent pixels de haut. */
+.lecture:has(.boutique) > header { padding: .9rem 3.6rem .8rem 1.6rem; }
+.lecture:has(.boutique) h2 { font-size: 1.24rem; margin: .15rem 0 .1rem; }
 
 /* ── ce que la fiche apporte avec elle ──────────────────────────────── */
 .lecture-corps > .fil, .lecture-corps .badge { display: none; }
