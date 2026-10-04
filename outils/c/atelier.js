@@ -108,6 +108,9 @@
     function redessiner() {
       const t = saisie.value;
       peint.innerHTML = peindre(t, langue) + "\n";
+      /* Après la coloration, jamais avant : surligner d'abord reviendrait à
+         faire colorer des balises qu'on vient d'insérer. */
+      if (typeof motCourant === "string" && motCourant) surligner(motCourant);
       const n = t.split("\n").length;
       if (marge.childElementCount !== n || marge.dataset.marques !== String(marques.length)) {
         marge.dataset.marques = String(marques.length);
@@ -128,7 +131,122 @@
       surChangement && surChangement(t);
     }
 
+    /* ── Les gestes de VS Code, repris à la main ──────────────────────
+       JustAkhiraa : « récupère le projet VSCodium et adapte », et plus tôt :
+       « j'aime bien Ctrl+D pour copier les mots qui se ressemblent, ou
+       Alt+Z, ou encore quand tu cliques sur un mot et ça te surligne les
+       mêmes mots ».
+
+       VSCodium lui-même ne peut pas entrer ici : c'est une application de
+       bureau Electron de plusieurs centaines de mégaoctets, pas une page.
+       Ce qui tourne dans un navigateur, c'est son ÉDITEUR, Monaco — et
+       Monaco remplacerait ce champ, donc l'annulation du système, le clavier
+       mobile, la dictée et la sélection native, tous gardés exprès.
+
+       Ce sont les GESTES qu'il demande. Ils tiennent en quatre-vingts lignes,
+       sans rien charger. Une seule différence est assumée et dite : dans VS
+       Code, Ctrl+D AJOUTE un curseur ; un <textarea> n'en a qu'un, alors ici
+       il DÉPLACE la sélection d'une occurrence à la suivante. Le travail —
+       repérer un identifiant, le parcourir, le corriger — est le même ; la
+       mécanique ne peut pas l'être. */
+    const MOT = /[A-Za-z_]\w*/g;
+
+    function motAutour(texte, pos) {
+      MOT.lastIndex = 0;
+      let m;
+      while ((m = MOT.exec(texte))) {
+        if (m.index <= pos && pos <= m.index + m[0].length) return m;
+        if (m.index > pos) break;
+      }
+      return null;
+    }
+
+    /* Ctrl/Cmd+D — d'abord le mot sous le curseur, puis l'occurrence
+       suivante, en bouclant. Rien n'est modifié : on sélectionne. */
+    function occurrenceSuivante() {
+      const t = saisie.value;
+      let cible = t.slice(saisie.selectionStart, saisie.selectionEnd);
+      if (!cible || !/^[A-Za-z_]\w*$/.test(cible)) {
+        const m = motAutour(t, saisie.selectionStart);
+        if (!m) return false;
+        saisie.setSelectionRange(m.index, m.index + m[0].length);
+        return true;
+      }
+      const re = new RegExp("\\b" + cible.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      re.lastIndex = saisie.selectionEnd;
+      let m = re.exec(t);
+      if (!m) { re.lastIndex = 0; m = re.exec(t); }   // on boucle au début
+      if (!m) return false;
+      saisie.setSelectionRange(m.index, m.index + m[0].length);
+      /* Sans ce recentrage, la sélection suivante peut tomber hors du cadre
+         et l'on croit que rien ne s'est passé. */
+      const avant = t.slice(0, m.index).split("\n").length - 1;
+      const hLigne = saisie.scrollHeight / Math.max(1, t.split("\n").length);
+      const y = avant * hLigne;
+      if (y < saisie.scrollTop || y > saisie.scrollTop + saisie.clientHeight - hLigne * 2)
+        saisie.scrollTop = Math.max(0, y - saisie.clientHeight / 2);
+      return true;
+    }
+
+    /* Alt+Z — le retour à la ligne visuel. Les DEUX couches basculent :
+       le champ et sa peinture. Si l'une enroule et l'autre non, le texte
+       coloré se décale d'une ligne à chaque enroulement, et tout glisse. */
+    function basculerEnroulement() {
+      const on = racine.classList.toggle("enroule");
+      saisie.setAttribute("wrap", on ? "soft" : "off");
+      if (!on) peint.style.transform =
+        "translate(" + -saisie.scrollLeft + "px," + -saisie.scrollTop + "px)";
+      return on;
+    }
+
+    /* Le surlignage des occurrences. On ne touche pas au HTML peint avec une
+       expression régulière — ce serait colorer des balises. On marche sur les
+       NŒUDS DE TEXTE du rendu et on découpe ceux qui portent le mot : le texte
+       n'est pas modifié d'un caractère, il est seulement enveloppé. */
+    function surligner(mot) {
+      if (!mot || mot.length < 2) return;
+      const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      const marcheur = document.createTreeWalker(peint, NodeFilter.SHOW_TEXT);
+      const noeuds = [];
+      let nd;
+      while ((nd = marcheur.nextNode())) if (re.test(nd.nodeValue)) { re.lastIndex = 0; noeuds.push(nd); }
+      for (const noeud of noeuds) {
+        const trouves = [];
+        re.lastIndex = 0;
+        let m;
+        while ((m = re.exec(noeud.nodeValue))) trouves.push([m.index, m[0].length]);
+        /* De la fin vers le début : chaque découpe déplace ce qui suit. */
+        for (let i = trouves.length - 1; i >= 0; i--) {
+          const [deb, lg] = trouves[i];
+          const milieu = noeud.splitText(deb);
+          milieu.splitText(lg);
+          const marque = document.createElement("span");
+          marque.className = "edi-occ";
+          milieu.parentNode.insertBefore(marque, milieu);
+          marque.appendChild(milieu);
+        }
+      }
+    }
+
+    let motCourant = "";
+    function majOccurrences() {
+      const t = saisie.value;
+      const sel = t.slice(saisie.selectionStart, saisie.selectionEnd);
+      let mot = "";
+      if (sel && /^[A-Za-z_]\w*$/.test(sel)) mot = sel;
+      else if (saisie.selectionStart === saisie.selectionEnd) {
+        const m = motAutour(t, saisie.selectionStart);
+        if (m) mot = m[0];
+      }
+      if (mot === motCourant) return;
+      motCourant = mot;
+      redessiner();
+    }
+
     saisie.addEventListener("input", redessiner);
+    saisie.addEventListener("keyup", majOccurrences);
+    saisie.addEventListener("click", majOccurrences);
+    saisie.addEventListener("blur", () => { motCourant = ""; redessiner(); });
     saisie.addEventListener("scroll", () => {
       peint.style.transform = "translate(" + -saisie.scrollLeft + "px," + -saisie.scrollTop + "px)";
       marge.scrollTop = saisie.scrollTop;
@@ -146,6 +264,33 @@
       const d = saisie.selectionStart, f = saisie.selectionEnd, t = saisie.value;
 
       if (e.key === "Escape") { echappe = true; return; }
+
+      /* Ctrl+D sur PC, Cmd+D sur Mac — c'est la touche que chacun a dans les
+         doigts, et elle ouvre un marque-page dans les deux navigateurs si on
+         ne l'arrête pas. « preventDefault » n'est pas une précaution ici,
+         c'est la condition pour que le geste existe. */
+      if ((e.ctrlKey || e.metaKey) && !e.altKey &&
+          (e.key === "d" || e.key === "D")) {
+        e.preventDefault();
+        if (occurrenceSuivante()) majOccurrences();
+        return;
+      }
+      /* Alt+Z : le retour à la ligne visuel, comme dans VS Code. */
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "z" || e.key === "Z" ||
+          e.code === "KeyZ")) {
+        e.preventDefault();
+        const on = basculerEnroulement();
+        /* L'état se DIT, il ne se devine pas : l'onglet du volet l'affiche, et
+           le champ le porte dans son nom pour un lecteur d'écran. Un
+           interrupteur dont on ne voit pas la position n'est pas un
+           interrupteur. */
+        racine.closest(".at-volet").dataset.enroule = on ? "1" : "0";
+        saisie.setAttribute("aria-label",
+          "Votre programme. Retour à la ligne " + (on ? "activé" : "désactivé") +
+          " (Alt+Z). Ctrl+D sélectionne l'occurrence suivante du mot.");
+        return;
+      }
+
       if (e.key === "Tab") {
         if (echappe) { echappe = false; return; }
         e.preventDefault();

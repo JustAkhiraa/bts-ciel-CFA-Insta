@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=4d64e7e5">
+<link rel="stylesheet" href="../assets/fiche.css?v=a376b817">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -404,6 +404,40 @@ function mesurerCode(doc, vue) {
     const r = ratio(c, fond);
     if (r < 4.5) out.push({ sig: "code ." + cls, r: +r.toFixed(2), seuil: 4.5,
                             txt: el.textContent.trim().slice(0, 20) });
+  }
+
+  /* ── Et le même code SOUS LE SURLIGNAGE ──────────────────────────────
+     L'atelier C marque toutes les occurrences du mot sous le curseur. Ce
+     surlignage ne s'affiche qu'après un clic dans l'éditeur : le banc ne le
+     rencontrait donc jamais, et la couleur n'était vérifiée que par un calcul
+     à côté — exactement l'angle mort des corrigés repliés et de la feuille de
+     réglages, pour la troisième fois.
+
+     Ici on n'attend pas le clic : on POSE la classe sur un jeton, on mesure, on
+     l'enlève. La page n'est pas modifiée durablement, et l'état devient
+     mesurable au lieu d'être raisonné.
+
+     Le piège, ce serait de mesurer l'encre contre le fond du <pre> : le
+     surlignage est un calque translucide PAR-DESSUS, donc le fond réel est le
+     composé des deux. C'est lui qu'on calcule. */
+  const unJeton = doc.querySelector('pre [class^="j-"]');
+  if (unJeton && doc.querySelector(".edi-peint")) {
+    const marque = doc.createElement("span");
+    marque.className = "edi-occ";
+    unJeton.parentNode.insertBefore(marque, unJeton);
+    marque.appendChild(unJeton);
+    const voile = couleur(vue.getComputedStyle(marque).backgroundColor);
+    const fondMarque = voile[3] < 1 ? sur(voile, fond) : voile;
+    for (const el of doc.querySelectorAll('pre [class^="j-"]')) {
+      const cs = vue.getComputedStyle(el);
+      let c = couleur(cs.color); if (c[3] < 1) c = sur(c, fondMarque);
+      const r = ratio(c, fondMarque);
+      if (r < 4.5) out.push({ sig: "code surligné ." + el.className,
+                              r: +r.toFixed(2), seuil: 4.5,
+                              txt: el.textContent.trim().slice(0, 20) });
+    }
+    marque.parentNode.insertBefore(unJeton, marque);
+    marque.remove();
   }
   return out;
 }

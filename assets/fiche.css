@@ -4896,7 +4896,27 @@ td.etat.sur   { color: var(--vert); }
   resize: vertical;
 }
 .at-volet-code   { height: max(22rem, min(var(--h-volet), 86vh)); min-height: 220px; }
-.at-volet-sortie { height: max(22rem, min(var(--h-volet), 86vh)); min-height: 180px; }
+/* ── La console a sa hauteur, pas celle de l'éditeur ─────────────────────
+   « ça fait beaucoup quand la page de gauche est longue, la console l'est
+   aussi ; mettre une taille définie en fonction de la taille de la page et
+   mettre un truc pour scroller. »
+
+   Elle recevait « --h-volet », c'est-à-dire la hauteur de l'ÉDITEUR, elle-même
+   calculée pour trente lignes de code. Un programme de trente lignes qui
+   affiche « Bonjour » donnait donc trente lignes de noir pour une ligne de
+   texte. Les deux cadres n'ont pourtant pas le même métier : l'un est l'endroit
+   où l'on travaille, l'autre rend compte. VS Code ne fait pas autrement — un
+   grand éditeur, un terminal bas.
+
+   La console se mesure donc sur la PAGE : jamais moins de onze rem, jamais plus
+   de vingt-six, et 38 % de la fenêtre entre les deux. Elle défilait déjà
+   (« .con-flux » est en overflow:auto) ; ce qui manquait, c'est qu'elle cesse
+   de s'étirer. */
+.at-volet-sortie { height: clamp(11rem, 38vh, 26rem); min-height: 160px; }
+/* Sans cela, la grille étire le plus court sur la hauteur du plus long et le
+   réglage ci-dessus ne servirait à rien. En plein écran, au contraire, on veut
+   que les deux remplissent — c'est tout l'objet du plein écran. */
+.at-grille { align-items: start; }
 .at-volet::-webkit-resizer { background: none; }
 .at-poignee-note {
   margin: .45rem 0 0; font-size: .7273rem; color: var(--encre-tenue); text-align: right;
@@ -5041,6 +5061,7 @@ td.etat.sur   { color: var(--vert); }
   padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
   background: var(--papier);
 }
+#atelier.at-grand .at-grille { align-items: stretch; }
 #atelier.at-grand .at-volet-code,
 #atelier.at-grand .at-volet-sortie { height: auto; }
 /* 7,5 rem : la barre de commandes et le rembourrage, mesurés. Le reste de
@@ -5227,6 +5248,47 @@ body.at-fige { overflow: hidden; }
   padding-left: 1.3rem; }
 .dev-revisions .quiz li { margin: .25rem 0; }
 .dev-revisions .reponse p { margin: .55rem 0; }
+
+/* ═══════════════ les gestes de VS Code dans l'atelier ═════════════════════
+   Trois comportements repris à la main, sans rien charger : Ctrl/Cmd+D pour
+   parcourir les occurrences d'un mot, Alt+Z pour le retour à la ligne, et le
+   surlignage de toutes les occurrences du mot sous le curseur.
+
+   La couleur du surlignage n'est pas choisie à l'œil, et c'est heureux :
+   j'avais d'abord écrit ici qu'un voile CLAIR « ne peut que monter le rapport
+   de contraste ». C'est faux, exactement à l'envers, et le calcul l'a dit en
+   une seconde. Le fond d'un bloc de code est #23211E et l'encre y est CLAIRE ;
+   éclaircir le fond rapproche donc les deux. Mesuré sur les dix teintes de
+   coloration, un voile bleu clair à 26 % fait tomber les commentaires à
+   2,92:1 — très en dessous de AA — et même à 14 % ils restent à 3,78:1.
+
+   Il faut donc ASSOMBRIR. Quatre voiles ont été calculés ; celui retenu, un
+   bleu très sombre à 50 %, donne un fond composé de (22, 28, 47) où la teinte
+   la plus juste tient 5,14:1 — mieux que les 4,88:1 du fond nu. Le surlignage
+   rend donc le code un peu PLUS lisible, pas moins.
+
+   Le liseré, lui, peut être clair : une bordure ne porte aucun texte, elle ne
+   change aucun rapport. C'est elle qui rend la marque visible ; le fond, lui,
+   se contente de ne pas nuire. */
+.edi-occ {
+  background: rgba(10, 24, 64, .5);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(130, 170, 255, .55);
+}
+/* Le retour à la ligne : les DEUX couches basculent ensemble. Si le champ
+   enroule et que sa peinture ne le fait pas, le texte coloré se décale d'une
+   ligne à chaque enroulement et tout glisse — le défaut se voit tout de suite,
+   mais seulement sur une ligne assez longue pour enrouler. */
+.edi.enroule .edi-saisie,
+.edi.enroule .edi-peint { white-space: pre-wrap; overflow-wrap: anywhere; }
+.edi.enroule .edi-saisie { overflow-x: hidden; }
+/* L'onglet dit l'état, au lieu de le laisser deviner. */
+.at-volet[data-enroule="1"] .at-onglet::after {
+  content: " ⏎"; opacity: .75; font-size: .9em;
+}
+/* La note des raccourcis : elle vit sur la même ligne que celle des poignées,
+   et elle passe dessous dès que la place manque. */
+.at-raccourcis { display: inline-block; margin-left: .5rem; }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
