@@ -374,6 +374,16 @@ function poserSoleil(H) {
      mais tout le monde voit que quelque chose cloche. */
   lune.position.copy(dirLumiere).multiplyScalar(2300);
   lune.lookAt(0, 0, 0);
+  /* Le soleil se pose là où le CIEL le met — pas là d'où vient la lumière
+     d'appoint. Les deux directions diffèrent la nuit, et c'est voulu : la
+     lune éclaire, le soleil est sous l'horizon. De jour elles coïncident, et
+     le disque tombe donc exactement sur la tache claire du ciel de Preetham,
+     ce qui est la seule façon que les deux ne se contredisent pas. */
+  astre.position.copy(dirSoleil).multiplyScalar(2050);
+  astre.lookAt(0, 0, 0);
+  /* Un soleil sous l'horizon n'est pas un soleil : c'est une lampe posée dans
+     l'herbe. On le cache, comme le disque de Sky.js. */
+  astre.visible = H.hauteurSoleil > 2;
 }
 
 /* ── La lune et les étoiles ──────────────────────────────────────────────
@@ -387,6 +397,58 @@ const lune = new THREE.Mesh(
   new THREE.MeshBasicMaterial({ color: 0xF2F6FF, fog: false,
                                 transparent: true, opacity: 1 }));
 scene.add(lune);
+
+/* ── Le soleil, pour de bon ──────────────────────────────────────────────
+   « si possible mettre un soleil », puis « met un soleil » — redemandé.
+   J'avais cru régler l'affaire en allumant « showSunDisc » dans Sky.js. Le
+   drapeau était bien mis : le disque de Preetham existe, mais il fait le
+   demi-degré du vrai soleil, et sous une exposition de 0,55 il se noie dans
+   le blanc du ciel. Techniquement présent, visuellement absent — et c'est
+   « absent » qui compte, puisque la demande revient.
+
+   On en dessine donc un, comme la lune en a un. Trois disques : le cœur, un
+   halo serré, un halo large. L'empilement vaut mieux qu'un seul disque flou,
+   parce que c'est la DÉCROISSANCE de la lumière qui fait qu'on lit un astre
+   et non une pastille collée sur le ciel.
+
+   « fog: false » et « depthWrite: false » vont ensemble : sans le premier, la
+   brume l'éteint à deux mille unités ; sans le second, les halos se découpent
+   les uns sur les autres et l'on voit trois anneaux. */
+const astre = new THREE.Group();
+{
+  const couche = (r, couleur, opacite) => {
+    const m = new THREE.Mesh(
+      new THREE.CircleGeometry(r, 48),
+      new THREE.MeshBasicMaterial({ color: couleur, fog: false, depthWrite: false,
+                                    /* Le soleil échappe à la correction de
+                                       tonalité. Sans « toneMapped: false », un
+                                       blanc pur ressort à 202 sur 255 sous une
+                                       exposition de 0,55 — plus SOMBRE que le
+                                       ciel de Preetham, qui, lui, n'y passe
+                                       pas. Mon premier soleil était donc un
+                                       disque gris sur un ciel blanc : dessiné,
+                                       invisible, et donc redemandé. */
+                                    toneMapped: false,
+                                    transparent: true, opacity: opacite }));
+    astre.add(m);
+    return m;
+  };
+  /* L'ambre n'est pas un choix de goût, c'est le seul qui se voie. Autour du
+     soleil, le ciel de Preetham est déjà blanc à 235·244·249 : un disque blanc
+     n'en diffère que de 23 sur 255, soit rien. Mesuré sur trois palettes, le
+     même disque en ambre s'en détache de 92. Ce qui manque à un soleil posé
+     dans une tache claire, ce n'est pas de la lumière — c'est de la couleur. */
+  couche(150, 0xFFB54A, 0.16);   // le halo large
+  couche(92,  0xFFCE72, 0.30);   // le halo serré
+  couche(46,  0xFFE9A0, 1);      // le cœur
+}
+/* Après le dôme du ciel, pas avant. Posé à −1, le soleil se dessinait EN
+   PREMIER et le ciel — qui ne teste ni n'écrit la profondeur — repeignait
+   par-dessus. L'ordre de rendu ne dit pas « au fond » : il dit « d'abord ».
+   À 1, le soleil passe après le ciel ; et comme il teste toujours la
+   profondeur sans l'écrire, les bâtiments le cachent quand même. */
+astre.renderOrder = 1;
+scene.add(astre);
 
 const matEtoiles = new THREE.PointsMaterial({
   color: 0xC9DDFF, size: 2.4, sizeAttenuation: false,
@@ -2007,6 +2069,24 @@ function batirChat(rnd, assis, poser) {
            echelleY: corps.scale.y };
 }
 
+/* ── Tout le monde à hauteur d'homme ─────────────────────────────────────
+   « mettre les png à ma hauteur. »
+
+   Les silhouettes mesurent 12 à 13 unités quand l'œil du visiteur est à 17.
+   On les regardait donc toutes d'en haut, et c'est ce qui donnait au village
+   son air de maquette : ce n'est pas la taille des maisons qui fait l'échelle,
+   c'est celle des gens, parce que c'est à eux qu'on se compare.
+
+   Chaque constructeur annonce déjà sa taille ; il suffisait de s'en servir au
+   lieu de la jeter. Les bêtes gardent la leur — un mouton à hauteur d'homme
+   n'est plus un mouton, et « bas » est exactement ce qui les distingue. */
+const TAILLE_HOMME = 16.4;   // un cheveu sous l'œil : on voit le sommet du crâne
+function planter(role, g, rnd) {
+  const info = PASSANTS[role](g, rnd) || {};
+  if (!info.bas && info.h) g.scale.setScalar(TAILLE_HOMME / info.h);
+  return info;
+}
+
 const PASSANTS = {
   japonais(g, rnd) {
     g.add(cyl(lambert(0x3E5A78), 2.1, 3.6, 9.4, 8, 0, 4.7, 0));
@@ -2139,7 +2219,7 @@ for (const o of OBSTACLES_BOUT) MURS.push(o);
                  "japonais", "chat", "mib", "mouton", "chat", "cowboy"];
   ROLES.forEach((role, k) => {
     const g = new THREE.Group();
-    const info = PASSANTS[role](g, rnd);
+    const info = planter(role, g, rnd);
     /* Un passant sur quatre porte un fanal — jamais une bête. La nuit, ce
        sont ces lumières qui bougent qui rendent l'allée habitée. */
     if (!info.bas && k % 4 === 0) {
@@ -2269,7 +2349,7 @@ const SCENETTES = [];
       p.position.set(Math.cos(a) * rayonCercle, 0, Math.sin(a) * rayonCercle);
       /* Tourné vers le centre : atan2 de l'opposé de sa propre position. */
       p.rotation.y = Math.atan2(-p.position.x, -p.position.z);
-      PASSANTS[role](p, rnd);
+      planter(role, p, rnd);
       g.add(p);
     });
     scene.add(g);
@@ -2322,7 +2402,7 @@ const SCENETTES = [];
     const p = new THREE.Group();
     p.position.set(b.x - b.cote * (BOUT_P / 2 + 7), 0, b.z + 6);
     p.rotation.y = b.cote > 0 ? Math.PI / 2 : -Math.PI / 2;
-    PASSANTS[["japonais", "mib", "cowboy", "ninja"][i % 4]](p, rnd);
+    planter(["japonais", "mib", "cowboy", "ninja"][i % 4], p, rnd);
     scene.add(p);
     SCENETTES.push({
       bulle: bulle(p.position.x, 17, p.position.z, DITS.boutique,
@@ -2331,17 +2411,42 @@ const SCENETTES = [];
     });
   });
   /* 4 — Le danseur et sa radio. Il ne va nulle part, et c'est tout l'objet :
-     le seul mouvement du village qui ne mène à rien. */
+     le seul mouvement du village qui ne mène à rien.
+
+     Trois reproches en une phrase — « le png qui danse il est pas visible et
+     sa radio elle est sur lui et il danse même pas il saute » — et trois
+     causes distinctes :
+
+     · INVISIBLE. Il était à x = −66, z = 96, c'est-à-dire derrière le premier
+       rang de maisons, hors de l'allée et hors du chemin qu'on emprunte. Un
+       personnage qu'il faut chercher n'existe pas. Il vient maintenant sur la
+       place, à portée de vue du point de départ, du côté dégagé de la
+       fontaine.
+
+     · LA RADIO SUR LUI. Elle était à neuf unités de son centre et mesure
+       treize de large : elle commençait donc à deux unités et demie de lui —
+       c'est-à-dire dans ses jambes. Un objet se place par son BORD, pas par
+       son centre, quand ce qu'on veut c'est qu'il ne touche pas.
+
+     · IL SAUTAIT. « position.y = |sin| × 2,4 » n'est pas une danse, c'est un
+       ressort. Danser, sans squelette à articuler, c'est reporter son poids :
+       le corps glisse d'un pied sur l'autre, s'incline du côté où il pose, et
+       se tasse un peu quand il arrive — les genoux plient. Le haut suit avec
+       un temps de retard, sinon le personnage est raide comme une planche. Il
+       ne décolle plus du sol : personne ne danse en sautant. */
   {
-    const x = -V.demiAllee - 20, z = 96;
+    const x = V.demiAllee + 26, z = V.zFontaine + 30;
     const p = new THREE.Group();
     p.position.set(x, 0, z);
-    PASSANTS.cowboy(p, rnd);
+    planter("cowboy", p, rnd);
+    p.rotation.y = -0.6;
     scene.add(p);
 
-    /* La radio : une boîte, deux haut-parleurs, une poignée, une antenne. */
+    /* La radio : une boîte, deux haut-parleurs, une poignée, une antenne.
+       Posée à 17 unités — plus de la demi-largeur de la radio, plus la
+       largeur d'un homme, plus de quoi ne pas la renverser en dansant. */
     const r = new THREE.Group();
-    r.position.set(x + 9, 0, z + 2);
+    r.position.set(x + 17, 0, z + 2);
     r.add(bloc(lambert(0x2A2E36), 13, 8, 5, 0, 8, 0));
     for (const sx of [-1, 1])
       r.add(cyl(lambert(0x14161C), 2.4, 2.4, 1, 12, sx * 3.4, 8, 2.6).rotateX(Math.PI / 2));
@@ -2357,11 +2462,18 @@ const SCENETTES = [];
         map: TEX.lueur, transparent: true, opacity: 0, depthWrite: false,
         blending: THREE.AdditiveBlending, color: 0xFFE9A0, fog: true }));
       s.scale.setScalar(5);
-      s.position.set(x + 9, 13, z + 2);
+      s.position.set(x + 17, 13, z + 2);
       scene.add(s);
       notes.push({ s, t: k * 0.9 });
     }
-    SCENETTES.push({ bulle: bulle(x, 17, z, DITS.danse, "#FFB05A"),
+    /* Les valeurs de repos sont retenues sur l'objet : l'animation travaille
+       par ÉCART, jamais en valeur absolue. Sans cela, la mise à l'échelle des
+       silhouettes serait écrasée à la première image, et le danseur
+       redeviendrait petit. */
+    p.userData.x0 = p.position.x;
+    p.userData.r0 = p.rotation.y;
+    p.userData.s0 = p.scale.y;
+    SCENETTES.push({ bulle: bulle(x, 19, z, DITS.danse, "#FFB05A"),
                      x, z, danseur: p, notes, radio: r });
   }
 }
@@ -2521,7 +2633,32 @@ function glisserContre(x, z) {
   }
   oeil.pos.x = Math.max(-BORNES.x, Math.min(BORNES.x, x));
   oeil.pos.z = Math.max(BORNES.zMin, Math.min(BORNES.zMax, z));
-  oeil.pos.y = HAUTEUR_OEIL;
+  oeil.pos.y = HAUTEUR_OEIL + saut.h;
+}
+
+/* ── Le saut ─────────────────────────────────────────────────────────────
+   « avoir la possibilité de sauter avec espace. »
+
+   Une hauteur et une vitesse, rien de plus : pas de moteur physique pour un
+   village sans relief. La pesanteur est choisie pour que le saut dure un peu
+   moins d'une demi-seconde — au-delà on flotte, en deçà on n'a pas le temps
+   de voir qu'on a sauté.
+
+   On ne saute QUE depuis le sol. Sans ce test, une touche maintenue enfoncée
+   relance l'élan à chaque image et l'on monte indéfiniment — c'est le premier
+   défaut de tous les sauts écrits à la main. */
+const saut = { h: 0, v: 0 };
+const SAUT_ELAN = 46, PESANTEUR = 165;
+function sauter() {
+  if (saut.h > 0.01 || saut.v !== 0) return;
+  saut.v = SAUT_ELAN;
+}
+function avancerSaut(dt) {
+  if (saut.h <= 0 && saut.v <= 0) return;
+  saut.v -= PESANTEUR * dt;
+  saut.h += saut.v * dt;
+  if (saut.h <= 0) { saut.h = 0; saut.v = 0; }
+  oeil.pos.y = HAUTEUR_OEIL + saut.h;
 }
 
 const appui = new Set();
@@ -3401,6 +3538,10 @@ addEventListener("keydown", (e) => {
     const sens = TOUCHES[e.code];
     if (sens) { appui.add(sens); e.preventDefault(); return; }
     if (e.key === "Shift") { appui.add("vite"); return; }
+    /* Espace fait sauter. Le « preventDefault » n'est pas une précaution :
+       sans lui, la barre d'espace fait aussi défiler la page, et l'on saute
+       en voyant le monde glisser sous soi. */
+    if (e.code === "Space" && !e.repeat) { sauter(); e.preventDefault(); return; }
   }
   if (e.key === "ArrowRight") allerA(Math.min(matieres.length - 1, vue.matiere + 1));
   else if (e.key === "ArrowLeft") allerA(vue.matiere <= 0 ? -1 : vue.matiere - 1);
@@ -3705,6 +3846,10 @@ function image(now) {
   } else if (vue.matiere < 0) {
     /* Dans l'allée, c'est le marcheur qui tient la caméra. */
     marcher(dt);
+    /* Le saut vient APRÈS le pas : « marcher » repose l'œil à sa hauteur à
+       chaque déplacement, et le saut a le dernier mot. Dans l'autre ordre,
+       on ne saute que sur place. */
+    avancerSaut(dt);
   } else {
     /* Sur un parvis, elle rejoint sa place, amortie. L'amortissement est
        indépendant du nombre d'images par seconde : sur un écran à 120 Hz,
@@ -3823,9 +3968,19 @@ function image(now) {
       /* La danse : un rebond, un balancement, et un quart de tour qui va et
          vient. Trois sinusoïdes de périodes différentes — la même période
          partout donnerait un métronome, pas un danseur. */
-      s.danseur.position.y = Math.abs(Math.sin(t * 4.2)) * 2.4;
-      s.danseur.rotation.z = Math.sin(t * 2.1) * 0.13;
-      s.danseur.rotation.y = Math.sin(t * 1.35) * 0.8;
+      /* Le report du poids : un pied, puis l'autre. « pas » vaut −1 ou +1
+         selon le côté, et tout le reste en découle — l'inclinaison suit le
+         côté où l'on pose, le tassement arrive quand le poids arrive (donc
+         au DOUBLE de la cadence), et le buste tourne avec un temps de
+         retard. Une seule horloge, quatre conséquences : c'est ce qui fait
+         qu'on lit un corps et non quatre réglages. */
+      const pas = Math.sin(t * 3.1);
+      s.danseur.position.x = s.danseur.userData.x0 + pas * 1.8;
+      s.danseur.position.y = 0;            // on danse au sol, on ne saute pas
+      s.danseur.rotation.z = -pas * 0.16;
+      s.danseur.rotation.y = s.danseur.userData.r0 + Math.sin(t * 3.1 - 0.5) * 0.42;
+      /* Les genoux : le corps se tasse au moment où le pied touche. */
+      s.danseur.scale.y = s.danseur.userData.s0 * (1 - Math.abs(Math.cos(t * 3.1)) * 0.045);
       for (const n of s.notes) {
         n.t += dt;
         const u = (n.t % 2.6) / 2.6;
