@@ -147,11 +147,30 @@
         peindreMulti();
         direEtat("", -1, 0);
         if (etat) etat.textContent = multi.length + " sélections — tapez pour les changer toutes";
-      } else if (typeof motCourant === "string" && motCourant) {
-        surligner(motCourant, posCourante);
-        const [k, n] = rangOccurrence(motCourant, posCourante);
-        direEtat(motCourant, k, n);
-      } else direEtat("", -1, 0);
+      } else {
+        if (typeof motCourant === "string" && motCourant) {
+          surligner(motCourant, posCourante);
+          const [k, n] = rangOccurrence(motCourant, posCourante);
+          direEtat(motCourant, k, n);
+        } else direEtat("", -1, 0);
+        /* La paire se peint APRÈS le mot : si les deux tombent au même
+           endroit, c'est la paire qu'on veut voir par-dessus. */
+        if (paire) {
+          const [a1, b1] = paire;
+          if (b1 >= 0) {
+            marquerIntervalle(b1, b1 + 1, "edi-paire");
+            marquerIntervalle(a1, a1 + 1, "edi-paire");
+            if (etat && !motCourant) {
+              const ligne = saisie.value.slice(0, b1).split("\n").length;
+              etat.textContent = saisie.value[a1] + " " + saisie.value[b1] +
+                                 " · appariés, ligne " + ligne;
+            }
+          } else {
+            marquerIntervalle(a1, a1 + 1, "edi-paire orpheline");
+            if (etat) etat.textContent = saisie.value[a1] + " · rien ne la ferme";
+          }
+        }
+      }
       const n = t.split("\n").length;
       if (marge.childElementCount !== n || marge.dataset.marques !== String(marques.length)) {
         marge.dataset.marques = String(marques.length);
@@ -198,6 +217,70 @@
       while ((m = MOT.exec(texte))) {
         if (m.index <= pos && pos <= m.index + m[0].length) return m;
         if (m.index > pos) break;
+      }
+      return null;
+    }
+
+    /* ── les parenthésages ─────────────────────────────────────────────
+       « tu dois le faire pour tout, pour les { les ; tout ». Pour une
+       accolade, ce que fait VS Code — et ce qui sert — n'est pas d'allumer
+       toutes les accolades du fichier : c'est de montrer CELLE QUI FERME.
+       Un bloc qu'on croit fermé et qui ne l'est pas, c'est la moitié des
+       erreurs de compilation du premier semestre.
+
+       Encore faut-il ne pas compter les accolades qui n'en sont pas :
+       celles d'une chaîne — printf("}\n") — ou d'un commentaire. D'où ce
+       masque, qui dit pour chaque caractère s'il est du vrai code. Il se
+       recalcule à chaque déplacement du curseur ; sur un programme de TP,
+       c'est quelques milliers de caractères, soit rien. */
+    const OUVRANTS = "([{";
+    const FERMANTS = ")]}";
+
+    function masqueCode(t) {
+      const m = new Uint8Array(t.length);
+      let etat = 0;            // 0 code · 1 "…" · 2 '…' · 3 //… · 4 /*…*/
+      for (let i = 0; i < t.length; i++) {
+        const c = t[i], d = t[i + 1];
+        if (etat === 0) {
+          if (c === '"') { etat = 1; continue; }
+          if (c === "'") { etat = 2; continue; }
+          if (c === "/" && d === "/") { etat = 3; continue; }
+          if (c === "/" && d === "*") { etat = 4; i++; continue; }
+          m[i] = 1;
+        } else if (etat === 1) {
+          if (c === "\\") { i++; } else if (c === '"') etat = 0;
+        } else if (etat === 2) {
+          if (c === "\\") { i++; } else if (c === "'") etat = 0;
+        } else if (etat === 3) {
+          if (c === "\n") { etat = 0; m[i] = 1; }
+        } else if (etat === 4) {
+          if (c === "*" && d === "/") { etat = 0; i++; }
+        }
+      }
+      return m;
+    }
+
+    /* La paire autour du curseur : on regarde le caractère qui suit, puis
+       celui qui précède — c'est l'ordre de VS Code, et il compte quand le
+       curseur est coincé entre « ) » et « { ». */
+    function paireAutour(t, pos) {
+      const m = masqueCode(t);
+      for (const i of [pos, pos - 1]) {
+        if (i < 0 || i >= t.length || !m[i]) continue;
+        const c = t[i];
+        const io = OUVRANTS.indexOf(c), if_ = FERMANTS.indexOf(c);
+        if (io < 0 && if_ < 0) continue;
+        const sens = io >= 0 ? 1 : -1;
+        const ouvre = io >= 0 ? c : OUVRANTS[if_];
+        const ferme = io >= 0 ? FERMANTS[io] : c;
+        let profondeur = 0;
+        for (let j = i; j >= 0 && j < t.length; j += sens) {
+          if (!m[j]) continue;
+          if (t[j] === ouvre) profondeur += sens;
+          else if (t[j] === ferme) profondeur -= sens;
+          if (profondeur === 0) return i < j ? [i, j] : [j, i];
+        }
+        return [i, -1];                 // orpheline : rien ne la ferme
       }
       return null;
     }
@@ -364,7 +447,11 @@
          Les limites de mot font déjà le tri — le « i » de « int », de
          « include » ou de « printf » n'est pas une occurrence de « i ». */
       if (!mot) return;
-      const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      /* Un MOT se cherche entre limites de mot — le « i » de « int » n'est
+         pas une occurrence de « i ». Un littéral — « ; », « 5) » — n'a pas
+         de limites de mot : on le cherche tel quel. */
+      const bord = /^[A-Za-z_]\w*$/.test(mot) ? "\\b" : "";
+      const re = new RegExp(bord + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + bord, "g");
       /* On relève TOUS les nœuds de texte avec leur position absolue AVANT
          la moindre découpe : splitText change l'arbre sous les pieds du
          marcheur, et c'est cette position qui dit laquelle des occurrences
@@ -430,7 +517,8 @@
        Calculé sur le TEXTE, qui fait foi — pas sur la peinture. */
     function rangOccurrence(mot, pos) {
       if (!mot) return [-1, 0];
-      const re = new RegExp("\\b" + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "g");
+      const bord = /^[A-Za-z_]\w*$/.test(mot) ? "\\b" : "";
+      const re = new RegExp(bord + mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + bord, "g");
       const t = saisie.value;
       let m, n = 0, k = -1;
       while ((m = re.exec(t))) { if (m.index === pos) k = n; n++; }
@@ -503,6 +591,8 @@
     }
 
     let motCourant = "", posCourante = -1;
+    let litteral = false;          // la cible n'est pas un mot : « ; », « 5) »
+    let paire = null, paireCle = ""; // les deux positions de la paire ouverte
 
     /* Ce que l'éditeur sait et que le lecteur ne voit pas, il le DIT.
        C'est tout le défaut qu'il a signalé : « ctrl d ça sélectionne tous
@@ -522,17 +612,33 @@
       const t = saisie.value;
       const sel = t.slice(saisie.selectionStart, saisie.selectionEnd);
       let mot = "", pos = -1;
+      litteral = false;
       if (sel && /^[A-Za-z_]\w*$/.test(sel)) { mot = sel; pos = saisie.selectionStart; }
-      else if (saisie.selectionStart === saisie.selectionEnd) {
+      else if (sel && sel.length <= 40 && sel.indexOf("\n") < 0) {
+        /* Une sélection qui n'est pas un mot — « ; », « 5) », « i++ » —
+           s'éclaire quand même : c'est ce que fait VS Code dès qu'on
+           sélectionne quoi que ce soit, et c'est la réponse à « les ; ».
+           Sans limite de longueur, sélectionner la moitié du programme
+           ferait chercher cette moitié partout, pour rien. */
+        mot = sel; pos = saisie.selectionStart; litteral = true;
+      } else if (saisie.selectionStart === saisie.selectionEnd) {
         const m = motAutour(t, saisie.selectionStart);
         if (m) { mot = m[0]; pos = m.index; }
       }
+      /* La paire d'accolades, de crochets ou de parenthèses, quand le
+         curseur en touche une. Elle vit à côté du surlignage de mot, pas à
+         sa place : on peut très bien être dans un mot ET contre une
+         parenthèse — « printf( » en est un. */
+      const pr = saisie.selectionStart === saisie.selectionEnd
+               ? paireAutour(t, saisie.selectionStart) : null;
+      const prCle = pr ? pr.join(",") : "";
+      if (prCle !== paireCle) { paireCle = prCle; paire = pr; }
+      else if (mot === motCourant && pos === posCourante) return;
       /* La POSITION fait partie de l'état. Sans elle, Ctrl+D déplaçait bien
          la sélection d'une occurrence à la suivante — le mot, lui, ne
          changeait pas — et l'on sortait d'ici sans rien redessiner : la
          marque active restait sur place. Le geste marchait, il ne se voyait
          pas. */
-      if (mot === motCourant && pos === posCourante) return;
       motCourant = mot;
       posCourante = pos;
       redessiner();
