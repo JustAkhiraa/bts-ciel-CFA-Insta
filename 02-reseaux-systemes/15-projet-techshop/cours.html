@@ -7,7 +7,7 @@
 <meta name="description" content="Projet réseau complet : cahier des charges TechShop, plan d'adressage, VLAN et trunks 802.1Q, Router-on-a-Stick, DHCP centralisé et ip helper-address, routage statique, NAT statique, ACL et recette de validation.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=07498d7f">
+<link rel="stylesheet" href="../../assets/fiche.css?v=61525842">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -382,9 +382,9 @@
      risques du cahier des charges : les broadcasts du pôle VENTE et la confidentialité du pôle
      ADMIN.</p>
 
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — SW-COEUR</span><pre><code><span class="j-mc">configure</span> <span class="j-mc">terminal</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — SW-COEUR</span><pre><code><span class="j-mc">configure</span> <span class="j-att">terminal</span>
 <span class="j-mc"> hostname</span><span class="j-txt"> SW-COEUR</span>
-<span class="j-mc"> no ip</span> <span class="j-mc">domain-lookup</span>              ← évite l'attente de <span class="j-num">30</span> s sur une faute de frappe
+<span class="j-mc"> no ip</span> <span class="j-att">domain-lookup</span>              ← évite l'attente de <span class="j-num">30</span> s sur une faute de frappe
 
 <span class="j-mc">vlan</span> <span class="j-num">10</span>
 <span class="j-mc"> name</span> VENTE
@@ -395,7 +395,7 @@
 <span class="j-mc">vlan</span> <span class="j-num">99</span>
 <span class="j-mc"> name</span> <span class="j-fn">native</span>                      ← VLAN natif dédié, sans aucun poste
 <span class="j-mc">vlan</span> <span class="j-num">999</span>
-<span class="j-mc"> name</span> PARKING                     ← où l'on <span class="j-mc">range</span> les ports inutilisés
+<span class="j-mc"> name</span> PARKING                     ← où l'on <span class="j-att">range</span> les ports inutilisés
 <span class="j-mc"> exit</span></code></pre></div>
 
   <h3>Port d'accès ou port trunk</h3>
@@ -427,19 +427,19 @@
   </div>
 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — les trunks de SW-COEUR</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">fa0/1</span>                              ← vers R-STICK : il lui faut tout
-<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 10</span>,<span class="j-num">20,30</span>,<span class="j-num">99</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">fa0/2</span>                              ← vers SW-<span class="j-num">1</span> (TECH) : rien d'autre à y passer
-<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 30</span>,<span class="j-num">99</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">fa0/3</span>                              ← vers SW-<span class="j-num">2</span> (VENTE + ADMIN)
-<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 10</span>,<span class="j-num">20,99</span>
 <span class="j-mc"> exit</span></code></pre></div>
@@ -460,8 +460,8 @@
           ouvert au public est une porte d'entrée. On la place dans un VLAN « parking » qui ne
           mène nulle part, et on la coupe.</li>
     </ol>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fa0/4</span>-<span class="j-num">24</span> , gig0/<span class="j-num">1</span>-<span class="j-num">2</span>
-<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">access</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">fa0/4</span>-<span class="j-num">24</span> , gig0/<span class="j-num">1</span>-<span class="j-num">2</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">access</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">access</span> <span class="j-typ">vlan 999</span>
 <span class="j-mc"> shutdown</span>
 <span class="j-mc"> exit</span></code></pre></div>
@@ -471,8 +471,8 @@
     <div class="titre">🔧 Corrigé — le VLAN natif absent d'un côté du trunk</div>
     <p>Sur le lien SW-COEUR (fa0/2) ↔ SW-1 (fa0/1), les deux extrémités ne déclarent pas la même
        liste :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — l'asymétrie</span><pre><code><span class="j-mc">SW-COEUR</span>, <span class="j-typ">fa0/2</span> :  <span class="j-mc">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 30</span>,<span class="j-num">99</span>
-<span class="j-mc">SW-1</span>,     <span class="j-typ">fa0/1</span> :  <span class="j-mc">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 30</span>        ← le <span class="j-num">99</span> manque</code></pre></div>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — l'asymétrie</span><pre><code><span class="j-mc">SW-COEUR</span>, <span class="j-typ">fa0/2</span> :  <span class="j-att">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 30</span>,<span class="j-num">99</span>
+<span class="j-mc">SW-1</span>,     <span class="j-typ">fa0/1</span> :  <span class="j-att">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 30</span>        ← le <span class="j-num">99</span> manque</code></pre></div>
     <p>Le VLAN natif reste le 99 des deux côtés : il n'y a donc <strong>pas</strong> de
        <code>NATIVE_VLAN_MISMATCH</code>, et aucun message d'erreur n'apparaît. Le lien monte, les
        postes TECH communiquent, tous les tests passent — <strong>l'impact immédiat est
@@ -491,9 +491,9 @@
     <div class="titre">⚠️ Piège d'examen — <code>allowed</code> n'est pas <code>not pruned</code></div>
     <p>La commande <code>show interfaces trunk</code> affiche <strong>trois</strong> blocs
        successifs, et la plupart des étudiants n'en lisent que le premier :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — sortie réelle du projet</span><pre><code><span class="j-mc">SW-COEUR</span>#<span class="j-mc">show</span> interfaces <span class="j-fn">trunk</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — sortie réelle du projet</span><pre><code><span class="j-mc">SW-COEUR</span>#<span class="j-att">show</span> interfaces <span class="j-fn">trunk</span>
 
-<span class="j-mc">Port</span>    Mode  Encapsulation  Status     Native <span class="j-mc">vlan</span>
+<span class="j-mc">Port</span>    Mode  Encapsulation  Status     Native <span class="j-att">vlan</span>
 <span class="j-mc">Fa0</span>/<span class="j-num">1</span>   on    <span class="j-num">802</span>.1q         trunking   <span class="j-num">99</span>
 <span class="j-mc">Fa0</span>/<span class="j-num">2</span>   on    <span class="j-num">802</span>.1q         trunking   <span class="j-num">99</span>
 <span class="j-mc">Fa0</span>/<span class="j-num">3</span>   on    <span class="j-num">802</span>.1q         trunking   <span class="j-num">99</span>
@@ -576,22 +576,22 @@
 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">g0/0</span>
 <span class="j-mc"> description</span><span class="j-txt"> LAN_Siege</span>
-<span class="j-mc"> no shutdown</span>                      ← l'<span class="j-mc">interface</span> PHYSIQUE doit être allumée
+<span class="j-mc"> no shutdown</span>                      ← l'<span class="j-att">interface</span> PHYSIQUE doit être allumée
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.10</span>
-<span class="j-mc"> encapsulation</span> <span class="j-fn">dot1q</span> <span class="j-num">10</span>           ← « je réponds <span class="j-mc">aux</span> trames étiquetées <span class="j-num">10</span> »
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> encapsulation</span> <span class="j-fn">dot1q</span> <span class="j-num">10</span>           ← « je réponds <span class="j-att">aux</span> trames étiquetées <span class="j-num">10</span> »
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.20</span>
 <span class="j-mc"> encapsulation</span> <span class="j-fn">dot1q</span> <span class="j-num">20</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.20.1</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">192.168.20.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.30</span>
 <span class="j-mc"> encapsulation</span> <span class="j-fn">dot1q</span> <span class="j-num">30</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.30.1</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">192.168.30.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc"> exit</span></code></pre></div>
 
   <div class="encart piege">
@@ -728,10 +728,10 @@
   <div class="encart outils">
     <div class="titre">🧰 <code>ip helper-address</code> — deux lignes, tout le mécanisme</div>
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK</span><pre><code><span class="j-var">R-STICK(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.10</span>
-<span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-mc">helper-address</span> <span class="j-num">192.168.20.11</span>
+<span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-att">helper-address</span> <span class="j-num">192.168.20.11</span>
 <span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> exit</span>
 <span class="j-var">R-STICK(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.30</span>
-<span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-mc">helper-address</span> <span class="j-num">192.168.20.11</span>
+<span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-att">helper-address</span> <span class="j-num">192.168.20.11</span>
 <span class="j-var">R-STICK(config-subif)#</span><span class="j-mc"> exit</span></code></pre></div>
     <p>La commande se place sur la sous-interface <strong>où arrive le broadcast</strong>, jamais
        du côté du serveur. Le routeur y fait deux choses :</p>
@@ -779,11 +779,11 @@
     <p>Une version intermédiaire du projet — celle que décrit le compte rendu remis en juin —
        faisait le DHCP sur le routeur, et annonçait à chaque VLAN un DNS <em>de son propre
        réseau</em> :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — ce qui était écrit</span><pre><code><span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> VLAN10_VENTE
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — ce qui était écrit</span><pre><code><span class="j-mc">ip</span> <span class="j-att">dhcp</span> <span class="j-att">pool</span> VLAN10_VENTE
 <span class="j-mc"> dns-server</span> <span class="j-num">192.168.10.11</span>        ← ✘ aucune machine ne porte cette adresse
-<span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> VLAN20_ADMIN
+<span class="j-mc">ip</span> <span class="j-att">dhcp</span> <span class="j-att">pool</span> VLAN20_ADMIN
 <span class="j-mc"> dns-server</span> <span class="j-num">192.168.20.11</span>        ← ✔ le vrai serveur
-<span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> VLAN30_TECH
+<span class="j-mc">ip</span> <span class="j-att">dhcp</span> <span class="j-att">pool</span> VLAN30_TECH
 <span class="j-mc"> dns-server</span> <span class="j-num">192.168.30.11</span>        ← ✘ n'existe pas non plus</code></pre></div>
     <p>Le plan d'adressage du projet ne déclare <strong>qu'un seul</strong> serveur DNS :
        <code>192.168.20.11</code>. Les postes VENTE et TECH recevaient donc l'adresse d'une machine
@@ -791,9 +791,9 @@
     <p>Le piège est que <strong>les tests passent quand même</strong> : les pings du compte rendu
        sont faits vers des <em>adresses IP</em>, jamais vers des noms. Un
        <code>ping serveurfichiers.techshop.local</code> aurait échoué immédiatement.</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — corrigé</span><pre><code><span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> VLAN10_VENTE
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — corrigé</span><pre><code><span class="j-mc">ip</span> <span class="j-att">dhcp</span> <span class="j-att">pool</span> VLAN10_VENTE
 <span class="j-mc"> dns-server</span> <span class="j-num">192.168.20.11</span>        ← le serveur DNS est unique, il est dans le <span class="j-typ">VLAN 20</span>
-<span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> VLAN30_TECH
+<span class="j-mc">ip</span> <span class="j-att">dhcp</span> <span class="j-att">pool</span> VLAN30_TECH
 <span class="j-mc"> dns-server</span> <span class="j-num">192.168.20.11</span></code></pre></div>
     <p class="rap">La version finale du projet corrige le problème d'elle-même : le serveur dédié
        annonce <code>192.168.20.11</code> aux trois pools, et l'<code>ipconfig /all</code> d'un
@@ -804,9 +804,9 @@
     <div class="titre">🔧 Corrigé — le <code>no</code> qui annule l'exclusion</div>
     <p>Dans le même fichier intermédiaire, la première des trois exclusions portait un
        <code>no</code> :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — ce qui était écrit</span><pre><code><span class="j-mc">no ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">192.168.10.11</span>   ← ✘ SUPPRIME l'exclusion
-<span class="j-mc">   ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.20.1</span> <span class="j-num">192.168.20.11</span>   ← ✔
-<span class="j-mc">   ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">excluded-address</span> <span class="j-num">192.168.30.1</span> <span class="j-num">192.168.30.11</span>   ← ✔</code></pre></div>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — ce qui était écrit</span><pre><code><span class="j-mc">no ip</span> <span class="j-att">dhcp</span> <span class="j-att">excluded-address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">192.168.10.11</span>   ← ✘ SUPPRIME l'exclusion
+<span class="j-mc">   ip</span> <span class="j-att">dhcp</span> <span class="j-att">excluded-address</span> <span class="j-num">192.168.20.1</span> <span class="j-num">192.168.20.11</span>   ← ✔
+<span class="j-mc">   ip</span> <span class="j-att">dhcp</span> <span class="j-att">excluded-address</span> <span class="j-num">192.168.30.1</span> <span class="j-num">192.168.30.11</span>   ← ✔</code></pre></div>
     <p>En IOS, <code>no</code> devant une commande la <strong>retire</strong>. Le VLAN 10 n'avait
        donc aucune adresse protégée : le pool pouvait distribuer <code>192.168.10.1</code> —
        <strong>l'adresse de la passerelle</strong>. Le premier poste à obtenir ce bail rendait le
@@ -856,25 +856,25 @@
      faut le lui dire.</p>
 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK (siège)</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">Serial0/0/0</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">10.0.0.1</span> <span class="j-num">255.255.255.252</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">10.0.0.1</span> <span class="j-num">255.255.255.252</span>
 <span class="j-mc"> no shutdown</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-com">! pour joindre le réseau de l'entrepôt, sortir par 10.0.0.2</span>
-<span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">192.168.50.0</span> <span class="j-num">255.255.255.0</span> <span class="j-num">10.0.0.2</span></code></pre></div>
+<span class="j-mc">ip</span> <span class="j-att">route</span> <span class="j-num">192.168.50.0</span> <span class="j-num">255.255.255.0</span> <span class="j-num">10.0.0.2</span></code></pre></div>
 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-ENTREPOT</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">Serial0/0/0</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">10.0.0.2</span> <span class="j-num">255.255.255.252</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">10.0.0.2</span> <span class="j-num">255.255.255.252</span>
 <span class="j-mc"> no shutdown</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">g0/0</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.50.1</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">192.168.50.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc"> no shutdown</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-com">! tout ce que je ne connais pas part vers le siège</span>
-<span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-num">10.0.0.1</span></code></pre></div>
+<span class="j-mc">ip</span> <span class="j-att">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-num">10.0.0.1</span></code></pre></div>
 
   <div class="encart methode">
     <div class="titre">🧭 Pourquoi les deux routes ne se ressemblent pas</div>
@@ -916,8 +916,8 @@
 
   <div class="encart outils">
     <div class="titre">🧰 Lire <code>show ip route</code></div>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK, sortie réelle</span><pre><code><span class="j-mc">R-STICK</span>#<span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">route</span>
-<span class="j-mc">Gateway</span> of last resort is not <span class="j-mc">set</span>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK, sortie réelle</span><pre><code><span class="j-mc">R-STICK</span>#<span class="j-att">show</span> <span class="j-att">ip</span> <span class="j-att">route</span>
+<span class="j-mc">Gateway</span> of last resort is not <span class="j-att">set</span>
 
      <span class="j-num">10.0.0.0/8</span> is variably subnetted, <span class="j-num">2</span> subnets, <span class="j-num">2</span> masks
 <span class="j-mc">C</span>       <span class="j-num">10.0.0.0/30</span> is directly connected, <span class="j-typ">Serial0/0/0</span>
@@ -953,7 +953,7 @@
        directement branché sur <code>g0/1</code>, donc connu.</p>
     <p>Sur une vraie sortie Internet, il en faudrait une — sans quoi le routeur jette tout ce qui
        ne figure pas dans sa table :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — pour aller plus loin</span><pre><code><span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-num">203.0.113.1</span>     ← l'adresse du routeur du FAI</code></pre></div>
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — pour aller plus loin</span><pre><code><span class="j-mc">ip</span> <span class="j-att">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-num">203.0.113.1</span>     ← l'adresse du routeur du FAI</code></pre></div>
     <p>Le projet ne l'exige pas : le seul flux Internet demandé est <em>entrant</em>, vers le
        serveur d'inventaire. Mais le savoir vous met à l'abri de la question « et si un poste
        voulait sortir sur Internet ? » — à laquelle il manquerait aussi une règle de NAT
@@ -971,22 +971,22 @@
      <code>203.0.113.20</code>. C'est le <strong>NAT statique</strong>.</p>
 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK</span><pre><code><span class="j-com">! la traduction : une privée ↔ une publique, en permanence</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span> <span class="j-mc">source</span> <span class="j-mc">static</span> <span class="j-num">192.168.30.10</span> <span class="j-num">203.0.113.20</span>
+<span class="j-mc">ip</span> <span class="j-att">nat</span> <span class="j-fn">inside</span> <span class="j-att">source</span> <span class="j-att">static</span> <span class="j-num">192.168.30.10</span> <span class="j-num">203.0.113.20</span>
 
 <span class="j-com">! l'interface tournée vers l'extérieur</span>
 <span class="j-mc">interface</span> <span class="j-typ">g0/1</span>
-<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">203.0.113.10</span> <span class="j-num">255.255.255.0</span>
-<span class="j-mc"> ip</span> <span class="j-mc">nat</span> <span class="j-fn">outside</span>
+<span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">203.0.113.10</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> ip</span> <span class="j-att">nat</span> <span class="j-fn">outside</span>
 <span class="j-mc"> no shutdown</span>
 <span class="j-mc"> exit</span>
 
 <span class="j-com">! les interfaces tournées vers l'intérieur — toutes les sous-interfaces</span>
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.10</span>
-<span class="j-mc"> ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span>
+<span class="j-mc"> ip</span> <span class="j-att">nat</span> <span class="j-fn">inside</span>
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.20</span>
-<span class="j-mc"> ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span>
+<span class="j-mc"> ip</span> <span class="j-att">nat</span> <span class="j-fn">inside</span>
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.30</span>
-<span class="j-mc"> ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span>
+<span class="j-mc"> ip</span> <span class="j-att">nat</span> <span class="j-fn">inside</span>
 <span class="j-mc"> end</span></code></pre></div>
 
   <div class="encart piege">
@@ -997,8 +997,8 @@
     <p>C'est une panne silencieuse : <code>show running-config</code> montre bien la ligne
        <code>ip nat inside source static</code>, tout paraît configuré, et rien ne fonctionne. La
        commande qui tranche :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R-STICK</span>#<span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> statistics
-<span class="j-mc">Total</span> translations: <span class="j-num">1</span> (<span class="j-num">1</span> <span class="j-mc">static</span>, <span class="j-num">0</span> dynamic, <span class="j-num">0</span> extended)
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R-STICK</span>#<span class="j-att">show</span> <span class="j-att">ip</span> <span class="j-att">nat</span> statistics
+<span class="j-mc">Total</span> translations: <span class="j-num">1</span> (<span class="j-num">1</span> <span class="j-att">static</span>, <span class="j-num">0</span> dynamic, <span class="j-num">0</span> extended)
 <span class="j-mc">Outside</span> Interfaces: <span class="j-typ">GigabitEthernet0/1</span>
 <span class="j-mc">Inside</span> Interfaces: <span class="j-typ">GigabitEthernet0/0.10</span> , <span class="j-typ">GigabitEthernet0/0.20</span> , <span class="j-typ">GigabitEthernet0/0.30</span></code></pre></div>
     <p>Si l'une des deux lignes <em>Interfaces</em> est vide, la cause est trouvée.</p>
@@ -1018,11 +1018,11 @@
   <div class="encart outils">
     <div class="titre">🧰 La preuve : <code>show ip nat translation</code></div>
     <p>Avant tout trafic, la traduction statique est déjà là, seule et permanente :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — avant</span><pre><code><span class="j-mc">Pro</span>  Inside global     Inside <span class="j-mc">local</span>       Outside <span class="j-mc">local</span>    Outside global
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — avant</span><pre><code><span class="j-mc">Pro</span>  Inside global     Inside <span class="j-att">local</span>       Outside <span class="j-att">local</span>    Outside global
 ---  <span class="j-num">203.0.113.20</span>      <span class="j-num">192.168.30.10</span>      ---              ---</code></pre></div>
     <p>Après un ping depuis l'hôte Internet (<code>203.0.113.30</code>), les sessions ICMP
        apparaissent :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — après</span><pre><code><span class="j-mc">Pro</span>   Inside global      Inside <span class="j-mc">local</span>        Outside <span class="j-mc">local</span>      Outside global
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — après</span><pre><code><span class="j-mc">Pro</span>   Inside global      Inside <span class="j-att">local</span>        Outside <span class="j-att">local</span>      Outside global
 <span class="j-mc">icmp</span>  <span class="j-num">203.0.113.20</span>:<span class="j-num">18</span>    <span class="j-num">192.168.30.10</span>:<span class="j-num">18</span>    <span class="j-num">203.0.113.30</span>:<span class="j-num">18</span>    <span class="j-num">203.0.113.30</span>:<span class="j-num">18</span>
 <span class="j-mc">icmp</span>  <span class="j-num">203.0.113.20</span>:<span class="j-num">19</span>    <span class="j-num">192.168.30.10</span>:<span class="j-num">19</span>    <span class="j-num">203.0.113.30</span>:<span class="j-num">19</span>    <span class="j-num">203.0.113.30</span>:<span class="j-num">19</span>
 ---   <span class="j-num">203.0.113.20</span>       <span class="j-num">192.168.30.10</span>       ---                ---</code></pre></div>
@@ -1053,7 +1053,7 @@
       <p>Il faudrait ajouter du <strong>NAT dynamique avec surcharge</strong> (PAT) — tous les
          postes derrière la même adresse publique, distingués par le numéro de port :</p>
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — pour aller plus loin</span><pre><code><span class="j-mc">access-list</span> <span class="j-num">1</span> <span class="j-fn">permit</span> <span class="j-num">192.168.0.0</span> <span class="j-num">0.0.255.255</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span> <span class="j-mc">source</span> list <span class="j-num">1</span> <span class="j-mc">interface</span> <span class="j-typ">g0/1</span> <span class="j-mc">overload</span></code></pre></div>
+<span class="j-mc">ip</span> <span class="j-att">nat</span> <span class="j-fn">inside</span> <span class="j-att">source</span> list <span class="j-num">1</span> <span class="j-att">interface</span> <span class="j-typ">g0/1</span> <span class="j-att">overload</span></code></pre></div>
       <p class="rap">Le cahier des charges ne le demande pas — il ne réclame qu'un flux
          <em>entrant</em> vers le serveur d'inventaire. Savoir énoncer cette limite, et la
          commande qui la lèverait, vaut mieux que de laisser croire que tout sort déjà.
@@ -1094,11 +1094,11 @@
 
   <p>VENTE doit atteindre les <strong>serveurs</strong> d'ADMIN — pas ses postes.</p>
 
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK</span><pre><code><span class="j-mc">ip</span> <span class="j-mc">access-list</span> extended PROTECT_ADMIN
-<span class="j-mc"> permit</span> <span class="j-mc">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> host <span class="j-num">192.168.20.10</span>      ← <span class="j-num">1</span>. serveur de fichiers : OUI
-<span class="j-mc"> permit</span> <span class="j-mc">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> host <span class="j-num">192.168.20.11</span>      ← <span class="j-num">2</span>. serveur DHCP/DNS : OUI
-<span class="j-mc"> deny</span>   <span class="j-mc">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> <span class="j-num">192.168.20.0</span> <span class="j-num">0.0.0.255</span>  ← <span class="j-num">3</span>. le reste d'ADMIN : NON
-<span class="j-mc"> permit</span> <span class="j-mc">ip</span> <span class="j-fn">any</span> <span class="j-fn">any</span>                                        ← <span class="j-num">4</span>. tout le reste : OUI
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — R-STICK</span><pre><code><span class="j-mc">ip</span> <span class="j-att">access-list</span> extended PROTECT_ADMIN
+<span class="j-mc"> permit</span> <span class="j-att">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> host <span class="j-num">192.168.20.10</span>      ← <span class="j-num">1</span>. serveur de fichiers : OUI
+<span class="j-mc"> permit</span> <span class="j-att">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> host <span class="j-num">192.168.20.11</span>      ← <span class="j-num">2</span>. serveur DHCP/DNS : OUI
+<span class="j-mc"> deny</span>   <span class="j-att">ip</span> <span class="j-num">192.168.10.0</span> <span class="j-num">0.0.0.255</span> <span class="j-num">192.168.20.0</span> <span class="j-num">0.0.0.255</span>  ← <span class="j-num">3</span>. le reste d'ADMIN : NON
+<span class="j-mc"> permit</span> <span class="j-att">ip</span> <span class="j-fn">any</span> <span class="j-fn">any</span>                                        ← <span class="j-num">4</span>. tout le reste : OUI
 <span class="j-mc"> exit</span>
 
 <span class="j-mc">interface</span> <span class="j-typ">g0/0.20</span>
@@ -1351,7 +1351,7 @@ Reply from <span class="j-num">192.168</span>.<span class="j-num">20.10</span>: 
     <div class="titre">🔧 Corrigé — deux mesures annoncées mais non appliquées</div>
     <p>La partie « Sécurité » annonce que les ports inutilisés sont placés dans un VLAN 999
        « parking » et éteints. Sur SW-1, <code>show vlan brief</code> raconte autre chose :</p>
-<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — SW-1, sortie réelle</span><pre><code><span class="j-mc">SW-1</span>#<span class="j-mc">show</span> <span class="j-mc">vlan</span> brief
+<div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — SW-1, sortie réelle</span><pre><code><span class="j-mc">SW-1</span>#<span class="j-att">show</span> <span class="j-att">vlan</span> brief
 
 <span class="j-mc">VLAN</span> Name      Status    Ports
 ---- --------- --------- ----------------------------------------
@@ -1372,8 +1372,8 @@ Reply from <span class="j-num">192.168</span>.<span class="j-num">20.10</span>: 
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS — à appliquer sur SW-1</span><pre><code><span class="j-mc">vlan</span> <span class="j-num">999</span>
 <span class="j-mc"> name</span> PARKING
 <span class="j-mc"> exit</span>
-<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fa0/2</span>-<span class="j-num">5</span> , gig0/<span class="j-num">1</span>-<span class="j-num">2</span>
-<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">access</span>
+<span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">fa0/2</span>-<span class="j-num">5</span> , gig0/<span class="j-num">1</span>-<span class="j-num">2</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">access</span>
 <span class="j-mc"> switchport</span> <span class="j-fn">access</span> <span class="j-typ">vlan 999</span>
 <span class="j-mc"> shutdown</span>
 <span class="j-mc"> exit</span></code></pre></div>
@@ -1496,7 +1496,7 @@ Reply from <span class="j-num">192.168</span>.<span class="j-num">20.10</span>: 
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../14-cybersecurite-cned/cours.html"><span>Chapitre précédent</span><b>Cybersécurité — CNED</b></a><a class="suiv" href="../16-td-revision-synthese/cours.html"><span>Chapitre suivant</span><b>TD de révision — synthèse</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=07498d7f"></script>
-<script src="../../assets/app.js?v=07498d7f"></script>
+<script src="../../assets/fiche.js?v=61525842"></script>
+<script src="../../assets/app.js?v=61525842"></script>
 </body>
 </html>
