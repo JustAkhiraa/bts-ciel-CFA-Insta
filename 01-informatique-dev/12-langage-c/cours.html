@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : compilation, squelette d'un programme, types, opérateurs, printf et scanf, conditions et boucles, puis les fonctions (prototype, portée, les quatre formes) et les tableaux.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=3bc09c2c">
+<link rel="stylesheet" href="../../assets/fiche.css?v=9c7c25b9">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -1706,6 +1706,84 @@ octet 4 : 50</code></pre></div>
        <code>i + 1</code> pour parler à l'utilisateur en « première, deuxième… » tout en
        gardant l'indice <code>i</code> pour le tableau.</p>
   </div>
+
+  <h3>19.1 · Pourquoi un tableau plutôt que cinq variables</h3>
+  <p>Le polycopié ouvre le chapitre par la solution qu'on <em>n'écrit pas</em>, et c'est la
+     meilleure façon de comprendre à quoi sert un tableau :</p>
+  <div class="bloc-code" data-fam="c"><span class="langue">C — ce qu'on évite</span><pre><code><span class="j-typ">float</span> <span class="j-var">note1</span>;
+<span class="j-typ">float</span> <span class="j-var">note2</span>;
+<span class="j-typ">float</span> <span class="j-var">note3</span>;
+<span class="j-typ">float</span> <span class="j-var">note4</span>;
+<span class="j-typ">float</span> <span class="j-var">note5</span>;</code></pre></div>
+  <p>Cinq noms pour cinq valeurs de même nature. Le jour où il y en a trente, il faut trente
+     noms — et surtout, <strong>aucune boucle ne peut les parcourir</strong> : une boucle sait
+     faire varier un indice, pas un nom de variable. Une seule ligne remplace les cinq :</p>
+  <div class="bloc-code" data-fam="c"><span class="langue">C — ce qu'on écrit</span><pre><code><span class="j-typ">float</span> <span class="j-var">notes</span>[<span class="j-num">5</span>];</code></pre></div>
+
+  <h3>19.2 · Modifier une case après coup</h3>
+  <p>Une case de tableau s'affecte comme n'importe quelle variable, à tout moment :</p>
+  <div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">nombres</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {<span class="j-num">10</span>, <span class="j-num">20</span>, <span class="j-num">30</span>, <span class="j-num">40</span>, <span class="j-num">50</span>};
+
+    <span class="j-var">nombres</span>[<span class="j-num">1</span>] <span class="j-op">=</span> <span class="j-num">50</span>;          <span class="j-com">/* la deuxième case passe de 20 à 50 */</span>
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"nombres[1] = %d\n"</span>, <span class="j-var">nombres</span>[<span class="j-num">1</span>]);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>nombres[1] = 50</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Le tableau sans taille : <code>int nombres[] = {…};</code></div>
+    <p>Quand les valeurs sont données à la déclaration, on peut laisser les crochets vides :
+       <strong>le compilateur compte</strong>.</p>
+    <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-var">nombres</span>[] <span class="j-op">=</span> {<span class="j-num">10</span>, <span class="j-num">20</span>, <span class="j-num">30</span>, <span class="j-num">40</span>, <span class="j-num">50</span>};   <span class="j-com">/* cinq cases, comptées par le compilateur */</span></code></pre></div>
+    <p class="rap">C'est à la fois plus court et plus sûr : ajouter une valeur à la liste
+       agrandit le tableau tout seul, alors qu'un <code>[5]</code> écrit à la main deviendrait
+       faux sans prévenir. Attention cependant — <strong>cela ne marche qu'avec une liste
+       d'initialisation</strong>. <code>int nombres[];</code> tout seul ne compile pas : le
+       compilateur n'a rien à compter.</p>
+  </div>
+
+  <h3>19.3 · L'accumulateur : additionner les cases</h3>
+  <p>Le motif le plus réemployé de tout le chapitre. Une variable de cumul mise à
+     <strong>zéro avant la boucle</strong>, et augmentée à chaque tour :</p>
+  <div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">nombres</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {<span class="j-num">10</span>, <span class="j-num">20</span>, <span class="j-num">30</span>, <span class="j-num">40</span>, <span class="j-num">50</span>};
+    <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+    {
+        <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-var">somme</span> <span class="j-op">+</span> <span class="j-var">nombres</span>[<span class="j-var">i</span>];
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"somme = %d\n"</span>, <span class="j-var">somme</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>somme = 150</code></pre></div>
+  <p class="rap">Oublier le <code>= 0</code> est la faute classique : <code>somme</code>
+     partirait d'une valeur quelconque et le total serait faux sans que rien ne le signale.
+     C'est exactement ce que l'atelier de ce site détecte et nomme.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>for (int i = 0; …)</code> : la variable déclarée dans la boucle</div>
+    <p>Le polycopié écrit souvent <code>for (int i = 0; i &lt; 5; i++)</code>, alors que ce
+       chapitre déclare <code>int i;</code> avant. <strong>Les deux sont justes</strong>, et il
+       faut savoir lire les deux.</p>
+    <p>Déclarer dans le <code>for</code> est autorisé depuis <strong>C99</strong>, et c'est la
+       meilleure forme : <code>i</code> n'existe que dans la boucle, donc on ne peut pas s'en
+       servir par erreur après. Déclarer avant est la forme du C d'origine (C89), et c'est la
+       seule qui compile avec un compilateur ancien ou l'option <code>-std=c89</code>.</p>
+    <p class="rap">En examen, écrivez celle de votre professeur. En projet, déclarez dans le
+       <code>for</code> : une variable qui vit le moins longtemps possible est une variable
+       qu'on ne peut pas confondre.</p>
+  </div>
 </section>
 
 <!-- ================================================================= 20 -->
@@ -2052,7 +2130,7 @@ port 4 : 185</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=3bc09c2c"></script>
-<script src="../../assets/app.js?v=3bc09c2c"></script>
+<script src="../../assets/fiche.js?v=9c7c25b9"></script>
+<script src="../../assets/app.js?v=9c7c25b9"></script>
 </body>
 </html>
