@@ -7,7 +7,7 @@
 <meta name="description" content="Le TP d'infrastructure, mission par mission, avec les configurations complètes de R1, R2, R3, S1 et S3 : base, VLAN, inter-VLAN, RIPv2, DHCP, NAT, NTP et IPv6.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=9d0775f8">
+<link rel="stylesheet" href="../../assets/fiche.css?v=07498d7f">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -78,24 +78,24 @@
       <div class="reponse">
         <p><strong>Effacer, sur chaque équipement :</strong></p>
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
-erase <span class="j-mc">startup-config</span>
-delete <span class="j-mc">vlan</span>.dat
-reload</code></pre></div>
+<span class="j-mc">erase</span> <span class="j-mc">startup-config</span>
+<span class="j-mc">delete</span> <span class="j-mc">vlan</span>.dat
+<span class="j-mc">reload</span></code></pre></div>
         <p><strong>Le socle, identique partout sauf le nom</strong> (exemple pour R1) :</p>
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">hostname</span> R1
-<span class="j-mc">no</span> <span class="j-mc">ip</span> domain-lookup
-<span class="j-mc">enable</span> <span class="j-mc">secret</span> class
-<span class="j-mc">service</span> <span class="j-mc">password</span>-encryption
-<span class="j-mc">banner</span> <span class="j-mc">motd</span> #Unauthorized Access is Prohibited!#
+<span class="j-mc">hostname</span><span class="j-txt"> R1</span>
+<span class="j-mc">no ip</span> <span class="j-mc">domain-lookup</span>
+<span class="j-mc">enable</span> <span class="j-mc">secret</span><span class="j-txt"> class</span>
+<span class="j-mc">service</span> <span class="j-mc">password-encryption</span>
+<span class="j-mc">banner</span> <span class="j-mc">motd</span><span class="j-txt"> #Unauthorized Access is Prohibited!#</span>
 <span class="j-mc">line</span> <span class="j-mc">console</span> <span class="j-num">0</span>
-<span class="j-mc">password</span> cisco
+<span class="j-mc">password</span><span class="j-txt"> cisco</span>
 <span class="j-mc">login</span>
-logging synchronous
+<span class="j-mc">logging</span> <span class="j-mc">synchronous</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">line</span> vty <span class="j-num">0</span> <span class="j-num">4</span>
-<span class="j-mc">password</span> cisco
+<span class="j-mc">line</span> <span class="j-mc">vty</span> <span class="j-num">0</span> <span class="j-num">4</span>
+<span class="j-mc">password</span><span class="j-txt"> cisco</span>
 <span class="j-mc">login</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">end</span>
@@ -134,61 +134,61 @@ logging synchronous
         <p><strong>R1</strong> — la liaison vers R2, et la sortie par défaut :</p>
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-ipv6 unicast-routing
+<span class="j-mc">ipv6</span> <span class="j-mc">unicast-routing</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/0</span>
-<span class="j-mc">description</span> Liaison WAN vers R2
+<span class="j-mc">description</span><span class="j-txt"> Liaison WAN vers R2</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.1.1</span> <span class="j-num">255.255.255.252</span>
-ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">1</span>::<span class="j-num">1</span>/<span class="j-num">64</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">address</span> <span class="j-num">2001:DB8:ACAD:1::1/64</span>
 <span class="j-mc">clock</span> <span class="j-mc">rate</span> <span class="j-num">128000</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-typ">serial 0/0/0</span>
-ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span> <span class="j-typ">serial 0/0/0</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">route</span> <span class="j-num">::/0</span> <span class="j-typ">serial 0/0/0</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
         <p><strong>R2</strong> — deux liaisons série, la sortie Internet, le serveur web :</p>
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-ipv6 unicast-routing
-<span class="j-mc">ip</span> http server
+<span class="j-mc">ipv6</span> <span class="j-mc">unicast-routing</span>
+<span class="j-mc">ip</span> http <span class="j-mc">server</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/0</span>
-<span class="j-mc">description</span> Liaison WAN vers R1
+<span class="j-mc">description</span><span class="j-txt"> Liaison WAN vers R1</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.1.2</span> <span class="j-num">255.255.255.252</span>
-ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">1</span>::<span class="j-num">2</span>/<span class="j-num">64</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">address</span> <span class="j-num">2001:DB8:ACAD:1::2/64</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/1</span>
-<span class="j-mc">description</span> Liaison WAN vers R3
+<span class="j-mc">description</span><span class="j-txt"> Liaison WAN vers R3</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.2.2</span> <span class="j-num">255.255.255.252</span>
-ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">3</span>::<span class="j-num">2</span>/<span class="j-num">64</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">address</span> <span class="j-num">2001:DB8:ACAD:3::2/64</span>
 <span class="j-mc">clock</span> <span class="j-mc">rate</span> <span class="j-num">128000</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/0</span>
-<span class="j-mc">description</span> Sortie Internet
+<span class="j-mc">description</span><span class="j-txt"> Sortie Internet</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">209.165.200.233</span> <span class="j-num">255.255.255.248</span>
-ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">2</span>::<span class="j-num">1</span>/<span class="j-num">64</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">address</span> <span class="j-num">2001:DB8:ACAD:2::1/64</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">loopback 0</span>
-<span class="j-mc">description</span> Serveur web simule
+<span class="j-mc">description</span><span class="j-txt"> Serveur web simule</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">10.10.10.10</span> <span class="j-num">255.255.255.255</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-typ">gigabitEthernet 0/0</span>
-ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span> <span class="j-typ">gigabitEthernet 0/0</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">route</span> <span class="j-num">::/0</span> <span class="j-typ">gigabitEthernet 0/0</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
         <p><strong>R3</strong> — la liaison vers R2 et les trois réseaux simulés :</p>
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-ipv6 unicast-routing
+<span class="j-mc">ipv6</span> <span class="j-mc">unicast-routing</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/1</span>
-<span class="j-mc">description</span> Liaison WAN vers R2
+<span class="j-mc">description</span><span class="j-txt"> Liaison WAN vers R2</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">172.16.2.1</span> <span class="j-num">255.255.255.252</span>
-ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:<span class="j-num">3</span>::<span class="j-num">1</span>/<span class="j-num">64</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">address</span> <span class="j-num">2001:DB8:ACAD:3::1/64</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">loopback 4</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.4.1</span> <span class="j-num">255.255.255.0</span>
@@ -200,7 +200,7 @@ ipv6 <span class="j-mc">address</span> <span class="j-num">2001</span>:DB8:ACAD:
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.6.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> <span class="j-mc">route</span> <span class="j-num">0.0.0.0</span> <span class="j-num">0.0.0.0</span> <span class="j-typ">serial 0/0/1</span>
-ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span> <span class="j-typ">serial 0/0/1</span>
+<span class="j-mc">ipv6</span> <span class="j-mc">route</span> <span class="j-num">::/0</span> <span class="j-typ">serial 0/0/1</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
@@ -267,30 +267,30 @@ ipv6 <span class="j-mc">route</span> ::/<span class="j-num">0</span> <span class
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 <span class="j-mc">vlan</span> <span class="j-num">21</span>
-name Comptabilite
+<span class="j-mc">name</span> Comptabilite
 <span class="j-mc">vlan</span> <span class="j-num">23</span>
-name Engineering
+<span class="j-mc">name</span> Engineering
 <span class="j-mc">vlan</span> <span class="j-num">99</span>
-name Gestion
+<span class="j-mc">name</span> Gestion
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> <span class="j-mc">vlan</span> <span class="j-num">99</span>
+<span class="j-mc">interface</span> <span class="j-typ">vlan 99</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.99.2</span> <span class="j-num">255.255.255.0</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> default-gateway <span class="j-num">192.168.99.1</span>
-<span class="j-mc">interface</span> range <span class="j-typ">fastEthernet 0/3</span>, <span class="j-typ">fastEthernet 0/5</span>
-<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
-<span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">1</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fastEthernet 0/3</span>, <span class="j-typ">fastEthernet 0/5</span>
+<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 1</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> range <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span>, <span class="j-typ">fastEthernet 0/6</span> - <span class="j-num">24</span>
-<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span>, <span class="j-typ">fastEthernet 0/6</span> - <span class="j-num">24</span>
+<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-fn">access</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">fastEthernet 0/6</span>
-<span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">21</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">switchport</span> <span class="j-fn">access</span> <span class="j-typ">vlan 21</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> range <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span>, <span class="j-typ">fastEthernet 0/7</span> - <span class="j-num">24</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span>, <span class="j-typ">fastEthernet 0/7</span> - <span class="j-num">24</span>
 <span class="j-mc">shutdown</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
@@ -299,30 +299,30 @@ name Gestion
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 <span class="j-mc">vlan</span> <span class="j-num">21</span>
-name Comptabilite
+<span class="j-mc">name</span> Comptabilite
 <span class="j-mc">vlan</span> <span class="j-num">23</span>
-name Engineering
+<span class="j-mc">name</span> Engineering
 <span class="j-mc">vlan</span> <span class="j-num">99</span>
-name Gestion
+<span class="j-mc">name</span> Gestion
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> <span class="j-mc">vlan</span> <span class="j-num">99</span>
+<span class="j-mc">interface</span> <span class="j-typ">vlan 99</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.99.3</span> <span class="j-num">255.255.255.0</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> default-gateway <span class="j-num">192.168.99.1</span>
 <span class="j-mc">interface</span> <span class="j-typ">fastEthernet 0/3</span>
-<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
-<span class="j-mc">switchport</span> <span class="j-mc">trunk</span> native <span class="j-mc">vlan</span> <span class="j-num">1</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc">switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 1</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> range <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span> - <span class="j-num">24</span>
-<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span> - <span class="j-num">24</span>
+<span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-fn">access</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">fastEthernet 0/18</span>
-<span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">23</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">switchport</span> <span class="j-fn">access</span> <span class="j-typ">vlan 23</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">interface</span> range <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span> - <span class="j-num">17</span>, <span class="j-typ">fastEthernet 0/19</span> - <span class="j-num">24</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fastEthernet 0/1</span> - <span class="j-num">2</span>, <span class="j-typ">fastEthernet 0/4</span> - <span class="j-num">17</span>, <span class="j-typ">fastEthernet 0/19</span> - <span class="j-num">24</span>
 <span class="j-mc">shutdown</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
@@ -331,22 +331,22 @@ name Gestion
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/1</span>
-<span class="j-mc">no</span> <span class="j-mc">ip</span> <span class="j-mc">address</span>
-<span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc">no ip</span> <span class="j-mc">address</span>
+<span class="j-mc">no shutdown</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/1.21</span>
-<span class="j-mc">description</span> LAN Comptabilite
-<span class="j-mc">encapsulation</span> dot1Q <span class="j-num">21</span>
+<span class="j-mc">description</span><span class="j-txt"> LAN Comptabilite</span>
+<span class="j-mc">encapsulation</span> <span class="j-fn">dot1Q</span> <span class="j-num">21</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.21.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/1.23</span>
-<span class="j-mc">description</span> LAN Engineering
-<span class="j-mc">encapsulation</span> dot1Q <span class="j-num">23</span>
+<span class="j-mc">description</span><span class="j-txt"> LAN Engineering</span>
+<span class="j-mc">encapsulation</span> <span class="j-fn">dot1Q</span> <span class="j-num">23</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.23.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/1.99</span>
-<span class="j-mc">description</span> LAN Gestion
-<span class="j-mc">encapsulation</span> dot1Q <span class="j-num">99</span>
+<span class="j-mc">description</span><span class="j-txt"> LAN Gestion</span>
+<span class="j-mc">encapsulation</span> <span class="j-fn">dot1Q</span> <span class="j-num">99</span>
 <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.99.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
@@ -373,9 +373,9 @@ name Gestion
 
         <div class="encart methode">
           <div class="titre">🧭 Vérifier avant de passer à la suite</div>
-          <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">show</span> <span class="j-mc">vlan</span> brief              ← les trois <span class="j-typ">VLAN </span>existent, F0/<span class="j-num">6</span> est bien dans le <span class="j-num">21</span>
-<span class="j-mc">show</span> interfaces <span class="j-mc">trunk</span>        ← <span class="j-typ">VLAN </span>natif <span class="j-num">1</span>, et <span class="j-num">21</span>/<span class="j-num">23</span>/<span class="j-num">99</span> autorisés
-<span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">interface</span> brief      ← les sous-interfaces de R1 en up/up</code></pre></div>
+          <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">show</span> <span class="j-mc">vlan</span> brief              ← les trois VLAN existent, <span class="j-typ">F0/6</span> est bien dans le <span class="j-num">21</span>
+<span class="j-mc">show</span> interfaces <span class="j-fn">trunk</span>        ← VLAN natif <span class="j-num">1</span>, et <span class="j-num">21</span>/<span class="j-num">23</span>/<span class="j-num">99</span> autorisés
+<span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">interface</span> brief      ← les sous-interfaces de R1 en <span class="j-fn">up</span>/<span class="j-fn">up</span></code></pre></div>
           <p class="rap">Puis un ping de S1 vers <code>192.168.99.1</code>. S'il passe, le
              VLAN de gestion et l'agrégation fonctionnent tous les deux — deux étages validés
              d'un coup.</p>
@@ -400,12 +400,12 @@ name Gestion
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R1 :
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R1</span> :
 <span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">router</span> rip
+<span class="j-mc">router</span> <span class="j-mc">rip</span>
 <span class="j-mc">version</span> <span class="j-num">2</span>
-<span class="j-mc">no</span> auto-summary
+<span class="j-mc">no auto-summary</span>
 <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span>
 <span class="j-mc">network</span> <span class="j-num">192.168.23.0</span>
@@ -416,24 +416,24 @@ name Gestion
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2 :
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R2</span> :
 <span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">router</span> rip
+<span class="j-mc">router</span> <span class="j-mc">rip</span>
 <span class="j-mc">version</span> <span class="j-num">2</span>
-<span class="j-mc">no</span> auto-summary
+<span class="j-mc">no auto-summary</span>
 <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 <span class="j-mc">passive-interface</span> <span class="j-typ">loopback 0</span>
-default-information originate
+<span class="j-mc">default-information</span> originate
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R3 :
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R3</span> :
 <span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">router</span> rip
+<span class="j-mc">router</span> <span class="j-mc">rip</span>
 <span class="j-mc">version</span> <span class="j-num">2</span>
-<span class="j-mc">no</span> auto-summary
+<span class="j-mc">no auto-summary</span>
 <span class="j-mc">network</span> <span class="j-num">172.16.0.0</span>
 <span class="j-mc">network</span> <span class="j-num">192.168.4.0</span>
 <span class="j-mc">network</span> <span class="j-num">192.168.5.0</span>
@@ -506,13 +506,13 @@ default-information originate
 <span class="j-mc">network</span> <span class="j-num">192.168.21.0</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">default-router</span> <span class="j-num">192.168.21.1</span>
 <span class="j-mc">dns-server</span> <span class="j-num">10.10.10.10</span>
-domain-name ccna-sa.com
+<span class="j-mc">domain-name</span><span class="j-txt"> ccna-sa.com</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">ip</span> <span class="j-mc">dhcp</span> <span class="j-mc">pool</span> ENGNR
 <span class="j-mc">network</span> <span class="j-num">192.168.23.0</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc">default-router</span> <span class="j-num">192.168.23.1</span>
 <span class="j-mc">dns-server</span> <span class="j-num">10.10.10.10</span>
-domain-name ccna-sa.com
+<span class="j-mc">domain-name</span><span class="j-txt"> ccna-sa.com</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
@@ -569,21 +569,21 @@ domain-name ccna-sa.com
       <div class="reponse">
         <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source static <span class="j-num">10.10.10.10</span> <span class="j-num">209.165.200.229</span>
+<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span> <span class="j-mc">source</span> <span class="j-mc">static</span> <span class="j-num">10.10.10.10</span> <span class="j-num">209.165.200.229</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/0</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
+<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">serial 0/0/1</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span>
+<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span>
 <span class="j-mc">exit</span>
 <span class="j-mc">interface</span> <span class="j-typ">gigabitEthernet 0/0</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">outside</span>
+<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">outside</span>
 <span class="j-mc">exit</span>
-<span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.21.0</span> <span class="j-num">0.0.0.255</span>
-<span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.23.0</span> <span class="j-num">0.0.0.255</span>
-<span class="j-mc">access</span>-list <span class="j-num">1</span> permit <span class="j-num">192.168.4.0</span> <span class="j-num">0.0.3.255</span>
+<span class="j-mc">access-list</span> <span class="j-num">1</span> <span class="j-fn">permit</span> <span class="j-num">192.168.21.0</span> <span class="j-num">0.0.0.255</span>
+<span class="j-mc">access-list</span> <span class="j-num">1</span> <span class="j-fn">permit</span> <span class="j-num">192.168.23.0</span> <span class="j-num">0.0.0.255</span>
+<span class="j-mc">access-list</span> <span class="j-num">1</span> <span class="j-fn">permit</span> <span class="j-num">192.168.4.0</span> <span class="j-num">0.0.3.255</span>
 <span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">pool</span> INTERNET <span class="j-num">209.165.200.225</span> <span class="j-num">209.165.200.228</span> netmask <span class="j-num">255.255.255.248</span>
-<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-mc">inside</span> source list <span class="j-num">1</span> <span class="j-mc">pool</span> INTERNET
+<span class="j-mc">ip</span> <span class="j-mc">nat</span> <span class="j-fn">inside</span> <span class="j-mc">source</span> list <span class="j-num">1</span> <span class="j-mc">pool</span> INTERNET
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
@@ -631,7 +631,7 @@ Masque de sous<span class="j-op">-</span>réseau : <span class="j-num">255.255.2
           <div class="titre">🧭 Comment savoir que ça marche</div>
           <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> translations     ← la table doit se remplir dès qu'un poste sort
 <span class="j-mc">show</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> statistics       ← compteur « Hits » qui augmente
-clear <span class="j-mc">ip</span> <span class="j-mc">nat</span> translation *   ← purge les entrées dynamiques pour repartir propre</code></pre></div>
+<span class="j-mc">clear</span> <span class="j-mc">ip</span> <span class="j-mc">nat</span> translation *   ← purge les entrées dynamiques pour repartir propre</code></pre></div>
           <p class="rap">Un tableau vide après un ping sortant signifie presque toujours
              qu'il manque <code>ip nat inside</code> ou <code>ip nat outside</code> quelque
              part. Commencez par là, avant de relire la liste d'accès.</p>
@@ -656,25 +656,25 @@ clear <span class="j-mc">ip</span> <span class="j-mc">nat</span> translation *  
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R2 — le serveur de temps :
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R2</span> — le serveur de temps :
 <span class="j-mc">enable</span>
-<span class="j-mc">clock</span> set <span class="j-num">09</span>:<span class="j-num">00</span>:<span class="j-num">00</span> <span class="j-num">5</span> March <span class="j-num">2016</span>
+<span class="j-mc">clock</span> <span class="j-mc">set</span> <span class="j-num">09:00:00</span> <span class="j-num">5</span> March <span class="j-num">2016</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-ntp master <span class="j-num">5</span>
+<span class="j-mc">ntp</span> <span class="j-mc">master</span> <span class="j-num">5</span>
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>R1 — le client :
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">R1</span> — le client :
 <span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-ntp server <span class="j-num">172.16.1.2</span>
-ntp update-calendar
+<span class="j-mc">ntp</span> <span class="j-mc">server</span> <span class="j-num">172.16.1.2</span>
+<span class="j-mc">ntp</span> update-calendar
 <span class="j-mc">end</span>
 <span class="j-mc">write</span> <span class="j-mc">memory</span></code></pre></div>
 
-        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code>Vérification, sur R1 :
-<span class="j-mc">show</span> ntp status         ← « Clock is synchronized, stratum <span class="j-num">6</span> »
-<span class="j-mc">show</span> ntp associations   ← le serveur <span class="j-num">172.16.1.2</span>, avec un * devant
+        <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">Vérification</span>, sur R1 :
+<span class="j-mc">show</span> <span class="j-mc">ntp</span> status         ← « Clock is synchronized, stratum <span class="j-num">6</span> »
+<span class="j-mc">show</span> <span class="j-mc">ntp</span> associations   ← le serveur <span class="j-num">172.16.1.2</span>, avec un * devant
 <span class="j-mc">show</span> <span class="j-mc">clock</span>              ← l'heure doit correspondre à celle de R2</code></pre></div>
 
         <div class="encart piege">
@@ -819,7 +819,7 @@ ntp update-calendar
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../16-td-revision-synthese/exercices.html"><span>Chapitre précédent</span><b>TD de révision — synthèse</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=9d0775f8"></script>
-<script src="../../assets/app.js?v=9d0775f8"></script>
+<script src="../../assets/fiche.js?v=07498d7f"></script>
+<script src="../../assets/app.js?v=07498d7f"></script>
 </body>
 </html>

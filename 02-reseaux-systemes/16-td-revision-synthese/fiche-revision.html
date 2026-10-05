@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche recto-verso imprimable : OSI et PDU, la méthode VLSM, les commandes Cisco de base, VLAN access et trunk, router-on-a-stick contre SVI, et l'ordre de diagnostic.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=9d0775f8">
+<link rel="stylesheet" href="../../assets/fiche.css?v=07498d7f">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -87,18 +87,18 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
     <h2>Configuration de base</h2>
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">enable</span>
 <span class="j-mc">configure</span> <span class="j-mc">terminal</span>
-<span class="j-mc">hostname</span> SW1
-<span class="j-mc">enable</span> <span class="j-mc">secret</span> cisco123
+<span class="j-mc">hostname</span><span class="j-txt"> SW1</span>
+<span class="j-mc">enable</span> <span class="j-mc">secret</span><span class="j-txt"> cisco123</span>
 <span class="j-mc">line</span> <span class="j-mc">console</span> <span class="j-num">0</span>
- <span class="j-mc">password</span> consolepass
- <span class="j-mc">login</span>
-<span class="j-mc">line</span> vty <span class="j-num">0</span> <span class="j-num">4</span>
- <span class="j-mc">password</span> vtypass
- <span class="j-mc">login</span>
-<span class="j-mc">service</span> <span class="j-mc">password</span>-encryption
-<span class="j-mc">interface</span> <span class="j-mc">vlan</span> <span class="j-num">1</span>
- <span class="j-mc">ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.1.2</span> <span class="j-num">255.255.255.0</span>
- <span class="j-mc">no</span> <span class="j-mc">shutdown</span>
+<span class="j-mc"> password</span><span class="j-txt"> consolepass</span>
+<span class="j-mc"> login</span>
+<span class="j-mc">line</span> <span class="j-mc">vty</span> <span class="j-num">0</span> <span class="j-num">4</span>
+<span class="j-mc"> password</span><span class="j-txt"> vtypass</span>
+<span class="j-mc"> login</span>
+<span class="j-mc">service</span> <span class="j-mc">password-encryption</span>
+<span class="j-mc">interface</span> <span class="j-typ">vlan 1</span>
+<span class="j-mc"> ip</span> <span class="j-mc">address</span> <span class="j-num">192.168.1.2</span> <span class="j-num">255.255.255.0</span>
+<span class="j-mc"> no shutdown</span>
 <span class="j-mc">ip</span> default-gateway <span class="j-num">192.168.1.1</span>
 <span class="j-mc">end</span>
 <span class="j-mc">copy</span> <span class="j-mc">running-config</span> <span class="j-mc">startup-config</span></code></pre></div>
@@ -109,16 +109,16 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
   <article class="memo">
     <h2>VLAN · access et trunk</h2>
 <div class="bloc-code" data-fam="cisco"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">vlan</span> <span class="j-num">10</span>
- name DIRECTION
+<span class="j-mc"> name</span> DIRECTION
 
-<span class="j-mc">interface</span> range fa0/<span class="j-num">1</span> - <span class="j-num">5</span>
- <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">access</span>
- <span class="j-mc">switchport</span> <span class="j-mc">access</span> <span class="j-mc">vlan</span> <span class="j-num">10</span>
+<span class="j-mc">interface</span> <span class="j-mc">range</span> <span class="j-typ">fa0/1</span> - <span class="j-num">5</span>
+<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">access</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">access</span> <span class="j-typ">vlan 10</span>
 
-<span class="j-mc">interface</span> g0/<span class="j-num">1</span>
- <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> <span class="j-mc">encapsulation</span> dot1q
- <span class="j-mc">switchport</span> <span class="j-mc">mode</span> <span class="j-mc">trunk</span>
- <span class="j-mc">switchport</span> <span class="j-mc">trunk</span> allowed <span class="j-mc">vlan</span> <span class="j-num">10,20</span>,<span class="j-num">30</span></code></pre></div>
+<span class="j-mc">interface</span> <span class="j-typ">g0/1</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-mc">encapsulation</span> <span class="j-fn">dot1q</span>
+<span class="j-mc"> switchport</span> <span class="j-mc">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 10</span>,<span class="j-num">20,30</span></code></pre></div>
     <p><strong>access</strong> = 1 VLAN, sans étiquette · <strong>trunk</strong> = plusieurs VLAN,
        étiquetés <strong>802.1Q</strong> (4 octets, 12 bits → <strong>4 094</strong> VLAN).</p>
     <p>Sur un 2960, <code>switchport trunk encapsulation</code> <strong>n'existe pas</strong> :
@@ -206,7 +206,7 @@ interface vlan 10
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../15-projet-techshop/fiche-revision.html"><span>Chapitre précédent</span><b>Projet TechShop</b></a><a class="suiv" href="../17-atelier-infrastructure/fiche-revision.html"><span>Chapitre suivant</span><b>Atelier — infrastructure complète</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=9d0775f8"></script>
-<script src="../../assets/app.js?v=9d0775f8"></script>
+<script src="../../assets/fiche.js?v=07498d7f"></script>
+<script src="../../assets/app.js?v=07498d7f"></script>
 </body>
 </html>
