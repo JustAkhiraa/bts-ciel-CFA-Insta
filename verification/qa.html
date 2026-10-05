@@ -218,9 +218,20 @@ function deborde(doc, w) {
   const d = doc.documentElement;
   if (d.scrollWidth <= w + 1) return null;
   let pire = null;
+  /* Un élément enfermé dans un conteneur qui défile ne peut PAS élargir la
+     page : il est coupé. Les désigner fausse l'enquête — le banc a nommé un
+     <span> de coloration clippé par l'éditeur pendant que le vrai coupable,
+     un tableau libre de pousser, passait inaperçu. On remonte donc jusqu'au
+     corps, et on écarte tout ce qui rencontre un overflow-x en chemin. */
+  const clippe = (el) => {
+    for (let p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
+      if (getComputedStyle(p).overflowX !== "visible") return true;
+    }
+    return false;
+  };
   for (const el of doc.body.querySelectorAll("*")) {
     const r = el.getBoundingClientRect();
-    if (r.width > w + 1 || r.right > w + 1) {
+    if ((r.width > w + 1 || r.right > w + 1) && !clippe(el)) {
       if (!pire || r.right > pire.r) pire = { r: Math.round(r.right), w: Math.round(r.width),
         q: el.tagName.toLowerCase() + (el.className && typeof el.className === "string"
              ? "." + el.className.trim().split(/\s+/).slice(0,2).join(".") : "") };
