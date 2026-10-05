@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=d4b60933">
+<link rel="stylesheet" href="../assets/fiche.css?v=fca9c405">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -563,6 +563,13 @@ document.getElementById("go").addEventListener("click", async () => {
     for (const a of AMB) {
       for (const face of faces(a)) {
       d.dataset.theme = a; d.dataset.sombre = face;
+      /* Un thème qui porte une DISPOSITION déplace le HTML : des chaînes
+         carrées, une barre en bas, une horloge. Poser « data-theme » seul
+         ne la déclenche pas — elle se pose dans appliquer(), que le banc
+         court-circuite. Sans cet appel, la disposition Wii n'était mesurée
+         par aucun des deux bancs. */
+      try { if (f.contentWindow.CIEL && f.contentWindow.CIEL.dispo)
+               f.contentWindow.CIEL.dispo(a); } catch (e) {}
       for (const lg of LARGEURS) {
         d.dataset.largeur = lg;
         doc.body.offsetHeight;

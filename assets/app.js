@@ -152,6 +152,196 @@
     return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
   }
 
+  /* ── les DISPOSITIONS : quand un thème déplace le HTML ─────────────────
+     JustAkhiraa : « je veux que tu me fasses LE menu de la Wii en thème,
+     donc revoir tout le CSS et le style même le HTML », et « pareil pour le
+     menu PS4 ».
+
+     Il avait raison de le dire deux fois : ce qui avait été livré était une
+     PEINTURE. Un menu de console ne se reconnaît pas à ses couleurs mais à
+     sa disposition — où est le logo, où est l'heure, ce que fait la case
+     choisie.
+
+     La décision d'architecture, et la seule qui tienne ici : un thème ne
+     peut pas changer le HTML écrit dans les pages — elles sont engendrées
+     une fois, et le thème se choisit APRÈS, dans le navigateur. En revanche
+     il peut :
+
+       · ranger autrement des blocs qui existent déjà — c'est le travail du
+         CSS, par zones de grille et par « order » ;
+       · recevoir un décor que le CSS ne sait pas produire — une horloge qui
+         avance, des flèches qui tournent des pages. Celui-là est bâti ici.
+
+     Donc : « data-dispo » sur <html>, une barre engendrée au besoin, et pas
+     une ligne de balisage changée dans les 244 pages.
+
+     Deux refus assumés. Le bouton rond de gauche OUVRE LES RÉGLAGES et celui
+     de droite mène au PLANNING — sur la Wii, le premier ouvre les options et
+     le second est le tableau des messages, qui est un calendrier. Des boutons
+     qui ne feraient rien seraient un décor mensonger : la main y va, et rien
+     n'arrive. De même, les flèches de page PAGINENT réellement la grille ;
+     quand tout tient sur une page, elles se grisent au lieu de mentir. */
+  var Dispo = (function () {
+    /* Une disposition n'est inscrite ICI que le jour où sa feuille de style
+       existe. « console-bleue » y figurait d'avance, et le résultat était un
+       vrai dégât mesuré : le thème posait « data-dispo="ps4" », donc la
+       pagination s'appliquait — **5 chapitres sur 17 disparaissaient** — et la
+       barre du bas se bâtissait en « position: static » sur fond transparent,
+       c'est-à-dire une bande nue jetée en fin de page, sans rien pour revenir
+       aux chapitres cachés. Du JavaScript qui marche plus une feuille de style
+       qui n'existe pas font une page cassée, pas une page à moitié faite.
+       Elle reviendra avec les règles « html[data-dispo="ps4"] ». */
+    var DISPOS = { "console-blanche": "wii" };
+    var PAR_PAGE = 12;
+    var horloge = null, page = 0;
+
+    function deuxChiffres(n) { return (n < 10 ? "0" : "") + n; }
+
+    function grille() {
+      return document.querySelector(".liste-chapitres") ||
+             document.querySelector(".contenu .grille-matieres");
+    }
+
+    /* La pagination est RÉELLE : les cases en trop sont retirées du flux,
+       pas masquées à moitié. « hidden » les sort aussi du parcours au
+       clavier et de la lecture d'écran, ce qui est le but. */
+    function paginer() {
+      var g = grille();
+      if (!g) return { pages: 1, total: 0 };
+      var cases = g.children, n = cases.length;
+      var pages = Math.max(1, Math.ceil(n / PAR_PAGE));
+      if (page >= pages) page = pages - 1;
+      for (var i = 0; i < n; i++) {
+        var dedans = (i >= page * PAR_PAGE && i < (page + 1) * PAR_PAGE);
+        cases[i].hidden = !dedans;
+      }
+      return { pages: pages, total: n };
+    }
+
+    function depaginer() {
+      var g = grille();
+      if (!g) return;
+      for (var i = 0; i < g.children.length; i++) g.children[i].hidden = false;
+    }
+
+    function bouton(classe, texte, titre, action) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = classe;
+      b.textContent = texte;
+      b.setAttribute("aria-label", titre);
+      b.title = titre;
+      b.addEventListener("click", action);
+      return b;
+    }
+
+    function batirBarre(quoi) {
+      var barre = document.createElement("div");
+      barre.className = "dispo-barre";
+      barre.setAttribute("data-dispo-barre", quoi);
+
+      barre.appendChild(bouton("dispo-rond dispo-gauche",
+        quoi === "wii" ? "Wii" : "\u2630", "Ouvrir les réglages",
+        function () { var b = document.getElementById("reglages");
+                      if (b) b.click(); }));
+
+      var h = document.createElement("div");
+      h.className = "dispo-heure";
+      h.innerHTML = '<b class="dispo-hh"></b><i class="dispo-deux">:</i>'
+                  + '<b class="dispo-mm"></b><span class="dispo-date"></span>';
+      barre.appendChild(h);
+
+      barre.appendChild(bouton("dispo-rond dispo-droite", "\u2709",
+        "Ouvrir le planning",
+        function () { location.href = racine() + "planning.html"; }));
+      return barre;
+    }
+
+    function batirFleches() {
+      var nav = document.createElement("div");
+      nav.className = "dispo-pages";
+      nav.appendChild(bouton("dispo-fleche dispo-prec", "\u2039",
+        "Page précédente", function () { page--; rafraichir(); }));
+      var e = document.createElement("span");
+      e.className = "dispo-compte";
+      nav.appendChild(e);
+      nav.appendChild(bouton("dispo-fleche dispo-suiv", "\u203A",
+        "Page suivante", function () { page++; rafraichir(); }));
+      return nav;
+    }
+
+    function rafraichir() {
+      var r = paginer();
+      var nav = document.querySelector(".dispo-pages");
+      if (!nav) return;
+      nav.hidden = false;
+      nav.querySelector(".dispo-prec").disabled = (page <= 0);
+      nav.querySelector(".dispo-suiv").disabled = (page >= r.pages - 1);
+      nav.querySelector(".dispo-compte").textContent = (page + 1) + " / " + r.pages;
+      /* Une seule page : les flèches restent VISIBLES mais inertes, comme sur
+         la console. Les retirer ferait sauter la mise en page d'un écran à
+         l'autre. */
+      nav.setAttribute("data-seule", r.pages === 1 ? "1" : "0");
+    }
+
+    var JOURS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+    function tictac() {
+      var d = new Date();
+      var hh = document.querySelector(".dispo-hh");
+      if (!hh) return;
+      hh.textContent = deuxChiffres(d.getHours());
+      document.querySelector(".dispo-mm").textContent = deuxChiffres(d.getMinutes());
+      document.querySelector(".dispo-date").textContent =
+        JOURS[d.getDay()] + " " + deuxChiffres(d.getDate()) + "/"
+        + deuxChiffres(d.getMonth() + 1);
+    }
+
+    function retirer() {
+      var d = document.documentElement;
+      delete d.dataset.dispo;
+      var b = document.querySelector(".dispo-barre");
+      if (b) b.parentNode.removeChild(b);
+      var n = document.querySelector(".dispo-pages");
+      if (n) n.parentNode.removeChild(n);
+      delete document.documentElement.dataset.dispoMenu;
+      if (horloge) { clearInterval(horloge); horloge = null; }
+      depaginer();
+      page = 0;
+    }
+
+    return {
+      appliquer: function (idTheme) {
+        var quoi = DISPOS[idTheme];
+        var d = document.documentElement;
+        if (!quoi) { if (d.dataset.dispo) retirer(); return; }
+        if (d.dataset.dispo === quoi) { rafraichir(); tictac(); return; }
+        retirer();
+        d.dataset.dispo = quoi;
+        var g = grille();
+        /* ── Un bureau de console n'est pas une surface de lecture ──────────
+           Le banc a rendu 28 éléments à 4,34 : 1, tous sur des pages de
+           COURS. Le fond bleu de la disposition traversait les encarts, dont
+           le fond est une teinte translucide : composé sur le papier bleu, il
+           descend, et l'encre de l'encart ne suit pas.
+
+           La correction n'est pas de repeindre les encarts un par un. C'est
+           de reconnaître ce que la disposition EST : le menu de la console.
+           Elle vaut pour les écrans qui ont une grille — l'accueil, les
+           listes de chapitres —, pas pour un cours, qui est un document et
+           se lit sur le papier de son thème. La barre du bas, elle, reste
+           partout : c'est la coquille de la console, pas son bureau. */
+        if (g) d.dataset.dispoMenu = "1";
+        document.body.appendChild(batirBarre(quoi));
+        if (g) g.parentNode.insertBefore(batirFleches(), g.nextSibling);
+        rafraichir();
+        tictac();
+        /* Une minute suffit : l'affichage ne montre pas les secondes, et un
+           réveil par seconde pour rien est une batterie qu'on vide. */
+        horloge = setInterval(tictac, 15000);
+      }
+    };
+  })();
+
   /* ── applique tout l'état visuel ─────────────────────────────────── */
   function appliquer() {
     var d = document.documentElement;
@@ -174,6 +364,7 @@
        attribut. */
     d.dataset.curseur    = S.curseur ? "1" : "0";
     Son.appliquer();
+    Dispo.appliquer(d.dataset.theme);
 
     /* La barre d'état du téléphone doit suivre le fond réel du thème, pas une
        valeur figée : sur « Voxel » elle restait crème au-dessus d'un fond noir. */
@@ -535,6 +726,14 @@
   /* Ce que la page expose au banc de mesure, et à personne d'autre. */
   window.CIEL = window.CIEL || {};
   window.CIEL.son = Son;
+  /* Les deux bancs posent « data-theme » À LA MAIN sur le document, sans
+     passer par appliquer() : c'est voulu, ils croisent 41 thèmes sans
+     toucher aux réglages du lecteur. Mais une disposition se pose, elle,
+     DANS appliquer() — donc aucun des deux ne l'aurait jamais mesurée.
+     C'est la même famille d'angle mort que le panneau de réglages jamais
+     ouvert et l'historique jamais semé. Le crochet est ici pour qu'ils
+     puissent faire le geste. */
+  window.CIEL.dispo = function (idTheme) { Dispo.appliquer(idTheme); };
 
   function construireFeuille() {
     leVoile();

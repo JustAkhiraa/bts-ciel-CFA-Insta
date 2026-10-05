@@ -945,8 +945,42 @@ body.titre-parti:not(.en-matiere) .pont {
   border-radius: 50%; cursor: pointer; font: inherit; font-size: 1rem;
   color: var(--encre); background: var(--verre); border: 1px solid var(--trait); }
 #lecture-fermer:hover { border-color: var(--c); }
+/* ── « Nouvel onglet », à côté de la croix ───────────────────────────────
+   Les deux commandes de la fenêtre se tiennent ensemble en haut à droite :
+   on sort l'outil, ou on ferme. Celle-ci est la plus discrète des deux — pas
+   de fond, un trait fin, un petit corps — parce que fermer est l'issue
+   principale et que l'autre n'est qu'une commodité. Elle s'éclaire au survol
+   ET au clavier : un bouton discret qu'on ne peut pas atteindre à la
+   tabulation est un bouton absent.
+
+   Son encre, elle, reste la PLEINE encre, et c'est une mesure qui l'a décidé.
+   En encre douce, le rapport tombait à **3,73 : 1** sur le pire ciel — le
+   panneau n'est opaque qu'à 86 %, 14 % du village le traverse, et sur une
+   façade en plein soleil le texte passait sous le seuil AA. On atténue un
+   bouton en lui retirant son fond, jamais en délavant ses lettres : la
+   discrétion se paie en décor, pas en lisibilité.
+
+   Trente-quatre pixels de haut au lieu de six cent soixante-seize, et plus
+   un seul pixel pris à l'outil. */
+#lecture-grand { position: absolute; z-index: 3;
+  top: calc(1rem + 6px); right: calc(1rem + 46px + .4rem);
+  display: inline-flex; align-items: center; gap: .35rem;
+  height: 34px; padding: 0 .7rem; border-radius: 9px;
+  font-size: .76rem; font-weight: 600; text-decoration: none; white-space: nowrap;
+  color: var(--encre); background: transparent;
+  border: 1px solid var(--trait); transition: border-color .15s ease, background .15s ease; }
+#lecture-grand:hover, #lecture-grand:focus-visible {
+  border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
+#lecture-grand[hidden] { display: none; }
+/* L'en-tête d'une boutique dégage la place des DEUX commandes, sinon le nom
+   de l'échoppe passerait dessous dès qu'il s'allonge. */
 .lecture-onglets { display: flex; gap: .3rem; padding: .7rem 2rem;
   border-bottom: 1px solid var(--trait); flex-wrap: wrap; }
+/* Une boutique n'a pas d'onglets : la barre restait quand même, vide, avec
+   son creux et son trait — vingt-trois pixels pris à l'outil pour ne rien
+   montrer. Mesuré en même temps que le reste, et retiré pour la même raison.
+   La règle vaut partout : une barre d'onglets sans onglet n'a rien à dire. */
+.lecture-onglets:empty { display: none; }
 .lecture-onglets button { font: inherit; font-size: .78rem; cursor: pointer;
   min-height: 34px; padding: .35rem .8rem; border-radius: 9px;
   color: var(--encre-douce); background: transparent; border: 1px solid transparent; }
@@ -1051,7 +1085,7 @@ body.jour .lecture-corps {
 /* L'en-tête se tasse aussi : devant un outil, « BOUTIQUE / Le Grenier des
    Masques / Le compteur » répète ce que l'outil affiche déjà en grand, et lui
    prenait cent pixels de haut. */
-.lecture:has(.boutique) > header { padding: .9rem 3.6rem .8rem 1.6rem; }
+.lecture:has(.boutique) > header { padding: .9rem 12.5rem .8rem 1.6rem; }
 .lecture:has(.boutique) h2 { font-size: 1.24rem; margin: .15rem 0 .1rem; }
 
 /* ── ce que la fiche apporte avec elle ──────────────────────────────── */
@@ -1264,6 +1298,15 @@ body.jour .lecture-corps .qcm-opt.faux .qcm-lt { background: #A82C2C; color: #FF
     top: 0; left: 0; transform: none; }
   .lecture.glisse { transform: translateY(14px) scale(.985); }
   .lecture > header { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+  /* Sur un téléphone, le mot tombe et la flèche reste : un carré de
+     quarante-quatre pixels, la cible tactile minimale, au lieu d'une
+     étiquette qui écraserait le nom de l'échoppe. Le dégagement de l'en-tête
+     suit, sinon on paierait une place qu'on ne prend plus. */
+  .lecture-grand-mot { display: none; }
+  #lecture-grand { height: 44px; width: 44px; padding: 0;
+    justify-content: center; font-size: 1rem;
+    top: calc(1rem + 1px); }
+  .lecture:has(.boutique) > header { padding-right: 7.2rem; }
   /* Le chapeau de l'accueil mange l'écran d'un téléphone, et le village est
      justement ce qu'on veut voir. Le titre reste. */
   .accueil-tete p { display: none; }

@@ -3572,6 +3572,10 @@ function ouvrirLecture(d) {
   $("lecture-matiere").textContent = pole.titre;
   $("lecture-titre").textContent = chap.titre;
   $("lecture-sous").textContent = chap.sous || "";
+  /* Une fiche garde son lien À LA FIN de sa prose : là, il est la suite
+     naturelle de la lecture, et le corps est une colonne ordinaire où il ne
+     coûte rien. Le bouton d'en-tête ne sert qu'aux outils. */
+  $("lecture-grand").hidden = true;
   const onglets = $("lecture-onglets");
   onglets.innerHTML = "";
   chap.fiches.forEach((f, i) => {
@@ -3630,9 +3634,26 @@ function ouvrirBoutique(i) {
       `<p class="bonjour" role="status">` +
         `<span class="bonjour-qui" aria-hidden="true">☻</span>` +
         `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
-    `</div>` +
-    `<a class="lecture-ouvrir" href="../${b.outil}" target="_blank" rel="noopener">` +
-    `Ouvrir l'outil en grand</a>`;
+    `</div>`;
+  /* ── Le lien « en grand » monte dans l'en-tête ───────────────────────────
+     « ouvrir l'outil en grand c'est moche et ça prend beaucoup de place à
+     l'outil, tu veux pas mettre un bouton plus discret et en haut ? »
+
+     Mesuré avant de corriger : le lien faisait **158 × 676 pixels**. Six cent
+     soixante-seize de haut pour une ligne de texte, et cent cinquante-huit de
+     large — 11,4 % du panneau — pris à l'outil. La cause n'est pas la taille
+     du bouton, c'est sa POSITION : le corps du panneau passe en « display:
+     flex » quand il ne contient qu'une boutique, et le lien, frère de la
+     boutique dans ce flux, devenait une colonne étirée sur toute la hauteur.
+     Un même élément ne veut pas dire la même chose dans un bloc et dans une
+     rangée flexible.
+
+     Il quitte donc le flux : c'est une commande de FENÊTRE, pas un morceau du
+     contenu, et sa place est là où se trouve déjà l'autre commande de fenêtre
+     — à côté de la croix. La boutique récupère la totalité du panneau. */
+  const grand = $("lecture-grand");
+  grand.href = "../" + b.outil;
+  grand.hidden = false;
   const dit = $("lecture-corps").querySelector(".bonjour");
   if (dit) {
     const taire = () => dit.classList.add("parti");
@@ -4156,8 +4177,15 @@ function diagnostic() {
   };
 }
 
+/* « ouvrirBoutique » et « BOUTIQUES » sortent ici pour une raison précise :
+   l'overlay d'une échoppe ne s'atteint autrement qu'en visant une façade au
+   rayon, dans une scène 3D, à la souris. Aucun banc ne sait faire ça — et
+   c'est la quatrième fois qu'un banc se révèle aveugle à un état que le site
+   sait pourtant produire. Un état qu'on ne peut pas atteindre depuis
+   l'extérieur n'est pas un état vérifié : c'est un état qu'on croit bon. */
 window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
                 poserHeure, allerA, ciel, sousTitrer, taireSousTitre,
+                BOUTIQUES, ouvrirBoutique, fermerLecture,
                 diagnostic };
 
 requestAnimationFrame(image);

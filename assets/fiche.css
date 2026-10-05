@@ -3094,6 +3094,262 @@ html[data-theme="velours"] .pastilles button {
   overflow-wrap:anywhere;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LES DISPOSITIONS — quand un thème déplace le HTML
+   ══════════════════════════════════════════════════════════════════════════
+   « je veux que tu me fasses LE menu de la Wii en thème, donc revoir tout le
+   CSS et le style même le HTML. »
+
+   Ce qui avait été livré était une peinture : les bonnes couleurs sur la
+   disposition du site. Un menu de console ne se reconnaît pas à ses couleurs
+   mais à sa DISPOSITION — des cases toutes égales, une barre en bas, l'heure
+   au centre de cette barre.
+
+   Le thème se choisit dans le navigateur, APRÈS la génération des pages : il
+   ne peut donc pas réécrire leur balisage. Il peut ranger autrement ce qui
+   existe — c'est ici — et recevoir le décor que le CSS ne sait pas produire,
+   une horloge qui avance et des flèches qui tournent des pages, que app.js
+   bâtit. Aucune des 244 pages n'a changé d'une ligne.
+
+   ── 1. la Wii ──────────────────────────────────────────────────────────── */
+
+/* La barre du bas couvre 4,6 rem : le contenu lui cède la place, sinon le
+   dernier rang de chaînes se retrouve dessous et devient inatteignable. */
+html[data-dispo="wii"] body { padding-bottom: 5.4rem; }
+
+/* LE FOND. Mesuré avant d'être choisi : le thème « Console blanche » posait
+   un papier à #EBF0F4 et mes chaînes un blanc dégradé vers #EFF4F8 — à l'œil
+   comme à la mesure, des cases blanches sur un fond blanc. Elles étaient bien
+   là, à 242 px de côté, simplement invisibles.
+   Sur la console, les chaînes blanches se détachent sur un BLEU-GRIS. C'est
+   donc le fond qui devait changer, pas les cases. La valeur basse du dégradé
+   devient « --papier » : pour une face claire, c'est la zone la plus SOMBRE
+   qui donne la mesure la plus dure, et le banc de contraste doit mesurer
+   celle-là. L'encre #26333C y tient 8,2:1. */
+/* ── Le papier bleu coûte une encre ─────────────────────────────────────
+   Le banc de contraste a rendu **65 éléments sous le seuil, tous à 3,91 : 1,
+   tous sur « console-blanche (jour) »**. Une seule valeur répétée soixante-
+   cinq fois, ce n'est pas soixante-cinq problèmes : c'est une paire.
+   Vérification faite, c'est « --encre-tenue » (#4E6675) : elle avait été
+   choisie contre le papier du thème (#EBF0F4), où elle vaut 5,26. Sur le
+   papier de la disposition Wii (#BFD3E0), elle tombe à 3,91 — exactement la
+   valeur du banc.
+
+   Changer le papier d'un thème, c'est changer le fond de TOUTES ses encres.
+   Celle-ci redescend donc d'un ton — teinte et saturation gardées, seule la
+   luminosité baisse — et elle repasse partout : 4,88 sur le bas du dégradé,
+   6,05 sur le haut, 7,54 sur une chaîne blanche. Elle reste plus claire que
+   « --encre-douce » (5,38), donc elle dit toujours la même chose dans la
+   hiérarchie : une encre retenue. */
+/* ── Et il faut le dire DEUX FOIS, comme le thème le dit ────────────────
+   Deuxième mesure, et elle a rendu le même 3,91 : la correction ci-dessus
+   n'était posée que sur « html ». Or le thème déclare sa palette sur DEUX
+   sélecteurs — « html[data-theme=…] » **et** « html[data-theme=…]
+   [data-matiere] » —, et le « body » porte « data-matiere ». Tout ce qui est
+   dans le corps relisait donc la palette d'origine : l'encre, mais aussi le
+   papier, qui valait encore #EBF0F4 à l'intérieur du body pendant que html
+   portait #BFD3E0. La disposition n'était appliquée qu'à moitié, et seul le
+   dégradé posé sur « body » faisait croire le contraire.
+
+   Une surcharge doit couvrir tous les sélecteurs que la chose surchargée
+   emploie, sinon elle ne surcharge que le plus visible d'entre eux. */
+html[data-dispo="wii"][data-dispo-menu][data-sombre="0"],
+html[data-dispo="wii"][data-dispo-menu][data-sombre="0"] [data-matiere] {
+  --papier: #BFD3E0; --encre-tenue: #435764; --accent-sombre: #045570; }
+/* Troisième passage du banc, dernier élément : « span.cat-ic » sur la page
+   des outils, à 4,34 : 1. Son fond propre est « --accent-pale », une teinte
+   à 10 % — donc le papier le TRAVERSE, et sur le bleu de la disposition le
+   composé descend à rgb(173,202,218). L'encre, « --accent-sombre », avait été
+   choisie contre du blanc. Elle descend d'un ton elle aussi : 4,82 sur le pire
+   composé, 5,88 sur le plus clair, 8,27 sur blanc.
+   Un fond translucide n'est pas un fond : c'est une fenêtre sur ce qu'il y a
+   dessous, et changer ce qu'il y a dessous change sa couleur. */
+html[data-dispo="wii"][data-dispo-menu][data-sombre="0"] body {
+  background: linear-gradient(#DCE8F0 0%, #BFD3E0 100%) fixed;
+}
+html[data-dispo="wii"][data-dispo-menu][data-sombre="1"],
+html[data-dispo="wii"][data-dispo-menu][data-sombre="1"] [data-matiere] { --papier: #1B2730; }
+html[data-dispo="wii"][data-dispo-menu][data-sombre="1"] body {
+  background: linear-gradient(#263642 0%, #1B2730 100%) fixed;
+}
+/* De nuit, les chaînes ne peuvent pas rester blanc laqué : elles brûleraient.
+   Elles prennent l'ardoise, et c'est le liseré bleu qui porte la lumière. */
+html[data-dispo="wii"][data-sombre="1"] .contenu .carte-matiere,
+html[data-dispo="wii"][data-sombre="1"] .liste-chapitres .chapitre {
+  background: linear-gradient(#2E3E4B 0%, #2E3E4B 62%, #263642 100%);
+  border-color: #3E525F;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 3px 10px rgba(0,0,0,.3);
+}
+html[data-dispo="wii"] .app-pied { display: none; }
+
+/* L'en-tête se fait oublier : sur le menu d'une console, rien ne précède les
+   chaînes. On la garde — c'est la seule navigation du site — mais réduite. */
+html[data-dispo="wii"] .app-tete { box-shadow: none; background: transparent; }
+html[data-dispo="wii"] .heros, html[data-dispo="wii"] .chiffres,
+html[data-dispo="wii"] .bandeau-plan { opacity: .92; }
+
+/* LES CHAÎNES. Des carrés tous égaux, blanc laqué, coins très arrondis,
+   gouttières larges et régulières. « aspect-ratio: 1 » fait le carré sans
+   hauteur écrite en dur — donc le réglage de taille du lecteur le conserve. */
+/* ── Le plancher de colonne décide de tout ──────────────────────────────
+   Il valait 190 px, et une chaîne de chapitre était COUPÉE : à 240 px de
+   côté, son contenu — le titre, la phrase, et les quatre boutons Cours /
+   Exercices / Fiche / QCM — en demande 279. « overflow: hidden » faisait le
+   reste sans rien dire, et le titre « Assemblage d'un PC » s'affichait
+   « d'un PC ».
+
+   La cause est dans « auto-fill » : plus l'écran est large, plus il ajoute de
+   colonnes, et chacune retombe près du minimum. La largeur d'une colonne ne
+   dépend donc pas de l'écran — elle dépend du PLANCHER. Et comme le carré
+   fait la hauteur égale à la largeur, c'est le plancher, et lui seul, qui
+   doit être assez haut pour le contenu.
+
+   Mesuré de 640 à 1760 px de grille : à 270 px, le carré tient partout, le
+   plus serré gardant 26 px de rab. */
+html[data-dispo="wii"] .contenu .grille-matieres,
+html[data-dispo="wii"] .liste-chapitres {
+  display: grid; gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr));
+}
+html[data-dispo="wii"] .contenu .carte-matiere,
+html[data-dispo="wii"] .liste-chapitres .chapitre {
+  aspect-ratio: 1; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; text-align: center;
+  padding: 1rem .9rem; gap: .45rem; overflow: hidden;
+  border-radius: 20px; border: 1px solid #D5DEE6;
+  background: linear-gradient(#FFFFFF 0%, #FFFFFF 62%, #EFF4F8 100%);
+  box-shadow: 0 2px 0 #FFF inset, 0 4px 12px rgba(30,60,90,.22);
+  transition: box-shadow .18s, transform .18s;
+}
+/* La case choisie prend le cadre bleu lumineux de la console. Le focus REÇOIT
+   le même traitement que le survol : au clavier aussi, on doit voir où l'on
+   est — et c'est la seule façon de rendre la grille utilisable sans souris. */
+html[data-dispo="wii"] .contenu .carte-matiere:hover,
+html[data-dispo="wii"] .contenu .carte-matiere:focus-visible,
+html[data-dispo="wii"] .liste-chapitres .chapitre:hover,
+html[data-dispo="wii"] .liste-chapitres .chapitre:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px #4FC3F7, 0 0 16px 2px rgba(79,195,247,.65),
+              0 6px 16px rgba(40,70,100,.2);
+}
+html[data-dispo="wii"] .contenu .carte-matiere p,
+html[data-dispo="wii"] .liste-chapitres .chapitre p {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; font-size: .76rem; line-height: 1.4;
+}
+/* ── Ce qui traverse la rangée n'est pas une chaîne ─────────────────────
+   La carte « Reprendre » porte « grid-column: 1 / -1 » : elle traverse toute
+   la grille. Mise au carré, elle mesurait **1245 × 1245** — un carré plus
+   haut que l'écran, qui poussait les six matières hors de vue. Le carré n'a
+   de sens que pour une case de grille ; dès qu'un élément prend la rangée
+   entière, il redevient une bande. Même raison pour « .recents ». */
+html[data-dispo="wii"] .contenu .carte-matiere.reprise {
+  aspect-ratio: auto; flex-direction: row; justify-content: flex-start;
+  text-align: left; gap: .6rem; padding: .9rem 1.1rem; border-radius: 16px;
+}
+html[data-dispo="wii"] .contenu .carte-matiere.reprise > * { width: auto; }
+html[data-dispo="wii"] .contenu .carte-matiere .ic { font-size: 1.9rem; }
+html[data-dispo="wii"] .contenu .carte-matiere::after { display: none; }
+html[data-dispo="wii"] .liste-chapitres .chapitre > * { width: 100%; }
+
+/* « display: flex » écrase « [hidden] », qui n'est qu'un « display: none » de
+   la feuille du navigateur. Sans cette règle, la pagination marquait bien les
+   cases en trop — et elles restaient à l'écran. Toute règle d'affichage posée
+   sur un élément paginé doit rendre son « hidden » à nouveau. */
+html[data-dispo] .contenu .carte-matiere[hidden],
+html[data-dispo] .liste-chapitres .chapitre[hidden] { display: none !important; }
+
+/* ── la barre du bas, et l'horloge ─────────────────────────────────────── */
+.dispo-barre[data-dispo-barre="wii"] {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: .5rem 1rem;
+  background: linear-gradient(#E9EDF0, #C9D2D9);
+  border-top: 1px solid #AFBAC4;
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -2px 10px rgba(30,50,70,.16);
+}
+.dispo-barre .dispo-rond {
+  flex: none; width: 56px; height: 56px; border-radius: 50%;
+  font: 700 .78rem/1 var(--sans); letter-spacing: .04em; cursor: pointer;
+  color: #2B5E85; background: radial-gradient(circle at 50% 32%, #FFFFFF, #DCE4EA);
+  border: 1px solid #A9B6C1;
+  box-shadow: 0 2px 0 #FFF inset, 0 2px 6px rgba(30,50,70,.22);
+}
+.dispo-barre .dispo-rond:hover,
+.dispo-barre .dispo-rond:focus-visible {
+  color: #10405F; box-shadow: 0 0 0 3px #4FC3F7, 0 2px 8px rgba(30,50,70,.3);
+}
+.dispo-barre .dispo-droite { font-size: 1.3rem; }
+.dispo-heure {
+  display: flex; align-items: baseline; gap: .12rem;
+  font-family: var(--sans); color: #41525E;
+}
+.dispo-heure b { font-size: 1.9rem; font-weight: 300; letter-spacing: .02em; }
+/* Les deux points clignotent, comme sur la console. L'animation se coupe avec
+   le réglage « animations » : une pulsation permanente dans le champ de vision
+   fatigue, et certains ne la supportent pas du tout. */
+.dispo-heure .dispo-deux { font-style: normal; font-size: 1.5rem; opacity: .85; }
+html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1) infinite; }
+@keyframes dispo-clin { 0%, 49% { opacity: .85; } 50%, 100% { opacity: .2; } }
+.dispo-heure .dispo-date {
+  margin-left: .7rem; font-size: .82rem; color: #5E6E7A; align-self: center;
+}
+
+/* ── les flèches de page ───────────────────────────────────────────────── */
+.dispo-pages {
+  display: flex; align-items: center; justify-content: center; gap: 1.1rem;
+  margin: 1.6rem 0 .4rem;
+}
+.dispo-pages .dispo-fleche {
+  width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
+  font: 400 1.6rem/1 var(--sans); color: #2B5E85;
+  background: radial-gradient(circle at 50% 32%, #FFFFFF, #DEE6EC);
+  border: 1px solid #A9B6C1;
+  box-shadow: 0 2px 0 #FFF inset, 0 2px 6px rgba(30,50,70,.18);
+}
+.dispo-pages .dispo-fleche:hover:not(:disabled),
+.dispo-pages .dispo-fleche:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 3px #4FC3F7, 0 2px 8px rgba(30,50,70,.26);
+}
+/* Désactivée, pas cachée : sur la console les flèches restent là. Mais elles
+   DISENT qu'elles sont inertes — un bouton grisé ne ment pas, un bouton
+   identique qui ne répond pas, si. */
+.dispo-pages .dispo-fleche:disabled { opacity: .38; cursor: default; }
+.dispo-pages .dispo-compte {
+  min-width: 3.4rem; text-align: center;
+  font: 600 .84rem var(--sans); color: var(--encre-douce);
+}
+/* Une seule page : la rangée s'efface pour qui regarde, mais reste dans le
+   flux — sinon la grille sauterait d'un écran à l'autre. */
+.dispo-pages[data-seule="1"] { opacity: .3; }
+
+@media (max-width: 640px) {
+  .dispo-barre[data-dispo-barre="wii"] { padding: .4rem .7rem; }
+  .dispo-barre .dispo-rond { width: 46px; height: 46px; font-size: .7rem; }
+  .dispo-heure b { font-size: 1.5rem; }
+  .dispo-heure .dispo-date { font-size: .74rem; margin-left: .45rem; }
+  html[data-dispo="wii"] body { padding-bottom: 4.6rem; }
+  html[data-dispo="wii"] .contenu .grille-matieres,
+  html[data-dispo="wii"] .liste-chapitres {
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+    gap: 1rem;
+  }
+  /* Sur un téléphone, le carré est abandonné, et ce n'est pas un renoncement :
+     une colonne de 160 px de côté ne peut pas porter quatre boutons, et
+     deux colonnes étroites valent moins qu'une chaîne entière qu'on lit.
+     La chaîne prend donc la hauteur de ce qu'elle contient. */
+  html[data-dispo="wii"] .contenu .carte-matiere,
+  html[data-dispo="wii"] .liste-chapitres .chapitre { aspect-ratio: auto; }
+}
+
+/* À l'impression, rien de tout cela n'a de sens. */
+@media print {
+  .dispo-barre, .dispo-pages { display: none !important; }
+  html[data-dispo] .contenu .carte-matiere,
+  html[data-dispo] .liste-chapitres .chapitre { aspect-ratio: auto; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    COQUILLE — accueil, pages de matière, recherche
    Ne concerne que les pages de navigation. Les fiches gardent theme.css.

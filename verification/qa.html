@@ -371,6 +371,13 @@ document.getElementById("go").onclick = async () => {
     for (const t of THEMES) {
       for (const face of faces(t)) {
       d.dataset.theme = t; d.dataset.sombre = face;
+      /* Un thème qui porte une DISPOSITION déplace le HTML : des chaînes
+         carrées, une barre en bas, une horloge. Poser « data-theme » seul
+         ne la déclenche pas — elle se pose dans appliquer(), que le banc
+         court-circuite. Sans cet appel, la disposition Wii n'était mesurée
+         par aucun des deux bancs. */
+      try { if (f.contentWindow.CIEL && f.contentWindow.CIEL.dispo)
+               f.contentWindow.CIEL.dispo(t); } catch (e) {}
       for (const w of [375, 1440]) {
         f.style.width = w + "px"; doc.body.offsetHeight; n++;
         const x = deborde(doc, w);
