@@ -4951,7 +4951,13 @@ td.etat.sur   { color: var(--vert); }
    de vingt-six, et 38 % de la fenêtre entre les deux. Elle défilait déjà
    (« .con-flux » est en overflow:auto) ; ce qui manquait, c'est qu'elle cesse
    de s'étirer. */
-.at-volet-sortie { height: clamp(11rem, 38vh, 26rem); min-height: 160px; }
+/* Deux réglages successifs, et les deux étaient de lui : « la console est
+   hyper grosse », puis « allonge un peu la console là maintenant c'est trop
+   petit ». 38 vh plafonnés à 26 rem étaient trop courts dès que la barre de
+   saisie apparaît — elle mange 140 px, et il ne restait que 200 px de sortie.
+   52 vh plafonnés à 34 rem, et un plancher de 9 rem pour le flux lui-même :
+   la zone de saisie ne peut plus l'écraser. */
+.at-volet-sortie { height: clamp(14rem, 52vh, 34rem); min-height: 200px; }
 /* Sans cela, la grille étire le plus court sur la hauteur du plus long et le
    réglage ci-dessus ne servirait à rien. En plein écran, au contraire, on veut
    que les deux remplissent — c'est tout l'objet du plein écran. */
@@ -5042,6 +5048,7 @@ td.etat.sur   { color: var(--vert); }
 /* ── la console ──────────────────────────────────────────────────────── */
 .con { flex: 1; display: flex; min-height: 0; }
 .con-flux {
+  min-height: 9rem;
   flex: 1; margin: 0; padding: .8rem .9rem; overflow: auto;
   background: #23211E; border-radius: 0;   /* même invariant que .edi-peint */
   font-family: var(--mono); font-size: .8061rem; line-height: 1.6;
@@ -5100,13 +5107,33 @@ td.etat.sur   { color: var(--vert); }
   padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
   background: var(--papier);
 }
-#atelier.at-grand .at-grille { align-items: stretch; }
-#atelier.at-grand .at-volet-code,
-#atelier.at-grand .at-volet-sortie { height: auto; }
+/* « La console est hyper grosse c'est grave reduit la et met un scroll ».
+   En plein écran, la grille étirait ses deux volets à la même hauteur : sur
+   un grand écran, la console héritait des 900 px de l'éditeur pour afficher
+   une ligne. « Jour 1, serveur 1 : » dans 900 px de noir.
+
+   La hauteur bornée du mode normal avait déjà réglé le problème — mais
+   seulement dans le mode normal. Le plein écran la remettait à « auto » et
+   laissait l'étirement faire le reste. Deux endroits à corriger, et je n'en
+   avais vu qu'un.
+
+   Désormais : l'ÉDITEUR prend la hauteur de l'écran, c'est à cela que sert
+   le plein écran ; la console garde la sienne, un peu plus généreuse qu'en
+   mode normal, et défile. Elle reste redimensionnable à la main pour qui
+   veut la voir plus grande. */
+#atelier.at-grand .at-grille { align-items: start; }
+/* « Je t'ai pas demandé de réduire le programme.c » — et il a raison : en
+   bornant la console j'avais rogné l'éditeur de 2 rem au passage. Il garde
+   exactement la hauteur qu'il avait, celle de la grille en plein écran. */
+#atelier.at-grand .at-volet-code { height: calc(100vh - 7.5rem); }
+#atelier.at-grand .at-volet-sortie {
+  height: clamp(14rem, 55vh, 40rem);
+  resize: vertical; overflow: hidden;
+}
 /* 7,5 rem : la barre de commandes et le rembourrage, mesurés. Le reste de
    la hauteur va aux deux cadres, ce qui est tout l'objet du plein écran. */
 #atelier.at-grand .at-grille { min-height: calc(100vh - 7.5rem); }
-#atelier.at-grand .at-volet { resize: none; }
+#atelier.at-grand .at-volet-code { resize: none; }
 #atelier.at-grand .at-poignee-note { display: none; }
 body.at-fige { overflow: hidden; }
 

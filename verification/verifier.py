@@ -299,7 +299,7 @@ def packet_tracer(racine, pbs):
     blocs = re.findall(
         r'<article class="pt-bloc" data-cat="([^"]+)"[^>]*>\s*'
         r'<div class="pt-tete"><h3>([^<]+)</h3>.*?'
-        r'<code data-modele="([^"]*)">(.*?)</code>', page, re.S)
+        r'<code data-modele="([^"]*)"[^>]*>(.*?)</code>', page, re.S)
     if len(blocs) < 15:
         pbs.append(("outils/packet-tracer.html",
                     f"{len(blocs)} bloc(s) de commandes relu(s) — attendu au moins 15. "
@@ -314,15 +314,21 @@ def packet_tracer(racine, pbs):
         attendu = unescape(modele)
         for cle, val in DEF.items():
             attendu = attendu.replace("{{" + cle + "}}", val)
-        lu = unescape(visible)
+        # Le bloc est COLORÉ depuis le 5 octobre : la promesse porte sur le
+        # texte qu'on copie, pas sur le balisage qui le peint. On compare donc
+        # le texte nu — et au passage, cette comparaison vérifie que la
+        # coloration n'a pas mangé un caractère.
+        lu = unescape(re.sub(r"<[^>]+>", "", visible))
         if lu != attendu:
             pbs.append((ou, "le bloc affiché ne correspond pas à son modèle"))
             continue
 
-        lignes = [l for l in lu.split("\n") if l.strip()]
+        # Les blocs sont INDENTÉS comme IOS les affiche : les contrôles de
+        # structure portent sur la commande, pas sur sa colonne.
+        lignes = [l.strip() for l in lu.split("\n") if l.strip()]
         if not lignes or lignes[0] != "enable":
             pbs.append((ou, "ne commence pas par « enable »"))
-        if any(l.lstrip().startswith("!") for l in lignes):
+        if any(l.startswith("!") for l in lignes):
             pbs.append((ou, "contient une ligne de commentaire « ! » — ce qu'on colle doit s'exécuter"))
         if "{{" in lu:
             pbs.append((ou, "une substitution n'a pas été faite"))
