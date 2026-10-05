@@ -399,10 +399,25 @@
       if (multi.length < 2) return false;
       const t = saisie.value;
       const rangs = multi.slice().sort((a, b) => a.d - b.d);
-      let out = t, neuf = [];
-      for (let i = rangs.length - 1; i >= 0; i--) {
-        let { d, f } = rangs[i];
+      /* Les intervalles sont d'abord étendus (Retour arrière mange le
+         caractère d'avant, Suppr celui d'après), PUIS désempilés. Sans cette
+         seconde étape, deux curseurs voisins peuvent se recouvrir une fois
+         étendus — et comme les remplacements suivants s'appliquent à un texte
+         déjà modifié, le résultat devient faux. Le cas ne se produit pas avec
+         Ctrl+D, dont les occurrences sont toujours disjointes ; il se ferme
+         ici en trois lignes plutôt que d'attendre qu'il morde. */
+      const etendus = [];
+      for (const r of rangs) {
+        let d = r.d, f = r.f;
         if (d === f) { d = Math.max(0, d - avant); f = Math.min(t.length, f + apres); }
+        if (etendus.length && d < etendus[etendus.length - 1].f)
+          d = etendus[etendus.length - 1].f;
+        if (f < d) f = d;
+        etendus.push({ d: d, f: f });
+      }
+      let out = t, neuf = [];
+      for (let i = etendus.length - 1; i >= 0; i--) {
+        const { d, f } = etendus[i];
         out = out.slice(0, d) + texte + out.slice(f);
         neuf.unshift({ d: d, f: f, pose: d + texte.length });
       }
@@ -416,9 +431,36 @@
         decalage += texte.length - (r.f - r.d);
       }
       const fin = apresCoup[apresCoup.length - 1];
+
+      /* NE PAS réécrire tout le document. L'écriture passe par
+         setSelectionRange(début, fin) : prendre 0 comme début ancre la
+         sélection en tête de fichier, et le navigateur y fait remonter la
+         vue. On tapait, le remplacement avait bien lieu partout — mais on
+         se retrouvait en haut du programme sans rien voir de ce qu'on
+         venait d'écrire.
+         On ne réécrit donc que la tranche qui va de la PREMIÈRE sélection
+         à la DERNIÈRE. Tout est modifié à l'intérieur, rien au-dehors :
+         le préfixe et le suffixe sont identiques au caractère près. Un
+         seul écrit, donc toujours un seul coup d'annulation. */
+      const dMin = neuf[0].d;
+      const fMax = neuf[neuf.length - 1].f;
+      const tranche = out.slice(dMin, out.length - (t.length - fMax));
+
+      /* Et par sécurité, le défilement est relevé puis reposé : même
+         réduite, la tranche reste une sélection posée par programme, et
+         selon le navigateur elle peut bouger la vue. */
+      const hautAvant = saisie.scrollTop, gaucheAvant = saisie.scrollLeft;
       enFrappeMultiple = true;
-      try { remplacer(0, t.length, out, fin.d, fin.f); }
+      try { remplacer(dMin, fMax, tranche, fin.d, fin.f); }
       finally { enFrappeMultiple = false; }
+      saisie.scrollTop = hautAvant;
+      saisie.scrollLeft = gaucheAvant;
+      /* Si le curseur a malgré tout quitté le cadre — une frappe qui ajoute
+         des lignes, par exemple — on le ramène. « montrer » ne fait rien
+         tant qu'il est visible : la vue ne bouge que lorsqu'il le faut. */
+      montrer(fin.d);
+      saisie.dispatchEvent(new Event("scroll"));
+
       multi = apresCoup;
       redessiner();
       return true;
