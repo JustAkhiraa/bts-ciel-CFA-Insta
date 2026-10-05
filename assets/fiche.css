@@ -266,6 +266,79 @@ li::marker { color: var(--accent-sombre); }
    les deux écarts réels — le décalage de 4,9 rem est la largeur de
    « Copier » plus la gouttière. */
 .bloc-code .essayer { right: 4.9rem; text-decoration: none; }
+
+/* ── l'atelier par-dessus le cours ───────────────────────────────────────
+   « ça m'amène à l'outil, du coup ça me sort du cours. » Un onglet neuf
+   fait perdre sa place dans la page. L'atelier s'ouvre donc ici même, dans
+   un <dialog> natif : le fond assombri, le piège à tabulation et la
+   fermeture par Échap viennent du navigateur, pas d'un script.
+
+   La fenêtre est GRANDE — un atelier de programmation a besoin de place, et
+   une boîte de dialogue étriquée serait pire que l'onglet qu'elle remplace.
+   Sur téléphone elle prend tout l'écran : il n'y a pas d'autre choix
+   raisonnable à 375 px. */
+.modale-atelier {
+  width: min(1200px, 96vw); max-width: 96vw;
+  height: min(92vh, 980px); max-height: 92vh;
+  padding: 0; border: 1px solid var(--bord-fort); border-radius: var(--r);
+  background: var(--carte); color: var(--encre);
+  box-shadow: 0 24px 60px rgba(0,0,0,.34);
+  overflow: hidden;
+}
+.modale-atelier::backdrop { background: rgba(18,16,14,.62); }
+/* Le fond ne défile plus : sans cela la molette passe au travers et le
+   cours glisse derrière pendant qu'on tape du code. */
+html.modale-ouverte { overflow: hidden; }
+
+.modale-atelier .modale-barre {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .5rem .55rem .5rem .95rem;
+  border-bottom: 1px solid var(--bord);
+  background: var(--carte-creuse);
+}
+.modale-atelier .modale-titre {
+  flex: 1; min-width: 0; font-size: .92rem; color: var(--encre);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.modale-atelier .modale-onglet {
+  font-size: .76rem; color: var(--accent-sombre); text-decoration: none;
+  border: 1px solid var(--bord-fort); border-radius: 6px;
+  padding: .4rem .6rem; min-height: 34px; display: inline-flex;
+  align-items: center; white-space: nowrap;
+}
+.modale-atelier .modale-onglet:hover { background: var(--accent-pale); }
+/* 38 px : au-dessus du seuil de 34 que le banc mesure, et la croix est la
+   commande qu'on vise le plus vite — elle doit pardonner un doigt pressé. */
+.modale-atelier .modale-croix {
+  flex: none; width: 38px; height: 38px; line-height: 1;
+  font: inherit; font-size: 1.5rem; cursor: pointer;
+  background: none; color: var(--encre-douce);
+  border: 1px solid transparent; border-radius: 8px;
+}
+.modale-atelier .modale-croix:hover {
+  background: var(--rouge-pale); color: var(--rouge); border-color: var(--rouge-bord);
+}
+/* Le cadre prend TOUT ce qui reste sous la barre. Écrit d'abord
+   « height: calc(100% - 51px) », il rognait cinq pixels d'atelier : la
+   barre en fait 56, et un nombre posé à la main se trompe dès que la
+   police ou l'interligne du thème bouge. Une colonne flexible n'a pas
+   ce défaut — elle mesure au lieu de deviner. */
+.modale-atelier[open] { display: flex; flex-direction: column; }
+.modale-atelier .modale-barre { flex: none; }
+.modale-atelier .modale-cadre {
+  flex: 1; min-height: 0; width: 100%;
+  border: 0; background: var(--papier);
+}
+
+@media (max-width: 640px) {
+  .modale-atelier {
+    width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh;
+    border-radius: 0; border: 0;
+  }
+  /* Le lien vers l'onglet disparaît : sur téléphone, l'écran entier est
+     déjà pris, et un second contexte n'aide personne. */
+  .modale-atelier .modale-onglet { display: none; }
+}
 pre { margin: 0; background: #23211E; color: #EDE7DC; border-radius: var(--r);
   padding: 1.15rem 1.25rem; overflow-x: auto; font-family: var(--mono);
   font-size: 0.8061rem; line-height: 1.66; }
@@ -447,7 +520,8 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   :root { --papier: #fff; }
   body { font-size: 10.5pt; line-height: 1.45; }
   .page { display: block; max-width: none; padding: 0; }
-  .sommaire, .bloc-code .copier, .bloc-code .essayer, .quiz button { display: none !important; }
+  .sommaire, .bloc-code .copier, .bloc-code .essayer, .quiz button,
+  .modale-atelier { display: none !important; }
   .quiz .reponse { display: block !important; }
   .encart, .quiz, .recap, .tableau, .schema { box-shadow: none; break-inside: avoid; }
   section > h2, h3 { break-after: avoid; }

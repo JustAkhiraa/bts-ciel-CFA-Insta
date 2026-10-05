@@ -134,7 +134,7 @@
     var a = document.createElement("a");
     a.className = "essayer";
     a.textContent = "Essayer";
-    a.setAttribute("title", "Ouvrir ce programme dans l'atelier C");
+    a.setAttribute("title", "Ouvrir ce programme dans l'atelier, sans quitter la page");
     a.href = BASE_ATELIER + "outils/langage-c.html";
     a.addEventListener("click", function (ev) {
       ev.preventDefault();
@@ -142,9 +142,109 @@
       var bin = "";
       for (var i = 0; i < octets.length; i++) bin += String.fromCharCode(octets[i]);
       var b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
-      window.open(a.href + "#p=" + b64 + "&l=" + langue, "_blank", "noopener");
+      var url = a.href + "#p=" + b64 + "&l=" + langue;
+      var e = bloc.querySelector(".langue");
+      var titre = e ? e.textContent.trim() : "Atelier C";
+      /* Ctrl, Cmd ou Maj : l'habitude du navigateur est d'ouvrir ailleurs,
+         et on ne la contrarie pas. */
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey) {
+        window.open(url, "_blank", "noopener");
+        return;
+      }
+      if (!ouvrirAtelier(url, titre, a)) window.open(url, "_blank", "noopener");
     });
     bloc.appendChild(a);
+  }
+
+  /* --- 4 ter. L'atelier PAR-DESSUS le cours ----------------------------
+     JustAkhiraa : « quand je clique sur Essayer ça m'amène à l'outil, du
+     coup ça me sort du cours ; c'est peut-être mieux d'ouvrir une fenêtre
+     sur la même page avec une croix en haut à droite, et après on peut
+     refermer. »
+
+     Il a raison, et pour une raison qui a un nom : la charge de navigation.
+     Un onglet neuf fait perdre sa place dans la page, et il faut revenir à
+     la main — pour un programme qu'on veut juste casser trois fois.
+
+     L'atelier s'ouvre donc dans un <dialog>. L'élément natif donne le fond
+     assombri, le piège à tabulation et la fermeture par Échap sans une
+     ligne de script : c'est la raison de le préférer à une pile de <div>.
+     Le cours reste derrière ; on referme, on est exactement où on était.
+
+     Échap n'est PAS détourné à l'intérieur du cadre : la touche y sert déjà
+     à lâcher les sélections multiples de l'éditeur. Elle ne ferme que
+     lorsque le focus est resté sur la fenêtre elle-même. */
+  var modale = null, cadre = null, rendreFocus = null;
+
+  function fermerAtelier() { if (modale) modale.close(); }
+
+  function ouvrirAtelier(url, titre, bouton) {
+    var d = document.createElement("dialog");
+    if (!d.showModal) return false;         // navigateur trop ancien : onglet
+
+    if (!modale) {
+      modale = d;
+      modale.className = "modale-atelier";
+      modale.setAttribute("aria-label", "Atelier C");
+
+      var barre = document.createElement("div");
+      barre.className = "modale-barre";
+      var nom = document.createElement("strong");
+      nom.className = "modale-titre";
+      barre.appendChild(nom);
+
+      var onglet = document.createElement("a");
+      onglet.className = "modale-onglet";
+      onglet.target = "_blank";
+      onglet.rel = "noopener";
+      onglet.textContent = "Ouvrir dans un onglet";
+      barre.appendChild(onglet);
+
+      var croix = document.createElement("button");
+      croix.type = "button";
+      croix.className = "modale-croix";
+      croix.setAttribute("aria-label", "Fermer l'atelier");
+      croix.textContent = "\u00D7";
+      croix.addEventListener("click", fermerAtelier);
+      barre.appendChild(croix);
+
+      cadre = document.createElement("iframe");
+      cadre.className = "modale-cadre";
+      cadre.setAttribute("title", "Atelier C");
+
+      modale.appendChild(barre);
+      modale.appendChild(cadre);
+
+      /* Le fond ferme aussi. Un clic hors du contenu vise le <dialog>
+         lui-même et jamais un de ses enfants : la comparaison suffit. */
+      modale.addEventListener("click", function (ev) {
+        if (ev.target === modale) fermerAtelier();
+      });
+      modale.addEventListener("close", function () {
+        /* On vide le cadre : l'atelier porte un compilateur WebAssembly,
+           le laisser vivre derrière une fenêtre fermée serait payer une
+           mémoire qu'on n'utilise plus. */
+        cadre.src = "about:blank";
+        document.documentElement.classList.remove("modale-ouverte");
+        if (rendreFocus) {
+          try { rendreFocus.focus(); } catch (e) {}
+          rendreFocus = null;
+        }
+      });
+      document.body.appendChild(modale);
+      modale._nom = nom;
+      modale._onglet = onglet;
+    }
+
+    modale._nom.textContent = titre;
+    modale._onglet.href = url;
+    cadre.src = url;
+    rendreFocus = bouton || null;
+    /* Le fond ne défile plus derrière la fenêtre : sans cela, la molette
+       passe au travers et le cours glisse pendant qu'on tape du code. */
+    document.documentElement.classList.add("modale-ouverte");
+    modale.showModal();
+    return true;
   }
 
   /* --- 5. Quiz : révélation de la réponse ------------------------------- */
