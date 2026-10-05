@@ -3259,6 +3259,329 @@ html[data-dispo="wii"] .liste-chapitres .chapitre > * { width: 100%; }
 html[data-dispo] .contenu .carte-matiere[hidden],
 html[data-dispo] .liste-chapitres .chapitre[hidden] { display: none !important; }
 
+/* ════════════════════════════════════════════════════════════════════════
+   LA DISPOSITION PS4
+   ════════════════════════════════════════════════════════════════════════
+   « pareil pour le menu ps4 », avec la même exigence que pour la Wii :
+   « je veux une vraie expérience immersive ».
+
+   Une décision prise d'avance, et c'est la leçon du matin : **cette
+   disposition ne touche pas à « --papier »**. Celle de la Wii l'a fait, et
+   il a fallu quatre passages du banc pour rattraper les encres qui se
+   posaient dessus — y compris celles qui vivent sur un fond translucide,
+   qu'on ne voit pas en lisant la feuille. Or Console bleue a DÉJÀ son bleu,
+   calculé et mesuré sur ses deux faces. La disposition n'ajoute donc que ce
+   qui lui manque : la vague, le rangement, et les deux bandes.
+
+   Ce qui est repris de la console, et ce qui ne l'est pas :
+     · la barre de fonctions en haut, étiquette sous le seul élément visé ✔
+     · les tuiles rectangulaires collées, sans gouttière ✔
+     · la grande vague claire en diagonale ✔
+     · l'heure en haut à droite ✔
+     · la bande d'aide en bas ✔ — mais avec les VRAIES touches du clavier.
+       « ⊗ Précédent · ◎ Valider » décrit une manette que personne n'a ici.
+     · la rangée UNIQUE qui défile au stick ✘ — une page web n'a pas de
+       stick, et une rangée qui déborde fait défiler la page de travers.
+       Les tuiles restent collées, mais elles reviennent à la ligne.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* La vague : une grande diagonale claire qui traverse l'écran, posée SOUS le
+   contenu et par-dessus le dégradé du thème. « fixed » pour qu'elle reste
+   une lumière de la pièce, pas un motif qui défile avec le texte. */
+/* Le creux du bas n'existe que si la bande du bas existe : une fiche garde
+   sa barre flottante et n'a rien à dégager de plus. « :has » est déjà employé
+   ailleurs dans le projet pour ce genre de question — la feuille sait
+   reconnaître ce qu'elle contient. */
+html[data-dispo="ps4"] body { position: relative; }
+html[data-dispo="ps4"] body:has(.dispo-aide) { padding-bottom: 3.6rem; }
+html[data-dispo="ps4"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    linear-gradient(118deg, transparent 32%,
+      rgba(255,255,255,.14) 44%, rgba(255,255,255,.22) 50%,
+      rgba(255,255,255,.10) 57%, transparent 69%);
+}
+html[data-dispo="ps4"][data-sombre="0"] body::before {
+  background:
+    linear-gradient(118deg, transparent 32%,
+      rgba(255,255,255,.55) 44%, rgba(255,255,255,.78) 50%,
+      rgba(255,255,255,.45) 57%, transparent 69%);
+}
+/* Le contenu passe DEVANT la vague, sinon elle le laverait. */
+html[data-dispo="ps4"] .app-tete,
+html[data-dispo="ps4"] .contenu,
+html[data-dispo="ps4"] .corps,
+html[data-dispo="ps4"] .app-pied { position: relative; z-index: 1; }
+
+/* ── La barre de fonctions ───────────────────────────────────────────────
+   Elle existe déjà : c'est la navigation du site, et elle porte exactement
+   ce qu'il faut — un pictogramme et une étiquette par entrée, et
+   « aria-current » sur la page où l'on est. On ne bâtit rien, on range.
+
+   L'étiquette ne se montre que sous l'élément VISÉ. Sur la console, viser
+   c'est déplacer le curseur ; ici c'est le survol, le focus clavier, ou la
+   page courante. Les trois sont traités pareil : une barre dont l'étiquette
+   n'apparaîtrait qu'au survol serait muette pour qui navigue au clavier. */
+html[data-dispo="ps4"] .app-tete {
+  background: transparent; box-shadow: none; border-bottom: 0;
+}
+html[data-dispo="ps4"] .app-tete nav { gap: clamp(.5rem, 2.2vw, 1.6rem); }
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d) {
+  flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: .25rem; padding: .4rem .35rem .2rem; background: transparent;
+  border: 0; border-radius: 10px; color: var(--encre-tenue);
+  transition: color .16s ease, transform .16s ease;
+}
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d) .ico {
+  width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25));
+}
+/* ── L'étiquette ne doit RIEN coûter à la rangée ─────────────────────────
+   Première version : « opacity: 0 » sur toutes les étiquettes, 1 sur celle
+   qu'on vise. Mesurée, elle ne montrait rien du tout — le site masque déjà
+   les étiquettes de sa navigation en dessous d'une certaine largeur, avec
+   « display: none », et une opacité ne ramène pas ce qui n'est pas affiché.
+   Une surcharge qui ne parle pas la même propriété que la règle d'origine ne
+   la surcharge pas.
+
+   Deuxième version, et c'est la bonne pour une autre raison : l'étiquette est
+   SORTIE DU FLUX, posée sous son pictogramme. Elle ne prend donc aucune
+   largeur dans la rangée — ni quand elle se montre, ni quand elle se cache —
+   et la barre ne bouge pas d'un pixel quand le curseur passe. C'est ce que
+   fait la console : les icônes sont fixes, seule l'étiquette apparaît. */
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d) { position: relative; }
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d) > span {
+  display: block; position: absolute; top: calc(100% - .1rem); left: 50%;
+  transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-size: .62rem; letter-spacing: .06em; text-transform: uppercase;
+  opacity: 0; transition: opacity .16s ease;
+}
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d):hover,
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d):focus-visible,
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d)[aria-current="page"] {
+  color: var(--encre); transform: translateY(-2px);
+}
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d):hover > span,
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d):focus-visible > span,
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d)[aria-current="page"] > span { opacity: 1; }
+html[data-dispo="ps4"] .app-tete nav > a:not(.bouton-3d)[aria-current="page"] .ico {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 75%, transparent));
+}
+
+/* ── L'heure, en haut à droite ───────────────────────────────────────────
+   Posée au-dessus de tout, hors du flux : elle ne doit décaler ni l'en-tête
+   ni le contenu. Son creux à droite tient compte de l'encoche d'un
+   téléphone, et sa taille reste celle d'une horloge qu'on lit de loin. */
+/* ── L'heure tient sur une PLAQUE, pas sur une ombre ─────────────────────
+   Elle est « fixed » : la page défile dessous, et elle passe donc sur ce qui
+   vient — une carte, un schéma clair, une image. Mesuré avant de livrer :
+   sur la face nuit, son encre quasi blanche sur un fond blanc donne
+   **1,08 : 1**. Invisible. Une ombre portée ne rattrape pas ça ; elle ne
+   fait que salir les lettres.
+
+   C'est la leçon du titre du village 3D, et la réponse est la même : on ne
+   devine pas un fond, on en pose un. Sur une plaque, le pire cas remonte à
+   6,51 : 1 la nuit et 10,41 : 1 le jour. Le flou n'est pas décoratif — il
+   écrase l'écart de ce qu'il y a dessous avant de le recouvrir, ce qu'une
+   couleur seule ne sait pas faire. */
+.dispo-horloge[data-dispo-barre="ps4"] {
+  position: fixed; z-index: 40; pointer-events: none;
+  top: max(.55rem, env(safe-area-inset-top));
+  right: max(.9rem, env(safe-area-inset-right));
+  display: flex; align-items: baseline; gap: .1rem;
+  padding: .3rem .6rem; border-radius: 9px;
+  font: 600 1.02rem/1 var(--sans); color: var(--encre);
+  background: rgba(10, 26, 46, .72);
+  border: 1px solid rgba(190, 215, 245, .22);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+html[data-dispo="ps4"][data-sombre="0"] .dispo-horloge {
+  background: rgba(255, 255, 255, .80);
+  border-color: rgba(11, 95, 165, .22);
+}
+.dispo-horloge .dispo-deux { font-style: normal; opacity: .6; }
+.dispo-horloge .dispo-date {
+  margin-left: .5rem; font-size: .72rem; font-weight: 500; opacity: .78;
+}
+
+/* ── La bande d'aide ─────────────────────────────────────────────────────
+   Noire, fine, en bas, et VRAIE : chaque touche écrite ici fait quelque
+   chose (voir AIDES_PS4 dans app.js). Elle ne reçoit pas le clic — ce n'est
+   pas un menu, c'est un rappel. */
+.dispo-aide[data-dispo-barre="ps4"] {
+  position: fixed; z-index: 40; left: 0; right: 0;
+  bottom: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: .25rem 1.4rem;
+  padding: .5rem 1rem calc(.5rem + env(safe-area-inset-bottom));
+  background: rgba(3, 10, 22, .92);
+  color: #DCE9F8;
+}
+/* ── Le fondu passe AU-DESSUS des lettres, pas à travers ─────────────────
+   La bande avait pour fond « linear-gradient(transparent, .86 à 38 %) ».
+   Joli de loin, et faux : le haut des lettres tombait dans la partie encore
+   claire du dégradé. Mesuré par le banc — qui voit enfin ce décor — et
+   recalculé à la main : **1,13 : 1** à l'extrémité transparente, contre
+   12,13 une fois la plaque pleine. Un fond en dégradé n'est pas un fond,
+   c'est une suite de fonds, et le texte est jugé sur le pire.
+
+   La plaque devient donc pleine, et le fondu — qui servait à ne pas couper
+   la page net — se range juste au-dessus d'elle, où il ne porte aucun texte. */
+.dispo-aide[data-dispo-barre="ps4"]::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 2.2rem;
+  background: linear-gradient(rgba(3, 10, 22, 0), rgba(3, 10, 22, .92));
+  pointer-events: none;
+}
+.dispo-aide-item { display: inline-flex; align-items: center; gap: .4rem; }
+.dispo-aide-item kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.5rem; height: 1.5rem; padding: 0 .4rem;
+  border-radius: 5px; border: 1px solid rgba(220,233,248,.42);
+  background: rgba(220,233,248,.10);
+  font: 600 .72rem/1 var(--mono, ui-monospace, monospace); color: #FFFFFF;
+}
+.dispo-aide-item em { font-style: normal; font-size: .74rem; color: #DCE9F8; }
+
+/* ── Les tuiles, collées ─────────────────────────────────────────────────
+   Pas de gouttière : c'est la rangée de la console. Ce qui sépare deux
+   tuiles n'est donc pas du vide mais un FILET — un bord d'un pixel, repris
+   des deux côtés pour que la grille n'ait pas de liseré extérieur.
+
+   Le plancher de colonne vaut 230 px et non 270 comme sur la Wii : la tuile
+   n'est pas un carré ici, sa hauteur ne suit pas sa largeur, donc une
+   colonne étroite ne coupe rien — elle rallonge. */
+html[data-dispo="ps4"] .contenu .grille-matieres,
+html[data-dispo="ps4"] .liste-chapitres {
+  display: grid; gap: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(2,12,28,.28);
+}
+html[data-dispo="ps4"] .contenu .carte-matiere,
+html[data-dispo="ps4"] .liste-chapitres .chapitre {
+  margin: 0; border-radius: 0; border: 0;
+  box-shadow: inset -1px -1px 0 var(--bord), inset 1px 1px 0 var(--bord);
+  background: color-mix(in srgb, var(--carte) 78%, transparent);
+  transition: background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+/* ── Une rangée n'est pas une tuile ──────────────────────────────────────
+   Vu à l'écran avant de le croire : les quatre boutons Cours / Exercices /
+   Fiche / QCM passaient PAR-DESSUS le titre et la phrase. La cause n'est pas
+   dans cette feuille, elle est dans la nature de « .chapitre » : c'est une
+   grille de trois colonnes — « 44px 1fr auto », numéro | texte | liens —
+   dessinée pour une ligne qui traverse la page. Serrée dans une tuile de
+   239 px, elle n'a plus la place de les mettre côte à côte, et les colonnes
+   se recouvrent.
+
+   Une disposition qui ne fait que repeindre une grille de rangées obtient
+   des rangées peintes, pas des tuiles. Celle-ci reporte donc les liens sur
+   leur propre ligne : le numéro reste à côté du titre, où il se lit, et les
+   quatre boutons passent dessous. */
+html[data-dispo="ps4"] .liste-chapitres .chapitre {
+  grid-template-columns: 38px 1fr;
+  grid-template-areas: "num txt" "liens liens";
+  align-items: start; gap: .55rem .7rem; padding: .95rem 1rem 1rem;
+}
+html[data-dispo="ps4"] .liste-chapitres .chapitre .num { align-self: start; }
+/* Les quatre liens en DEUX COLONNES plutôt qu'en flux qui retombe : à 239 px
+   de large, le flux donnait « Cours » seul, puis « Exercices Fiche », puis
+   « QCM » — trois lignes bancales pour quatre boutons du même rang. En
+   grille, ils forment un carré régulier, et chacun garde sa cible tactile. */
+html[data-dispo="ps4"] .liste-chapitres .chapitre .liens {
+  margin-top: .15rem; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem;
+}
+html[data-dispo="ps4"] .liste-chapitres .chapitre .liens a {
+  text-align: center; padding: .4rem .5rem;
+}
+/* La coche de révision est posée par app.js SANS zone de grille : elle
+   tombait donc dans une troisième rangée implicite, seule, tout en bas à
+   droite, et elle allongeait la tuile pour rien. On lui donne sa place — au
+   bout du titre, là où elle dit « ce chapitre est su ». */
+html[data-dispo="ps4"] .liste-chapitres .chapitre {
+  grid-template-areas: "num txt" "liens liens";
+}
+html[data-dispo="ps4"] .liste-chapitres .chapitre .coche {
+  grid-area: num; align-self: end; justify-self: center; margin-top: .4rem;
+}
+/* « translateX » déplaçait la rangée vers la droite au survol : dans une
+   grille collée, cela ouvrirait une fente. La tuile monte, elle ne glisse
+   pas. */
+html[data-dispo="ps4"] .liste-chapitres .chapitre:hover { transform: none; }
+
+/* La tuile visée SORT, elle ne change pas de couleur : filet blanc fin et
+   léger soulèvement. C'est le geste du menu, et « z-index » l'empêche de
+   passer sous ses voisines collées. */
+html[data-dispo="ps4"] .contenu .carte-matiere:hover,
+html[data-dispo="ps4"] .contenu .carte-matiere:focus-visible,
+html[data-dispo="ps4"] .liste-chapitres .chapitre:hover,
+html[data-dispo="ps4"] .liste-chapitres .chapitre:focus-within {
+  position: relative; z-index: 2; transform: translateY(-3px);
+  background: color-mix(in srgb, var(--carte) 96%, transparent);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 10px 22px rgba(2,12,28,.4);
+}
+
+/* ── La grande tuile sélectionnée de l'accueil ───────────────────────────
+   Sur le menu de la console, l'accueil montre une grande tuile visée, cernée
+   d'un filet blanc, avec une flèche vers le bas, et son titre écrit À DROITE.
+   Ici cette tuile existe déjà et elle a un sens : « Reprendre » est la seule
+   chose qu'on vise vraiment en arrivant. On ne fabrique donc pas une fausse
+   sélection — on habille la vraie. */
+html[data-dispo="ps4"] .contenu .carte-matiere.reprise {
+  display: flex; flex-direction: row; align-items: center; gap: 1rem;
+  padding: 1rem 1.2rem; border-radius: 12px; margin-bottom: 1.1rem;
+  background: color-mix(in srgb, var(--carte) 92%, transparent);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.85), 0 12px 28px rgba(2,12,28,.34);
+}
+html[data-dispo="ps4"] .contenu .carte-matiere.reprise::before {
+  content: "\2193"; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 54px; height: 54px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.9);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  font-size: 1.3rem; color: var(--encre);
+}
+html[data-dispo="ps4"] .contenu .carte-matiere.reprise > * {
+  width: auto; text-align: left;
+}
+
+/* ── Les flèches de page ─────────────────────────────────────────────────
+   Mêmes règles que partout : elles PAGINENT pour de bon, et elles se grisent
+   aux bords au lieu de mentir. */
+html[data-dispo="ps4"] .dispo-pages { margin-top: 1rem; }
+html[data-dispo="ps4"] .dispo-pages .dispo-fleche {
+  border-color: rgba(255,255,255,.34);
+  background: rgba(255,255,255,.08); color: var(--encre);
+}
+html[data-dispo="ps4"] .dispo-pages .dispo-fleche:not(:disabled):hover {
+  background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.7);
+}
+html[data-dispo="ps4"] .dispo-pages .dispo-compte { color: var(--encre-douce); }
+
+/* Le pied de page du site répète ce que la bande d'aide dit mieux. */
+html[data-dispo="ps4"] .app-pied { display: none; }
+
+@media (max-width: 640px) {
+  /* On avait écrit ici que sur un téléphone les étiquettes devaient TOUTES
+     s'afficher, puisqu'un pictogramme seul ne dit rien. Vu à l'écran : elles
+     se chevauchaient toutes — « ACCUEILPLANNINGDEVOIRSOUTILSÀ PROPOS ». La
+     raison est dans la règle qui précède : depuis qu'elles sont hors du flux,
+     elles ne se poussent plus, elles se superposent. Cinq étiquettes de 43 à
+     60 px centrées sous des icônes espacées de 55 px ne peuvent pas tenir.
+
+     Donc la même règle que sur grand écran : une seule à la fois, celle de la
+     page où l'on est. C'est d'ailleurs ce que fait la console. */
+  .dispo-horloge[data-dispo-barre="ps4"] { font-size: .9rem; }
+  .dispo-horloge .dispo-date { display: none; }
+  .dispo-aide[data-dispo-barre="ps4"] { gap: .2rem .8rem; padding: .4rem .6rem
+    calc(.4rem + env(safe-area-inset-bottom)); }
+  .dispo-aide-item em { display: none; }
+  html[data-dispo="ps4"] body:has(.dispo-aide) { padding-bottom: 3rem; }
+  html[data-dispo="ps4"] .contenu .grille-matieres,
+  html[data-dispo="ps4"] .liste-chapitres {
+    grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  }
+}
+
+
 /* ── la barre du bas, et l'horloge ─────────────────────────────────────── */
 .dispo-barre[data-dispo-barre="wii"] {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -3292,8 +3615,12 @@ html[data-dispo] .liste-chapitres .chapitre[hidden] { display: none !important; 
 .dispo-heure .dispo-deux { font-style: normal; font-size: 1.5rem; opacity: .85; }
 html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1) infinite; }
 @keyframes dispo-clin { 0%, 49% { opacity: .85; } 50%, 100% { opacity: .2; } }
+/* La date valait #5E6E7A : **3,44 : 1** sur le bas de la plaque grise, et
+   4,47 sur le haut — c'est-à-dire sous le seuil des deux côtés. Elle n'a
+   jamais été conforme ; simplement, aucun banc ne regardait cette barre.
+   Nouvelle valeur : 4,85 en bas, 6,31 en haut. */
 .dispo-heure .dispo-date {
-  margin-left: .7rem; font-size: .82rem; color: #5E6E7A; align-self: center;
+  margin-left: .7rem; font-size: .82rem; color: #4A5761; align-self: center;
 }
 
 /* ── les flèches de page ───────────────────────────────────────────────── */

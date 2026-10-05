@@ -183,15 +183,16 @@
      quand tout tient sur une page, elles se grisent au lieu de mentir. */
   var Dispo = (function () {
     /* Une disposition n'est inscrite ICI que le jour où sa feuille de style
-       existe. « console-bleue » y figurait d'avance, et le résultat était un
-       vrai dégât mesuré : le thème posait « data-dispo="ps4" », donc la
-       pagination s'appliquait — **5 chapitres sur 17 disparaissaient** — et la
-       barre du bas se bâtissait en « position: static » sur fond transparent,
+       existe. « console-bleue » y a figuré d'avance une fois, et le résultat
+       était un vrai dégât mesuré : le thème posait « data-dispo="ps4" », donc
+       la pagination s'appliquait — 5 chapitres sur 17 disparaissaient — et la
+       barre se bâtissait en « position: static » sur fond transparent,
        c'est-à-dire une bande nue jetée en fin de page, sans rien pour revenir
        aux chapitres cachés. Du JavaScript qui marche plus une feuille de style
        qui n'existe pas font une page cassée, pas une page à moitié faite.
-       Elle reviendra avec les règles « html[data-dispo="ps4"] ». */
-    var DISPOS = { "console-blanche": "wii" };
+       Elle est revenue le 5 octobre avec ses règles « html[data-dispo="ps4"] ».
+       La règle demeure pour la prochaine : la feuille d'abord, la ligne après. */
+    var DISPOS = { "console-blanche": "wii", "console-bleue": "ps4" };
     var PAR_PAGE = 12;
     var horloge = null, page = 0;
 
@@ -235,26 +236,81 @@
       return b;
     }
 
+    function horlogeHtml() {
+      /* Les mêmes crochets dans les deux dispositions : « tictac() » n'a pas
+         à savoir où l'heure est posée. */
+      return '<b class="dispo-hh"></b><i class="dispo-deux">:</i>'
+           + '<b class="dispo-mm"></b><span class="dispo-date"></span>';
+    }
+
+    /* ── Ce que la barre du bas a le droit d'écrire ────────────────────────
+       Sur une PlayStation, la bande noire du bas rappelle les boutons de la
+       manette : « ⊗ Précédent · ◎ Valider ». Les recopier ici serait un
+       mensonge : il n'y a pas de manette, il y a un clavier. Chaque ligne
+       ci-dessous correspond donc à une touche qui FAIT quelque chose dans
+       raccourcis() — on peut les essayer une par une. Le jour où un raccourci
+       change, cette liste doit changer avec lui, sinon elle devient ce que
+       l'original était : du décor. */
+    var AIDES_PS4 = [
+      ["/", "Chercher"], ["T", "Jour / nuit"], ["R", "Au hasard"],
+      ["Échap", "Fermer"]
+    ];
+
     function batirBarre(quoi) {
+      if (quoi === "ps4") return batirBarrePs4();
       var barre = document.createElement("div");
       barre.className = "dispo-barre";
       barre.setAttribute("data-dispo-barre", quoi);
 
       barre.appendChild(bouton("dispo-rond dispo-gauche",
-        quoi === "wii" ? "Wii" : "\u2630", "Ouvrir les réglages",
+        "Wii", "Ouvrir les réglages",
         function () { var b = document.getElementById("reglages");
                       if (b) b.click(); }));
 
       var h = document.createElement("div");
       h.className = "dispo-heure";
-      h.innerHTML = '<b class="dispo-hh"></b><i class="dispo-deux">:</i>'
-                  + '<b class="dispo-mm"></b><span class="dispo-date"></span>';
+      h.innerHTML = horlogeHtml();
       barre.appendChild(h);
 
       barre.appendChild(bouton("dispo-rond dispo-droite", "\u2709",
         "Ouvrir le planning",
         function () { location.href = racine() + "planning.html"; }));
       return barre;
+    }
+
+    /* La PS4 ne range rien comme la Wii : l'heure est en haut à DROITE, et le
+       bas est une bande d'aide. Deux morceaux, donc, et non une barre. */
+    function batirBarrePs4() {
+      var lot = document.createDocumentFragment();
+
+      var h = document.createElement("div");
+      h.className = "dispo-barre dispo-horloge";
+      h.setAttribute("data-dispo-barre", "ps4");
+      h.innerHTML = horlogeHtml();
+      lot.appendChild(h);
+
+      /* ── Une seule bande en bas, jamais deux ────────────────────────────
+         Mesuré sur une page de cours : la bande d'aide et la barre flottante
+         de la fiche — retour, recherche, jour/nuit, réglages — se
+         chevauchaient au même endroit de l'écran. La fiche a déjà sa bande du
+         bas, et la sienne a des BOUTONS, pas des rappels : elle fait mieux le
+         travail. La disposition s'efface donc là où la page sait déjà faire,
+         au lieu d'empiler deux barres qui disent la même chose. */
+      if (document.querySelector(".flottant")) return lot;
+
+      var aide = document.createElement("div");
+      aide.className = "dispo-barre dispo-aide";
+      aide.setAttribute("data-dispo-barre", "ps4");
+      for (var i = 0; i < AIDES_PS4.length; i++) {
+        var t = document.createElement("span");
+        t.className = "dispo-aide-item";
+        t.innerHTML = '<kbd></kbd><em></em>';
+        t.querySelector("kbd").textContent = AIDES_PS4[i][0];
+        t.querySelector("em").textContent = AIDES_PS4[i][1];
+        aide.appendChild(t);
+      }
+      lot.appendChild(aide);
+      return lot;
     }
 
     function batirFleches() {
@@ -299,8 +355,11 @@
     function retirer() {
       var d = document.documentElement;
       delete d.dataset.dispo;
-      var b = document.querySelector(".dispo-barre");
-      if (b) b.parentNode.removeChild(b);
+      /* « querySelector » au singulier ne retirait que le premier morceau :
+         la PS4 en pose deux. Un nettoyage qui en oublie un laisse la barre
+         d'un thème sur la page d'un autre. */
+      var tous = document.querySelectorAll(".dispo-barre");
+      for (var k = 0; k < tous.length; k++) tous[k].parentNode.removeChild(tous[k]);
       var n = document.querySelector(".dispo-pages");
       if (n) n.parentNode.removeChild(n);
       delete document.documentElement.dataset.dispoMenu;

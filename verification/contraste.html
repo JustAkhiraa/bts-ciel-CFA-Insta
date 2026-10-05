@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=fca9c405">
+<link rel="stylesheet" href="../assets/fiche.css?v=d2904f3b">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -348,7 +348,18 @@ function fondReel(el, vue) { return fondsReels(el, vue)[0]; }
 
 function mesurer(doc, vue) {
   const out = [];
-  for (const el of doc.querySelectorAll("main.corps *, .fiche-tete *, .contenu *")) {
+  /* ── La cinquième cachette ──────────────────────────────────────────────
+     Le banc balayait « main.corps », « .fiche-tete » et « .contenu ». Or les
+     dispositions de console posent leur décor DIRECTEMENT sur le body — la
+     barre du bas de la Wii, l'horloge et la bande d'aide de la PS4. Aucune
+     n'a jamais été mesurée. Et ce n'est pas un détail : l'horloge est
+     « fixed », la page défile dessous, et calculée à la main elle donnait
+     **1,08 : 1** sur un fond clair. Le banc disait « aucun texte sous le
+     seuil » pendant qu'un texte invisible traversait l'écran.
+     C'est la cinquième fois cette semaine qu'un banc ignore un état que le
+     site sait produire. On ajoute donc « .dispo-barre » à ce qu'il regarde. */
+  for (const el of doc.querySelectorAll(
+        "main.corps *, .fiche-tete *, .contenu *, .dispo-barre, .dispo-barre *")) {
     const t = [...el.childNodes].filter(n => n.nodeType === 3)
                 .map(n => n.textContent.trim()).join("");
     if (t.length < 3) continue;
