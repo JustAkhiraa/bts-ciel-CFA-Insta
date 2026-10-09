@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : image, conteneur, volume, les commandes du TP, la publication de ports, les volumes, le nettoyage et les pièges qui coûtent du temps.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+    <span class="sep">/</span><span>Chapitre 18</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Docker</h1>
+  <p class="chapeau">Les trois mots, les commandes, et les deux lectures à ne jamais
+     inverser. <a href="cours.html">Le cours</a> · <a href="exercices.html">Le TP corrigé</a></p>
+</header>
+
+<main class="corps">
+
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ Les trois mots</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>C'est</th><th>Persistant ?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Image</strong></td><td>un modèle figé, en lecture seule</td><td>oui</td></tr>
+        <tr><td><strong>Conteneur</strong></td><td>une exécution de l'image</td><td><strong>non</strong></td></tr>
+        <tr><td><strong>Volume</strong></td><td>un stockage hors conteneur</td><td>oui</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>« L'image est le modèle, le conteneur est l'exécution, le volume est la mémoire. »</p>
+  </article>
+
+  <article class="memo">
+    <h2>Conteneur ou VM</h2>
+    <p>Une VM embarque <strong>un système entier</strong> et son noyau : plusieurs Go,
+       dizaines de secondes.</p>
+    <p>Un conteneur partage <strong>le noyau de l'hôte</strong> : quelques dizaines de Mo,
+       moins d'une seconde.</p>
+    <p>VM Debian installée : plusieurs <strong>Go</strong> · image <code>debian</code> :
+       une centaine de <strong>Mo</strong> · image <code>alpine</code> : moins de 10.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les deux lectures</h2>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code>-p <span class="j-num">8080</span>:<span class="j-num">80</span>                       hote : conteneur
+<span class="j-att">-v</span> donnees:/usr/share/nginx/html  volume : point de montage</code></pre></div>
+    <p><strong>Le dehors est toujours à gauche.</strong> C'est la seule chose à retenir, et
+       elle évite les deux erreurs les plus fréquentes du TP.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les images</h2>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> pull nginx          telecharger
+<span class="j-fn">docker</span> pull nginx:<span class="j-num">1.21</span>     une version precise
+<span class="j-fn">docker</span> images              lister
+<span class="j-fn">docker</span> rmi nginx:<span class="j-num">1.21</span>      supprimer</code></pre></div>
+    <p><strong>Le tag fait partie de l'identité.</strong> <code>nginx</code> et
+       <code>nginx:1.21</code> sont deux images, deux <code>IMAGE ID</code>.</p>
+    <p><code>latest</code> = « par défaut », <em>pas</em> « la plus récente ».</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les conteneurs</h2>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-it</span> alpine sh            interactif
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web nginx      detache, nomme
+<span class="j-fn">docker</span> ps        /  docker ps <span class="j-att">-a</span>    actifs / TOUS
+<span class="j-fn">docker</span> logs web  /  docker logs <span class="j-att">-f</span>
+<span class="j-fn">docker</span> exec <span class="j-att">-it</span> web bash            entrer DANS
+<span class="j-fn">docker</span> stop / start / restart web
+<span class="j-fn">docker</span> rm web    /  docker rm <span class="j-att">-f</span> web</code></pre></div>
+    <p><strong><code>run</code> crée, <code>exec</code> entre.</strong></p>
+    <p>Un conteneur vit tant que <strong>son processus principal</strong> vit.</p>
+    <p>Alpine n'a pas <code>bash</code>, seulement <code>sh</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les volumes</h2>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume create donnees-web
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">-p</span> <span class="j-num">8082</span>:<span class="j-num">80</span> \
+  <span class="j-att">-v</span> donnees-web:/usr/share/nginx/html nginx
+<span class="j-fn">docker</span> volume ls / inspect / rm</code></pre></div>
+    <p>Le volume <strong>survit</strong> à <code>docker rm</code>. C'est la seule façon de
+       garder des données.</p>
+    <p>Monté sur un dossier non vide, il le <strong>masque</strong> entièrement — sauf au
+       tout premier montage, où son contenu y est recopié.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Nettoyer</h2>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> system df            ce que ca occupe
+<span class="j-fn">docker</span> container prune      conteneurs arretes
+<span class="j-fn">docker</span> image prune <span class="j-att">-a</span>       images inutilisees
+<span class="j-fn">docker</span> volume prune         volumes orphelins
+<span class="j-fn">docker</span> system prune         les trois</code></pre></div>
+    <p><code>docker system prune -a --volumes</code> efface aussi <strong>les
+       données</strong>. Regarder <code>df</code> d'abord.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Les pièges du TP</h2>
+    <ul>
+      <li><code>docker ps</code> <strong>cache</strong> les conteneurs arrêtés.</li>
+      <li><code>run</code> au lieu de <code>exec</code> → on modifie un autre conteneur.</li>
+      <li><code>bash</code> n'existe pas dans Alpine.</li>
+      <li><code>stop</code>/<code>start</code> garde les modifications, <code>rm</code> les efface.</li>
+      <li>Deux conteneurs peuvent écouter le port 80 : seul le port de l'<strong>hôte</strong>
+          doit être unique.</li>
+      <li><code>rm</code> refuse un conteneur actif ; <code>rmi</code> refuse une image
+          utilisée ; <code>volume rm</code> refuse un volume monté.</li>
+      <li><code>$(docker ps -q)</code> échoue si la liste est vide.</li>
+    </ul>
+  </article>
+
+  <article class="memo">
+    <h2>Installer, en une ligne par système</h2>
+    <p><strong>macOS · Windows</strong> — Docker Desktop. Sous Windows, <code>wsl --install</code>
+       d'abord, et la virtualisation activée dans le BIOS.</p>
+    <p><strong>Linux</strong> — le dépôt officiel, jamais <code>apt install docker.io</code>.
+       Puis <code>sudo usermod -aG docker $USER</code>, et rouvrir la session.</p>
+    <p><strong>Vérifier</strong> — <code>docker info</code>, pas <code>docker --version</code> :
+       seul le premier prouve que le moteur répond.</p>
+    <p><strong>Le groupe <code>docker</code> équivaut à <code>root</code>.</strong></p>
+  </article>
+
+  <article class="memo">
+    <h2>Les 25 questions, en un coup d'œil</h2>
+    <p><strong>1</strong> le moteur répond · une image ne se télécharge qu'une fois.</p>
+    <p><strong>2</strong> pull, images, rmi · le tag fait l'identité.</p>
+    <p><strong>3</strong> <code>ps</code> vs <code>ps -a</code> · <code>inspect</code> ·
+       <code>exec</code> · <code>stop</code>/<code>start</code> garde.</p>
+    <p><strong>4</strong> <code>-p</code> · deux fois le port 80, un seul 8080.</p>
+    <p><strong>5</strong> le volume survit au conteneur.</p>
+    <p><strong>6</strong> nettoyer · image, conteneur, volume.</p>
+  </article>
+
+</section>
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/fiche-revision.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
+</body>
+</html>

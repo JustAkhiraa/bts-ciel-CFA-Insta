@@ -245,7 +245,19 @@ function ciblesTrop_petites(doc) {
   for (const el of doc.querySelectorAll("a, button, select, input, summary")) {
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;         // masqué : hors sujet
-    if (getComputedStyle(el).display === "inline") continue; // lien dans un paragraphe
+    const st = getComputedStyle(el);
+    if (st.display === "inline") continue;                  // lien dans un paragraphe
+    /* Une commande qu'on NE PEUT PAS toucher n'est pas une cible tactile.
+       Le sélecteur de système du chapitre Docker est fait de boutons radio
+       rendus transparents et sortis du flux : ce sont les ÉTIQUETTES qui se
+       touchent — 47 px de haut, mesurées comme les autres. Les entrées, elles,
+       font 1×1 et le banc les comptait comme des cibles ratées.
+
+       L'exclusion est volontairement étroite : il faut les DEUX conditions,
+       invisible ET non cliquable. Un vrai bouton trop petit n'a jamais les
+       deux, et reste donc signalé — vérifié en injectant un bouton de
+       20 × 12 px, que le banc nomme toujours. */
+    if (st.pointerEvents === "none" && parseFloat(st.opacity) === 0) continue;
     if (r.height < 34 || r.width < 26) {
       mauvais.push((el.textContent || el.getAttribute("aria-label") || el.tagName)
                    .trim().slice(0, 28) + " " + Math.round(r.width) + "×" + Math.round(r.height));

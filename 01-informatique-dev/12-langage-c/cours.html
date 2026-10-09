@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C | BTS CIEL</title>
-<meta name="description" content="Cours complet : compilation, squelette d'un programme, types, opérateurs, printf et scanf, conditions et boucles, puis les fonctions (prototype, portée, les quatre formes) et les tableaux.">
+<meta name="description" content="Cours complet : compilation, types, opérateurs, printf et scanf, conditions et boucles, les fonctions et les tableaux, puis les pointeurs, l'allocation dynamique (malloc, calloc, free) et les structures.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d2904f3b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -37,6 +37,15 @@
     <li><a href="#tableaux">19 · Les tableaux en C</a></li>
     <li><a href="#passer">20 · Passer un tableau à une fonction</a></li>
     <li><a href="#deux-dimensions">21 · Les tableaux à deux dimensions</a></li>
+    <li><a href="#adresse">22 · Une variable, et où elle est rangée</a></li>
+    <li><a href="#pointeur">23 · Le pointeur, <code>&amp;</code> et <code>*</code></a></li>
+    <li><a href="#modifier-pointeur">24 · Modifier sans nommer</a></li>
+    <li><a href="#pointeurs-tableaux">25 · Pointeurs et tableaux</a></li>
+    <li><a href="#allocation">26 · <code>malloc</code>, <code>calloc</code>, <code>free</code></a></li>
+    <li><a href="#structures">27 · Les structures</a></li>
+    <li><a href="#tableaux-structures">28 · Un tableau de structures</a></li>
+    <li><a href="#structures-fonctions">29 · <code>.</code> ou <code>-&gt;</code></a></li>
+    <li><a href="#typedef">30 · Alléger, imbriquer, allouer</a></li>
   </ol>
 </nav>
 
@@ -51,8 +60,10 @@
   <h1>Langage C</h1>
   <p class="chapeau">Le premier langage du BTS où l'on doit <em>traduire</em> son programme avant
      de le lancer — et où le type de chaque variable est une déclaration, pas une devinette.
-     Le chapitre couvre les deux séances : d'abord le langage lui-même, jusqu'aux boucles ;
-     ensuite le découpage en <strong>fonctions</strong> et les <strong>tableaux</strong>.</p>
+     Le chapitre couvre les trois séances : d'abord le langage lui-même, jusqu'aux boucles ;
+     ensuite le découpage en <strong>fonctions</strong> et les <strong>tableaux</strong> ;
+     enfin les <strong>pointeurs</strong>, la mémoire réservée à l'exécution et les
+     <strong>structures</strong>.</p>
 
   <div class="flash">
     <span class="pastille">📌</span>
@@ -2050,6 +2061,965 @@ port 4 : 185</code></pre></div>
   </div>
 </section>
 
+<section id="adresse">
+  <h2><span class="num">22</span>Une variable, et l'endroit où elle est rangée</h2>
+
+  <p>Jusqu'ici, une variable était <em>un nom et une valeur</em>. Il lui manquait une
+     troisième chose, qui ne se voyait pas et qui va désormais tout commander : une
+     <strong>adresse</strong>. Quand on écrit <code>int age = 20;</code>, le programme
+     réserve une case dans la mémoire, y range 20, et retient à quel numéro se trouve cette
+     case.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🏠 Le casier et son numéro</div>
+    <p>Un vestiaire. Le <strong>casier nº 1000</strong> contient un blouson. « Le blouson »,
+       c'est la valeur ; « 1000 », c'est l'adresse. Deux questions différentes :
+       <em>qu'est-ce qu'il y a dedans ?</em> et <em>où est-il ?</em></p>
+    <p class="rap">En C, ces deux questions s'écrivent <code>age</code> et
+       <code>&amp;age</code>. Tout le chapitre tient dans cette distinction.</p>
+  </div>
+
+  <div class="tableau">
+
+  <table>
+    <thead><tr><th>On écrit</th><th>On demande</th><th>On obtient</th></tr></thead>
+    <tbody>
+      <tr><td><code>age</code></td><td>Quelle est la valeur ?</td><td><code>20</code></td></tr>
+      <tr><td><code>&amp;age</code></td><td>Où est rangée la variable ?</td>
+          <td>un numéro de case, par exemple <code>0x16b39e858</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Le <code>&amp;</code> n'est pas nouveau : il était déjà là dans
+     <code>scanf(&quot;%d&quot;, &amp;age)</code>. On l'écrivait sans savoir pourquoi —
+     maintenant on sait. <code>scanf</code> doit <em>écrire</em> dans la variable, donc il
+     lui faut son adresse, pas sa valeur.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 L'adresse change à chaque exécution</div>
+    <p>Lancez deux fois le même programme : les adresses affichées ne seront pas les mêmes.
+       Le système d'exploitation place le programme où il veut, et il le fait exprès — c'est
+       une protection contre certaines attaques. <strong>Une adresse ne se retient pas, elle
+       se manipule.</strong></p>
+    <p class="rap">C'est aussi pourquoi aucun affichage d'adresse n'est recomparé par la
+       chaîne de contrôle de ces fiches : une valeur qui change à chaque exécution n'est pas
+       une promesse vérifiable.</p>
+  </div>
+
+  <h3>Afficher une adresse : <code>%p</code></h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"adresse de age : %p\n"</span>, (<span class="j-typ">void</span> <span class="j-op">*</span>)<span class="j-op">&amp;</span><span class="j-var">age</span>);</code></pre></div>
+  <p class="rap"><code>%p</code> est le format des adresses, et
+     <code>(void&nbsp;*)</code> la conversion qu'il attend — un « pointeur sur n'importe
+     quoi ». Sans elle, le compilateur avertit.</p>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dans <code>scanf(&quot;%d&quot;, &amp;n)</code>, pourquoi le
+       <code>&amp;</code> — alors que <code>printf(&quot;%d&quot;, n)</code> n'en a pas ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><code>printf</code> <strong>lit</strong> la variable : la valeur lui suffit.
+         <code>scanf</code> <strong>écrit</strong> dedans : il lui faut savoir
+         <em>où</em>, donc l'adresse. Un paramètre reçu en C est toujours une copie ;
+         l'adresse est la seule façon de remonter jusqu'à l'original.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="pointeur">
+  <h2><span class="num">23</span>Le pointeur : une variable qui contient une adresse</h2>
+
+  <p>Un <strong>pointeur</strong> est une variable comme les autres. Sa particularité tient
+     en une phrase : <strong>ce qu'elle contient est une adresse</strong>, pas une donnée.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span>  <span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;    <span class="j-com">/* age contient  20                     */</span>
+<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;           <span class="j-com">/* p contiendra l'adresse d'un int       */</span>
+<span class="j-var">p</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">age</span>;         <span class="j-com">/* desormais : p pointe vers age         */</span></code></pre></div>
+
+  <h3>Déclarer</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">type</span> <span class="j-op">*</span><span class="j-var">nom</span>;
+
+<span class="j-typ">int</span>    <span class="j-op">*</span><span class="j-var">p</span>;      <span class="j-com">/* p pointe vers un int    */</span>
+<span class="j-typ">float</span>  <span class="j-op">*</span><span class="j-var">q</span>;      <span class="j-com">/* q pointe vers un float  */</span>
+<span class="j-typ">char</span>   <span class="j-op">*</span><span class="j-var">r</span>;      <span class="j-com">/* r pointe vers un char   */</span></code></pre></div>
+  <p class="rap">Le <strong>type du pointeur dit vers quoi il pointe</strong>, jamais ce
+     qu'il contient. <code>int *p;</code> ne range pas un entier dans <code>p</code> : il y
+     range le moyen d'en atteindre un.</p>
+
+  <h3>Les deux opérateurs, et le sens de la flèche</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Opérateur</th><th>Se lit</th><th>Part de</th><th>Donne</th></tr></thead>
+    <tbody>
+      <tr><td><code>&amp;</code></td><td>« adresse de »</td><td>une variable</td>
+          <td>son adresse</td></tr>
+      <tr><td><code>*</code></td><td>« valeur à l'adresse »</td><td>un pointeur</td>
+          <td>la variable pointée</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="rap">Les deux se défont l'un l'autre : <code>*(&amp;age)</code>, c'est
+     <code>age</code>. On range l'adresse avec <code>&amp;</code>, on revient à la valeur
+     avec <code>*</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'étoile ne veut pas dire la même chose aux deux endroits</div>
+    <p>Dans <code>int *p;</code>, l'étoile fait partie de la <strong>déclaration</strong> :
+       elle dit « p est un pointeur ». Dans <code>*p = 30;</code>, l'étoile est un
+       <strong>opérateur</strong> : elle dit « va à l'adresse rangée dans p ».</p>
+    <p class="rap">Même symbole, deux rôles. C'est la confusion la plus fréquente du
+       chapitre, et la seule façon de s'en sortir est de regarder s'il y a un
+       <em>type</em> devant.</p>
+  </div>
+
+  <h3>Un pointeur se range avant de s'utiliser</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">NULL</span>;     <span class="j-com">/* « pour l'instant, p ne pointe vers rien »  */</span>
+
+<span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">!=</span> <span class="j-var">NULL</span>)     <span class="j-com">/* on peut donc tester avant d'y toucher     */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">*</span><span class="j-var">p</span>);</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Déréférencer un pointeur non initialisé</div>
+    <p><code>int *p; *p = 10;</code> — <code>p</code> contient ce qui traînait dans la
+       mémoire, c'est-à-dire une adresse au hasard. Le programme écrit 10 n'importe où.
+       Parfois il plante tout de suite ; souvent il continue, et le bogue sort trois jours
+       plus tard, ailleurs.</p>
+    <p class="rap">D'où <code>= NULL</code> à la déclaration : une valeur qui ne pointe nulle
+       part <strong>se teste</strong>, tandis qu'une adresse au hasard ne se voit pas.</p>
+  </div>
+
+  <h3>Le programme complet</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">age</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"p contient l'adresse de age : %s\n"</span>, (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-op">&amp;</span><span class="j-var">age</span>) <span class="j-op">?</span> <span class="j-txt">"oui"</span> <span class="j-op">:</span> <span class="j-txt">"non"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"age vaut %d, et *p vaut %d\n"</span>, <span class="j-var">age</span>, <span class="j-op">*</span><span class="j-var">p</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"un int occupe %zu octets\n"</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>p contient l&#x27;adresse de age : oui
+age vaut 20, et *p vaut 20
+un int occupe 4 octets</code></pre></div>
+  <p class="rap">Un pointeur, lui, occupe <strong>8 octets</strong> sur une machine 64 bits
+     et <strong>4</strong> sur une machine 32 bits — l'atelier C de ce site est en 32 bits,
+     il affichera donc 4. La taille d'un pointeur ne dépend pas du type pointé : une adresse
+     d'<code>int</code> et une adresse de <code>double</code> font la même taille.</p>
+
+  <div class="quiz">
+    <div class="titre">🤔 Que vaut <code>p</code> et que vaut <code>*p</code> après
+       <code>int age = 20; int *p = &amp;age;</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><code>p</code> vaut <strong>l'adresse de <code>age</code></strong> — un numéro de
+         case qui change à chaque exécution. <code>*p</code> vaut <strong>20</strong>, la
+         valeur rangée à cette adresse.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="modifier-pointeur">
+  <h2><span class="num">24</span>Modifier une variable sans la nommer</h2>
+
+  <p>C'est ici que les pointeurs cessent d'être une curiosité. <code>*p</code> n'est pas
+     seulement une lecture : c'est un <strong>accès</strong>, et un accès se lit comme il
+     s'écrit.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">age</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"avant  : age = %d\n"</span>, <span class="j-var">age</span>);
+    <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-num">30</span>;                      <span class="j-com">/* on ecrit DANS la case pointee par p */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"apres  : age = %d\n"</span>, <span class="j-var">age</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>avant  : age = 20
+apres  : age = 30</code></pre></div>
+
+  <p><code>*p = 30;</code> n'a pas touché à <code>p</code> : le pointeur contient toujours la
+     même adresse. Ce qui a changé, c'est <strong>ce qu'il y a au bout</strong>. La ligne se
+     lit « range 30 dans la case dont p détient l'adresse », et comme cette case
+     <em>est</em> <code>age</code>, cela revient exactement à <code>age = 30;</code>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 À quoi ça sert, puisque <code>age = 30;</code> marche aussi ?</div>
+    <p>Ici, à rien. Mais dans une <strong>fonction</strong>, <code>age</code> n'existe pas :
+       on ne connaît que ce qu'on a reçu. Le chapitre sur les fonctions l'avait dit —
+       « une fonction travaille sur une copie » — et c'était une limite qu'on subissait.
+       Le pointeur la lève : on donne l'adresse, la fonction écrit dans l'original.</p>
+    <p class="rap">C'est aussi la réponse à la question qu'on se pose depuis le début :
+       pourquoi <code>scanf</code> a-t-il besoin d'un <code>&amp;</code> ?
+       <code>scanf</code> <em>est</em> une fonction qui modifie votre variable.</p>
+  </div>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">void</span> <span class="j-fn">doubler</span>(<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">n</span>)      <span class="j-com">/* n recoit une ADRESSE  */</span>
+{
+    <span class="j-op">*</span><span class="j-var">n</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">n</span> <span class="j-op">*</span> <span class="j-num">2</span>;          <span class="j-com">/* on ecrit dans l'original */</span>
+}
+
+<span class="j-com">/* a l'appel : */</span>
+<span class="j-typ">int</span> <span class="j-var">v</span> <span class="j-op">=</span> <span class="j-num">21</span>;
+<span class="j-fn">doubler</span>(<span class="j-op">&amp;</span><span class="j-var">v</span>);              <span class="j-com">/* v vaut maintenant 42     */</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>p = 30;</code> n'est pas <code>*p = 30;</code></div>
+    <p>Sans l'étoile, on remplace <strong>l'adresse</strong> contenue dans <code>p</code> par
+       le nombre 30 : le pointeur désigne désormais la case nº 30, qui n'appartient
+       probablement pas au programme. <code>age</code>, lui, n'a pas bougé.</p>
+    <p class="rap">Le compilateur le signale (<em>incompatible integer to pointer
+       conversion</em>) — c'est l'un des rares cas où il voit la faute. N'ignorez pas
+       l'avertissement.</p>
+  </div>
+</section>
+
+
+<section id="pointeurs-tableaux">
+  <h2><span class="num">25</span>Pointeurs et tableaux : la même chose, vue autrement</h2>
+
+  <p>Le chapitre sur les tableaux avait laissé une anomalie sans explication : « un tableau
+     passé à une fonction perd sa taille, mais la fonction peut le modifier ». La raison
+     tient en une ligne, et c'est la clé de ce chapitre.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-var">tab</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {<span class="j-num">1</span>, <span class="j-num">2</span>, <span class="j-num">6</span>, <span class="j-num">0</span>, <span class="j-num">7</span>};
+
+<span class="j-var">tab</span> <span class="j-op">==</span> <span class="j-op">&amp;</span><span class="j-var">tab</span>[<span class="j-num">0</span>]      <span class="j-com">/* le nom du tableau EST l'adresse de son premier element */</span></code></pre></div>
+
+  <p>Un tableau ne se copie jamais parce qu'<strong>on n'a jamais passé le tableau</strong> :
+     on passait son adresse, sans le savoir.</p>
+
+  <h3>Parcourir avec un pointeur</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">tab</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {<span class="j-num">1</span>, <span class="j-num">2</span>, <span class="j-num">6</span>, <span class="j-num">0</span>, <span class="j-num">7</span>};
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">tab</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, <span class="j-op">*</span><span class="j-var">p</span>);
+        <span class="j-var">p</span><span class="j-op">++</span>;
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>1
+2
+6
+0
+7</code></pre></div>
+  <p class="rap"><code>p++</code> n'ajoute pas 1 à l'adresse : il la fait avancer
+     <strong>d'une case du type pointé</strong>, soit 4 octets pour un <code>int</code>.
+     C'est le type du pointeur qui décide du pas — et c'est pour ça qu'il doit être juste.</p>
+
+  <h3>Les crochets ne sont qu'une écriture</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">p</span>[<span class="j-var">i</span>]   <span class="j-op">==</span>   <span class="j-op">*</span>(<span class="j-var">p</span> <span class="j-op">+</span> <span class="j-var">i</span>)        <span class="j-com">/* strictement la meme chose */</span>
+
+<span class="j-var">p</span>[<span class="j-num">0</span>]   <span class="j-op">==</span>   <span class="j-op">*</span><span class="j-var">p</span>
+<span class="j-var">tab</span>[<span class="j-num">2</span>] <span class="j-op">==</span>   <span class="j-op">*</span>(<span class="j-var">tab</span> <span class="j-op">+</span> <span class="j-num">2</span>)</code></pre></div>
+  <p>Les crochets fonctionnent donc sur un pointeur, et l'étoile sur un tableau. Ce ne sont
+     pas deux mondes : c'est une seule notion avec deux notations.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — le cours fait avancer le pointeur <em>deux fois</em></div>
+    <p>La diapositive 195 du polycopié donne ce programme, et annonce qu'il affiche
+       <code>1 2 6 0 7</code> :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, <span class="j-var">p</span>[<span class="j-var">i</span>]);   <span class="j-com">/* p[i] avance deja de i cases... */</span>
+    <span class="j-var">p</span><span class="j-op">++</span>;                     <span class="j-com">/* ...et p++ avance encore d'une  */</span>
+}</code></pre></div>
+    <p>Les deux avancent. Au tour nº <code>i</code>, on ne lit pas
+       <code>tab[i]</code> mais <code>tab[2i]</code> : on saute un élément sur deux, puis on
+       sort du tableau. <strong>Compilé et exécuté</strong>, le programme affiche
+       <code>1</code>, <code>6</code>, <code>7</code>, puis deux valeurs lues
+       <em>hors</em> du tableau — différentes à chaque exécution. Le détecteur de
+       débordement confirme : <em>stack-buffer-overflow</em>, ligne 8.</p>
+    <p>La démonstration, avec neuf cases pour rester à l'intérieur :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">tab</span>[<span class="j-num">9</span>] <span class="j-op">=</span> {<span class="j-num">10</span>, <span class="j-num">11</span>, <span class="j-num">12</span>, <span class="j-num">13</span>, <span class="j-num">14</span>, <span class="j-num">15</span>, <span class="j-num">16</span>, <span class="j-num">17</span>, <span class="j-num">18</span>};
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">tab</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-com">/* LES DEUX A LA FOIS : p[i] avance deja, et p++ avance encore */</span>
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"tour %d : p[%d] vaut %d\n"</span>, <span class="j-var">i</span>, <span class="j-var">i</span>, <span class="j-var">p</span>[<span class="j-var">i</span>]);
+        <span class="j-var">p</span><span class="j-op">++</span>;
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>tour 0 : p[0] vaut 10
+tour 1 : p[1] vaut 12
+tour 2 : p[2] vaut 14
+tour 3 : p[3] vaut 16
+tour 4 : p[4] vaut 18</code></pre></div>
+    <p class="rap">Une case sur deux, 10 · 12 · 14 · 16 · 18. <strong>On choisit une des deux
+       écritures, jamais les deux</strong> : soit <code>*p</code> avec <code>p++</code>
+       (diapositive 192, qui est juste), soit <code>p[i]</code> <em>sans</em>
+       <code>p++</code>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un tableau n'est pas tout à fait un pointeur</div>
+    <p><code>tab</code> vaut l'adresse du premier élément, mais ce n'est pas une variable :
+       on ne peut pas écrire <code>tab++</code> ni <code>tab = autreChose</code>. Un pointeur
+       se déplace, un tableau non.</p>
+    <p class="rap">Autre différence, déjà rencontrée : <code>sizeof(tab)</code> rend 20 pour
+       un <code>int[5]</code>, mais <code>sizeof(p)</code> rend la taille d'une adresse. Un
+       tableau <em>devient</em> un pointeur dès qu'on le passe ; il ne l'est pas chez lui.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Avec <code>int tab[5] = {1, 2, 6, 0, 7};</code> et
+       <code>int *p = tab;</code>, que vaut <code>*(p + 3)</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>0</strong>. <code>*(p + 3)</code> s'écrit aussi <code>p[3]</code>, c'est-à-dire
+         <code>tab[3]</code> — le quatrième élément, puisqu'on compte à partir de zéro.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="allocation">
+  <h2><span class="num">26</span>Réserver la mémoire pendant l'exécution</h2>
+
+  <p>Un tableau déclaré <code>int tab[10];</code> a sa taille écrite dans le programme.
+     Pour en avoir 100, il faut modifier le fichier et <strong>recompiler</strong>. Pour un
+     programme qui demande « combien de mesures ? », c'est une impasse.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🍽️ Réserver au restaurant</div>
+    <p>Le tableau de taille fixe, c'est réserver vingt couverts tous les soirs : trop peu
+       quand on est vingt-cinq, gâché quand on est six. L'allocation dynamique, c'est appeler
+       le jour même et dire combien on sera.</p>
+  </div>
+
+  <h3><code>malloc</code> — demander des octets</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>          <span class="j-com">/* malloc, calloc et free vivent ici */</span>
+
+<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
+<span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-num">5</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));   <span class="j-com">/* « reserve de quoi loger 5 int »  */</span></code></pre></div>
+  <p><code>malloc</code> réserve une zone et <strong>rend son adresse</strong>. On la range
+     donc dans un pointeur — et à partir de là, <code>p</code> s'utilise exactement comme un
+     tableau : <code>p[0]</code>, <code>p[1]</code>…</p>
+  <p class="rap">On écrit <code>5 * sizeof(int)</code> et jamais <code>20</code> :
+     <code>sizeof</code> donne la taille réelle sur la machine qui compile. Un nombre écrit
+     en dur serait juste ici et faux ailleurs.</p>
+
+  <h3>Vérifier, toujours</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+<span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"memoire insuffisante\n"</span>);
+    <span class="j-mc">return</span> <span class="j-num">1</span>;
+}</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>malloc</code> peut échouer, et il le dit en rendant <code>NULL</code></div>
+    <p>Le polycopié ne teste pas le retour de <code>malloc</code> dans ses premiers exemples —
+       et le sujet du TP 5, lui, le demande explicitement à l'exercice 4. Les trois lignes
+       ci-dessus sont le réflexe à prendre : sans elles, un échec d'allocation donne un
+       pointeur nul qu'on déréférence aussitôt, donc un plantage sans message.</p>
+    <p class="rap">Ce n'est pas une divergence avec le cours : le polycopié l'écrit lui-même
+       à la diapositive 242, pour une structure. On applique simplement partout ce qu'il
+       montre une fois.</p>
+  </div>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-num">5</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"memoire insuffisante\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        <span class="j-var">p</span>[<span class="j-var">i</span>] <span class="j-op">=</span> (<span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>) <span class="j-op">*</span> <span class="j-num">10</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        <span class="j-fn">printf</span>(<span class="j-txt">"p[%d] = %d\n"</span>, <span class="j-var">i</span>, <span class="j-var">p</span>[<span class="j-var">i</span>]);
+
+    <span class="j-fn">free</span>(<span class="j-var">p</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>p[0] = 10
+p[1] = 20
+p[2] = 30
+p[3] = 40
+p[4] = 50</code></pre></div>
+
+  <h3><code>calloc</code> — demander des cases, et les vouloir à zéro</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">a</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-num">4</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));   <span class="j-com">/* 4 cases, contenu indetermine */</span>
+<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">b</span> <span class="j-op">=</span> <span class="j-fn">calloc</span>(<span class="j-num">4</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));    <span class="j-com">/* 4 cases, toutes a ZERO       */</span></code></pre></div>
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th><code>malloc</code></th><th><code>calloc</code></th></tr></thead>
+    <tbody>
+      <tr><td>Arguments</td><td>un total d'octets</td><td>un nombre d'objets, et la taille d'un objet</td></tr>
+      <tr><td>Contenu initial</td><td>ce qui traînait là</td><td>des zéros</td></tr>
+      <tr><td>Quand le choisir</td><td>on va tout écrire soi-même</td><td>on va accumuler, compter, ou lire avant d'écrire</td></tr>
+    </tbody>
+  </table>
+  </div>
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">a</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-num">4</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">b</span> <span class="j-op">=</span> <span class="j-fn">calloc</span>(<span class="j-num">4</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">if</span> (<span class="j-var">a</span> <span class="j-op">==</span> <span class="j-var">NULL</span> <span class="j-op">||</span> <span class="j-var">b</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"calloc met tout a zero :\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">4</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        <span class="j-fn">printf</span>(<span class="j-txt">"b[%d] = %d\n"</span>, <span class="j-var">i</span>, <span class="j-var">b</span>[<span class="j-var">i</span>]);
+
+    <span class="j-fn">free</span>(<span class="j-var">a</span>);
+    <span class="j-fn">free</span>(<span class="j-var">b</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>calloc met tout a zero :
+b[0] = 0
+b[1] = 0
+b[2] = 0
+b[3] = 0</code></pre></div>
+  <p class="rap">Le programme n'affiche pas le contenu de <code>a</code>, et c'est volontaire :
+     une mémoire non initialisée n'a pas de valeur <em>annonçable</em>. L'afficher serait
+     écrire une sortie qu'on ne peut pas promettre.</p>
+
+  <h3><code>free</code> — rendre ce qu'on a pris</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-fn">free</span>(<span class="j-var">p</span>);        <span class="j-com">/* la zone redevient disponible pour le programme */</span></code></pre></div>
+  <p>Trois temps, toujours les mêmes, et dans cet ordre :</p>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>malloc() ou calloc()  -&gt;  reserver
+      utiliser          -&gt;  p[0], p[1], ...
+        free()          -&gt;  rendre</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Trois fautes classiques, et ce qu'elles donnent</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Faute</th><th>Nom</th><th>Effet</th></tr></thead>
+      <tbody>
+        <tr><td>on oublie <code>free</code></td><td>fuite mémoire</td>
+            <td>le programme grossit sans fin — invisible sur un exercice, fatal sur un service</td></tr>
+        <tr><td><code>free</code> deux fois</td><td>double libération</td>
+            <td>plantage, ou pire : une faille exploitable</td></tr>
+        <tr><td>on utilise après <code>free</code></td><td>pointeur fou</td>
+            <td>on lit une zone qui appartient déjà à autre chose</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Un réflexe suffit contre les deux dernières :
+       <code>free(p); p = NULL;</code>. Libérer <code>NULL</code> est autorisé et ne fait
+       rien, et déréférencer <code>NULL</code> plante <em>tout de suite</em>, à l'endroit de
+       la faute.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi écrit-on <code>malloc(n * sizeof(int))</code> plutôt que
+       <code>malloc(n)</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><code>malloc</code> compte en <strong>octets</strong>, pas en cases. Un
+         <code>int</code> en occupe 4 : <code>malloc(n)</code> ne réserverait donc qu'un quart
+         de la place nécessaire, et l'écriture des cases suivantes déborderait sur la mémoire
+         voisine.</p>
+    </div>
+  </div>
+</section>
+
+<section id="structures">
+  <h2><span class="num">27</span>Les structures : ranger ensemble ce qui va ensemble</h2>
+
+  <p>Pour décrire un étudiant, il faut un nom, un âge et une moyenne — trois types
+     différents. Un tableau ne sait pas faire : il range des éléments <strong>du même
+     type</strong>. Trois variables séparées le font, mais rien ne dit qu'elles parlent de la
+     même personne, et il faut les passer une par une à chaque fonction.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];      <span class="j-com">/* trois variables independantes :        */</span>
+<span class="j-typ">int</span>   <span class="j-var">age</span>;          <span class="j-com">/* rien ne dit qu'elles decrivent          */</span>
+<span class="j-typ">float</span> <span class="j-var">moyenne</span>;      <span class="j-com">/* le meme etudiant                        */</span></code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">📋 La fiche d'inscription</div>
+    <p>Trois variables séparées, c'est trois listes affichées au mur : les noms d'un côté,
+       les âges de l'autre, les moyennes plus loin. Une structure, c'est
+       <strong>une fiche par étudiant</strong> — on la prend, on l'a toute.</p>
+  </div>
+
+  <h3>Définir le modèle</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};                    <span class="j-com">/* ce point-virgule est OBLIGATOIRE */</span></code></pre></div>
+  <p class="rap">Ces lignes ne créent <strong>aucun étudiant</strong>. Elles décrivent à quoi
+     ressemble un étudiant — c'est un moule, pas une pièce.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le point-virgule après l'accolade fermante</div>
+    <p>Une fonction se termine par <code>}</code> tout court ; une structure par
+       <code>};</code>. L'oublier donne une cascade d'erreurs <em>sur les lignes
+       suivantes</em>, ce qui est le pire cas : on cherche la faute là où elle n'est pas.</p>
+  </div>
+
+  <h3>Créer une variable</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;              <span class="j-com">/* une fiche vierge               */</span>
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>, <span class="j-var">e2</span>, <span class="j-var">e3</span>;      <span class="j-com">/* trois fiches, independantes    */</span></code></pre></div>
+  <p class="rap">Le type s'écrit en <strong>deux mots</strong> : <code>struct Etudiant</code>.
+     C'est lourd, et la section 30 montre comment s'en débarrasser.</p>
+
+  <h3>Accéder aux champs : le point</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">e1</span>.<span class="j-var">age</span>     <span class="j-op">=</span> <span class="j-num">20</span>;
+<span class="j-var">e1</span>.<span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">15.5</span>;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Une chaîne ne se copie pas avec <code>=</code></div>
+<div class="bloc-code" data-fam="c"><span class="langue">C — ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> { <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>]; <span class="j-typ">int</span> <span class="j-var">age</span>; <span class="j-typ">float</span> <span class="j-var">moyenne</span>; };
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;
+    <span class="j-var">e1</span>.<span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;    <span class="j-com">/* refuse : on n'affecte pas a un tableau */</span>
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    <p>Le champ <code>nom</code> est un <strong>tableau</strong>, et un tableau n'est pas
+       une variable qu'on affecte. On copie son contenu :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-fn">strcpy</span>(<span class="j-var">e1</span>.<span class="j-var">nom</span>, <span class="j-txt">"Alice"</span>);</code></pre></div>
+    <p class="rap">C'est la même règle qu'au chapitre des tableaux, à un endroit où on
+       l'oublie — parce que <code>e1.nom</code> <em>ressemble</em> à une variable simple.</p>
+  </div>
+
+  <h3>Initialiser à la déclaration</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span> <span class="j-op">=</span> {<span class="j-txt">"Alice"</span>, <span class="j-num">20</span>, <span class="j-num">15.5</span>};        <span class="j-com">/* dans l'ordre des champs */</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e2</span> <span class="j-op">=</span> {                           <span class="j-com">/* ou en nommant les champs */</span>
+    .<span class="j-var">nom</span>     <span class="j-op">=</span> <span class="j-txt">"Bilal"</span>,
+    .<span class="j-var">age</span>     <span class="j-op">=</span> <span class="j-num">19</span>,
+    .<span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">12.0</span>
+};</code></pre></div>
+  <p class="rap">La seconde écriture coûte deux lignes et évite une classe entière de
+     bogues : le jour où un champ est ajouté au milieu de la structure, la première
+     décale tout en silence.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">e1</span>.<span class="j-var">nom</span>, <span class="j-txt">"Alice"</span>);      <span class="j-com">/* une chaine ne se copie pas avec = */</span>
+    <span class="j-var">e1</span>.<span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-var">e1</span>.<span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">15.5</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom     : %s\n"</span>, <span class="j-var">e1</span>.<span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Age     : %d\n"</span>, <span class="j-var">e1</span>.<span class="j-var">age</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Moyenne : %.2f\n"</span>, <span class="j-var">e1</span>.<span class="j-var">moyenne</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>Nom     : Alice
+Age     : 20
+Moyenne : 15.50</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la sortie annoncée ne correspond pas au programme</div>
+    <p>La diapositive 219 du polycopié écrit le programme entièrement en minuscules —
+       <code>strcpy(e1.nom, &quot;alice&quot;)</code>,
+       <code>printf(&quot;nom : %s\n&quot;, …)</code> — puis annonce une sortie en
+       capitales :</p>
+<div class="bloc-code"><span class="langue">ce que le polycopié annonce</span><pre><code>Nom : Alice
+Age : 20
+Moyenne : 15.50</code></pre></div>
+<div class="bloc-code"><span class="langue">ce que le programme affiche vraiment</span><pre><code>nom : alice
+age : 20
+moyenne : 15.50</code></pre></div>
+    <p class="rap">Compilé et exécuté pour en avoir le cœur net. Ce n'est pas une faute de
+       logique, c'est une faute de recopie — mais c'est exactement celle qui fait douter de
+       son propre code quand on compare l'écran au cours. <strong>Le C distingue les
+       majuscules des minuscules, y compris à l'intérieur d'une chaîne qu'il se contente de
+       recopier.</strong> La version publiée ci-dessus écrit les deux de la même façon.</p>
+  </div>
+
+  <h3>Saisir au clavier : où mettre le <code>&amp;</code></h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Champ</th><th>Type</th><th>Saisie</th><th>Pourquoi</th></tr></thead>
+    <tbody>
+      <tr><td><code>e1.age</code></td><td><code>int</code></td>
+          <td><code>scanf(&quot;%d&quot;, &amp;e1.age);</code></td>
+          <td>variable simple → il faut son adresse</td></tr>
+      <tr><td><code>e1.moyenne</code></td><td><code>float</code></td>
+          <td><code>scanf(&quot;%f&quot;, &amp;e1.moyenne);</code></td>
+          <td>idem</td></tr>
+      <tr><td><code>e1.nom</code></td><td><code>char[]</code></td>
+          <td><code>scanf(&quot;%s&quot;, e1.nom);</code></td>
+          <td>un tableau <em>est déjà</em> une adresse</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="rap">La règle du <code>&amp;</code> n'a pas changé d'un mot depuis le chapitre
+     9 : <code>scanf</code> écrit, donc il lui faut une adresse. Et la section 25 vient
+     d'expliquer pourquoi un tableau n'en a pas besoin — <code>tab</code> est déjà
+     <code>&amp;tab[0]</code>.</p>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi <code>struct Etudiant { … };</code> ne crée-t-il aucun
+       étudiant ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce qu'il définit un <strong>type</strong>, pas une variable — exactement comme
+         <code>int</code> ne crée aucun entier. Il faut ensuite écrire
+         <code>struct Etudiant e1;</code> pour qu'une fiche existe en mémoire.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="tableaux-structures">
+  <h2><span class="num">28</span>Un tableau de structures</h2>
+
+  <p>Une structure décrit un étudiant ; un tableau de structures décrit une
+     <strong>classe</strong>. C'est la forme que prend, dans tout programme réel, une liste
+     de serveurs, de produits, de relevés — tout ce qui est « plusieurs choses, chacune
+     ayant plusieurs champs ».</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">classe</span>[<span class="j-num">5</span>];        <span class="j-com">/* cinq fiches, numerotees de 0 a 4 */</span>
+
+<span class="j-var">classe</span>[<span class="j-num">0</span>].<span class="j-var">age</span>  <span class="j-op">=</span> <span class="j-num">20</span>;              <span class="j-com">/* tableau[indice].champ            */</span>
+<span class="j-var">classe</span>[<span class="j-num">2</span>].<span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">17.25</span>;</code></pre></div>
+  <p class="rap">On lit de gauche à droite : <code>classe[2]</code> est un étudiant, et
+     <code>.moyenne</code> est son champ. Les deux notations se combinent sans règle nouvelle
+     à apprendre.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">classe</span>[<span class="j-num">3</span>] <span class="j-op">=</span> {
+        { <span class="j-txt">"Alice"</span>,  <span class="j-num">20</span>, <span class="j-num">15.5f</span> },
+        { <span class="j-txt">"Bilal"</span>,  <span class="j-num">19</span>, <span class="j-num">12.0f</span> },
+        { <span class="j-txt">"Chloe"</span>,  <span class="j-num">21</span>, <span class="j-num">17.25f</span> }
+    };
+    <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">3</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%-8s %3d ans  %5.2f\n"</span>, <span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">nom</span>, <span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">age</span>, <span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">moyenne</span>);
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">moyenne</span>;
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"moyenne de la classe : %.2f\n"</span>, <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-num">3</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>Alice     20 ans  15.50
+Bilal     19 ans  12.00
+Chloe     21 ans  17.25
+moyenne de la classe : 14.92</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🔧 Deux formats d'alignement qui servent tout le temps</div>
+    <p><code>%-8s</code> — une chaîne sur 8 colonnes, <strong>collée à gauche</strong> (c'est
+       le tiret qui fait le collage à gauche). <code>%5.2f</code> — un réel sur 5 colonnes
+       avec 2 décimales. Ensemble, ils donnent un tableau lisible sans un seul espace écrit
+       à la main.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un tableau de structures ne se remplit pas « d'un coup »</div>
+    <p>Il n'existe pas de raccourci pour saisir toute une classe : il faut une boucle, et
+       dans la boucle une saisie <strong>par champ</strong>. C'est ce que demande l'exercice
+       du cours, et c'est trois <code>scanf</code> par tour.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">3</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom de l'etudiant %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%s"</span>, <span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">nom</span>);        <span class="j-com">/* tableau de char : pas de &amp; */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Age : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">age</span>);       <span class="j-com">/* int : &amp; obligatoire        */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Moyenne : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">classe</span>[<span class="j-var">i</span>].<span class="j-var">moyenne</span>);
+}</code></pre></div>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Que désigne <code>classe[2].nom</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Le champ <code>nom</code> du <strong>troisième</strong> étudiant — on compte à
+         partir de zéro. Et comme <code>nom</code> est un tableau de caractères,
+         <code>classe[2].nom</code> est déjà une adresse : <code>scanf</code> s'en contente
+         sans <code>&amp;</code>.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="structures-fonctions">
+  <h2><span class="num">29</span>Donner une structure à une fonction : <code>.</code> ou <code>-&gt;</code></h2>
+
+  <p>Une structure se passe à une fonction comme n'importe quelle valeur. Et comme n'importe
+     quelle valeur, <strong>elle est copiée</strong> — ce qui change tout dès qu'on veut la
+     modifier.</p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Par valeur</th><th>Par adresse</th></tr></thead>
+    <tbody>
+      <tr><td>Paramètre</td><td><code>struct Etudiant e</code></td>
+          <td><code>struct Etudiant *e</code></td></tr>
+      <tr><td>Appel</td><td><code>afficher(e1);</code></td><td><code>vieillir(&amp;e1);</code></td></tr>
+      <tr><td>Accès aux champs</td><td><code>e.age</code></td><td><code>e-&gt;age</code></td></tr>
+      <tr><td>Ce que voit la fonction</td><td>une copie</td><td>l'original</td></tr>
+      <tr><td>Quand l'employer</td><td>on veut seulement lire</td><td>on veut modifier, ou la structure est grosse</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};
+
+<span class="j-com">/* PAR VALEUR : la fonction recoit une copie, l'original ne bouge pas */</span>
+<span class="j-typ">void</span> <span class="j-fn">vieillirCopie</span>(<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e</span>)      { <span class="j-var">e</span>.<span class="j-var">age</span> <span class="j-op">=</span> <span class="j-var">e</span>.<span class="j-var">age</span> <span class="j-op">+</span> <span class="j-num">1</span>; }
+
+<span class="j-com">/* PAR ADRESSE : la fonction recoit l'adresse, elle ecrit dans l'original */</span>
+<span class="j-typ">void</span> <span class="j-fn">vieillir</span>(<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-op">*</span><span class="j-var">e</span>)          { <span class="j-var">e</span><span class="j-op">-&gt;</span><span class="j-var">age</span> <span class="j-op">=</span> <span class="j-var">e</span><span class="j-op">-&gt;</span><span class="j-var">age</span> <span class="j-op">+</span> <span class="j-num">1</span>; }
+
+<span class="j-typ">void</span> <span class="j-fn">afficher</span>(<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e</span>)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s, %d ans, moyenne %.2f\n"</span>, <span class="j-var">e</span>.<span class="j-var">nom</span>, <span class="j-var">e</span>.<span class="j-var">age</span>, <span class="j-var">e</span>.<span class="j-var">moyenne</span>);
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span> <span class="j-op">=</span> { <span class="j-txt">"Alice"</span>, <span class="j-num">20</span>, <span class="j-num">15.5f</span> };
+
+    <span class="j-fn">vieillirCopie</span>(<span class="j-var">e1</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"apres vieillirCopie : "</span>);  <span class="j-fn">afficher</span>(<span class="j-var">e1</span>);
+
+    <span class="j-fn">vieillir</span>(<span class="j-op">&amp;</span><span class="j-var">e1</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"apres vieillir      : "</span>);  <span class="j-fn">afficher</span>(<span class="j-var">e1</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>apres vieillirCopie : Alice, 20 ans, moyenne 15.50
+apres vieillir      : Alice, 21 ans, moyenne 15.50</code></pre></div>
+
+  <p>La démonstration tient dans la différence entre les deux lignes :
+     <code>vieillirCopie</code> a bien fait <code>e.age + 1</code> — sur <strong>sa</strong>
+     copie, détruite au retour. <code>vieillir</code> a reçu l'adresse, et l'âge a changé
+     pour de bon.</p>
+
+  <h3>La flèche</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">e1</span>;
+
+<span class="j-var">e1</span>.<span class="j-var">age</span>   <span class="j-op">=</span> <span class="j-num">20</span>;      <span class="j-com">/* une structure      -&gt; le point  */</span>
+<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">age</span>   <span class="j-op">=</span> <span class="j-num">20</span>;      <span class="j-com">/* un pointeur dessus -&gt; la fleche */</span>
+
+(<span class="j-op">*</span><span class="j-var">p</span>).<span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;      <span class="j-com">/* exactement la meme chose, en plus lourd */</span></code></pre></div>
+  <p class="rap"><code>p-&gt;age</code> n'est qu'un raccourci pour <code>(*p).age</code> :
+     « va à l'adresse, puis prends le champ ». Les parenthèses y sont obligatoires, et c'est
+     précisément pour ne plus les écrire que la flèche existe.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le point ou la flèche : une seule question à se poser</div>
+    <p><em>Est-ce que ma variable est une structure, ou l'adresse d'une structure ?</em>
+       Structure → point. Adresse → flèche. Il n'y a pas d'autre critère, et le compilateur
+       refuse l'autre choix — c'est l'une des rares fautes qu'il attrape toujours.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi écrit-on <code>vieillir(&amp;e1)</code> et non
+       <code>vieillir(e1)</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Parce que la fonction doit modifier <strong>l'original</strong>. Avec
+         <code>vieillir(e1)</code> elle recevrait une copie, la modifierait, et la copie
+         disparaîtrait au <code>return</code> — l'étudiant garderait son âge. C'est la même
+         raison que le <code>&amp;</code> de <code>scanf</code>.</p>
+    </div>
+  </div>
+</section>
+
+
+<section id="typedef">
+  <h2><span class="num">30</span>Alléger, imbriquer, allouer</h2>
+
+  <h3><code>typedef</code> : se passer du mot <code>struct</code></h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* sans typedef */</span>                   <span class="j-com">/* avec typedef */</span>
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {                     <span class="j-mc">typedef</span> <span class="j-mc">struct</span> {
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];                         <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>  <span class="j-var">age</span>;                             <span class="j-typ">int</span>  <span class="j-var">age</span>;
+};                                    } <span class="j-var">Etudiant</span>;
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;                   <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e2</span>;                   <span class="j-var">Etudiant</span> <span class="j-var">e2</span>;</code></pre></div>
+  <p class="rap"><code>typedef</code> ne crée rien de nouveau : il donne un
+     <strong>second nom</strong> à un type qui existe déjà. Le gain est de lisibilité, et il
+     devient sensible dès qu'on écrit des prototypes, des tableaux et des pointeurs.</p>
+
+  <h3>Une structure dans une structure</h3>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Date</span> {
+    <span class="j-typ">int</span> <span class="j-var">jour</span>;
+    <span class="j-typ">int</span> <span class="j-var">mois</span>;
+    <span class="j-typ">int</span> <span class="j-var">annee</span>;
+};
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>        <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>         <span class="j-var">age</span>;
+    <span class="j-typ">float</span>       <span class="j-var">moyenne</span>;
+    <span class="j-mc">struct</span> <span class="j-var">Date</span> <span class="j-var">naissance</span>;      <span class="j-com">/* un champ qui est lui-meme une structure */</span>
+};</code></pre></div>
+  <p>On descend alors d'un point à chaque étage :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">jour</span>  <span class="j-op">=</span> <span class="j-num">15</span>;        <span class="j-com">/* e1 -&gt; naissance -&gt; jour */</span>
+<span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">mois</span>  <span class="j-op">=</span> <span class="j-num">4</span>;
+<span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">annee</span> <span class="j-op">=</span> <span class="j-num">2005</span>;</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'ordre des définitions n'est pas libre</div>
+    <p><code>struct Date</code> doit être défini <strong>avant</strong> d'être employé comme
+       champ de <code>struct Etudiant</code> : le compilateur lit le fichier de haut en bas,
+       et il ne peut pas réserver de la place pour un type qu'il ne connaît pas encore.</p>
+    <p class="rap">C'est la même règle que pour les fonctions, où le prototype devait venir
+       avant l'appel. Le C ne revient jamais en arrière.</p>
+  </div>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Date</span> {
+    <span class="j-typ">int</span> <span class="j-var">jour</span>;
+    <span class="j-typ">int</span> <span class="j-var">mois</span>;
+    <span class="j-typ">int</span> <span class="j-var">annee</span>;
+};
+
+<span class="j-mc">typedef</span> <span class="j-mc">struct</span> {
+    <span class="j-typ">char</span>        <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>         <span class="j-var">age</span>;
+    <span class="j-typ">float</span>       <span class="j-var">moyenne</span>;
+    <span class="j-mc">struct</span> <span class="j-var">Date</span> <span class="j-var">naissance</span>;
+} <span class="j-var">Etudiant</span>;                       <span class="j-com">/* typedef : plus besoin d'ecrire « struct » */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-var">Etudiant</span> <span class="j-var">e1</span>;
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">e1</span>.<span class="j-var">nom</span>, <span class="j-txt">"Alice"</span>);
+    <span class="j-var">e1</span>.<span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-var">e1</span>.<span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">15.5</span>;
+    <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">jour</span>  <span class="j-op">=</span> <span class="j-num">15</span>;
+    <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">mois</span>  <span class="j-op">=</span> <span class="j-num">4</span>;
+    <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">annee</span> <span class="j-op">=</span> <span class="j-num">2005</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s, ne le %02d/%02d/%d\n"</span>, <span class="j-var">e1</span>.<span class="j-var">nom</span>,
+           <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">jour</span>, <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">mois</span>, <span class="j-var">e1</span>.<span class="j-var">naissance</span>.<span class="j-var">annee</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>Alice, ne le 15/04/2005</code></pre></div>
+  <p class="rap"><code>%02d</code> complète avec un zéro à gauche jusqu'à deux chiffres :
+     c'est ce qui donne <code>04</code> et non <code>4</code> pour le mois.</p>
+
+  <h3>Une structure réservée à l'exécution</h3>
+  <p>Les deux moitiés du chapitre se rejoignent ici : une structure peut être allouée par
+     <code>malloc</code>, exactement comme un tableau.</p>
+
+<div class="bloc-code" data-fam="c"><span class="langue">C — le programme entier</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-op">*</span><span class="j-var">p</span>;
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-mc">sizeof</span>(<span class="j-mc">struct</span> <span class="j-var">Etudiant</span>));
+    <span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'allocation memoire\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-txt">"Alice"</span>);
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">15.5</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom     : %s\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Age     : %d\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">age</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Moyenne : %.2f\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">moyenne</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">p</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>Nom     : Alice
+Age     : 20
+Moyenne : 15.50</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🔧 Le geste complet, en cinq lignes</div>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-mc">sizeof</span>(<span class="j-mc">struct</span> <span class="j-var">Etudiant</span>));   <span class="j-com">/* 1. reserver         */</span>
+<span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;               <span class="j-com">/* 2. verifier         */</span>
+<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;                           <span class="j-com">/* 3. la fleche        */</span>
+<span class="j-fn">strcpy</span>(<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-txt">"Alice"</span>);               <span class="j-com">/* 4. strcpy, toujours */</span>
+<span class="j-fn">free</span>(<span class="j-var">p</span>);                               <span class="j-com">/* 5. rendre           */</span></code></pre></div>
+    <p class="rap"><code>sizeof(struct Etudiant)</code> — jamais la somme des champs
+       calculée à la main. Le compilateur ajoute des octets de remplissage entre les champs
+       pour les aligner, et un total écrit à la main serait trop petit.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Dans <code>strcpy(p-&gt;nom, &quot;Alice&quot;)</code>, pourquoi la
+       flèche puis <em>pas</em> de <code>&amp;</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>La <strong>flèche</strong> parce que <code>p</code> est un pointeur sur la structure.
+         <strong>Pas de <code>&amp;</code></strong> parce que le champ atteint,
+         <code>nom</code>, est un tableau de caractères — donc déjà une adresse.
+         <code>strcpy</code> veut une adresse de destination, elle l'a.</p>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -2106,6 +3076,33 @@ port 4 : 185</code></pre></div>
       <li><strong>Mais la fonction peut le modifier</strong>, puisqu'elle en reçoit l'adresse.
           C'est ce qui fait marcher <code>SaisirTableau()</code>.</li>
     </ul>
+    <p class="recap-part"><strong>Pointeurs, mémoire et structures</strong></p>
+    <ul>
+      <li><strong>Une variable a trois choses</strong> : un nom, une valeur, une adresse.
+          <code>age</code> demande la valeur, <code>&amp;age</code> demande l'adresse.</li>
+      <li><strong>Un pointeur contient une adresse.</strong> <code>int *p;</code> ne range
+          pas un entier : il range de quoi en atteindre un.</li>
+      <li><strong>L'étoile a deux rôles</strong> : dans <code>int *p;</code> elle déclare,
+          dans <code>*p = 30;</code> elle accède. Regarder s'il y a un type devant.</li>
+      <li><strong><code>tab == &amp;tab[0]</code></strong> — le nom d'un tableau est l'adresse
+          de son premier élément. C'est pour ça qu'un tableau n'est jamais copié.</li>
+      <li><strong><code>p[i]</code> et <code>*(p + i)</code> sont la même chose.</strong>
+          On choisit l'une OU l'autre : <code>p[i]</code> avec <code>p++</code> saute une
+          case sur deux.</li>
+      <li><strong><code>p++</code> avance d'une case du type pointé</strong>, pas d'un octet.</li>
+      <li><strong><code>malloc(n * sizeof(int))</code></strong> réserve à l'exécution et rend
+          une adresse ; <code>calloc(n, sizeof(int))</code> fait pareil et met tout à zéro.</li>
+      <li><strong>On teste toujours <code>if (p == NULL)</code></strong>, et on finit toujours
+          par <code>free(p)</code>.</li>
+      <li><strong><code>struct</code> regroupe des champs de types différents</strong> ;
+          l'accolade fermante est suivie d'un <code>;</code>.</li>
+      <li><strong>Un champ chaîne se remplit avec <code>strcpy</code></strong>, jamais
+          avec <code>=</code>.</li>
+      <li><strong>Structure → le point · pointeur sur structure → la flèche.</strong>
+          <code>p-&gt;age</code> est un raccourci pour <code>(*p).age</code>.</li>
+      <li><strong>Passée par valeur, une structure est copiée</strong> : pour la modifier,
+          on passe son adresse.</li>
+    </ul>
   </div>
 
   <div class="sources">
@@ -2120,6 +3117,9 @@ port 4 : 185</code></pre></div>
       <li>Le même polycopié, chapitre 1 pour la notion de tableau en pseudo-code et chapitre 2
           pour la déclaration en C</li>
       <li>Sujet « TP 3 : les fonctions et les tableaux », neuf exercices</li>
+      <li>Le même polycopié, séance du 09/10/2026 (243 diapositives) — chapitre 5, les
+          pointeurs (pages 167 à 207) et chapitre 6, les structures (pages 208 à 243)</li>
+      <li>Sujet « TP 5 : les pointeurs », quatre exercices</li>
 </ul>
     <p class="rap">Toutes les sorties annoncées « sortie réelle » ont été obtenues en compilant
        et en exécutant le programme, pas en le lisant.</p>
@@ -2130,7 +3130,7 @@ port 4 : 185</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d2904f3b"></script>
-<script src="../../assets/app.js?v=d2904f3b"></script>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
 </body>
 </html>

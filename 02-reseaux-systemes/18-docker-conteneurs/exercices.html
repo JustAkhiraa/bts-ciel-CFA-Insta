@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker — le TP d'initiation corrigé | BTS CIEL</title>
+<meta name="description" content="Les six parties du TP d'initiation Docker corrigées : images et tags, cycle de vie d'un conteneur, publication de ports, volumes et persistance, puis le nettoyage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#p1">1 · Introduction — le moteur répond-il ?</a></li>
+    <li><a href="#p2">2 · Manipuler des images</a></li>
+    <li><a href="#p3">3 · Manipuler des conteneurs</a></li>
+    <li><a href="#p4">4 · Exposer un service sur un port</a></li>
+    <li><a href="#p5">5 · Persister des données</a></li>
+    <li><a href="#p6">6 · Nettoyage, et les trois mots</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+    <span class="sep">/</span><span>Chapitre 18</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Docker — le TP d'initiation</h1>
+  <p class="chapeau">Les six parties du sujet, question par question. Les commandes sont à
+     taper, pas à lire : ce TP ne se révise pas, il se refait.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<section id="p1">
+  <h2><span class="num">1</span>Introduction — le moteur répond-il ?</h2>
+  <article class="exo">
+    <h3><span class="no">1</span>Vérifier que Docker fonctionne <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.1</strong> Lancer <code>docker --version</code> puis
+         <code>docker info</code>. Relever le nombre de conteneurs et d'images présents.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> <span class="j-att">--version</span>
+<span class="j-fn">docker</span> info</code></pre></div>
+        <p><code>docker --version</code> ne dit qu'une chose : la commande existe.
+           <strong>C'est <code>docker info</code> qui interroge le moteur</strong> — s'il
+           répond, tout le reste du TP est possible.</p>
+        <p>Les deux lignes à relever sont en haut de sa sortie :</p>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Client:
+ Version:    27.3.1
+...
+Server:
+ Containers: 0
+  Running: 0
+  Paused: 0
+  Stopped: 0
+ Images: 0</code></pre></div>
+        <p class="rap">Sur une installation neuve, les deux valent 0. Les relever
+           <strong>maintenant</strong> a un intérêt : à la fin du TP, on comparera, et on
+           verra ce que l'on a oublié de nettoyer.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>Cannot connect to the Docker daemon</code></div>
+          <p>Docker Desktop n'est pas lancé (macOS, Windows), ou le service est arrêté
+             (<code>sudo systemctl start docker</code>, Linux), ou l'utilisateur n'est pas
+             dans le groupe <code>docker</code> et la session n'a pas été rouverte.
+             <a href="cours.html#installer">La section 2 du cours</a> détaille les trois cas.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">2</span>Lancer deux fois <code>hello-world</code> <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.2</strong> Exécuter <code>docker run hello-world</code>, puis relancer la
+         même commande. Qu'est-ce qui change dans le temps d'exécution et dans les messages ?
+         Expliquer pourquoi.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run hello-world</code></pre></div>
+        <p><strong>La première fois</strong>, Docker ne trouve pas l'image localement, va la
+           chercher sur le registre public, et le dit :</p>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Unable to find image &#x27;hello-world:latest&#x27; locally
+latest: Pulling from library/hello-world
+c1ec31eb5944: Pull complete
+Digest: sha256:...
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!</code></pre></div>
+        <p><strong>La seconde fois</strong>, ces cinq premières lignes disparaissent et
+           l'exécution est quasi instantanée.</p>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Hello from Docker!</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 L'explication attendue</div>
+          <p>Une image ne se télécharge qu'<strong>une fois</strong> : elle est ensuite dans
+             le cache local de la machine, et <code>docker run</code> la réutilise. Le temps
+             de la première exécution est presque entièrement du <em>téléchargement</em>, pas
+             du démarrage — un conteneur, lui, démarre en quelques dizaines de millisecondes.</p>
+          <p class="rap">Conséquence pratique sur un serveur : on <code>pull</code> l'image
+             <em>avant</em> la fenêtre de déploiement, pour que la bascule soit immédiate.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 Deux conteneurs, pas un</div>
+          <p>Vous venez de créer <strong>deux</strong> conteneurs, tous deux terminés.
+             <code>docker ps -a</code> les montre à l'état <code>Exited (0)</code> : un
+             conteneur qui a fini son travail ne disparaît pas tout seul.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p2">
+  <h2><span class="num">2</span>Manipuler des images</h2>
+  <article class="exo">
+    <h3><span class="no">3</span>Télécharger, lister, supprimer <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>2.1 à 2.3 et 2.5</strong> Télécharger <code>alpine</code>,
+         <code>nginx</code> et <code>httpd</code> sans les exécuter. Lister les images locales
+         en relevant pour chacune son nom, son tag, son identifiant et sa taille. Supprimer
+         <code>httpd</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> pull alpine
+<span class="j-fn">docker</span> pull nginx
+<span class="j-fn">docker</span> pull httpd
+
+<span class="j-fn">docker</span> images
+
+<span class="j-fn">docker</span> rmi httpd</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
+nginx         latest    3b25b682ea82   2 weeks ago    192MB
+httpd         latest    f32c0b1d2e4a   3 weeks ago    148MB
+alpine        latest    91ef0af61f39   5 weeks ago    7.8MB</code></pre></div>
+        <p class="rap">Les identifiants et les tailles exactes dépendent du jour où vous
+           téléchargez : ce sont des images qui évoluent. L'ordre de grandeur, lui, est
+           stable — et c'est lui qui compte : <strong>Alpine est vingt-cinq fois plus petite
+           que nginx</strong>.</p>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>pull</code> ne lance rien</div>
+          <p>C'est tout l'intérêt de la question : séparer <em>avoir l'image</em> et
+             <em>exécuter un conteneur</em>. Après ces trois commandes,
+             <code>docker ps -a</code> est toujours vide.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">4</span>Le tag, ou pourquoi il y a deux lignes « nginx » <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>2.4</strong> Télécharger <code>nginx:1.21</code>, relancer
+         <code>docker images</code>. Combien de lignes pour nginx ? Qu'est-ce que cela apprend
+         sur la notion de tag ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> pull nginx:<span class="j-num">1.21</span>
+<span class="j-fn">docker</span> images</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>REPOSITORY    TAG       IMAGE ID       CREATED        SIZE
+nginx         latest    3b25b682ea82   2 weeks ago    192MB
+nginx         1.21      ea335eea17ab   3 years ago    141MB
+alpine        latest    91ef0af61f39   5 weeks ago    7.8MB</code></pre></div>
+        <p><strong>Deux lignes</strong>, avec deux <code>IMAGE ID</code> différents.</p>
+        <div class="encart methode">
+          <div class="titre">🧭 L'explication attendue</div>
+          <p>Le tag <strong>fait partie de l'identité de l'image</strong>. Un dépôt
+             (<code>nginx</code>) contient plusieurs versions, chacune désignée par un tag.
+             <code>nginx</code> tout court n'est pas « le dépôt » : c'est un raccourci pour
+             <code>nginx:latest</code>.</p>
+          <p class="rap">Noter aussi la colonne <code>CREATED</code> : « 3 years ago » pour la
+             1.21. C'est la date de <strong>fabrication</strong> de l'image, pas celle du
+             téléchargement.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>latest</code> ne veut pas dire « la plus récente »</div>
+          <p>C'est le tag employé par défaut, rien de plus. En production on épingle toujours
+             une version explicite : un déploiement qui change tout seul parce qu'un éditeur a
+             republié <code>latest</code> est un incident, pas une mise à jour.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Supprimer une version précise</div>
+          <p><code>docker rmi nginx</code> ne supprime que <code>nginx:latest</code>. Pour
+             l'autre : <code>docker rmi nginx:1.21</code>. Le tag se précise aussi à la
+             suppression.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p3">
+  <h2><span class="num">3</span>Manipuler des conteneurs</h2>
+  <article class="exo">
+    <h3><span class="no">5</span>Entrer dans une Alpine, et comprendre <code>ps -a</code> <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>3.1 et 3.2</strong> Lancer un conteneur interactif Alpine avec un terminal.
+         À l'intérieur : <code>ls</code>, <code>cat /etc/os-release</code>, puis
+         <code>exit</code>. Relancer <code>docker ps</code> puis <code>docker ps -a</code> :
+         le conteneur apparaît-il dans les deux ? Justifier.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-it</span> alpine sh</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>/ # ls
+bin  dev  etc  home  lib  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+/ # cat /etc/os-release
+NAME=&quot;Alpine Linux&quot;
+ID=alpine
+VERSION_ID=3.20.3
+PRETTY_NAME=&quot;Alpine Linux v3.20&quot;
+/ # exit</code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps      <span class="j-com"># vide</span>
+<span class="j-fn">docker</span> ps <span class="j-att">-a</span>   <span class="j-com"># le conteneur alpine, a l'etat Exited</span></code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 La justification attendue</div>
+          <p>Il n'apparaît que dans <code>docker ps -a</code>. <code>docker ps</code> ne liste
+             que les conteneurs <strong>en cours d'exécution</strong> ; celui-ci est arrêté.</p>
+          <p>Et il est arrêté parce qu'<strong>un conteneur vit tant que son processus
+             principal vit</strong>. Ici, ce processus était le <code>sh</code> qu'on a quitté
+             par <code>exit</code> : en le quittant, on a arrêté le conteneur.</p>
+          <p class="rap">Le conteneur n'a pas disparu pour autant. Il garde sa couche
+             d'écriture et occupe de la place, jusqu'à un <code>docker rm</code>.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>-i</code> et <code>-t</code> séparément</div>
+          <p><code>-i</code> garde l'entrée standard ouverte, <code>-t</code> alloue un
+             pseudo-terminal. Sans <code>-t</code> on n'a pas d'invite ; sans <code>-i</code>
+             on ne peut rien taper. Les deux vont presque toujours ensemble, d'où
+             <code>-it</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">6</span>Un nginx en arrière-plan, et son statut sans <code>docker ps</code> <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>3.3 et 3.4</strong> Lancer un nginx détaché, nommé <code>mon-serveur</code>.
+         Puis, <strong>sans utiliser <code>docker ps</code></strong>, retrouver son statut à
+         l'aide d'une seule commande, et expliquer la démarche.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> mon-serveur nginx</code></pre></div>
+        <p>La commande rend immédiatement la main et affiche l'identifiant complet du
+           conteneur. Pour le statut, sans <code>docker ps</code> :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> inspect <span class="j-att">-f</span> <span class="j-txt">'{{.State.Status}}'</span> mon-serveur</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>running</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 La démarche</div>
+          <p><code>docker inspect</code> rend <strong>toute</strong> la fiche technique du
+             conteneur en JSON — configuration, réseau, montages, état. L'option
+             <code>-f</code> applique un gabarit Go qui n'en extrait qu'un champ :
+             <code>.State.Status</code>.</p>
+          <p>Sans l'option, on voit l'objet entier et on peut chercher la bonne clé :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> inspect mon-serveur | grep <span class="j-att">-i</span> status</code></pre></div>
+          <p class="rap">L'intérêt de la question n'est pas la syntaxe du gabarit, c'est de
+             découvrir qu'<strong><code>inspect</code> est la source</strong> et que
+             <code>ps</code> n'en est qu'un affichage condensé.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">7</span>Journaux, shell dans le conteneur, et le fichier qui survit <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>3.5 à 3.7</strong> Afficher les journaux de <code>mon-serveur</code>.
+         Ouvrir un terminal <em>dans</em> le conteneur déjà lancé, aller dans
+         <code>/usr/share/nginx/html</code> et modifier <code>index.html</code>. Quitter,
+         arrêter puis redémarrer le conteneur. Le fichier modifié a-t-il survécu ? Formuler
+         une hypothèse.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> logs mon-serveur
+
+<span class="j-fn">docker</span> exec <span class="j-att">-it</span> mon-serveur bash</code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># a l'interieur du conteneur</span>
+<span class="j-fn">cd</span> /usr/share/nginx/html
+<span class="j-fn">echo</span> <span class="j-txt">"Bonjour NetSolutions"</span> &gt; index.html
+<span class="j-fn">cat</span> index.html
+<span class="j-fn">exit</span></code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> stop mon-serveur
+<span class="j-fn">docker</span> start mon-serveur
+<span class="j-fn">docker</span> exec mon-serveur cat /usr/share/nginx/html/index.html</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Bonjour NetSolutions</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 L'hypothèse attendue</div>
+          <p><strong>Oui, le fichier a survécu.</strong> <code>stop</code> arrête le processus
+             principal ; il ne détruit pas le conteneur. La <strong>couche d'écriture</strong>
+             du conteneur — celle qui enregistre tout ce qui a été modifié par rapport à
+             l'image — est toujours là, et <code>start</code> la retrouve.</p>
+          <p class="rap">Ce serait l'inverse après un <code>docker rm</code> : cette couche
+             serait effacée, et un nouveau conteneur repartirait de la page d'accueil nginx
+             d'origine. C'est précisément ce que démontre la partie 5.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>exec</code>, pas <code>run</code></div>
+          <p><code>docker run -it nginx bash</code> créerait un <strong>deuxième</strong>
+             conteneur, vierge, dans lequel le serveur ne tourne même pas. On y modifierait un
+             fichier sans aucun effet sur <code>mon-serveur</code>. C'est l'erreur la plus
+             coûteuse du TP, parce qu'elle ne produit aucun message.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">8</span>Supprimer, et ce que <code>rm</code> refuse <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>3.8</strong> Supprimer le conteneur. Que se passe-t-il si on essaie de
+         supprimer un conteneur encore en cours d'exécution ? Quelle option force la
+         suppression ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> stop mon-serveur
+<span class="j-fn">docker</span> rm mon-serveur</code></pre></div>
+        <p>Sur un conteneur qui tourne encore :</p>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Error response from daemon: cannot remove container &quot;mon-serveur&quot;:
+container is running: stop the container before removing or force remove</code></pre></div>
+        <p>L'option qui force est <code>-f</code> :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> rm <span class="j-att">-f</span> mon-serveur     <span class="j-com"># arrete puis supprime, d'un coup</span></code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 Le refus est une protection, pas une contrariété</div>
+          <p>Supprimer un conteneur actif, c'est couper un service sans prévenir. Docker
+             demande donc un geste explicite. <code>-f</code> envoie un <code>SIGKILL</code>
+             immédiat, sans les dix secondes de grâce de <code>stop</code> : une base de
+             données peut en garder une transaction incomplète.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p4">
+  <h2><span class="num">4</span>Exposer un service sur un port</h2>
+  <article class="exo">
+    <h3><span class="no">9</span>Publier 8080, puis 8081, puis échouer sur 8080 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>4.1 à 4.4</strong> Lancer nginx en publiant son port 80 sur le 8080 de la
+         machine, puis vérifier dans un navigateur. Lancer un second nginx sur 8081 : les deux
+         conteneurs peuvent-ils utiliser le port 80 en même temps, et pourquoi n'y a-t-il pas
+         de conflit ? Enfin, tenter un troisième sur 8080 déjà pris : expliquer le message.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web  <span class="j-att">-p</span> <span class="j-num">8080</span>:<span class="j-num">80</span> nginx
+<span class="j-fn">curl</span> http://localhost:<span class="j-num">8080</span>
+
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web2 <span class="j-att">-p</span> <span class="j-num">8081</span>:<span class="j-num">80</span> nginx
+<span class="j-fn">curl</span> http://localhost:<span class="j-num">8081</span></code></pre></div>
+<div class="bloc-code" data-fam="html"><span class="langue">sortie</span><pre><code><span class="j-bal">&lt;!DOCTYPE html&gt;</span>
+<span class="j-bal">&lt;html</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;head</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;title</span><span class="j-bal">&gt;</span>Welcome to nginx!<span class="j-bal">&lt;/title</span><span class="j-bal">&gt;</span>
+...</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Pourquoi aucun conflit sur le port 80</div>
+          <p>Chaque conteneur possède sa <strong>propre pile réseau</strong> : son port 80
+             n'est pas le port 80 de la machine. Les deux peuvent donc écouter sur 80 chez
+             eux. Ce qui doit être unique, c'est le port <strong>de l'hôte</strong> — d'où
+             8080 et 8081.</p>
+          <p class="rap">C'est la même mécanique que le
+             <a href="../12-nat-pat/cours.html">PAT</a> : une redirection, avec une
+             correspondance entre un port public et un service interne.</p>
+        </div>
+        <p>Le troisième :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">-p</span> <span class="j-num">8080</span>:<span class="j-num">80</span> <span class="j-att">--name</span> web3 nginx</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>docker: Error response from daemon: driver failed programming external
+connectivity on endpoint web3: Bind for 0.0.0.0:8080 failed: port is already allocated.</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Lire le message</div>
+          <p><code>Bind for 0.0.0.0:8080 failed</code> — Docker a demandé au système de
+             réserver le port 8080 sur <strong>toutes les interfaces de l'hôte</strong>, et le
+             système a refusé : <code>web</code> l'occupe déjà. Côté conteneur, rien
+             n'empêchait <code>web3</code> d'écouter sur 80.</p>
+          <p class="rap">Le conteneur est tout de même <strong>créé</strong>, à l'état
+             <code>Created</code> : il apparaît dans <code>docker ps -a</code> et il faudra le
+             supprimer.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ La page ne s'affiche pas ?</div>
+          <p>Trois causes, dans l'ordre : on a inversé <code>-p 80:8080</code> · le conteneur
+             s'est arrêté (<code>docker ps -a</code> le dira) · le TP est fait sur une machine
+             distante ou en ligne, et <code>localhost</code> y désigne cette machine-là, pas
+             la vôtre.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p5">
+  <h2><span class="num">5</span>Persister des données avec un volume</h2>
+  <article class="exo">
+    <h3><span class="no">10</span>Un volume qui survit à la destruction du conteneur <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p><strong>5.1 à 5.4</strong> Créer un volume nommé <code>donnees-web</code>, lancer
+         un nginx sur le port 8082 en l'associant au dossier servi, modifier
+         <code>index.html</code>, puis <strong>supprimer complètement le conteneur</strong>.
+         Relancer un conteneur de nom différent avec le même volume : la modification est-elle
+         là ? Qu'est-ce que cela démontre ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume create donnees-web
+
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web-persistant <span class="j-att">-p</span> <span class="j-num">8082</span>:<span class="j-num">80</span> \
+           <span class="j-att">-v</span> donnees-web:/usr/share/nginx/html nginx
+
+<span class="j-fn">docker</span> exec web-persistant sh <span class="j-att">-c</span> <span class="j-txt">'echo "Bonjour NetSolutions" &gt; /usr/share/nginx/html/index.html'</span>
+<span class="j-fn">curl</span> http://localhost:<span class="j-num">8082</span></code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Bonjour NetSolutions</code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> stop web-persistant
+<span class="j-fn">docker</span> rm   web-persistant          <span class="j-com"># le conteneur n'existe PLUS</span>
+
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web-persistant-v2 <span class="j-att">-p</span> <span class="j-num">8082</span>:<span class="j-num">80</span> \
+           <span class="j-att">-v</span> donnees-web:/usr/share/nginx/html nginx
+<span class="j-fn">curl</span> http://localhost:<span class="j-num">8082</span></code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>Bonjour NetSolutions</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Ce que cela démontre</div>
+          <p><strong>Un volume ne dépend d'aucun conteneur.</strong> Il est créé séparément,
+             il est monté par un conteneur le temps que celui-ci vit, et il lui survit.
+             Plusieurs conteneurs peuvent monter le même, successivement ou en même temps.</p>
+          <p>La relation est donc l'inverse de ce qu'on croit spontanément : ce n'est pas le
+             conteneur qui <em>possède</em> ses données, c'est le volume qui <em>prête</em>
+             les siennes à un conteneur.</p>
+          <p class="rap">C'est la réponse à la question 3.7 vue de l'autre côté : sans volume,
+             la modification mourait avec le conteneur ; avec un volume, elle lui survit.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le volume masque le contenu de l'image</div>
+          <p>Au tout premier montage, le volume étant <em>vide</em>, Docker y recopie la page
+             d'accueil nginx d'origine. Ensuite, le volume n'est plus vide et il
+             <strong>remplace</strong> entièrement le dossier de l'image. Si un jour une mise
+             à jour d'image n'apparaît pas, c'est souvent un volume qui la cache.</p>
+        </div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume ls
+<span class="j-fn">docker</span> stop web-persistant-v2 &amp;&amp; docker rm web-persistant-v2
+<span class="j-fn">docker</span> volume rm donnees-web</code></pre></div>
+        <p class="rap">L'ordre de la question 5.5 n'est pas négociable :
+           <code>docker volume rm</code> refuse tant qu'un conteneur, même arrêté, l'utilise.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p6">
+  <h2><span class="num">6</span>Nettoyage, et les trois mots</h2>
+  <article class="exo">
+    <h3><span class="no">11</span>Tout nettoyer proprement <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>6.1 et 6.2</strong> Lister tous les conteneurs encore présents, puis
+         proposer et exécuter les commandes qui nettoient tout : arrêt et suppression des
+         conteneurs restants, suppression des images inutiles.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps <span class="j-att">-a</span></code></pre></div>
+        <p>Deux manières, et la seconde est la bonne :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># a la main, avec les identifiants</span>
+<span class="j-fn">docker</span> stop $(docker ps <span class="j-att">-q</span>)       <span class="j-com"># arreter tout ce qui tourne</span>
+<span class="j-fn">docker</span> rm   $(docker ps <span class="j-att">-aq</span>)      <span class="j-com"># supprimer tous les conteneurs</span>
+<span class="j-fn">docker</span> rmi  $(docker images <span class="j-att">-q</span>)   <span class="j-com"># supprimer toutes les images</span></code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># avec les commandes de menage de Docker</span>
+<span class="j-fn">docker</span> container prune <span class="j-att">-f</span>
+<span class="j-fn">docker</span> image prune <span class="j-att">-a</span> <span class="j-att">-f</span>
+<span class="j-fn">docker</span> volume prune <span class="j-att">-f</span>
+<span class="j-fn">docker</span> system df                  <span class="j-com"># pour verifier ce qu'il reste</span></code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Pourquoi <code>prune</code> plutôt que la substitution</div>
+          <p><code>$(docker ps -q)</code> échoue quand la liste est <strong>vide</strong> :
+             la commande reçoit zéro argument et répond <code>requires at least 1
+             argument</code>. Les <code>prune</code> gèrent ce cas, demandent confirmation, et
+             disent combien d'octets ont été récupérés.</p>
+          <p class="rap"><code>-q</code> ne rend que les identifiants, un par ligne : sans
+             lui, on passerait aussi les en-têtes de colonnes à la commande suivante.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>docker system prune -a --volumes</code></div>
+          <p>Cette variante emporte aussi les <strong>volumes inutilisés</strong> —
+             c'est-à-dire les données du projet sur lequel vous ne travaillez pas aujourd'hui.
+             Sur votre machine de TP, aucun risque ; prenez tout de même l'habitude de lancer
+             <code>docker system df</code> avant.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">12</span>Image, conteneur, volume — et ce qui persiste <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>6.3</strong> En quelques lignes, distinguer clairement les trois notions
+         manipulées, en précisant pour chacune si elle est persistante par défaut.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="tableau">
+        <table>
+          <thead><tr><th>Notion</th><th>Définition</th><th>Persistant par défaut ?</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Image</strong></td>
+                <td>Un modèle figé, en lecture seule, qui contient l'application et tout ce
+                    dont elle a besoin. On ne l'exécute pas : on en dérive des conteneurs.</td>
+                <td><strong>Oui</strong> — elle reste dans le cache local jusqu'à un
+                    <code>docker rmi</code>.</td></tr>
+            <tr><td><strong>Conteneur</strong></td>
+                <td>Une <em>exécution</em> d'une image, avec sa propre couche d'écriture et sa
+                    propre pile réseau. C'est l'objet vivant et jetable.</td>
+                <td><strong>Non</strong> — sa couche d'écriture survit à un
+                    <code>stop</code>/<code>start</code>, mais disparaît au
+                    <code>docker rm</code>.</td></tr>
+            <tr><td><strong>Volume</strong></td>
+                <td>Une zone de stockage gérée par Docker, <em>extérieure</em> aux conteneurs,
+                    qu'un conteneur monte à un emplacement donné.</td>
+                <td><strong>Oui</strong> — il survit à la suppression des conteneurs qui
+                    l'utilisent, et ne part qu'avec un <code>docker volume rm</code>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 La phrase qui résume les trois</div>
+          <p>« L'image est le modèle, le conteneur est l'exécution, le volume est la mémoire.
+             Seuls le modèle et la mémoire survivent ; l'exécution est faite pour être
+             jetée. »</p>
+          <p class="rap">C'est aussi ce qui fait la force du procédé : un conteneur qu'on peut
+             détruire sans rien perdre est un conteneur qu'on peut remplacer à chaque mise à
+             jour, sans sauvegarde et sans migration.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« TP d'initiation — Manipuler Docker », Réseaux &amp; Systèmes : six parties,
+          vingt-cinq questions numérotées, et son aide-mémoire de commandes</li>
+      <li>Documentation officielle <a href="https://docs.docker.com/">docs.docker.com</a> —
+          messages d'erreur et comportements vérifiés le 9 octobre 2026</li>
+    </ul>
+    <p class="rap">Les sorties reproduites ici sont celles d'une installation neuve.
+       <strong>Les identifiants d'images et leurs tailles changent d'un jour à l'autre</strong> :
+       ce sont des images publiques qui évoluent, et aucune des réponses de ce TP ne repose
+       sur ces valeurs-là.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/exercices.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
+</body>
+</html>

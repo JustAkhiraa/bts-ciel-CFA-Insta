@@ -741,6 +741,83 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   border: 1px solid var(--accent); }
 .lien-fiche.qcm:hover { background: var(--accent); color: var(--sur-accent); }
 
+/* ═══════════════════════════════ le choix du système ═══════════════════
+   JustAkhiraa, sur le chapitre Docker : « faire un tuto complet au début avec
+   trois boutons pour choisir si on veut la config sur Mac, Windows, Linux ou
+   autre ».
+
+   Trois raisons de le faire SANS JavaScript, avec des boutons radio :
+
+     · une fiche doit s'ouvrir hors ligne et sans script — c'est la règle du
+       dépôt, et un tutoriel d'installation est précisément ce qu'on lit sur
+       un téléphone pendant que l'ordinateur télécharge ;
+     · le clavier fonctionne tout seul : les flèches passent d'un système à
+       l'autre, parce que ce sont de vrais boutons radio d'un même groupe ;
+     · à l'impression, les quatre volets s'ouvrent d'un coup : sur papier,
+       la barre d'onglets ne sert plus à rien et cacher trois systèmes sur
+       quatre serait une perte sèche.
+
+   Les entrées ne sont pas « display:none » mais rendues transparentes et
+   sorties du flux : masquées pour de bon, elles ne seraient plus focusables,
+   et le composant deviendrait inatteignable au clavier. */
+.choix-os { margin: 1.4rem 0; }
+.choix-os > input {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.choix-os-barre {
+  display: flex;
+  flex-wrap: wrap;                  /* quatre systèmes à 320 px : on passe à la ligne */
+  gap: .4rem;
+  margin-bottom: -1px;
+}
+.choix-os-barre label {
+  padding: .55rem 1.1rem;
+  min-height: 34px;                 /* le plancher de cible tactile du banc */
+  border: 1px solid var(--bord);
+  border-radius: 10px 10px 0 0;
+  background: var(--papier);
+  color: var(--encre-douce);
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  user-select: none;
+}
+.choix-os-barre label:hover { color: var(--encre); }
+.choix-os .volet {
+  display: none;
+  padding: 1.1rem 1.2rem .4rem;
+  border: 1px solid var(--bord);
+  border-radius: 0 10px 10px 10px;
+  background: var(--carte);
+}
+/* Le volet affiché suit la valeur cochée — par la valeur, jamais par un
+   identifiant : le composant doit pouvoir resservir ailleurs. */
+.choix-os > input[value="mac"]:checked    ~ .volet[data-os="mac"],
+.choix-os > input[value="windows"]:checked ~ .volet[data-os="windows"],
+.choix-os > input[value="linux"]:checked  ~ .volet[data-os="linux"],
+.choix-os > input[value="autre"]:checked  ~ .volet[data-os="autre"] { display: block; }
+
+/* L'onglet actif. Les quatre étiquettes sont dans l'ordre des quatre
+   entrées : c'est ce qui permet de les désigner par leur rang. */
+.choix-os > input[value="mac"]:checked     ~ .choix-os-barre label:nth-child(1),
+.choix-os > input[value="windows"]:checked ~ .choix-os-barre label:nth-child(2),
+.choix-os > input[value="linux"]:checked   ~ .choix-os-barre label:nth-child(3),
+.choix-os > input[value="autre"]:checked   ~ .choix-os-barre label:nth-child(4) {
+  background: var(--carte);
+  color: var(--accent-sombre);      /* --accent est une couleur de surface */
+  border-bottom-color: var(--carte);
+}
+/* Le focus clavier doit se voir sur l'ÉTIQUETTE, puisque l'entrée est
+   invisible. Sans cette règle, on tabule dans le vide. */
+.choix-os > input:focus-visible ~ .choix-os-barre label { outline: 2px solid var(--accent); }
+@media print {
+  .choix-os-barre { display: none; }
+  .choix-os .volet { display: block; border-radius: 10px; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    AMBIANCES — 24 thèmes
    Repris du projet Sakina et transposés sur les variables de ces fiches.

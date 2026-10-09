@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker — images, conteneurs et volumes | BTS CIEL</title>
+<meta name="description" content="Installer Docker sur macOS, Windows ou Linux, puis manipuler les trois objets du conteneur : images, conteneurs et volumes. Ports, journaux, persistance et nettoyage.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#pourquoi">1 · Pourquoi des conteneurs</a></li>
+    <li><a href="#installer">2 · Installer Docker</a></li>
+    <li><a href="#trois">3 · Image, conteneur, volume</a></li>
+    <li><a href="#images">4 · Les images</a></li>
+    <li><a href="#conteneurs">5 · Les conteneurs</a></li>
+    <li><a href="#ports">6 · Exposer un port</a></li>
+    <li><a href="#volumes">7 · Faire survivre les données</a></li>
+    <li><a href="#nettoyer">8 · Nettoyer</a></li>
+    <li><a href="#memo">9 · L'aide-mémoire</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+    <span class="sep">/</span><span>Chapitre 18</span>
+  </div>
+
+  <h1>Docker — images, conteneurs et volumes</h1>
+  <p class="chapeau">Lancer un serveur web en une commande, sans l'installer. C'est ce que
+     fait un conteneur — et le TP d'initiation ne demande rien d'autre que de comprendre
+     <em>trois mots</em> : image, conteneur, volume. Le chapitre commence par l'installation,
+     parce qu'elle n'est pas la même sur un Mac, sous Windows et sur un serveur Linux.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Une <strong>image</strong> est un modèle figé, en lecture seule : on la télécharge
+         avec <code>docker pull</code>. Un <strong>conteneur</strong> est une
+         <em>exécution</em> de cette image : <code>docker run</code> en crée un,
+         <code>docker rm</code> le détruit — et tout ce qu'on y a écrit disparaît avec lui.
+         Un <strong>volume</strong> est une zone de stockage qui vit <em>en dehors</em> des
+         conteneurs : c'est la seule façon de garder des données.</p>
+      <p>Trois commandes à ne pas confondre : <code>-p 8080:80</code> publie un port,
+         <code>-v nom:/chemin</code> monte un volume, <code>-d</code> détache le conteneur
+         et rend la main.</p>
+    </div>
+  </div>
+  <p class="motscles">🔑
+    <code>#image</code> <code>#conteneur</code> <code>#volume</code>
+    <code>#docker-run</code> <code>#docker-exec</code> <code>#tag</code>
+    <code>#port</code> <code>#persistance</code> <code>#prune</code>
+  </p>
+</header>
+
+<section id="pourquoi">
+  <h2><span class="num">1</span>Pourquoi des conteneurs</h2>
+
+  <p>« Ça marche chez moi. » La phrase est une plaisanterie de métier, et elle décrit un vrai
+     problème : un programme ne dépend pas que de son code. Il dépend d'une version de
+     bibliothèque, d'un fichier de configuration, d'une variable d'environnement, d'une
+     version de système. Déplacez-le, il casse.</p>
+
+  <div class="encart analogie">
+    <div class="titre">📦 Le conteneur maritime</div>
+    <p>Avant le conteneur, on chargeait des caisses, des sacs et des fûts, chacun manipulé à
+       sa façon. Depuis, tout voyage dans la même boîte normalisée : le navire, le portique
+       et le camion n'ont plus à savoir ce qu'il y a dedans.</p>
+    <p class="rap">Docker fait exactement ça avec un logiciel : on emballe l'application
+       <strong>et tout ce dont elle a besoin</strong>, et la machine d'accueil n'a plus
+       besoin de rien savoir.</p>
+  </div>
+
+  <h3>Conteneur ou machine virtuelle ?</h3>
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Machine virtuelle</th><th>Conteneur</th></tr></thead>
+    <tbody>
+      <tr><td>Ce qui est embarqué</td><td>un système d'exploitation entier</td>
+          <td>l'application et ses dépendances seulement</td></tr>
+      <tr><td>Noyau</td><td>le sien</td><td>celui de la machine hôte, partagé</td></tr>
+      <tr><td>Taille typique</td><td>plusieurs gigaoctets</td><td>quelques dizaines de mégaoctets</td></tr>
+      <tr><td>Démarrage</td><td>dizaines de secondes</td><td>moins d'une seconde</td></tr>
+      <tr><td>Isolation</td><td>très forte</td><td>forte, mais le noyau est commun</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="rap">Le chapitre <a href="../06-systemes-windows-virtualisation/cours.html">6</a>
+     montait des machines virtuelles sous VirtualBox. Ce n'est pas un concurrent : on fait
+     souvent tourner des conteneurs <em>dans</em> une machine virtuelle. Ce qui change, c'est
+     l'unité qu'on déplace.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Trois tailles, et il faut savoir laquelle on compare</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Ce qu'on mesure</th><th>Ordre de grandeur</th></tr></thead>
+      <tbody>
+        <tr><td>une <strong>machine virtuelle</strong> Debian installée</td><td>plusieurs gigaoctets</td></tr>
+        <tr><td>l'<strong>image Docker</strong> <code>debian</code></td><td>une centaine de mégaoctets</td></tr>
+        <tr><td>l'<strong>image Docker</strong> <code>alpine</code></td><td>moins de 10 Mo</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Alpine est une distribution Linux réduite à l'essentiel, et c'est pour cela qu'on la
+       choisit comme base : chaque mégaoctet se télécharge, se stocke et se transfère à chaque
+       déploiement.</p>
+    <p class="rap">Attention à ne pas mélanger les deux premières lignes : l'écart entre une
+       VM et un conteneur n'est pas l'écart entre deux images.</p>
+  </div>
+</section>
+
+<section id="installer">
+  <h2><span class="num">2</span>Installer Docker</h2>
+
+  <p>L'installation n'est pas la même selon la machine, et c'est la première chose qui bloque
+     un TP. Choisissez votre système : le reste du chapitre est identique pour tout le
+     monde, parce que <strong>les commandes <code>docker</code> sont les mêmes partout</strong>.</p>
+
+  <div class="choix-os">
+    <input type="radio" name="systeme" id="os-mac" value="mac" checked>
+    <input type="radio" name="systeme" id="os-windows" value="windows">
+    <input type="radio" name="systeme" id="os-linux" value="linux">
+    <input type="radio" name="systeme" id="os-autre" value="autre">
+    <div class="choix-os-barre">
+      <label for="os-mac">macOS</label>
+      <label for="os-windows">Windows</label>
+      <label for="os-linux">Linux (Debian / Ubuntu)</label>
+      <label for="os-autre">Autre cas</label>
+    </div>
+
+    <div class="volet" data-os="mac">
+      <h3>macOS — Docker Desktop</h3>
+      <p>macOS n'a pas de noyau Linux. Docker Desktop installe donc une petite machine
+         virtuelle Linux et vous donne la commande <code>docker</code> qui lui parle — c'est
+         transparent, mais c'est ce qui explique que le premier démarrage prenne une minute.</p>
+      <ol>
+        <li>Télécharger Docker Desktop sur
+            <a href="https://www.docker.com/products/docker-desktop/">docker.com</a> en
+            choisissant la bonne puce : <strong>Apple&nbsp;silicon</strong> (M1 à M4) ou
+            <strong>Intel</strong>. Le menu  → « À propos de ce Mac » donne la réponse.</li>
+        <li>Ouvrir le <code>.dmg</code>, glisser <strong>Docker</strong> dans
+            <strong>Applications</strong>, puis lancer l'application une fois : elle demande
+            votre mot de passe pour installer son composant système.</li>
+        <li>Attendre que la baleine de la barre de menus cesse de s'animer.</li>
+      </ol>
+      <p>En ligne de commande, si Homebrew est installé :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">brew</span> install <span class="j-att">--cask</span> docker</code></pre></div>
+      <p class="rap">Docker Desktop doit <strong>être lancé</strong> pour que la commande
+         <code>docker</code> réponde. C'est la cause nº 1 de
+         <code>Cannot connect to the Docker daemon</code> sur un Mac.</p>
+    </div>
+
+    <div class="volet" data-os="windows">
+      <h3>Windows — Docker Desktop et WSL 2</h3>
+      <p>Comme sur macOS, les conteneurs Linux tournent dans une machine virtuelle. Sous
+         Windows, cette machine est fournie par <strong>WSL 2</strong>, le sous-système Linux
+         de Windows : il faut donc l'installer d'abord.</p>
+      <ol>
+        <li>Vérifier que la <strong>virtualisation</strong> est activée : Gestionnaire des
+            tâches → Performance → Processeur, ligne « Virtualisation : Activé ». Si elle est
+            désactivée, cela se corrige dans le BIOS/UEFI, pas dans Windows.</li>
+        <li>Dans un PowerShell <strong>administrateur</strong> :</li>
+      </ol>
+<div class="bloc-code" data-fam="bash"><span class="langue">PowerShell</span><pre><code><span class="j-fn">wsl</span> <span class="j-att">--install</span>
+<span class="j-fn">wsl</span> <span class="j-att">--set-default-version</span> <span class="j-num">2</span></code></pre></div>
+      <ol start="3">
+        <li>Redémarrer.</li>
+        <li>Installer <strong>Docker Desktop for Windows</strong> depuis
+            <a href="https://www.docker.com/products/docker-desktop/">docker.com</a>, en
+            laissant cochée l'option « Use WSL 2 instead of Hyper-V ».</li>
+        <li>Rouvrir une session, lancer Docker Desktop, attendre que l'icône se stabilise.</li>
+      </ol>
+      <p class="rap">Les commandes du TP se tapent ensuite indifféremment dans PowerShell,
+         dans l'invite de commandes ou dans un terminal WSL.</p>
+      <div class="encart piege">
+        <div class="titre">⚠️ Windows Famille, Pro, et Hyper-V</div>
+        <p>Hyper-V n'existe que sur Windows Pro, Entreprise et Éducation. C'est précisément
+           pour cela que l'on passe par WSL 2, qui fonctionne aussi sur
+           <strong>Windows Famille</strong>. Si un tutoriel vous demande d'activer Hyper-V,
+           il date d'avant WSL 2.</p>
+      </div>
+    </div>
+
+    <div class="volet" data-os="linux">
+      <h3>Linux — Docker Engine, directement sur le noyau</h3>
+      <p>Pas de machine virtuelle ici : les conteneurs utilisent le noyau de la machine. C'est
+         le cas le plus rapide, et celui d'un serveur. On installe depuis le dépôt officiel de
+         Docker, jamais depuis <code>apt install docker.io</code> — ce paquet-là est une
+         version plus ancienne, maintenue par la distribution.</p>
+      <p>Les commandes ci-dessous sont celles de <strong>Debian</strong> ; pour Ubuntu,
+         remplacer les deux occurrences de <code>debian</code> par <code>ubuntu</code>.</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. retirer d'eventuels paquets concurrents</span>
+<span class="j-fn">for</span> p in docker.io docker-doc docker-compose podman-docker containerd runc; do
+<span class="j-fn">    sudo apt-get</span> remove <span class="j-att">-y</span> <span class="j-var">$p</span>
+<span class="j-fn">done</span>
+
+<span class="j-com"># 2. la cle de signature du depot Docker</span>
+<span class="j-fn">sudo apt-get</span> update
+<span class="j-fn">sudo apt-get</span> install <span class="j-att">-y</span> ca-certificates curl
+<span class="j-fn">sudo install</span> <span class="j-att">-m</span> <span class="j-num">0755</span> <span class="j-att">-d</span> /etc/apt/keyrings
+<span class="j-fn">sudo curl</span> <span class="j-att">-fsSL</span> https://download.docker.com/linux/debian/gpg <span class="j-att">-o</span> /etc/apt/keyrings/docker.asc
+<span class="j-fn">sudo chmod</span> a+r /etc/apt/keyrings/docker.asc
+
+<span class="j-com"># 3. le depot</span>
+<span class="j-fn">echo</span> <span class="j-txt">"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/debian $(. /etc/os-release &amp;&amp; echo $VERSION_CODENAME) stable"</span> \
+| sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+
+<span class="j-com"># 4. l'installation</span>
+<span class="j-fn">sudo apt-get</span> update
+<span class="j-fn">sudo apt-get</span> install <span class="j-att">-y</span> docker-ce docker-ce-cli containerd.io \
+<span class="j-fn">                        docker-buildx-plugin</span> docker-compose-plugin</code></pre></div>
+      <p>Puis, pour ne plus écrire <code>sudo</code> devant chaque commande :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">sudo usermod</span> <span class="j-att">-aG</span> docker <span class="j-var">$USER</span>
+<span class="j-com"># il faut FERMER puis rouvrir la session pour que le groupe soit pris en compte</span>
+<span class="j-fn">newgrp</span> docker        <span class="j-com"># ou, pour le terminal courant seulement</span></code></pre></div>
+      <div class="encart piege">
+        <div class="titre">⚠️ Le groupe <code>docker</code> équivaut à <code>root</code></div>
+        <p>Qui peut lancer un conteneur peut monter <code>/</code> dedans et en sortir
+           administrateur de la machine. Ajouter un utilisateur au groupe
+           <code>docker</code> est donc une <strong>décision de sécurité</strong>, pas une
+           commodité. Sur un serveur partagé, on garde <code>sudo</code>.</p>
+      </div>
+      <p>Vérifier que le service tourne :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">sudo systemctl</span> status docker
+<span class="j-fn">sudo systemctl</span> enable <span class="j-att">--now</span> docker   <span class="j-com"># le demarrer, et au demarrage de la machine</span></code></pre></div>
+    </div>
+
+    <div class="volet" data-os="autre">
+      <h3>Les autres cas</h3>
+      <h4>Un serveur Linux quelconque, en une commande</h4>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">curl</span> <span class="j-att">-fsSL</span> https://get.docker.com <span class="j-att">-o</span> get-docker.sh
+<span class="j-fn">sh</span> get-docker.sh</code></pre></div>
+      <p class="rap">Le script officiel détecte la distribution et fait le travail. Il est
+         pratique <strong>pour une machine de test</strong> ; en production, on préfère le
+         dépôt de paquets, qui se met à jour avec le reste du système. Et la règle générale
+         tient toujours : on lit un script avant de le passer à <code>sh</code>.</p>
+
+      <h4>Pas les droits d'installer ? Le TP se fait en ligne</h4>
+      <p><a href="https://labs.play-with-docker.com/">Play with Docker</a> donne un terminal
+         Docker dans le navigateur pour quelques heures. Toutes les commandes du TP y
+         fonctionnent, <strong>sauf</strong> l'ouverture de <code>http://localhost:8080</code> —
+         le site tourne sur leur machine, pas sur la vôtre ; le service se joint par les liens
+         de ports que la page affiche.</p>
+
+      <h4>Les conteneurs Windows</h4>
+      <p>Docker Desktop sait aussi exécuter des conteneurs <em>Windows</em>, qui embarquent
+         une base Windows Server au lieu d'une base Linux. Ce n'est pas l'objet du TP, et les
+         deux modes ne cohabitent pas : on bascule de l'un à l'autre par un menu, et les
+         images ne sont pas interchangeables.</p>
+
+      <h4>Une machine sans virtualisation</h4>
+      <p>Sur un Mac ou un PC où la virtualisation est désactivée ou interdite, Docker Desktop
+         ne démarrera pas. Il n'y a pas de contournement : c'est le noyau Linux qui manque, et
+         il doit bien tourner quelque part.</p>
+    </div>
+  </div>
+
+  <h3>Vérifier l'installation, partout pareil</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> <span class="j-att">--version</span>
+<span class="j-fn">docker</span> info</code></pre></div>
+  <p><code>docker --version</code> ne prouve qu'une chose : la commande est installée.
+     <strong><code>docker info</code> prouve que le moteur répond</strong> — et c'est lui
+     qu'il faut regarder. Les deux lignes à relever, que la question 1.1 du TP demande, sont
+     <code>Containers</code> et <code>Images</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>Cannot connect to the Docker daemon</code></div>
+    <p>La commande existe, le moteur ne répond pas. Trois causes, dans cet ordre de
+       fréquence : Docker Desktop n'est pas lancé (macOS, Windows) · le service est arrêté
+       (<code>sudo systemctl start docker</code>, Linux) · l'utilisateur n'est pas dans le
+       groupe <code>docker</code> et la session n'a pas été rouverte.</p>
+  </div>
+
+  <h3>Le premier conteneur</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run hello-world</code></pre></div>
+  <p>La première fois, Docker annonce <code>Unable to find image 'hello-world:latest'
+     locally</code>, puis télécharge l'image. <strong>La seconde fois, ces lignes
+     disparaissent et l'exécution est instantanée</strong> : l'image est désormais dans le
+     cache local. C'est la question 1.2 du TP, et c'est la première leçon —
+     <em>une image ne se télécharge qu'une fois.</em></p>
+</section>
+
+<section id="trois">
+  <h2><span class="num">3</span>Image, conteneur, volume</h2>
+
+  <p>Tout le TP tient dans ces trois mots, et la question 6.3 demande explicitement de les
+     distinguer. Une seule propriété les sépare : <strong>qu'est-ce qui survit ?</strong></p>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th></th><th>Image</th><th>Conteneur</th><th>Volume</th></tr></thead>
+    <tbody>
+      <tr><td>Ce que c'est</td><td>un modèle figé</td><td>une exécution de ce modèle</td>
+          <td>une zone de stockage</td></tr>
+      <tr><td>Modifiable</td><td>non, lecture seule</td><td>oui, pendant qu'il vit</td><td>oui</td></tr>
+      <tr><td>Persistant par défaut</td><td><strong>oui</strong> — elle reste dans le cache</td>
+          <td><strong>non</strong> — ce qu'on y écrit meurt avec lui</td>
+          <td><strong>oui</strong> — il survit au conteneur</td></tr>
+      <tr><td>On en crée avec</td><td><code>docker pull</code></td><td><code>docker run</code></td>
+          <td><code>docker volume create</code></td></tr>
+      <tr><td>On en supprime avec</td><td><code>docker rmi</code></td><td><code>docker rm</code></td>
+          <td><code>docker volume rm</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🍰 Le moule, le gâteau, le congélateur</div>
+    <p>L'<strong>image</strong> est le moule : on ne le mange pas, et il sert autant de fois
+       qu'on veut. Le <strong>conteneur</strong> est le gâteau : il existe, on le modifie, on
+       le jette. Le <strong>volume</strong> est le congélateur : ce qu'on y range survit au
+       gâteau.</p>
+    <p class="rap">D'où la question du TP, à l'étape 3.7 : le fichier modifié survit-il à un
+       <code>stop</code> puis <code>start</code> ? Oui — le gâteau n'a pas été jeté, seulement
+       posé. Il ne survivrait pas à un <code>rm</code>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Une image est faite de couches, et elles se partagent</div>
+    <p><code>nginx</code> et <code>httpd</code> reposent tous deux sur une base Debian : cette
+       base n'est téléchargée et stockée <strong>qu'une fois</strong>. C'est pourquoi la somme
+       des tailles affichées par <code>docker images</code> dépasse largement la place
+       réellement occupée sur le disque.</p>
+  </div>
+</section>
+
+<section id="images">
+  <h2><span class="num">4</span>Les images</h2>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> pull alpine          <span class="j-com"># telecharger, sans executer</span>
+<span class="j-fn">docker</span> pull nginx
+<span class="j-fn">docker</span> pull httpd           <span class="j-com"># le serveur Apache</span>
+<span class="j-fn">docker</span> images               <span class="j-com"># lister celles qui sont ici</span>
+<span class="j-fn">docker</span> rmi httpd            <span class="j-com"># en supprimer une</span></code></pre></div>
+
+  <p><code>docker images</code> donne cinq colonnes, et le TP demande de relever les quatre
+     premières :</p>
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Colonne</th><th>Ce que c'est</th></tr></thead>
+    <tbody>
+      <tr><td><code>REPOSITORY</code></td><td>le nom de l'image — <code>nginx</code></td></tr>
+      <tr><td><code>TAG</code></td><td>la version — <code>latest</code>, <code>1.21</code>…</td></tr>
+      <tr><td><code>IMAGE ID</code></td><td>l'identifiant réel, une empreinte</td></tr>
+      <tr><td><code>CREATED</code></td><td>la date de fabrication de l'image, pas du téléchargement</td></tr>
+      <tr><td><code>SIZE</code></td><td>la taille, couches partagées comprises</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Le tag : une image, plusieurs versions</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> pull nginx:<span class="j-num">1.21</span>      <span class="j-com"># une version precise et ancienne</span>
+<span class="j-fn">docker</span> images               <span class="j-com"># DEUX lignes « nginx » maintenant</span></code></pre></div>
+  <p>Deux lignes apparaissent, de même <code>REPOSITORY</code> et de <code>TAG</code>
+     différents : <code>latest</code> et <code>1.21</code>. C'est la question 2.4 du TP, et
+     la réponse tient en une phrase — <strong>le tag fait partie de l'identité de
+     l'image</strong>. <code>nginx</code> et <code>nginx:1.21</code> ne désignent pas la même
+     chose.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>latest</code> ne veut pas dire « la plus récente »</div>
+    <p>C'est le tag utilisé <em>par défaut</em> quand on n'en précise aucun — rien de plus.
+       Un éditeur peut parfaitement publier une version neuve sans déplacer
+       <code>latest</code>. En production, on épingle toujours une version :
+       <code>nginx:1.27</code>, jamais <code>nginx</code>.</p>
+    <p class="rap">C'est aussi la différence entre un déploiement reproductible et un
+       déploiement qui change tout seul la nuit.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>rmi</code> refuse de supprimer une image utilisée</div>
+    <p><code>image is being used by running container …</code> : une image dont un conteneur
+       — même arrêté — est issu ne peut pas disparaître. Il faut supprimer les conteneurs
+       d'abord. C'est volontaire : sans l'image, le conteneur ne serait plus redémarrable.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Après <code>docker pull nginx</code> puis
+       <code>docker pull nginx:1.21</code>, combien d'images <code>nginx</code> ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Deux</strong>, avec deux <code>IMAGE ID</code> différents. Le tag fait partie
+         de l'identité : <code>nginx</code> (c'est-à-dire <code>nginx:latest</code>) et
+         <code>nginx:1.21</code> sont deux images distinctes, qui partagent seulement
+         certaines couches.</p>
+    </div>
+  </div>
+</section>
+
+<section id="conteneurs">
+  <h2><span class="num">5</span>Les conteneurs</h2>
+
+  <h3>Entrer dedans</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-it</span> alpine sh</code></pre></div>
+  <p><code>-i</code> garde l'entrée ouverte, <code>-t</code> alloue un terminal : ensemble,
+     ils donnent un shell interactif. À l'intérieur, <code>ls</code> et
+     <code>cat /etc/os-release</code> montrent qu'on est bien dans une Alpine, puis
+     <code>exit</code> rend la main — <strong>et arrête le conteneur</strong>, puisque son
+     processus principal était ce shell.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>docker ps</code> ne montre que les conteneurs qui tournent</div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps        <span class="j-com"># ceux qui tournent</span>
+<span class="j-fn">docker</span> ps <span class="j-att">-a</span>     <span class="j-com"># TOUS, y compris les arretes</span></code></pre></div>
+    <p>C'est la question 3.2 du TP : le conteneur Alpine n'apparaît que dans le second. Il
+       n'a pas disparu — il est <code>Exited</code>, et il occupe toujours de la place.</p>
+    <p class="rap">Un conteneur vit tant que <strong>son processus principal</strong> vit. Il
+       ne s'arrête pas parce qu'on ferme la fenêtre, mais parce que ce processus se termine.</p>
+  </div>
+
+  <h3>Le lancer en arrière-plan, et le nommer</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> mon-serveur nginx</code></pre></div>
+  <p><code>-d</code> (<em>detached</em>) rend la main immédiatement ;
+     <code>--name</code> donne un nom lisible, qu'on emploiera partout à la place de
+     l'identifiant. Sans lui, Docker invente quelque chose comme
+     <code>nostalgic_hopper</code>.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps <span class="j-att">-a</span> <span class="j-att">--filter</span> name=mon-serveur     <span class="j-com"># son statut, sans lire toute la liste</span>
+<span class="j-fn">docker</span> inspect <span class="j-att">-f</span> <span class="j-txt">'{{.State.Status}}'</span> mon-serveur</code></pre></div>
+  <p class="rap">La question 3.4 demande le statut « sans utiliser <code>docker ps</code> » :
+     <code>docker inspect</code> est la réponse attendue. Il rend toute la fiche du conteneur
+     en JSON, et <code>-f</code> n'en extrait qu'un champ.</p>
+
+  <h3>Lire les journaux, et travailler dedans</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> logs mon-serveur            <span class="j-com"># ce que le conteneur a ecrit</span>
+<span class="j-fn">docker</span> logs <span class="j-att">-f</span> mon-serveur         <span class="j-com"># et le suivre en direct</span>
+
+<span class="j-fn">docker</span> exec <span class="j-att">-it</span> mon-serveur bash   <span class="j-com"># ouvrir un shell DANS un conteneur deja lance</span></code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>run</code> crée, <code>exec</code> entre</div>
+    <p><code>docker run -it nginx bash</code> crée un <strong>deuxième</strong> conteneur, et
+       le serveur n'y tourne même pas. Pour entrer dans celui qui existe, c'est
+       <code>docker exec</code>. C'est la faute la plus coûteuse du TP : on modifie un fichier
+       dans un conteneur, et on s'étonne de ne rien voir dans l'autre.</p>
+    <p class="rap">Et <code>bash</code> n'existe pas dans toutes les images : Alpine n'a que
+       <code>sh</code>. <code>docker exec -it alpine bash</code> échoue avec
+       <code>executable file not found</code>.</p>
+  </div>
+
+  <h3>Arrêter, redémarrer, supprimer</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> stop mon-serveur     <span class="j-com"># demande poliment l'arret, puis force apres 10 s</span>
+<span class="j-fn">docker</span> start mon-serveur    <span class="j-com"># redemarre LE MEME conteneur</span>
+<span class="j-fn">docker</span> restart mon-serveur
+
+<span class="j-fn">docker</span> rm mon-serveur       <span class="j-com"># supprime — le conteneur doit etre arrete</span>
+<span class="j-fn">docker</span> rm <span class="j-att">-f</span> mon-serveur    <span class="j-com"># ... ou alors on force</span></code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi le fichier modifié survit à <code>stop</code>/<code>start</code></div>
+    <p>C'est la question 3.7, et la réponse est au cœur du chapitre : <code>stop</code> arrête
+       le processus, il ne détruit pas le conteneur. La couche d'écriture du conteneur —
+       celle qui garde tout ce qu'on a modifié — est toujours là, et <code>start</code> la
+       retrouve.</p>
+    <p class="rap">Un <code>docker rm</code>, lui, efface cette couche. La modification
+       disparaît alors définitivement : c'est ce qui motive les volumes, à la section 7.</p>
+  </div>
+</section>
+
+<section id="ports">
+  <h2><span class="num">6</span>Exposer un port</h2>
+
+  <p>Un conteneur nginx écoute sur le port 80 — <em>chez lui</em>. Tant qu'on ne publie rien,
+     ce port n'est joignable depuis la machine hôte par aucun navigateur.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web  <span class="j-att">-p</span> <span class="j-num">8080</span>:<span class="j-num">80</span> nginx
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web2 <span class="j-att">-p</span> <span class="j-num">8081</span>:<span class="j-num">80</span> nginx</code></pre></div>
+  <p>On lit <code>-p hôte:conteneur</code> — <strong>de gauche à droite, du dehors vers le
+     dedans</strong>. Le premier nombre est celui qu'on tape dans le navigateur, le second
+     celui sur lequel le service écoute à l'intérieur.</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">curl</span> http://localhost:<span class="j-num">8080</span>       <span class="j-com"># ou simplement ouvrir la page</span></code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Deux conteneurs peuvent écouter le port 80 en même temps</div>
+    <p>C'est la question 4.3, et elle surprend. Chaque conteneur a sa <strong>propre pile
+       réseau</strong> : son port 80 n'est pas le port 80 de la machine. Il n'y a donc aucun
+       conflit tant qu'ils sont publiés sur deux ports différents de l'hôte — 8080 et 8081.</p>
+    <p class="rap">C'est exactement la notion du chapitre
+       <a href="../12-nat-pat/cours.html">NAT &amp; PAT</a> : une redirection de port. Ce qui
+       doit être unique, c'est le couple adresse/port <em>côté hôte</em>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Réutiliser 8080 : <code>port is already allocated</code></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>docker: Error response from daemon: driver failed programming external
+connectivity on endpoint web3: Bind for 0.0.0.0:8080 failed: port is already allocated.</code></pre></div>
+    <p>C'est la question 4.4. Le message est explicite une fois qu'on sait le lire : Docker a
+       demandé au système de réserver le port 8080 de l'<strong>hôte</strong>, et le système a
+       refusé parce que le conteneur <code>web</code> l'occupe déjà. Côté conteneur, en
+       revanche, rien n'empêchait le troisième d'écouter sur 80.</p>
+    <p class="rap">Le conteneur est tout de même <strong>créé</strong>, à l'état
+       <code>Created</code>. Il faudra le supprimer : il compte dans
+       <code>docker ps -a</code>.</p>
+  </div>
+</section>
+
+<section id="volumes">
+  <h2><span class="num">7</span>Faire survivre les données</h2>
+
+  <p>Le TP l'a montré à l'étape 3.8 : supprimez le conteneur, et la page d'accueil modifiée
+     disparaît avec lui. C'est le comportement voulu — un conteneur est
+     <strong>jetable</strong>. Mais une base de données jetable n'a aucun intérêt.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume create donnees-web
+
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web-persistant <span class="j-att">-p</span> <span class="j-num">8082</span>:<span class="j-num">80</span> \
+           <span class="j-att">-v</span> donnees-web:/usr/share/nginx/html nginx</code></pre></div>
+  <p>On lit <code>-v nom:/chemin</code> — <strong>le volume, puis l'endroit où il est monté
+     dans le conteneur</strong>. Tout ce qui est écrit sous
+     <code>/usr/share/nginx/html</code> va désormais dans le volume, pas dans le conteneur.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> exec <span class="j-att">-it</span> web-persistant bash
+<span class="j-com"># cd /usr/share/nginx/html &amp;&amp; echo "Bonjour NetSolutions" &gt; index.html &amp;&amp; exit</span>
+
+<span class="j-fn">docker</span> stop web-persistant &amp;&amp; docker rm web-persistant      <span class="j-com"># on DETRUIT le conteneur</span>
+
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> web-persistant-v2 <span class="j-att">-p</span> <span class="j-num">8082</span>:<span class="j-num">80</span> \
+           <span class="j-att">-v</span> donnees-web:/usr/share/nginx/html nginx       <span class="j-com"># un AUTRE conteneur</span></code></pre></div>
+  <p>La page modifiée est toujours là. C'est la question 5.4, et la démonstration est
+     complète : <strong>le volume ne dépend d'aucun conteneur</strong>. Il leur survit, et
+     plusieurs conteneurs peuvent monter le même.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume ls
+<span class="j-fn">docker</span> volume inspect donnees-web     <span class="j-com"># ou il est range sur l'hote</span>
+<span class="j-fn">docker</span> volume rm donnees-web          <span class="j-com"># apres avoir supprime les conteneurs qui l'utilisent</span></code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Volume nommé ou dossier de la machine ?</div>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Écriture</th><th>Ce que c'est</th><th>Quand</th></tr></thead>
+      <tbody>
+        <tr><td><code>-v donnees-web:/chemin</code></td><td>un <strong>volume nommé</strong>, géré par Docker</td>
+            <td>des données qui appartiennent au service — une base, des fichiers envoyés</td></tr>
+        <tr><td><code>-v /home/eleve/site:/chemin</code></td><td>un dossier de l'hôte, monté tel quel</td>
+            <td>du code qu'on édite depuis son éditeur pendant que le conteneur tourne</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="rap">Le TP n'emploie que le premier. Le second est ce qu'on utilise en
+       développement — et c'est aussi lui qui rend le groupe <code>docker</code> si
+       dangereux : rien n'interdit de monter <code>/</code>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Monter un volume sur un dossier qui contient déjà quelque chose</div>
+    <p>Au premier montage d'un volume <em>vide</em>, Docker y recopie le contenu existant du
+       dossier : la page d'accueil nginx par défaut s'y retrouve. Aux montages suivants, le
+       volume n'est plus vide et <strong>il masque complètement</strong> le contenu de
+       l'image. C'est voulu, et c'est déroutant la première fois.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 On supprime un conteneur qui utilisait un volume nommé. Que
+       devient le volume ?</div>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p>Il <strong>reste</strong>, avec ses données. <code>docker rm</code> ne touche pas aux
+         volumes nommés — il faut un <code>docker volume rm</code> explicite, ou
+         <code>docker rm -v</code> pour emporter les volumes <em>anonymes</em>. C'est
+         exactement ce qui fait leur utilité, et aussi ce qui fait qu'on finit par en avoir
+         des dizaines d'oubliés.</p>
+    </div>
+  </div>
+</section>
+
+<section id="nettoyer">
+  <h2><span class="num">8</span>Nettoyer</h2>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps <span class="j-att">-a</span>                       <span class="j-com"># tout ce qui reste</span>
+<span class="j-fn">docker</span> stop $(docker ps <span class="j-att">-q</span>)        <span class="j-com"># arreter tout ce qui tourne</span>
+<span class="j-fn">docker</span> rm $(docker ps <span class="j-att">-aq</span>)         <span class="j-com"># supprimer tous les conteneurs</span>
+<span class="j-fn">docker</span> rmi $(docker images <span class="j-att">-q</span>)     <span class="j-com"># supprimer toutes les images</span></code></pre></div>
+  <p class="rap"><code>-q</code> (<em>quiet</em>) ne rend que les identifiants, un par ligne :
+     c'est ce qui permet de passer la liste à la commande suivante. Sans lui, on passerait
+     aussi les en-têtes de colonnes.</p>
+
+  <h3>Les commandes de ménage de Docker</h3>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> container prune     <span class="j-com"># les conteneurs arretes</span>
+<span class="j-fn">docker</span> image prune         <span class="j-com"># les images sans nom (« dangling »)</span>
+<span class="j-fn">docker</span> image prune <span class="j-att">-a</span>      <span class="j-com"># TOUTES les images inutilisees</span>
+<span class="j-fn">docker</span> volume prune        <span class="j-com"># les volumes qu'aucun conteneur n'utilise</span>
+<span class="j-fn">docker</span> system prune        <span class="j-com"># les trois premiers d'un coup</span>
+<span class="j-fn">docker</span> system df           <span class="j-com"># ce que tout cela occupe</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>docker system prune -a --volumes</code> efface les données</div>
+    <p>Ajouter <code>--volumes</code> supprime les volumes inutilisés — c'est-à-dire la base
+       de données du projet sur lequel vous ne travaillez pas aujourd'hui. La commande demande
+       confirmation ; c'est le seul garde-fou, et il ne protège que de la distraction.</p>
+    <p class="rap">Commencer par <code>docker system df</code> : on voit ce qui occupe la
+       place avant de décider de l'effacer.</p>
+  </div>
+</section>
+
+<section id="memo">
+  <h2><span class="num">9</span>L'aide-mémoire</h2>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Commande</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td><code>docker --version</code> · <code>docker info</code></td>
+          <td>la commande est installée · le moteur répond</td></tr>
+      <tr><td><code>docker pull &lt;image&gt;</code></td><td>télécharger une image sans la lancer</td></tr>
+      <tr><td><code>docker images</code></td><td>lister les images locales</td></tr>
+      <tr><td><code>docker rmi &lt;image&gt;</code></td><td>supprimer une image</td></tr>
+      <tr><td><code>docker run [options] &lt;image&gt;</code></td><td>créer <em>et</em> lancer un conteneur</td></tr>
+      <tr><td><code>docker ps</code> · <code>docker ps -a</code></td><td>les conteneurs actifs · tous</td></tr>
+      <tr><td><code>docker start</code> · <code>docker stop</code></td><td>démarrer · arrêter un conteneur existant</td></tr>
+      <tr><td><code>docker rm &lt;conteneur&gt;</code></td><td>supprimer un conteneur</td></tr>
+      <tr><td><code>docker logs &lt;conteneur&gt;</code></td><td>afficher ses journaux</td></tr>
+      <tr><td><code>docker exec -it &lt;conteneur&gt; &lt;cmd&gt;</code></td><td>exécuter une commande dans un conteneur actif</td></tr>
+      <tr><td><code>docker volume create / ls / rm</code></td><td>gérer les volumes</td></tr>
+      <tr><td><code>-d</code></td><td>détacher : rendre la main</td></tr>
+      <tr><td><code>-it</code></td><td>interactif, avec un terminal</td></tr>
+      <tr><td><code>--name</code></td><td>nommer le conteneur</td></tr>
+      <tr><td><code>-p hôte:conteneur</code></td><td>publier un port</td></tr>
+      <tr><td><code>-v volume:chemin</code></td><td>monter un volume</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🔧 Les deux lectures à ne jamais inverser</div>
+    <p><code>-p 8080:80</code> → <strong>hôte</strong> puis <strong>conteneur</strong>.</p>
+    <p><code>-v donnees:/usr/share/nginx/html</code> → <strong>volume</strong> puis
+       <strong>point de montage dans le conteneur</strong>.</p>
+    <p class="rap">Dans les deux cas, <em>le dehors est à gauche</em>. C'est la seule chose à
+       retenir, et elle évite les deux erreurs les plus fréquentes du TP.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Un conteneur partage le noyau de l'hôte</strong> : c'est ce qui le rend
+          petit et rapide, et ce qui le distingue d'une machine virtuelle.</li>
+      <li><strong>Image → modèle figé · conteneur → exécution · volume → stockage.</strong>
+          Seuls l'image et le volume persistent.</li>
+      <li><strong><code>docker info</code> prouve que le moteur répond</strong> ;
+          <code>docker --version</code> ne prouve que l'installation.</li>
+      <li><strong>Le tag fait partie de l'identité d'une image.</strong>
+          <code>nginx</code> et <code>nginx:1.21</code> sont deux images.</li>
+      <li><strong><code>latest</code> veut dire « par défaut », pas « la plus récente ».</strong></li>
+      <li><strong><code>docker ps</code> cache les conteneurs arrêtés</strong> ; il faut
+          <code>-a</code> pour les voir, et ils occupent de la place.</li>
+      <li><strong><code>run</code> crée un conteneur, <code>exec</code> entre dans un conteneur
+          existant.</strong> Confondre les deux, c'est modifier le mauvais.</li>
+      <li><strong>Alpine n'a pas <code>bash</code></strong>, seulement <code>sh</code>.</li>
+      <li><strong><code>stop</code> puis <code>start</code> garde les modifications ;
+          <code>rm</code> les efface.</strong></li>
+      <li><strong><code>-p hôte:conteneur</code></strong> — le dehors à gauche. Deux
+          conteneurs peuvent écouter le port 80 : seul le port de l'hôte doit être unique.</li>
+      <li><strong><code>-v volume:chemin</code></strong> — le volume survit au conteneur, et
+          <code>docker rm</code> n'y touche pas.</li>
+      <li><strong>Le groupe <code>docker</code> équivaut à <code>root</code></strong> : y
+          ajouter un utilisateur est une décision de sécurité.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« TP d'initiation — Manipuler Docker », Réseaux &amp; Systèmes, 5 pages, six parties
+          et son aide-mémoire de commandes</li>
+      <li>Documentation officielle <a href="https://docs.docker.com/">docs.docker.com</a> —
+          procédures d'installation par système, relevées le 9 octobre 2026</li>
+      <li>Demande de JustAkhiraa : « faire un tuto complet au début avec trois boutons pour
+          choisir si on veut la config sur Mac, Windows, Linux ou autre »</li>
+    </ul>
+    <p class="rap">Les procédures d'installation vieillissent plus vite que le reste d'un
+       cours : elles portent leur date, et c'est
+       <a href="https://docs.docker.com/">docs.docker.com</a> qui fait foi le jour où elles
+       divergent.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/cours.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
+</body>
+</html>
