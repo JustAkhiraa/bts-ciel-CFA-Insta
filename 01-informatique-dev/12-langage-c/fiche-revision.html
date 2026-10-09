@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C — fiche de révision | BTS CIEL</title>
-<meta name="description" content="Fiche imprimable : squelette d'un programme, types, codes de format printf et scanf, opérateurs, if/switch, while/do-while/for, puis les fonctions (prototype, portée, les quatre formes), les tableaux, et les pièges qui coûtent des points.">
+<meta name="description" content="Fiche imprimable : squelette d'un programme, types, codes de format printf et scanf, opérateurs, if/switch, while/do-while/for, puis les fonctions (prototype, portée, les quatre formes), les tableaux, les pointeurs, malloc/calloc/free, les structures, et les pièges qui coûtent des points.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d2904f3b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
@@ -19,8 +19,8 @@
     <span class="sep">/</span><span class="badge">Fiche de révision</span>
   </div>
   <h1>Langage C</h1>
-  <p class="chapeau">Les deux séances sur une seule fiche : le langage, puis les fonctions
-     et les tableaux. À relire la veille.
+  <p class="chapeau">Les trois séances sur une seule fiche : le langage, les fonctions et les
+     tableaux, puis les pointeurs, la mémoire dynamique et les structures. À relire la veille.
      <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
 </header>
 
@@ -350,12 +350,114 @@
        <code>58.40 %</code> · <code>11.50</code> et 7 admis.</p>
   </article>
 
+  <article class="memo alerte">
+    <h2>⚡ Adresse, pointeur, valeur</h2>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span>  <span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>   <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">age</span>;    <span class="j-com">/* p contient l'ADRESSE de age */</span>
+
+<span class="j-var">age</span>    <span class="j-op">-&gt;</span>  <span class="j-num">20</span>                 <span class="j-var">la</span> <span class="j-var">valeur</span>
+<span class="j-op">&amp;</span><span class="j-var">age</span>   <span class="j-op">-&gt;</span>  <span class="j-num">0x7ffd</span>...          <span class="j-var">l</span>'<span class="j-var">adresse</span>
+<span class="j-var">p</span>      <span class="j-op">-&gt;</span>  <span class="j-num">0x7ffd</span>...          <span class="j-var">la</span> <span class="j-var">meme</span> <span class="j-var">adresse</span>
+<span class="j-op">*</span><span class="j-var">p</span>     <span class="j-op">-&gt;</span>  <span class="j-num">20</span>                 <span class="j-var">la</span> <span class="j-var">valeur</span>, <span class="j-var">atteinte</span> <span class="j-var">par</span> <span class="j-var">p</span></code></pre></div>
+    <p><code>&amp;</code> = « où ? » · <code>*</code> = « quoi ? ». Les deux se défont :
+       <code>*(&amp;age)</code>, c'est <code>age</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>L'étoile a deux rôles</h2>
+    <p><code>int *p;</code> — <strong>déclaration</strong> : « p est un pointeur ».</p>
+    <p><code>*p = 30;</code> — <strong>opérateur</strong> : « va à l'adresse rangée dans p ».</p>
+    <p>Pour les distinguer : y a-t-il un <em>type</em> devant ? Si oui, c'est une déclaration.</p>
+    <p><code>p = 30;</code> ≠ <code>*p = 30;</code> — le premier change l'adresse, le second
+       la valeur pointée.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Tableaux et pointeurs</h2>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">tab</span>    <span class="j-op">==</span>  <span class="j-op">&amp;</span><span class="j-var">tab</span>[<span class="j-num">0</span>]      <span class="j-var">le</span> <span class="j-var">nom</span> <span class="j-var">d</span>'<span class="j-var">un</span> <span class="j-var">tableau</span> <span class="j-var">EST</span> <span class="j-var">une</span> <span class="j-var">adresse</span>
+<span class="j-var">p</span>[<span class="j-var">i</span>]   <span class="j-op">==</span>  <span class="j-op">*</span>(<span class="j-var">p</span> <span class="j-op">+</span> <span class="j-var">i</span>)     <span class="j-var">deux</span> <span class="j-var">ecritures</span>, <span class="j-var">une</span> <span class="j-var">seule</span> <span class="j-var">notion</span>
+<span class="j-var">p</span><span class="j-op">++</span>                     <span class="j-var">avance</span> <span class="j-var">d</span>'<span class="j-var">UNE</span> <span class="j-var">CASE</span> <span class="j-var">du</span> <span class="j-var">type</span> <span class="j-var">pointe</span></code></pre></div>
+    <p><strong>Jamais les deux à la fois :</strong> <code>p[i]</code>
+       avec <code>p++</code> lit <code>tab[2i]</code> — une case sur deux, puis hors du
+       tableau.</p>
+    <p>Un tableau n'est pas une variable : <code>tab++</code> est refusé.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ malloc · calloc · free</h2>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));   <span class="j-com">/* n cases, contenu indetermine */</span>
+<span class="j-var">q</span> <span class="j-op">=</span> <span class="j-fn">calloc</span>(<span class="j-var">n</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));    <span class="j-com">/* n cases, toutes a ZERO       */</span>
+<span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;       <span class="j-com">/* TOUJOURS                      */</span>
+...
+<span class="j-fn">free</span>(<span class="j-var">p</span>);                       <span class="j-com">/* TOUJOURS                      */</span></code></pre></div>
+    <p><code>#include &lt;stdlib.h&gt;</code> · on compte en <strong>octets</strong>, d'où
+       <code>sizeof</code> · jamais un nombre écrit en dur.</p>
+    <p>Oublier <code>free</code> → fuite · <code>free</code> deux fois → plantage ·
+       utiliser après <code>free</code> → pointeur fou. Réflexe :
+       <code>free(p); p = NULL;</code></p>
+  </article>
+
+  <article class="memo">
+    <h2>La structure</h2>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">struct</span> <span class="j-var">Etudiant</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+};                    <span class="j-com">/* ; OBLIGATOIRE */</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Etudiant</span> <span class="j-var">e1</span> <span class="j-op">=</span> {<span class="j-txt">"Alice"</span>, <span class="j-num">20</span>, <span class="j-num">15.5</span>};
+<span class="j-var">e1</span>.<span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">21</span>;
+<span class="j-fn">strcpy</span>(<span class="j-var">e1</span>.<span class="j-var">nom</span>, <span class="j-txt">"Bilal"</span>);   <span class="j-com">/* jamais e1.nom = "..." */</span></code></pre></div>
+    <p>Définir un <code>struct</code> ne crée aucune variable : c'est un moule.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le point ou la flèche</h2>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Ce qu'on a</th><th>On écrit</th></tr></thead>
+      <tbody>
+        <tr><td>une structure <code>e1</code></td><td><code>e1.age</code></td></tr>
+        <tr><td>un pointeur <code>p</code> dessus</td><td><code>p-&gt;age</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><code>p-&gt;age</code> est exactement <code>(*p).age</code>.</p>
+    <p>Dans une fonction : <strong>par valeur</strong> → copie, l'original ne bouge pas ·
+       <strong>par adresse</strong> (<code>struct Etudiant *e</code>, appel
+       <code>f(&amp;e1)</code>) → on modifie pour de bon.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le <code>&amp;</code> de <code>scanf</code>, enfin expliqué</h2>
+    <p><code>scanf</code> <strong>écrit</strong> dans la variable : il lui faut son adresse.</p>
+    <div class="tableau">
+    <table>
+      <thead><tr><th>Champ</th><th>Saisie</th></tr></thead>
+      <tbody>
+        <tr><td><code>int</code>, <code>float</code></td><td><code>scanf("%d", &amp;e1.age);</code></td></tr>
+        <tr><td><code>char[]</code></td><td><code>scanf("%s", e1.nom);</code> — déjà une adresse</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </article>
+
+  <article class="memo">
+    <h2>Le TP 5, en un coup d'œil</h2>
+    <p><strong>1</strong> huit mesures parcourues au pointeur · <strong>2</strong> saisie de
+       taille inconnue, <code>malloc</code> · <strong>3</strong> recherche et position ·
+       <strong>4</strong> capteur, <code>calloc</code> et contrôle de l'allocation.</p>
+    <p>Résultats à retrouver : somme <code>122</code>, max <code>25</code> · somme
+       <code>62</code>, moyenne <code>15.50</code> · position <code>3</code> · moyenne
+       <code>19.12</code>, min <code>17.00</code>, max <code>21.25</code>.</p>
+  </article>
+
 </section>
 
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/fiche-revision.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d2904f3b"></script>
-<script src="../../assets/app.js?v=d2904f3b"></script>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
 </body>
 </html>

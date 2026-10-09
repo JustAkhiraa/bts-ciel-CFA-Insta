@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C — exercices corrigés | BTS CIEL</title>
-<meta name="description" content="Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
+<meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d2904f3b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -28,6 +28,8 @@
     <li><a href="#tableaux">10 · TP 3 · Trois tableaux à parcourir</a></li>
     <li><a href="#decouper">11 · TP 3 · Découper en fonctions</a></li>
     <li><a href="#methode">12 · TP 3 · La méthode, en quatre gestes</a></li>
+    <li><a href="#tp4">13 · TP 4 · Les tableaux à deux dimensions</a></li>
+    <li><a href="#tp5">14 · TP 5 · Les pointeurs</a></li>
   </ol>
 </nav>
 
@@ -2052,6 +2054,408 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
   </div>
 </section>
 
+<section id="tp5">
+  <h2><span class="num">14</span>TP 5 · Les pointeurs</h2>
+
+  <p>Quatre énoncés, et une progression très nette : le premier parcourt un tableau
+     <em>dont on connaît la taille</em> uniquement avec un pointeur ; les trois suivants
+     n'ont plus de tableau du tout — la mémoire est <strong>réservée pendant l'exécution</strong>,
+     selon un nombre que l'utilisateur donne. La syntaxe est aux
+     <a href="cours.html#pointeurs-tableaux">chapitres 25</a> et
+     <a href="cours.html#allocation">26 du cours</a>.</p>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Le même squelette dans les trois derniers</div>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>1.  scanf(&quot;%d&quot;, &amp;n)                demander combien
+2.  p = malloc(n * sizeof(int))    reserver
+3.  if (p == NULL) return 1;       verifier
+4.  ... p[i] ou *(p + i) ...       utiliser
+5.  free(p);                       rendre</code></pre></div>
+    <p class="rap">Seule l'étape 4 change d'un exercice à l'autre. Si l'on sait écrire les
+       quatre autres de mémoire, le TP est fait.</p>
+  </div>
+
+  <article class="exo">
+    <h3><span class="no">12</span>Huit mesures, parcourues au pointeur <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Un technicien relève huit mesures : <code>{12, 18, 7, 25, 14, 9, 21, 16}</code>.
+         Déclarer le tableau, déclarer un pointeur <code>p</code>, l'initialiser avec
+         l'adresse du premier élément, puis <strong>parcourir le tableau uniquement à l'aide
+         du pointeur</strong> : afficher chaque mesure, calculer la somme, afficher la plus
+         grande.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">mesures</span>[<span class="j-num">8</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>, <span class="j-num">14</span>, <span class="j-num">9</span>, <span class="j-num">21</span>, <span class="j-num">16</span>};
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">mesures</span>;          <span class="j-com">/* 3. p recoit l'adresse du premier element */</span>
+    <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">int</span> <span class="j-var">maxi</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;                 <span class="j-com">/* on part de la premiere mesure, pas de 0 */</span>
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">8</span>; <span class="j-var">i</span><span class="j-op">++</span>) {  <span class="j-com">/* 4. on ne parcourt QU'AVEC le pointeur */</span>
+        <span class="j-fn">printf</span>(<span class="j-txt">"mesure %d : %d\n"</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-op">*</span><span class="j-var">p</span>);
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-op">*</span><span class="j-var">p</span>;
+        <span class="j-mc">if</span> (<span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">&gt;</span> <span class="j-var">maxi</span>)
+            <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;
+        <span class="j-var">p</span><span class="j-op">++</span>;
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"somme            : %d\n"</span>, <span class="j-var">somme</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"plus grande      : %d\n"</span>, <span class="j-var">maxi</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>mesure 1 : 12
+mesure 2 : 18
+mesure 3 : 7
+mesure 4 : 25
+mesure 5 : 14
+mesure 6 : 9
+mesure 7 : 21
+mesure 8 : 16
+somme            : 122
+plus grande      : 25</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ Partir de zéro pour chercher un maximum</div>
+          <p><code>maxi = 0;</code> marche ici parce que toutes les mesures sont positives.
+             Avec des températures négatives, le programme rendrait 0 — une valeur qui n'est
+             pas dans le tableau. On part donc <strong>du premier élément</strong> :
+             <code>maxi = *p;</code>.</p>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 « Uniquement à l'aide du pointeur »</div>
+          <p>L'énoncé interdit <code>mesures[i]</code>. On écrit <code>*p</code> et on avance
+             par <code>p++</code> — et surtout <strong>pas les deux écritures à la fois</strong> :
+             <code>p[i]</code> avec <code>p++</code> saute une case sur deux, c'est la faute
+             démontrée au <a href="cours.html#pointeurs-tableaux">chapitre 25</a>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">13</span>Autant de valeurs que l'utilisateur veut <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le nombre de valeurs n'est pas connu à l'avance. Demander ce nombre, déclarer un
+         pointeur, réserver la mémoire avec <code>malloc()</code>, saisir les valeurs, les
+         afficher, calculer la somme et la moyenne, puis libérer avec <code>free()</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
+    <span class="j-typ">int</span> <span class="j-var">n</span>, <span class="j-var">i</span>, <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Combien de valeurs ? "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>);
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Allocation impossible\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"valeur %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">p</span>[<span class="j-var">i</span>]);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nValeurs saisies :\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, <span class="j-var">p</span>[<span class="j-var">i</span>]);
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">p</span>[<span class="j-var">i</span>];
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"somme   : %d\n"</span>, <span class="j-var">somme</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"moyenne : %.2f\n"</span>, (<span class="j-typ">float</span>)<span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">p</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 4 puis 12, 18, 7, 25</span><pre><code>Combien de valeurs ? valeur 1 : valeur 2 : valeur 3 : valeur 4 :
+Valeurs saisies :
+12
+18
+7
+25
+somme   : 62
+moyenne : 15.50</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>somme / n</code> entre deux entiers donne un entier</div>
+          <p>Avec une somme de 62 et 4 valeurs, <code>somme / n</code> vaut
+             <strong>15</strong>, pas 15.5 : la division entière tronque. On écrit
+             <code>(float)somme / n</code> pour forcer le calcul en réel — c'est la même
+             règle que <code>6 / 7</code> au <a href="cours.html#operateurs">chapitre 7</a>.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 L'invite et la saisie sur la même ligne</div>
+          <p><code>Combien de valeurs ? valeur 1 : valeur 2 :</code> — les invites se suivent
+             parce que ce que vous tapez n'apparaît pas dans la sortie enregistrée. À l'écran,
+             chaque invite est bien suivie de ce que vous avez frappé.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">14</span>Chercher une valeur, et dire où elle est <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Demander le nombre de valeurs, réserver la mémoire avec <code>malloc()</code>, la
+         remplir, demander une valeur à rechercher, parcourir <strong>à l'aide du
+         pointeur</strong>, dire si elle existe et, si oui, afficher sa position. Libérer.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
+    <span class="j-typ">int</span> <span class="j-var">n</span>, <span class="j-var">i</span>, <span class="j-var">cherchee</span>, <span class="j-var">position</span> <span class="j-op">=</span> <span class="j-op">-</span><span class="j-num">1</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Combien de valeurs ? "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>);
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+    <span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Allocation impossible\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"valeur %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">p</span>[<span class="j-var">i</span>]);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Valeur a rechercher : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">cherchee</span>);
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">p</span> <span class="j-op">+</span> <span class="j-var">i</span>) <span class="j-op">==</span> <span class="j-var">cherchee</span>) {
+            <span class="j-var">position</span> <span class="j-op">=</span> <span class="j-var">i</span>;
+            <span class="j-mc">break</span>;
+        }
+    }
+
+    <span class="j-mc">if</span> (<span class="j-var">position</span> <span class="j-op">==</span> <span class="j-op">-</span><span class="j-num">1</span>)
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d ne figure pas dans la serie\n"</span>, <span class="j-var">cherchee</span>);
+    <span class="j-mc">else</span>
+        <span class="j-fn">printf</span>(<span class="j-txt">"%d est a la position %d (le %d-eme)\n"</span>, <span class="j-var">cherchee</span>, <span class="j-var">position</span>, <span class="j-var">position</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">p</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 5 puis 12, 18, 7, 25, 14 puis 25</span><pre><code>Combien de valeurs ? valeur 1 : valeur 2 : valeur 3 : valeur 4 : valeur 5 : Valeur a rechercher : 25 est a la position 3 (le 4-eme)</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Position ou rang : on affiche les deux, et on le dit</div>
+          <p>La valeur 25 est à l'<strong>indice 3</strong> et c'est la
+             <strong>quatrième</strong> de la série. Les deux réponses sont justes, elles ne
+             répondent pas à la même question. La convention du cours est celle de l'indice —
+             <em>« Position 4 car 0 1 2 3 4 »</em> — et afficher les deux lève le doute sans
+             rien trancher d'autorité.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>position = -1</code> au départ, et pas 0</div>
+          <p>0 est une position valable : c'est le premier élément. Pour dire « pas encore
+             trouvé », il faut une valeur qu'un indice ne peut jamais prendre, et
+             <code>-1</code> est celle que tout le monde emploie.</p>
+          <p class="rap">Le <code>break</code> arrête à la <strong>première</strong>
+             occurrence. Sans lui, on garderait la dernière.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">15</span>Un capteur, un nombre de mesures inconnu, et <code>calloc</code> <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Un système industriel relève des mesures à intervalles réguliers ; le nombre est
+         saisi au début. Allouer dynamiquement un tableau de <code>float</code>
+         <strong>avec <code>calloc</code></strong>, <strong>vérifier que l'allocation a
+         réussi</strong>, saisir les mesures, les afficher en utilisant un pointeur, puis
+         calculer la moyenne, la valeur minimale et la valeur maximale. Libérer.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">float</span> <span class="j-op">*</span><span class="j-var">mesures</span>;
+    <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">mini</span>, <span class="j-var">maxi</span>;
+    <span class="j-typ">int</span> <span class="j-var">n</span>, <span class="j-var">i</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Combien de mesures ? "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>);
+
+    <span class="j-var">mesures</span> <span class="j-op">=</span> <span class="j-fn">calloc</span>(<span class="j-var">n</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">float</span>));   <span class="j-com">/* calloc : n objets, chacun de sizeof(float) */</span>
+    <span class="j-mc">if</span> (<span class="j-var">mesures</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Allocation impossible\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"mesure %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">mesures</span>[<span class="j-var">i</span>]);
+    }
+
+    <span class="j-var">mini</span> <span class="j-op">=</span> <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">mesures</span>;               <span class="j-com">/* on part de la premiere mesure */</span>
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nMesures enregistrees :\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%.2f\n"</span>, <span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>));
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>);
+        <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>) <span class="j-op">&lt;</span> <span class="j-var">mini</span>) <span class="j-var">mini</span> <span class="j-op">=</span> <span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>);
+        <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>) <span class="j-op">&gt;</span> <span class="j-var">maxi</span>) <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span>(<span class="j-var">mesures</span> <span class="j-op">+</span> <span class="j-var">i</span>);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"moyenne  : %.2f\n"</span>, <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"minimale : %.2f\n"</span>, <span class="j-var">mini</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"maximale : %.2f\n"</span>, <span class="j-var">maxi</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">mesures</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 4 puis 18.5, 21.25, 17, 19.75</span><pre><code>Combien de mesures ? mesure 1 : mesure 2 : mesure 3 : mesure 4 :
+Mesures enregistrees :
+18.50
+21.25
+17.00
+19.75
+moyenne  : 19.12
+minimale : 17.00
+maximale : 21.25</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 C'est le seul énoncé du TP qui demande de vérifier l'allocation</div>
+          <p>Les trois premiers ne le demandent pas, et le cours ne le fait pas non plus dans
+             ses premiers exemples. Le sujet va donc plus loin que la diapositive — comme le
+             TP 3 allait plus loin que le chapitre sur les tableaux. Les trois lignes
+             <code>if (… == NULL)</code> sont à mettre partout, pas seulement ici.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>%f</code> pour lire un <code>float</code>, <code>%lf</code> pour un <code>double</code></div>
+          <p>Avec <code>scanf</code>, le code de format doit correspondre <strong>exactement</strong>
+             au type. <code>scanf(&quot;%lf&quot;, &amp;unFloat)</code> écrit huit octets dans
+             une case de quatre : le programme compile, tourne, et donne n'importe quoi.</p>
+          <p class="rap">À l'affichage, en revanche, <code>printf(&quot;%f&quot;, …)</code>
+             accepte les deux : un <code>float</code> passé à <code>printf</code> est
+             automatiquement promu en <code>double</code>.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 19,125 affiché « 19.12 »</div>
+          <p>La moyenne vaut exactement 19,125. <code>%.2f</code> arrondit au plus proche, et
+             quand la valeur tombe pile entre deux, au <strong>pair</strong> — d'où 19.12 et
+             non 19.13. Ce n'est pas une erreur de calcul, c'est la règle d'arrondi de
+             <code>printf</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+
+  <article class="exo">
+    <h3><span class="no">16</span>Le programme de contrôle, sans aucune saisie <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Les quatre corrections ci-dessus lisent au clavier : pour vérifier un résultat, il
+         faut retaper huit mesures. Ce programme-ci porte les données de l'énoncé
+         <strong>dans son code</strong> et affiche les quatre réponses d'un coup. Il sert à
+         contrôler son propre travail — et c'est aussi le seul chemin par lequel la chaîne de
+         relecture de ces fiches peut recomparer ces valeurs.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Le programme et ses résultats</div>
+      <button type="button" data-ouvrir="Afficher le programme" data-fermer="Masquer le programme">Afficher le programme</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-com">/* Les quatre exercices du TP 5, SANS saisie : les donnees de l'enonce sont
+   ecrites dans le programme. Il sert a verifier ses propres resultats sans
+   retaper huit mesures a chaque essai — et c'est le seul chemin par lequel
+   une valeur annoncee ici peut etre recomparee automatiquement. */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-com">/* --- exercice 1 : le tableau fixe de l'enonce -------------------- */</span>
+    <span class="j-typ">int</span> <span class="j-var">mesures</span>[<span class="j-num">8</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>, <span class="j-num">14</span>, <span class="j-num">9</span>, <span class="j-num">21</span>, <span class="j-num">16</span>};
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">mesures</span>;
+    <span class="j-typ">int</span> <span class="j-var">somme1</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>, <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">8</span>; <span class="j-var">i</span><span class="j-op">++</span>) { <span class="j-var">somme1</span> <span class="j-op">+=</span> <span class="j-op">*</span><span class="j-var">p</span>; <span class="j-mc">if</span> (<span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">&gt;</span> <span class="j-var">maxi</span>) <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>; <span class="j-var">p</span><span class="j-op">++</span>; }
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.1  somme = %d, maximum = %d\n"</span>, <span class="j-var">somme1</span>, <span class="j-var">maxi</span>);
+
+    <span class="j-com">/* --- exercice 2 : quatre valeurs saisies, ici en dur ------------- */</span>
+    {
+        <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">4</span>, <span class="j-var">j</span>, <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">q</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+        <span class="j-typ">int</span> <span class="j-var">jeu</span>[<span class="j-num">4</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>};
+        <span class="j-mc">if</span> (<span class="j-var">q</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) <span class="j-var">q</span>[<span class="j-var">j</span>] <span class="j-op">=</span> <span class="j-var">jeu</span>[<span class="j-var">j</span>];
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">q</span>[<span class="j-var">j</span>];
+        <span class="j-fn">printf</span>(<span class="j-txt">"ex.2  somme = %d, moyenne = %.2f\n"</span>, <span class="j-var">somme</span>, (<span class="j-typ">float</span>)<span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
+        <span class="j-fn">free</span>(<span class="j-var">q</span>);
+    }
+
+    <span class="j-com">/* --- exercice 3 : recherche de 25 dans cinq valeurs -------------- */</span>
+    {
+        <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">5</span>, <span class="j-var">j</span>, <span class="j-var">cherchee</span> <span class="j-op">=</span> <span class="j-num">25</span>, <span class="j-var">position</span> <span class="j-op">=</span> <span class="j-op">-</span><span class="j-num">1</span>;
+        <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">q</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
+        <span class="j-typ">int</span> <span class="j-var">jeu</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>, <span class="j-num">14</span>};
+        <span class="j-mc">if</span> (<span class="j-var">q</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) <span class="j-var">q</span>[<span class="j-var">j</span>] <span class="j-op">=</span> <span class="j-var">jeu</span>[<span class="j-var">j</span>];
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">q</span> <span class="j-op">+</span> <span class="j-var">j</span>) <span class="j-op">==</span> <span class="j-var">cherchee</span>) { <span class="j-var">position</span> <span class="j-op">=</span> <span class="j-var">j</span>; <span class="j-mc">break</span>; }
+        <span class="j-fn">printf</span>(<span class="j-txt">"ex.3  %d trouve a la position %d\n"</span>, <span class="j-var">cherchee</span>, <span class="j-var">position</span>);
+        <span class="j-fn">free</span>(<span class="j-var">q</span>);
+    }
+
+    <span class="j-com">/* --- exercice 4 : quatre mesures reelles, calloc ----------------- */</span>
+    {
+        <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">4</span>, <span class="j-var">j</span>;
+        <span class="j-typ">float</span> <span class="j-var">jeu</span>[<span class="j-num">4</span>] <span class="j-op">=</span> {<span class="j-num">18.5f</span>, <span class="j-num">21.25f</span>, <span class="j-num">17.0f</span>, <span class="j-num">19.75f</span>};
+        <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">mini</span>, <span class="j-var">maxi4</span>;
+        <span class="j-typ">float</span> <span class="j-op">*</span><span class="j-var">m</span> <span class="j-op">=</span> <span class="j-fn">calloc</span>(<span class="j-var">n</span>, <span class="j-mc">sizeof</span>(<span class="j-typ">float</span>));
+        <span class="j-mc">if</span> (<span class="j-var">m</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) <span class="j-var">m</span>[<span class="j-var">j</span>] <span class="j-op">=</span> <span class="j-var">jeu</span>[<span class="j-var">j</span>];
+        <span class="j-var">mini</span> <span class="j-op">=</span> <span class="j-var">maxi4</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">m</span>;
+        <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+            <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-op">*</span>(<span class="j-var">m</span> <span class="j-op">+</span> <span class="j-var">j</span>);
+            <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">m</span> <span class="j-op">+</span> <span class="j-var">j</span>) <span class="j-op">&lt;</span> <span class="j-var">mini</span>)  <span class="j-var">mini</span>  <span class="j-op">=</span> <span class="j-op">*</span>(<span class="j-var">m</span> <span class="j-op">+</span> <span class="j-var">j</span>);
+            <span class="j-mc">if</span> (<span class="j-op">*</span>(<span class="j-var">m</span> <span class="j-op">+</span> <span class="j-var">j</span>) <span class="j-op">&gt;</span> <span class="j-var">maxi4</span>) <span class="j-var">maxi4</span> <span class="j-op">=</span> <span class="j-op">*</span>(<span class="j-var">m</span> <span class="j-op">+</span> <span class="j-var">j</span>);
+        }
+        <span class="j-fn">printf</span>(<span class="j-txt">"ex.4  moyenne = %.2f, min = %.2f, max = %.2f\n"</span>,
+               <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>, <span class="j-var">mini</span>, <span class="j-var">maxi4</span>);
+        <span class="j-fn">free</span>(<span class="j-var">m</span>);
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>ex.1  somme = 122, maximum = 25
+ex.2  somme = 62, moyenne = 15.50
+ex.3  25 trouve a la position 3
+ex.4  moyenne = 19.12, min = 17.00, max = 21.25</code></pre></div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces trois TP font travailler</h2>
@@ -2128,6 +2532,10 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
           températures, tentatives de connexion</li>
       <li>Cours « Algorithmique et programmation » du 02/10/2026, chapitre 4 — les tableaux,
           section 3 : les tableaux à deux dimensions</li>
+      <li>Sujet « TP 5 : les pointeurs », quatre exercices — huit mesures au pointeur,
+          saisie de taille inconnue, recherche d'une valeur, et un capteur avec
+          <code>calloc</code></li>
+      <li>Cours « Algorithmique et programmation » du 09/10/2026, chapitre 5 — les pointeurs</li>
 </ul>
     <p class="rap">Les huit corrections ont été compilées avec <code>cc -std=c99 -Wall</code>
        puis exécutées. Les sorties annoncées sont celles obtenues, pas celles attendues.</p>
@@ -2142,7 +2550,7 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d2904f3b"></script>
-<script src="../../assets/app.js?v=d2904f3b"></script>
+<script src="../../assets/fiche.js?v=7d2968ca"></script>
+<script src="../../assets/app.js?v=7d2968ca"></script>
 </body>
 </html>

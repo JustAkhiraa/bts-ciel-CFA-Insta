@@ -135,10 +135,28 @@
  },
  {
   "groupe": "Le cours de langage C",
+  "titre": "sizeof d'un tableau passé à une fonction",
+  "quoi": "Le piège classique : la taille se perd au passage.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nvoid combien(int t[])\n{\n    printf(\"dans la fonction : sizeof(t) = %zu\\n\", sizeof(t));\n}\n\nint main(void)\n{\n    int mesures[10];\n\n    printf(\"dans main       : sizeof(mesures) = %zu\\n\", sizeof(mesures));\n    combien(mesures);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
   "titre": "Moyenne et maximum d'un tableau",
   "quoi": "Deux fonctions sur des mesures de débit.",
   "langue": "c",
   "code": "#include <stdio.h>\n\nint main(void)\n{\n    int nombres[5] = {10, 20, 30, 40, 50};\n\n    nombres[1] = 50;          /* la deuxième case passe de 20 à 50 */\n\n    printf(\"nombres[1] = %d\\n\", nombres[1]);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Une matrice, déclarée et affichée",
+  "quoi": "Trois lignes, quatre colonnes : les accolades dans les accolades.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nint main(void)\n{\n    /* 3 lignes, 4 colonnes : le trafic de trois commutateurs sur quatre ports */\n    int trafic[3][4] = {\n        { 120,  80, 200,  45 },\n        {  90, 150,  60, 110 },\n        { 200, 170,  95,  30 }\n    };\n    int i, j;\n\n    for (i = 0; i < 3; i++) {\n        for (j = 0; j < 4; j++)\n            printf(\"%6d\", trafic[i][j]);\n        printf(\"\\n\");\n    }\n\n    printf(\"\\ntrafic[1][2] vaut %d\\n\", trafic[1][2]);\n    return 0;\n}",
   "entree": "",
   "source": "le cours du chapitre Langage C"
  },
@@ -150,6 +168,105 @@
   "code": "#include <stdio.h>\n\nfloat CalculerMoyenne(float t[], int n)\n{\n    float somme = 0.0f;\n    int i;\n\n    for (i = 0; i < n; i++)\n    {\n        somme = somme + t[i];\n    }\n    return somme / n;\n}\n\nfloat Maximum(float t[], int n)\n{\n    float max = t[0];\n    int i;\n\n    for (i = 1; i < n; i++)\n    {\n        if (t[i] > max)\n        {\n            max = t[i];\n        }\n    }\n    return max;\n}\n\nint main(void)\n{\n    float debits[8] = {95, 102, 98, 110, 105, 97, 115, 101};\n\n    printf(\"Débit moyen : %.2f Mb/s\\n\", CalculerMoyenne(debits, 8));\n    printf(\"Débit maximum : %.0f Mb/s\\n\", Maximum(debits, 8));\n    return 0;\n}",
   "entree": "",
   "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Modifier une variable par son pointeur",
+  "quoi": "*p = 30 change age, sans jamais écrire le mot « age ».",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nint main(void)\n{\n    int age = 20;\n    int *p = &age;\n\n    printf(\"avant  : age = %d\\n\", age);\n    *p = 30;                      /* on ecrit DANS la case pointee par p */\n    printf(\"apres  : age = %d\\n\", age);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Parcourir un tableau au pointeur",
+  "quoi": "*p, puis p++ : une case à la fois.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nint main(void)\n{\n    int tab[5] = {1, 2, 6, 0, 7};\n    int *p = tab;\n    int i;\n\n    for (i = 0; i < 5; i++) {\n        printf(\"%d\\n\", *p);\n        p++;\n    }\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "p[i] ET p++ : une case sur deux",
+  "quoi": "La faute du cours, rendue visible : 10, 12, 14, 16, 18.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nint main(void)\n{\n    int tab[9] = {10, 11, 12, 13, 14, 15, 16, 17, 18};\n    int *p = tab;\n    int i;\n\n    /* LES DEUX A LA FOIS : p[i] avance deja, et p++ avance encore */\n    for (i = 0; i < 5; i++) {\n        printf(\"tour %d : p[%d] vaut %d\\n\", i, i, p[i]);\n        p++;\n    }\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "malloc, utiliser, free",
+  "quoi": "Réserver cinq entiers pendant l'exécution.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void)\n{\n    int *p;\n    int i;\n\n    p = malloc(5 * sizeof(int));\n    if (p == NULL) {\n        printf(\"memoire insuffisante\\n\");\n        return 1;\n    }\n\n    for (i = 0; i < 5; i++)\n        p[i] = (i + 1) * 10;\n\n    for (i = 0; i < 5; i++)\n        printf(\"p[%d] = %d\\n\", i, p[i]);\n\n    free(p);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "calloc met tout à zéro",
+  "quoi": "La différence avec malloc, en une exécution.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <stdlib.h>\n\nint main(void)\n{\n    int *a = malloc(4 * sizeof(int));\n    int *b = calloc(4, sizeof(int));\n    int i;\n\n    if (a == NULL || b == NULL) return 1;\n\n    printf(\"calloc met tout a zero :\\n\");\n    for (i = 0; i < 4; i++)\n        printf(\"b[%d] = %d\\n\", i, b[i]);\n\n    free(a);\n    free(b);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Une première structure",
+  "quoi": "strcpy pour le nom, le point pour le reste.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <string.h>\n\nstruct Etudiant {\n    char  nom[30];\n    int   age;\n    float moyenne;\n};\n\nint main(void)\n{\n    struct Etudiant e1;\n\n    strcpy(e1.nom, \"Alice\");      /* une chaine ne se copie pas avec = */\n    e1.age = 20;\n    e1.moyenne = 15.5;\n\n    printf(\"Nom     : %s\\n\", e1.nom);\n    printf(\"Age     : %d\\n\", e1.age);\n    printf(\"Moyenne : %.2f\\n\", e1.moyenne);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Un tableau de structures",
+  "quoi": "Trois étudiants, et la moyenne de la classe.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nstruct Etudiant {\n    char  nom[30];\n    int   age;\n    float moyenne;\n};\n\nint main(void)\n{\n    struct Etudiant classe[3] = {\n        { \"Alice\",  20, 15.5f },\n        { \"Bilal\",  19, 12.0f },\n        { \"Chloe\",  21, 17.25f }\n    };\n    float somme = 0;\n    int i;\n\n    for (i = 0; i < 3; i++) {\n        printf(\"%-8s %3d ans  %5.2f\\n\", classe[i].nom, classe[i].age, classe[i].moyenne);\n        somme += classe[i].moyenne;\n    }\n    printf(\"moyenne de la classe : %.2f\\n\", somme / 3);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Par valeur ou par adresse",
+  "quoi": "La même fonction, deux fois : une copie ne change rien.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n\nstruct Etudiant {\n    char  nom[30];\n    int   age;\n    float moyenne;\n};\n\n/* PAR VALEUR : la fonction recoit une copie, l'original ne bouge pas */\nvoid vieillirCopie(struct Etudiant e)      { e.age = e.age + 1; }\n\n/* PAR ADRESSE : la fonction recoit l'adresse, elle ecrit dans l'original */\nvoid vieillir(struct Etudiant *e)          { e->age = e->age + 1; }\n\nvoid afficher(struct Etudiant e)\n{\n    printf(\"%s, %d ans, moyenne %.2f\\n\", e.nom, e.age, e.moyenne);\n}\n\nint main(void)\n{\n    struct Etudiant e1 = { \"Alice\", 20, 15.5f };\n\n    vieillirCopie(e1);\n    printf(\"apres vieillirCopie : \");  afficher(e1);\n\n    vieillir(&e1);\n    printf(\"apres vieillir      : \");  afficher(e1);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Structure imbriquée et typedef",
+  "quoi": "e1.naissance.jour, et plus un seul « struct ».",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <string.h>\n\nstruct Date {\n    int jour;\n    int mois;\n    int annee;\n};\n\ntypedef struct {\n    char        nom[30];\n    int         age;\n    float       moyenne;\n    struct Date naissance;\n} Etudiant;                       /* typedef : plus besoin d'ecrire « struct » */\n\nint main(void)\n{\n    Etudiant e1;\n\n    strcpy(e1.nom, \"Alice\");\n    e1.age = 20;\n    e1.moyenne = 15.5;\n    e1.naissance.jour  = 15;\n    e1.naissance.mois  = 4;\n    e1.naissance.annee = 2005;\n\n    printf(\"%s, ne le %02d/%02d/%d\\n\", e1.nom,\n           e1.naissance.jour, e1.naissance.mois, e1.naissance.annee);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Le cours de langage C",
+  "titre": "Une structure allouée par malloc",
+  "quoi": "La flèche, le test du NULL, et free.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\nstruct Etudiant {\n    char  nom[30];\n    int   age;\n    float moyenne;\n};\n\nint main(void)\n{\n    struct Etudiant *p;\n\n    p = malloc(sizeof(struct Etudiant));\n    if (p == NULL) {\n        printf(\"Erreur d'allocation memoire\\n\");\n        return 1;\n    }\n\n    strcpy(p->nom, \"Alice\");\n    p->age = 20;\n    p->moyenne = 15.5;\n\n    printf(\"Nom     : %s\\n\", p->nom);\n    printf(\"Age     : %d\\n\", p->age);\n    printf(\"Moyenne : %.2f\\n\", p->moyenne);\n\n    free(p);\n    return 0;\n}",
+  "entree": "",
+  "source": "le cours du chapitre Langage C"
+ },
+ {
+  "groupe": "Les TP, corrigés",
+  "titre": "TP 5 · Le programme de contrôle",
+  "quoi": "Les quatre exercices du TP, sans aucune saisie : les réponses d'un coup.",
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <stdlib.h>\n\n/* Les quatre exercices du TP 5, SANS saisie : les donnees de l'enonce sont\n   ecrites dans le programme. Il sert a verifier ses propres resultats sans\n   retaper huit mesures a chaque essai — et c'est le seul chemin par lequel\n   une valeur annoncee ici peut etre recomparee automatiquement. */\n\nint main(void)\n{\n    /* --- exercice 1 : le tableau fixe de l'enonce -------------------- */\n    int mesures[8] = {12, 18, 7, 25, 14, 9, 21, 16};\n    int *p = mesures;\n    int somme1 = 0, maxi = *p, i;\n\n    for (i = 0; i < 8; i++) { somme1 += *p; if (*p > maxi) maxi = *p; p++; }\n    printf(\"ex.1  somme = %d, maximum = %d\\n\", somme1, maxi);\n\n    /* --- exercice 2 : quatre valeurs saisies, ici en dur ------------- */\n    {\n        int n = 4, j, somme = 0;\n        int *q = malloc(n * sizeof(int));\n        int jeu[4] = {12, 18, 7, 25};\n        if (q == NULL) return 1;\n        for (j = 0; j < n; j++) q[j] = jeu[j];\n        for (j = 0; j < n; j++) somme += q[j];\n        printf(\"ex.2  somme = %d, moyenne = %.2f\\n\", somme, (float)somme / n);\n        free(q);\n    }\n\n    /* --- exercice 3 : recherche de 25 dans cinq valeurs -------------- */\n    {\n        int n = 5, j, cherchee = 25, position = -1;\n        int *q = malloc(n * sizeof(int));\n        int jeu[5] = {12, 18, 7, 25, 14};\n        if (q == NULL) return 1;\n        for (j = 0; j < n; j++) q[j] = jeu[j];\n        for (j = 0; j < n; j++) if (*(q + j) == cherchee) { position = j; break; }\n        printf(\"ex.3  %d trouve a la position %d\\n\", cherchee, position);\n        free(q);\n    }\n\n    /* --- exercice 4 : quatre mesures reelles, calloc ----------------- */\n    {\n        int n = 4, j;\n        float jeu[4] = {18.5f, 21.25f, 17.0f, 19.75f};\n        float somme = 0, mini, maxi4;\n        float *m = calloc(n, sizeof(float));\n        if (m == NULL) return 1;\n        for (j = 0; j < n; j++) m[j] = jeu[j];\n        mini = maxi4 = *m;\n        for (j = 0; j < n; j++) {\n            somme += *(m + j);\n            if (*(m + j) < mini)  mini  = *(m + j);\n            if (*(m + j) > maxi4) maxi4 = *(m + j);\n        }\n        printf(\"ex.4  moyenne = %.2f, min = %.2f, max = %.2f\\n\",\n               somme / n, mini, maxi4);\n        free(m);\n    }\n    return 0;\n}",
+  "entree": "",
+  "source": "les exercices du chapitre Langage C"
  },
  {
   "groupe": "Les TP, corrigés",
