@@ -417,7 +417,7 @@ def main():
                 pbs.append((rel, f"identifiant « {ident} » présent {combien} fois"))
 
         # ── 1 ter. une page sans issue ────────────────────────────────
-        # JustAkhiraa : « j'arrive pas à revenir à l'accueil ». Les fiches de
+        # Signalé : impossible de revenir à l'accueil. Les fiches de
         # révision et les QCM n'avaient AUCUN lien vers le pôle ni vers
         # l'accueil — 72 pages sans retour, et rien ne le disait : chacun de
         # ces liens manquants est un lien qui n'existe pas, donc invisible

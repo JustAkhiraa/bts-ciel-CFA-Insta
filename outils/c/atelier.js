@@ -153,7 +153,8 @@
     let margeAjustee = false;
 
     /* ── cliquer un numéro de ligne sélectionne la ligne ──────────────
-       « dans vscode quand on clic sur une ligne ca la selectionne ».
+       Demandé : le geste de VS Code — un clic sur le numéro sélectionne
+       la ligne entière.
 
        Il y avait un obstacle, et il est écrit dans le commentaire de la
        marge quelques lignes plus bas : un numéro de ligne fait 22 px de
@@ -281,8 +282,10 @@
     }
 
     /* ── la marge doit suivre les lignes ENROULÉES ────────────────────
-       « les numéros des lignes ne sont pas alignés, du coup ça décale
-       tout ». Un numéro par ligne LOGIQUE, c'est juste ; une rangée par
+       Signalé : les numéros ne tombaient plus en face de leur ligne, et
+       le décalage grandissait.
+
+       Un numéro par ligne LOGIQUE, c'est juste ; une rangée par
        numéro, ça ne l'est plus dès qu'une ligne s'enroule et en occupe
        trois. Le premier enroulement décalait donc TOUS les numéros
        suivants, et l'écart grandissait à chaque ligne longue.
@@ -359,8 +362,9 @@
     /* Reconnaître une LETTRE sous un modificateur — et il faut trois
        essais, pas un.
 
-       « option z ne fonctionne pas et en plus ça écrit Â ». Le Â est la
-       signature du défaut : sur un Mac, Option ne se contente pas d'être
+       Signalé : Alt+Z restait sans effet, et écrivait « Â » par-dessus
+       le marché. Ce Â est la signature du défaut : sur un Mac, Option ne
+       se contente pas d'être
        un modificateur, il COMPOSE un caractère. Option+Z donne « Â », et
        « e.key » vaut donc « Â », jamais « z ».
 
@@ -390,10 +394,10 @@
     }
 
     /* ── Les gestes de VS Code, repris à la main ──────────────────────
-       JustAkhiraa : « récupère le projet VSCodium et adapte », et plus tôt :
-       « j'aime bien Ctrl+D pour copier les mots qui se ressemblent, ou
-       Alt+Z, ou encore quand tu cliques sur un mot et ça te surligne les
-       mêmes mots ».
+       Demandé : reprendre les gestes de VSCodium et les adapter — et,
+       plus tôt, trois d'entre eux par leur nom : Ctrl+D pour attraper les
+       mots identiques, Alt+Z pour le retour à la ligne visuel, et le
+       surlignage des jumeaux quand on clique sur un mot.
 
        VSCodium lui-même ne peut pas entrer ici : c'est une application de
        bureau Electron de plusieurs centaines de mégaoctets, pas une page.
@@ -485,9 +489,9 @@
 
     /* ── Ctrl/Cmd+D : AJOUTER une sélection, pas la déplacer ───────────
 
-       « imagine je selectionne int je clic sur ctrl d et ca me selection
-       celui de base plus le prochain si je clic encore ca m'ajoute encore
-       le prochain ». C'est exactement ce que fait VS Code, et ma première
+       Demandé : sélectionner « int », appuyer sur Ctrl+D, et obtenir la
+       sélection de départ PLUS la suivante ; appuyer encore, et une de
+       plus. C'est exactement ce que fait VS Code, et ma première
        version faisait autre chose : elle DÉPLAÇAIT la sélection d'une
        occurrence à la suivante. J'avais écrit qu'un <textarea> n'a qu'un
        curseur et qu'on ne pouvait pas faire mieux. C'est vrai du champ
@@ -892,7 +896,7 @@
       redessiner();
     });
     /* ── coller, couper, copier quand plusieurs sélections sont posées ─
-       « j'ai collé un autre mot mais ça l'a fait que pour un seul ».
+       Signalé : un collage ne remplaçait qu'une seule des sélections.
        C'était vrai, et le mal était double : le champ natif ne connaît
        qu'une sélection, donc le collage n'allait que dans la dernière —
        et l'écouteur d'input, en voyant une frappe qu'il croyait
@@ -1198,9 +1202,8 @@
       }
 
       /* ── Un raccourci ne peut pas faire deux choses ──────────────────
-         JustAkhiraa : « quand je suis dans le compilateur et que je fais
-         Commande+Entrée, ça lance bien la console mais ça fait aussi un saut
-         de ligne, c'est ultra chiant. »
+         Signalé : dans le compilateur, Commande+Entrée lançait bien
+         l'exécution — mais ajoutait aussi un saut de ligne au passage.
 
          C'était vrai, et c'était ma faute : ⌘⏎ était pris DEUX fois. Ici
          pour « ouvrir une ligne en dessous », repris de VS Code — et plus
@@ -1243,9 +1246,9 @@
       }
 
       /* ── Retour arrière : un ALINÉA d'un coup ─────────────────────────
-         JustAkhiraa : « dans VS Code si je fais Tab ça fait un alinéa, si je
-         delete ça supprime le tab — du coup ça prend en mémoire que tab c'est
-         x espaces ».
+         Demandé : le comportement de VS Code. Tab pose un alinéa, et le
+         retour arrière le reprend d'un coup — l'éditeur se souvient qu'un
+         alinéa vaut un nombre fixe d'espaces.
 
          Rien n'est « pris en mémoire » : VS Code ne retient pas qu'on a tapé
          Tab, il REGARDE où se trouve le curseur. S'il n'y a que des espaces
@@ -1291,8 +1294,8 @@
         const dl = t.lastIndexOf("\n", d - 1) + 1;
         const debutLigne = t.slice(dl, d);
         const creux = (debutLigne.match(/^[ \t]*/) || [""])[0];
-        /* « si je clique sur entrée sans rien écrire, ça ajoute un tab
-           aussi, et du coup ça fait les escaliers ».
+        /* Signalé : valider sur une ligne vide ajoutait un alinéa de
+           plus à chaque fois — l'escalier.
 
            Le caractère qui décide d'ouvrir un cran, c'est le dernier de
            LA LIGNE COURANTE. Il était pris sur tout le document :
@@ -2363,11 +2366,9 @@
       const groupes = {};
       ex.forEach((e) => { (groupes[e.groupe] = groupes[e.groupe] || []).push(e); });
       /* ── Les TP deviennent des DOSSIERS ──────────────────────────────
-         JustAkhiraa : « tu leur donnes un nom genre TP 2, et comme les dossiers
-         d'applications sur iPhone ou Android : quand tu cliques sur un
-         dossier, ça ouvre une sorte de bulle carrée avec toutes les apps
-         dedans. Tu fais pareil : TP 1, TP 2, et quand tu cliques ça te propose
-         Ex 1, Ex 2. »
+         Demandé : nommer les groupes « TP 1 », « TP 2 », et les ouvrir
+         comme un dossier d'applications sur téléphone — un clic, et une
+         bulle montre ce qu'il contient : Ex 1, Ex 2, et ainsi de suite.
 
          Quinze corrigés à la file, c'est une liste qu'on parcourt des yeux
          sans la lire. Regroupés par TP, ce sont deux objets au lieu de quinze
@@ -2466,8 +2467,8 @@
       });
       /* Charger un exemple dans l'éditeur. C'était une fonction anonyme
          accrochée à la seule liste — et la bulle carrée est posée À CÔTÉ de
-         cette liste, pas dedans : « quand je clic dessus ca affiche bien les
-         exo mais pas possible de cliquer sur eux ». Les boutons étaient bien
+         cette liste, pas dedans. Signalé : la bulle affichait bien les
+         exercices, mais aucun n'était cliquable. Les boutons étaient bien
          là, visibles et focalisables ; aucun écouteur ne les entendait. Le
          geste est donc nommé une fois et branché aux DEUX endroits. */
       function charger(b) {
@@ -2505,9 +2506,8 @@
     });
 
     /* ── partager ───────────────────────────────────────────────────── */
-    /* JustAkhiraa : « on peut partager, c'est trop bien cette option, mais le
-       lien est trop grand et du coup impossible à partager sur certains
-       sites ».
+    /* Signalé : le partage rend bien service, mais le lien est si long
+       que certains sites le refusent.
 
        Il a raison, et le chiffre le dit : un programme de cent lignes faisait
        une adresse de plus de deux mille caractères. Discord coupe à 2 000,
@@ -2604,10 +2604,11 @@
       }
       const bases = basesPossibles();
       const url = (bases.courte || bases.longue) + "#" + frag;
-      /* « ça c'est inutile » : le message disait le nombre de caractères,
-         le pourcentage gagné et que l'aller-retour avait été vérifié.
-         C'étaient MES chiffres, pas son besoin — il veut savoir que le
-         lien est prêt, et où. Tout le reste est mesuré par le banc, qui
+      /* Jugé inutile, et à raison : le message annonçait le nombre de
+         caractères, le pourcentage gagné et la vérification de
+         l'aller-retour. C'étaient les chiffres de la construction, pas
+         ceux de l'usage — ce qu'on veut savoir, c'est que le lien est
+         prêt, et où il est. Tout le reste est mesuré par le banc, qui
          est l'endroit des chiffres. La vérification, elle, a toujours
          lieu : on la fait, on ne s'en vante plus. */
       try {
@@ -2624,9 +2625,8 @@
     });
 
     /* ── le séparateur des deux volets ───────────────────────────────
-       « met la possibilité de pouvoir agrandir la fenêtre de programme.c
-       vers la droite, si on le fait du coup ça prend sur la fenêtre de
-       la console ».
+       Demandé : pouvoir élargir la fenêtre de programme.c vers la
+       droite, ce qui prend d'autant sur celle de la console.
 
        Une seule variable CSS pilote les deux colonnes : ce qu'on donne à
        l'une est pris à l'autre, par construction. Impossible d'arriver à
@@ -2713,8 +2713,9 @@
     });
 
     /* ── la liste des commandes ─────────────────────────────────────────
-       JustAkhiraa : « le Alt+Z il fonctionne mais sur Mac je le trouve pas.
-       Fais une commande pour que je puisse voir les commandes. »
+       Signalé : Alt+Z fonctionne, mais sur Mac la touche est
+       introuvable — d'où la demande d'une commande qui montre les
+       commandes.
 
        Le raccourci existait, la touche marchait — ce qui manquait, c'est de
        pouvoir le RETROUVER. Un raccourci qu'on ne peut pas redécouvrir
@@ -2764,9 +2765,9 @@
       /* Ce que l'éditeur fait TOUT SEUL. Ces quatre-là n'ont pas de
          raccourci : ce sont des comportements, pas des commandes. Ils
          étaient écrits dans un pavé de six lignes sous les deux cadres —
-         « ce texte genre comme ça c'est ultra moche tu veux pas le
-         cacher ». Il est retiré, mais rien n'est perdu : tout ce qu'il
-         disait est ici, dans la liste qu'on ouvre d'une touche. */
+         et ce pavé était jugé laid, à raison. Il est retiré, mais rien
+         n'est perdu : tout ce qu'il disait est ici, dans la liste qu'on
+         ouvre d'une touche. */
       ["Cliquer un mot encadre ses jumeaux", []],
       ["Se poser contre une accolade montre celle qui ferme — en rouge si rien ne la ferme", []],
       ["Sélectionner autre chose, un « ; » par exemple, allume toutes ses occurrences", []],

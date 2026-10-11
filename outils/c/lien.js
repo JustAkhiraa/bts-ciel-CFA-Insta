@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Le raccourcisseur de liens — et il est entièrement natif.
 
-   « je veux pas perdre des donnée et ne pas passer par un truc exterieur
-     je veux que tout sois natif donc un truc qui raccourcis le lien qui
-     retraduit qui compresse et decrompresse »
+   Trois exigences, posées ensemble : ne perdre aucune donnée, ne
+   dépendre d'aucun service extérieur, et tout faire ici — raccourcir,
+   compresser, décompresser, et retrouver le texte exact.
 
    ── Pourquoi un raccourcisseur ordinaire était hors de question ───────
    bit.ly, un Gist, une base de données : les trois gardent le contenu sur

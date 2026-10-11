@@ -1,22 +1,22 @@
 /* ═══════════════════════════════════════════════════════════════════════
    CIEL — les fiches du BTS dans un VILLAGE en trois dimensions.
 
-   Quatre remarques d'JustAkhiraa ont fait ce fichier, et chacune a changé une
-   décision de fond, pas un réglage.
+   Quatre remarques ont fait ce fichier, et chacune a changé une décision
+   de fond, pas un réglage.
 
-   1. « Je dois me déplacer, c'est tellement pas ergonomique. »
+   1. SE DÉPLACER NE DOIT PAS ÊTRE UN MÉTIER.
       La première version donnait ZQSD, la molette et le clic-glissé : six
       commandes à apprendre pour atteindre un chapitre qu'un site ordinaire
       donne en un clic. **On ne pilote rien.** La caméra est sur un rail et
       va toute seule d'un lieu à l'autre.
 
-   2. « C'est pas le ciel ça, mets un mode jour. »
+   2. CE N'ÉTAIT PAS UN CIEL — ET IL FALLAIT UN MODE JOUR.
       Il y a donc deux heures, et le choix se retient. Depuis, le ciel n'est
       plus un dégradé peint à la main mais le ciel de three.js — le modèle
       de Preetham, calculé depuis la position du soleil, avec ses nuages.
-      C'est JustAkhiraa qui en a donné le lien.
+      Le lien de l'exemple a été fourni avec la demande.
 
-   3. « Sur CodePen j'ai déjà vu des cartes Pokémon ultra stylées. »
+   3. LA RÉFÉRENCE DONNÉE : LES CARTES POKÉMON TRAVAILLÉES DE CODEPEN.
       Les chapitres sont de vraies cartes HTML posées DANS la scène, avec la
       même caméra que le WebGL : nettes à toute distance, sélectionnables,
       lues par un lecteur d'écran, et capables du reflet holographique
@@ -42,8 +42,7 @@
       Le château est au bout parce que c'est la matière la plus longue : dix-
       sept chapitres, le plus de salles.
 
-   5. « Il faut avoir la possibilité de se déplacer, et en gros je suis à
-      côté de la fontaine, tu vois. »
+   5. POUVOIR SE DÉPLACER, EN SE TENANT À CÔTÉ DE LA FONTAINE.
       On est donc DEBOUT, à hauteur d'homme, à côté de la fontaine, et on
       peut marcher dans l'allée. Ce n'est pas un retour en arrière sur la
       première remarque : ce qui était insupportable, c'était de DEVOIR
@@ -94,8 +93,8 @@ function direPuisTaire() {
 }
 
 /* Le sous-titre : le nom de la matière, en bas, comme au cinéma, quand on
-   regarde un bâtiment. JustAkhiraa : « écrire comme s'il y avait des sous-titres
-   le nom de la matière, et la retirer au bout de 5 s ». Il part tout seul :
+   regarde un bâtiment. Demandé : le nom de la matière écrit comme un
+   sous-titre, retiré au bout de cinq secondes. Il part tout seul :
    une étiquette qui colle au pointeur devient un meuble au bout d'une
    minute. */
 let minuteurSousTitre = 0, derniereVisee = "";
@@ -173,8 +172,8 @@ const V = {
   rFontaine:  20,
 };
 /* ═══════════════════════════════════════════════════ LE RELIEF ════════
-   JustAkhiraa : « agrandir l'espace de déplacement de X10 » et « aussi je
-   déteste les murs invisibles ».
+   Demandé : agrandir l'espace de déplacement d'un facteur dix, et se
+   passer des murs invisibles.
 
    Les deux demandes n'en font qu'une. Ce qui bornait le village était une
    BOÎTE : « x: 250, zMin: -158, zMax: 340 ». Rien ne la montrait, et elle
@@ -370,8 +369,8 @@ const LARGEURS = { lac: [38, 22], parc: [38, 24], bibli: [34, 22],
                    est: [42, 24], nord: [34, 20], ceinture: [26, 26] };
 
 /* ── Les noyaux : là où le village se resserre ───────────────────────────
-   Deuxième reproche de JustAkhiraa, et le plus juste : « ça n'a ni queue ni
-   tête ». Les maisons semées régulièrement le long d'une route donnent un
+   Deuxième reproche, et le plus juste : le village n'avait ni queue ni
+   tête. Les maisons semées régulièrement le long d'une route donnent un
    ruban, pas un pays. Or ce qui rend un paysage lisible, ce n'est pas le
    nombre de maisons, c'est le CONTRASTE de densité : serré ici, vide là.
 
@@ -554,7 +553,7 @@ rendu.setSize(innerWidth, innerHeight);
 rendu.outputColorSpace = THREE.SRGBColorSpace;
 /* Le ciel de Preetham rend des luminances physiques, très au-delà de 1 :
    sans cartographie de tons il serait un aplat blanc. C'est le réglage de
-   l'exemple three.js dont JustAkhiraa a donné le lien. Il s'applique à TOUTE la
+   l'exemple three.js dont le lien a été fourni. Il s'applique à TOUTE la
    scène, donc les couleurs du village sont choisies après lui, pas avant. */
 rendu.toneMapping = THREE.ACESFilmicToneMapping;
 rendu.toneMappingExposure = HEURES.nuit.expo;
@@ -571,8 +570,8 @@ rendu.shadowMap.enabled = true;
 rendu.shadowMap.type = THREE.PCFSoftShadowMap;
 
 /* ── Le second rendu : les cartes, en HTML, DANS la scène ───────────────
-   JustAkhiraa, après une version où les cartes étaient posées à plat par-dessus :
-   « y'a plus rien de 3D là, c'est ridicule ». Il avait raison — j'avais
+   Signalé après une version où les cartes étaient posées à plat
+   par-dessus : il ne restait plus rien de la 3D. C'était juste — j'avais
    retiré la 3D au lieu de la rendre lisible.
 
    CSS3DRenderer place de VRAIS éléments HTML dans la scène, avec la même
@@ -634,7 +633,7 @@ const dirSoleil = new THREE.Vector3();
 const dirLumiere = new THREE.Vector3();
 
 /* L'environnement : le ciel lui-même, cuit en carte de reflets. C'est la
-   technique de l'exemple « materials / car » qu'JustAkhiraa a fourni — et c'est
+   technique de l'exemple « materials / car » fourni avec la demande — et c'est
    ce qui fait qu'un dôme de cuivre a la couleur du ciel du moment au lieu
    d'un vert plat. On ne la recalcule qu'au changement d'heure.
 
@@ -990,8 +989,8 @@ function pyramide(mat, rBas, rHaut, h, x, y, z) {
   return o;
 }
 /* ── Le seuil : trois marches entre le sol et la porte ──────────────────
-   JustAkhiraa : « les bâtiments sont beaux mais des fois ils ont aucun sens ».
-   Voici le défaut qu'il voyait sans pouvoir le nommer, et il revenait sur la
+   Signalé : les bâtiments sont beaux, mais certains n'ont aucun sens.
+   Voici le défaut qui se voyait sans se nommer, et il revenait sur la
    moitié du village.
 
    Chaque bâtiment est posé sur un soubassement de pierre — douze unités pour
@@ -1310,8 +1309,8 @@ for (const s of [-1, 1]) {
 
 /* ═══════════════════════════════════════════════ les arbres ═════════ */
 /* ── Ce qui est solide ───────────────────────────────────────────────────
-   JustAkhiraa : « les objets, donne-leur de la solidité, comme les bancs, les
-   bâtiments, les arbres etc. »
+   Demandé : donner de la solidité aux objets — les bancs, les bâtiments,
+   les arbres.
 
    Il a raison et c'était flagrant : seuls les cinq bâtiments, les échoppes et
    la fontaine arrêtaient. Tout le reste — les cinquante maisons de la rue,
@@ -1760,7 +1759,7 @@ function batirChateau(c) {
      La herse était posée à z = 50 sur 2 d'épaisseur, la porte à z = 49 sur 4 :
      leurs faces avant tombaient toutes deux EXACTEMENT sur z = 51. Deux
      surfaces coplanaires, c'est un tirage au sort par pixel — et sur le
-     téléphone d'JustAkhiraa cela donnait une bouillie noire et bleue en travers de
+     téléphone, cela donnait une bouillie noire et bleue en travers de
      l'entrée du château.
 
      Ce n'est pas un défaut « de téléphone ». Le tampon de profondeur y est
@@ -1992,7 +1991,7 @@ for (const m of matieres) prendre(m.L.x, m.L.z, m.b.demiLargeur + 6);
    Le problème, c'est le nombre. Cinquante maisons de vingt boîtes chacune,
    ce sont mille objets à dessiner un par un, et le village tombe à dix
    images par seconde sur un portable. La réponse vient de l'exemple
-   « geometry / minecraft » qu'JustAkhiraa a fourni : on FOND toutes les boîtes
+   « geometry / minecraft » fourni avec la demande : on FOND toutes les boîtes
    d'un même matériau en une seule géométrie. Mille objets deviennent sept
    appels de rendu, et le coût cesse de dépendre du nombre de maisons.
 
@@ -2092,8 +2091,8 @@ function fondre() {
 }
 
 /* ══════════════════════════════════════════════ les boutiques ════════
-   JustAkhiraa : « je veux plus de monde à explorer et des boutiques, parce que
-   quand je regarde derrière moi c'est le vide » — et, plus précisément :
+   Demandé : plus de monde à explorer et des boutiques, parce qu'en se
+   retournant on ne voyait que du vide — et, plus précisément :
    « dans les maisons autour il y a des immeubles à visiter, et en easter egg,
    quand tu entres dans une certaine boutique tu peux utiliser un des outils,
    comme l'atelier pour coder en C ».
@@ -2172,9 +2171,8 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
    Celles qui ont un « lieu » le prennent ; les autres gardent leur place le
    long de l'allée. */
 /* ── Une échoppe cherche sa place, on ne la lui dicte plus ───────────────
-   JustAkhiraa, capture à l'appui : « là t'as mis une boutique sur l'autre »,
-   « franchement ça commence à m'énerver, avant de me présenter un truc
-   vérifie ».
+   Signalé, capture à l'appui : une boutique posée sur une autre. Et la
+   consigne qui va avec : vérifier avant de présenter.
 
    Il a raison sur les deux points. Mesuré : **« Le Grenier des Masques »
    pénétrait « L'atelier » de seize unités** — une échoppe bâtie dans le mur
@@ -2277,7 +2275,7 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
      qui fait pourtant la ville : sans lui, on voit le pré derrière les
      maisons de devant. */
   /* ── Ce qui faisait « un peigne » ────────────────────────────────────
-     JustAkhiraa : « les maisons sont alignées ». Elles l'étaient au sens
+     Signalé : les maisons sont alignées. Elles l'étaient au sens
      strict : trois reculs possibles — 9, 104, 192 — identiques pour les
      cinquante, et une façade rigoureusement perpendiculaire à l'allée pour
      toutes. Trois lignes parfaites de chaque côté : ce n'est pas une rue,
@@ -2380,9 +2378,9 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
 
 
 /* ═══════════════════════════════════════ LES CHEMINS ════════════════
-   JustAkhiraa, capture à l'appui : « ça ressemble à rien, ça n'a ni queue ni
-   tête, les maisons sont alignées et le reste c'est bordélique et trop
-   bizarre, ça n'a rien de commun. »
+   Signalé, capture à l'appui : le village ne ressemblait à rien — les
+   maisons alignées, le reste en désordre, et aucune unité entre les
+   deux.
 
    Il a raison, et le diagnostic est dans sa phrase : il y avait DEUX logiques
    qui se contredisaient. Au centre, trois rangs de maisons parfaitement
@@ -2982,7 +2980,7 @@ function bosquet(cx, cz, n, rayon, o) {
 
 
   /* ── Aucun chemin ne s'arrête net ─────────────────────────────────────
-     JustAkhiraa : « mets pas de chemin qui s'arrête net ».
+     Demandé : aucun chemin ne doit s'arrêter net.
 
      C'était le cas : les cinq branches finissaient au milieu d'un pré, sur
      la dernière portion de terre battue, sans rien. Un chemin qui s'arrête
@@ -3128,9 +3126,8 @@ function bosquet(cx, cz, n, rayon, o) {
 
 
 /* ═══════════════════════════════════════ LA CEINTURE ════════════════
-   JustAkhiraa : « tu peux mettre une délimitation de diamètre de 1,5 et à
-   chaque fois tu mets un truc relou, genre de l'eau, une muraille, etc.,
-   cherche avec ton imagination. »
+   Demandé : une limite à un diamètre de 1,5, matérialisée à chaque fois
+   par un obstacle franc — de l'eau, une muraille, ou autre chose.
 
    C'est la bonne réponse à « pas de mur invisible », et meilleure que la
    mienne : une montagne tout autour, c'est une limite honnête mais c'est la
@@ -3418,9 +3415,9 @@ const groupesBout = [];
    entre une maquette et un lieu. */
 const VIVANTS = [];
 
-/* Les passants. JustAkhiraa : « les passants, mets pas que des Japonais, mets
-   aussi des ninjas, des cowboys, des men in black, des moutons et des
-   chats. » Le village n'a donc aucune cohérence historique, et c'est
+/* Les passants. Demandé : pas seulement des Japonais, mais aussi des
+   ninjas, des cowboys, des men in black, des moutons et des chats.
+   Le village n'a donc aucune cohérence historique, et c'est
    voulu : on y croise une pagode, un château fort, une maison Tudor et un
    observatoire, alors une rue peuplée d'une seule sorte de gens aurait été
    la seule chose invraisemblable.
@@ -3431,7 +3428,7 @@ const VIVANTS = [];
    tout pour l'homme en noir. À cette distance, on ne lit pas un visage ; on
    lit une découpe sur le ciel. */
 /* ── Le chat ─────────────────────────────────────────────────────────────
-   JustAkhiraa : « t'as oublié de mettre des chats ». Il y en avait deux. Hauts de
+   Signalé : les chats manquaient. Il y en avait deux. Hauts de
    quatre unités, sur le bas-côté, à quarante unités de l'allée : codés, et
    introuvables — ce qui donne exactement le même résultat que pas de chats du
    tout. Le commentaire du peuplement promettait même que « les chats longent
@@ -3596,7 +3593,7 @@ const PASSANTS = {
     g.add(bloc(lambert(0x0A0C10), 2.7, 0.8, 0.4, 0, 10.8, 1.35));
     return { h: 12 };
   },
-  /* JustAkhiraa : « les moutons ils sont moches ». Ils l'étaient, et pour une
+  /* Signalé : les moutons sont laids. Ils l'étaient, et pour une
      raison précise : quatre gros icosaèdres ne font pas une toison, ils font
      un tas de cailloux — et la tête était une boule noire sans visage, posée
      au bout. Or ce qu'on reconnaît d'un mouton, c'est la bosse IRRÉGULIÈRE du
@@ -3710,7 +3707,7 @@ for (const o of OBSTACLES_BOUT) MURS.push(o);
         ? cote * (V.demiAllee + 2 + rnd() * 7)
         : (V.demiAllee - 12) * (rnd() * 2 - 1);
     /* ── Un passant ne traverse pas un mur ────────────────────────────────
-       JustAkhiraa : « les personnages, ils marchent à travers les murs ». C'était
+       Signalé : les personnages traversent les murs. C'était
        vrai, et c'était visible surtout des moutons : leur voie les envoie sur
        l'herbe, à quatre-vingts unités de l'axe — c'est-à-dire en plein dans
        l'emprise des bâtiments, qui sont à cent dix-huit et larges de cent.
@@ -3768,9 +3765,9 @@ for (const o of OBSTACLES_BOUT) MURS.push(o);
 }
 
 /* ══════════════════════════════════════════════ les scénettes ════════
-   JustAkhiraa : « mets des passants aussi en dehors du chemin, et même des
-   immobiles, d'autres qui parlent entre eux, d'autres qui dansent avec une
-   radio qui sort des notes de musique ».
+   Demandé : des passants hors du chemin aussi — certains immobiles,
+   d'autres qui discutent entre eux, d'autres qui dansent autour d'une
+   radio d'où s'échappent des notes.
 
    C'est la demande la plus juste de toute la série, et voici pourquoi : les
    dix-huit passants du village vont tous d'un point à un autre. Aucun ne
@@ -4211,8 +4208,8 @@ scene.traverse((o) => {
 });
 
 /* ═══════════════════════════════════════ L'HORIZON ══════════════════
-   JustAkhiraa : « au loin la tour Eiffel », « la statue de la Liberté par
-   là », « le mont Fuji par là », « des pyramides par ci ».
+   Demandé : au loin la tour Eiffel, la statue de la Liberté d'un côté,
+   le mont Fuji de l'autre, et des pyramides ailleurs.
 
    Quatre monuments posés DERRIÈRE la montagne. Ils ne sont pas là pour qu'on
    y aille — on n'y va jamais, la ceinture arrête à 1500 —, ils sont là pour
@@ -4490,8 +4487,8 @@ function teinterHorizon(H) {
 }
 
 /* ═══════════════════════════════════════ LE CIEL VIVANT ═════════════
-   JustAkhiraa : « des avions qui passent très rarement », « la nuit aussi
-   très rarement des étoiles filantes ».
+   Demandé : des avions qui passent très rarement, et la nuit, tout
+   aussi rarement, des étoiles filantes.
 
    Deux fois le mot « rarement », et c'est tout le sujet. Un avion toutes les
    dix secondes est un couloir aérien ; une étoile filante par seconde est
@@ -4898,11 +4895,12 @@ function marquerSurvol(i, oui) {
 }
 
 /* ═══════════════════════════════════════ les cartes de chapitre ═════
-   Le reflet suit le pointeur et la carte s'incline — JustAkhiraa : « sur CodePen
-   j'ai déjà vu des cartes Pokémon ultra stylées ». Coupé si le lecteur a
+   Le reflet suit le pointeur et la carte s'incline, d'après la référence
+   donnée : les cartes Pokémon travaillées de CodePen. Coupé si le lecteur a
    demandé moins d'animation : une inclinaison qui suit la souris est
    précisément ce qui gêne alors. */
-/* JustAkhiraa : « c'est plus du tout ergonomique, on ne les voit pas tous ».
+/* Signalé : ce n'était plus ergonomique du tout, on ne les voyait pas
+   toutes.
    J'avais corrigé des cartes illisibles en imposant un seuil de lisibilité,
    et le seuil a rejeté toutes les grilles fournies : trois cartes sur
    dix-sept à l'écran. Les deux exigences sont vraies ensemble — lisible ET
@@ -5164,8 +5162,8 @@ function disposition(i) {
      « combien TIENNENT ». Une carte est dessinée pour deux cents pixels de
      haut ; si on en empile trois là où il n'y a la place que pour deux, les
      trois arrivent aux deux tiers de leur taille — et c'est tout leur texte
-     qui rétrécit avec. C'est exactement ce qu'JustAkhiraa a vu : « par contre
-     c'est illisible ».
+     qui rétrécit avec. C'est exactement ce qui a été vu, et dit : c'est
+     illisible.
      On divise donc la hauteur RÉELLEMENT disponible par la hauteur d'une
      carte et de son jeu, et on n'en met pas une de plus. Mieux vaut quatre
      cartes lisibles et un défilement que douze vignettes. */
@@ -5178,7 +5176,7 @@ function disposition(i) {
 /* Le mur : le plan courbe où se posent les cartes, DEVANT la façade du
    bâtiment. Il n'est pas plat — les colonnes des bords reculent et se
    tournent vers le centre. Sans cette courbure, la grille redevient une
-   page collée sur le village, ce qu'JustAkhiraa a justement refusé. */
+   page collée sur le village, ce qui avait été refusé, à juste titre. */
 function murDe(i) {
   const m = matieres[i];
   const droite = new THREE.Vector3(m.n.z, 0, -m.n.x);
@@ -5187,7 +5185,7 @@ function murDe(i) {
 }
 
 /* Où l'on se tient dans l'allée. Au premier chargement : à côté de la
-   fontaine — JustAkhiraa : « en gros je suis à côté de la fontaine, tu vois ».
+   fontaine : on se tient à côté d'elle, et on le voit.
    En revenant d'un bâtiment : dans l'allée, DEVANT lui, tourné vers lui. On
    ne réapparaît pas au point de départ après chaque visite ; on ressort par
    la porte par laquelle on est entré, et c'est ce qui fait qu'on sait où
@@ -5444,7 +5442,7 @@ function poserHeure(h) {
      figés — un ciel de carte postale au lieu d'un ciel. */
   uCiel.cloudScale.value = 0.00026;
   uCiel.cloudSpeed.value = 0.00006;
-  /* JustAkhiraa : « si possible mettre un soleil ». Sky.js sait dessiner le disque,
+  /* Demandé : un soleil, si possible. Sky.js sait dessiner le disque,
      il était simplement laissé éteint : le ciel avait la LUMIÈRE du soleil et
      sa couleur, mais pas l'astre. On l'allume de jour seulement — la nuit, le
      soleil est sous l'horizon à -8°, et un disque qui perce le sol n'est plus
@@ -5723,8 +5721,8 @@ function ouvrirBoutique(i) {
   $("lecture-sous").textContent = b.tenancier;
   $("lecture-onglets").innerHTML = "";
   /* ── Le bonjour se dit, puis il s'efface ───────────────────────────────
-     « quand j'ouvre un outil j'ai un message qui prend de la place, c'est pas
-     ergonomique. » La phrase du tenancier était un pavé posé AU-DESSUS de
+     Signalé : à l'ouverture d'un outil, ce message prend de la place
+     pour rien. La phrase du tenancier était un pavé posé AU-DESSUS de
      l'outil : elle repoussait vers le bas la seule chose qu'on venait
      chercher, et elle restait là pour toujours alors qu'on ne la lit
      qu'une fois.
@@ -5743,8 +5741,9 @@ function ouvrirBoutique(i) {
         `<span class="bonjour-dit">${ech(b.bonjour)}</span></p>` +
     `</div>`;
   /* ── Le lien « en grand » monte dans l'en-tête ───────────────────────────
-     « ouvrir l'outil en grand c'est moche et ça prend beaucoup de place à
-     l'outil, tu veux pas mettre un bouton plus discret et en haut ? »
+     Signalé : le lien « ouvrir en grand » était laid et prenait trop de
+     place sur l'outil — d'où la demande d'un bouton discret, placé en
+     haut.
 
      Mesuré avant de corriger : le lien faisait **158 × 676 pixels**. Six cent
      soixante-seize de haut pour une ligne de texte, et cent cinquante-huit de
@@ -5784,8 +5783,8 @@ function fermerLecture() {
 $("lecture-fermer").addEventListener("click", fermerLecture);
 
 /* ── Le QCM, qui marche pour de bon ─────────────────────────────────────
-   JustAkhiraa : « les QCM sont moches et fonctionnent pas en 3D ». Les deux moitiés
-   de la phrase avaient la même cause : le script de la page du QCM est retiré
+   Signalé : les QCM sont laids et ne fonctionnent pas en 3D. Les deux
+   moitiés de la phrase avaient la même cause : le script de la page est retiré
    à l'injection — c'est une règle saine, on ne fait pas tourner le script d'une
    page étrangère —, et sans lui les boutons ne répondaient plus. J'avais
    « compensé » en ouvrant toutes les explications, c'est-à-dire en affichant le
@@ -5862,7 +5861,7 @@ async function afficherFiche(url) {
        « data-bon », et c'est tout ce qu'il faut pour le faire fonctionner ici
        (voir brancherQcm). Ouvrir ses explications d'office, comme le faisait
        la version précédente, revenait à publier le corrigé au-dessus de
-       l'énoncé — JustAkhiraa : « les QCM sont moches et fonctionnent pas en 3D ».
+       l'énoncé — d'où le « ne fonctionnent pas » du signalement.
        Ils ne fonctionnaient pas parce qu'on leur avait donné les réponses. */
     main.querySelectorAll(".reponse").forEach((n) => n.removeAttribute("hidden"));
 
@@ -6216,8 +6215,8 @@ function image(now) {
 }
 
 /* ── Se recadrer, y compris quand le téléphone tourne ───────────────────
-   JustAkhiraa : « j'aimerais bien sur tél, si je tourne mon écran, que l'écran
-   s'adapte ». Il le faisait déjà — mais mal, et sur iOS pas du tout.
+   Demandé : sur téléphone, que l'affichage s'adapte quand on tourne
+   l'écran. Il le faisait déjà — mais mal, et sur iOS pas du tout.
 
    Deux corrections. D'abord « orientationchange » : Safari le déclenche AVANT
    d'avoir fini de retourner la fenêtre, si bien qu'un recadrage immédiat lit
@@ -6291,8 +6290,8 @@ catch (e) { aide.hidden = false; }
    qui ne peut pas le FAIRE APPARAÎTRE ne le mesure jamais — et déclare que
    tout va bien. */
 /* ── Ce que CE navigateur-ci fournit vraiment ───────────────────────────
-   JustAkhiraa : « ça ne ressemble pas à la même chose avec Firefox et Edge ; Firefox
-   est plus beau et a plus de trucs. » Je n'ai ni son Firefox ni son Edge, et
+   Signalé : le rendu diffère entre Firefox et Edge, Firefox étant le
+   plus riche des deux. Je n'ai ni l'un ni l'autre sous la main, et
    deviner à distance ce qu'une carte graphique accorde à un navigateur, c'est
    exactement le genre de raisonnement qui a fait perdre une journée trois fois
    dans ce dépôt. On ne devine donc pas : on relève.
