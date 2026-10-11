@@ -39,7 +39,16 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const ech = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  /* Le pas d'indentation, nommé une fois. Il valait « 4 » écrit en dur à cinq
+     endroits ; le jour où Tab et Retour arrière cessent de s'accorder, c'est
+     un alinéa qu'on pose et qu'on ne peut plus retirer. */
+  const PAS = 4;
+  const ALINEA = " ".repeat(PAS);
   const CMD = MAC ? "⌘" : "Ctrl";
+  /* Sur un Mac la touche s'appelle Option et s'écrit ⌥ : « Alt+Z » écrit pour
+     un PC ne se reconnaît pas sur un clavier Apple, et c'est exactement ce
+     qui a fait chercher le raccourci sans le trouver. */
+  const ALT = MAC ? "⌥" : "Alt";
   const CLE = "bts-ciel-atelier-c";
 
   /* ══════════════════════════════════════════════ 1. COLORATION DU CODE
@@ -931,10 +940,27 @@
         return;
       }
 
-      /* Ctrl+Entrée — une ligne en dessous sans couper la courante ;
-         Ctrl+Maj+Entrée — une ligne au-dessus. Le creux est repris, sinon on
-         retombe en colonne zéro au milieu d'un bloc. */
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      /* ── Un raccourci ne peut pas faire deux choses ──────────────────
+         JustAkhiraa : « quand je suis dans le compilateur et que je fais
+         Commande+Entrée, ça lance bien la console mais ça fait aussi un saut
+         de ligne, c'est ultra chiant. »
+
+         C'était vrai, et c'était ma faute : ⌘⏎ était pris DEUX fois. Ici
+         pour « ouvrir une ligne en dessous », repris de VS Code — et plus
+         bas pour « Exécuter », qui est l'action principale de l'atelier et
+         qui est écrite sur le bouton. Les deux handlers se déclenchaient, et
+         on exécutait un programme à qui l'on venait d'ajouter une ligne.
+
+         L'arbitrage n'est pas discutable : **⌘⏎ exécute**. C'est ce que dit
+         le bouton, c'est le geste qu'on fait cinquante fois par séance, et
+         un raccourci écrit à l'écran doit faire ce qu'il annonce. « Ouvrir
+         une ligne » passe donc sur ⌥⏎ (et ⌥⇧⏎ pour celle du dessus) —
+         touches libres, et la liste des commandes les montre.
+
+         La leçon vaut au-delà : quand un raccourci est repris d'un éditeur,
+         il faut d'abord regarder s'il n'est pas DÉJÀ pris par l'application
+         qui l'accueille. */
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key === "Enter") {
         e.preventDefault();
         const [dl, fl] = bornesLignes();
         const creux = (t.slice(dl).match(/^[ \t]*/) || [""])[0];
@@ -959,20 +985,51 @@
         return;
       }
 
+      /* ── Retour arrière : un ALINÉA d'un coup ─────────────────────────
+         JustAkhiraa : « dans VS Code si je fais Tab ça fait un alinéa, si je
+         delete ça supprime le tab — du coup ça prend en mémoire que tab c'est
+         x espaces ».
+
+         Rien n'est « pris en mémoire » : VS Code ne retient pas qu'on a tapé
+         Tab, il REGARDE où se trouve le curseur. S'il n'y a que des espaces
+         entre le début de la ligne et lui, le retour arrière ramène au
+         multiple de quatre précédent — donc efface un alinéa entier. Dès
+         qu'il y a un caractère avant, il efface un seul espace, comme
+         partout.
+
+         C'est cette règle-là qui est reprise, et elle vaut mieux qu'une
+         mémoire : elle marche aussi sur du code collé, ou rouvert le
+         lendemain, où aucune frappe n'a été enregistrée. */
+      if (e.key === "Backspace" && d === f && d > 0 && !e.altKey &&
+          !(MAC ? e.metaKey : e.ctrlKey)) {
+        const dl = t.lastIndexOf("\n", d - 1) + 1;
+        const avant = t.slice(dl, d);
+        if (avant.length && /^ +$/.test(avant)) {
+          const recule = ((avant.length - 1) % PAS) + 1;   // jusqu'au multiple en dessous
+          e.preventDefault();
+          remplacer(d - recule, d, "", d - recule, d - recule);
+          return;
+        }
+      }
+
       if (e.key === "Tab") {
         if (echappe) { echappe = false; return; }
         e.preventDefault();
         if (d !== f || e.shiftKey) {
           const dl = t.lastIndexOf("\n", d - 1) + 1;
           const lignes = t.slice(dl, f).split("\n");
-          const neuf = lignes.map((l) => e.shiftKey ? l.replace(/^ {1,4}/, "") : "    " + l).join("\n");
+          const neuf = lignes.map((l) => e.shiftKey
+            ? l.replace(new RegExp("^ {1," + PAS + "}"), "") : ALINEA + l).join("\n");
           remplacer(dl, f, neuf, dl, dl + neuf.length);
-        } else remplacer(d, f, "    ", d + 4, d + 4);
+        } else remplacer(d, f, ALINEA, d + PAS, d + PAS);
         return;
       }
       echappe = false;
 
-      if (e.key === "Enter") {
+      /* L'Entrée simple — l'indentation automatique. Elle se garde bien de
+         se déclencher quand un modificateur est tenu : sans ce garde, ⌘⏎
+         ajoutait un retour à la ligne AVANT même d'exécuter. */
+      if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         const dl = t.lastIndexOf("\n", d - 1) + 1;
         const creux = (t.slice(dl, d).match(/^[ \t]*/) || [""])[0];
@@ -1601,7 +1658,40 @@
          '        std::cout << "Bonjour " << nom << " !" << std::endl;\n    }\n\n    return 0;\n}\n',
     };
 
+    /* Le pendant de « comprimer ». Déclarée en « function » : elle est donc
+       hissée, et « charger » peut l'appeler bien qu'elle soit écrite plus
+       bas. */
+    async function decomprimer(frag) {
+      try {
+        let b64 = frag.replace(/-/g, "+").replace(/_/g, "/");
+        while (b64.length % 4) b64 += "=";
+        const oct = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const flux = new Blob([oct]).stream()
+                       .pipeThrough(new DecompressionStream("deflate-raw"));
+        return await new Response(flux).text();
+      } catch (e) { return null; }
+    }
+
     function charger() {
+      /* Un lien compressé — « #c= ». Il faut attendre le décompresseur, donc
+         on rend la main tout de suite et on remplit l'éditeur quand c'est
+         prêt : quelques millisecondes, et surtout on ne charge pas le
+         brouillon entre-temps, ce qui ferait clignoter un programme qui n'est
+         pas celui qu'on a ouvert. */
+      const z = location.hash.match(/[#&]c=([^&]+)/);
+      if (z) {
+        decomprimer(z[1]).then((txt) => {
+          if (txt == null) {
+            dirEtat("Ce lien n'a pas pu être lu — il est peut-être tronqué", "ko");
+            editeur.valeur = DEPART.c; poserLangue("c");
+            return;
+          }
+          editeur.valeur = txt;
+          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
+          poserLangue(l ? l[1] : devine(txt));
+        });
+        return;
+      }
       /* L'adresse prime : c'est elle qui porte un programme ouvert depuis
          une fiche de cours ou partagé par un camarade. */
       const h = location.hash.match(/[#&]p=([^&]+)/);
@@ -1780,18 +1870,67 @@
     });
 
     /* ── partager ───────────────────────────────────────────────────── */
-    $("#at-partager").addEventListener("click", async () => {
-      const oct = new TextEncoder().encode(editeur.valeur);
+    /* JustAkhiraa : « on peut partager, c'est trop bien cette option, mais le
+       lien est trop grand et du coup impossible à partager sur certains
+       sites ».
+
+       Il a raison, et le chiffre le dit : un programme de cent lignes faisait
+       une adresse de plus de deux mille caractères. Discord coupe à 2 000,
+       beaucoup de forums à 255, et un QR code devient illisible bien avant.
+
+       Le lien ne peut pas RÉTRÉCIR en perdant du texte — il n'y a pas de
+       serveur derrière, tout le programme voyage dans l'adresse, et c'est
+       exactement ce qui fait que ça marche hors ligne et pour toujours. On ne
+       raccourcit donc pas le contenu : on le COMPRESSE. « deflate-raw », qui
+       est dans le navigateur depuis Chrome 80, Safari 16.4 et Firefox 113,
+       divise par trois à cinq un texte source — qui est très répétitif.
+
+       Deux précautions :
+         · les anciens liens « #p= » continuent de s'ouvrir. Un lien partagé
+           il y a un mois dans une conversation doit encore marcher dans un
+           an ; casser ça pour gagner des caractères serait un mauvais
+           échange ;
+         · si le navigateur ne sait pas compresser, on retombe sur « #p= »
+           sans rien dire. Le lien est long, mais il existe. */
+    async function comprimer(texte) {
+      if (typeof CompressionStream !== "function") return null;
+      try {
+        const flux = new Blob([texte]).stream()
+                       .pipeThrough(new CompressionStream("deflate-raw"));
+        const oct = new Uint8Array(await new Response(flux).arrayBuffer());
+        let bin = "";
+        oct.forEach((o) => { bin += String.fromCharCode(o); });
+        return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      } catch (e) { return null; }
+    }
+
+    function en64(texte) {
+      const oct = new TextEncoder().encode(texte);
       let bin = "";
       oct.forEach((o) => { bin += String.fromCharCode(o); });
-      const b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
-      const url = location.origin + location.pathname + "#p=" + b64 + "&l=" + langue;
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
+    }
+
+    $("#at-partager").addEventListener("click", async () => {
+      const texte = editeur.valeur;
+      const court = await comprimer(texte);
+      const brut = en64(texte);
+      /* On garde le plus court des deux. Sur trois lignes, la compression
+         coûte plus qu'elle ne rapporte : son en-tête est fixe, le texte ne
+         l'est pas. Comparer est gratuit, supposer ne l'est pas. */
+      const frag = (court && court.length < brut.length)
+        ? "c=" + court + "&l=" + langue
+        : "p=" + brut + "&l=" + langue;
+      const url = location.origin + location.pathname + "#" + frag;
+      const gain = court ? Math.round((1 - court.length / brut.length) * 100) : 0;
+      const dit = "Lien copié — " + url.length + " caractères"
+                + (frag[0] === "c" && gain > 0 ? ", " + gain + " % de moins qu'avant" : "");
       try {
         await navigator.clipboard.writeText(url);
-        dirEtat("Lien copié — il contient le programme entier", "ok");
+        dirEtat(dit, "ok");
       } catch (e) {
-        location.hash = "p=" + b64 + "&l=" + langue;
-        dirEtat("Lien mis dans la barre d'adresse", "ok");
+        location.hash = frag;
+        dirEtat("Lien mis dans la barre d'adresse — " + url.length + " caractères", "ok");
       }
     });
 
@@ -1811,9 +1950,146 @@
       }
     });
 
+    /* ── la liste des commandes ─────────────────────────────────────────
+       JustAkhiraa : « le Alt+Z il fonctionne mais sur Mac je le trouve pas.
+       Fais une commande pour que je puisse voir les commandes. »
+
+       Le raccourci existait, la touche marchait — ce qui manquait, c'est de
+       pouvoir le RETROUVER. Un raccourci qu'on ne peut pas redécouvrir
+       n'existe que pour qui l'a appris le jour où on le lui a montré, et sur
+       Mac « Alt » s'appelle « Option » et s'écrit ⌥, ce qui suffit à ne plus
+       le reconnaître dans une note écrite pour un PC.
+
+       Trois façons d'ouvrir la liste, parce qu'on ne sait pas laquelle le
+       lecteur connaît : le bouton de la barre, F1, et ⇧⌘P — celui de VS Code.
+       Et les touches s'écrivent AVEC LES SYMBOLES DE LA MACHINE : ⌥⇧A sur un
+       Mac, Alt+Maj+A sur un PC. La même liste, dans la langue du clavier
+       qu'on a sous les doigts. */
+    const COMMANDES = [
+      ["Exécuter le programme",              [CMD, "⏎"]],
+      ["Enregistrer le brouillon",           [CMD, "S"]],
+      ["Partager — copier le lien",          []],
+      ["Plein écran / réduire",              []],
+      ["Fermer un panneau, sortir du plein écran", ["Échap"]],
+
+      ["Poser un alinéa",                    ["Tab"]],
+      ["Retirer un alinéa",                  ["⇧", "Tab"]],
+      ["Retirer un alinéa entier (en début de ligne)", ["⌫"]],
+      ["Aller au premier caractère, puis à la marge", ["Début"]],
+
+      ["Commenter / décommenter la ligne",   [CMD, "/"]],
+      ["Commentaire de bloc /* … */",        [ALT, "⇧", "A"]],
+      ["Déplacer la ligne vers le haut",     [ALT, "↑"]],
+      ["Déplacer la ligne vers le bas",      [ALT, "↓"]],
+      ["Dupliquer la ligne vers le haut",    [ALT, "⇧", "↑"]],
+      ["Dupliquer la ligne vers le bas",     [ALT, "⇧", "↓"]],
+      ["Supprimer la ligne entière",         [CMD, "⇧", "K"]],
+      ["Ouvrir une ligne en dessous",        [ALT, "⏎"]],
+      ["Ouvrir une ligne au-dessus",         [ALT, "⇧", "⏎"]],
+
+      ["Sélectionner l'occurrence suivante du mot", [CMD, "D"]],
+      ["Sélectionner toutes les occurrences", [CMD, "⇧", "L"]],
+      ["Renommer partout",                   ["F2"]],
+      ["Abandonner les curseurs multiples",  ["Échap"]],
+
+      ["Retour à la ligne visuel",           [ALT, "Z"]],
+      ["Afficher cette liste",               ["F1"]],
+      ["Afficher cette liste (comme VS Code)", [CMD, "⇧", "P"]],
+    ];
+
+    const pal = document.createElement("div");
+    pal.className = "at-palette";
+    pal.hidden = true;
+    pal.setAttribute("role", "dialog");
+    pal.setAttribute("aria-modal", "false");
+    pal.setAttribute("aria-label", "Les commandes de l'atelier");
+    pal.innerHTML =
+      '<div class="at-palette-tete">' +
+        '<h3>Les commandes</h3>' +
+        '<button type="button" class="at-creux" data-fermer>Fermer</button>' +
+      '</div>' +
+      '<input type="search" class="at-palette-filtre" placeholder="Filtrer — « ligne », « alinéa »…" ' +
+             'aria-label="Filtrer les commandes">' +
+      '<ul class="at-palette-liste"></ul>' +
+      '<p class="at-palette-pied"></p>';
+    racine.appendChild(pal);
+
+    const palListe  = $(".at-palette-liste", pal);
+    const palFiltre = $(".at-palette-filtre", pal);
+    $(".at-palette-pied", pal).textContent = MAC
+      ? "⌘ Commande · ⌥ Option · ⇧ Majuscule · ⌫ Retour arrière"
+      : "Ctrl · Alt · Maj · ⌫ Retour arrière";
+
+    function dessinerPalette(q) {
+      const mots = (q || "").trim().toLowerCase();
+      palListe.innerHTML = "";
+      let n = 0;
+      COMMANDES.forEach(([quoi, touches]) => {
+        if (mots && !quoi.toLowerCase().includes(mots) &&
+            !touches.join(" ").toLowerCase().includes(mots)) return;
+        n++;
+        const li = document.createElement("li");
+        const nom = document.createElement("span");
+        nom.textContent = quoi;
+        li.appendChild(nom);
+        const boite = document.createElement("span");
+        boite.className = "at-palette-touches";
+        if (touches.length === 0) {
+          const k = document.createElement("em");
+          k.textContent = "bouton de la barre";
+          boite.appendChild(k);
+        } else {
+          touches.forEach((t) => {
+            const k = document.createElement("kbd");
+            k.textContent = t;
+            boite.appendChild(k);
+          });
+        }
+        li.appendChild(boite);
+        palListe.appendChild(li);
+      });
+      if (!n) {
+        const li = document.createElement("li");
+        li.className = "at-palette-rien";
+        li.textContent = "Aucune commande ne porte ce mot.";
+        palListe.appendChild(li);
+      }
+    }
+
+    let rendreFocus = null;
+    function ouvrirPalette() {
+      rendreFocus = document.activeElement;
+      palFiltre.value = "";
+      dessinerPalette("");
+      pal.hidden = false;
+      bCommandes.setAttribute("aria-expanded", "true");
+      palFiltre.focus();
+    }
+    function fermerPalette() {
+      if (pal.hidden) return;
+      pal.hidden = true;
+      bCommandes.setAttribute("aria-expanded", "false");
+      if (rendreFocus && rendreFocus.focus) rendreFocus.focus();
+    }
+    palFiltre.addEventListener("input", () => dessinerPalette(palFiltre.value));
+    $("[data-fermer]", pal).addEventListener("click", fermerPalette);
+
+    const bCommandes = $("#at-commandes");
+    bCommandes.addEventListener("click", () => (pal.hidden ? ouvrirPalette() : fermerPalette()));
+
     /* ── raccourcis ─────────────────────────────────────────────────── */
     document.addEventListener("keydown", (e) => {
       const meta = MAC ? e.metaKey : e.ctrlKey;
+      /* F1 et ⇧⌘P ouvrent la liste. Elles sont volontairement captées sur le
+         DOCUMENT et non sur l'éditeur : on cherche un raccourci précisément
+         quand on ne sait plus où cliquer. */
+      if (e.key === "F1" ||
+          (meta && e.shiftKey && (e.key === "P" || e.key === "p" || e.code === "KeyP"))) {
+        e.preventDefault();
+        if (pal.hidden) ouvrirPalette(); else fermerPalette();
+        return;
+      }
+      if (e.key === "Escape" && !pal.hidden) { e.preventDefault(); fermerPalette(); return; }
       if (meta && e.key === "Enter") { e.preventDefault(); budget = 5000; executer(); }
       else if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); sauver();
                                                       dirEtat("Programme enregistré", "ok"); }

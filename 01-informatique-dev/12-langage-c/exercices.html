@@ -7,7 +7,7 @@
 <meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,n=S.theme?SOMBRES.indexOf(S.theme)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=S.theme||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=7d2968ca">
+<link rel="stylesheet" href="../../assets/fiche.css?v=4ad5eefc">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -30,6 +30,7 @@
     <li><a href="#methode">12 · TP 3 · La méthode, en quatre gestes</a></li>
     <li><a href="#tp4">13 · TP 4 · Les tableaux à deux dimensions</a></li>
     <li><a href="#tp5">14 · TP 5 · Les pointeurs</a></li>
+    <li><a href="#tp6">15 · TP 6 · Les structures</a></li>
   </ol>
 </nav>
 
@@ -2456,6 +2457,661 @@ ex.4  moyenne = 19.12, min = 17.00, max = 21.25</code></pre></div>
   </article>
 </section>
 
+<section id="tp6">
+  <h2><span class="num">15</span>TP 6 · Les structures</h2>
+
+  <p>Sept énoncés, et une progression qui suit exactement celle du cours : une structure
+     seule, puis un tableau de structures, puis des fonctions qui en reçoivent, puis un
+     pointeur, puis l'allocation dynamique, et enfin une structure dans une structure. La
+     syntaxe est aux <a href="cours.html#structures">chapitres 27</a> à
+     <a href="cours.html#typedef">30 du cours</a>.</p>
+
+  <div class="encart methode">
+    <div class="titre">🧭 Les trois questions à se poser avant d'écrire</div>
+<div class="bloc-code"><span class="langue">méthode</span><pre><code>1.  La fonction LIT-elle, ou ECRIT-elle ?
+      lit   -&gt; struct X v     (une copie suffit)     acces : v.champ
+      ecrit -&gt; struct X *v    (il faut l&#x27;adresse)    acces : v-&gt;champ
+
+2.  Le nombre d&#x27;elements est-il connu A L&#x27;AVANCE ?
+      oui -&gt; struct X t[5];
+      non -&gt; struct X *t = malloc(n * sizeof(struct X));  ... free(t);
+
+3.  Le champ est-il une CHAINE ?
+      oui -&gt; strcpy(v.nom, &quot;...&quot;)  et  scanf(&quot;%s&quot;, v.nom)     sans &amp;
+      non -&gt; v.age = 20            et  scanf(&quot;%d&quot;, &amp;v.age)    avec &amp;</code></pre></div>
+    <p class="rap">Les sept exercices ne demandent rien d'autre que de répondre juste à ces
+       trois questions. Celui qui les a en tête n'a plus qu'à taper.</p>
+  </div>
+
+  <article class="exo">
+    <h3><span class="no">17</span>Un produit, et la valeur de son stock <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Définir une structure <code>Produit</code> avec le nom, le prix et la quantité en
+         stock. Déclarer une variable de ce type, demander les informations à l'utilisateur,
+         les afficher, puis calculer et afficher <code>valeur = prix × quantité</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Produit</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+    <span class="j-typ">int</span>   <span class="j-var">quantite</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Produit</span> <span class="j-var">p</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom du produit : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">p</span>.<span class="j-var">nom</span>);              <span class="j-com">/* 29 : on garde la place du \0 */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix unitaire  : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">p</span>.<span class="j-var">prix</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Quantite       : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">p</span>.<span class="j-var">quantite</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n--- Fiche produit ---\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom      : %s\n"</span>, <span class="j-var">p</span>.<span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix     : %.2f EUR\n"</span>, <span class="j-var">p</span>.<span class="j-var">prix</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Stock    : %d\n"</span>, <span class="j-var">p</span>.<span class="j-var">quantite</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Valeur   : %.2f EUR\n"</span>, <span class="j-var">p</span>.<span class="j-var">prix</span> <span class="j-op">*</span> <span class="j-var">p</span>.<span class="j-var">quantite</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : cable-rj45, 3.90, 120</span><pre><code>Nom du produit : Prix unitaire  : Quantite       :
+--- Fiche produit ---
+Nom      : cable-rj45
+Prix     : 3.90 EUR
+Stock    : 120
+Valeur   : 468.00 EUR</code></pre></div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>scanf("%s", …)</code> sans largeur est un trou de sécurité</div>
+          <p>Le champ fait 30 caractères ; <code>%s</code> seul en écrira autant qu'on en
+             tape, <strong>par-dessus ce qui suit en mémoire</strong>. On écrit donc
+             <code>%29s</code> — vingt-neuf, pas trente : il faut garder la place du
+             <code>\0</code> qui termine toute chaîne en C.</p>
+          <p class="rap">Et pas de <code>&amp;</code> devant <code>p.nom</code> : c'est un
+             tableau, donc déjà une adresse. <code>&amp;p.prix</code>, lui, en a besoin.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>prix × quantité</code> mélange un réel et un entier</div>
+          <p><code>float × int</code> donne un <code>float</code> : le C promeut l'entier
+             automatiquement. C'est l'un des rares endroits où le mélange de types ne piège
+             personne — contrairement à <code>int / int</code>, qui tronque.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">18</span>Un véhicule, et son kilométrage mis à jour <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Définir une structure <code>Vehicule</code> (marque, modèle, année, kilométrage).
+         L'initialiser avec des valeurs au choix, afficher ses informations, demander un
+         nouveau kilométrage, le mettre à jour, puis réafficher.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Vehicule</span> {
+    <span class="j-typ">char</span> <span class="j-var">marque</span>[<span class="j-num">30</span>];
+    <span class="j-typ">char</span> <span class="j-var">modele</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>  <span class="j-var">annee</span>;
+    <span class="j-typ">int</span>  <span class="j-var">kilometrage</span>;
+};
+
+<span class="j-typ">void</span> <span class="j-fn">afficher</span>(<span class="j-mc">struct</span> <span class="j-var">Vehicule</span> <span class="j-var">v</span>)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s %s (%d) — %d km\n"</span>, <span class="j-var">v</span>.<span class="j-var">marque</span>, <span class="j-var">v</span>.<span class="j-var">modele</span>, <span class="j-var">v</span>.<span class="j-var">annee</span>, <span class="j-var">v</span>.<span class="j-var">kilometrage</span>);
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Vehicule</span> <span class="j-var">v</span> <span class="j-op">=</span> { <span class="j-txt">"Renault"</span>, <span class="j-txt">"Kangoo"</span>, <span class="j-num">2019</span>, <span class="j-num">86500</span> };
+    <span class="j-typ">int</span> <span class="j-var">nouveau</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Avant  : "</span>);  <span class="j-fn">afficher</span>(<span class="j-var">v</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nouveau kilometrage : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">nouveau</span>);
+    <span class="j-var">v</span>.<span class="j-var">kilometrage</span> <span class="j-op">=</span> <span class="j-var">nouveau</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Apres  : "</span>);  <span class="j-fn">afficher</span>(<span class="j-var">v</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 91200</span><pre><code>Avant  : Renault Kangoo (2019) — 86500 km
+Nouveau kilometrage : Apres  : Renault Kangoo (2019) — 91200 km</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 L'initialisation à la déclaration évite quatre lignes</div>
+          <p><code>struct Vehicule v = { "Renault", "Kangoo", 2019, 86500 };</code> remplit
+             les quatre champs <strong>dans l'ordre de la définition</strong>. C'est le seul
+             endroit où une chaîne se pose avec <code>=</code> : partout ailleurs, il faut
+             <code>strcpy</code>.</p>
+          <p class="rap">Plus sûr encore :
+             <code>{ .marque = "Renault", .annee = 2019 }</code>. Le jour où un champ est
+             ajouté au milieu de la structure, la première écriture décale tout en silence —
+             la seconde non.</p>
+        </div>
+        <div class="encart methode">
+          <div class="titre">🧭 <code>afficher</code> prend une copie, et c'est voulu</div>
+          <p>Elle ne fait que lire. Une copie de quatre champs ne coûte rien, et le prototype
+             <code>void afficher(struct Vehicule v)</code> dit à qui le lit que la fonction
+             ne touchera à rien. C'est une information, pas une économie.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">19</span>Cinq produits, et la valeur totale du stock <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Déclarer un tableau de 5 <code>Produit</code>, saisir les informations des cinq,
+         les afficher, puis calculer et afficher la valeur totale du stock.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-pre">#define</span> <span class="j-var">N</span> <span class="j-num">5</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Produit</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+    <span class="j-typ">int</span>   <span class="j-var">quantite</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Produit</span> <span class="j-var">stock</span>[<span class="j-var">N</span>];
+    <span class="j-typ">float</span> <span class="j-var">total</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Produit %d — nom      : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">nom</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Produit %d — prix     : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Produit %d — quantite : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">quantite</span>);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n%-14s %10s %6s %12s\n"</span>, <span class="j-txt">"PRODUIT"</span>, <span class="j-txt">"PRIX"</span>, <span class="j-txt">"QTE"</span>, <span class="j-txt">"VALEUR"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-typ">float</span> <span class="j-var">valeur</span> <span class="j-op">=</span> <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">prix</span> <span class="j-op">*</span> <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">quantite</span>;
+        <span class="j-fn">printf</span>(<span class="j-txt">"%-14s %10.2f %6d %12.2f\n"</span>,
+               <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">nom</span>, <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>, <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">quantite</span>, <span class="j-var">valeur</span>);
+        <span class="j-var">total</span> <span class="j-op">+=</span> <span class="j-var">valeur</span>;
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"%-14s %29.2f\n"</span>, <span class="j-txt">"TOTAL"</span>, <span class="j-var">total</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : les cinq produits ci-dessous</span><pre><code>PRODUIT              PRIX    QTE       VALEUR
+cable-rj45           3.90    120       468.00
+switch-8p           89.00      4       356.00
+onduleur           149.50      2       299.00
+disque-1to          62.25      7       435.75
+clavier             18.80     15       282.00
+TOTAL                                1840.75</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 <code>tableau[i].champ</code> — on lit de gauche à droite</div>
+          <p><code>stock[i]</code> est <em>un produit</em>, et <code>.prix</code> est
+             <em>son champ</em>. Les deux notations se combinent sans règle nouvelle : il n'y
+             a pas de « syntaxe des tableaux de structures », il y a un tableau, et des
+             structures.</p>
+          <p class="rap"><code>&amp;stock[i].quantite</code> se lit de la même façon : on
+             prend l'adresse <strong>du champ</strong>, pas celle du tableau.</p>
+        </div>
+        <div class="encart outils">
+          <div class="titre">🔧 Trois formats qui font un tableau lisible</div>
+          <p><code>%-14s</code> — chaîne sur 14 colonnes, collée à gauche (le tiret) ·
+             <code>%10.2f</code> — réel sur 10 colonnes, 2 décimales ·
+             <code>%6d</code> — entier sur 6 colonnes, collé à droite.</p>
+          <p class="rap">Aucun espace n'est écrit à la main. Un alignement fait d'espaces
+             tapés se défait au premier nombre plus long.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>#define N 5</code> plutôt que <code>5</code> partout</div>
+          <p>Le 5 apparaît dans la déclaration et dans deux boucles. Écrit trois fois, il
+             sera changé deux fois le jour où le stock passe à huit — et la troisième
+             occurrence fera lire une case qui n'existe pas, sans aucun message.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">20</span>Deux fonctions : saisir, afficher <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Avec la structure <code>Ordinateur</code> (modèle, RAM en Go, stockage en Go,
+         prix), créer <code>void saisirOrdinateur(…)</code> et
+         <code>void afficherOrdinateur(…)</code>. Dans <code>main()</code> : déclarer un
+         ordinateur, appeler la saisie, puis l'affichage.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> {
+    <span class="j-typ">char</span>  <span class="j-var">modele</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">ram</span>;
+    <span class="j-typ">int</span>   <span class="j-var">stockage</span>;
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+};
+
+<span class="j-com">/* Elle doit ÉCRIRE dans la structure de l'appelant : elle reçoit son adresse. */</span>
+<span class="j-typ">void</span> <span class="j-fn">saisirOrdinateur</span>(<span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> <span class="j-op">*</span><span class="j-var">o</span>)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"Modele        : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">o</span><span class="j-op">-&gt;</span><span class="j-var">modele</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"RAM (Go)      : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">o</span><span class="j-op">-&gt;</span><span class="j-var">ram</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Stockage (Go) : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">o</span><span class="j-op">-&gt;</span><span class="j-var">stockage</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix (EUR)    : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">o</span><span class="j-op">-&gt;</span><span class="j-var">prix</span>);
+}
+
+<span class="j-com">/* Elle ne fait que LIRE : une copie suffit. */</span>
+<span class="j-typ">void</span> <span class="j-fn">afficherOrdinateur</span>(<span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> <span class="j-var">o</span>)
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n%s — %d Go de RAM, %d Go de stockage, %.2f EUR\n"</span>,
+           <span class="j-var">o</span>.<span class="j-var">modele</span>, <span class="j-var">o</span>.<span class="j-var">ram</span>, <span class="j-var">o</span>.<span class="j-var">stockage</span>, <span class="j-var">o</span>.<span class="j-var">prix</span>);
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> <span class="j-var">poste</span>;
+    <span class="j-fn">saisirOrdinateur</span>(<span class="j-op">&amp;</span><span class="j-var">poste</span>);
+    <span class="j-fn">afficherOrdinateur</span>(<span class="j-var">poste</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : ThinkPad-T14, 16, 512, 980</span><pre><code>Modele        : RAM (Go)      : Stockage (Go) : Prix (EUR)    :
+ThinkPad-T14 — 16 Go de RAM, 512 Go de stockage, 980.00 EUR</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Les points de suspension de l'énoncé cachent toute la question</div>
+          <p>Le sujet écrit <code>void saisirOrdinateur(...);</code> sans dire ce qu'il y a
+             dans les parenthèses, et c'est <strong>la</strong> question de l'exercice.</p>
+          <div class="tableau">
+          <table>
+            <thead><tr><th>Fonction</th><th>Elle…</th><th>Paramètre</th><th>Appel</th><th>Accès</th></tr></thead>
+            <tbody>
+              <tr><td><code>saisirOrdinateur</code></td><td><strong>écrit</strong></td>
+                  <td><code>struct Ordinateur *o</code></td><td><code>saisir(&amp;poste)</code></td>
+                  <td><code>o-&gt;ram</code></td></tr>
+              <tr><td><code>afficherOrdinateur</code></td><td>lit</td>
+                  <td><code>struct Ordinateur o</code></td><td><code>afficher(poste)</code></td>
+                  <td><code>o.ram</code></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="rap">Avec <code>struct Ordinateur o</code> en paramètre de la saisie, le
+             programme compile, tourne, ne dit rien — et <code>main</code> affiche une
+             structure vide. C'est la faute la plus coûteuse du TP, parce qu'elle est
+             muette.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>scanf("%d", &amp;o-&gt;ram)</code> — les deux à la fois</div>
+          <p><code>o-&gt;ram</code> désigne le champ ; <code>&amp;</code> en prend l'adresse,
+             dont <code>scanf</code> a besoin. Les deux ne font pas double emploi : la
+             flèche traverse le pointeur, l'esperluette prend l'adresse de ce qu'on a trouvé
+             au bout.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">21</span>Un capteur, modifié par un pointeur <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Avec la structure <code>Capteur</code> (nom, valeur, seuil) : déclarer une
+         variable, déclarer un pointeur vers elle, l'y faire pointer, puis
+         <strong>tout faire par le pointeur</strong> — affecter les informations, modifier la
+         valeur, modifier le seuil, afficher.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Capteur</span> {
+    <span class="j-typ">char</span>  <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">float</span> <span class="j-var">valeur</span>;
+    <span class="j-typ">float</span> <span class="j-var">seuil</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Capteur</span> <span class="j-var">c</span>;
+    <span class="j-mc">struct</span> <span class="j-var">Capteur</span> <span class="j-op">*</span><span class="j-var">p</span>;
+
+    <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">c</span>;                        <span class="j-com">/* p pointe vers c */</span>
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-txt">"temperature-salle-serveurs"</span>);
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span> <span class="j-op">=</span> <span class="j-num">21.5f</span>;
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>  <span class="j-op">=</span> <span class="j-num">27.0f</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"Depart  : %s = %.2f (seuil %.2f)\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>);
+
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span> <span class="j-op">=</span> <span class="j-num">29.4f</span>;             <span class="j-com">/* on modifie PAR LE POINTEUR */</span>
+    <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>  <span class="j-op">=</span> <span class="j-num">28.0f</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"Modifie : %s = %.2f (seuil %.2f)\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>);
+
+    <span class="j-mc">if</span> (<span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span> <span class="j-op">&gt;</span> <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>)
+        <span class="j-fn">printf</span>(<span class="j-txt">"ALERTE : le seuil est depasse de %.2f\n"</span>, <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span> <span class="j-op">-</span> <span class="j-var">p</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>);
+    <span class="j-mc">else</span>
+        <span class="j-fn">printf</span>(<span class="j-txt">"Rien a signaler.\n"</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"c.valeur vaut %.2f — c'est bien la MEME variable\n"</span>, <span class="j-var">c</span>.<span class="j-var">valeur</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>Depart  : temperature-salle-serveurs = 21.50 (seuil 27.00)
+Modifie : temperature-salle-serveurs = 29.40 (seuil 28.00)
+ALERTE : le seuil est depasse de 1.40
+c.valeur vaut 29.40 — c&#x27;est bien la MEME variable</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 La dernière ligne est la démonstration</div>
+          <p>Tout a été écrit par <code>p</code>, et c'est <code>c</code> qui a changé. Le
+             pointeur n'a jamais contenu de capteur : il contenait <strong>l'adresse</strong>
+             du capteur, et <code>p-&gt;valeur</code> allait écrire au bout.</p>
+          <p class="rap">C'est exactement ce que fait <code>scanf</code> depuis le premier
+             jour, et ce que fera toute fonction qui modifie une structure.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>p-&gt;valeur</code> ou <code>(*p).valeur</code> ?</div>
+          <p>Les deux sont rigoureusement identiques. Les parenthèses de la seconde ne sont
+             pas facultatives — <code>*p.valeur</code> voudrait dire « le contenu du champ
+             <code>valeur</code> de <code>p</code> », ce qui n'a pas de sens ici. La flèche
+             existe précisément pour qu'on ne les oublie pas.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">22</span>Une bibliothèque de taille inconnue <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Avec la structure <code>Livre</code> (titre, auteur, année, prix) : demander le
+         nombre de livres, <strong>allouer dynamiquement</strong> un tableau de structures,
+         <strong>vérifier que l'allocation a réussi</strong>, saisir, afficher, puis trouver
+         le livre le plus récent, calculer le prix moyen, et libérer la mémoire.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Livre</span> {
+    <span class="j-typ">char</span>  <span class="j-var">titre</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span>  <span class="j-var">auteur</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span>   <span class="j-var">annee</span>;
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Livre</span> <span class="j-op">*</span><span class="j-var">biblio</span>;
+    <span class="j-typ">int</span> <span class="j-var">n</span>, <span class="j-var">i</span>, <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Combien de livres ? "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>);
+    <span class="j-mc">if</span> (<span class="j-var">n</span> <span class="j-op">&lt;=</span> <span class="j-num">0</span>) { <span class="j-fn">printf</span>(<span class="j-txt">"Il en faut au moins un.\n"</span>); <span class="j-mc">return</span> <span class="j-num">1</span>; }
+
+    <span class="j-var">biblio</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-mc">struct</span> <span class="j-var">Livre</span>));
+    <span class="j-mc">if</span> (<span class="j-var">biblio</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Memoire insuffisante\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Livre %d — titre  : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">titre</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Livre %d — auteur : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">auteur</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Livre %d — annee  : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">annee</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Livre %d — prix   : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n--- La bibliotheque ---\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%-22s %-14s %4d  %7.2f EUR\n"</span>,
+               <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">titre</span>, <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">auteur</span>, <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">annee</span>, <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>);
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>;
+        <span class="j-mc">if</span> (<span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">annee</span> <span class="j-op">&gt;</span> <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">annee</span>) <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-var">i</span>;
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nLe plus recent : %s (%s, %d)\n"</span>,
+           <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">titre</span>, <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">auteur</span>, <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">annee</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix moyen     : %.2f EUR\n"</span>, <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">biblio</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 3 livres</span><pre><code>--- La bibliotheque ---
+Le-C-en-pratique       Delannoy       2016    29.50 EUR
+Reseaux                Tanenbaum      2011    54.00 EUR
+Docker-en-action       Nickoloff      2019    42.00 EUR
+
+Le plus recent : Docker-en-action (Nickoloff, 2019)
+Prix moyen     : 41.83 EUR</code></pre></div>
+        <div class="encart methode">
+          <div class="titre">🧭 Chercher un maximum : on retient l'INDICE, pas la valeur</div>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-num">0</span>;                                  <span class="j-com">/* le premier, par defaut */</span>
+<span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+    <span class="j-mc">if</span> (<span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">annee</span> <span class="j-op">&gt;</span> <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">annee</span>)
+        <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-var">i</span>;                              <span class="j-com">/* on retient OU il est  */</span></code></pre></div>
+          <p>Retenir l'année la plus grande ne servirait à rien : c'est le
+             <strong>livre</strong> qu'on doit afficher, avec son titre et son auteur.
+             L'indice les ramène tous les trois.</p>
+          <p class="rap">Et on part de <code>0</code>, jamais d'une année inventée :
+             <code>recent = 0</code> dit « pour l'instant, le plus récent est le premier »,
+             ce qui est vrai avant d'avoir regardé les autres.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>sizeof(struct Livre)</code>, pas la somme des champs</div>
+          <p>50 + 30 + 4 + 4 = 88, et pourtant la structure en occupe souvent 92 : le
+             compilateur ajoute des octets de <strong>remplissage</strong> pour aligner les
+             champs. Une taille calculée à la main réserve trop peu, et l'écriture du
+             dernier livre déborde.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>n &lt;= 0</code> se teste AVANT <code>malloc</code></div>
+          <p><code>malloc(0)</code> est autorisé et rend un pointeur qu'on n'a pas le droit
+             d'utiliser ; un <code>n</code> négatif donne une taille énorme une fois
+             convertie. Le test coûte une ligne et évite les deux.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">23</span>Un équipement, et sa date d'achat <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Définir <code>struct Date</code> (jour, mois, année), puis
+         <code>struct Equipement</code> (nom, prix, et un champ <code>dateAchat</code> de
+         type <code>struct Date</code>). Saisir le nom, le prix et les trois nombres de la
+         date, puis tout afficher, la date sous la forme
+         <code>Date d'achat : 15/09/2026</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Date</span> {
+    <span class="j-typ">int</span> <span class="j-var">jour</span>;
+    <span class="j-typ">int</span> <span class="j-var">mois</span>;
+    <span class="j-typ">int</span> <span class="j-var">annee</span>;
+};
+
+<span class="j-mc">struct</span> <span class="j-var">Equipement</span> {
+    <span class="j-typ">char</span>        <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">float</span>       <span class="j-var">prix</span>;
+    <span class="j-mc">struct</span> <span class="j-var">Date</span> <span class="j-var">dateAchat</span>;
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-mc">struct</span> <span class="j-var">Equipement</span> <span class="j-var">e</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom de l'equipement : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">e</span>.<span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix (€)             : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">e</span>.<span class="j-var">prix</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Jour d'achat        : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">jour</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Mois d'achat        : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">mois</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Annee d'achat       : "</span>);  <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">annee</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nNom : %s\n"</span>, <span class="j-var">e</span>.<span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prix : %.2f €\n"</span>, <span class="j-var">e</span>.<span class="j-var">prix</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Date d'achat : %02d/%02d/%d\n"</span>,
+           <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">jour</span>, <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">mois</span>, <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">annee</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : Ordinateur, 1250, 15, 9, 2026</span><pre><code>Nom : Ordinateur
+Prix : 1250.00 €
+Date d&#x27;achat : 15/09/2026</code></pre></div>
+        <p class="rap">C'est mot pour mot l'exemple d'affichage de l'énoncé —
+           <strong>obtenu en exécutant le programme</strong>, pas recopié.</p>
+        <div class="encart methode">
+          <div class="titre">🧭 Un point par étage</div>
+          <p><code>e.dateAchat.jour</code> se lit de gauche à droite :
+             <code>e</code> → <code>dateAchat</code> → <code>jour</code>. Et
+             <code>scanf</code> veut l'adresse du nombre, donc
+             <code>&amp;e.dateAchat.jour</code> — l'esperluette se met devant
+             <strong>toute</strong> l'expression, pas au milieu.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>struct Date</code> doit être définie AVANT</div>
+          <p>Le compilateur lit le fichier de haut en bas. Pour réserver la place d'un champ
+             <code>struct Date dateAchat</code>, il doit déjà connaître la taille de
+             <code>struct Date</code> — donc l'avoir lue. Inverser les deux définitions
+             donne <em>field has incomplete type</em>.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 <code>%02d</code> : c'est ce qui donne « 09 » et non « 9 »</div>
+          <p>Le <code>0</code> dit « complète avec des zéros », le <code>2</code> dit « sur
+             deux chiffres ». Sans lui, le 15 septembre s'écrit <code>15/9/2026</code> — et
+             l'énoncé demande <code>15/09/2026</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+
+  <article class="exo">
+    <h3><span class="no">24</span>Le programme de contrôle, sans aucune saisie <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Les sept corrections lisent au clavier : pour vérifier un résultat, il faut retaper
+         une bibliothèque entière. Celui-ci porte les données dans son code et affiche les
+         sept réponses d'un coup. Il sert à contrôler son travail — et c'est le seul chemin
+         par lequel la chaîne de relecture de ces fiches peut recomparer ces valeurs.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Le programme et ses résultats</div>
+      <button type="button" data-ouvrir="Afficher le programme" data-fermer="Masquer">Afficher le programme</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-com">/* Les sept exercices du TP 6, SANS aucune saisie : les donnees sont dans le
+   programme. Il sert a verifier ses propres resultats sans retaper une
+   bibliotheque entiere — et c'est le seul chemin par lequel une valeur
+   annoncee ici peut etre recomparee automatiquement. */</span>
+
+<span class="j-mc">struct</span> <span class="j-var">Produit</span>    { <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>]; <span class="j-typ">float</span> <span class="j-var">prix</span>; <span class="j-typ">int</span> <span class="j-var">quantite</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Vehicule</span>   { <span class="j-typ">char</span> <span class="j-var">marque</span>[<span class="j-num">30</span>]; <span class="j-typ">char</span> <span class="j-var">modele</span>[<span class="j-num">30</span>]; <span class="j-typ">int</span> <span class="j-var">annee</span>; <span class="j-typ">int</span> <span class="j-var">kilometrage</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> { <span class="j-typ">char</span> <span class="j-var">modele</span>[<span class="j-num">30</span>]; <span class="j-typ">int</span> <span class="j-var">ram</span>; <span class="j-typ">int</span> <span class="j-var">stockage</span>; <span class="j-typ">float</span> <span class="j-var">prix</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Capteur</span>    { <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>]; <span class="j-typ">float</span> <span class="j-var">valeur</span>; <span class="j-typ">float</span> <span class="j-var">seuil</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Livre</span>      { <span class="j-typ">char</span> <span class="j-var">titre</span>[<span class="j-num">50</span>]; <span class="j-typ">char</span> <span class="j-var">auteur</span>[<span class="j-num">30</span>]; <span class="j-typ">int</span> <span class="j-var">annee</span>; <span class="j-typ">float</span> <span class="j-var">prix</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Date</span>       { <span class="j-typ">int</span> <span class="j-var">jour</span>; <span class="j-typ">int</span> <span class="j-var">mois</span>; <span class="j-typ">int</span> <span class="j-var">annee</span>; };
+<span class="j-mc">struct</span> <span class="j-var">Equipement</span> { <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>]; <span class="j-typ">float</span> <span class="j-var">prix</span>; <span class="j-mc">struct</span> <span class="j-var">Date</span> <span class="j-var">dateAchat</span>; };
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-com">/* ex.1 — un produit */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Produit</span> <span class="j-var">p</span> <span class="j-op">=</span> { <span class="j-txt">"cable-rj45"</span>, <span class="j-num">3.90f</span>, <span class="j-num">120</span> };
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.1  valeur du stock = %.2f EUR\n"</span>, <span class="j-var">p</span>.<span class="j-var">prix</span> <span class="j-op">*</span> <span class="j-var">p</span>.<span class="j-var">quantite</span>);
+
+    <span class="j-com">/* ex.2 — un vehicule, kilometrage mis a jour */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Vehicule</span> <span class="j-var">v</span> <span class="j-op">=</span> { <span class="j-txt">"Renault"</span>, <span class="j-txt">"Kangoo"</span>, <span class="j-num">2019</span>, <span class="j-num">86500</span> };
+    <span class="j-var">v</span>.<span class="j-var">kilometrage</span> <span class="j-op">=</span> <span class="j-num">91200</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.2  %s %s (%d) = %d km\n"</span>, <span class="j-var">v</span>.<span class="j-var">marque</span>, <span class="j-var">v</span>.<span class="j-var">modele</span>, <span class="j-var">v</span>.<span class="j-var">annee</span>, <span class="j-var">v</span>.<span class="j-var">kilometrage</span>);
+
+    <span class="j-com">/* ex.3 — cinq produits */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Produit</span> <span class="j-var">stock</span>[<span class="j-num">5</span>] <span class="j-op">=</span> {
+        { <span class="j-txt">"cable-rj45"</span>,   <span class="j-num">3.90f</span>, <span class="j-num">120</span> }, { <span class="j-txt">"switch-8p"</span>,   <span class="j-num">89.00f</span>,  <span class="j-num">4</span> },
+        { <span class="j-txt">"onduleur"</span>,    <span class="j-num">149.50f</span>,   <span class="j-num">2</span> }, { <span class="j-txt">"disque-1to"</span>,  <span class="j-num">62.25f</span>,  <span class="j-num">7</span> },
+        { <span class="j-txt">"clavier"</span>,      <span class="j-num">18.80f</span>,  <span class="j-num">15</span> },
+    };
+    <span class="j-typ">float</span> <span class="j-var">total</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) <span class="j-var">total</span> <span class="j-op">+=</span> <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">prix</span> <span class="j-op">*</span> <span class="j-var">stock</span>[<span class="j-var">i</span>].<span class="j-var">quantite</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.3  valeur totale = %.2f EUR\n"</span>, <span class="j-var">total</span>);
+
+    <span class="j-com">/* ex.4 — un ordinateur, rempli par une fonction (ici en dur) */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Ordinateur</span> <span class="j-var">o</span> <span class="j-op">=</span> { <span class="j-txt">"ThinkPad-T14"</span>, <span class="j-num">16</span>, <span class="j-num">512</span>, <span class="j-num">980.00f</span> };
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.4  %s — %d Go RAM, %d Go, %.2f EUR\n"</span>, <span class="j-var">o</span>.<span class="j-var">modele</span>, <span class="j-var">o</span>.<span class="j-var">ram</span>, <span class="j-var">o</span>.<span class="j-var">stockage</span>, <span class="j-var">o</span>.<span class="j-var">prix</span>);
+
+    <span class="j-com">/* ex.5 — un capteur, modifie PAR LE POINTEUR */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Capteur</span> <span class="j-var">c</span> <span class="j-op">=</span> { <span class="j-txt">"temperature"</span>, <span class="j-num">21.5f</span>, <span class="j-num">27.0f</span> };
+    <span class="j-mc">struct</span> <span class="j-var">Capteur</span> <span class="j-op">*</span><span class="j-var">pc</span> <span class="j-op">=</span> <span class="j-op">&amp;</span><span class="j-var">c</span>;
+    <span class="j-var">pc</span><span class="j-op">-&gt;</span><span class="j-var">valeur</span> <span class="j-op">=</span> <span class="j-num">29.4f</span>;
+    <span class="j-var">pc</span><span class="j-op">-&gt;</span><span class="j-var">seuil</span>  <span class="j-op">=</span> <span class="j-num">28.0f</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.5  %s = %.2f, seuil %.2f, depassement %.2f\n"</span>,
+           <span class="j-var">pc</span><span class="j-op">-&gt;</span><span class="j-var">nom</span>, <span class="j-var">c</span>.<span class="j-var">valeur</span>, <span class="j-var">c</span>.<span class="j-var">seuil</span>, <span class="j-var">c</span>.<span class="j-var">valeur</span> <span class="j-op">-</span> <span class="j-var">c</span>.<span class="j-var">seuil</span>);
+
+    <span class="j-com">/* ex.6 — une bibliotheque allouee dynamiquement */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Livre</span> <span class="j-var">jeu</span>[<span class="j-num">4</span>] <span class="j-op">=</span> {
+        { <span class="j-txt">"Le-C-en-pratique"</span>, <span class="j-txt">"Delannoy"</span>, <span class="j-num">2016</span>, <span class="j-num">29.50f</span> },
+        { <span class="j-txt">"Reseaux"</span>,          <span class="j-txt">"Tanenbaum"</span>, <span class="j-num">2011</span>, <span class="j-num">54.00f</span> },
+        { <span class="j-txt">"Algorithmique"</span>,    <span class="j-txt">"Cormen"</span>,    <span class="j-num">2010</span>, <span class="j-num">79.90f</span> },
+        { <span class="j-txt">"Docker-en-action"</span>, <span class="j-txt">"Nickoloff"</span>, <span class="j-num">2019</span>, <span class="j-num">42.00f</span> },
+    };
+    <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">4</span>, <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">struct</span> <span class="j-var">Livre</span> <span class="j-op">*</span><span class="j-var">biblio</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-mc">struct</span> <span class="j-var">Livre</span>));
+    <span class="j-mc">if</span> (<span class="j-var">biblio</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) <span class="j-var">biblio</span>[<span class="j-var">i</span>] <span class="j-op">=</span> <span class="j-var">jeu</span>[<span class="j-var">i</span>];
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">prix</span>;
+        <span class="j-mc">if</span> (<span class="j-var">biblio</span>[<span class="j-var">i</span>].<span class="j-var">annee</span> <span class="j-op">&gt;</span> <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">annee</span>) <span class="j-var">recent</span> <span class="j-op">=</span> <span class="j-var">i</span>;
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.6  le plus recent = %s (%d), prix moyen = %.2f EUR\n"</span>,
+           <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">titre</span>, <span class="j-var">biblio</span>[<span class="j-var">recent</span>].<span class="j-var">annee</span>, <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
+    <span class="j-fn">free</span>(<span class="j-var">biblio</span>);
+
+    <span class="j-com">/* ex.7 — une structure dans une structure */</span>
+    <span class="j-mc">struct</span> <span class="j-var">Equipement</span> <span class="j-var">e</span>;
+    <span class="j-fn">strcpy</span>(<span class="j-var">e</span>.<span class="j-var">nom</span>, <span class="j-txt">"Ordinateur"</span>);
+    <span class="j-var">e</span>.<span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-num">1250.00f</span>;
+    <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">jour</span> <span class="j-op">=</span> <span class="j-num">15</span>; <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">mois</span> <span class="j-op">=</span> <span class="j-num">9</span>; <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">annee</span> <span class="j-op">=</span> <span class="j-num">2026</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"ex.7  %s, %.2f EUR, achete le %02d/%02d/%d\n"</span>,
+           <span class="j-var">e</span>.<span class="j-var">nom</span>, <span class="j-var">e</span>.<span class="j-var">prix</span>, <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">jour</span>, <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">mois</span>, <span class="j-var">e</span>.<span class="j-var">dateAchat</span>.<span class="j-var">annee</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>ex.1  valeur du stock = 468.00 EUR
+ex.2  Renault Kangoo (2019) = 91200 km
+ex.3  valeur totale = 1840.75 EUR
+ex.4  ThinkPad-T14 — 16 Go RAM, 512 Go, 980.00 EUR
+ex.5  temperature = 29.40, seuil 28.00, depassement 1.40
+ex.6  le plus recent = Docker-en-action (2019), prix moyen = 51.35 EUR
+ex.7  Ordinateur, 1250.00 EUR, achete le 15/09/2026</code></pre></div>
+        <p class="rap">Le prix moyen diffère de celui de l'exercice 6 — 51,35 contre
+           41,83 — et ce n'est pas une erreur : le contrôle porte sur <strong>quatre</strong>
+           livres, la saisie d'exemple n'en avait que trois. Deux jeux de données, deux
+           moyennes ; c'est exactement pour ça qu'on les écrit dans le code.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces trois TP font travailler</h2>
@@ -2536,6 +3192,9 @@ ex.4  moyenne = 19.12, min = 17.00, max = 21.25</code></pre></div>
           saisie de taille inconnue, recherche d'une valeur, et un capteur avec
           <code>calloc</code></li>
       <li>Cours « Algorithmique et programmation » du 09/10/2026, chapitre 5 — les pointeurs</li>
+      <li>Sujet « TP 6 : les structures », sept exercices — un produit, un véhicule, un stock
+          de cinq produits, deux fonctions, un capteur au pointeur, une bibliothèque allouée
+          dynamiquement, et un équipement avec sa date d'achat</li>
 </ul>
     <p class="rap">Les huit corrections ont été compilées avec <code>cc -std=c99 -Wall</code>
        puis exécutées. Les sorties annoncées sont celles obtenues, pas celles attendues.</p>
@@ -2550,7 +3209,7 @@ ex.4  moyenne = 19.12, min = 17.00, max = 21.25</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=7d2968ca"></script>
-<script src="../../assets/app.js?v=7d2968ca"></script>
+<script src="../../assets/fiche.js?v=4ad5eefc"></script>
+<script src="../../assets/app.js?v=4ad5eefc"></script>
 </body>
 </html>

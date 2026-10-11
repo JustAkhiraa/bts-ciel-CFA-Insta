@@ -818,6 +818,52 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   .choix-os .volet { display: block; border-radius: 10px; }
 }
 
+/* ═══════════════════════════ l'appui sur un TP ═════════════════════════
+   JustAkhiraa : « tu dois retravailler le cours, faire référence au TP c'est
+   pas ce que je demande — si quelqu'un n'a pas le TP, il fait comment ? »
+   Puis : « pareil dans tous les cours. »
+
+   Il a raison, et l'audit lui donne raison deux fois : douze cours sur
+   cinquante-huit portaient des phrases du type « c'est la question 3.2 du
+   TP », où le renvoi ne complétait pas l'explication — il la REMPLAÇAIT. Un
+   lecteur sans le sujet lisait une référence à un document qu'il n'a pas, à
+   l'endroit précis où il attendait la notion.
+
+   La règle est donc posée, et elle vaut pour tout cours à venir :
+
+     · un cours s'explique ENTIÈREMENT sans le TP. La notion, l'exemple et la
+       conséquence sont dans le cours ;
+     · un renvoi au TP est un BONUS, jamais un porteur de sens. Il se place
+       APRÈS l'explication complète, et la page reste juste si on le masque ;
+     · il porte cette classe, qui le donne à voir comme ce qu'il est — une
+       note de marge pour qui a le sujet sous les yeux.
+
+   Les exercices, eux, gardent leurs renvois : une page de correction PARLE
+   du sujet, c'est son objet. La règle ne concerne que `cours.html`. */
+.appui-tp {
+  margin: .9rem 0 0;
+  padding: .5rem .85rem;
+  border-left: 3px solid var(--bord-fort);
+  background: var(--carte-creuse);
+  border-radius: 0 8px 8px 0;
+  color: var(--encre-douce);
+  font-size: 0.8667rem;
+}
+.appui-tp strong { color: var(--encre); }
+.appui-tp::before {
+  content: "Si vous avez le sujet";
+  display: block;
+  margin-bottom: .15rem;
+  font-size: 0.7333rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  /* Pas --encre-tenue : mesurée entre 3,71 et 4,17:1 sur Midgar, et ce
+     libellé fait 11,7 px. La règle de la section 10 s'applique telle quelle. */
+  color: var(--encre-douce);
+}
+/* À l'impression d'une fiche de révision, la note de marge ne sert plus :
+   on révise avec ce qu'on a sous la main, pas avec un sujet resté en cours. */
+@media print { .appui-tp { display: none; } }
+
 /* ═══════════════════════════════════════════════════════════════════════
    AMBIANCES — 24 thèmes
    Repris du projet Sakina et transposés sur les variables de ces fiches.
@@ -5496,6 +5542,11 @@ td.etat.sur   { color: var(--vert); }
    Aucune couleur n'est écrite en dur hors de cette surface héritée.
    ═══════════════════════════════════════════════════════════════════════ */
 #atelier {
+  /* Le panneau des commandes se place « absolute » par rapport à l'atelier :
+     sans ancêtre positionné, il remonterait jusqu'à la page et irait se
+     coller dans un coin, très loin de la barre qui l'a ouvert. C'est la même
+     raison que pour le tiroir des exemples, plus bas. */
+  position: relative;
   padding-bottom: 1.3rem;
 
   /* La hauteur des deux cadres se compte EN LIGNES, pas en pourcentage
@@ -6348,6 +6399,95 @@ body.at-fige { overflow: hidden; }
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
 }
+
+/* ═══════════════════════ la liste des commandes ═══════════════════════
+   « Le Alt+Z il fonctionne mais sur Mac je le trouve pas. Fais une commande
+   pour que je puisse voir les commandes. »
+
+   Le panneau se pose DANS l'atelier, pas au milieu de l'écran : on le
+   consulte en gardant son programme sous les yeux, et on le referme d'un
+   Échap. Ce n'est pas une boîte de dialogue qui prend la main — c'est une
+   antisèche qu'on déplie. D'où « aria-modal="false" » : rien n'est bloqué
+   derrière. */
+.at-palette {
+  position: absolute; z-index: 6;
+  top: 56px; right: 10px; left: 10px;
+  max-width: 460px; margin-left: auto;
+  max-height: min(60vh, 460px); overflow: auto;
+  padding: .9rem 1rem 1rem;
+  border: 1px solid var(--bord-fort); border-radius: 12px;
+  background: var(--carte); box-shadow: 0 14px 40px rgba(0, 0, 0, .18);
+}
+.at-palette-tete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.at-palette-tete h3 { margin: 0; font-size: .97rem; font-weight: 700; color: var(--encre); }
+.at-palette-filtre {
+  width: 100%; margin: .7rem 0 .5rem; min-height: 38px;
+  padding: 0 .7rem; border-radius: 8px;
+  border: 1px solid var(--bord-fort); background: var(--carte-creuse);
+  color: var(--encre); font: inherit; font-size: .88rem;
+}
+.at-palette-filtre:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.at-palette-liste { margin: 0; padding: 0; list-style: none; }
+.at-palette-liste li {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .42rem .1rem;
+  border-bottom: 1px solid var(--bord);
+  font-size: .865rem; color: var(--encre);
+}
+.at-palette-liste li:last-child { border-bottom: 0; }
+.at-palette-rien { color: var(--encre-douce); font-style: italic; }
+.at-palette-touches { display: inline-flex; gap: .25rem; flex: none; align-items: center; }
+.at-palette-touches em { color: var(--encre-douce); font-size: .8rem; }
+/* Les touches gardent la taille d'un vrai clavier : un ⌥ de 9 px ne se
+   reconnaît pas, et c'est précisément le symbole qu'on venait chercher. */
+.at-palette-touches kbd, .at-barre kbd {
+  min-width: 1.5em; padding: .12rem .34rem;
+  border: 1px solid var(--bord-fort); border-bottom-width: 2px; border-radius: 5px;
+  background: var(--carte-creuse); color: var(--encre);
+  font-family: var(--mono); font-size: .78rem; text-align: center;
+}
+.at-palette-pied {
+  margin: .7rem 0 0; padding-top: .55rem; border-top: 1px solid var(--bord);
+  color: var(--encre-douce); font-size: .78rem;
+}
+@media (max-width: 560px) {
+  .at-palette { top: 8px; left: 8px; right: 8px; max-width: none; max-height: 76vh; }
+  .at-palette-liste li { flex-direction: column; align-items: flex-start; gap: .25rem; }
+}
+
+/* ═══════════════════════ les contrôles déjà passés ════════════════════
+   « Range les devoirs passés dans un menu déroulant, et range les devoirs en
+   terme de chronologie. »
+
+   Un <details>, pas un bouton : il s'ouvre sans JavaScript, il s'imprime
+   ouvert, et le navigateur sait déjà y chercher du texte — c'est le même
+   choix que pour les sujets d'entraînement, et pour les mêmes raisons.
+
+   Replié par défaut, parce que ce qui compte en haut d'une page de devoirs
+   est ce qui ARRIVE. Mais pas caché : un contrôle passé reste le meilleur
+   sujet de révision pour le suivant. */
+.dev-passes {
+  margin: 1.6rem 0 0;
+  border: 1px solid var(--bord);
+  border-radius: var(--r);
+  background: var(--carte-creuse);
+}
+.dev-passes > summary {
+  display: flex; align-items: center; gap: .6rem;
+  min-height: 46px; padding: .55rem 1rem;
+  cursor: pointer; list-style: none;
+  font-weight: 700; color: var(--encre);
+}
+.dev-passes > summary::-webkit-details-marker { display: none; }
+.dev-passes > summary:hover { color: var(--accent-sombre); }
+.dev-passes > summary .dev-rev-compte { margin-left: auto; }
+.dev-passes[open] > summary { border-bottom: 1px solid var(--bord); }
+.dev-passes > .dev-liste { padding: 1rem; }
+/* Une carte passée se lit, mais ne réclame plus rien : l'accent tombe. */
+.dev-passes .devoir { opacity: .88; }
+.dev-passes .devoir:hover { opacity: 1; }
+.dev-apres h3::before { content: "✓ "; color: var(--vert); }
+.dev-rien { color: var(--encre-douce); font-style: italic; }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
