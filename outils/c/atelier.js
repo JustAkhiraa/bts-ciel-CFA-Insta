@@ -146,6 +146,11 @@
     const formRenom = tete && tete.querySelector(".edi-renommer");
     let langue = "c";
     let marques = [];
+    /* Déclaré AVEC les autres états, et non à côté de la fonction qui
+       l'emploie : « redessiner » le lit, et un « let » déclaré plus bas
+       vit dans sa zone morte temporelle jusqu'à sa ligne. Le dépôt a
+       déjà payé cette erreur une fois (CLAUDE.md). */
+    let margeAjustee = false;
 
     /* ── cliquer un numéro de ligne sélectionne la ligne ──────────────
        « dans vscode quand on clic sur une ligne ca la selectionne ».
@@ -181,14 +186,19 @@
     function ligneSousLaSouris(e) {
       const num = e.target.closest ? e.target.closest(".edi-num") : null;
       if (num) return Array.prototype.indexOf.call(marge.children, num);
-      /* Cliqué dans la marge mais en dessous de la dernière ligne : on
-         prend la dernière, plutôt que de ne rien faire — c'est ce qu'on
-         voulait dire. */
-      const boite = marge.getBoundingClientRect();
-      if (!marge.children.length) return 0;
-      const hauteur = marge.children[0].getBoundingClientRect().height || 22;
-      const i = Math.floor((e.clientY - boite.top + marge.scrollTop) / hauteur);
-      return Math.max(0, Math.min(marge.children.length - 1, i));
+      /* Cliqué dans la marge, mais à côté d'un numéro : au-dessus du
+         premier — dans le rembourrage du haut — on prend la première
+         ligne, en dessous du dernier on prend la dernière. Plutôt que de
+         ne rien faire : c'est ce qu'on voulait dire.
+
+         Le calcul d'avant divisait la distance par la hauteur d'UN
+         numéro. C'était juste tant que tous faisaient 22 px ; depuis que
+         la marge suit les lignes enroulées, ils n'ont plus tous la même
+         hauteur, et cette division désignerait n'importe quelle ligne.
+         Les deux seuls cas possibles ici ne demandent aucun calcul. */
+      const n = marge.children.length;
+      if (!n) return 0;
+      return e.clientY < marge.children[0].getBoundingClientRect().top ? 0 : n - 1;
     }
     let ancreLigne = null;
     function prendreLignes(de, a) {
@@ -264,8 +274,86 @@
           h += '<div class="edi-num' + (m ? " a-" + m.niveau : "") + '">' + i + "</div>";
         }
         marge.innerHTML = h;
+        margeAjustee = false;   // l'innerHTML a emporté les hauteurs posées
       }
+      ajusterMarge(t);
       surChangement && surChangement(t);
+    }
+
+    /* ── la marge doit suivre les lignes ENROULÉES ────────────────────
+       « les numéros des lignes ne sont pas alignés, du coup ça décale
+       tout ». Un numéro par ligne LOGIQUE, c'est juste ; une rangée par
+       numéro, ça ne l'est plus dès qu'une ligne s'enroule et en occupe
+       trois. Le premier enroulement décalait donc TOUS les numéros
+       suivants, et l'écart grandissait à chaque ligne longue.
+
+       Le texte, lui, restait juste : les deux couches enroulent ensemble
+       depuis le premier jour. C'est la marge seule qui mentait — et elle
+       mentait sur la seule chose qu'on lui demande, dire à quelle ligne
+       on est.
+
+       Où une ligne casse ne se calcule pas : cela dépend de la police
+       réellement chargée, de la largeur du volet au pixel près et de
+       l'endroit où la césure tombe. On le MESURE donc sur la couche
+       peinte, qui a exactement la géométrie du champ — c'est l'invariant
+       sur lequel l'éditeur entier repose. Hors enroulement, aucune
+       mesure : une rangée par ligne, et la hauteur naturelle suffit.
+
+       Toutes les mesures d'abord, toutes les écritures ensuite. Mesurer
+       et écrire en alternance ferait recalculer la mise en page à chaque
+       ligne — sur trois cents lignes, l'éditeur se mettrait à coller. */
+    function ajusterMarge(t) {
+      const nums = marge.children;
+      if (!nums.length) return;
+      if (!racine.classList.contains("enroule")) {
+        /* Rien à défaire tant que rien n'a été posé : sans ce drapeau, on
+           réécrirait mille styles à chaque frappe pour les remettre vides. */
+        if (!margeAjustee) return;
+        for (let i = 0; i < nums.length; i++) nums[i].style.height = "";
+        margeAjustee = false;
+        return;
+      }
+      const marcheur = document.createTreeWalker(peint, NodeFilter.SHOW_TEXT);
+      const noeuds = [];
+      let nd, base = 0;
+      while ((nd = marcheur.nextNode())) { noeuds.push([nd, base]); base += nd.nodeValue.length; }
+      if (!noeuds.length) return;
+      /* Les deux curseurs n'avancent que vers la droite : les débuts de
+         ligne sont croissants, les nœuds de texte aussi. Chercher depuis
+         le début à chaque ligne rendrait la fonction quadratique. */
+      let k = 0;
+      const place = (pos) => {
+        while (k < noeuds.length - 1
+               && pos > noeuds[k][1] + noeuds[k][0].nodeValue.length) k++;
+        const [noeud, deb] = noeuds[k];
+        return [noeud, Math.max(0, Math.min(pos - deb, noeud.nodeValue.length))];
+      };
+      /* Le pas d'une rangée, lu sur la couche peinte : c'est la même
+         valeur que celle du champ, et la seule qui compte ici. */
+      const pas = parseFloat(getComputedStyle(peint).lineHeight);
+      if (!(pas > 0)) return;
+      const r = document.createRange();
+      const rangees = [];
+      let debut = 0;
+      for (let i = 0; i < nums.length; i++) {
+        const saut = t.indexOf("\n", debut);
+        const fin = saut < 0 ? t.length : saut;
+        const [na, oa] = place(debut);
+        const [nb, ob] = place(fin);
+        r.setStart(na, oa);
+        r.setEnd(nb, ob);
+        /* Ce qu'un rectangle mesure, c'est le TEXTE, pas la rangée : une
+           ligne seule rend 15,5 px là où la rangée en fait 22. On ne
+           reporte donc pas la hauteur mesurée — on en déduit un NOMBRE DE
+           RANGÉES, et c'est lui qui redevient une hauteur. Une ligne vide
+           n'a aucun rectangle : elle vaut une rangée, comme à l'écran. */
+        const h = r.getBoundingClientRect().height;
+        rangees.push(Math.max(1, Math.round(h / pas)));
+        debut = fin + 1;
+      }
+      for (let i = 0; i < nums.length; i++)
+        nums[i].style.height = rangees[i] > 1 ? rangees[i] * pas + "px" : "";
+      margeAjustee = true;
     }
 
     /* Reconnaître une LETTRE sous un modificateur — et il faut trois
@@ -584,6 +672,7 @@
       saisie.setAttribute("wrap", on ? "soft" : "off");
       if (!on) peint.style.transform =
         "translate(" + -saisie.scrollLeft + "px," + -saisie.scrollTop + "px)";
+      ajusterMarge(saisie.value);
       return on;
     }
 
@@ -1191,6 +1280,21 @@
       const h = saisie.scrollHeight / Math.max(1, lignes.length);
       saisie.scrollTop = Math.max(0, (ligne - 1) * h - saisie.clientHeight / 2);
       saisie.dispatchEvent(new Event("scroll"));
+    }
+
+    /* Élargir le volet, tirer le séparateur, passer en plein écran,
+       tourner le téléphone : la largeur change, les enroulements changent
+       avec elle, et les numéros se décaleraient de nouveau. Un
+       observateur sur la couche peinte les couvre tous les quatre — et il
+       ne mesure rien tant que l'enroulement est éteint. */
+    if (typeof ResizeObserver === "function") {
+      let largeur = 0;
+      new ResizeObserver(() => {
+        const l = peint.clientWidth;
+        if (l === largeur) return;
+        largeur = l;
+        ajusterMarge(saisie.value);
+      }).observe(peint);
     }
 
     return {
