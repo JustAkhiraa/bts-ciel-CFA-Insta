@@ -242,6 +242,147 @@ var LIEN = (function () {
     return texteDe(new Uint8Array(out));
   }
 
+  /* ── version 2 du codage : distances, et longueurs sans plafond ─────
+     Deux défauts mesurés sur la version 1, et tous deux venaient d'avoir
+     choisi des champs de taille FIXE :
+
+       · le décalage était une POSITION ABSOLUE sur deux octets. Une
+         répétition qui pointe trois lignes plus haut coûtait donc autant
+         qu'une qui pointe au fond du dictionnaire : deux octets, toujours.
+         Sur les 64 programmes, 385 répétitions × 2 octets de décalage =
+         32 % de la charge avant deflate. En écrivant la DISTANCE
+         (position actuelle moins source) sur un nombre variable
+         d'octets, une répétition locale n'en coûte plus qu'un.
+       · la longueur plafonnait à 131, et le plafond était ATTEINT — un
+         long emprunt au dictionnaire était donc découpé en tranches de
+         131, chacune repayant son en-tête et son décalage.
+
+     Le codage reste lisible d'un bout à l'autre, sans table :
+       en-tête < 0x80  : suite brute de (h & 0x7F) octets, puis les octets ;
+                         0x7F signifie « la longueur suit, en varint ».
+       en-tête ⩾ 0x80  : répétition de (h & 0x7F) + 4 octets ; 0x7F signifie
+                         « la longueur suit, en varint, à partir de 131 ».
+                         Puis la distance, en varint.
+
+     La version 1 reste lue : « y » et « z » sont dans des liens déjà
+     partagés. On n'y touche pas, on ajoute « v » et « w ». */
+  function varint(n, out) {
+    while (n >= 0x80) { out.push((n & 0x7F) | 0x80); n >>>= 7; }
+    out.push(n);
+  }
+  function lireVarint(o, i) {
+    let n = 0, d = 0, b;
+    do {
+      if (i.p >= o.length) return -1;
+      b = o[i.p++];
+      n |= (b & 0x7F) << d;
+      d += 7;
+      if (d > 35) return -1;
+    } while (b & 0x80);
+    return n >>> 0;
+  }
+
+  function encoder2(texte, dico) {
+    const src = octetsDe(texte);
+    const D = dico && dico.octets ? dico.octets : new Uint8Array(0);
+    const w = new Uint8Array(D.length + src.length);
+    w.set(D, 0); w.set(src, D.length);
+    const base = D.length;
+    const tdico = D.length >= MIN ? tableDico(D) : { tete: null, prec: null };
+    const tete = new Int32Array(HTAILLE).fill(-1);
+    const prec = new Int32Array(w.length).fill(-1);
+    const sortie = [], litt = [];
+    function viderLitteraux() {
+      let i = 0;
+      while (i < litt.length) {
+        const n = Math.min(100000, litt.length - i);
+        if (n < 0x7F) sortie.push(n);
+        else { sortie.push(0x7F); varint(n - 0x7F, sortie); }
+        for (let k = 0; k < n; k++) sortie.push(litt[i + k]);
+        i += n;
+      }
+      litt.length = 0;
+    }
+    function meilleur(pos) {
+      if (pos + MIN > w.length) return null;
+      const h = hache(w, pos);
+      let best = 0, bestOff = -1, essais = 0, p;
+      const limite = w.length - pos;
+      for (p = tete[h]; p >= 0 && essais < 32; p = prec[p], essais++) {
+        if (best > 0 && w[p + best] !== w[pos + best]) continue;
+        let l = 0;
+        while (l < limite && w[p + l] === w[pos + l]) l++;
+        if (l > best) { best = l; bestOff = p; if (l >= limite) break; }
+      }
+      if (tdico.tete) {
+        for (p = tdico.tete[h]; p >= 0 && essais < 64; p = tdico.prec[p], essais++) {
+          if (best > 0 && w[p + best] !== w[pos + best]) continue;
+          let l = 0;
+          while (l < limite && w[p + l] === w[pos + l]) l++;
+          if (l > best) { best = l; bestOff = p; if (l >= limite) break; }
+        }
+      }
+      return best >= MIN ? { len: best, off: bestOff } : null;
+    }
+    let i = base;
+    while (i < w.length) {
+      let m = meilleur(i);
+      if (m && m.len < 64) {
+        const suivant = meilleur(i + 1);
+        if (suivant && suivant.len > m.len) m = null;
+      }
+      if (m) {
+        viderLitteraux();
+        const l = m.len - MIN;
+        if (l < 0x7F) sortie.push(0x80 | l);
+        else { sortie.push(0xFF); varint(l - 0x7F, sortie); }
+        varint(i - m.off, sortie);
+        for (let k = 0; k < m.len; k++) {
+          if (i + MIN <= w.length) { const hh = hache(w, i); prec[i] = tete[hh]; tete[hh] = i; }
+          i++;
+        }
+      } else {
+        litt.push(w[i]);
+        if (i + MIN <= w.length) { const h2 = hache(w, i); prec[i] = tete[h2]; tete[h2] = i; }
+        i++;
+      }
+    }
+    viderLitteraux();
+    return new Uint8Array(sortie);
+  }
+
+  function decoder2(octets, dico) {
+    const D = dico && dico.octets ? dico.octets : new Uint8Array(0);
+    const out = [];
+    const i = { p: 0 };
+    const lire = (p) => (p < D.length ? D[p] : out[p - D.length]);
+    while (i.p < octets.length) {
+      const h = octets[i.p++];
+      if (h < 0x80) {
+        let n = h & 0x7F;
+        if (n === 0x7F) { const sup = lireVarint(octets, i); if (sup < 0) return null; n = 0x7F + sup; }
+        for (let k = 0; k < n; k++) {
+          if (i.p >= octets.length) return null;
+          out.push(octets[i.p++]);
+        }
+      } else {
+        let l = h & 0x7F;
+        if (l === 0x7F) { const sup = lireVarint(octets, i); if (sup < 0) return null; l = 0x7F + sup; }
+        const len = l + MIN;
+        const dist = lireVarint(octets, i);
+        if (dist <= 0) return null;
+        const depart = D.length + out.length - dist;
+        if (depart < 0) return null;
+        for (let k = 0; k < len; k++) {
+          const o = lire(depart + k);
+          if (o === undefined) return null;
+          out.push(o);
+        }
+      }
+    }
+    return texteDe(new Uint8Array(out));
+  }
+
   /* ── le dictionnaire ─────────────────────────────────────────────────
      Reçu en texte (c'est du vrai code C), gardé en octets avec sa table
      de hachage. */
@@ -250,7 +391,7 @@ var LIEN = (function () {
   }
 
   /* ── les quatre formats, et on garde le plus court qui se relit ──── */
-  var FORMATS = ["z", "y", "c", "p"];
+  var FORMATS = ["w", "v", "z", "y", "c", "p"];
 
   async function fabriquer(texte, dico) {
     var src = octetsDe(texte);
@@ -267,6 +408,12 @@ var LIEN = (function () {
            plus qu'il ne rapporte : « y » existe pour ce cas-là, et on
            compare au lieu de supposer. */
         if (dz) essais.push({ cle: "z", charge: en64(dz) });
+      }
+      var lz2 = encoder2(texte, dico);
+      if (lz2) {
+        essais.push({ cle: "v", charge: en64(lz2) });
+        var dz2 = await moteurs.deflate(lz2);
+        if (dz2) essais.push({ cle: "w", charge: en64(dz2) });
       }
     }
     essais.sort((a, b) => a.charge.length - b.charge.length);
@@ -287,16 +434,19 @@ var LIEN = (function () {
       var oct = de64(charge);
       if (cle === "p") return texteDe(oct);
       if (cle === "y") return decoder(oct, dico);
+      if (cle === "v") return decoder2(oct, dico);
       var plat = await moteurs.inflate(oct);
       if (!plat) return null;
       if (cle === "c") return texteDe(plat);
       if (cle === "z") return decoder(plat, dico);
+      if (cle === "w") return decoder2(plat, dico);
       return null;
     } catch (e) { return null; }
   }
 
   return {
     en64: en64, de64: de64, encoder: encoder, decoder: decoder,
+    encoder2: encoder2, decoder2: decoder2,
     dictionnaire: dictionnaire, fabriquer: fabriquer, relire: relire,
     moteurs: moteurs, FORMATS: FORMATS,
   };

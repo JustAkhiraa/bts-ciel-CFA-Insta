@@ -1801,6 +1801,17 @@
       return promesseLien;
     }
 
+    /* Déclarée ici, au-dessus de tout ce qui la lit : « charger » s'en
+       sert pour « #n= », et le tiroir la remplit deux cents lignes plus
+       bas. Une promesse non encore assignée vaut undefined, pas une
+       erreur de zone morte — à condition de la déclarer en « var ». */
+    var promesseExemples = null;
+    function lesExemples() {
+      if (!promesseExemples)
+        promesseExemples = fetch(base + "exemples.json").then((r) => r.json());
+      return promesseExemples;
+    }
+
     /* Le pendant de « comprimer ». Déclarée en « function » : elle est donc
        hissée, et « charger » peut l'appeler bien qu'elle soit écrite plus
        bas. */
@@ -1821,6 +1832,28 @@
          prêt : quelques millisecondes, et surtout on ne charge pas le
          brouillon entre-temps, ce qui ferait clignoter un programme qui n'est
          pas celui qu'on a ouvert. */
+      /* « #n= » : le programme n'est pas DANS le lien, il est dans le
+         site. Soixante-deux caractères, quel que soit sa longueur.
+         L'identifiant est une empreinte du code : il désigne pour
+         toujours le même programme, ou plus rien — jamais un autre. */
+      const nn = location.hash.match(/[#&]n=([0-9a-f]{4,8})/);
+      if (nn) {
+        lesExemples().then((ex) => {
+          const e = ex.find((x) => x.id === nn[1]);
+          if (!e) {
+            dirEtat("Ce numéro de programme n'existe pas (ou plus) dans le site", "ko");
+            editeur.valeur = DEPART.c; poserLangue("c");
+            return;
+          }
+          editeur.valeur = e.code;
+          poserLangue(e.langue === "c++" ? "c++" : "c");
+          dirEtat("Programme du site : " + e.titre, "ok");
+        }).catch(() => {
+          dirEtat("La liste des programmes n'a pas pu être chargée", "ko");
+          editeur.valeur = DEPART.c; poserLangue("c");
+        });
+        return;
+      }
       /* Les formats du raccourcisseur : « z » (dictionnaire + deflate)
          et « y » (dictionnaire seul). Ils demandent le dictionnaire,
          donc un aller-retour de chargement — on rend la main et on
@@ -1887,7 +1920,11 @@
 
     /* ── exemples ───────────────────────────────────────────────────── */
     const listeEx = $("#at-liste-exemples");
-    fetch(base + "exemples.json").then((r) => r.json()).then((ex) => {
+    /* La promesse est GARDÉE : le tiroir s'en sert pour dessiner la liste,
+       le partage pour reconnaître un programme du site, et l'ouverture
+       d'un lien « #n= » pour le retrouver. Trois usages, un seul
+       téléchargement. */
+    lesExemples().then((ex) => {
       const groupes = {};
       ex.forEach((e) => { (groupes[e.groupe] = groupes[e.groupe] || []).push(e); });
       /* ── Les TP deviennent des DOSSIERS ──────────────────────────────
@@ -2092,6 +2129,27 @@
     $("#at-partager").addEventListener("click", async () => {
       const texte = editeur.valeur;
       dirEtat("Compression du lien…", "");
+      /* Avant toute compression : est-ce un programme QUE LE SITE A DÉJÀ ?
+         Si oui, il n'y a rien à transmettre — son numéro suffit, et
+         aucune compression ne battra jamais cinq caractères. On compare
+         le texte au caractère près : un espace de différence, et c'est un
+         autre programme, qu'il faut donc envoyer en entier. */
+      try {
+        const ex = await lesExemples();
+        const meme = ex.find((x) => x.code === texte);
+        if (meme) {
+          const url = (basesPossibles().courte || basesPossibles().longue) + "#n=" + meme.id;
+          const ancien = basesPossibles().longue.length + 1 + en64(texte).length + 4;
+          const dit = "Lien copié — " + url.length + " caractères au lieu de " + ancien
+            + " · c'est un programme du site, son numéro suffit";
+          try { await navigator.clipboard.writeText(url); dirEtat(dit, "ok"); }
+          catch (e) {
+            location.hash = "n=" + meme.id;
+            dirEtat(dit.replace("Lien copié", "Lien dans la barre d'adresse"), "ok");
+          }
+          return;
+        }
+      } catch (e) { /* liste indisponible : on compresse, comme avant */ }
       const dico = await chargerLien();
       let frag = null, avant = null;
       /* La référence annoncée est l'ancien lien : c'est ce qu'il voyait
