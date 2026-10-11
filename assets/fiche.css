@@ -6909,6 +6909,60 @@ body.nw-fige { overflow: hidden; }
 .edi-marge .edi-num:hover { color: var(--encre); }
 .edi-marge:active .edi-num { user-select: none; }
 
+/* ── le séparateur des deux volets ───────────────────────────────────
+   « met la possibilité de pouvoir agrandir la fenêtre de programme.c vers
+   la droite, si on le fait du coup ça prend sur la fenêtre de la console ».
+
+   La colonne du séparateur fait 34 px, et ce n'est pas une coquetterie :
+   c'est une COMMANDE, donc la règle du site lui impose la même cible
+   tactile qu'à un bouton. Le trait visible, lui, fait 2 px — le reste est
+   de la place pour le doigt, exactement comme dans un éditeur de bureau.
+   Il remplace la gouttière de 0,9 rem qui séparait déjà les deux cadres,
+   donc l'écran ne perd que vingt pixels.
+
+   Les deux colonnes sont pilotées par une seule variable. Sous 760 px les
+   volets s'empilent : un séparateur vertical n'a alors plus de sens, il
+   disparaît et la gouttière revient. */
+@media (min-width: 760px) {
+  .at-grille {
+    grid-template-columns: minmax(260px, var(--at-part, 1fr)) 34px minmax(260px, 1fr);
+    gap: 0;
+  }
+}
+.at-separateur {
+  align-self: stretch; cursor: col-resize; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; padding: 0;
+  touch-action: none;
+}
+/* APRÈS la règle de base, et pas avant : à spécificité égale c'est le
+   dernier qui gagne. Écrite au-dessus, cette ligne ne masquait rien — le
+   séparateur restait visible sur téléphone, où il n'a aucun sens
+   puisque les deux cadres sont l'un sous l'autre. */
+@media (max-width: 759px) { .at-separateur { display: none; } }
+.at-separateur > span {
+  display: block; width: 2px; height: 100%; border-radius: 2px;
+  background: var(--bord-fort); transition: background .12s, width .12s;
+}
+.at-separateur:hover > span,
+.at-separateur:focus-visible > span,
+.at-separateur[data-tire="1"] > span { background: var(--accent); width: 4px; }
+.at-separateur:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Pendant le glissement, le pointeur traverse l'éditeur : sans cela il
+   sélectionnerait du texte à chaque mouvement, et le geste serait
+   inutilisable. */
+body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none !important; }
+
+/* Le pavé de six lignes sous les cadres a disparu — « ce texte genre comme
+   ça c'est ultra moche ». Ce qui reste est une ligne, et tout ce que le
+   pavé disait vit maintenant dans la palette des commandes. */
+.at-lien {
+  font: inherit; color: var(--accent-sombre); background: none; border: 0;
+  padding: 0; cursor: pointer; text-decoration: underline;
+  min-height: 34px;
+}
+.at-lien:hover { color: var(--encre); }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en
