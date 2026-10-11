@@ -268,6 +268,39 @@
       surChangement && surChangement(t);
     }
 
+    /* Reconnaître une LETTRE sous un modificateur — et il faut trois
+       essais, pas un.
+
+       « option z ne fonctionne pas et en plus ça écrit Â ». Le Â est la
+       signature du défaut : sur un Mac, Option ne se contente pas d'être
+       un modificateur, il COMPOSE un caractère. Option+Z donne « Â », et
+       « e.key » vaut donc « Â », jamais « z ».
+
+       Le réflexe est alors de passer à « e.code », qui désigne la
+       POSITION physique de la touche. Il est layout-indépendant, et c'est
+       justement le problème : sur un clavier AZERTY, la touche qui écrit
+       « z » est à l'emplacement du W d'un QWERTY, donc e.code vaut
+       « KeyW ». Les deux contrôles échouaient ensemble, rien n'était
+       intercepté, et le navigateur écrivait tranquillement le Â.
+
+       Reste « e.keyCode ». Il est marqué obsolète dans les
+       spécifications, et c'est pourtant le SEUL des trois qui réponde à
+       la question posée : quelle lettre porte la touche que l'utilisateur
+       a enfoncée, dans SA disposition, indépendamment des modificateurs.
+       Pour Option+Z sur un Mac français il vaut 90, c'est-à-dire Z.
+
+       On essaie donc les trois, dans cet ordre : le caractère produit, la
+       lettre de la disposition, et la position physique seulement en
+       dernier recours — elle ferait répondre Option+W sur un AZERTY. */
+    function lettre(e, l) {
+      const L = l.toUpperCase();
+      if (typeof e.key === "string" && e.key.length === 1
+          && e.key.toUpperCase() === L) return true;
+      if (e.keyCode === L.charCodeAt(0)) return true;
+      if (!e.keyCode && e.code === "Key" + L) return true;
+      return false;
+    }
+
     /* ── Les gestes de VS Code, repris à la main ──────────────────────
        JustAkhiraa : « récupère le projet VSCodium et adapte », et plus tôt :
        « j'aime bien Ctrl+D pour copier les mots qui se ressemblent, ou
@@ -827,8 +860,7 @@
          doigts, et elle ouvre un marque-page dans les deux navigateurs si on
          ne l'arrête pas. « preventDefault » n'est pas une précaution ici,
          c'est la condition pour que le geste existe. */
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey &&
-          (e.key === "d" || e.key === "D")) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && lettre(e, "d")) {
         e.preventDefault();
         ajouterOccurrence();
         majOccurrences();
@@ -836,7 +868,7 @@
       }
       /* Ctrl/Cmd+Shift+L — toutes les occurrences d'un coup. */
       if ((e.ctrlKey || e.metaKey) && e.shiftKey &&
-          (e.key === "l" || e.key === "L")) {
+          lettre(e, "l")) {
         e.preventDefault();
         toutesLesOccurrences();
         return;
@@ -874,8 +906,7 @@
         return;
       }
       /* Alt+Z : le retour à la ligne visuel, comme dans VS Code. */
-      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "z" || e.key === "Z" ||
-          e.code === "KeyZ")) {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && lettre(e, "z")) {
         e.preventDefault();
         const on = basculerEnroulement();
         /* L'état se DIT, il ne se devine pas : l'onglet du volet l'affiche, et
@@ -939,8 +970,7 @@
          Sur une sélection, on l'entoure ; sans sélection, on entoure la
          ligne. Et si l'on est DÉJÀ dans un bloc commenté, on l'enlève —
          « afficher/masquer », dit le menu, pas « ajouter ». */
-      if (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey &&
-          (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
+      if (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && lettre(e, "a")) {
         e.preventDefault();
         let [dd, ff] = [d, f];
         if (dd === ff) [dd, ff] = bornesLignes();
@@ -1706,10 +1736,15 @@
       clearTimeout(tSauve);
       tSauve = setTimeout(sauver, 600);
     }
+    /* Déclarée ICI, et pas dans le bloc du séparateur deux cents lignes
+       plus bas : « sauver » la lit, et un « let » dans sa zone morte
+       temporelle lève — même interrogé par « typeof ». Ce dépôt s'est
+       déjà fait avoir par quatre déclarations dans cet ordre-là. */
+    let partVolets = 0.5;
     function sauver() {
       try {
         localStorage.setItem(CLE, JSON.stringify({
-          source: editeur.valeur, langue, strict, quand: Date.now(),
+          source: editeur.valeur, langue, strict, quand: Date.now(), part: partVolets,
         }));
       } catch (e) {}
       modifie = false;
@@ -2099,6 +2134,79 @@
       }
     });
 
+    /* ── le séparateur des deux volets ───────────────────────────────
+       « met la possibilité de pouvoir agrandir la fenêtre de programme.c
+       vers la droite, si on le fait du coup ça prend sur la fenêtre de
+       la console ».
+
+       Une seule variable CSS pilote les deux colonnes : ce qu'on donne à
+       l'une est pris à l'autre, par construction. Impossible d'arriver à
+       un état où les deux largeurs ne font pas le compte.
+
+       Bornes à 20 % et 80 % : au-delà, le cadre perdant devient une
+       bande inutilisable, et rien ne dirait comment en sortir. La règle
+       vaut aussi pour les poignées de redimensionnement.
+
+       Et le geste marche au CLAVIER — flèches gauche et droite, Début
+       pour revenir au milieu. Un réglage qui n'existe qu'à la souris
+       n'existe pas pour tout le monde. */
+    const separateur = $("#at-separateur");
+    const grille = $(".at-grille", racine);
+    function poserPart(p, garder) {
+      partVolets = Math.max(0.2, Math.min(0.8, p));
+      grille.style.setProperty("--at-part", (partVolets / (1 - partVolets)).toFixed(4) + "fr");
+      if (separateur)
+        separateur.setAttribute("aria-valuenow", String(Math.round(partVolets * 100)));
+      if (garder) sauver();
+    }
+    try {
+      const vieux = JSON.parse(localStorage.getItem(CLE) || "null");
+      if (vieux && typeof vieux.part === "number") poserPart(vieux.part, false);
+    } catch (e) {}
+    if (separateur) {
+      let tire = false;
+      const depuisX = (x) => {
+        const r = grille.getBoundingClientRect();
+        if (!r.width) return;
+        poserPart((x - r.left) / r.width, false);
+      };
+      separateur.addEventListener("pointerdown", (e) => {
+        /* setPointerCapture : le pointeur peut sortir du séparateur — il
+           le fait forcément, puisqu'on l'éloigne — et les événements
+           continuent d'arriver ici. Sans lui, le glissement s'arrête dès
+           qu'on dépasse les 34 px de la colonne. */
+        tire = true;
+        separateur.setPointerCapture(e.pointerId);
+        separateur.dataset.tire = "1";
+        document.body.classList.add("at-tire");
+        e.preventDefault();
+      });
+      separateur.addEventListener("pointermove", (e) => { if (tire) depuisX(e.clientX); });
+      const lacher = (e) => {
+        if (!tire) return;
+        tire = false;
+        try { separateur.releasePointerCapture(e.pointerId); } catch (err) {}
+        separateur.removeAttribute("data-tire");
+        document.body.classList.remove("at-tire");
+        sauver();
+      };
+      separateur.addEventListener("pointerup", lacher);
+      separateur.addEventListener("pointercancel", lacher);
+      separateur.addEventListener("dblclick", () => poserPart(0.5, true));
+      separateur.addEventListener("keydown", (e) => {
+        const pas = e.shiftKey ? 0.1 : 0.02;
+        if (e.key === "ArrowLeft") { e.preventDefault(); poserPart(partVolets - pas, true); }
+        else if (e.key === "ArrowRight") { e.preventDefault(); poserPart(partVolets + pas, true); }
+        else if (e.key === "Home" || e.key === "End") { e.preventDefault(); poserPart(0.5, true); }
+      });
+    }
+
+    const voirCommandes = $("#at-voir-commandes");
+    if (voirCommandes) voirCommandes.addEventListener("click", () => {
+      const b = $("#at-commandes");
+      if (b) b.click();
+    });
+
     /* ── plein écran ────────────────────────────────────────────────── */
     const bPlein = $("#at-plein");
     function plein(oui) {
@@ -2158,6 +2266,19 @@
       ["Abandonner les curseurs multiples",  ["Échap"]],
 
       ["Retour à la ligne visuel",           [ALT, "Z"]],
+      ["Sélectionner la ligne (clic sur son numéro)", []],
+      ["Élargir l'éditeur sur la console (tirer le séparateur)", ["←", "→"]],
+
+      /* Ce que l'éditeur fait TOUT SEUL. Ces quatre-là n'ont pas de
+         raccourci : ce sont des comportements, pas des commandes. Ils
+         étaient écrits dans un pavé de six lignes sous les deux cadres —
+         « ce texte genre comme ça c'est ultra moche tu veux pas le
+         cacher ». Il est retiré, mais rien n'est perdu : tout ce qu'il
+         disait est ici, dans la liste qu'on ouvre d'une touche. */
+      ["Cliquer un mot encadre ses jumeaux", []],
+      ["Se poser contre une accolade montre celle qui ferme — en rouge si rien ne la ferme", []],
+      ["Sélectionner autre chose, un « ; » par exemple, allume toutes ses occurrences", []],
+      ["Agrandir un cadre en hauteur : tirer son coin inférieur droit", []],
       ["Afficher cette liste",               ["F1"]],
       ["Afficher cette liste (comme VS Code)", [CMD, "⇧", "P"]],
     ];
