@@ -1047,6 +1047,16 @@
           oublierMulti();           // on ne les retient pas, on navigue
         }
       }
+      /* Alt+Maj+F — remettre l'alinéa, comme dans VS Code. */
+      if (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && lettre(e, "f")) {
+        e.preventDefault();
+        const r = realigner();
+        if (etat) etat.textContent = !r.ok
+          ? "alinéa : rien changé, le contrôle de sûreté n'est pas passé"
+          : (r.change ? "alinéa refait" : "l'alinéa était déjà en place");
+        return;
+      }
+
       /* F2 — le renommage. VS Code l'a aussi, et c'est le seul des deux
          gestes qu'un champ natif puisse tenir en entier. */
       if (e.key === "F2") {
@@ -1387,6 +1397,41 @@
       }).observe(peint);
     }
 
+    /* ── remettre l'alinéa de tout le programme ───────────────────────
+       Demandé : un bouton, parce que refaire l'alinéa ligne à ligne est
+       fastidieux.
+
+       Le calcul vit dans « indenter.js », qui ne connaît pas le DOM et
+       se mesure donc hors navigateur — 289 contrôles, dont le seul qui
+       compte vraiment : le texte rendu, chaque ligne débarrassée de son
+       alinéa, est identique au texte reçu. Si la preuve ne passe pas, on
+       n'écrit rien. Mal aligner est un défaut ; rendre autre chose que
+       le programme serait une perte.
+
+       Le curseur ne se repose pas à la même POSITION — le texte a bougé
+       — mais sur la même ligne et à la même place dans cette ligne.
+       C'est ce qu'on suit des yeux, et c'est ce qu'on s'attend à
+       retrouver. */
+    function realigner() {
+      if (typeof INDENTER === "undefined") return { ok: false };
+      const t = saisie.value;
+      const r = INDENTER.reindenter(t);
+      if (!r.ok) return { ok: false };
+      if (!r.change) return { ok: true, change: false };
+      const d = saisie.selectionStart;
+      const debutLigne = t.lastIndexOf("\n", d - 1) + 1;
+      const ligne = t.slice(0, d).split("\n").length - 1;
+      const creuxAvant = (t.slice(debutLigne).match(/^[ \t]*/) || [""])[0].length;
+      const colonne = Math.max(0, d - debutLigne - creuxAvant);
+      const lignes = r.texte.split("\n");
+      let pos = 0;
+      for (let i = 0; i < ligne && i < lignes.length; i++) pos += lignes[i].length + 1;
+      const creuxApres = ((lignes[ligne] || "").match(/^[ \t]*/) || [""])[0].length;
+      const p = Math.min(r.texte.length, pos + creuxApres + colonne);
+      remplacer(0, t.length, r.texte, p, p);
+      return { ok: true, change: true };
+    }
+
     /* ── le diagnostic de l'éditeur ───────────────────────────────────
        Les deux défauts signalés le 11 octobre n'étaient visibles ni à
        l'œil ni par une mesure de mise en page : un collage qui ne va
@@ -1469,7 +1514,20 @@
         dit(saisie.value === "int main() {\n    ",
             "l'accolade n'ouvre plus un cran : " + JSON.stringify(saisie.value));
 
-        // 5. la marge suit les lignes enroulées — si l'éditeur est posé.
+        // 5. le bouton « Indenter » remet l'alinéa, et ne casse rien.
+        if (typeof INDENTER !== "undefined") {
+          poser("int main()\n{\nint x = 0;\nif (x)\n{\nfoo();\n}\n}\n");
+          saisie.setSelectionRange(0, 0);
+          var rr = realigner();
+          dit(rr.ok && rr.change, "le bouton Indenter n'a rien fait");
+          dit(saisie.value === "int main()\n{\n    int x = 0;\n    if (x)\n    {\n        foo();\n    }\n}\n",
+              "alinéa refait de travers : " + JSON.stringify(saisie.value));
+          var fige = saisie.value;
+          realigner();
+          dit(saisie.value === fige, "deux appels ne donnent pas la même chose");
+        }
+
+        // 6. la marge suit les lignes enroulées — si l'éditeur est posé.
         if (peint.clientWidth > 10) {
           poser("a\n// " + "mot ".repeat(90).trim() + "\nb\n");
           if (!racine.classList.contains("enroule")) basculerEnroulement();
@@ -1503,7 +1561,7 @@
       get langue() { return langue; },
       set langue(l) { langue = l; redessiner(); },
       set marquesErreur(m) { marques = m; marge.dataset.marques = "-"; redessiner(); },
-      aller, focus: () => saisie.focus(), element: saisie, diagnostic,
+      aller, focus: () => saisie.focus(), element: saisie, diagnostic, realigner,
     };
   }
 
@@ -1601,7 +1659,12 @@
   /* ═══════════════════════════════════════════════════════ 4. LE MOTEUR */
   function Moteur(base, surEtat, differe) {
     const ouvrier = new Worker(base + "ouvrier-compilateur.js");
-    let pret = false, attentes = [], jeton = 0, enCours = null, lance = false;
+    /* Une TABLE de demandes en cours, et non une seule : depuis que la
+       relecture tourne pendant qu'on écrit, une construction lancée au
+       même moment doit pouvoir cohabiter avec elle. Un emplacement
+       unique faisait perdre la réponse de la première arrivée. */
+    let pret = false, attentes = [], jeton = 0, lance = false;
+    const enCours = new Map();
 
     ouvrier.onmessage = (e) => {
       const m = e.data;
@@ -1614,9 +1677,10 @@
         a.forEach((f) => f());
         return;
       }
-      if (m.jeton !== undefined && enCours && m.jeton === enCours.jeton) {
-        const r = enCours; enCours = null;
-        r.resoudre(m);
+      if (m.jeton !== undefined && enCours.has(m.jeton)) {
+        const r = enCours.get(m.jeton);
+        enCours.delete(m.jeton);
+        r(m);
       }
     };
     ouvrier.onerror = (e) => surEtat({ t: "panne", message: e.message || "ouvrier interrompu" });
@@ -1640,11 +1704,22 @@
       await quandPret();
       const j = ++jeton;
       return new Promise((resoudre) => {
-        enCours = { jeton: j, resoudre };
+        enCours.set(j, resoudre);
         ouvrier.postMessage({ t: "batir", source, langue, strict, jeton: j });
       });
     }
-    return { batir, quandPret, lancer, get pret() { return pret; } };
+    /* La relecture ne RÉVEILLE JAMAIS le moteur : tant qu'il n'est pas
+       déjà là, elle se tait. Télécharger soixante mégaoctets parce que
+       quelqu'un a tapé une lettre serait le contraire d'un service. */
+    function relire(source, langue) {
+      if (!pret) return Promise.resolve(null);
+      const j = ++jeton;
+      return new Promise((resoudre) => {
+        enCours.set(j, resoudre);
+        ouvrier.postMessage({ t: "relire", source, langue, jeton: j });
+      });
+    }
+    return { batir, relire, quandPret, lancer, get pret() { return pret; } };
   }
 
   /* ══════════════════════════════════════════════════════ 5. L'ATELIER */
@@ -1653,7 +1728,9 @@
     if (!racine) return;
     const base = racine.dataset.moteur || "c/";
 
-    const editeur = Editeur($(".edi", racine), () => { planifierSauvegarde(); marquerModifie(); });
+    const editeur = Editeur($(".edi", racine), () => {
+      planifierSauvegarde(); marquerModifie(); planifierRelecture();
+    });
     const console2 = Console($(".con", racine));
     const bEx = $("#at-executer");
     const bArret = $("#at-arreter");
@@ -1701,6 +1778,9 @@
         jauge.hidden = true;
         dirEtat("Compilateur prêt", "ok");
         bEx.disabled = false;
+        /* Une faute déjà présente à l'ouverture doit se voir sans qu'on
+           ait besoin de taper quelque chose pour la réveiller. */
+        planifierRelecture();
         setTimeout(() => { if (etat.textContent === "Compilateur prêt") dirEtat("", ""); }, 4000);
       } else if (m.t === "panne") {
         jauge.hidden = true;
@@ -1874,6 +1954,57 @@
     champEntree.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); envoyerEntree(); }
     });
+
+    /* ── la relecture pendant la frappe ──────────────────────────────
+       Demandé : que la faute soit signalée dans programme.c AVANT de
+       lancer — « il manque un ; ».
+
+       Trois précautions, et chacune répond à une façon de rendre ce
+       confort insupportable :
+
+       · on attend que la frappe s'arrête. Relire à chaque touche
+         signalerait une faute à chaque mot commencé : tout programme
+         est incorrect pendant qu'on l'écrit.
+       · on ne relit QUE si le compilateur est déjà là. Télécharger
+         soixante mégaoctets parce que quelqu'un a tapé une lettre
+         serait le contraire d'un service.
+       · on ne montre que les ERREURS. Un avertissement « variable
+         inutilisée » sur une ligne en cours d'écriture est du bruit ;
+         les avertissements restent pour l'exécution, qui est un geste
+         volontaire.
+
+       Et une quatrième, moins visible : la réponse est jetée si le
+       texte a changé entre-temps. Afficher une faute qui vient d'être
+       corrigée est pire que de ne rien afficher. */
+    let minuterieRelire = null, texteRelu = null;
+    const DELAI_RELIRE = 900;
+    function planifierRelecture() {
+      if (!moteur.pret) return;
+      clearTimeout(minuterieRelire);
+      minuterieRelire = setTimeout(relireMaintenant, DELAI_RELIRE);
+    }
+    async function relireMaintenant() {
+      if (!moteur.pret || tourne) return;
+      const source = editeur.valeur;
+      if (source === texteRelu) return;
+      const r = await moteur.relire(source, langue);
+      if (!r || r.passe) return;
+      if (editeur.valeur !== source) return;     // la frappe a continué
+      texteRelu = source;
+      const erreurs = (r.diagnostics || [])
+        .filter((d) => String(d.niveau).indexOf("error") >= 0);
+      afficherDiagnostics(erreurs);
+      if (erreurs.length) {
+        const d = erreurs[0];
+        const fr = TRADUCTIONS.traduire(d.message);
+        dirEtat((d.ligne ? "Ligne " + d.ligne + " · " : "")
+                + (fr ? fr.titre : d.message)
+                + (erreurs.length > 1 ? " — et " + (erreurs.length - 1) + " autre"
+                   + (erreurs.length > 2 ? "s" : "") : ""), "erreur");
+      } else {
+        dirEtat("Pas de faute de syntaxe", "ok");
+      }
+    }
 
     /* ── diagnostics ────────────────────────────────────────────────── */
     function afficherDiagnostics(liste) {
@@ -2620,6 +2751,7 @@
 
       ["Sélectionner l'occurrence suivante du mot", [CMD, "D"]],
       ["Sélectionner toutes les occurrences", [CMD, "⇧", "L"]],
+      ["Remettre l'alinéa de tout le programme", [ALT, "⇧", "F"]],
       ["Renommer partout",                   ["F2"]],
       ["Coller dans toutes les sélections (le texte entier dans chacune)", [CMD, "V"]],
       ["Copier ou couper toutes les sélections (une par ligne)", [CMD, "C"]],
@@ -2739,6 +2871,15 @@
       if (meta && e.key === "Enter") { e.preventDefault(); budget = 5000; executer(); }
       else if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); sauver();
                                                       dirEtat("Programme enregistré", "ok"); }
+    });
+    const bIndent = $("#at-indenter");
+    if (bIndent) bIndent.addEventListener("click", () => {
+      const r = editeur.realigner();
+      dirEtat(!r.ok
+        ? "Alinéa : rien n'a été changé, le contrôle de sûreté n'est pas passé"
+        : (r.change ? "Alinéa refait" : "L'alinéa était déjà en place"),
+        r.ok ? "ok" : "avert");
+      editeur.focus();
     });
     bEx.addEventListener("click", () => { budget = 5000; executer(); });
     $$("[data-raccourci]").forEach((e) => { e.textContent = e.dataset.raccourci.replace("CMD", CMD); });
