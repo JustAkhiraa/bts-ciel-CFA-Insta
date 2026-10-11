@@ -229,6 +229,40 @@ async function batir({ source, langue, strict }) {
   return { t: "bati", ok: true, diagnostics, wasm: wasm.buffer, ms: Date.now() - debut };
 }
 
+/* ── relire, sans construire ─────────────────────────────────────────
+   Demandé : que la faute soit signalée dans le programme AVANT de le
+   lancer — « il manque un ; ».
+
+   « -fsyntax-only » arrête clang après l'analyse : pas d'objet produit,
+   pas d'édition de liens. Quelques dizaines de millisecondes au lieu de
+   quelques secondes, et surtout c'est LE MÊME clang que celui de
+   l'exécution. Un contrôle écrit à part — une expression régulière qui
+   cherche les points-virgules manquants — aurait fini par dire autre
+   chose que le compilateur, et c'est le compilateur qui a raison.
+
+   Ni « -Wall » ni les désinfecteurs : on relit pendant la frappe, et un
+   avertissement « variable inutilisée » sur une ligne qu'on est en
+   train d'écrire est du bruit. Les avertissements restent pour
+   l'exécution, qui est un geste volontaire. */
+async function relire({ source, langue }) {
+  const cpp = langue === "c++";
+  const nom = cpp ? "prog.cpp" : "prog.c";
+  api.memfs.addFile(nom, new TextEncoder().encode(source));
+  recolte = "";
+  try {
+    await api.run(await api.getModule("clang"), "clang", "-cc1", "-fsyntax-only",
+                  ...COMMUNS, "-std=" + (cpp ? "c++17" : "c11"),
+                  "-x", cpp ? "c++" : "c", nom);
+  } catch (e) { /* le code de sortie n'apprend rien que les messages ne disent */ }
+  return { t: "relu", diagnostics: lireDiagnostics(recolte) };
+}
+
+/* Un seul clang à la fois. « recolte » et le système de fichiers en
+   mémoire sont partagés : deux compilations qui se croisent mélangent
+   leurs messages. La relecture est un confort, pas un dû — si une
+   construction est en cours, elle passe son tour. */
+let occupe = false;
+
 self.onmessage = async (e) => {
   const msg = e.data;
   try {
@@ -236,9 +270,22 @@ self.onmessage = async (e) => {
     if (msg.t === "batir") {
       if (!pret) { dire({ t: "bati", ok: false, jeton: msg.jeton, pasPret: true,
                           diagnostics: [] }); return; }
-      const r = await batir(msg);
+      occupe = true;
+      try { var r = await batir(msg); } finally { occupe = false; }
       r.jeton = msg.jeton;
       dire(r, r.wasm ? [r.wasm] : []);
+      return;
+    }
+    if (msg.t === "relire") {
+      if (!pret || occupe) {
+        dire({ t: "relu", jeton: msg.jeton, passe: true, diagnostics: [] });
+        return;
+      }
+      occupe = true;
+      try { var rr = await relire(msg); } finally { occupe = false; }
+      rr.jeton = msg.jeton;
+      dire(rr);
+      return;
     }
   } catch (err) {
     dire({ t: "panne", jeton: msg.jeton,
