@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculatrice graphique — BTS CIEL</title>
+<meta name="description" content="Une calculatrice graphique dans le navigateur : forme exacte, lois de probabilité, statistiques, régressions, intégrales, suites et tracé de fonctions, avec le catalogue des fonctions.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=e84f3758">
+</head>
+<body data-matiere="maths">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav data-monde="../monde/index.html">
+    <a href="../index.html" aria-label="Accueil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Accueil</span></a>
+    <a href="../planning.html" aria-label="Planning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Planning</span></a>
+    <a href="../devoirs.html" aria-label="Devoirs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12l2 2 4-4"/></svg><span>Devoirs</span></a>
+    <a href="../outils/index.html" aria-current="page" aria-label="Outils"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6a3.5 3.5 0 1 0 4 4L21 12l-9 9-3-3 9-9z"/><path d="M7 7 3 3"/></svg><span>Outils</span></a>
+    <a href="../a-propos.html" aria-label="À propos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.2"/></svg><span>À propos</span></a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#maths">Mathématiques</a> <span>/</span>
+    <span>Calculatrice graphique</span></div>
+
+  <div class="tete-matiere">
+    <h1>Calculatrice graphique</h1>
+    <p>Le résultat <b>exact</b> au-dessus de sa valeur approchée, comme sur la machine — et huit applications qui renvoient chacune <b>au chapitre du cours</b> qui s'en sert.</p>
+  </div>
+
+  <section class="outil outil-plein" id="calculatrice">
+    <div class="nw-barre" role="toolbar" aria-label="Commandes de la calculatrice">
+      <button type="button" id="nw-vers-accueil" class="nw-creux">
+        <span aria-hidden="true">⌂</span> Accueil des applications
+      </button>
+      <button type="button" id="nw-catalogue" class="nw-creux" aria-expanded="false"
+              aria-controls="nw-boite" title="Toutes les fonctions et leur syntaxe (F1)">
+        Boîte à outils <kbd>F1</kbd>
+      </button>
+      <button type="button" id="nw-reglages" class="nw-creux" aria-expanded="false">
+        Réglages
+      </button>
+      <button type="button" id="nw-plein" class="nw-creux nw-icone" aria-pressed="false"
+              title="Agrandir (Échap pour sortir)">
+        <span class="at-ic-plein" aria-hidden="true"></span>
+        <span class="nw-lib-plein">Agrandir</span>
+      </button>
+      <p class="nw-etat" id="nw-etat" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="nw-corps">
+      <div class="nw-ecran" id="nw-ecran">
+        <div class="nw-bandeau">
+          <span class="nw-bandeau-titre" id="nw-titre">Calculs</span>
+          <span class="nw-bandeau-droite">
+            <span class="nw-examen" id="nw-examen" hidden>Mode examen</span>
+            <span class="nw-angle" id="nw-angle">rad</span>
+            <span class="nw-heure" id="nw-heure" aria-hidden="true"></span>
+          </span>
+        </div>
+        <div class="nw-page" id="nw-page">
+          <p class="nw-sans-js">Cette calculatrice a besoin de JavaScript pour
+            fonctionner. Le <b>catalogue complet des fonctions</b>, lui, est écrit
+            en bas de cette page : il se lit, se cherche et s'imprime sans rien
+            exécuter.</p>
+        </div>
+      </div>
+      <div class="nw-clavier" id="nw-clavier">
+      </div>
+    </div>
+
+    <div class="nw-boite" id="nw-boite" hidden>
+      <div class="nw-boite-tete">
+        <h3>Boîte à outils</h3>
+        <input type="search" id="nw-boite-filtre" placeholder="filtrer : loi, intégrale, pgcd…"
+               autocomplete="off" spellcheck="false" aria-label="Filtrer les fonctions">
+        <button type="button" id="nw-boite-fermer" aria-label="Fermer la boîte à outils">✕</button>
+      </div>
+      <div class="nw-boite-liste" id="nw-boite-liste" role="listbox"
+           aria-label="Fonctions à insérer"></div>
+    </div>
+
+    <p class="nw-aide-clavier">Le <b>clavier de votre ordinateur fonctionne partout</b> :
+      tapez votre calcul et validez par <kbd>Entrée</kbd>. Le clavier dessiné est là pour
+      retrouver une touche — <kbd>Maj</kbd> allume les fonctions inverses écrites en petit,
+      <kbd>alpha</kbd> les lettres de mémoire. <kbd>F1</kbd> ouvre la boîte à outils,
+      <kbd>↑</kbd> rappelle le calcul précédent.</p>
+
+    <details class="nw-notice">
+      <summary>Ce que cette calculatrice est, et ce qu'elle n'est pas</summary>
+      <div class="nw-notice-corps">
+        <p><b>Ce n'est pas l'émulateur de NumWorks, et c'est volontaire.</b> Le simulateur
+           officiel — comme celui d'Upsilon, la version communautaire — est le vrai
+           système de la machine compilé en WebAssembly : une vingtaine de mégaoctets à
+           télécharger, produits par une chaîne de compilation entière. Les deux règles
+           de ce dépôt l'interdisent : <b>zéro dépendance</b> et <b>aucune étape de
+           build</b>. Le reprendre à moitié — un binaire téléchargé ailleurs, posé ici
+           sans pouvoir le reconstruire — aurait été pire que de ne rien faire.</p>
+        <p>Ce qui est repris, ce sont donc les <b>gestes et les applications</b>, écrits
+           ici en JavaScript ordinaire : la disposition du clavier, l'accueil en grille
+           d'applications, le résultat exact affiché au-dessus de sa valeur approchée, la
+           boîte à outils, les huit applications. Elle s'ouvre hors ligne, elle se lit au
+           clavier, elle s'imprime, et elle pèse quelques dizaines de kilooctets.</p>
+        <p class="nw-note-forte">Et une chose qu'aucun émulateur ne fait : <b>chaque
+           application renvoie au chapitre du cours qui s'en sert</b>. La loi binomiale
+           pointe vers le chapitre 08, la normale vers le 10, les intégrales vers le 12.</p>
+
+        <h4>La forme exacte : ce qu'elle sait faire, et où elle s'arrête</h4>
+        <p>Les résultats sont donnés sous forme exacte dès qu'ils s'écrivent
+           <b>(p/q)·π<sup>n</sup>·√r</b> : entiers, fractions, radicaux simplifiés,
+           multiples de π, et les cosinus remarquables. <code>1/3+1/6</code> rend
+           <b>1/2</b>, <code>√12</code> rend <b>2√3</b>, <code>cos(π/6)</code> rend
+           <b>√3/2</b>.</p>
+        <p>Elle s'arrête là, et le dit : <code>√2+√3</code> est une <b>somme de deux
+           radicaux différents</b>, qui n'entre pas dans cette écriture — seule la valeur
+           approchée s'affiche. <code>cos(π/12)</code> non plus, car il vaut
+           (√6+√2)/4. Ce n'est pas un logiciel de calcul formel ; c'est l'arithmétique
+           exacte dont le programme de maths a besoin, et pas un pas de plus. Une couche
+           exacte qui répondrait toujours serait une couche qui invente.</p>
+
+        <h4>Trois conventions, parce qu'elles ne sont pas universelles</h4>
+        <ul class="nw-conventions">
+          <li><b>Les quartiles</b> suivent la règle française : Q1 est la plus petite
+              valeur telle qu'au moins un quart de l'effectif lui est inférieur ou égal,
+              c'est-à-dire la valeur de rang ⌈N/4⌉. <b>Un tableur ne donne pas la même
+              chose</b> : il interpole entre deux valeurs. Les deux sont justes dans leur
+              cadre ; c'est le mélange des deux qui coûte des points.</li>
+          <li><b>Le reste</b> est le reste mathématique, du signe du diviseur :
+              <code>reste(−7;3)</code> vaut <b>2</b>, et non −1 comme l'opérateur
+              <code>%</code> du langage C.</li>
+          <li><b>La multiplication implicite</b> a la même priorité que le signe ×.
+              <code>1/2π</code> se lit donc <b>(1/2)×π</b>. En cas de doute, les
+              parenthèses tranchent, et elles sont gratuites.</li>
+        </ul>
+
+        <h4>Ce qui est mesuré, et comment</h4>
+        <p>Le moteur de calcul est un fichier séparé de l'interface, pour pouvoir être
+           mesuré <b>hors navigateur</b>. Son banc d'essai exécute un millier de
+           contrôles, dont <b>quatre-vingts cas recalculés en Python</b> — une autre
+           bibliothèque mathématique, pas une ligne de code en commun. Les deux
+           intégrateurs (tanh-sinh et Simpson adaptatif) doivent tomber d'accord ; la
+           forme exacte doit toujours valoir son propre flottant ; les saisies fautives
+           doivent être refusées avec une phrase. Et le banc se falsifie lui-même : on
+           lui injecte des erreurs, il doit les voir.</p>
+        <p class="note">Aucune donnée ne quitte votre appareil : il n'y a pas de serveur.
+           Ce que vous tapez, les fonctions, les listes de statistiques et les réglages
+           sont gardés par votre navigateur, sur cet appareil seulement.</p>
+      </div>
+    </details>
+
+    <h3 class="nw-cat-tete" id="nw-catalogue-tete">Le catalogue des fonctions</h3>
+    <p class="nw-cat-intro">Toutes les fonctions que la calculatrice connaît, leur
+       syntaxe et un exemple qui marche. Ce tableau est <b>produit à la publication</b>
+       depuis la même source que la boîte à outils de l'écran : les deux ne peuvent pas
+       dire des choses différentes. Il se lit sans JavaScript et s'imprime.</p>
+        <div class="nw-catalogue">
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-calcul">Calcul</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Racine carrée</th><td><code>√(x)</code></td><td class="ex"><code>√12</code></td><td>Exacte quand elle se simplifie : √12 rend 2√3.</td></tr>
+          <tr><th scope="row">Puissance</th><td><code>x^y</code></td><td class="ex"><code>2^10</code></td><td>Associatif à droite : 2^3^2 vaut 2⁹, soit 512.</td></tr>
+          <tr><th scope="row">Carré</th><td><code>x²</code></td><td class="ex"><code>7^2</code></td><td>La touche x² du clavier insère « ^2 ».</td></tr>
+          <tr><th scope="row">Exponentielle</th><td><code>exp(x)</code></td><td class="ex"><code>exp(1)</code></td><td>e à la puissance x. La constante e s'écrit « e ». <a class="nw-chapitre" href="../03-mathematiques/06-logarithme-exponentielle/cours.html">Logarithme et exponentielle</a></td></tr>
+          <tr><th scope="row">Logarithme népérien</th><td><code>ln(x)</code></td><td class="ex"><code>ln(2)</code></td><td>Strictement positif seulement — sinon la fonction le dit. <a class="nw-chapitre" href="../03-mathematiques/06-logarithme-exponentielle/cours.html">Logarithme et exponentielle</a></td></tr>
+          <tr><th scope="row">Logarithme décimal</th><td><code>log(x) · log(x;b)</code></td><td class="ex"><code>log(1000)</code></td><td>Base 10 par défaut ; log(8;2) donne le logarithme en base 2.</td></tr>
+          <tr><th scope="row">Valeur absolue</th><td><code>abs(x)</code></td><td class="ex"><code>abs(-4.5)</code></td><td>S'écrit aussi « valeurAbsolue ».</td></tr>
+          <tr><th scope="row">Signe</th><td><code>signe(x)</code></td><td class="ex"><code>signe(-4)</code></td><td>Rend −1, 0 ou 1.</td></tr>
+          <tr><th scope="row">Arrondi</th><td><code>arrondi(x;n)</code></td><td class="ex"><code>arrondi(2.675;2)</code></td><td>Arrondi à n décimales, le 0,5 s'éloignant de zéro : arrondi(2,675;2) rend bien 2,68.</td></tr>
+          <tr><th scope="row">Partie entière</th><td><code>partieEntiere(x)</code></td><td class="ex"><code>partieEntiere(-2.5)</code></td><td>L'entier immédiatement inférieur : −3 pour −2,5.</td></tr>
+          <tr><th scope="row">Plafond</th><td><code>plafond(x)</code></td><td class="ex"><code>plafond(-2.5)</code></td><td>L'entier immédiatement supérieur.</td></tr>
+          <tr><th scope="row">Troncature</th><td><code>troncature(x)</code></td><td class="ex"><code>troncature(-2.5)</code></td><td>On coupe les décimales sans arrondir : −2 pour −2,5.</td></tr>
+          <tr><th scope="row">Minimum et maximum</th><td><code>min(…) · max(…)</code></td><td class="ex"><code>min(3;1;2)</code></td><td>Autant d'arguments qu'on veut, séparés par « ; ».</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-nombres">Nombres entiers et dénombrement</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">PGCD</th><td><code>pgcd(a;b)</code></td><td class="ex"><code>pgcd(1071;462)</code></td><td>Plus grand commun diviseur, autant d'arguments qu'on veut.</td></tr>
+          <tr><th scope="row">PPCM</th><td><code>ppcm(a;b)</code></td><td class="ex"><code>ppcm(12;18)</code></td><td>Plus petit commun multiple.</td></tr>
+          <tr><th scope="row">Reste</th><td><code>reste(a;b)</code></td><td class="ex"><code>reste(-7;3)</code></td><td>Le reste MATHÉMATIQUE, du signe du diviseur : reste(−7;3) vaut 2, pas −1.</td></tr>
+          <tr><th scope="row">Quotient euclidien</th><td><code>quotient(a;b)</code></td><td class="ex"><code>quotient(17;5)</code></td><td>La partie entière de a/b.</td></tr>
+          <tr><th scope="row">Factorielle</th><td><code>n!</code></td><td class="ex"><code>10!</code></td><td>Entier positif, jusqu'à 170! — au-delà la machine ne sait plus l'écrire.</td></tr>
+          <tr><th scope="row">Combinaison</th><td><code>combinaison(n;k)</code></td><td class="ex"><code>combinaison(49;6)</code></td><td>Le « n parmi k » du cours, exact : combinaison(49;6) rend 13 983 816. <a class="nw-chapitre" href="../03-mathematiques/08-variables-aleatoires-loi-binomiale/cours.html">Loi binomiale</a></td></tr>
+          <tr><th scope="row">Arrangement</th><td><code>arrangement(n;k)</code></td><td class="ex"><code>arrangement(10;4)</code></td><td>Tirages ORDONNÉS sans remise.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-trigo">Trigonométrie</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Sinus</th><td><code>sin(x)</code></td><td class="ex"><code>sin(π/6)</code></td><td>Exact sur les angles remarquables : sin(π/6) rend 1/2.</td></tr>
+          <tr><th scope="row">Cosinus</th><td><code>cos(x)</code></td><td class="ex"><code>cos(π/6)</code></td><td>L'unité d'angle est celle des réglages — radian par défaut.</td></tr>
+          <tr><th scope="row">Tangente</th><td><code>tan(x)</code></td><td class="ex"><code>tan(π/4)</code></td><td>Refusée là où le cosinus est nul, en le disant.</td></tr>
+          <tr><th scope="row">Arc sinus</th><td><code>arcsin(x)</code></td><td class="ex"><code>arcsin(0.5)</code></td><td>Entre −1 et 1 seulement.</td></tr>
+          <tr><th scope="row">Arc cosinus</th><td><code>arccos(x)</code></td><td class="ex"><code>arccos(0.5)</code></td><td>Entre −1 et 1 seulement.</td></tr>
+          <tr><th scope="row">Arc tangente</th><td><code>arctan(x)</code></td><td class="ex"><code>arctan(1)</code></td><td>Rend un angle dans l'unité réglée.</td></tr>
+          <tr><th scope="row">Hyperboliques</th><td><code>sinh(x) · cosh(x) · tanh(x)</code></td><td class="ex"><code>tanh(1)</code></td><td>Toujours en radians : elles n'ont pas d'angle.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-analyse">Analyse</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Dérivée en un point</th><td><code>derivee(f;x;a)</code></td><td class="ex"><code>derivee(x^3;x;2)</code></td><td>Nombre dérivé en a. Le deuxième argument est la LETTRE qui varie. <a class="nw-chapitre" href="../03-mathematiques/04-derivees/cours.html">Dérivées</a></td></tr>
+          <tr><th scope="row">Intégrale</th><td><code>integrale(f;x;a;b)</code></td><td class="ex"><code>integrale(x^2;x;0;1)</code></td><td>Intégrale de a à b. Elle tient même quand la fonction explose à une borne : ∫₀¹ dx/√x rend 2. <a class="nw-chapitre" href="../03-mathematiques/12-integrales-primitives/cours.html">Intégrales et primitives</a></td></tr>
+          <tr><th scope="row">Somme (Σ)</th><td><code>somme(f;k;a;b)</code></td><td class="ex"><code>somme(k^2;k;1;100)</code></td><td>Σ des termes pour k entier de a à b. Exacte sur les fractions.</td></tr>
+          <tr><th scope="row">Produit (Π)</th><td><code>produit(f;k;a;b)</code></td><td class="ex"><code>produit(k;k;1;6)</code></td><td>Le produit des termes, de a à b.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-probas">Probabilités</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Binomiale P(X = k)</th><td><code>binomialePdf(n;p;k)</code></td><td class="ex"><code>binomialePdf(10;0.3;3)</code></td><td>C'est le « binomFdp » de votre calculatrice de l'épreuve — les deux écritures marchent ici. <a class="nw-chapitre" href="../03-mathematiques/08-variables-aleatoires-loi-binomiale/cours.html">Loi binomiale</a></td></tr>
+          <tr><th scope="row">Binomiale P(X ⩽ k)</th><td><code>binomialeCdf(n;p;k)</code></td><td class="ex"><code>binomialeCdf(10;0.3;4)</code></td><td>Le « binomFRép ». Pour P(X &gt; k), écrivez 1 − binomialeCdf(n;p;k). <a class="nw-chapitre" href="../03-mathematiques/08-variables-aleatoires-loi-binomiale/cours.html">Loi binomiale</a></td></tr>
+          <tr><th scope="row">Binomiale inverse</th><td><code>invBinomiale(n;p;α)</code></td><td class="ex"><code>invBinomiale(100;0.5;0.975)</code></td><td>Le plus petit k tel que P(X ⩽ k) ⩾ α — le seuil d'un intervalle de fluctuation.</td></tr>
+          <tr><th scope="row">Normale P(a ⩽ X ⩽ b)</th><td><code>normaleCdf(a;b;µ;σ)</code></td><td class="ex"><code>normaleCdf(170;190;180;7)</code></td><td>Avec un seul argument, c'est P(X ⩽ x) pour la normale centrée réduite. <a class="nw-chapitre" href="../03-mathematiques/10-loi-normale/cours.html">Loi normale</a></td></tr>
+          <tr><th scope="row">Densité normale</th><td><code>normalePdf(x;µ;σ)</code></td><td class="ex"><code>normalePdf(0)</code></td><td>La hauteur de la cloche. Elle ne sert PAS à calculer une probabilité. <a class="nw-chapitre" href="../03-mathematiques/10-loi-normale/cours.html">Loi normale</a></td></tr>
+          <tr><th scope="row">Normale inverse</th><td><code>invNormale(p;µ;σ)</code></td><td class="ex"><code>invNormale(0.975)</code></td><td>Le x tel que P(X ⩽ x) = p. C'est la « FracNormale » de l'épreuve. <a class="nw-chapitre" href="../03-mathematiques/10-loi-normale/cours.html">Loi normale</a></td></tr>
+          <tr><th scope="row">Exponentielle P(X ⩽ x)</th><td><code>expoCdf(λ;x)</code></td><td class="ex"><code>expoCdf(0.25;4)</code></td><td>Loi sans mémoire. P(X &gt; x) vaut e^(−λx), soit 1 − expoCdf(λ;x). <a class="nw-chapitre" href="../03-mathematiques/09-lois-uniforme-exponentielle/cours.html">Lois uniforme et exponentielle</a></td></tr>
+          <tr><th scope="row">Densité exponentielle</th><td><code>expoPdf(λ;x)</code></td><td class="ex"><code>expoPdf(0.25;4)</code></td><td>La hauteur de la courbe, λe^(−λx). Comme la densité normale, elle ne donne PAS de probabilité : une durée exacte a une probabilité nulle. <a class="nw-chapitre" href="../03-mathematiques/09-lois-uniforme-exponentielle/cours.html">Lois uniforme et exponentielle</a></td></tr>
+          <tr><th scope="row">Exponentielle inverse</th><td><code>invExpo(p;λ)</code></td><td class="ex"><code>invExpo(0.5;0.25)</code></td><td>Avec p = 0,5 c'est la demi-vie : ln2/λ. <a class="nw-chapitre" href="../03-mathematiques/09-lois-uniforme-exponentielle/cours.html">Lois uniforme et exponentielle</a></td></tr>
+          <tr><th scope="row">Uniforme P(X ⩽ x)</th><td><code>uniformeCdf(x;a;b)</code></td><td class="ex"><code>uniformeCdf(7;2;10)</code></td><td>Une proportion de longueur, rien de plus. <a class="nw-chapitre" href="../03-mathematiques/09-lois-uniforme-exponentielle/cours.html">Lois uniforme et exponentielle</a></td></tr>
+          <tr><th scope="row">Poisson P(X = k)</th><td><code>poissonPdf(λ;k)</code></td><td class="ex"><code>poissonPdf(3;2)</code></td><td>Comptage d'événements rares sur une durée fixe.</td></tr>
+          <tr><th scope="row">Poisson P(X ⩽ k)</th><td><code>poissonCdf(λ;k)</code></td><td class="ex"><code>poissonCdf(3;5)</code></td><td>Cumulée de la loi de Poisson.</td></tr>
+          <tr><th scope="row">Géométrique P(X = k)</th><td><code>geomPdf(p;k)</code></td><td class="ex"><code>geomPdf(0.2;4)</code></td><td>Le premier succès au k-ième essai, k ⩾ 1.</td></tr>
+          <tr><th scope="row">Géométrique P(X ⩽ k)</th><td><code>geomCdf(p;k)</code></td><td class="ex"><code>geomCdf(0.2;10)</code></td><td>Vaut 1 − (1−p)^k.</td></tr>
+          <tr><th scope="row">Hypergéométrique P(X = k)</th><td><code>hyperPdf(N;K;n;k)</code></td><td class="ex"><code>hyperPdf(49;6;6;3)</code></td><td>Tirage SANS remise : N objets dont K favorables, n tirés.</td></tr>
+          <tr><th scope="row">Hypergéométrique P(X ⩽ k)</th><td><code>hyperCdf(N;K;n;k)</code></td><td class="ex"><code>hyperCdf(49;6;6;2)</code></td><td>Cumulée du tirage sans remise.</td></tr>
+          <tr><th scope="row">Student P(T ⩽ t)</th><td><code>studentCdf(t;ν)</code></td><td class="ex"><code>studentCdf(2.5;10)</code></td><td>Petits échantillons, ν degrés de liberté.</td></tr>
+          <tr><th scope="row">Khi deux P(X ⩽ x)</th><td><code>khi2Cdf(x;k)</code></td><td class="ex"><code>khi2Cdf(3.84;1)</code></td><td>Test d'ajustement : 3,84 à 1 degré, c'est le seuil de 95 %.</td></tr>
+          <tr><th scope="row">Fisher P(X ⩽ x)</th><td><code>fisherCdf(x;d₁;d₂)</code></td><td class="ex"><code>fisherCdf(4;3;12)</code></td><td>Comparaison de variances.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-stats">Statistiques</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Moyenne</th><td><code>moyenne(…)</code></td><td class="ex"><code>moyenne(12;15;9;18)</code></td><td>Sur les valeurs données entre parenthèses. Pour une série avec effectifs, voyez l'application Statistiques.</td></tr>
+          <tr><th scope="row">Écart type</th><td><code>ecartType(…)</code></td><td class="ex"><code>ecartType(2;4;4;4;5;5;7;9)</code></td><td>L'écart type de POPULATION, divisé par N.</td></tr>
+          <tr><th scope="row">Variance</th><td><code>variance(…)</code></td><td class="ex"><code>variance(2;4;4;4;5;5;7;9)</code></td><td>Le carré de l'écart type.</td></tr>
+          <tr><th scope="row">Médiane</th><td><code>mediane(…)</code></td><td class="ex"><code>mediane(1;3;5;7;9)</code></td><td>Demi-somme des deux termes centraux si l'effectif est pair.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-hasard">Hasard</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Nombre au hasard</th><td><code>alea()</code></td><td class="ex"><code>alea()*0</code></td><td>Un décimal entre 0 et 1. Deux appels ne donnent pas la même chose — c'est le but.</td></tr>
+          <tr><th scope="row">Entier au hasard</th><td><code>aleaEntier(a;b)</code></td><td class="ex"><code>aleaEntier(1;6)*0</code></td><td>Un entier de a à b inclus : un dé, un tirage.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+      <div class="nw-cat-groupe">
+        <h4 id="nw-cat-memoire">Mémoire</h4>
+        <div class="tableau"><table class="nw-cat-table">
+          <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+          <tbody>
+          <tr><th scope="row">Ranger en mémoire</th><td><code>valeur→A</code></td><td class="ex"><code>5→A</code></td><td>Range le résultat dans une lettre, de A à Z. On la réutilise ensuite comme un nombre.</td></tr>
+          <tr><th scope="row">Résultat précédent</th><td><code>ans</code></td><td class="ex"><code>ans</code></td><td>Le dernier résultat calculé. Un calcul qui commence par un opérateur le sous-entend.</td></tr>
+          <tr><th scope="row">Vos fonctions et suites</th><td><code>f(x) · u(n)</code></td><td class="ex"><code>2+2</code></td><td>Une fonction définie dans l'application Fonctions, ou une suite de l'application Suites, s'appelle ici par son nom.</td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="langage-c.html"><span>Outil précédent</span><b>Atelier C et C++</b></a>
+    <a class="suiv" href="compte-rendu.html"><span>Outil suivant</span><b>Compteur de mots</b></a>
+  </nav>
+</main>
+
+<script>
+/* Trois fichiers, et la séparation est volontaire : « catalogue.js » est
+   produit à la publication depuis catalogue.json, « moteur.js » ne connaît
+   pas le DOM et se mesure donc avec node, « calculatrice.js » est
+   l'appareil et ne contient aucune formule. */
+</script>
+<script src="calculatrice/catalogue.js"></script>
+<script src="calculatrice/moteur.js"></script>
+<script src="calculatrice/calculatrice.js"></script>
+
+<script src="../assets/fiche.js?v=e84f3758"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/app.js?v=e84f3758"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

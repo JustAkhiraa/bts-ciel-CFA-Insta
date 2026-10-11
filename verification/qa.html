@@ -342,6 +342,50 @@ document.getElementById("go").onclick = async () => {
         for (const x of await coquilleVivante(f.contentWindow, doc)) {
           fautes++; dire("COQUILLE  " + u + "  → " + x, "ko");
         }
+        /* Un outil qui sait se dire en panne doit être interrogé. La
+           calculatrice expose « CALCULATRICE.diagnostic() » : il dessine
+           les huit écrans d'application et rend la liste de ceux qui
+           n'ont rien produit. Aucune autre mesure ne le verrait — un
+           écran VIDE ne déborde pas, ne cache rien et ne crie pas. */
+        /* L'atelier C a le sien, et il fait ce qu'aucune mesure de mise
+           en page ne peut faire : il COLLE, il COUPE et il enroule, puis
+           il repose le programme. Un collage qui ne va qu'à un endroit
+           ne déborde pas, une marge décalée non plus. */
+        try {
+          const A = f.contentWindow.ATELIER;
+          if (A && A.diagnostic) {
+            const r = A.diagnostic(); n++;
+            if (r.erreurs.length) {
+              fautes++; dire("ÉDITEUR  " + u + "  → " + r.erreurs.join(" | "), "ko");
+            } else if (r.controles < 11) {
+              fautes++; dire("ÉDITEUR  " + u + "  → le diagnostic s'est désarmé : "
+                + r.controles + " contrôles", "ko");
+            } else {
+              dire("ÉDITEUR  " + u + "  → " + r.controles
+                + " contrôles (sélections multiples, collage, marge enroulée)", "ok");
+            }
+          }
+        } catch (e) {
+          fautes++; dire("ÉDITEUR  " + u + "  → " + e.message, "ko");
+        }
+        try {
+          const K = f.contentWindow.CALCULATRICE;
+          if (K && K.diagnostic) {
+            const r = K.diagnostic(); n++;
+            if (r.erreurs.length) {
+              fautes++; dire("DIAGNOSTIC  " + u + "  → " + r.erreurs.join(" | "), "ko");
+            } else if (r.apps < 8 || r.catalogue < 50 || r.touches < 40) {
+              fautes++; dire("DIAGNOSTIC  " + u + "  → l'appareil s'est appauvri : "
+                + r.apps + " applications, " + r.touches + " touches, "
+                + r.catalogue + " entrées de catalogue", "ko");
+            } else {
+              dire("DIAGNOSTIC  " + u + "  → " + r.apps + " applications dessinées, "
+                + r.touches + " touches, " + r.catalogue + " entrées", "ok");
+            }
+          }
+        } catch (e) {
+          fautes++; dire("DIAGNOSTIC  " + u + "  → " + e.message, "ko");
+        }
         const sc = etiquettesQuiSeChevauchent(doc);
         if (sc.length) { fautes++; dire("SCHÉMA  " + u + "  → étiquettes superposées : "
                                         + sc.slice(0, 3).join(" | "), "ko"); }
