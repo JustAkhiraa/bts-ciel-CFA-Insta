@@ -6489,6 +6489,426 @@ body.at-fige { overflow: hidden; }
 .dev-apres h3::before { content: "✓ "; color: var(--vert); }
 .dev-rien { color: var(--encre-douce); font-style: italic; }
 
+/* ═══════════════════════════ la calculatrice ══════════════════════════
+   « Upsilon NumWorks à intégrer comme outils, et améliore-le pour qu'il
+   ressemble aux fonctionnalités récentes d'une calculatrice NumWorks
+   d'aujourd'hui. »
+
+   Deux mondes dans une page, et il faut les séparer nettement :
+
+   · LE CHÂSSIS — la barre, la boîte à outils, le catalogue — appartient au
+     site. Il prend les jetons du design system et change avec les
+     quarante thèmes, comme tout le reste.
+   · L'ÉCRAN appartient à l'appareil. Un écran de calculatrice ne devient
+     pas violet parce qu'on a choisi le thème Midgar : ce qu'on y lit doit
+     ressembler à ce qu'on lira le jour de l'épreuve. Sa palette est donc
+     déclarée ICI, une seule fois, sur « .nw-ecran », et nulle part
+     ailleurs. Ce n'est pas une entorse à la règle « aucune couleur
+     nouvelle en dur » : c'est un appareil représenté, au même titre
+     qu'une classe Bootstrap citée dans un <pre> est du contenu enseigné.
+
+   Les deux palettes de l'écran — clair et sombre, comme le thème que la
+   version communautaire a popularisé — sont mesurées : le texte doux
+   tient 7:1 sur le fond, le jaune de sélection porte de l'encre noire. */
+.nw-barre {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  margin-bottom: 1rem;
+}
+.nw-barre button { font: inherit; cursor: pointer; }
+.nw-creux {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 42px; padding: 0 .85rem; border-radius: 7px;
+  background: var(--carte-creuse); color: var(--encre-douce);
+  border: 1px solid var(--bord-fort); font-weight: 600; font-size: .8485rem;
+}
+.nw-creux:hover { border-color: var(--accent); color: var(--encre); }
+.nw-creux[aria-expanded="true"], .nw-creux[aria-pressed="true"] {
+  border-color: var(--accent); color: var(--encre); background: var(--accent-pale);
+}
+.nw-creux kbd {
+  font-family: var(--mono); font-size: .72em; border: 1px solid currentColor;
+  border-radius: 4px; padding: .05em .35em; opacity: .75;
+}
+.nw-etat {
+  margin: 0 0 0 auto; font-size: .7879rem; font-weight: 600;
+  color: var(--encre-douce); text-align: right; line-height: 1.35;
+}
+.nw-etat.e-ok { color: var(--vert); }
+.nw-etat.e-erreur { color: var(--rouge); }
+
+/* ── l'appareil ───────────────────────────────────────────────────────
+   Sur un écran large, l'écran et le clavier sont côte à côte : le tracé
+   d'une fonction a besoin de place, et personne ne tient une page web
+   comme une calculatrice. En dessous de 900 px ils s'empilent, écran en
+   haut — c'est la disposition de la machine. */
+.nw-corps {
+  display: grid; gap: 1rem; align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 310px);
+}
+@media (max-width: 900px) { .nw-corps { grid-template-columns: minmax(0, 1fr); } }
+
+.nw-ecran {
+  --nw-fond: #FFFFFF;
+  --nw-encre: #1A1A1A;
+  --nw-encre-douce: #565656;
+  --nw-bande: #2B2B2B;
+  --nw-sur-bande: #FFFFFF;
+  --nw-choix: #FFB734;
+  --nw-sur-choix: #1A1A1A;
+  --nw-filet: #CFCFCF;
+  --nw-grille: #EDEDED;
+  --nw-creuse: #F4F4F4;
+  --nw-rouge: #C0392B;
+  --nw-c1: #0B6CB8; --nw-c2: #C0392B; --nw-c3: #1E7B33; --nw-c4: #7A3FA8;
+  display: flex; flex-direction: column;
+  min-height: 420px;
+  border: 1px solid var(--bord-fort); border-radius: 10px;
+  background: var(--nw-fond); color: var(--nw-encre);
+  overflow: hidden; box-shadow: var(--ombre);
+}
+.nw-ecran[data-ecran="sombre"] {
+  --nw-fond: #15171B;
+  --nw-encre: #F3F4F6;
+  --nw-encre-douce: #B6BAC2;
+  --nw-bande: #0C0E11;
+  --nw-sur-bande: #F3F4F6;
+  --nw-filet: #3A3F47;
+  --nw-grille: #262B31;
+  --nw-creuse: #1E2127;
+  --nw-rouge: #FF8A80;
+  --nw-c1: #5FB8F5; --nw-c2: #FF8A80; --nw-c3: #7FD08A; --nw-c4: #C9A3F0;
+}
+.nw-bandeau {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .3rem .6rem; min-height: 26px;
+  background: var(--nw-bande); color: var(--nw-sur-bande);
+  font-size: .7576rem; font-weight: 700; letter-spacing: .01em;
+}
+.nw-bandeau-droite { margin-left: auto; display: flex; align-items: center; gap: .55rem; }
+.nw-angle, .nw-heure { font-family: var(--mono); font-weight: 600; opacity: .9; }
+.nw-examen {
+  background: var(--nw-choix); color: var(--nw-sur-choix);
+  border-radius: 4px; padding: .05rem .4rem; font-size: .9em;
+}
+.nw-page {
+  flex: 1; min-height: 0; padding: .7rem .8rem 1rem;
+  font-size: .8788rem; line-height: 1.5; overflow: auto;
+}
+.nw-sans-js { margin: 0; color: var(--nw-encre-douce); }
+
+/* ── l'accueil : la grille d'applications ────────────────────────────
+   Trois colonnes, des tuiles égales, et UNE seule tuile choisie à la
+   fois, cernée du jaune de l'appareil. Les flèches du clavier la
+   déplacent, Entrée ouvre — c'est le seul geste de l'accueil, il doit
+   marcher sans la souris. */
+.nw-accueil { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; }
+@media (max-width: 420px) { .nw-accueil { grid-template-columns: repeat(2, 1fr); } }
+.nw-tuile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .3rem; min-height: 76px; padding: .5rem .3rem;
+  border: 1px solid var(--nw-filet); border-radius: 9px;
+  background: var(--nw-creuse); color: var(--nw-encre);
+  font: inherit; font-weight: 650; font-size: .8182rem; cursor: pointer;
+  text-align: center;
+}
+.nw-tuile:hover { border-color: var(--nw-choix); }
+.nw-tuile[aria-current="true"] {
+  border-color: var(--nw-choix); box-shadow: inset 0 0 0 2px var(--nw-choix);
+}
+.nw-tuile-ic {
+  font-size: 1.35rem; line-height: 1; font-family: var(--mono); font-weight: 700;
+  color: var(--nw-encre);
+}
+.nw-accueil-note { margin: .8rem 0 0; font-size: .7879rem; color: var(--nw-encre-douce); }
+
+/* ── le fil des calculs ──────────────────────────────────────────────
+   L'entrée en petit et en gris, le résultat EXACT en gros, la valeur
+   approchée dessous. C'est la hiérarchie de l'appareil, et elle dit la
+   bonne chose : ce qu'on recopie sur la copie, c'est la forme exacte. */
+.nw-flux { display: flex; flex-direction: column; gap: .5rem; }
+.nw-ligne {
+  border-bottom: 1px solid var(--nw-grille); padding-bottom: .45rem;
+  display: flex; flex-direction: column; gap: .1rem;
+}
+.nw-ligne:last-child { border-bottom: 0; }
+.nw-saisie {
+  font-family: var(--mono); font-size: .7879rem; color: var(--nw-encre-douce);
+  overflow-wrap: anywhere;
+}
+.nw-resultat {
+  font-family: var(--mono); font-size: 1.12rem; font-weight: 700;
+  text-align: right; overflow-wrap: anywhere;
+}
+.nw-approche {
+  font-family: var(--mono); font-size: .8182rem; color: var(--nw-encre-douce);
+  text-align: right;
+}
+.nw-erreur {
+  color: var(--nw-rouge); font-size: .8182rem; font-weight: 600;
+  background: none; text-align: left;
+}
+.nw-vide { color: var(--nw-encre-douce); font-style: italic; margin: 0; }
+
+/* Le champ de saisie de l'écran : c'est l'élément le plus utilisé de
+   l'outil, il a donc la plus grande cible et le plus gros caractère. */
+.nw-saisie-boite { display: flex; gap: .4rem; align-items: stretch; margin-top: .7rem; }
+.nw-champ {
+  flex: 1; min-width: 0; min-height: 40px; padding: .35rem .5rem;
+  font-family: var(--mono); font-size: 1rem; color: var(--nw-encre);
+  background: var(--nw-creuse);
+  border: 1.5px solid var(--nw-filet); border-radius: 7px;
+}
+.nw-champ:focus { outline: 2px solid var(--nw-choix); outline-offset: 1px; border-color: var(--nw-choix); }
+.nw-valider {
+  min-height: 40px; padding: 0 .8rem; border-radius: 7px; cursor: pointer;
+  background: var(--nw-bande); color: var(--nw-sur-bande); border: 0;
+  font: inherit; font-weight: 700; font-size: .8182rem;
+}
+
+/* ── les panneaux d'application ──────────────────────────────────────── */
+.nw-onglets { display: flex; gap: .3rem; margin: 0 0 .6rem; flex-wrap: wrap; }
+.nw-onglet {
+  min-height: 34px; padding: .25rem .7rem; cursor: pointer; font: inherit;
+  font-size: .7879rem; font-weight: 650; border-radius: 6px;
+  border: 1px solid var(--nw-filet); background: var(--nw-creuse); color: var(--nw-encre-douce);
+}
+.nw-onglet:hover { color: var(--nw-encre); border-color: var(--nw-choix); }
+.nw-onglet[aria-selected="true"] {
+  background: var(--nw-choix); color: var(--nw-sur-choix); border-color: var(--nw-choix);
+}
+.nw-rangee { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .5rem; }
+.nw-rangee label { font-size: .7879rem; font-weight: 600; color: var(--nw-encre-douce); }
+.nw-petit {
+  min-height: 34px; padding: .2rem .4rem; width: 6.5rem; max-width: 40vw;
+  font-family: var(--mono); font-size: .8182rem;
+  color: var(--nw-encre); background: var(--nw-creuse);
+  border: 1px solid var(--nw-filet); border-radius: 6px;
+}
+.nw-petit.nw-large { width: 100%; max-width: none; flex: 1; }
+.nw-petit:focus { outline: 2px solid var(--nw-choix); outline-offset: 1px; }
+select.nw-petit { width: auto; min-width: 7rem; }
+.nw-bouton {
+  min-height: 34px; padding: .25rem .65rem; cursor: pointer; font: inherit;
+  font-size: .7879rem; font-weight: 650; border-radius: 6px;
+  border: 1px solid var(--nw-filet); background: var(--nw-creuse); color: var(--nw-encre);
+}
+.nw-bouton:hover { border-color: var(--nw-choix); }
+.nw-bouton.nw-primaire { background: var(--nw-bande); color: var(--nw-sur-bande); border-color: var(--nw-bande); }
+
+/* Les résultats : une liste de couples « nom → valeur », alignés sur la
+   valeur. Un tableau de bord qu'on lit en diagonale. */
+.nw-valeurs { display: grid; grid-template-columns: auto 1fr; gap: .15rem .7rem; margin: .5rem 0 0; }
+.nw-valeurs dt { font-size: .7879rem; color: var(--nw-encre-douce); font-weight: 600; }
+.nw-valeurs dd {
+  margin: 0; font-family: var(--mono); font-size: .8485rem; font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.nw-valeurs dd b { color: var(--nw-encre); }
+.nw-sous { font-size: .7576rem; color: var(--nw-encre-douce); margin: .5rem 0 0; line-height: 1.5; }
+.nw-sous a { color: inherit; text-decoration: underline; }
+.nw-chapitre {
+  display: inline-flex; align-items: center; gap: .3rem; min-height: 34px;
+  margin-top: .6rem; padding: .2rem .6rem;
+  border: 1px solid var(--nw-filet); border-radius: 6px;
+  background: var(--nw-creuse); color: var(--nw-encre);
+  font-size: .7879rem; font-weight: 650; text-decoration: none;
+}
+.nw-chapitre:hover { border-color: var(--nw-choix); text-decoration: underline; }
+
+/* Les tableaux de l'écran (valeurs, statistiques, régressions). */
+.nw-table { width: 100%; border-collapse: collapse; font-size: .7879rem; }
+.nw-table th, .nw-table td {
+  border: 1px solid var(--nw-grille); padding: .2rem .4rem; text-align: right;
+  font-family: var(--mono);
+}
+.nw-table th { background: var(--nw-creuse); font-weight: 700; color: var(--nw-encre-douce); }
+.nw-table td:first-child, .nw-table th:first-child { text-align: left; }
+.nw-defile { overflow: auto; max-height: 260px; }
+.nw-cellule {
+  width: 100%; min-height: 34px; padding: .15rem .3rem; border: 0; background: none;
+  font-family: var(--mono); font-size: .7879rem; color: var(--nw-encre); text-align: right;
+}
+.nw-cellule:focus { outline: 2px solid var(--nw-choix); outline-offset: -2px; }
+
+/* ── le tracé ─────────────────────────────────────────────────────────
+   En SVG et non sur une toile : il reste net quand on l'agrandit, il
+   s'imprime, et le banc de rendu peut le lire. La courbe est coupée dès
+   qu'elle sort du cadre — sans cela une asymptote dessine un trait
+   vertical qui n'existe pas, et c'est l'erreur de lecture la plus
+   fréquente sur un écran de calculatrice. */
+.nw-trace { display: block; width: 100%; height: auto; background: var(--nw-fond); }
+.nw-trace .axe { stroke: var(--nw-encre-douce); stroke-width: 1; }
+.nw-trace .grille { stroke: var(--nw-grille); stroke-width: 1; }
+.nw-trace .courbe { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.nw-trace .c1 { stroke: var(--nw-c1); } .nw-trace .c2 { stroke: var(--nw-c2); }
+.nw-trace .c3 { stroke: var(--nw-c3); } .nw-trace .c4 { stroke: var(--nw-c4); }
+.nw-trace .aire { fill: var(--nw-c1); opacity: .18; stroke: none; }
+.nw-trace .point { fill: var(--nw-c1); }
+.nw-trace .barre { fill: var(--nw-c1); }
+.nw-trace .barre-choisie { fill: var(--nw-choix); stroke: var(--nw-encre); stroke-width: .8; }
+.nw-trace .curseur { stroke: var(--nw-encre); stroke-width: 1; stroke-dasharray: 3 2; }
+.nw-trace text { fill: var(--nw-encre-douce); font-size: 9px; font-family: var(--mono); }
+.nw-trace .etiq { fill: var(--nw-encre); font-weight: 700; }
+.nw-curseur-info {
+  font-family: var(--mono); font-size: .8182rem; font-weight: 650;
+  margin: .35rem 0 0; display: flex; flex-wrap: wrap; gap: .1rem .9rem;
+}
+.nw-legende { display: flex; flex-wrap: wrap; gap: .1rem .8rem; margin: .4rem 0 0; font-size: .7576rem; }
+.nw-legende span { display: inline-flex; align-items: center; gap: .3rem; color: var(--nw-encre-douce); }
+.nw-legende i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+
+/* ── le clavier ───────────────────────────────────────────────────────
+   La disposition de l'appareil : le bloc de navigation, le bloc des
+   fonctions sur six colonnes, le pavé numérique sur cinq. Chaque touche
+   fait au moins 38 px de côté — en dessous, on en tape deux à la fois,
+   et c'est la seule raison de ce chiffre. */
+.nw-clavier {
+  display: flex; flex-direction: column; gap: .4rem;
+  padding: .55rem; border: 1px solid var(--bord-fort); border-radius: 12px;
+  background: var(--carte-creuse);
+}
+.nw-bloc { display: grid; gap: .3rem; }
+.nw-bloc-nav { grid-template-columns: repeat(6, 1fr); align-items: center; }
+.nw-bloc-fn { grid-template-columns: repeat(6, 1fr); }
+.nw-bloc-num { grid-template-columns: repeat(5, 1fr); }
+.nw-touche {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1px;
+  min-height: 38px; padding: .1rem .1rem; cursor: pointer;
+  border: 1px solid var(--bord-fort); border-radius: 7px;
+  background: var(--carte); color: var(--encre);
+  font: inherit; font-size: .8182rem; font-weight: 650; line-height: 1.1;
+  font-family: var(--mono);
+}
+.nw-touche:hover { border-color: var(--accent); }
+.nw-touche:active { transform: translateY(1px); }
+.nw-touche .sec {
+  font-size: .625rem; font-weight: 700; color: var(--ambre-sombre);
+  font-family: var(--sans); letter-spacing: -.01em;
+}
+.nw-touche-fn { background: var(--carte-creuse); font-size: .7576rem; }
+.nw-touche-nav { background: var(--carte-creuse); font-size: .7879rem; }
+.nw-touche-exe { background: var(--accent); color: var(--sur-accent); border-color: var(--accent); }
+.nw-touche-exe:hover { background: var(--accent-sombre); border-color: var(--accent-sombre); }
+.nw-touche[aria-pressed="true"] {
+  background: var(--ambre-pale); border-color: var(--ambre); color: var(--ambre-sombre);
+}
+.nw-touche[aria-pressed="true"] .sec { color: var(--ambre-sombre); }
+/* La croix directionnelle : quatre touches autour d'un « OK », comme sur
+   l'appareil. Elle occupe trois colonnes de la rangée de navigation. */
+.nw-croix {
+  grid-column: span 3; display: grid; gap: .25rem;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-areas: ". haut ." "gauche ok droite" ". bas .";
+}
+.nw-croix .k-haut { grid-area: haut; } .nw-croix .k-bas { grid-area: bas; }
+.nw-croix .k-gauche { grid-area: gauche; } .nw-croix .k-droite { grid-area: droite; }
+.nw-croix .k-ok { grid-area: ok; font-size: .7273rem; }
+.nw-clavier-note { margin: .1rem 0 0; font-size: .6818rem; color: var(--encre-douce); text-align: center; }
+
+/* ── la boîte à outils ───────────────────────────────────────────────── */
+.nw-boite {
+  margin-top: 1rem; border: 1px solid var(--bord-fort); border-radius: var(--r);
+  background: var(--carte); box-shadow: var(--ombre);
+}
+.nw-boite-tete {
+  display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+  padding: .6rem .8rem; border-bottom: 1px solid var(--bord);
+}
+.nw-boite-tete h3 { margin: 0; font-size: .9394rem; }
+.nw-boite-tete input {
+  flex: 1; min-width: 10rem; min-height: 38px; padding: .2rem .5rem;
+  border: 1px solid var(--bord-fort); border-radius: 6px;
+  background: var(--carte-creuse); color: var(--encre); font: inherit; font-size: .8485rem;
+}
+.nw-boite-tete button {
+  min-height: 38px; min-width: 38px; cursor: pointer; font: inherit; font-size: 1rem;
+  border: 1px solid var(--bord-fort); border-radius: 6px;
+  background: var(--carte-creuse); color: var(--encre-douce);
+}
+.nw-boite-liste { max-height: 340px; overflow: auto; padding: .4rem; }
+.nw-boite-cat {
+  margin: .5rem 0 .25rem; padding: 0 .4rem; font-size: .7576rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--encre-douce);
+}
+.nw-boite-item {
+  display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
+  min-height: 38px; padding: .35rem .5rem; border: 1px solid transparent;
+  border-radius: 7px; background: none; color: var(--encre);
+}
+.nw-boite-item:hover, .nw-boite-item:focus-visible {
+  background: var(--accent-pale); border-color: var(--accent);
+}
+.nw-boite-item b { font-family: var(--mono); font-size: .8485rem; }
+.nw-boite-item i { display: block; font-style: normal; font-size: .7879rem; color: var(--encre-douce); }
+.nw-boite-rien { padding: .8rem; margin: 0; color: var(--encre-douce); font-style: italic; }
+
+.nw-aide-clavier {
+  margin: .9rem 0 0; font-size: .8182rem; color: var(--encre-douce); line-height: 1.6;
+}
+.nw-aide-clavier kbd {
+  font-family: var(--mono); font-size: .9em; border: 1px solid var(--bord-fort);
+  border-radius: 4px; padding: .05em .3em; background: var(--carte-creuse);
+}
+.nw-notice { margin-top: 1.2rem; }
+.nw-notice > summary {
+  cursor: pointer; min-height: 44px; display: flex; align-items: center;
+  font-weight: 700; color: var(--encre);
+}
+.nw-notice > summary:hover { color: var(--accent-sombre); }
+.nw-notice-corps { padding: .3rem 0 0; }
+.nw-notice-corps h4 { margin: 1.1rem 0 .4rem; font-size: .9394rem; }
+.nw-notice-corps p { margin: 0 0 .7rem; line-height: 1.65; font-size: .8788rem; }
+.nw-note-forte {
+  border-left: 3px solid var(--accent); padding-left: .8rem;
+  background: var(--accent-pale); border-radius: 0 8px 8px 0; padding: .5rem .8rem;
+}
+.nw-conventions { margin: 0 0 .8rem; padding-left: 1.1rem; }
+.nw-conventions li { margin-bottom: .45rem; line-height: 1.6; font-size: .8788rem; }
+.nw-cat-tete { margin: 1.6rem 0 .4rem; }
+.nw-cat-intro { margin: 0 0 .9rem; color: var(--encre-douce); font-size: .8788rem; line-height: 1.6; }
+.nw-cat-groupe { margin-bottom: 1.1rem; }
+.nw-cat-groupe h4 { margin: 0 0 .4rem; font-size: .9091rem; }
+.nw-cat-table { width: 100%; border-collapse: collapse; font-size: .8182rem; }
+.nw-cat-table th, .nw-cat-table td {
+  border: 1px solid var(--bord); padding: .3rem .5rem; text-align: left; vertical-align: top;
+}
+.nw-cat-table th { background: var(--carte-creuse); font-weight: 700; }
+.nw-cat-table code { font-size: .95em; }
+.nw-cat-table .ex { font-family: var(--mono); white-space: nowrap; }
+
+/* ── agrandi ──────────────────────────────────────────────────────────
+   Même geste que l'atelier C, et pour la même raison : un tracé se juge
+   à ce qu'on en voit d'un coup. Réversible par Échap. */
+#calculatrice.nw-grand {
+  position: fixed; inset: 0; z-index: 90; margin: 0; border: 0; border-radius: 0;
+  box-shadow: none; overflow: auto; background: var(--papier);
+  padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
+}
+#calculatrice.nw-grand .nw-ecran { min-height: calc(100vh - 9rem); }
+#calculatrice.nw-grand .nw-notice,
+#calculatrice.nw-grand .nw-cat-tete,
+#calculatrice.nw-grand .nw-cat-intro,
+#calculatrice.nw-grand .nw-catalogue,
+#calculatrice.nw-grand .nw-aide-clavier { display: none; }
+body.nw-fige { overflow: hidden; }
+
+@media print {
+  .nw-clavier, .nw-barre, .nw-boite, .nw-aide-clavier { display: none; }
+  .nw-corps { grid-template-columns: 1fr; }
+  .nw-ecran { box-shadow: none; }
+}
+
+/* ── la marge de l'éditeur est cliquable ──────────────────────────────
+   « dans vscode quand on clic sur une ligne ca la selectionne ».
+   L'affordance doit se voir avant le clic (Norman) : le curseur change sur
+   toute la bande, et le numéro survolé reprend sa pleine encre. Ce sont les
+   deux seuls signes disponibles — on ne peut ni agrandir un numéro de ligne
+   ni l'encadrer sans décaler le code qu'il numérote. */
+.edi-marge { cursor: pointer; }
+.edi-marge .edi-num:hover { color: var(--encre); }
+.edi-marge:active .edi-num { user-select: none; }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en

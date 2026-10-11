@@ -147,6 +147,74 @@
     let langue = "c";
     let marques = [];
 
+    /* ── cliquer un numéro de ligne sélectionne la ligne ──────────────
+       « dans vscode quand on clic sur une ligne ca la selectionne ».
+
+       Il y avait un obstacle, et il est écrit dans le commentaire de la
+       marge quelques lignes plus bas : un numéro de ligne fait 22 px de
+       haut — c'est l'interligne du code, il ne s'étire pas — alors que la
+       règle du site veut qu'une COMMANDE fasse au moins 34 px. Le banc de
+       rendu avait compté quinze cibles sous le seuil, et il avait raison.
+
+       La sortie est de ne PAS faire des numéros des commandes : l'écoute
+       est posée sur la MARGE, qui est un long bandeau, et la ligne est
+       déduite de l'endroit cliqué. Un seul élément interactif, haut de
+       toute la hauteur de l'éditeur, et les numéros restent des <div> qui
+       signalent. C'est aussi exactement le fonctionnement de VS Code, où
+       la gouttière est une bande et non une colonne de boutons.
+
+       Trois gestes, les mêmes que là-bas : cliquer prend la ligne,
+       Maj+cliquer étend depuis la précédente, glisser prend un bloc.
+       Aucune de ces trois actions n'est perdue au clavier — Début puis
+       Maj+Fin sélectionne déjà une ligne —, donc rien de nouveau ne
+       devient inaccessible à qui n'a pas de souris. */
+    function bornesLigne(i) {
+      const lignes = saisie.value.split("\n");
+      let d = 0;
+      for (let k = 0; k < i && k < lignes.length; k++) d += lignes[k].length + 1;
+      const f = d + (lignes[i] === undefined ? 0 : lignes[i].length);
+      /* On avale le saut de ligne final quand il existe : sélectionner
+         « la ligne » et taper doit la remplacer en entier, pas laisser
+         une ligne vide derrière. La dernière ligne n'en a pas. */
+      return { d, f: Math.min(saisie.value.length, i < lignes.length - 1 ? f + 1 : f) };
+    }
+    function ligneSousLaSouris(e) {
+      const num = e.target.closest ? e.target.closest(".edi-num") : null;
+      if (num) return Array.prototype.indexOf.call(marge.children, num);
+      /* Cliqué dans la marge mais en dessous de la dernière ligne : on
+         prend la dernière, plutôt que de ne rien faire — c'est ce qu'on
+         voulait dire. */
+      const boite = marge.getBoundingClientRect();
+      if (!marge.children.length) return 0;
+      const hauteur = marge.children[0].getBoundingClientRect().height || 22;
+      const i = Math.floor((e.clientY - boite.top + marge.scrollTop) / hauteur);
+      return Math.max(0, Math.min(marge.children.length - 1, i));
+    }
+    let ancreLigne = null;
+    function prendreLignes(de, a) {
+      const i = Math.min(de, a), j = Math.max(de, a);
+      const debut = bornesLigne(i), fin = bornesLigne(j);
+      saisie.focus();
+      saisie.setSelectionRange(debut.d, fin.f);
+      redessiner();
+    }
+    marge.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      /* preventDefault, sinon le navigateur sélectionne le TEXTE du
+         numéro dans la marge et le champ ne reçoit jamais le focus. */
+      e.preventDefault();
+      const i = ligneSousLaSouris(e);
+      if (e.shiftKey && ancreLigne !== null) prendreLignes(ancreLigne, i);
+      else { ancreLigne = i; prendreLignes(i, i); }
+      const bouger = (ev) => prendreLignes(ancreLigne, ligneSousLaSouris(ev));
+      const lacher = () => {
+        document.removeEventListener("mousemove", bouger);
+        document.removeEventListener("mouseup", lacher);
+      };
+      document.addEventListener("mousemove", bouger);
+      document.addEventListener("mouseup", lacher);
+    });
+
     function redessiner() {
       const t = saisie.value;
       peint.innerHTML = peindre(t, langue) + "\n";
@@ -1658,6 +1726,46 @@
          '        std::cout << "Bonjour " << nom << " !" << std::endl;\n    }\n\n    return 0;\n}\n',
     };
 
+    /* ── le raccourcisseur, chargé à la DEMANDE ───────────────────────
+       « fais quelque chose pour raccourcir le lien peut-être tu fais un
+       programme qui compresse les liens » — c'est « lien.js », et son
+       dictionnaire de quarante kilooctets de vrai code C. Quarante
+       kilooctets, c'est trop pour les imposer à quelqu'un qui vient
+       seulement compiler : les deux fichiers ne sont donc téléchargés
+       qu'au premier partage, ou à l'ouverture d'un lien compressé.
+
+       Pas de « fetch » : deux balises <script>, qui marchent aussi
+       depuis un fichier local — c'est la règle du dépôt, une page doit
+       s'ouvrir hors ligne. */
+    let promesseLien = null;
+    function chargerLien() {
+      if (promesseLien) return promesseLien;
+      promesseLien = new Promise((fini) => {
+        if (typeof LIEN !== "undefined" && typeof LIEN_DICO === "string") {
+          fini(LIEN.dictionnaire(LIEN_DICO)); return;
+        }
+        let reste = 2, rate = false;
+        const poser = (src) => {
+          const b = document.createElement("script");
+          b.src = src;
+          b.onload = () => {
+            if (--reste === 0) {
+              fini(!rate && typeof LIEN !== "undefined" && typeof LIEN_DICO === "string"
+                ? LIEN.dictionnaire(LIEN_DICO) : null);
+            }
+          };
+          b.onerror = () => { rate = true; if (--reste === 0) fini(null); };
+          document.head.appendChild(b);
+        };
+        /* L'ordre n'a pas d'importance — les deux fichiers ne se
+           connaissent pas — mais le compte, lui, en a : la promesse ne
+           se résout qu'une fois les deux arrivés. */
+        poser("c/lien.js");
+        poser("c/dico-liens.js");
+      });
+      return promesseLien;
+    }
+
     /* Le pendant de « comprimer ». Déclarée en « function » : elle est donc
        hissée, et « charger » peut l'appeler bien qu'elle soit écrite plus
        bas. */
@@ -1678,6 +1786,26 @@
          prêt : quelques millisecondes, et surtout on ne charge pas le
          brouillon entre-temps, ce qui ferait clignoter un programme qui n'est
          pas celui qu'on a ouvert. */
+      /* Les formats du raccourcisseur : « z » (dictionnaire + deflate)
+         et « y » (dictionnaire seul). Ils demandent le dictionnaire,
+         donc un aller-retour de chargement — on rend la main et on
+         remplit l'éditeur quand c'est prêt, exactement comme pour
+         « c ». */
+      const zz = location.hash.match(/[#&]([zy])=([^&]+)/);
+      if (zz) {
+        chargerLien().then(async (dico) => {
+          const txt = dico ? await LIEN.relire(zz[1], zz[2], dico) : null;
+          if (txt == null) {
+            dirEtat("Ce lien n'a pas pu être lu — il est peut-être tronqué", "ko");
+            editeur.valeur = DEPART.c; poserLangue("c");
+            return;
+          }
+          editeur.valeur = txt;
+          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
+          poserLangue(l ? l[1] : devine(txt));
+        });
+        return;
+      }
       const z = location.hash.match(/[#&]c=([^&]+)/);
       if (z) {
         decomprimer(z[1]).then((txt) => {
@@ -1911,26 +2039,63 @@
       return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
     }
 
+    /* L'adresse courte. « outils/langage-c.html » coûte vingt-huit
+       caractères dans CHAQUE lien partagé ; « c.html » posé à la racine du
+       site n'en coûte que six et renvoie ici en gardant le fragment.
+       Quatorze caractères gagnés pour un fichier de vingt lignes, écrit
+       par publier.py — qui est donc le seul endroit où cette page existe.
+       Si le site est consulté depuis une copie partielle qui n'aurait pas
+       la racine, on garde l'adresse longue. */
+    function basesPossibles() {
+      const longue = location.origin + location.pathname;
+      const racine = location.pathname.replace(/outils\/[^/]*$/, "");
+      const courte = racine !== location.pathname
+        ? location.origin + racine + "c.html" : null;
+      return { longue, courte };
+    }
+
     $("#at-partager").addEventListener("click", async () => {
       const texte = editeur.valeur;
-      const court = await comprimer(texte);
-      const brut = en64(texte);
-      /* On garde le plus court des deux. Sur trois lignes, la compression
-         coûte plus qu'elle ne rapporte : son en-tête est fixe, le texte ne
-         l'est pas. Comparer est gratuit, supposer ne l'est pas. */
-      const frag = (court && court.length < brut.length)
-        ? "c=" + court + "&l=" + langue
-        : "p=" + brut + "&l=" + langue;
-      const url = location.origin + location.pathname + "#" + frag;
-      const gain = court ? Math.round((1 - court.length / brut.length) * 100) : 0;
+      dirEtat("Compression du lien…", "");
+      const dico = await chargerLien();
+      let frag = null, avant = null;
+      /* La référence annoncée est l'ancien lien : c'est ce qu'il voyait
+         hier, et c'est à ça qu'il va comparer. */
+      const brutAvant = en64(texte);
+      const deflAvant = await comprimer(texte);
+      avant = (deflAvant && deflAvant.length < brutAvant.length
+               ? deflAvant : brutAvant).length;
+      if (dico && typeof LIEN !== "undefined") {
+        const r = await LIEN.fabriquer(texte, dico);
+        if (r) frag = r.cle + "=" + r.charge + "&l=" + langue;
+      }
+      if (!frag) {
+        /* Le raccourcisseur n'a pas pu se charger, ou aucun de ses
+           formats n'a tenu l'aller-retour : on retombe sur l'ancien
+           comportement sans rien casser. Un lien long existe ; un lien
+           faux, non. */
+        frag = (deflAvant && deflAvant.length < brutAvant.length)
+          ? "c=" + deflAvant + "&l=" + langue
+          : "p=" + brutAvant + "&l=" + langue;
+      }
+      const bases = basesPossibles();
+      const url = (bases.courte || bases.longue) + "#" + frag;
+      const urlAvant = bases.longue.length + 1 + avant + ("&l=" + langue).length;
+      const gain = Math.round((1 - url.length / urlAvant) * 100);
       const dit = "Lien copié — " + url.length + " caractères"
-                + (frag[0] === "c" && gain > 0 ? ", " + gain + " % de moins qu'avant" : "");
+                + (gain > 0 ? " au lieu de " + urlAvant + ", soit " + gain + " % de moins"
+                            : "")
+                + " · aller-retour vérifié";
       try {
         await navigator.clipboard.writeText(url);
         dirEtat(dit, "ok");
       } catch (e) {
+        /* Le presse-papier est refusé dans certains contextes (page
+           locale, permission non accordée). Le lien existe quand même :
+           il est posé dans la barre d'adresse, et le MÊME chiffre est
+           annoncé — sinon le repli avait l'air d'un autre résultat. */
         location.hash = frag;
-        dirEtat("Lien mis dans la barre d'adresse — " + url.length + " caractères", "ok");
+        dirEtat(dit.replace("Lien copié", "Lien dans la barre d'adresse"), "ok");
       }
     });
 
