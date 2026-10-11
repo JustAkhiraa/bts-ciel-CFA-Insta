@@ -10,7 +10,14 @@
   /* ───────────────────────────────────────────────── état persistant */
   var CLE = "bts-ciel";
   var DEFAUTS = {
-    theme: "", variante: "", taille: "normal", largeur: "normal", police: "systeme",
+    /* « mettre comme theme par defaut le bloc note ».
+       Il est posé ici et dans l'amorce anti-éclair de publier.py — les deux,
+       sinon la page s'affiche une fraction de seconde dans l'ancien thème.
+       Et il ne s'impose qu'aux NOUVEAUX visiteurs : « theme » est toujours
+       écrit dans la mémoire locale, donc quelqu'un qui a choisi « Système »
+       a bien la chaîne vide enregistrée, et Object.assign la laisse passer
+       par-dessus ce défaut. Un réglage choisi ne se reprend pas. */
+    theme: "bloc-notes", variante: "", taille: "normal", largeur: "normal", police: "systeme",
     interligne: "normal", anim: 1, curseur: 1, reponses: 0, faits: [],
     son: "", sonVolume: 30,
     derniere: null, recents: []
@@ -33,7 +40,14 @@
       { id: "", nom: "Système (suit l'appareil)", sombre: null }
     ]},
     { nom: "Clair", items: [
-      { id: "light", nom: "Clair", sombre: false },
+      /* « renommer le theme clair en classic clair » : ce sont les deux
+         thèmes d'origine du dépôt, et leur nom doit dire qu'ils sont les
+         classiques — sinon « Clair » dans le groupe « Clair » ne distingue
+         rien de ses onze voisins. Les IDENTIFIANTS ne changent pas :
+         « light » et « dark » sont écrits dans la mémoire des visiteurs,
+         dans l'amorce anti-éclair et dans les deux bancs. Renommer un
+         identifiant, c'est oublier le thème de tout le monde. */
+      { id: "light", nom: "Classic clair", sombre: false },
       { id: "sand", nom: "Sable", sombre: false },
       { id: "cream", nom: "Crème", sombre: false },
       { id: "dawn", nom: "Aube", sombre: false },
@@ -47,7 +61,7 @@
       { id: "marble", nom: "Marbre", sombre: false }
     ]},
     { nom: "Sombre", items: [
-      { id: "dark", nom: "Sombre", sombre: true },
+      { id: "dark", nom: "Classic sombre", sombre: true },
       { id: "emerald", nom: "Émeraude", sombre: true },
       { id: "ocean", nom: "Océan", sombre: true },
       { id: "mocha", nom: "Moka", sombre: true },
