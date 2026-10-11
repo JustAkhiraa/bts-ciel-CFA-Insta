@@ -891,6 +891,59 @@
       if (multi.length > 1 && !enFrappeMultiple) multi = [];
       redessiner();
     });
+    /* ── coller, couper, copier quand plusieurs sélections sont posées ─
+       « j'ai collé un autre mot mais ça l'a fait que pour un seul ».
+       C'était vrai, et le mal était double : le champ natif ne connaît
+       qu'une sélection, donc le collage n'allait que dans la dernière —
+       et l'écouteur d'input, en voyant une frappe qu'il croyait
+       ordinaire, ABANDONNAIT les autres au passage. On tapait ensuite
+       une lettre, elle n'allait plus qu'à un endroit, et Ctrl+D semblait
+       cassé : il n'y avait simplement plus rien à prolonger.
+
+       Les trois gestes se tiennent : sans le couper, on supprimerait une
+       seule occurrence ; sans le copier, on recopierait une seule des
+       trois qu'on vient de sélectionner. Un seul des trois corrigé aurait
+       laissé le même piège un cran plus loin.
+
+       La règle du collage est la plus simple possible, et elle est écrite
+       dans l'aide : le texte va ENTIER dans chaque sélection. VS Code en
+       a une seconde — autant de lignes que de curseurs, une ligne
+       chacun — qui rend le collage imprévisible dès qu'on colle un bloc.
+       Ici, une seule règle, qui se devine. */
+    function texteDesSelections() {
+      const t = saisie.value;
+      return multi.map((r) => t.slice(r.d, r.f)).join("\n");
+    }
+    /* Après une frappe ou un collage, les sélections sont retombées en
+       CURSEURS VIDES. Copier donnerait « \n\n » — rien, mais un rien qui
+       écrase ce qu'on avait dans le presse-papiers. Le banc de l'éditeur
+       a trouvé ce cas tout seul, et il a eu raison : on rend la main au
+       navigateur plutôt que de voler le geste pour ne rien en faire. */
+    function selectionsVides() {
+      return multi.every((r) => r.f <= r.d);
+    }
+    saisie.addEventListener("paste", (e) => {
+      if (multi.length < 2 || !e.clipboardData) return;
+      const texte = e.clipboardData.getData("text/plain");
+      if (!texte) return;
+      e.preventDefault();
+      frapperPartout(texte, 0, 0);
+      if (etat) etat.textContent = multi.length + " sélections remplacées par le presse-papiers";
+    });
+    saisie.addEventListener("copy", (e) => {
+      if (multi.length < 2 || !e.clipboardData || selectionsVides()) return;
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", texteDesSelections());
+      if (etat) etat.textContent = multi.length + " sélections copiées, une par ligne";
+    });
+    saisie.addEventListener("cut", (e) => {
+      if (multi.length < 2 || !e.clipboardData || selectionsVides()) return;
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", texteDesSelections());
+      frapperPartout("", 0, 0);
+      if (etat) etat.textContent = "sélections coupées, une par ligne";
+    });
+
     saisie.addEventListener("keyup", majOccurrences);
     saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(); });
     saisie.addEventListener("blur", (e) => {
@@ -951,8 +1004,15 @@
          c'est la condition pour que le geste existe. */
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && lettre(e, "d")) {
         e.preventDefault();
-        ajouterOccurrence();
+        const ajoutee = ajouterOccurrence();
         majOccurrences();
+        /* Un geste qui ne fait rien doit dire POURQUOI, sinon on le croit
+           cassé — c'est exactement ce qui s'est passé. */
+        if (!ajoutee && etat) {
+          etat.textContent = multi.length
+            ? "toutes les occurrences sont déjà prises (" + multi.length + ")"
+            : "placez le curseur dans un mot, ou sélectionnez un morceau";
+        }
         return;
       }
       /* Ctrl/Cmd+Shift+L — toutes les occurrences d'un coup. */
@@ -1219,12 +1279,32 @@
       if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
         const dl = t.lastIndexOf("\n", d - 1) + 1;
-        const creux = (t.slice(dl, d).match(/^[ \t]*/) || [""])[0];
-        const avant = t.slice(0, d).trimEnd().slice(-1);
+        const debutLigne = t.slice(dl, d);
+        const creux = (debutLigne.match(/^[ \t]*/) || [""])[0];
+        /* « si je clique sur entrée sans rien écrire, ça ajoute un tab
+           aussi, et du coup ça fait les escaliers ».
+
+           Le caractère qui décide d'ouvrir un cran, c'est le dernier de
+           LA LIGNE COURANTE. Il était pris sur tout le document :
+           « t.slice(0, d).trimEnd() » saute les lignes vides et remonte
+           au dernier caractère écrit, qui est justement l'accolade
+           ouvrante quand on vient d'entrer dans un bloc. Chaque Entrée
+           sur une ligne vide rajoutait donc un cran — quatre espaces,
+           puis huit, puis douze. L'escalier.
+
+           Sur une ligne vide, il n'y a pas de dernier caractère : on
+           recopie l'alinéa, et c'est tout. */
+        const avant = debutLigne.trimEnd().slice(-1);
         const apres = t.slice(f, f + 1);
         if (avant === "{" && apres === "}") {
           const ins = "\n" + creux + "    \n" + creux;
           remplacer(d, f, ins, d + creux.length + 5, d + creux.length + 5);
+        } else if (d === f && creux && !debutLigne.trim()) {
+          /* On quitte une ligne qui ne contient QUE l'alinéa posé au
+             retour précédent. On ne la laisse pas pleine d'espaces
+             invisibles : le fichier d'un TP se relit, et se rend. */
+          const ins = "\n" + creux;
+          remplacer(dl, f, ins, dl + ins.length, dl + ins.length);
         } else {
           const ins = "\n" + creux + (avant === "{" || avant === ":" ? "    " : "");
           remplacer(d, f, ins, d + ins.length, d + ins.length);
@@ -1257,13 +1337,23 @@
     /* execCommand garde l'historique d'annulation du navigateur ; un
        affectation directe de .value l'efface. Ctrl+Z doit marcher. */
     function remplacer(d, f, texte, nd, nf) {
+      const t = saisie.value;
+      const attendu = t.slice(0, d) + texte + t.slice(f);
+      saisie.focus();
       saisie.setSelectionRange(d, f);
-      let ok = false;
-      try { ok = document.execCommand("insertText", false, texte); } catch (e) {}
-      if (!ok) {
-        const t = saisie.value;
-        saisie.value = t.slice(0, d) + texte + t.slice(f);
-      }
+      /* « execCommand » garde l'ANNULATION native — Ctrl+Z défait ce
+         qu'on vient d'écrire comme si on l'avait tapé —, et c'est la
+         seule raison de l'essayer d'abord.
+
+         Mais il RETOURNE VRAI sans rien faire quand le champ n'a pas le
+         focus : une page ouverte dans un cadre, un navigateur qui n'est
+         pas au premier plan, et l'écriture disparaît en silence. Croire
+         sa parole, c'était croire un témoin qui n'a pas regardé. On
+         relit donc le texte : c'est la seule preuve qui compte, et elle
+         ne coûte qu'une comparaison. Trouvé par le diagnostic de
+         l'éditeur, au premier passage du banc de rendu. */
+      try { document.execCommand("insertText", false, texte); } catch (e) {}
+      if (saisie.value !== attendu) saisie.value = attendu;
       saisie.setSelectionRange(nd, nf);
       redessiner();
     }
@@ -1297,13 +1387,123 @@
       }).observe(peint);
     }
 
+    /* ── le diagnostic de l'éditeur ───────────────────────────────────
+       Les deux défauts signalés le 11 octobre n'étaient visibles ni à
+       l'œil ni par une mesure de mise en page : un collage qui ne va
+       qu'à un endroit ne déborde pas, et une marge décalée non plus. Le
+       banc de rendu peut mesurer deux mille largeurs sans rien voir.
+       Un outil doit donc savoir se dire en panne, et c'est ici.
+
+       Il MODIFIE le programme en cours le temps de quelques gestes, puis
+       le repose au caractère près — texte, sélections, position du
+       curseur et enroulement. Les gestes sont déclenchés par de VRAIS
+       événements quand c'est possible : ce qui se casse, dans ce genre
+       de défaut, c'est le branchement, pas la fonction. */
+    function diagnostic() {
+      const r = { controles: 0, erreurs: [] };
+      const sauve = saisie.value;
+      const selD = saisie.selectionStart, selF = saisie.selectionEnd;
+      const multiSauve = multi.slice();
+      const enrouleSauve = racine.classList.contains("enroule");
+      const dit = (ok, quoi) => { r.controles++; if (!ok) r.erreurs.push(quoi); };
+      const poser = (v) => { saisie.value = v; multi = []; redessiner(); };
+      const TROIS = "int n = 0;\nint n2 = n + 1;\nreturn n;\n";
+      const troisFois = () => {
+        poser(TROIS);
+        saisie.setSelectionRange(4, 5);
+        ajouterOccurrence(); ajouterOccurrence(); ajouterOccurrence();
+      };
+      try {
+        // 1. Ctrl+D prend bien les trois occurrences.
+        troisFois();
+        dit(multi.length === 3, "Ctrl+D : " + multi.length + " sélections au lieu de 3");
+
+        // 2. une frappe va dans les trois.
+        frapperPartout("k", 0, 0);
+        dit(saisie.value === "int k = 0;\nint n2 = k + 1;\nreturn k;\n",
+            "frappe multiple : " + JSON.stringify(saisie.value));
+
+        // 3. le collage et la copie aussi — par leurs écouteurs.
+        let presse = null;
+        try { presse = new DataTransfer(); } catch (e) { presse = null; }
+        if (presse) {
+          troisFois();
+          presse.setData("text/plain", "cpt");
+          saisie.dispatchEvent(new ClipboardEvent("paste",
+            { clipboardData: presse, bubbles: true, cancelable: true }));
+          dit(saisie.value === "int cpt = 0;\nint n2 = cpt + 1;\nreturn cpt;\n",
+              "collage multiple : " + JSON.stringify(saisie.value));
+          dit(multi.length === 3, "collage multiple : les sélections sont perdues après coup");
+
+          /* Les curseurs sont retombés vides : le presse-papiers ne doit
+             PAS être écrasé par trois chaînes vides. */
+          const vide = new DataTransfer();
+          vide.setData("text/plain", "ce-qui-etait-la");
+          saisie.dispatchEvent(new ClipboardEvent("copy",
+            { clipboardData: vide, bubbles: true, cancelable: true }));
+          dit(vide.getData("text/plain") === "ce-qui-etait-la",
+              "copie sur curseurs vides : le presse-papiers a été écrasé par "
+              + JSON.stringify(vide.getData("text/plain")));
+
+          /* Et sur des sélections vivantes, les trois partent. */
+          troisFois();
+          const copie = new DataTransfer();
+          saisie.dispatchEvent(new ClipboardEvent("copy",
+            { clipboardData: copie, bubbles: true, cancelable: true }));
+          dit(copie.getData("text/plain") === "n\nn\nn",
+              "copie multiple : " + JSON.stringify(copie.getData("text/plain")));
+        }
+
+        // 4. l'alinéa automatique ne monte pas en escalier.
+        poser("int main() {");
+        saisie.setSelectionRange(12, 12);
+        for (let i = 0; i < 4; i++)
+          saisie.dispatchEvent(new KeyboardEvent("keydown",
+            { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true }));
+        dit(saisie.value === "int main() {\n\n\n\n    ",
+            "alinéa en escalier : " + JSON.stringify(saisie.value));
+        poser("int main() {");
+        saisie.setSelectionRange(12, 12);
+        saisie.dispatchEvent(new KeyboardEvent("keydown",
+          { key: "Enter", code: "Enter", keyCode: 13, bubbles: true, cancelable: true }));
+        dit(saisie.value === "int main() {\n    ",
+            "l'accolade n'ouvre plus un cran : " + JSON.stringify(saisie.value));
+
+        // 5. la marge suit les lignes enroulées — si l'éditeur est posé.
+        if (peint.clientWidth > 10) {
+          poser("a\n// " + "mot ".repeat(90).trim() + "\nb\n");
+          if (!racine.classList.contains("enroule")) basculerEnroulement();
+          ajusterMarge(saisie.value);
+          const pas = parseFloat(getComputedStyle(peint).lineHeight);
+          const hauts = [];
+          for (let i = 0; i < marge.children.length; i++)
+            hauts.push(marge.children[i].getBoundingClientRect().height);
+          dit(hauts.length === 4, "marge : " + hauts.length + " numéros au lieu de 4");
+          dit(hauts[1] > pas * 1.5, "marge : la ligne enroulée occupe "
+              + Math.round(hauts[1]) + " px, soit une seule rangée");
+          dit(Math.abs(marge.scrollHeight - saisie.scrollHeight) <= 4,
+              "marge : " + marge.scrollHeight + " px contre "
+              + saisie.scrollHeight + " px dans le champ");
+        }
+      } catch (e) {
+        r.erreurs.push("exception : " + e.message);
+      } finally {
+        if (racine.classList.contains("enroule") !== enrouleSauve) basculerEnroulement();
+        saisie.value = sauve;
+        multi = multiSauve;
+        redessiner();
+        try { saisie.setSelectionRange(selD, selF); } catch (e) {}
+      }
+      return r;
+    }
+
     return {
       get valeur() { return saisie.value; },
       set valeur(v) { saisie.value = v; redessiner(); },
       get langue() { return langue; },
       set langue(l) { langue = l; redessiner(); },
       set marquesErreur(m) { marques = m; marge.dataset.marques = "-"; redessiner(); },
-      aller, focus: () => saisie.focus(), element: saisie,
+      aller, focus: () => saisie.focus(), element: saisie, diagnostic,
     };
   }
 
@@ -2243,25 +2443,21 @@
         const meme = ex.find((x) => x.code === texte);
         if (meme) {
           const url = (basesPossibles().courte || basesPossibles().longue) + "#n=" + meme.id;
-          const ancien = basesPossibles().longue.length + 1 + en64(texte).length + 4;
-          const dit = "Lien copié — " + url.length + " caractères au lieu de " + ancien
-            + " · c'est un programme du site, son numéro suffit";
-          try { await navigator.clipboard.writeText(url); dirEtat(dit, "ok"); }
+          try { await navigator.clipboard.writeText(url); dirEtat("Lien copié", "ok"); }
           catch (e) {
             location.hash = "n=" + meme.id;
-            dirEtat(dit.replace("Lien copié", "Lien dans la barre d'adresse"), "ok");
+            dirEtat("Lien dans la barre d'adresse", "ok");
           }
           return;
         }
       } catch (e) { /* liste indisponible : on compresse, comme avant */ }
       const dico = await chargerLien();
-      let frag = null, avant = null;
-      /* La référence annoncée est l'ancien lien : c'est ce qu'il voyait
-         hier, et c'est à ça qu'il va comparer. */
+      let frag = null;
+      /* Les deux anciens formats restent calculés : ils servent de REPLI
+         si le raccourcisseur ne se charge pas ou si aucun de ses formats
+         ne se relit à l'identique. */
       const brutAvant = en64(texte);
       const deflAvant = await comprimer(texte);
-      avant = (deflAvant && deflAvant.length < brutAvant.length
-               ? deflAvant : brutAvant).length;
       if (dico && typeof LIEN !== "undefined") {
         const r = await LIEN.fabriquer(texte, dico);
         if (r) frag = r.cle + "=" + r.charge + "&l=" + langue;
@@ -2277,22 +2473,22 @@
       }
       const bases = basesPossibles();
       const url = (bases.courte || bases.longue) + "#" + frag;
-      const urlAvant = bases.longue.length + 1 + avant + ("&l=" + langue).length;
-      const gain = Math.round((1 - url.length / urlAvant) * 100);
-      const dit = "Lien copié — " + url.length + " caractères"
-                + (gain > 0 ? " au lieu de " + urlAvant + ", soit " + gain + " % de moins"
-                            : "")
-                + " · aller-retour vérifié";
+      /* « ça c'est inutile » : le message disait le nombre de caractères,
+         le pourcentage gagné et que l'aller-retour avait été vérifié.
+         C'étaient MES chiffres, pas son besoin — il veut savoir que le
+         lien est prêt, et où. Tout le reste est mesuré par le banc, qui
+         est l'endroit des chiffres. La vérification, elle, a toujours
+         lieu : on la fait, on ne s'en vante plus. */
       try {
         await navigator.clipboard.writeText(url);
-        dirEtat(dit, "ok");
+        dirEtat("Lien copié", "ok");
       } catch (e) {
         /* Le presse-papier est refusé dans certains contextes (page
            locale, permission non accordée). Le lien existe quand même :
-           il est posé dans la barre d'adresse, et le MÊME chiffre est
-           annoncé — sinon le repli avait l'air d'un autre résultat. */
+           il est posé dans la barre d'adresse — et ça, il faut le dire,
+           parce que le geste à faire n'est plus le même. */
         location.hash = frag;
-        dirEtat(dit.replace("Lien copié", "Lien dans la barre d'adresse"), "ok");
+        dirEtat("Lien dans la barre d'adresse", "ok");
       }
     });
 
@@ -2425,6 +2621,8 @@
       ["Sélectionner l'occurrence suivante du mot", [CMD, "D"]],
       ["Sélectionner toutes les occurrences", [CMD, "⇧", "L"]],
       ["Renommer partout",                   ["F2"]],
+      ["Coller dans toutes les sélections (le texte entier dans chacune)", [CMD, "V"]],
+      ["Copier ou couper toutes les sélections (une par ligne)", [CMD, "C"]],
       ["Abandonner les curseurs multiples",  ["Échap"]],
 
       ["Retour à la ligne visuel",           [ALT, "Z"]],
@@ -2546,6 +2744,11 @@
     $$("[data-raccourci]").forEach((e) => { e.textContent = e.dataset.raccourci.replace("CMD", CMD); });
 
     charger();
+
+    /* Le point d'entrée du banc de rendu, posé APRÈS « charger() » : il
+       repose le programme tel qu'il l'a trouvé, encore faut-il que ce
+       soit le bon. */
+    window.ATELIER = { diagnostic: () => editeur.diagnostic() };
 
     if (differe) {
       bEx.disabled = false;
