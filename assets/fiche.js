@@ -157,12 +157,11 @@
   }
 
   /* --- 4 ter. L'atelier PAR-DESSUS le cours ----------------------------
-     JustAkhiraa : « quand je clique sur Essayer ça m'amène à l'outil, du
-     coup ça me sort du cours ; c'est peut-être mieux d'ouvrir une fenêtre
-     sur la même page avec une croix en haut à droite, et après on peut
-     refermer. »
+     Signalé : « Essayer » menait à l'outil, donc hors du cours. Mieux
+     vaut un panneau sur la même page, avec une croix en haut à droite
+     pour le refermer.
 
-     Il a raison, et pour une raison qui a un nom : la charge de navigation.
+     C'est juste, et pour une raison qui a un nom : la charge de navigation.
      Un onglet neuf fait perdre sa place dans la page, et il faut revenir à
      la main — pour un programme qu'on veut juste casser trois fois.
 

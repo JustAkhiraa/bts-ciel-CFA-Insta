@@ -120,7 +120,7 @@
      Le contrôle se fait ICI, au chargement, et pas seulement au moment
      d'écrire : un navigateur qui a connu la version précédente a gardé
      « voxel » dans son memo, et depuis « Clair » la lune y ramenait. C'est le
-     défaut qu'JustAkhiraa a vu, et qu'aucun banc ne pouvait voir — un banc part
+     défaut qui a été signalé, et qu'aucun banc ne pouvait voir — un banc part
      toujours d'un localStorage vide. Un réglage enregistré hier est une
      entrée comme une autre : il se valide. */
   function memoValide(id) {
@@ -167,9 +167,9 @@
   }
 
   /* ── les DISPOSITIONS : quand un thème déplace le HTML ─────────────────
-     JustAkhiraa : « je veux que tu me fasses LE menu de la Wii en thème,
-     donc revoir tout le CSS et le style même le HTML », et « pareil pour le
-     menu PS4 ».
+     Demandé : le menu de la Wii comme thème à part entière — donc revoir
+     le CSS, le style, et jusqu'au HTML — puis la même chose pour le menu
+     de la PS4.
 
      Il avait raison de le dire deux fois : ce qui avait été livré était une
      PEINTURE. Un menu de console ne se reconnaît pas à ses couleurs mais à
@@ -722,7 +722,8 @@
     }
 
     function volumeVoulu() {
-      /* Discret : « espace, feu, pluit met le en discret ». Le curseur va de
+      /* Demandé : que l'espace, le feu et la pluie restent discrets.
+         Le curseur va de
          0 à 100, mais il est mis au carré — à mi-course on est à un quart de
          la puissance, ce qui est le registre où ces sons s'oublient. */
       var v = (S.sonVolume == null ? 30 : +S.sonVolume) / 100;
@@ -1134,9 +1135,8 @@
   }
 
   /* ── le bouton du monde 3D ────────────────────────────────────────────
-     JustAkhiraa : « au lieu de mettre un bouton Monde 3D je préfère le mettre à la
-     droite de paramètres, on écrit 3D, et avec le curseur y'a un effet 3D
-     sur le bouton ».
+     Demandé : plutôt qu'un bouton « Monde 3D », une pastille « 3D » posée
+     à droite des paramètres, qui prend du relief au survol.
 
      Il est posé APRÈS les réglages, donc tout à droite, et il n'apparaît que
      si le monde est réellement publié — l'adresse vient de l'attribut
