@@ -567,7 +567,23 @@ rendu.toneMappingExposure = HEURES.nuit.expo;
    du fond ne sont que sept objets, donc sept objets à redessiner dans la
    passe d'ombre. Sans la fonte, elle aurait doublé le coût de la scène. */
 rendu.shadowMap.enabled = true;
-rendu.shadowMap.type = THREE.PCFSoftShadowMap;
+/* ── Le type d'ombre demandé n'était plus celui qu'on recevait ───────────
+   Le code réclamait « PCFSoftShadowMap ». three.js l'a RETIRÉ en r186, le
+   remplace par « PCFShadowMap » et l'écrit dans la console à chaque
+   chargement. Relevé dans le navigateur : « rendu.shadowMap.type » vaut 1,
+   c'est-à-dire PCF, pas 2. Le village rendait donc des ombres dures depuis
+   la mise à jour, avec un commentaire qui promettait le contraire — et un
+   avertissement par visite dans une console que les bancs surveillent.
+
+   On nomme ce qu'on reçoit. L'image ne change pas d'un pixel : c'est déjà
+   ce qui était rendu.
+
+   « VSMShadowMap » existe encore et donne de vraies ombres douces. Essayé
+   en direct, écarté : il fait de TOUT receveur un émetteur — le terrain de
+   sept mille unités compris — et ses fuites de lumière se voient sur les
+   grands aplats. Un gain incertain contre un coût certain, sur une scène
+   qui tient déjà 2 407 appels de rendu par image. */
+rendu.shadowMap.type = THREE.PCFShadowMap;
 
 /* ── Le second rendu : les cartes, en HTML, DANS la scène ───────────────
    Signalé après une version où les cartes étaient posées à plat
@@ -1110,11 +1126,15 @@ const eauCouranteMat = new THREE.ShaderMaterial({
   transparent: true, side: THREE.DoubleSide, depthWrite: false,
   uniforms: { t: { value: 0 },
               claire: { value: new THREE.Color(0xDCF2FA) },
-              fonde:  { value: new THREE.Color(0x7FB9D4) } },
+              fonde:  { value: new THREE.Color(0x7FB9D4) },
+              /* Une nappe qui tombe est verticale : elle ne reflète pas le
+                 ciel, elle est TRAVERSÉE par la lumière. Elle suit donc
+                 l'heure plus discrètement que les deux autres. */
+              cielCoul: { value: new THREE.Color(0x1B2C48) } },
   vertexShader: `varying vec2 vU; void main(){ vU = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    varying vec2 vU;
+    uniform vec3 cielCoul; varying vec2 vU;
     float bruit(vec2 p){ return fract(sin(dot(p, vec2(41.7, 289.1))) * 43758.5453); }
     void main(){
       /* Trois vitesses de défilement : un filet unique se lit comme une
@@ -1125,7 +1145,7 @@ const eauCouranteMat = new THREE.ShaderMaterial({
       float m = smoothstep(0.55, 1.0, a) * 0.5
               + smoothstep(0.62, 1.0, b) * 0.32
               + smoothstep(0.70, 1.0, c) * 0.28;
-      vec3 col = mix(fonde, claire, m);
+      vec3 col = mix(mix(fonde, claire, m), cielCoul, 0.20);
       /* La nappe s'amincit en tombant et se dissout en bas : une colonne
          d'eau d'épaisseur constante est un tuyau, pas une chute. */
       float bord = smoothstep(0.0, 0.16, vU.x) * smoothstep(1.0, 0.84, vU.x);
@@ -1141,6 +1161,10 @@ const eauMat = new THREE.ShaderMaterial({
     claire: { value: new THREE.Color(0x9FD8E8) },
     fonde:  { value: new THREE.Color(0x1C4B63) },
     force:  { value: 0.75 },
+    /* La vasque suit l'heure elle aussi, mais SANS Fresnel : on la regarde
+       d'en haut, là où l'eau montre son fond et non le ciel. Lui donner le
+       miroir du lac en ferait une plaque d'argent posée dans la pierre. */
+    cielCoul: { value: new THREE.Color(0x1B2C48) },
   },
   vertexShader: `varying vec2 vU; void main(){ vU = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -1148,7 +1172,7 @@ const eauMat = new THREE.ShaderMaterial({
      lire une grille, trois donnent une eau. Le point central rayonne, comme
      si le jet retombait au milieu. */
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    uniform float force; varying vec2 vU;
+    uniform float force; uniform vec3 cielCoul; varying vec2 vU;
     void main(){
       vec2 p = (vU - 0.5) * 2.0;
       float r = length(p);
@@ -1160,6 +1184,7 @@ const eauMat = new THREE.ShaderMaterial({
       /* Le bord de la vasque est plus sombre : l'eau y est dans l'ombre de
          la margelle, et sans ce liseré le disque paraît collé. */
       col *= mix(0.62, 1.0, smoothstep(1.0, 0.72, r));
+      col = mix(col, cielCoul, 0.26);
       gl_FragColor = vec4(col, 0.93);
     }`,
 });
@@ -1181,6 +1206,39 @@ const eauMat = new THREE.ShaderMaterial({
    Le bord s'éclaircit au lieu de s'assombrir : près de la rive l'eau est
    peu profonde et laisse voir le fond, c'est l'inverse d'une margelle qui
    porte son ombre. */
+/* ── Une eau qui ne reflète rien n'est pas de l'eau ──────────────────────
+   Demandé : améliorer les graphismes, avec dix exemples officiels de
+   three.js pour matière.
+
+   Mesuré AVANT de choisir quoi faire, en lisant les pixels du rendu : le
+   lac valait **rgb(24, 53, 72) la nuit et rgb(30, 59, 76) le jour**. Six
+   points d'écart sur 255 — et ces six-là ne viennent même pas de l'eau,
+   mais du seul changement d'exposition. « poserHeure » ne touchait aucun
+   des trois matériaux d'eau.
+
+   C'est le défaut le plus coûteux du village en termes de rendu, parce que
+   le lac est sa plus grande surface plane : celle qui, dehors, ne montre
+   presque jamais sa propre couleur. Une eau est d'abord un MIROIR.
+
+   ── Ce que les dix exemples apportent, et ce qu'ils ne peuvent pas ─────
+   Le reflet juste serait un second rendu de la scène vu d'en dessous —
+   c'est « webgl_framebuffer_texture ». Mesuré : la scène coûte déjà
+   **2 407 appels de rendu** par image ; un miroir plan les doublerait pour
+   une seule surface. Écarté, et c'est une mesure qui le dit, pas un goût.
+
+   Ce qu'on garde d'eux, c'est la réflexion d'ENVIRONNEMENT de
+   « webgl_materials_car » : on ne reflète pas la scène, on reflète le
+   ciel de l'heure. Trois lignes de shader, aucune passe de plus.
+
+   Et l'ingrédient qui fait qu'on y croit n'est pas la couleur, c'est le
+   FRESNEL : une eau vue de haut montre son fond, vue à ras elle devient
+   un miroir. C'est pour ça qu'un lac pâlit vers l'horizon. La normale est
+   calculée à partir de la PENTE des trois houles — leurs dérivées, qu'on a
+   déjà sous la main — donc le reflet ondule avec elles au lieu d'être un
+   aplat.
+
+   Le ciel reflété est la couleur de BRUME de l'heure, pas celle du zénith :
+   à ras de l'eau, ce qu'on voit dans le miroir est l'horizon. */
 const eauLacMat = new THREE.ShaderMaterial({
   transparent: true,
   uniforms: {
@@ -1189,11 +1247,24 @@ const eauLacMat = new THREE.ShaderMaterial({
     fonde:  { value: new THREE.Color(0x1E4257) },
     rive:   { value: new THREE.Color(0x7FB49C) },
     rayon:  { value: 210.0 },
+    cielCoul: { value: new THREE.Color(0x1B2C48) },
+    lumCoul:  { value: new THREE.Color(0xA8BEEC) },
+    lumDir:   { value: new THREE.Vector3(0, 1, 0) },
+    eclat:    { value: 1.0 },
   },
-  vertexShader: `varying vec2 vU; void main(){ vU = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  /* Le monde, pas la vue : le Fresnel a besoin de la position RÉELLE du
+     fragment pour en déduire la direction du regard. « cameraPosition » est
+     fourni par three.js dans tous les shaders. */
+  vertexShader: `varying vec2 vU; varying vec3 vW;
+    void main(){ vU = uv;
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vW = w.xyz;
+      gl_Position = projectionMatrix * viewMatrix * w; }`,
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    uniform vec3 rive; uniform float rayon; varying vec2 vU;
+    uniform vec3 rive; uniform float rayon;
+    uniform vec3 cielCoul; uniform vec3 lumCoul; uniform vec3 lumDir;
+    uniform float eclat;
+    varying vec2 vU; varying vec3 vW;
     void main(){
       vec2 p = (vU - 0.5) * 2.0;
       float r = length(p);
@@ -1206,7 +1277,33 @@ const eauLacMat = new THREE.ShaderMaterial({
       /* Le haut-fond : les vingt derniers pour cent du rayon virent au vert
          pâle, et c'est ce dégradé qui donne sa profondeur au lac. */
       col = mix(col, rive, smoothstep(0.80, 1.0, r));
-      gl_FragColor = vec4(col, mix(0.95, 0.72, smoothstep(0.80, 1.0, r)));
+
+      /* La normale, prise sur la PENTE des mêmes houles : leurs dérivées
+         portent les mêmes poids que leurs hauteurs, sinon le reflet
+         ondulerait autrement que l'eau. */
+      float ca = cos(w.x * 1.00 + w.y * 0.42 - t * 1.25);
+      float cb = cos(w.x * -0.47 + w.y * 1.00 - t * 0.92);
+      float cc = cos((w.x + w.y) * 0.31 + t * 0.55);
+      const float PENTE = 0.085;
+      vec3 N = normalize(vec3(
+        -(ca * 1.00 * 0.42 + cb * -0.47 * 0.34 + cc * 0.31 * 0.24) * PENTE,
+        1.0,
+        -(ca * 0.42 * 0.42 + cb * 1.00 * 0.34 + cc * 0.31 * 0.24) * PENTE));
+      vec3 Vd = normalize(cameraPosition - vW);
+
+      /* Fresnel de Schlick. 2 % de face — on voit le fond —, jusqu'à 1 au
+         ras : c'est tout l'écart entre une flaque et un miroir. */
+      float f = 0.02 + 0.98 * pow(1.0 - clamp(dot(N, Vd), 0.0, 1.0), 5.0);
+      col = mix(col, cielCoul, f * 0.90);
+
+      /* Le chemin de lumière : lune ou soleil, selon l'heure. C'est le même
+         réflecteur, et c'est pour ça qu'il n'y a qu'un uniforme. */
+      float s = pow(max(dot(reflect(-Vd, N), lumDir), 0.0), 180.0);
+      col += lumCoul * s * eclat;
+
+      /* Plus l'eau est miroir, moins elle est transparente. */
+      float al = mix(0.95, 0.72, smoothstep(0.80, 1.0, r));
+      gl_FragColor = vec4(col, clamp(al + f * 0.25, 0.0, 1.0));
     }`,
 });
 
@@ -2146,6 +2243,29 @@ const BOUTIQUES = [
     tenancier: "Le compteur",
     bonjour: "Trente-trois lignes, du /0 au /32, recalculées à chaque "
            + "publication. Aucune n'est recopiée d'un livre." },
+  /* Signalé en construisant l'inventaire : huit outils publiés, sept
+     échoppes. La calculatrice n'était atteignable ni par la rue ni par le
+     menu — c'était le seul outil du site que le village ignorait.
+
+     Son ancre est du CÔTÉ de l'observatoire, le bâtiment des mathématiques :
+     une échoppe se retient par le lieu où elle est, et un calculateur dans
+     cette direction-là se retrouve sans qu'on ait à chercher.
+
+     Elle n'est pas AU PIED de l'observatoire, et c'est une mesure qui l'a
+     déplacée. Posée à [226, 152], en plein cœur du bourg, elle prenait la
+     place de **deux maisons** : la rue en bâtissait 16 au lieu de 18, et le
+     village le disait tout seul dans sa console. Reportée à [332, 268], au
+     bord de la zone bâtie, les 18 maisons reviennent. Le village n'a pas de
+     place libre au centre — il fallait le mesurer pour le savoir.
+
+     La position exacte, elle, n'est pas écrite ici : elle est TROUVÉE par la
+     recherche en anneaux, comme les sept autres. */
+  { nom: "Le Cabinet des Nombres", enseigne: "π", couleur: 0xF5D76E,
+    outil: "outils/calculatrice.html", ancre: [332, 268], cote: 1, z: 118,
+    tenancier: "Dame Sigma",
+    bonjour: "Calculs, fonctions, suites, statistiques, régressions, "
+           + "probabilités, équations — et dix lois, de la binomiale "
+           + "à Fisher." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
@@ -2242,7 +2362,7 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
   const MURS = [M.platre, M.pierreC, M.brique, M.pierre];
   const TOITS = [M.tuile, M.ardoise, M.tuile];
   /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. Les
-     sept échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
+     les échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
      par-dessus, et l'on cliquerait sur une porte qui ne mène nulle part. */
   const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }))
     .concat(BOUTIQUES.map((b) => ({ x: b.x, z: b.z, r: BOUT_L / 2 + 14 })));
@@ -5484,6 +5604,24 @@ function poserHeure(h) {
   rendu.toneMappingExposure = H.expo;
   cuireEnvironnement();
   scene.environmentIntensity = H.reflets;
+
+  /* ── Les trois eaux suivent l'heure ───────────────────────────────────
+     Elles ne la suivaient pas du tout : mesuré en lisant les pixels du
+     rendu, le lac valait rgb(24,53,72) la nuit et rgb(30,59,76) le jour.
+     Le ciel reflété est la couleur de BRUME, pas celle du zénith : à ras de
+     l'eau, ce qu'on voit dans le miroir, c'est l'horizon. */
+  const cielEau = new THREE.Color(H.brumeCouleur);
+  eauLacMat.uniforms.cielCoul.value.copy(cielEau);
+  eauMat.uniforms.cielCoul.value.copy(cielEau);
+  eauCouranteMat.uniforms.cielCoul.value.copy(cielEau);
+  /* Le réflecteur est le même objet aux deux heures — soleil le jour, lune
+     la nuit —, donc un seul uniforme suffit. « lumDir » part de la surface
+     VERS la lumière : c'est le sens qu'attend « reflect ». */
+  eauLacMat.uniforms.lumDir.value.copy(dirLumiere).normalize();
+  eauLacMat.uniforms.lumCoul.value.setHex(H.couleurSoleil);
+  /* Le chemin de lune doit se voir sur une eau sombre sans brûler l'eau
+     claire du jour : c'est l'exposition qui change, pas le soleil. */
+  eauLacMat.uniforms.eclat.value = h === "jour" ? 0.9 : 2.2;
 
   scene.fog.color.setHex(H.brumeCouleur);
   scene.fog.near = H.brume[0];

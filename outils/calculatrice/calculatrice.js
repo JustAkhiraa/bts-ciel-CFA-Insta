@@ -124,25 +124,49 @@
      Une seule table, trois lectures : la touche nue, la touche sous Maj,
      la touche sous alpha. Écrire les quarante touches à la main dans le
      HTML, c'était se condamner à corriger chaque libellé deux fois. */
+  /* Les pictogrammes des touches : dessinés, et non écrits. Un « ⌂ » ou
+     un « 🧰 » posé dans une touche, ce sont deux polices différentes qui
+     décident de sa taille, de sa graisse et parfois de sa couleur — le
+     coffre à outils sortait en rouge et brun au milieu d'un clavier
+     d'encre, parce que l'émoji a sa palette et ne la prête pas. Un tracé
+     hérite de « currentColor », se met à l'échelle avec le texte, et
+     s'imprime. */
+  const ICO = (d) => '<svg class="nw-ico" viewBox="0 0 24 24" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  const PLEIN = (d) => '<svg class="nw-ico" viewBox="0 0 24 24" aria-hidden="true">'
+    + '<path d="' + d + '" fill="currentColor"/></svg>';
+  const I_MAISON = ICO('<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M6 9.8V20h12V9.8"/>');
+  const I_RETOUR = ICO('<path d="M9 6.5 4.5 11 9 15.5"/><path d="M4.5 11H14a5 5 0 0 1 0 10h-2.5"/>');
+  const I_MAJ    = PLEIN('M12 4.2 4.8 12H9v7.3h6V12h4.2z');
+  const I_EFF    = ICO('<path d="M9.3 5.5h8.9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9.3L3 12z"/>'
+                     + '<path d="m12.6 9.7 4.3 4.6M16.9 9.7l-4.3 4.6"/>');
+  const I_BOITE  = ICO('<rect x="3" y="8.3" width="18" height="11.4" rx="2.2"/>'
+                     + '<path d="M9 8.3V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2.3"/><path d="M3 13.2h18"/>');
+  const I_HAUT   = PLEIN('M12 8.4 17.2 15.3H6.8z');
+  const I_BAS    = PLEIN('M12 15.6 6.8 8.7h10.4z');
+  const I_GAUCHE = PLEIN('M8.4 12 15.3 6.8v10.4z');
+  const I_DROITE = PLEIN('M15.6 12 8.7 17.2V6.8z');
+
   const NAV = [
-    { act: "accueil", t: "⌂", aide: "Accueil des applications", cls: "nw-touche-nav" },
-    { act: "retour", t: "↰", aide: "Revenir à l'accueil", cls: "nw-touche-nav" },
+    { act: "accueil", t: "⌂", svg: I_MAISON, aide: "Accueil des applications", cls: "nw-touche-nav" },
+    { act: "retour", t: "↰", svg: I_RETOUR, aide: "Revenir à l'accueil", cls: "nw-touche-nav" },
     { vide: true },
     { croix: [
-      { act: "haut", t: "▲", aide: "Haut", k: "k-haut" },
-      { act: "gauche", t: "◀", aide: "Gauche", k: "k-gauche" },
+      { act: "haut", t: "▲", svg: I_HAUT, aide: "Haut", k: "k-haut" },
+      { act: "gauche", t: "◀", svg: I_GAUCHE, aide: "Gauche", k: "k-gauche" },
       { act: "ok", t: "OK", aide: "Valider", k: "k-ok" },
-      { act: "droite", t: "▶", aide: "Droite", k: "k-droite" },
-      { act: "bas", t: "▼", aide: "Bas", k: "k-bas" },
+      { act: "droite", t: "▶", svg: I_DROITE, aide: "Droite", k: "k-droite" },
+      { act: "bas", t: "▼", svg: I_BAS, aide: "Bas", k: "k-bas" },
     ] },
   ];
   const FONCTIONS = [
-    { act: "maj", t: "⇧", aide: "Maj : allume les fonctions écrites en petit", cls: "nw-touche-fn" },
+    { act: "maj", t: "⇧", svg: I_MAJ, aide: "Maj : allume les fonctions écrites en petit", cls: "nw-touche-fn" },
     { act: "alpha", t: "α", aide: "alpha : les lettres de mémoire", cls: "nw-touche-fn" },
     { ins: "x", t: "x", s: "n", si: "n", a: "", aide: "La variable x (Maj : n)" },
     { act: "var", t: "var", aide: "Les valeurs rangées en mémoire", cls: "nw-touche-fn" },
-    { act: "boite", t: "🧰", aide: "Boîte à outils", cls: "nw-touche-fn" },
-    { act: "eff", t: "⌫", aide: "Effacer", cls: "nw-touche-fn" },
+    { act: "boite", t: "🧰", svg: I_BOITE, aide: "Boîte à outils", cls: "nw-touche-fn" },
+    { act: "eff", t: "⌫", svg: I_EFF, aide: "Effacer", cls: "nw-touche-fn" },
 
     { ins: "exp(", t: "eˣ", s: "ln", si: "ln(", a: "A", aide: "Exponentielle (Maj : ln)" },
     { ins: "ln(", t: "ln", s: "eˣ", si: "exp(", a: "B", aide: "Logarithme népérien" },
@@ -173,17 +197,38 @@
   let maj = false, alpha = false;
 
   function toucheHTML(k) {
-    if (k.vide) return '<span></span>';
+    if (k.vide) return '<span class="nw-vide-case"></span>';
     if (k.croix) {
       return '<div class="nw-croix">' + k.croix.map((c) =>
         '<button type="button" class="nw-touche nw-touche-nav ' + c.k + '" data-act="' + c.act
-        + '" title="' + ech(c.aide) + '" aria-label="' + ech(c.aide) + '">' + ech(c.t)
+        + '" title="' + ech(c.aide) + '" aria-label="' + ech(c.aide) + '">' + (c.svg || ech(c.t))
         + '</button>').join("") + '</div>';
     }
-    const libelle = alpha && k.a !== undefined && k.a !== "" ? ech(k.a)
-                  : maj && k.s ? ech(k.s) : ech(k.t);
-    const sec = !alpha && !maj && k.s ? '<span class="sec">' + ech(k.s) + '</span>'
-              : !alpha && !maj && k.a ? '<span class="sec">' + ech(k.a) + '</span>' : "";
+    /* L'espace est la valeur alpha de la touche « moins », comme sur
+       l'appareil. Écrit tel quel, il donnait une touche VIDE en mode
+       alpha et une légende absente au repos : la seule touche du clavier
+       dont on ne pouvait pas savoir ce qu'elle faisait. Elle s'affiche
+       donc « ␣ » — et insère toujours une espace, qui est dans
+       « data-alpha » et n'a pas bougé. */
+    const aAff = k.a === " " ? "␣" : k.a;
+    const libelle = alpha && k.a !== undefined && k.a !== "" ? ech(aAff)
+                  : maj && k.s ? ech(k.s) : (k.svg || ech(k.t));
+    /* DEUX légendes, et c'est de l'information, pas de l'ornement. La
+       table porte depuis toujours les deux autres sens d'une touche :
+       « s » sous Maj, « a » sous alpha. L'ancien rendu n'en montrait
+       qu'UN, et toujours le même — sur les douze touches qui ont les
+       deux, la lettre de mémoire n'était écrite nulle part. Pour taper
+       « A » il fallait l'avoir deviné.
+
+       Les deux sont donc rendues ensemble, même vides : sans la balise
+       vide, « space-between » collerait une légende solitaire à gauche,
+       et la place — gauche pour Maj, droite pour alpha — est justement
+       ce qui dit laquelle est laquelle. */
+    const lMaj = k.s ? ech(k.s) : "";
+    const lAlp = k.a ? ech(aAff) : "";
+    const sec = (lMaj || lAlp)
+      ? '<span class="nw-leg" aria-hidden="true"><i class="nw-l-maj">' + lMaj
+        + '</i><i class="nw-l-alp">' + lAlp + '</i></span>' : "";
     const aide = k.aide || ("Insérer " + (k.ins || k.t));
     const cls = "nw-touche " + (k.cls || "");
     const presse = (k.act === "maj" && maj) || (k.act === "alpha" && alpha);
@@ -193,14 +238,30 @@
       + (k.si ? ' data-maj="' + ech(k.si) + '"' : '')
       + (k.a ? ' data-alpha="' + ech(k.a) + '"' : '')
       + (k.act === "maj" || k.act === "alpha" ? ' aria-pressed="' + presse + '"' : '')
+      + (k.svg ? ' aria-label="' + ech(aide) + '"' : '')
       + ' title="' + ech(aide) + '">' + libelle + sec + '</button>';
   }
   function dessinerClavier() {
-    $("#nw-clavier").innerHTML =
+    const cl = $("#nw-clavier");
+    cl.innerHTML =
       '<div class="nw-bloc nw-bloc-nav">' + NAV.map(toucheHTML).join("") + '</div>'
       + '<div class="nw-bloc nw-bloc-fn">' + FONCTIONS.map(toucheHTML).join("") + '</div>'
       + '<div class="nw-bloc nw-bloc-num">' + NUMERIQUE.map(toucheHTML).join("") + '</div>'
       + '<p class="nw-clavier-note">Le clavier de l\'ordinateur marche aussi.</p>';
+    /* Un modificateur allumé change le sens de trente touches. S'il ne
+       se voit que sur la touche qu'on vient de presser — en bas, hors du
+       regard, qui est sur l'écran — c'est un MODE CACHÉ, et Norman en
+       fait la première cause d'erreur : on tape « 7 », il arrive « M ».
+       L'état est donc écrit à deux endroits à la fois : sur le clavier,
+       où il repeint les touches atteintes, et dans le bandeau de
+       l'écran, où il reste sous les yeux pendant qu'on lit le résultat.
+       C'est ce que fait l'appareil, et pour cette raison. */
+    cl.dataset.mod = maj ? "maj" : alpha ? "alpha" : "";
+    const m = $("#nw-mod");
+    if (m) {
+      m.textContent = maj ? "⇧ maj" : alpha ? "α alpha" : "";
+      m.hidden = !maj && !alpha;
+    }
   }
 
   /* Où écrit une touche ? Dans le champ qui a le focus s'il appartient à
@@ -375,12 +436,60 @@
     if (champ && cle !== "accueil") { try { champ.focus(); } catch (e) {} }
   }
 
+  /* ── les pictogrammes des applications ────────────────────────────
+     « 1+2 », « f(x) », « x̄ », « ax+b », « P(X) », « x=? » : six formules
+     en petit, toutes dans la même police, toutes de la même couleur.
+     L'œil ne les distingue pas, il les LIT — c'est-à-dire qu'il relit
+     les huit à chaque retour à l'accueil. Huit silhouettes différentes
+     se reconnaissent sans être lues, et c'est tout ce qu'on demande à
+     une icône.
+
+     Elles sont donc choisies pour leur FORME avant leur sens : une
+     grille d'opérateurs, une courbe, des points isolés, des barres, un
+     nuage traversé d'une droite, une cloche, une balance, une roue
+     dentée. Aucune ne peut être confondue avec une autre à trente
+     pixels, les yeux mi-clos.
+
+     « f » éteint un trait au rang de décor (les axes, la ligne de
+     base) ; « a » en allume un seul, celui qui porte le sens. */
+  const A_ICO = (d) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
+  const APP_ICO = {
+    calculs: A_ICO('<path d="M4.2 7h5.2M6.8 4.4v5.2"/><path d="M14.6 7h5.2"/>'
+      + '<path d="m4.6 14.8 4.6 4.6M9.2 14.8l-4.6 4.6"/>'
+      + '<path d="M14.6 15.6h5.2M14.6 18.8h5.2"/>'),
+    fonctions: A_ICO('<path class="f" d="M4.3 3.6v16.6h16.4"/>'
+      + '<path d="M5.6 17.4c3.4 0 3-10.2 7-10.2s4.2 6.8 7.4 6.8"/>'),
+    suites: A_ICO('<path class="f" d="M3.6 20.4h17"/>'
+      + '<circle cx="6.4" cy="16.6" r="1.7" fill="currentColor" stroke="none"/>'
+      + '<circle cx="10.6" cy="13.2" r="1.7" fill="currentColor" stroke="none"/>'
+      + '<circle cx="14.8" cy="10.4" r="1.7" fill="currentColor" stroke="none"/>'
+      + '<circle cx="19" cy="8.2" r="1.7" fill="currentColor" stroke="none"/>'),
+    stats: A_ICO('<path class="f" d="M3.2 20.4h17.6"/>'
+      + '<path d="M5.6 18.6v-5.4M10.4 18.6V7.4M15.2 18.6v-8.2M20 18.6V4.6" stroke-width="3.1"/>'),
+    regression: A_ICO('<path class="a" d="M3.8 18.8 20.2 6.2" stroke-width="2.2"/>'
+      + '<circle cx="6.6" cy="17" r="1.6" fill="currentColor" stroke="none"/>'
+      + '<circle cx="10.2" cy="13.4" r="1.6" fill="currentColor" stroke="none"/>'
+      + '<circle cx="13.8" cy="12.4" r="1.6" fill="currentColor" stroke="none"/>'
+      + '<circle cx="17.4" cy="8.4" r="1.6" fill="currentColor" stroke="none"/>'),
+    probas: A_ICO('<path class="a" d="M3.4 19.4c3.6 0 4-12.4 8.6-12.4v12.4z" '
+      + 'fill="currentColor" stroke="none" opacity=".4"/>'
+      + '<path d="M3.4 19.4c3.6 0 4-12.4 8.6-12.4s5 12.4 8.6 12.4"/>'),
+    equations: A_ICO('<path d="M12 5.4V20M8 20h8"/><path d="M4.4 8.6h15.2"/>'
+      + '<path d="M4.4 8.6 1.9 13.8h5zM19.6 8.6l-2.5 5.2h5z"/>'),
+    reglages: A_ICO('<path class="f" d="M3.6 6.4h16.8M3.6 12h16.8M3.6 17.6h16.8"/>'
+      + '<circle cx="8.6" cy="6.4" r="2.6" fill="currentColor" stroke="none"/>'
+      + '<circle cx="15.4" cy="12" r="2.6" fill="currentColor" stroke="none"/>'
+      + '<circle cx="10.4" cy="17.6" r="2.6" fill="currentColor" stroke="none"/>'),
+  };
+
   function accueilHTML() {
     return '<div class="nw-accueil" id="nw-grille-apps">'
       + ORDRE.map((c, i) => '<button type="button" class="nw-tuile" data-app="' + c + '"'
         + ' aria-current="' + (i === choisi) + '">'
-        + '<span class="nw-tuile-ic" aria-hidden="true">' + ech(APPS[c].icone) + '</span>'
-        + ech(APPS[c].nom) + '</button>').join("")
+        + '<span class="nw-tuile-ic" aria-hidden="true">'
+        + (APP_ICO[c] || ech(APPS[c].icone)) + '</span>'
+        + '<span class="nw-tuile-nom">' + ech(APPS[c].nom) + '</span></button>').join("")
       + '</div>'
       + '<p class="nw-accueil-note">Les flèches déplacent la sélection, '
       + '<b>Entrée</b> ouvre. Chaque application renvoie au chapitre du cours '
@@ -461,20 +570,37 @@
   let rappel = -1;
   let panneauVar = false;
 
+  const ESSAIS = ["1/3+1/6", "cos(π/6)", "√12", "binomialeCdf(10;0.3;4)"];
+
   APPS.calculs = {
     nom: "Calculs", icone: "1+2",
     html() {
       const h = ETAT.historique;
-      const lignes = h.length ? h.map((l) => '<div class="nw-ligne">'
-          + '<span class="nw-saisie">' + ech(l.entree) + '</span>'
+      /* L'entrée passée est un BOUTON : un clic la remet dans la ligne
+         de saisie. Une faute de frappe dans « binomialeCdf(10;0.3;4) »
+         ne se corrigeait qu'en la retapant en entier — la flèche haut
+         la rappelait, mais encore fallait-il le savoir ET avoir le
+         curseur dans le champ. Le calcul est à l'écran ; qu'on puisse
+         le toucher est le geste le plus court. */
+      const lignes = h.length ? h.map((l, i) => '<div class="nw-ligne">'
+          + '<button type="button" class="nw-saisie" data-reprendre="' + i + '" '
+          + 'title="Reprendre ce calcul dans la ligne de saisie">'
+          + ech(l.entree) + '</button>'
           + (l.erreur
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
             : '<span class="nw-resultat">' + ech(l.exact || l.approx) + '</span>'
               + (l.deux ? '<span class="nw-approche">≈ ' + ech(l.approx) + '</span>' : ''))
           + '</div>').join("")
-        : '<p class="nw-vide">Tapez un calcul et validez. Par exemple : '
-          + '<code>1/3+1/6</code>, <code>cos(π/6)</code>, '
-          + '<code>binomialeCdf(10;0.3;4)</code>.</p>';
+        /* Les quatre exemples sont CLIQUABLES. Un écran vide qui donne un
+           exemple est déjà poli ; un écran vide qui fait l'exemple à
+           votre place supprime le seul obstacle qui reste — savoir quoi
+           taper d'abord. La première réussite arrive en un clic, et
+           c'est elle qui décide si on revient. */
+        : '<p class="nw-vide">Tapez un calcul et validez — ou prenez un de '
+          + 'ceux-ci : '
+          + ESSAIS.map((e) => '<button type="button" class="nw-essai" data-essai="'
+              + ech(e) + '">' + ech(e) + '</button>').join(" ")
+          + '</p>';
       const vars = Object.keys(ETAT.variables).sort();
       const panneau = panneauVar ? '<div class="nw-rangee" style="margin-top:.6rem">'
           + (vars.length
@@ -493,7 +619,8 @@
         + '<button type="button" class="nw-valider" id="nw-calc-ok">EXE</button></div>'
         + '<p class="nw-sous">La <b>forme exacte</b> est au-dessus, sa valeur approchée '
         + 'en dessous : sur une copie, c\'est la forme exacte qu\'on recopie. '
-        + '<kbd>↑</kbd> rappelle le calcul précédent.</p>';
+        + '<kbd>↑</kbd> rappelle le calcul précédent, et <b>un clic sur un calcul '
+        + 'passé le reprend</b>.</p>';
     },
     apres() {
       const flux = $("#nw-flux");
@@ -521,6 +648,22 @@
       });
       $$("[data-insvar]", page).forEach((b) => b.addEventListener("click", () => {
         panneauVar = false; redessiner(); inserer(b.dataset.insvar);
+      }));
+      $$("[data-essai]", page).forEach((b) => b.addEventListener("click", () => {
+        const c = $("#nw-calc");
+        if (!c) return;
+        c.value = b.dataset.essai;
+        c.focus();
+        valider();
+      }));
+      $$("[data-reprendre]", page).forEach((b) => b.addEventListener("click", () => {
+        const l = ETAT.historique[+b.dataset.reprendre];
+        const c = $("#nw-calc");
+        if (!l || !c) return;
+        c.value = l.entree;
+        c.focus();
+        try { c.setSelectionRange(c.value.length, c.value.length); } catch (e) {}
+        dire("Calcul repris — corrigez-le et validez.", "e-ok");
       }));
     },
   };
