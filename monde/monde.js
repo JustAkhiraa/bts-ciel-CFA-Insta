@@ -5827,10 +5827,91 @@ function brancherQcm(corps) {
   }
 }
 
+/* ═══════════════════════════════ le plan du chapitre ════════════════
+   Le corps du panneau est une colonne de 70 caractères — la bonne mesure
+   pour de la prose, et elle ne bougera pas : élargir le texte le rendrait
+   moins lisible, pas plus. Restaient deux bandes vides de part et d'autre.
+   Le site met le sommaire exactement là ; le village fait pareil.
+
+   Mesuré sur les 232 fiches du dépôt : celles qui ont un sommaire en ont
+   entre 4 et 30 entrées, jamais une ni deux. Le seuil de quatre n'écarte
+   donc rien aujourd'hui — il est là pour le jour où une fiche naîtrait
+   avec deux titres, où une colonne entière pour deux liens serait du
+   gaspillage de place et d'attention. */
+const PLAN_MINIMUM = 4;
+
+function relever(nav) {
+  if (!nav) return "";
+  const liens = [...nav.querySelectorAll('a[href^="#"]')];
+  if (liens.length < PLAN_MINIMUM) return "";
+  const items = liens.map((a) =>
+    `<li><a href="${a.getAttribute("href")}">${a.innerHTML}</a></li>`).join("");
+  return '<nav class="lecture-plan" aria-label="Plan du chapitre">' +
+         `<h2>Sommaire</h2><ol>${items}</ol></nav>`;
+}
+
+/* Un seul observateur à la fois : changer d'onglet refait le corps, et
+   celui d'avant observerait des titres qui ne sont plus dans la page. */
+let veille = null;
+
+function suivreLePlan(corps) {
+  if (veille) { veille.disconnect(); veille = null; }
+  const liens = [...corps.querySelectorAll(".lecture-plan a[href^='#']")];
+  if (!liens.length || !("IntersectionObserver" in window)) return;
+
+  const carte = new Map();
+  for (const a of liens) {
+    /* On cherche la cible DANS le corps : les identifiants d'une fiche
+       (« #creer », « #select ») sont assez ordinaires pour exister aussi
+       ailleurs dans la page du village. */
+    const cible = corps.querySelector("#" + CSS.escape(a.getAttribute("href").slice(1)));
+    if (cible) carte.set(cible, a);
+  }
+  if (!carte.size) return;
+
+  const visibles = new Set();
+  veille = new IntersectionObserver((entrees) => {
+    for (const e of entrees) {
+      if (e.isIntersecting) visibles.add(e.target); else visibles.delete(e.target);
+    }
+    /* Tout en haut d'une fiche, la bande de visée ne contient que le titre
+       et le chapeau : aucune section ne s'y trouve, et le plan garderait la
+       dernière entrée allumée — celle de la fin du chapitre, alors qu'on
+       vient d'arriver au début. */
+    const actif = [...carte.keys()].find((c) => visibles.has(c))
+               || (corps.scrollTop < 40 ? [...carte.keys()][0] : null);
+    if (!actif) return;
+    for (const a of liens) a.classList.remove("actif");
+    carte.get(actif).classList.add("actif");
+  }, { root: corps, rootMargin: "-8% 0px -70% 0px", threshold: 0 });
+  for (const c of carte.keys()) veille.observe(c);
+}
+
+/* Un ancrage défile le CORPS, pas la page. Posé une fois sur le conteneur :
+   il survit à tous les remplacements de contenu, et il attrape aussi les
+   renvois internes écrits dans la prose d'une fiche. */
+$("lecture-corps").addEventListener("click", (e) => {
+  const a = e.target.closest && e.target.closest('a[href^="#"]');
+  if (!a) return;
+  e.preventDefault();
+  const corps = $("lecture-corps");
+  const cible = corps.querySelector("#" + CSS.escape(a.getAttribute("href").slice(1)));
+  if (!cible) return;
+  const doux = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  corps.scrollTo({ top: corps.scrollTop + cible.getBoundingClientRect().top
+                        - corps.getBoundingClientRect().top - 8,
+                   behavior: doux ? "smooth" : "auto" });
+});
+
 async function afficherFiche(url) {
   const corps = $("lecture-corps");
   corps.scrollTop = 0;
-  if (cache.has(url)) { corps.innerHTML = cache.get(url); brancherQcm(corps); return; }
+  if (cache.has(url)) {
+    corps.innerHTML = cache.get(url);
+    brancherQcm(corps);
+    suivreLePlan(corps);
+    return;
+  }
   corps.innerHTML = '<p class="lecture-attente">Lecture de la fiche…</p>';
   try {
     const r = await fetch("../" + url, { cache: "force-cache" });
@@ -5838,6 +5919,18 @@ async function afficherFiche(url) {
     const doc = new DOMParser().parseFromString(await r.text(), "text/html");
     const main = doc.querySelector("main.corps") || doc.querySelector("main");
     if (!main) throw new Error("corps introuvable");
+
+    /* Le sommaire du site est retiré du corps — il porte un lien de retour et
+       une mise en forme qui n'ont aucun sens ici. Mais sa LISTE, elle, vaut
+       pour le village aussi : le corps est une colonne de 70 caractères au
+       milieu d'un panneau de 1480 px, et les deux bandes vides de part et
+       d'autre sont exactement la place d'un plan de chapitre. On le relève
+       donc avant de supprimer la navigation qui le portait.
+       Le sommaire est FRÈRE de « main », pas son enfant : il vit dans
+       « div.page », à côté. Le chercher dans « main » rendait toujours
+       null — en silence, puisqu'une absence de sommaire est un cas normal
+       (116 fiches du dépôt n'en ont pas). */
+    const plan = relever(doc.querySelector("nav.sommaire"));
 
     main.querySelectorAll(
       "script, nav.voisins, nav.sommaire, .sommaire, .copier, .essayer, .flottant")
@@ -5851,7 +5944,14 @@ async function afficherFiche(url) {
         if (!v || /^(https?:|#|mailto:|data:)/.test(v)) continue;
         n.setAttribute(a, new URL(base + v, location.href).pathname);
       }
-      if (n.tagName === "A") n.setAttribute("target", "_blank");
+      /* Un lien vers une AUTRE page s'ouvre à côté : on ne quitte pas le
+         village pour lire une fiche. Un ancrage « #section » désigne un
+         endroit de la fiche qu'on est en train de lire — l'ouvrir dans un
+         nouvel onglet rouvrait le village entier, vide, sur une ancre qu'il
+         ne connaît pas. */
+      const vers = n.getAttribute("href");
+      if (n.tagName === "A" && !(vers && vers.startsWith("#")))
+        n.setAttribute("target", "_blank");
     });
     /* Les quiz et les QCM ont besoin du script de la page, absent ici : on
        ouvre les réponses plutôt que de laisser des boutons morts. */
@@ -5865,12 +5965,13 @@ async function afficherFiche(url) {
        Ils ne fonctionnaient pas parce qu'on leur avait donné les réponses. */
     main.querySelectorAll(".reponse").forEach((n) => n.removeAttribute("hidden"));
 
-    const html = main.innerHTML +
+    const html = plan + main.innerHTML +
       `<a class="lecture-ouvrir" href="../${url}" target="_blank" rel="noopener">` +
       `Ouvrir cette fiche sur le site</a>`;
     cache.set(url, html);
     corps.innerHTML = html;
     brancherQcm(corps);
+    suivreLePlan(corps);
   } catch (e) {
     corps.innerHTML =
       '<p class="lecture-echec">Cette fiche n\'a pas pu être lue ici.</p>' +
@@ -6335,6 +6436,10 @@ function diagnostic() {
 window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
                 poserHeure, allerA, ciel, sousTitrer, taireSousTitre,
                 BOUTIQUES, ouvrirBoutique, fermerLecture,
+                /* La fenêtre de lecture sort pour la même raison : son plan
+                   de chapitre ne se vérifie qu'en l'ouvrant sur une vraie
+                   fiche, avec ses vrais titres. */
+                DONNEES, ouvrirLecture,
                 /* Le relief et le pas sortent pour la même raison que le
                    reste : un espace marchable ne se vérifie pas en relisant
                    une constante, il se vérifie en MARCHANT dedans. */
