@@ -61,6 +61,118 @@
 [data-matiere="culture"] { --violet:#2F4A7C; --violet-pale:#EBF0F8; --violet-bord:#CBD8EC; }
 [data-matiere="projets"] { --accent:#B8860B; --accent-pale:#FBF2DC; --accent-sombre:#7A5807; }
 
+/* ══════════════════ le changement de thème se FOND ════════════════════
+   Quarante et un thèmes, et jusqu'ici passer de l'un à l'autre CLAQUAIT :
+   toutes les couleurs changeaient dans la même image.
+
+   Une variable CSS ordinaire n'est pas animable — le navigateur ne sait
+   pas qu'elle contient une couleur, donc il ne sait pas interpoler entre
+   deux. En la DÉCLARANT avec « @property » et « syntax: "<color>" », on
+   le lui apprend, et la transition devient possible. C'est le seul moyen
+   d'animer un thème sans dupliquer chaque règle qui s'en sert.
+
+   VINGT-HUIT jetons, et pas un de plus. Trois critères, vérifiés sur les
+   quatre feuilles avant d'écrire une ligne :
+
+     · la valeur est TOUJOURS une couleur dans les 41 thèmes. « --ombre »
+       est une liste d'ombres, « --mesure » une largeur, « --interligne »
+       un nombre : les déclarer en « <color> » les ferait REJETER, et le
+       thème repartirait en silence sur la valeur initiale ;
+     · le jeton est TOUJOURS posé sur « :root ». En déclarer un qui ne
+       l'est pas lui donnerait une valeur là où il n'en avait aucune, et
+       ferait taire les replis « var(--x, défaut) » ;
+     · aucun repli de ce genre ne s'appuie dessus — vérifié, il n'y en a
+       pas sur ces vingt-huit.
+
+   « --or », « --pierre », « --pierre-survol » et « --ressort » sont bien
+   des couleurs, mais seuls quelques thèmes les posent : ils restent
+   dehors, et c'est la deuxième règle qui les exclut.
+
+   La valeur initiale est celle du thème clair. Elle n'est jamais
+   observée, puisque « :root » pose les vingt-huit : c'est un filet, pas
+   un réglage. */
+@property --accent { syntax: "<color>"; inherits: true; initial-value: #005B96; }
+@property --accent-pale { syntax: "<color>"; inherits: true; initial-value: #E8F1F8; }
+@property --accent-sombre { syntax: "<color>"; inherits: true; initial-value: #00426C; }
+@property --ambre { syntax: "<color>"; inherits: true; initial-value: #B8860B; }
+@property --ambre-bord { syntax: "<color>"; inherits: true; initial-value: #EBDCB4; }
+@property --ambre-pale { syntax: "<color>"; inherits: true; initial-value: #FBF2DC; }
+@property --ambre-sombre { syntax: "<color>"; inherits: true; initial-value: #7A5807; }
+@property --bord { syntax: "<color>"; inherits: true; initial-value: #E6DCCE; }
+@property --bord-fort { syntax: "<color>"; inherits: true; initial-value: #D8CBB8; }
+@property --carte { syntax: "<color>"; inherits: true; initial-value: #FFFFFF; }
+@property --carte-creuse { syntax: "<color>"; inherits: true; initial-value: #FBF6EE; }
+@property --corrige-bord { syntax: "<color>"; inherits: true; initial-value: #EBD9A8; }
+@property --corrige-fond { syntax: "<color>"; inherits: true; initial-value: #FFF9E8; }
+@property --encre { syntax: "<color>"; inherits: true; initial-value: #2F2F2F; }
+@property --encre-douce { syntax: "<color>"; inherits: true; initial-value: #6B6257; }
+@property --encre-forte { syntax: "<color>"; inherits: true; initial-value: #1F1F1F; }
+@property --encre-tenue { syntax: "<color>"; inherits: true; initial-value: #8A8175; }
+@property --papier { syntax: "<color>"; inherits: true; initial-value: #FDF5E6; }
+@property --rouge { syntax: "<color>"; inherits: true; initial-value: #A32E2E; }
+@property --rouge-bord { syntax: "<color>"; inherits: true; initial-value: #EFD2CF; }
+@property --rouge-pale { syntax: "<color>"; inherits: true; initial-value: #FBEDEC; }
+@property --sur-accent { syntax: "<color>"; inherits: true; initial-value: #FFFFFF; }
+@property --vert { syntax: "<color>"; inherits: true; initial-value: #2D5A27; }
+@property --vert-bord { syntax: "<color>"; inherits: true; initial-value: #D3E2CE; }
+@property --vert-pale { syntax: "<color>"; inherits: true; initial-value: #EAF2E8; }
+@property --violet { syntax: "<color>"; inherits: true; initial-value: #6A0DAD; }
+@property --violet-bord { syntax: "<color>"; inherits: true; initial-value: #DFCDEF; }
+@property --violet-pale { syntax: "<color>"; inherits: true; initial-value: #F3EBFA; }
+
+:root { --fondu-duree: .32s; --fondu-courbe: ease; }
+
+/* Le fondu ne s'arme qu'APRÈS le premier rendu. « data-fondu » est posé
+   par app.js à la première image ; sans lui, la page s'ouvrirait en
+   fondu DEPUIS les valeurs initiales — un éclair crème avant le thème
+   choisi, c'est-à-dire exactement ce que l'ANTIFLASH existe pour
+   empêcher.
+
+   Et « data-anim="0" » l'éteint, pour deux raisons qui n'en font qu'une :
+   celui qui coupe les animations ne veut pas non plus de celle-ci, et
+   les deux bancs d'essai posent déjà ce réglage avant de mesurer. Sans
+   cette clause, ils lisaient les couleurs EN PLEINE TRANSITION : 3 192
+   éléments annoncés sous le seuil, tous au rapport 1,0 — le symptôme
+   d'un fond et d'un texte relevés à deux instants différents du même
+   fondu. L'instrument doit figer ce qu'il mesure. */
+:root[data-fondu="1"]:not([data-anim="0"]) {
+  transition:
+    --accent var(--fondu-duree) var(--fondu-courbe),
+    --accent-pale var(--fondu-duree) var(--fondu-courbe),
+    --accent-sombre var(--fondu-duree) var(--fondu-courbe),
+    --ambre var(--fondu-duree) var(--fondu-courbe),
+    --ambre-bord var(--fondu-duree) var(--fondu-courbe),
+    --ambre-pale var(--fondu-duree) var(--fondu-courbe),
+    --ambre-sombre var(--fondu-duree) var(--fondu-courbe),
+    --bord var(--fondu-duree) var(--fondu-courbe),
+    --bord-fort var(--fondu-duree) var(--fondu-courbe),
+    --carte var(--fondu-duree) var(--fondu-courbe),
+    --carte-creuse var(--fondu-duree) var(--fondu-courbe),
+    --corrige-bord var(--fondu-duree) var(--fondu-courbe),
+    --corrige-fond var(--fondu-duree) var(--fondu-courbe),
+    --encre var(--fondu-duree) var(--fondu-courbe),
+    --encre-douce var(--fondu-duree) var(--fondu-courbe),
+    --encre-forte var(--fondu-duree) var(--fondu-courbe),
+    --encre-tenue var(--fondu-duree) var(--fondu-courbe),
+    --papier var(--fondu-duree) var(--fondu-courbe),
+    --rouge var(--fondu-duree) var(--fondu-courbe),
+    --rouge-bord var(--fondu-duree) var(--fondu-courbe),
+    --rouge-pale var(--fondu-duree) var(--fondu-courbe),
+    --sur-accent var(--fondu-duree) var(--fondu-courbe),
+    --vert var(--fondu-duree) var(--fondu-courbe),
+    --vert-bord var(--fondu-duree) var(--fondu-courbe),
+    --vert-pale var(--fondu-duree) var(--fondu-courbe),
+    --violet var(--fondu-duree) var(--fondu-courbe),
+    --violet-bord var(--fondu-duree) var(--fondu-courbe),
+    --violet-pale var(--fondu-duree) var(--fondu-courbe);
+}
+
+/* Un fondu de couleurs reste un mouvement : qui en demande moins n'en
+   reçoit aucun. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-fondu="1"]:not([data-anim="0"]) { transition: none; }
+}
+
 /* ------------------------------------------------------------------ base */
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; -webkit-text-size-adjust: 100%; }

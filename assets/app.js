@@ -1585,6 +1585,36 @@
     }
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  /* ── armer le fondu des thèmes, mais pas avant le premier rendu ─────
+     Les vingt-huit jetons de couleur sont déclarés animables dans
+     « theme.css ». Si la transition était active dès le départ, la page
+     s'ouvrirait en fondu DEPUIS les valeurs initiales — un éclair crème
+     avant le thème enregistré, c'est-à-dire précisément ce que le script
+     anti-éclair de l'en-tête existe pour empêcher.
+
+     Deux images d'attente, pas une : la première laisse le navigateur
+     poser le style, la seconde garantit qu'il l'a peint.
+
+     ET UN DÉLAI DE SECOURS, parce que « requestAnimationFrame » ne se
+     déclenche JAMAIS dans un onglet caché. Une page ouverte en arrière-
+     plan n'aurait donc jamais armé son fondu, et le premier changement
+     de thème après l'avoir regardée aurait encore claqué. Mesuré, pas
+     supposé : c'est en ouvrant la page dans un volet masqué que les
+     deux images ne sont jamais venues. Le premier des deux chemins qui
+     arrive gagne ; le second ne fait rien. */
+  function armerFondu() {
+    var fait = false;
+    var poser = function () {
+      if (fait) return;
+      fait = true;
+      document.documentElement.dataset.fondu = "1";
+    };
+    if (typeof requestAnimationFrame === "function")
+      requestAnimationFrame(function () { requestAnimationFrame(poser); });
+    setTimeout(poser, 120);
+  }
+
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", function () { init(); armerFondu(); });
+  else { init(); armerFondu(); }
 })();
