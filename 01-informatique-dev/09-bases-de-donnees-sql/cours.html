@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : SGBD, modèle relationnel, clés primaires et étrangères, MCD/MLD, CREATE, INSERT/UPDATE/DELETE, SELECT, jointures, agrégats, PDO et injections SQL.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=3cd157b9">
+<link rel="stylesheet" href="../../assets/fiche.css?v=af861409">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -28,6 +28,7 @@
     <li><a href="#agregats">10 · Agrégats et GROUP BY</a></li>
     <li><a href="#pdo">11 · PHP et PDO</a></li>
     <li><a href="#injection">12 · Les injections SQL</a></li>
+    <li><a href="#installer">13 · Installer MariaDB sur son Mac</a></li>
   </ol>
 </nav>
 
@@ -58,7 +59,7 @@
   </div>
 
   <p class="motscles">🔑
-    <code>#SGBD</code> <code>#MariaDB</code> <code>#table</code> <code>#PRIMARY-KEY</code>
+    <code>#SGBD</code> <code>#MariaDB</code> <code>#Homebrew</code> <code>#table</code> <code>#PRIMARY-KEY</code>
     <code>#FOREIGN-KEY</code> <code>#MCD</code> <code>#MLD</code> <code>#CREATE-TABLE</code>
     <code>#SELECT</code> <code>#WHERE</code> <code>#JOIN</code> <code>#GROUP-BY</code>
     <code>#PDO</code> <code>#prepare</code> <code>#injection-SQL</code>
@@ -909,6 +910,203 @@ USE gestion_presence;
   </div>
 </section>
 
+<!-- ================================================================= 13 -->
+<section id="installer">
+  <h2><span class="num">13</span>Installer MariaDB sur son Mac</h2>
+
+  <p>Tout ce qui précède suppose un <strong>serveur qui tourne</strong>. En salle il est déjà
+     là ; sur son propre Mac, il faut l'installer — et c'est là que la plupart des gens
+     perdent une soirée, sur une erreur d'accès qui n'a rien à voir avec le SQL.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🗄️ Où se range quoi</div>
+    <p><strong>MariaDB</strong> est le classeur. Une <strong>base de données</strong> est un
+       cahier rangé dedans, une <strong>table</strong> une page du cahier, une
+       <strong>ligne</strong> une fiche remplie. Installer MariaDB, c'est poser le classeur —
+       il arrive vide.</p>
+    <p class="rap">MariaDB est le frère libre de MySQL : même langage, mêmes commandes, et les
+       deux noms s'emploient l'un pour l'autre dans la quasi-totalité du programme.</p>
+  </div>
+
+  <h3>Les deux pré-requis</h3>
+
+  <p><strong>Homebrew</strong> est le gestionnaire de paquets de macOS — l'équivalent de
+     <code>apt</code> sous Linux. Il a lui-même besoin des outils de développement d'Apple,
+     gratuits.</p>
+
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. les outils Apple — répond « already installed » s'ils sont déjà là</span>
+<span class="j-fn">xcode-select</span> <span class="j-att">--install</span>
+
+<span class="j-com"># 2. Homebrew</span>
+/bin/bash <span class="j-att">-c</span> <span class="j-txt">"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</span>
+
+<span class="j-com"># 3. vérifier</span>
+<span class="j-fn">brew</span> <span class="j-att">--version</span></code></pre></div>
+
+  <p>L'installation de Homebrew demande le mot de passe de la session : il ne s'affiche pas
+     pendant la frappe, c'est normal.</p>
+
+  <h3>Installer et démarrer</h3>
+
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">brew</span> install mariadb          <span class="j-com"># télécharge MariaDB et ses dépendances</span>
+<span class="j-fn">brew</span> services start mariadb   <span class="j-com"># le démarre, et au démarrage du Mac ensuite</span>
+<span class="j-fn">brew</span> services list            <span class="j-com"># started / stopped : l'état réel</span></code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Installer ne démarre pas</div>
+    <p><code>brew install</code> pose les fichiers, rien de plus. Sans
+       <code>brew services start</code>, le client répondra <em>Can't connect to local
+       server</em> — un message qui fait croire à un problème de mot de passe alors que
+       <strong>rien n'écoute</strong>.</p>
+  </div>
+
+  <h3>Avec quel compte se connecter</h3>
+
+  <p>C'est la question qui coûte la soirée. Sur une installation Homebrew, le compte à
+     utiliser au quotidien <strong>n'est pas <code>root</code></strong> : c'est celui qui
+     porte le nom de la session macOS, créé pendant l'installation avec tous les droits. Il
+     suffit donc de ne rien préciser.</p>
+
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">mariadb</span>                 <span class="j-com"># se connecte comme l'utilisateur de la session</span>
+<span class="j-fn">mariadb</span> ma_base         <span class="j-com"># idem, en ouvrant directement une base</span>
+<span class="j-fn">mariadb</span> <span class="j-att">-u</span> root         <span class="j-com"># ← c'est CELLE-LÀ qui est refusée</span></code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">🔍 Les deux numéros d'erreur ne disent pas la même chose</div>
+    <ul>
+      <li><strong>ERROR 1045</strong> — <em>Access denied … (using password: YES/NO)</em> :
+          le mot de passe fourni ne convient pas.</li>
+      <li><strong>ERROR 1698</strong> — <em>Access denied</em>, sans mention de mot de passe :
+          le compte existe mais <strong>n'accepte pas du tout ce mode d'authentification</strong>.
+          Aucun mot de passe ne le fera céder.</li>
+    </ul>
+    <p class="rap">Relevé sur une installation Homebrew de MariaDB 12.2.2 :
+       <code>mariadb -u root</code> rend un <strong>1698</strong>. Taper un mot de passe de
+       plus en plus compliqué ne pouvait donc rien donner.</p>
+  </div>
+
+  <p>La raison se lit dans la table des comptes, et c'est la seule commande qui dit la vérité
+     plutôt que de la supposer :</p>
+
+  <div class="bloc-code" data-fam="sql"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> User, Host, <span class="j-fn">JSON_VALUE</span>(Priv, <span class="j-txt">'$.plugin'</span>) <span class="j-mc">AS</span> methode
+<span class="j-mc">FROM</span>   mysql.global_priv <span class="j-mc">ORDER BY</span> User;</code></pre></div>
+
+  <div class="bloc-code"><span class="langue">sortie réelle — MariaDB 12.2.2, installation Homebrew</span><pre><code>User          Host        methode
+------------  ----------  ---------------------
+etudiant      localhost   mysql_native_password      ← le compte de la session
+mariadb.sys   localhost   mysql_native_password
+root          localhost   mysql_native_password</code></pre></div>
+
+  <p>Trois lignes identiques en apparence — et pourtant <code>root</code> est le seul à être
+     refusé. Le détail est ailleurs, dans deux champs que la colonne <code>plugin</code> ne
+     montre pas :</p>
+
+  <div class="bloc-code"><span class="langue">sortie réelle — la configuration complète de root</span><pre><code>plugin                 : mysql_native_password
+authentication_string  : invalid
+auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Ce que ces trois lignes veulent dire</div>
+    <ul>
+      <li><code>authentication_string: invalid</code> — l'empreinte stockée n'est pas une
+          empreinte valide, donc <strong>aucun</strong> mot de passe ne peut y correspondre.
+          Ce n'est pas un compte sans mot de passe : c'est un compte dont le mot de passe est
+          volontairement impossible.</li>
+      <li><code>auth_or</code> — une <strong>seconde</strong> façon d'entrer est acceptée :
+          <code>unix_socket</code>, qui ne demande rien et vérifie simplement
+          <strong>quel utilisateur du système</strong> lance la commande.</li>
+    </ul>
+    <p class="rap">D'où le comportement complet : <code>mariadb -u root</code> échoue depuis
+       une session ordinaire, et <code>sudo mariadb -u root</code> passe — parce que
+       <code>sudo</code> fait de l'utilisateur système « root », ce que
+       <code>unix_socket</code> reconnaît.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — « après la remise à zéro, <code>mariadb -u root</code> fonctionne »</div>
+    <p>Le tutoriel d'origine l'annonce deux fois. C'est <strong>faux sur une installation
+       Homebrew</strong> : la remise à zéro recrée précisément la configuration ci-dessus,
+       <code>invalid</code> comprise, et <code>mariadb -u root</code> rend toujours un
+       <strong>1698</strong>. Vérifié sur l'installation de cette machine.</p>
+    <p class="rap">Ce qui fonctionne après la remise à zéro, c'est <code>mariadb</code> tout
+       court. La procédure ci-dessous reste utile — mais elle ne « débloque pas root », elle
+       répare une structure de données abîmée.</p>
+  </div>
+
+  <h3>Remettre les données à zéro</h3>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Cette procédure efface toutes les bases</div>
+    <p>À réserver à une installation <strong>fraîche</strong>, ou dont on sait qu'elle ne
+       contient rien d'important. Il n'y a pas de retour en arrière, et aucune confirmation
+       n'est demandée.</p>
+    <p class="rap">Le vrai symptôme qui la justifie :
+       <em>Table 'mysql.db' doesn't exist</em>, ou tout message qui désigne une table de la
+       base <code>mysql</code> elle-même. Les tables système sont abîmées — c'est la
+       structure qu'on refait, pas les droits.</p>
+  </div>
+
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. arrêter le serveur</span>
+<span class="j-fn">brew</span> services stop mariadb
+
+<span class="j-com"># 2. supprimer les données — IRRÉVERSIBLE</span>
+<span class="j-fn">rm</span> <span class="j-att">-rf</span> /opt/homebrew/var/mysql
+
+<span class="j-com"># 3. recréer les tables système</span>
+/opt/homebrew/opt/mariadb/bin/mariadb-install-db \
+  <span class="j-att">--user</span>=$(whoami) \
+  <span class="j-att">--basedir</span>=/opt/homebrew/opt/mariadb \
+  <span class="j-att">--datadir</span>=/opt/homebrew/var/mysql
+
+<span class="j-com"># 4. redémarrer, puis vérifier</span>
+<span class="j-fn">brew</span> services start mariadb
+<span class="j-fn">mariadb</span> <span class="j-att">-e</span> <span class="j-txt">"SELECT VERSION();"</span></code></pre></div>
+
+  <p><code>--user=$(whoami)</code> n'est pas une formule magique : c'est ce qui crée le compte
+     au nom de la session, celui avec lequel on travaillera ensuite. Les chemins en
+     <code>/opt/homebrew</code> sont ceux d'un Mac à puce Apple ; sur un Mac Intel, Homebrew
+     s'installe dans <code>/usr/local</code>.</p>
+
+  <h3>Au quotidien</h3>
+
+  <div class="tableau">
+  <table>
+    <thead><tr><th>Ce qu'on veut</th><th>Commande</th><th>Où</th></tr></thead>
+    <tbody>
+      <tr><td>Démarrer / arrêter / relancer</td>
+          <td><code>brew services start|stop|restart mariadb</code></td><td>terminal</td></tr>
+      <tr><td>Voir si le serveur tourne</td><td><code>brew services list</code></td><td>terminal</td></tr>
+      <tr><td>Se connecter</td><td><code>mariadb</code></td><td>terminal</td></tr>
+      <tr><td>Lister les bases</td><td><code>SHOW DATABASES;</code></td><td>client</td></tr>
+      <tr><td>Choisir une base</td><td><code>USE ma_base;</code></td><td>client</td></tr>
+      <tr><td>Lister les tables</td><td><code>SHOW TABLES;</code></td><td>client</td></tr>
+      <tr><td>Voir la structure d'une table</td><td><code>DESCRIBE ma_table;</code></td><td>client</td></tr>
+      <tr><td>Sortir</td><td><code>exit;</code> ou <kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>client</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'invite qui passe à <code>-&gt;</code></div>
+    <p>Quand <code>MariaDB [(none)]&gt;</code> devient <code>-&gt;</code>, le client n'attend pas
+       une nouvelle commande : il attend <strong>la fin de la précédente</strong>. Un
+       point-virgule a été oublié. On le tape, on valide, et tout repart — inutile de
+       recommencer la requête.</p>
+    <p class="rap">Entre crochets, le client affiche la base active :
+       <code>[(none)]</code> signifie qu'aucun <code>USE</code> n'a été fait, et c'est la
+       cause la plus fréquente d'un <em>No database selected</em>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Sécuriser, ou pas</div>
+    <p><code>mariadb-secure-installation</code> supprime les comptes anonymes et la base
+       <code>test</code>, et interdit la connexion de root à distance. Sur un serveur, c'est
+       obligatoire. Sur un Mac de TP qui n'écoute que lui-même, c'est facultatif — mais
+       lancez-la au moins une fois pour voir ce qu'elle propose : ses sept questions sont un
+       résumé de ce qu'on laisse ouvert par défaut.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -931,6 +1129,10 @@ USE gestion_presence;
       <li><strong>Agrégats</strong> : <code>COUNT</code>, <code>SUM</code>, <code>AVG</code> +
           <code>GROUP BY</code>. <code>WHERE</code> avant, <code>HAVING</code> après.</li>
       <li><strong>PDO</strong> : <code>utf8mb4</code> + <code>ERRMODE_EXCEPTION</code>.</li>
+      <li><strong>Sur son Mac</strong> : <code>brew services start mariadb</code>, puis
+          <code>mariadb</code> <strong>sans <code>-u root</code></strong>. Un
+          <strong>1698</strong> dit que le compte refuse ce mode d'authentification, pas que
+          le mot de passe est faux.</li>
       <li><strong>Toujours <code>prepare()</code> + <code>execute()</code></strong> dès qu'une
           variable entre dans une requête. Et <code>password_hash()</code> pour les mots de
           passe.</li>
@@ -943,6 +1145,8 @@ USE gestion_presence;
       <li>Cours « Bases de données » (le professeur, BTS CIEL 2025-2026) —
           séances du 10/04 au 29/05</li>
       <li>TP7 et TP8 — requêtes SQL et conception</li>
+      <li>« MariaDB sur Mac », guide d'installation déposé avec le chapitre — refondu au
+          gabarit du dépôt, et ses affirmations revérifiées sur une installation réelle</li>
       <li>Photos de tableau — MCD USER / PC / Logiciel avec cardinalités, et son passage
           au modèle relationnel</li>
       <li>Projet E6 « Application web de gestion des présences » — sujet et réalisation d'élève (base <code>gestion_presence</code>, PDO, CRUD complet)</li>
@@ -954,7 +1158,7 @@ USE gestion_presence;
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/cours.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/cours.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=3cd157b9"></script>
-<script src="../../assets/app.js?v=3cd157b9"></script>
+<script src="../../assets/fiche.js?v=af861409"></script>
+<script src="../../assets/app.js?v=af861409"></script>
 </body>
 </html>

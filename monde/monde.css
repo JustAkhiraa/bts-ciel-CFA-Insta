@@ -1065,6 +1065,75 @@ body.jour .lecture-corps {
 .lecture-corps .tableau { max-width: none; width: 100%; }
 .lecture-corps > .tableau-conteneur, .lecture-corps > .bloc-code,
 .lecture-corps > table { max-width: 88ch; }
+
+/* ── Le plan du chapitre, dans la bande laissée vide ─────────────────────
+   La colonne de prose fait 70 caractères — c'est la bonne mesure, et
+   l'élargir rendrait le texte MOINS lisible. Restaient deux bandes vides de
+   part et d'autre, dans un panneau de 1480 px. Le site met le sommaire
+   exactement là ; le village le remet à sa place.
+
+   « grid-row: 1 / -1 » donne au plan toute la hauteur de la colonne : sans
+   elle il n'occuperait que la première rangée, et « sticky » n'aurait que
+   quelques pixels pour tenir.
+
+   TOUT est écrit « .lecture-corps > .lecture-plan », et c'est une leçon
+   payée deux fois dans ce dépôt : les règles du corps (« .lecture-corps h2 »,
+   « .lecture-corps a », « .lecture-corps ol ») sont écrites PLUS BAS dans
+   cette feuille, et à spécificité égale c'est la dernière qui gagne. Écrit
+   « .lecture-plan h2 », le titre réclamait 11,5 px et en faisait 17,6 —
+   mesuré dans le navigateur, invisible à la relecture. */
+.lecture-corps:has(> .lecture-plan) {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+  column-gap: clamp(1rem, 3vw, 2.6rem);
+  align-items: start;
+}
+.lecture-corps:has(> .lecture-plan) > *:not(.lecture-plan) { grid-column: 2; }
+.lecture-corps > .lecture-plan {
+  grid-column: 1; grid-row: 1 / -1;
+  position: sticky; top: 0; align-self: start;
+  max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  max-width: none; margin: 0;
+  padding: .2rem .9rem .9rem 0;
+  border-right: 1px solid var(--trait);
+}
+.lecture-corps > .lecture-plan h2 {
+  margin: 0 0 .6rem; font-size: .72rem; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--encre-douce); line-height: 1.3;
+}
+.lecture-corps > .lecture-plan ol { margin: 0; padding: 0; list-style: none; }
+.lecture-corps > .lecture-plan li { margin: 0; }
+.lecture-corps > .lecture-plan a {
+  display: block; padding: .34rem .6rem; border-radius: 7px;
+  font-size: .84rem; line-height: 1.35; text-decoration: none;
+  color: var(--encre-douce);
+  border-left: 2px solid transparent;
+  transition: background .15s ease, color .15s ease;
+}
+.lecture-corps > .lecture-plan a:hover { background: var(--carte); color: var(--encre); }
+/* La section qu'on est en train de lire. Le trait porte l'information, la
+   couleur la confirme : un lecteur qui ne distingue pas la teinte de la
+   matière voit quand même où il en est. */
+.lecture-corps > .lecture-plan a.actif {
+  color: var(--c); background: var(--carte);
+  border-left-color: var(--c); font-weight: 650;
+}
+
+/* Sous cette largeur, les deux bandes n'existent plus : le plan prendrait la
+   place de la prose au lieu de celle du vide. Le seuil est MESURÉ, largeur de
+   fenêtre par largeur de fenêtre, le plan forcé visible :
+
+     1120 px → prose 705   1101 → 705   1090 → 698
+     1075 px → prose 685   1050 → 664    980 → 603
+
+   La colonne garde donc sa mesure pleine — 705 px, ses 70 caractères —
+   jusqu'à 1101 px, et perd des pixels dès en dessous. 1100 est exactement
+   l'endroit où le plan cesse d'être gratuit. */
+@media (max-width: 1100px) {
+  .lecture-corps:has(> .lecture-plan) { display: block; }
+  .lecture-corps > .lecture-plan { display: none; }
+}
 /* La taille du texte monte de 0,9 à 1 rem — de 14,4 px à 16. C'était l'autre
    moitié de son reproche, et elle ne se règle pas avec de la largeur : un
    cours se lit, et 14 px dans un panneau sombre à bout de bras, ce n'est pas
