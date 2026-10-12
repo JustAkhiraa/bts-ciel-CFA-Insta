@@ -567,7 +567,23 @@ rendu.toneMappingExposure = HEURES.nuit.expo;
    du fond ne sont que sept objets, donc sept objets à redessiner dans la
    passe d'ombre. Sans la fonte, elle aurait doublé le coût de la scène. */
 rendu.shadowMap.enabled = true;
-rendu.shadowMap.type = THREE.PCFSoftShadowMap;
+/* ── Le type d'ombre demandé n'était plus celui qu'on recevait ───────────
+   Le code réclamait « PCFSoftShadowMap ». three.js l'a RETIRÉ en r186, le
+   remplace par « PCFShadowMap » et l'écrit dans la console à chaque
+   chargement. Relevé dans le navigateur : « rendu.shadowMap.type » vaut 1,
+   c'est-à-dire PCF, pas 2. Le village rendait donc des ombres dures depuis
+   la mise à jour, avec un commentaire qui promettait le contraire — et un
+   avertissement par visite dans une console que les bancs surveillent.
+
+   On nomme ce qu'on reçoit. L'image ne change pas d'un pixel : c'est déjà
+   ce qui était rendu.
+
+   « VSMShadowMap » existe encore et donne de vraies ombres douces. Essayé
+   en direct, écarté : il fait de TOUT receveur un émetteur — le terrain de
+   sept mille unités compris — et ses fuites de lumière se voient sur les
+   grands aplats. Un gain incertain contre un coût certain, sur une scène
+   qui tient déjà 2 407 appels de rendu par image. */
+rendu.shadowMap.type = THREE.PCFShadowMap;
 
 /* ── Le second rendu : les cartes, en HTML, DANS la scène ───────────────
    Signalé après une version où les cartes étaient posées à plat
@@ -1110,11 +1126,15 @@ const eauCouranteMat = new THREE.ShaderMaterial({
   transparent: true, side: THREE.DoubleSide, depthWrite: false,
   uniforms: { t: { value: 0 },
               claire: { value: new THREE.Color(0xDCF2FA) },
-              fonde:  { value: new THREE.Color(0x7FB9D4) } },
+              fonde:  { value: new THREE.Color(0x7FB9D4) },
+              /* Une nappe qui tombe est verticale : elle ne reflète pas le
+                 ciel, elle est TRAVERSÉE par la lumière. Elle suit donc
+                 l'heure plus discrètement que les deux autres. */
+              cielCoul: { value: new THREE.Color(0x1B2C48) } },
   vertexShader: `varying vec2 vU; void main(){ vU = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    varying vec2 vU;
+    uniform vec3 cielCoul; varying vec2 vU;
     float bruit(vec2 p){ return fract(sin(dot(p, vec2(41.7, 289.1))) * 43758.5453); }
     void main(){
       /* Trois vitesses de défilement : un filet unique se lit comme une
@@ -1125,7 +1145,7 @@ const eauCouranteMat = new THREE.ShaderMaterial({
       float m = smoothstep(0.55, 1.0, a) * 0.5
               + smoothstep(0.62, 1.0, b) * 0.32
               + smoothstep(0.70, 1.0, c) * 0.28;
-      vec3 col = mix(fonde, claire, m);
+      vec3 col = mix(mix(fonde, claire, m), cielCoul, 0.20);
       /* La nappe s'amincit en tombant et se dissout en bas : une colonne
          d'eau d'épaisseur constante est un tuyau, pas une chute. */
       float bord = smoothstep(0.0, 0.16, vU.x) * smoothstep(1.0, 0.84, vU.x);
@@ -1141,6 +1161,10 @@ const eauMat = new THREE.ShaderMaterial({
     claire: { value: new THREE.Color(0x9FD8E8) },
     fonde:  { value: new THREE.Color(0x1C4B63) },
     force:  { value: 0.75 },
+    /* La vasque suit l'heure elle aussi, mais SANS Fresnel : on la regarde
+       d'en haut, là où l'eau montre son fond et non le ciel. Lui donner le
+       miroir du lac en ferait une plaque d'argent posée dans la pierre. */
+    cielCoul: { value: new THREE.Color(0x1B2C48) },
   },
   vertexShader: `varying vec2 vU; void main(){ vU = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
@@ -1148,7 +1172,7 @@ const eauMat = new THREE.ShaderMaterial({
      lire une grille, trois donnent une eau. Le point central rayonne, comme
      si le jet retombait au milieu. */
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    uniform float force; varying vec2 vU;
+    uniform float force; uniform vec3 cielCoul; varying vec2 vU;
     void main(){
       vec2 p = (vU - 0.5) * 2.0;
       float r = length(p);
@@ -1160,6 +1184,7 @@ const eauMat = new THREE.ShaderMaterial({
       /* Le bord de la vasque est plus sombre : l'eau y est dans l'ombre de
          la margelle, et sans ce liseré le disque paraît collé. */
       col *= mix(0.62, 1.0, smoothstep(1.0, 0.72, r));
+      col = mix(col, cielCoul, 0.26);
       gl_FragColor = vec4(col, 0.93);
     }`,
 });
@@ -1181,6 +1206,39 @@ const eauMat = new THREE.ShaderMaterial({
    Le bord s'éclaircit au lieu de s'assombrir : près de la rive l'eau est
    peu profonde et laisse voir le fond, c'est l'inverse d'une margelle qui
    porte son ombre. */
+/* ── Une eau qui ne reflète rien n'est pas de l'eau ──────────────────────
+   Demandé : améliorer les graphismes, avec dix exemples officiels de
+   three.js pour matière.
+
+   Mesuré AVANT de choisir quoi faire, en lisant les pixels du rendu : le
+   lac valait **rgb(24, 53, 72) la nuit et rgb(30, 59, 76) le jour**. Six
+   points d'écart sur 255 — et ces six-là ne viennent même pas de l'eau,
+   mais du seul changement d'exposition. « poserHeure » ne touchait aucun
+   des trois matériaux d'eau.
+
+   C'est le défaut le plus coûteux du village en termes de rendu, parce que
+   le lac est sa plus grande surface plane : celle qui, dehors, ne montre
+   presque jamais sa propre couleur. Une eau est d'abord un MIROIR.
+
+   ── Ce que les dix exemples apportent, et ce qu'ils ne peuvent pas ─────
+   Le reflet juste serait un second rendu de la scène vu d'en dessous —
+   c'est « webgl_framebuffer_texture ». Mesuré : la scène coûte déjà
+   **2 407 appels de rendu** par image ; un miroir plan les doublerait pour
+   une seule surface. Écarté, et c'est une mesure qui le dit, pas un goût.
+
+   Ce qu'on garde d'eux, c'est la réflexion d'ENVIRONNEMENT de
+   « webgl_materials_car » : on ne reflète pas la scène, on reflète le
+   ciel de l'heure. Trois lignes de shader, aucune passe de plus.
+
+   Et l'ingrédient qui fait qu'on y croit n'est pas la couleur, c'est le
+   FRESNEL : une eau vue de haut montre son fond, vue à ras elle devient
+   un miroir. C'est pour ça qu'un lac pâlit vers l'horizon. La normale est
+   calculée à partir de la PENTE des trois houles — leurs dérivées, qu'on a
+   déjà sous la main — donc le reflet ondule avec elles au lieu d'être un
+   aplat.
+
+   Le ciel reflété est la couleur de BRUME de l'heure, pas celle du zénith :
+   à ras de l'eau, ce qu'on voit dans le miroir est l'horizon. */
 const eauLacMat = new THREE.ShaderMaterial({
   transparent: true,
   uniforms: {
@@ -1189,11 +1247,24 @@ const eauLacMat = new THREE.ShaderMaterial({
     fonde:  { value: new THREE.Color(0x1E4257) },
     rive:   { value: new THREE.Color(0x7FB49C) },
     rayon:  { value: 210.0 },
+    cielCoul: { value: new THREE.Color(0x1B2C48) },
+    lumCoul:  { value: new THREE.Color(0xA8BEEC) },
+    lumDir:   { value: new THREE.Vector3(0, 1, 0) },
+    eclat:    { value: 1.0 },
   },
-  vertexShader: `varying vec2 vU; void main(){ vU = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  /* Le monde, pas la vue : le Fresnel a besoin de la position RÉELLE du
+     fragment pour en déduire la direction du regard. « cameraPosition » est
+     fourni par three.js dans tous les shaders. */
+  vertexShader: `varying vec2 vU; varying vec3 vW;
+    void main(){ vU = uv;
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vW = w.xyz;
+      gl_Position = projectionMatrix * viewMatrix * w; }`,
   fragmentShader: `uniform float t; uniform vec3 claire; uniform vec3 fonde;
-    uniform vec3 rive; uniform float rayon; varying vec2 vU;
+    uniform vec3 rive; uniform float rayon;
+    uniform vec3 cielCoul; uniform vec3 lumCoul; uniform vec3 lumDir;
+    uniform float eclat;
+    varying vec2 vU; varying vec3 vW;
     void main(){
       vec2 p = (vU - 0.5) * 2.0;
       float r = length(p);
@@ -1206,7 +1277,33 @@ const eauLacMat = new THREE.ShaderMaterial({
       /* Le haut-fond : les vingt derniers pour cent du rayon virent au vert
          pâle, et c'est ce dégradé qui donne sa profondeur au lac. */
       col = mix(col, rive, smoothstep(0.80, 1.0, r));
-      gl_FragColor = vec4(col, mix(0.95, 0.72, smoothstep(0.80, 1.0, r)));
+
+      /* La normale, prise sur la PENTE des mêmes houles : leurs dérivées
+         portent les mêmes poids que leurs hauteurs, sinon le reflet
+         ondulerait autrement que l'eau. */
+      float ca = cos(w.x * 1.00 + w.y * 0.42 - t * 1.25);
+      float cb = cos(w.x * -0.47 + w.y * 1.00 - t * 0.92);
+      float cc = cos((w.x + w.y) * 0.31 + t * 0.55);
+      const float PENTE = 0.085;
+      vec3 N = normalize(vec3(
+        -(ca * 1.00 * 0.42 + cb * -0.47 * 0.34 + cc * 0.31 * 0.24) * PENTE,
+        1.0,
+        -(ca * 0.42 * 0.42 + cb * 1.00 * 0.34 + cc * 0.31 * 0.24) * PENTE));
+      vec3 Vd = normalize(cameraPosition - vW);
+
+      /* Fresnel de Schlick. 2 % de face — on voit le fond —, jusqu'à 1 au
+         ras : c'est tout l'écart entre une flaque et un miroir. */
+      float f = 0.02 + 0.98 * pow(1.0 - clamp(dot(N, Vd), 0.0, 1.0), 5.0);
+      col = mix(col, cielCoul, f * 0.90);
+
+      /* Le chemin de lumière : lune ou soleil, selon l'heure. C'est le même
+         réflecteur, et c'est pour ça qu'il n'y a qu'un uniforme. */
+      float s = pow(max(dot(reflect(-Vd, N), lumDir), 0.0), 180.0);
+      col += lumCoul * s * eclat;
+
+      /* Plus l'eau est miroir, moins elle est transparente. */
+      float al = mix(0.95, 0.72, smoothstep(0.80, 1.0, r));
+      gl_FragColor = vec4(col, clamp(al + f * 0.25, 0.0, 1.0));
     }`,
 });
 
@@ -2146,6 +2243,29 @@ const BOUTIQUES = [
     tenancier: "Le compteur",
     bonjour: "Trente-trois lignes, du /0 au /32, recalculées à chaque "
            + "publication. Aucune n'est recopiée d'un livre." },
+  /* Signalé en construisant l'inventaire : huit outils publiés, sept
+     échoppes. La calculatrice n'était atteignable ni par la rue ni par le
+     menu — c'était le seul outil du site que le village ignorait.
+
+     Son ancre est du CÔTÉ de l'observatoire, le bâtiment des mathématiques :
+     une échoppe se retient par le lieu où elle est, et un calculateur dans
+     cette direction-là se retrouve sans qu'on ait à chercher.
+
+     Elle n'est pas AU PIED de l'observatoire, et c'est une mesure qui l'a
+     déplacée. Posée à [226, 152], en plein cœur du bourg, elle prenait la
+     place de **deux maisons** : la rue en bâtissait 16 au lieu de 18, et le
+     village le disait tout seul dans sa console. Reportée à [332, 268], au
+     bord de la zone bâtie, les 18 maisons reviennent. Le village n'a pas de
+     place libre au centre — il fallait le mesurer pour le savoir.
+
+     La position exacte, elle, n'est pas écrite ici : elle est TROUVÉE par la
+     recherche en anneaux, comme les sept autres. */
+  { nom: "Le Cabinet des Nombres", enseigne: "π", couleur: 0xF5D76E,
+    outil: "outils/calculatrice.html", ancre: [332, 268], cote: 1, z: 118,
+    tenancier: "Dame Sigma",
+    bonjour: "Calculs, fonctions, suites, statistiques, régressions, "
+           + "probabilités, équations — et dix lois, de la binomiale "
+           + "à Fisher." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
@@ -2242,7 +2362,7 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
   const MURS = [M.platre, M.pierreC, M.brique, M.pierre];
   const TOITS = [M.tuile, M.ardoise, M.tuile];
   /* Ce que les cinq bâtiments occupent déjà, et où l'on ne bâtit pas. Les
-     sept échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
+     les échoppes y entrent aussi : sans cette ligne, la rue en bâtirait une
      par-dessus, et l'on cliquerait sur une porte qui ne mène nulle part. */
   const pris = matieres.map((m) => ({ x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 12 }))
     .concat(BOUTIQUES.map((b) => ({ x: b.x, z: b.z, r: BOUT_L / 2 + 14 })));
@@ -4808,6 +4928,7 @@ function avancerDe(d) {
   glisserContre(oeil.pos.x - Math.sin(oeil.lacet) * d,
                 oeil.pos.z - Math.cos(oeil.lacet) * d);
   bouge();
+  enMarche();
 }
 function marcher(dt) {
   let av = (appui.has("av") ? 1 : 0) - (appui.has("ar") ? 1 : 0) - manche.y;
@@ -4820,7 +4941,38 @@ function marcher(dt) {
   const c = Math.cos(oeil.lacet), si = Math.sin(oeil.lacet);
   glisserContre(oeil.pos.x + (-si * av + c * co) * v,
                 oeil.pos.z + (-c * av - si * co) * v);
+  enMarche();
 }
+/* ── Le HUD se retire pendant qu'on marche ─────────────────────────────
+   Demandé : moins de HUD.
+
+   Mesuré AVANT de toucher à quoi que ce soit, sur 1024 × 768 : le HUD
+   occupe **19,8 % de l'écran**, et le bandeau du bas en fait **93 % à lui
+   seul** (1024 × 141 sur 155 874 px² au total). Le titre, les deux ronds et
+   le lien de retour pèsent le reste — 7 % du HUD, à eux quatre.
+
+   Ce qu'on ne fait PAS : retirer les pastilles. Elles sont la seule
+   navigation du village ; les supprimer rendrait les matières
+   introuvables, et « moins de HUD » ne veut pas dire « moins de village ».
+
+   Ce qu'on fait : le HUD s'efface PENDANT QU'ON MARCHE et revient dès
+   qu'on s'arrête. Marcher, c'est regarder le village ; s'arrêter, c'est
+   choisir où aller. Une affordance se montre au moment où elle sert
+   (Norman) — le reste du temps, l'écran est le village et rien d'autre.
+
+   Le déclencheur est la TRANSLATION, pas le regard. Tourner la tête se
+   fait d'un geste de souris continuel : accroché là-dessus, le HUD
+   clignoterait à chaque frémissement. On marche ou on ne marche pas, c'est
+   binaire, et c'est ce qui rend le comportement prévisible. */
+const REPOS_HUD = 900;
+let minuterieHud = null;
+function enMarche() {
+  document.body.classList.add("en-marche");
+  clearTimeout(minuterieHud);
+  minuterieHud = setTimeout(
+    () => document.body.classList.remove("en-marche"), REPOS_HUD);
+}
+
 /* La première fois qu'on bouge, l'invite disparaît : elle a fait son
    travail. C'est le principe de l'affordance qui s'efface. */
 let aBouge = false;
@@ -5453,6 +5605,24 @@ function poserHeure(h) {
   cuireEnvironnement();
   scene.environmentIntensity = H.reflets;
 
+  /* ── Les trois eaux suivent l'heure ───────────────────────────────────
+     Elles ne la suivaient pas du tout : mesuré en lisant les pixels du
+     rendu, le lac valait rgb(24,53,72) la nuit et rgb(30,59,76) le jour.
+     Le ciel reflété est la couleur de BRUME, pas celle du zénith : à ras de
+     l'eau, ce qu'on voit dans le miroir, c'est l'horizon. */
+  const cielEau = new THREE.Color(H.brumeCouleur);
+  eauLacMat.uniforms.cielCoul.value.copy(cielEau);
+  eauMat.uniforms.cielCoul.value.copy(cielEau);
+  eauCouranteMat.uniforms.cielCoul.value.copy(cielEau);
+  /* Le réflecteur est le même objet aux deux heures — soleil le jour, lune
+     la nuit —, donc un seul uniforme suffit. « lumDir » part de la surface
+     VERS la lumière : c'est le sens qu'attend « reflect ». */
+  eauLacMat.uniforms.lumDir.value.copy(dirLumiere).normalize();
+  eauLacMat.uniforms.lumCoul.value.setHex(H.couleurSoleil);
+  /* Le chemin de lune doit se voir sur une eau sombre sans brûler l'eau
+     claire du jour : c'est l'exposition qui change, pas le soleil. */
+  eauLacMat.uniforms.eclat.value = h === "jour" ? 0.9 : 2.2;
+
   scene.fog.color.setHex(H.brumeCouleur);
   scene.fog.near = H.brume[0];
   scene.fog.far = H.brume[1];
@@ -5630,11 +5800,32 @@ toile.addEventListener("pointerup", (e) => {
 
 addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    if (!inv.hidden) { fermerInventaire(); return; }
     if (!lecture.hidden) { fermerLecture(); return; }
     if (!aide.hidden) { aide.hidden = true; return; }
     if (vue.matiere >= 0) allerA(-1);
     return;
   }
+  /* « I » comme inventaire. Deux façons de reconnaître la touche, et deux
+     seulement : le caractère produit, puis la position physique en secours.
+     La troisième de CLAUDE.md § 27 — « keyCode », la lettre de la
+     disposition — n'a de sens que pour un raccourci À MODIFICATEUR, où le
+     Mac compose un caractère étranger (Option+Z donnait « Â »). Ici aucun
+     modificateur n'entre en jeu, et « i » est produit par la même touche en
+     AZERTY comme en QWERTY. Deux tests qui ne peuvent pas tomber ensemble
+     valent mieux qu'un troisième recopié d'un autre fichier : « lettre »
+     vit dans l'atelier, et deux copies d'une même règle finissent par
+     diverger (CLAUDE.md § 19).
+
+     L'inventaire ne s'ouvre pas pendant qu'on lit une fiche : on y
+     choisirait où aller tout en étant déjà ailleurs. */
+  const estI = (e.key && e.key.toLowerCase() === "i") || e.code === "KeyI";
+  if (!e.metaKey && !e.ctrlKey && !e.altKey && lecture.hidden && estI) {
+    e.preventDefault();
+    inv.hidden ? ouvrirInventaire() : fermerInventaire();
+    return;
+  }
+  if (!inv.hidden) return;
   if (!lecture.hidden) return;
   /* Dans l'allée, les mêmes touches marchent au lieu de naviguer. Ce n'est
      pas ambigu : dans l'allée il n'y a rien à faire défiler, et sur un
@@ -5979,6 +6170,225 @@ async function afficherFiche(url) {
       `Ouvrir la fiche sur le site</a>`;
   }
 }
+
+/* ═══════════════════════════════════════ L'INVENTAIRE ════════════════
+   Demandé : un menu inventaire à la Zelda Wind Waker, dont le style
+   reprenne les thèmes du site.
+
+   Le piège d'une telle demande est de ne livrer que la forme — un beau
+   parchemin qui ne sert à rien. Dans ce jeu-là, l'inventaire n'est pas une
+   vitrine : c'est d'ICI qu'on décide où aller. Le menu porte donc les trois
+   seules choses qu'on peut vouloir atteindre depuis le village :
+
+     · les cinq MATIÈRES, avec leur compte de chapitres et de fiches ;
+     · les huit ÉCHOPPES, c'est-à-dire les outils, qu'on ne pouvait
+       jusqu'ici atteindre qu'en marchant jusqu'à leur façade ;
+     · le CARNET — ce qui a été lu récemment sur le site ordinaire.
+
+   Le carnet n'est pas une invention : le site écrit déjà « derniere » et
+   « recents » dans « localStorage », sous la clé « bts-ciel ». Le village
+   est servi depuis la même origine, il les lit donc telles quelles. Rien
+   n'est écrit en retour : le village regarde, il ne tient pas le carnet. */
+const INV_CLE_SITE = "bts-ciel";
+const inv = $("inv");
+let invPage = "matieres", invChoix = 0, invCases = [], invRendu = null;
+
+/* Retrouver le chapitre d'une adresse lue dans le carnet. Sans lui, un
+   titre du carnet serait un cul-de-sac : on saurait qu'on l'a lu, et on ne
+   pourrait pas y retourner sans quitter le village. */
+function chapitreDe(url) {
+  const net = String(url || "").replace(/^\/+/, "").split("#")[0];
+  for (const pole of DONNEES.poles)
+    for (const chap of pole.chapitres)
+      for (const f of chap.fiches)
+        if (net.endsWith(f[1])) return { pole, chap };
+  return null;
+}
+
+function carnet() {
+  let S = null;
+  try { S = JSON.parse(localStorage.getItem(INV_CLE_SITE) || "{}"); } catch (e) { S = {}; }
+  const vus = [];
+  const ajoute = (x) => {
+    if (!x || !x.u || vus.some((y) => y.u === x.u)) return;
+    vus.push({ t: x.t || x.titre, u: x.u });
+  };
+  if (S && S.derniere) ajoute({ t: S.derniere.titre, u: S.derniere.url });
+  for (const x of (S && S.recents) || []) ajoute(x);
+  return vus;
+}
+
+/* Les trois pages. Chacune rend une liste d'OBJETS identiques de forme :
+   un glyphe, un libellé, une ligne de compte, une phrase, et le geste à
+   faire. C'est cette forme commune qui permet à la grille, au clavier et à
+   la plaque du bas d'ignorer de quelle page il s'agit. */
+function objetsDe(page) {
+  if (page === "outils")
+    return BOUTIQUES.map((b, i) => ({
+      glyphe: b.enseigne, lib: b.nom, compte: b.tenancier,
+      dit: b.bonjour,
+      geste: "Entrer dans l'échoppe", faire: () => { fermerInventaire(); ouvrirBoutique(i); },
+    }));
+  if (page === "carnet")
+    return carnet().map((v) => {
+      const t = chapitreDe(v.u);
+      return {
+        glyphe: "✦", lib: v.t || "(sans titre)",
+        compte: t ? t.pole.court : "",
+        /* Le titre du chapitre est souvent CELUI de la fiche — « Bases de
+           données & SQL » des deux côtés. Le répéter sous lui-même ne dit
+           rien de plus ; on ne le remet que s'il diffère. */
+        dit: t
+          ? [t.chap.titre === (v.t || "") ? "" : t.chap.titre, t.chap.sous || ""]
+              .filter(Boolean).join(" — ")
+            || "Un chapitre du village."
+          : "Cette fiche ne fait pas partie du village.",
+        geste: t ? "Reprendre ici" : null,
+        faire: t ? () => {
+          fermerInventaire();
+          const m = matieres.find((x) => x.pole === t.pole);
+          ouvrirLecture({ chap: t.chap, pole: t.pole,
+                          couleur: m ? m.css : "#6FC8FF" });
+        } : null,
+      };
+    });
+  return DONNEES.poles.map((pole, i) => {
+    const nf = pole.chapitres.reduce((s, c) => s + c.fiches.length, 0);
+    return {
+      glyphe: pole.court.slice(0, 2).toUpperCase(), lib: pole.court,
+      compte: `${pole.chapitres.length} chapitres`,
+      dit: `${pole.titre} — ${nf} fiches à lire sur place.`,
+      geste: "Aller au bâtiment",
+      faire: () => { fermerInventaire(); allerA(i); },
+    };
+  });
+}
+
+function peindreInventaire() {
+  const objets = objetsDe(invPage);
+  invRendu = objets;
+  invChoix = Math.min(invChoix, Math.max(0, objets.length - 1));
+
+  const onglets = $("inv-onglets");
+  onglets.innerHTML = "";
+  for (const [cle, nom] of [["matieres", "Matières"], ["outils", "Échoppes"],
+                            ["carnet", "Carnet"]]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = nom;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(cle === invPage));
+    b.addEventListener("click", () => {
+      invPage = cle; invChoix = 0; peindreInventaire();
+    });
+    onglets.appendChild(b);
+  }
+
+  const grille = $("inv-grille");
+  grille.innerHTML = "";
+  invCases = [];
+  if (!objets.length) {
+    const p = document.createElement("p");
+    p.className = "inv-vide";
+    p.textContent = invPage === "carnet"
+      ? "Rien encore. Ouvrez une fiche, ici ou sur le site, et elle s'inscrira là."
+      : "Rien à montrer sur cette page.";
+    grille.appendChild(p);
+    poserFiche(null);
+    return;
+  }
+  objets.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "inv-case";
+    b.setAttribute("aria-current", String(i === invChoix));
+    b.innerHTML = `<span class="inv-glyphe">${echapper(o.glyphe)}</span>` +
+                  `<span class="inv-lib">${echapper(o.lib)}</span>` +
+                  (o.compte ? `<span class="inv-compte">${echapper(o.compte)}</span>` : "");
+    b.addEventListener("click", () => {
+      if (invChoix === i && o.faire) { o.faire(); return; }
+      invChoix = i; rafraichirChoix();
+    });
+    b.addEventListener("focus", () => { invChoix = i; rafraichirChoix(); });
+    grille.appendChild(b);
+    invCases.push(b);
+  });
+  rafraichirChoix();
+}
+
+/* Le texte d'un objet du village ne vient pas de moi : il vient des données.
+   On l'échappe donc, comme tout ce qui n'est pas écrit dans ce fichier. */
+function echapper(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function poserFiche(o) {
+  $("inv-nom").textContent = o ? o.lib : "";
+  $("inv-dit").textContent = o ? o.dit : "";
+  const b = $("inv-aller");
+  b.hidden = !(o && o.geste && o.faire);
+  if (!b.hidden) {
+    b.textContent = o.geste;
+    b.onclick = o.faire;
+  }
+}
+
+function rafraichirChoix() {
+  invCases.forEach((b, i) => b.setAttribute("aria-current", String(i === invChoix)));
+  poserFiche(invRendu[invChoix] || null);
+}
+
+/* Le clavier d'un menu de ce genre : les flèches se déplacent dans la
+   GRILLE, pas dans la liste. On compte donc les colonnes réellement
+   rendues — la grille est en « auto-fill », leur nombre change avec la
+   largeur, et une constante écrite ici mentirait sur un téléphone. */
+function colonnesInventaire() {
+  if (invCases.length < 2) return 1;
+  const y = invCases[0].getBoundingClientRect().top;
+  let n = 0;
+  for (const b of invCases) {
+    if (Math.abs(b.getBoundingClientRect().top - y) > 4) break;
+    n++;
+  }
+  return Math.max(1, n);
+}
+
+function ouvrirInventaire() {
+  inv.hidden = false;
+  $("btn-inv").setAttribute("aria-expanded", "true");
+  peindreInventaire();
+  (invCases[invChoix] || $("inv-fermer")).focus();
+}
+function fermerInventaire() {
+  if (inv.hidden) return;
+  inv.hidden = true;
+  $("btn-inv").setAttribute("aria-expanded", "false");
+  $("btn-inv").focus();
+}
+$("btn-inv").addEventListener("click", () =>
+  inv.hidden ? ouvrirInventaire() : fermerInventaire());
+$("inv-fermer").addEventListener("click", fermerInventaire);
+/* Un clic HORS de la page referme : c'est ce que fait n'importe quelle
+   fenêtre de ce site, et un menu plein écran sans issue au clic est un
+   piège. Le clic sur la page elle-même ne compte pas. */
+inv.addEventListener("click", (e) => { if (e.target === inv) fermerInventaire(); });
+
+inv.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { e.preventDefault(); fermerInventaire(); return; }
+  if (!invCases.length) return;
+  const col = colonnesInventaire();
+  const pas = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: col, ArrowUp: -col }[e.key];
+  if (pas === undefined) return;
+  e.preventDefault();
+  invChoix = Math.max(0, Math.min(invCases.length - 1, invChoix + pas));
+  /* On repeint AVANT de déplacer le focus, et sans compter sur lui.
+     « element.focus() » désigne bien le nouvel élément actif, mais
+     n'émet PAS l'événement « focus » quand le document n'a pas le focus
+     du système — une page en cadre, un onglet au second plan, un banc.
+     Le choix se serait alors déplacé sans que rien ne le montre. L'écouteur
+     de focus reste, pour la tabulation ; il n'est plus le seul chemin. */
+  rafraichirChoix();
+  invCases[invChoix].focus();
+});
 
 /* ── L'aide, montrée une fois ────────────────────────────────────────── */
 const CLE_AIDE = "ciel-monde-aide-4";
@@ -6424,7 +6834,48 @@ function diagnostic() {
     appelsDeRendu: rendu.info.render.calls,
     triangles: rendu.info.render.triangles,
     textureMax: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    hudAuRepos: mesurerHud(),
   };
+}
+
+/* Le HUD au repos, en pourcentage de l'écran. C'est le chiffre que
+   « moins de HUD » désigne, et il n'avait jamais été relevé : il valait
+   **19,8 %** sur 1024 × 768, dont 93 % pour le seul bandeau du bas.
+   Un banc qui mesure des débordements ne verra jamais ça — un HUD qui
+   prend le cinquième de l'écran est parfaitement bien rangé. */
+function mesurerHud() {
+  let aire = 0;
+  for (const sel of [".hud-haut", ".boussole", "#soustitre", "#manche"]) {
+    const e = document.querySelector(sel);
+    if (!e) continue;
+    const s = getComputedStyle(e);
+    if (s.display === "none" || s.visibility === "hidden" || +s.opacity < 0.02) continue;
+    const r = e.getBoundingClientRect();
+    aire += r.width * r.height;
+  }
+  return +(100 * aire / (innerWidth * innerHeight)).toFixed(1);
+}
+
+/* ── Le retrait du HUD, éprouvé sans marcher ────────────────────────────
+   Une touche enfoncée ne se simule pas depuis l'extérieur : un appui bref
+   est relâché avant la première image, et « marcher » n'a alors rien à
+   faire. Le village expose donc le geste lui-même. On relève l'opacité
+   avant, pendant, et après le délai de retour — trois mesures, et la
+   troisième est celle qui compte : un HUD qui part sans revenir serait
+   pire que pas de HUD du tout. */
+async function eprouverHud() {
+  const hud = document.querySelector(".hud-haut");
+  const bou = document.querySelector(".boussole");
+  const lire = () => ({ haut: +getComputedStyle(hud).opacity,
+                        bas: +getComputedStyle(bou).opacity,
+                        pourcent: mesurerHud() });
+  const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+  const avant = lire();
+  enMarche();
+  await attendre(420);                       // la transition dure 300 ms
+  const pendant = lire();
+  await attendre(REPOS_HUD + 500);
+  return { avant, pendant, apres: lire() };
 }
 
 /* « ouvrirBoutique » et « BOUTIQUES » sortent ici pour une raison précise :
@@ -6444,6 +6895,6 @@ window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
                    reste : un espace marchable ne se vérifie pas en relisant
                    une constante, il se vérifie en MARCHANT dedans. */
                 RELIEF, hauteurSol, glisserContre, OBSTACLES,
-                diagnostic };
+                diagnostic, eprouverHud };
 
 requestAnimationFrame(image);
