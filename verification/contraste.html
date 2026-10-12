@@ -1016,6 +1016,30 @@ document.getElementById("go-monde").addEventListener("click", async () => {
           doc.getElementById("lecture-fermer").click();
           await attendre(400);
         }
+        /* L'inventaire. Il n'apparaît QUE sur un geste — la touche « I » ou
+           son bouton —, donc aucune des mesures précédentes ne l'a jamais
+           vu. C'est le même angle mort que la feuille de réglages et que
+           l'historique (CLAUDE.md § 18) : un panneau qui s'ouvre sur un
+           geste se contrôle en faisant le geste. Ses trois pages sont
+           parcourues : elles n'ont ni les mêmes textes ni les mêmes fonds,
+           et le carnet peut être vide, ce qui est encore un état à mesurer. */
+        const bInv = doc.getElementById("btn-inv");
+        if (bInv) {
+          bInv.click();
+          await patienter(() => !doc.getElementById("inv").hidden,
+                          h + "/" + L + "×" + H + " · inventaire", retards);
+          const pages = [...doc.querySelectorAll("#inv-onglets button")];
+          for (let k = 0; k < pages.length; k++) {
+            doc.querySelectorAll("#inv-onglets button")[k].click();
+            await attendre(320);
+            const nom = ["matières", "échoppes", "carnet"][k] || ("page " + (k + 1));
+            dire(h + " " + L + "×" + H + " — inventaire · " + nom);
+            releve(h + "/" + L + "×" + H + " · inventaire " + nom);
+          }
+          doc.getElementById("inv-fermer").click();
+          await attendre(300);
+        }
+
         C.allerA(-1);
         await patienter(() => doc.body.classList.contains("entre"),
                         h + "/" + L + "×" + H + " · retour", retards);
@@ -1034,10 +1058,25 @@ document.getElementById("go-monde").addEventListener("click", async () => {
   } catch (err) {}
 
   const l = [j.innerHTML];
+  /* Cette phrase ÉNUMÈRE ce qui a été mesuré : elle doit donc changer le
+     jour où l'on mesure autre chose. Elle a annoncé « l'allée, les cinq
+     parvis et la fenêtre de lecture » pendant toute une campagne qui
+     visitait déjà les trois pages de l'inventaire — 40 états au lieu de 28,
+     et le compte était juste sous une phrase qui ne l'était plus. C'est le
+     défaut du § 17 de CLAUDE.md, dans le même fichier : un outil qui ment
+     sur son propre périmètre est le pire endroit où laisser traîner une
+     phrase périmée. D'où le décompte attendu, juste en dessous : il se
+     plaint tout seul si l'énumération cesse de correspondre. */
+  const PAR_PASSE = 10;   // allée + 5 parvis + lecture + 3 pages d'inventaire
   l.push("<p>" + compte.etats + " états mesurés — deux écrans, deux heures,"
-    + " l'allée, les cinq parvis et la fenêtre de lecture — " + compte.n
+    + " l'allée, les cinq parvis, la fenêtre de lecture et les trois pages"
+    + " de l'inventaire — " + compte.n
     + " textes, " + bilan.lus + " pixels de rendu lus sous eux"
     + (bilan.vides ? " (dont " + bilan.vides + " vides)" : "") + ".</p>");
+  if (!souci && compte.etats && compte.etats !== ECRANS.length * 2 * PAR_PASSE)
+    l.push('<p class="ko">⚠️ ' + compte.etats + " états au lieu des "
+      + (ECRANS.length * 2 * PAR_PASSE) + " annoncés : l'énumération ci-dessus"
+      + " ne décrit plus ce que le banc parcourt.</p>");
   if (souci) l.push('<p class="ko">⚠️ campagne interrompue : ' + souci + "</p>");
   if (!compte.n)
     l.push('<p class="ko">⚠️ AUCUN texte mesuré — le banc n\'a pas vu le village.'

@@ -4808,6 +4808,7 @@ function avancerDe(d) {
   glisserContre(oeil.pos.x - Math.sin(oeil.lacet) * d,
                 oeil.pos.z - Math.cos(oeil.lacet) * d);
   bouge();
+  enMarche();
 }
 function marcher(dt) {
   let av = (appui.has("av") ? 1 : 0) - (appui.has("ar") ? 1 : 0) - manche.y;
@@ -4820,7 +4821,38 @@ function marcher(dt) {
   const c = Math.cos(oeil.lacet), si = Math.sin(oeil.lacet);
   glisserContre(oeil.pos.x + (-si * av + c * co) * v,
                 oeil.pos.z + (-c * av - si * co) * v);
+  enMarche();
 }
+/* ── Le HUD se retire pendant qu'on marche ─────────────────────────────
+   Demandé : moins de HUD.
+
+   Mesuré AVANT de toucher à quoi que ce soit, sur 1024 × 768 : le HUD
+   occupe **19,8 % de l'écran**, et le bandeau du bas en fait **93 % à lui
+   seul** (1024 × 141 sur 155 874 px² au total). Le titre, les deux ronds et
+   le lien de retour pèsent le reste — 7 % du HUD, à eux quatre.
+
+   Ce qu'on ne fait PAS : retirer les pastilles. Elles sont la seule
+   navigation du village ; les supprimer rendrait les matières
+   introuvables, et « moins de HUD » ne veut pas dire « moins de village ».
+
+   Ce qu'on fait : le HUD s'efface PENDANT QU'ON MARCHE et revient dès
+   qu'on s'arrête. Marcher, c'est regarder le village ; s'arrêter, c'est
+   choisir où aller. Une affordance se montre au moment où elle sert
+   (Norman) — le reste du temps, l'écran est le village et rien d'autre.
+
+   Le déclencheur est la TRANSLATION, pas le regard. Tourner la tête se
+   fait d'un geste de souris continuel : accroché là-dessus, le HUD
+   clignoterait à chaque frémissement. On marche ou on ne marche pas, c'est
+   binaire, et c'est ce qui rend le comportement prévisible. */
+const REPOS_HUD = 900;
+let minuterieHud = null;
+function enMarche() {
+  document.body.classList.add("en-marche");
+  clearTimeout(minuterieHud);
+  minuterieHud = setTimeout(
+    () => document.body.classList.remove("en-marche"), REPOS_HUD);
+}
+
 /* La première fois qu'on bouge, l'invite disparaît : elle a fait son
    travail. C'est le principe de l'affordance qui s'efface. */
 let aBouge = false;
@@ -5630,11 +5662,32 @@ toile.addEventListener("pointerup", (e) => {
 
 addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    if (!inv.hidden) { fermerInventaire(); return; }
     if (!lecture.hidden) { fermerLecture(); return; }
     if (!aide.hidden) { aide.hidden = true; return; }
     if (vue.matiere >= 0) allerA(-1);
     return;
   }
+  /* « I » comme inventaire. Deux façons de reconnaître la touche, et deux
+     seulement : le caractère produit, puis la position physique en secours.
+     La troisième de CLAUDE.md § 27 — « keyCode », la lettre de la
+     disposition — n'a de sens que pour un raccourci À MODIFICATEUR, où le
+     Mac compose un caractère étranger (Option+Z donnait « Â »). Ici aucun
+     modificateur n'entre en jeu, et « i » est produit par la même touche en
+     AZERTY comme en QWERTY. Deux tests qui ne peuvent pas tomber ensemble
+     valent mieux qu'un troisième recopié d'un autre fichier : « lettre »
+     vit dans l'atelier, et deux copies d'une même règle finissent par
+     diverger (CLAUDE.md § 19).
+
+     L'inventaire ne s'ouvre pas pendant qu'on lit une fiche : on y
+     choisirait où aller tout en étant déjà ailleurs. */
+  const estI = (e.key && e.key.toLowerCase() === "i") || e.code === "KeyI";
+  if (!e.metaKey && !e.ctrlKey && !e.altKey && lecture.hidden && estI) {
+    e.preventDefault();
+    inv.hidden ? ouvrirInventaire() : fermerInventaire();
+    return;
+  }
+  if (!inv.hidden) return;
   if (!lecture.hidden) return;
   /* Dans l'allée, les mêmes touches marchent au lieu de naviguer. Ce n'est
      pas ambigu : dans l'allée il n'y a rien à faire défiler, et sur un
@@ -5979,6 +6032,225 @@ async function afficherFiche(url) {
       `Ouvrir la fiche sur le site</a>`;
   }
 }
+
+/* ═══════════════════════════════════════ L'INVENTAIRE ════════════════
+   Demandé : un menu inventaire à la Zelda Wind Waker, dont le style
+   reprenne les thèmes du site.
+
+   Le piège d'une telle demande est de ne livrer que la forme — un beau
+   parchemin qui ne sert à rien. Dans ce jeu-là, l'inventaire n'est pas une
+   vitrine : c'est d'ICI qu'on décide où aller. Le menu porte donc les trois
+   seules choses qu'on peut vouloir atteindre depuis le village :
+
+     · les cinq MATIÈRES, avec leur compte de chapitres et de fiches ;
+     · les huit ÉCHOPPES, c'est-à-dire les outils, qu'on ne pouvait
+       jusqu'ici atteindre qu'en marchant jusqu'à leur façade ;
+     · le CARNET — ce qui a été lu récemment sur le site ordinaire.
+
+   Le carnet n'est pas une invention : le site écrit déjà « derniere » et
+   « recents » dans « localStorage », sous la clé « bts-ciel ». Le village
+   est servi depuis la même origine, il les lit donc telles quelles. Rien
+   n'est écrit en retour : le village regarde, il ne tient pas le carnet. */
+const INV_CLE_SITE = "bts-ciel";
+const inv = $("inv");
+let invPage = "matieres", invChoix = 0, invCases = [], invRendu = null;
+
+/* Retrouver le chapitre d'une adresse lue dans le carnet. Sans lui, un
+   titre du carnet serait un cul-de-sac : on saurait qu'on l'a lu, et on ne
+   pourrait pas y retourner sans quitter le village. */
+function chapitreDe(url) {
+  const net = String(url || "").replace(/^\/+/, "").split("#")[0];
+  for (const pole of DONNEES.poles)
+    for (const chap of pole.chapitres)
+      for (const f of chap.fiches)
+        if (net.endsWith(f[1])) return { pole, chap };
+  return null;
+}
+
+function carnet() {
+  let S = null;
+  try { S = JSON.parse(localStorage.getItem(INV_CLE_SITE) || "{}"); } catch (e) { S = {}; }
+  const vus = [];
+  const ajoute = (x) => {
+    if (!x || !x.u || vus.some((y) => y.u === x.u)) return;
+    vus.push({ t: x.t || x.titre, u: x.u });
+  };
+  if (S && S.derniere) ajoute({ t: S.derniere.titre, u: S.derniere.url });
+  for (const x of (S && S.recents) || []) ajoute(x);
+  return vus;
+}
+
+/* Les trois pages. Chacune rend une liste d'OBJETS identiques de forme :
+   un glyphe, un libellé, une ligne de compte, une phrase, et le geste à
+   faire. C'est cette forme commune qui permet à la grille, au clavier et à
+   la plaque du bas d'ignorer de quelle page il s'agit. */
+function objetsDe(page) {
+  if (page === "outils")
+    return BOUTIQUES.map((b, i) => ({
+      glyphe: b.enseigne, lib: b.nom, compte: b.tenancier,
+      dit: b.bonjour,
+      geste: "Entrer dans l'échoppe", faire: () => { fermerInventaire(); ouvrirBoutique(i); },
+    }));
+  if (page === "carnet")
+    return carnet().map((v) => {
+      const t = chapitreDe(v.u);
+      return {
+        glyphe: "✦", lib: v.t || "(sans titre)",
+        compte: t ? t.pole.court : "",
+        /* Le titre du chapitre est souvent CELUI de la fiche — « Bases de
+           données & SQL » des deux côtés. Le répéter sous lui-même ne dit
+           rien de plus ; on ne le remet que s'il diffère. */
+        dit: t
+          ? [t.chap.titre === (v.t || "") ? "" : t.chap.titre, t.chap.sous || ""]
+              .filter(Boolean).join(" — ")
+            || "Un chapitre du village."
+          : "Cette fiche ne fait pas partie du village.",
+        geste: t ? "Reprendre ici" : null,
+        faire: t ? () => {
+          fermerInventaire();
+          const m = matieres.find((x) => x.pole === t.pole);
+          ouvrirLecture({ chap: t.chap, pole: t.pole,
+                          couleur: m ? m.css : "#6FC8FF" });
+        } : null,
+      };
+    });
+  return DONNEES.poles.map((pole, i) => {
+    const nf = pole.chapitres.reduce((s, c) => s + c.fiches.length, 0);
+    return {
+      glyphe: pole.court.slice(0, 2).toUpperCase(), lib: pole.court,
+      compte: `${pole.chapitres.length} chapitres`,
+      dit: `${pole.titre} — ${nf} fiches à lire sur place.`,
+      geste: "Aller au bâtiment",
+      faire: () => { fermerInventaire(); allerA(i); },
+    };
+  });
+}
+
+function peindreInventaire() {
+  const objets = objetsDe(invPage);
+  invRendu = objets;
+  invChoix = Math.min(invChoix, Math.max(0, objets.length - 1));
+
+  const onglets = $("inv-onglets");
+  onglets.innerHTML = "";
+  for (const [cle, nom] of [["matieres", "Matières"], ["outils", "Échoppes"],
+                            ["carnet", "Carnet"]]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = nom;
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(cle === invPage));
+    b.addEventListener("click", () => {
+      invPage = cle; invChoix = 0; peindreInventaire();
+    });
+    onglets.appendChild(b);
+  }
+
+  const grille = $("inv-grille");
+  grille.innerHTML = "";
+  invCases = [];
+  if (!objets.length) {
+    const p = document.createElement("p");
+    p.className = "inv-vide";
+    p.textContent = invPage === "carnet"
+      ? "Rien encore. Ouvrez une fiche, ici ou sur le site, et elle s'inscrira là."
+      : "Rien à montrer sur cette page.";
+    grille.appendChild(p);
+    poserFiche(null);
+    return;
+  }
+  objets.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "inv-case";
+    b.setAttribute("aria-current", String(i === invChoix));
+    b.innerHTML = `<span class="inv-glyphe">${echapper(o.glyphe)}</span>` +
+                  `<span class="inv-lib">${echapper(o.lib)}</span>` +
+                  (o.compte ? `<span class="inv-compte">${echapper(o.compte)}</span>` : "");
+    b.addEventListener("click", () => {
+      if (invChoix === i && o.faire) { o.faire(); return; }
+      invChoix = i; rafraichirChoix();
+    });
+    b.addEventListener("focus", () => { invChoix = i; rafraichirChoix(); });
+    grille.appendChild(b);
+    invCases.push(b);
+  });
+  rafraichirChoix();
+}
+
+/* Le texte d'un objet du village ne vient pas de moi : il vient des données.
+   On l'échappe donc, comme tout ce qui n'est pas écrit dans ce fichier. */
+function echapper(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function poserFiche(o) {
+  $("inv-nom").textContent = o ? o.lib : "";
+  $("inv-dit").textContent = o ? o.dit : "";
+  const b = $("inv-aller");
+  b.hidden = !(o && o.geste && o.faire);
+  if (!b.hidden) {
+    b.textContent = o.geste;
+    b.onclick = o.faire;
+  }
+}
+
+function rafraichirChoix() {
+  invCases.forEach((b, i) => b.setAttribute("aria-current", String(i === invChoix)));
+  poserFiche(invRendu[invChoix] || null);
+}
+
+/* Le clavier d'un menu de ce genre : les flèches se déplacent dans la
+   GRILLE, pas dans la liste. On compte donc les colonnes réellement
+   rendues — la grille est en « auto-fill », leur nombre change avec la
+   largeur, et une constante écrite ici mentirait sur un téléphone. */
+function colonnesInventaire() {
+  if (invCases.length < 2) return 1;
+  const y = invCases[0].getBoundingClientRect().top;
+  let n = 0;
+  for (const b of invCases) {
+    if (Math.abs(b.getBoundingClientRect().top - y) > 4) break;
+    n++;
+  }
+  return Math.max(1, n);
+}
+
+function ouvrirInventaire() {
+  inv.hidden = false;
+  $("btn-inv").setAttribute("aria-expanded", "true");
+  peindreInventaire();
+  (invCases[invChoix] || $("inv-fermer")).focus();
+}
+function fermerInventaire() {
+  if (inv.hidden) return;
+  inv.hidden = true;
+  $("btn-inv").setAttribute("aria-expanded", "false");
+  $("btn-inv").focus();
+}
+$("btn-inv").addEventListener("click", () =>
+  inv.hidden ? ouvrirInventaire() : fermerInventaire());
+$("inv-fermer").addEventListener("click", fermerInventaire);
+/* Un clic HORS de la page referme : c'est ce que fait n'importe quelle
+   fenêtre de ce site, et un menu plein écran sans issue au clic est un
+   piège. Le clic sur la page elle-même ne compte pas. */
+inv.addEventListener("click", (e) => { if (e.target === inv) fermerInventaire(); });
+
+inv.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { e.preventDefault(); fermerInventaire(); return; }
+  if (!invCases.length) return;
+  const col = colonnesInventaire();
+  const pas = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: col, ArrowUp: -col }[e.key];
+  if (pas === undefined) return;
+  e.preventDefault();
+  invChoix = Math.max(0, Math.min(invCases.length - 1, invChoix + pas));
+  /* On repeint AVANT de déplacer le focus, et sans compter sur lui.
+     « element.focus() » désigne bien le nouvel élément actif, mais
+     n'émet PAS l'événement « focus » quand le document n'a pas le focus
+     du système — une page en cadre, un onglet au second plan, un banc.
+     Le choix se serait alors déplacé sans que rien ne le montre. L'écouteur
+     de focus reste, pour la tabulation ; il n'est plus le seul chemin. */
+  rafraichirChoix();
+  invCases[invChoix].focus();
+});
 
 /* ── L'aide, montrée une fois ────────────────────────────────────────── */
 const CLE_AIDE = "ciel-monde-aide-4";
@@ -6424,7 +6696,48 @@ function diagnostic() {
     appelsDeRendu: rendu.info.render.calls,
     triangles: rendu.info.render.triangles,
     textureMax: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    hudAuRepos: mesurerHud(),
   };
+}
+
+/* Le HUD au repos, en pourcentage de l'écran. C'est le chiffre que
+   « moins de HUD » désigne, et il n'avait jamais été relevé : il valait
+   **19,8 %** sur 1024 × 768, dont 93 % pour le seul bandeau du bas.
+   Un banc qui mesure des débordements ne verra jamais ça — un HUD qui
+   prend le cinquième de l'écran est parfaitement bien rangé. */
+function mesurerHud() {
+  let aire = 0;
+  for (const sel of [".hud-haut", ".boussole", "#soustitre", "#manche"]) {
+    const e = document.querySelector(sel);
+    if (!e) continue;
+    const s = getComputedStyle(e);
+    if (s.display === "none" || s.visibility === "hidden" || +s.opacity < 0.02) continue;
+    const r = e.getBoundingClientRect();
+    aire += r.width * r.height;
+  }
+  return +(100 * aire / (innerWidth * innerHeight)).toFixed(1);
+}
+
+/* ── Le retrait du HUD, éprouvé sans marcher ────────────────────────────
+   Une touche enfoncée ne se simule pas depuis l'extérieur : un appui bref
+   est relâché avant la première image, et « marcher » n'a alors rien à
+   faire. Le village expose donc le geste lui-même. On relève l'opacité
+   avant, pendant, et après le délai de retour — trois mesures, et la
+   troisième est celle qui compte : un HUD qui part sans revenir serait
+   pire que pas de HUD du tout. */
+async function eprouverHud() {
+  const hud = document.querySelector(".hud-haut");
+  const bou = document.querySelector(".boussole");
+  const lire = () => ({ haut: +getComputedStyle(hud).opacity,
+                        bas: +getComputedStyle(bou).opacity,
+                        pourcent: mesurerHud() });
+  const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+  const avant = lire();
+  enMarche();
+  await attendre(420);                       // la transition dure 300 ms
+  const pendant = lire();
+  await attendre(REPOS_HUD + 500);
+  return { avant, pendant, apres: lire() };
 }
 
 /* « ouvrirBoutique » et « BOUTIQUES » sortent ici pour une raison précise :
@@ -6444,6 +6757,6 @@ window.CIEL = { rendu, scene, camera, soleil, oeil, vue, matieres, HEURES,
                    reste : un espace marchable ne se vérifie pas en relisant
                    une constante, il se vérifie en MARCHANT dedans. */
                 RELIEF, hauteurSol, glisserContre, OBSTACLES,
-                diagnostic };
+                diagnostic, eprouverHud };
 
 requestAnimationFrame(image);

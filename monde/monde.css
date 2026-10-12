@@ -781,6 +781,34 @@ body.titre-parti:not(.en-matiere) .pont {
   border: 1px solid var(--trait);
 }
 
+/* ── Le HUD se retire pendant qu'on marche ─────────────────────────────
+   Mesuré avant : le HUD prend 19,8 % de l'écran, et le bandeau du bas 93 %
+   de ce HUD. Il ne disparaît pas — il s'écarte pendant la marche et revient
+   à l'arrêt, parce qu'on ne choisit pas une matière en marchant.
+
+   « :focus-within » le retient : si une pastille a le focus clavier, la
+   faire disparaître sous les doigts ferait perdre le fil de la tabulation —
+   et quelqu'un qui navigue au clavier avance justement par tabulations.
+
+   Le mouvement est court et vers le dehors : le bandeau descend, l'en-tête
+   monte. Chacun sort par son bord, donc on sait d'où il reviendra. */
+body.en-marche .hud-haut:not(:focus-within),
+body.en-marche .boussole:not(:focus-within) {
+  opacity: 0; pointer-events: none;
+}
+body.en-marche .hud-haut:not(:focus-within) { transform: translateY(-10px); }
+body.en-marche .boussole:not(:focus-within)  { transform: translateY(12px); }
+.hud-haut, .boussole {
+  transition: opacity .3s ease, transform .3s cubic-bezier(.22,.9,.26,1);
+}
+/* Qui coupe les animations ne veut pas d'un bandeau qui glisse : il
+   apparaît et disparaît, sans trajet. */
+@media (prefers-reduced-motion: reduce) {
+  .hud-haut, .boussole { transition: opacity .12s linear; }
+  body.en-marche .hud-haut:not(:focus-within),
+  body.en-marche .boussole:not(:focus-within) { transform: none; }
+}
+
 /* ── la boussole : la seule navigation ───────────────────────────────── */
 .boussole { position: fixed; z-index: 20; left: 0; right: 0;
   bottom: max(.8rem, env(safe-area-inset-bottom));
@@ -1396,3 +1424,156 @@ body.jour .lecture-corps .qcm-opt.faux .qcm-lt { background: #A82C2C; color: #FF
   .chip { font-size: .72rem; padding: .35rem .6rem; }
   .chip em { display: none; }
 }
+
+/* ═══════════════════════════════════════ L'INVENTAIRE ════════════════
+   Demandé : un menu inventaire à la Zelda Wind Waker, et que son style
+   reprenne les thèmes du site.
+
+   Les deux demandes se rejoignent, et c'est ce qui a décidé de tout : le
+   site a DÉJÀ son thème Wind Waker — « Grand Large », § 17 de CLAUDE.md,
+   « parchemin sur la mer ». Plutôt que de dessiner un parchemin de
+   mémoire, les valeurs sont reprises de « skins.css », une à une : le
+   dégradé du parchemin, le brun de son cadre, l'ombre portée de trois
+   pixels, la mer en dessous, l'encre, la police arrondie, les rayons.
+   Le menu appartient donc au site, pas seulement au jeu.
+
+   Ce qui fait ce menu-là et pas un autre, dans l'ordre où l'œil le voit :
+     · la MER derrière, pas un voile noir ;
+     · une PAGE de parchemin, cadre brun épais, ombre dure dessous ;
+     · des CASES carrées creuses, en grille — un objet par case ;
+     · la case choisie est CERNÉE et sort légèrement de la page ;
+     · une PLAQUE en bas qui nomme l'objet choisi et dit ce qu'il fait.
+   C'est l'ordre d'un menu de ce jeu : on voit la grille, on bouge le
+   cadre, on lit en bas. */
+.inv {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: clamp(.6rem, 2.5vw, 1.6rem);
+  background:
+    radial-gradient(ellipse 140% 70% at 50% -10%, rgba(255,247,214,.85), transparent 58%),
+    linear-gradient(180deg, rgba(205,237,230,.94) 0%, rgba(159,216,208,.94) 45%,
+                    rgba(124,196,190,.94) 100%);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.inv[hidden] { display: none; }
+
+/* La page se déplie : elle arrive un peu basse et un peu petite, comme une
+   carte qu'on sort d'une poche. Jamais de rotation — le texte y est lu. */
+.inv-page {
+  position: relative;
+  width: min(880px, 100%); max-height: 100%;
+  display: flex; flex-direction: column; gap: .85rem;
+  padding: clamp(1rem, 3vw, 1.7rem);
+  font-family: ui-rounded, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #24413D;
+  background: linear-gradient(180deg, #FFF8E4, #F6E7C1);
+  border: 2px solid #A9793F; border-radius: 26px;
+  box-shadow: 0 3px 0 rgba(122,84,40,.35), 0 12px 30px rgba(12,74,70,.18);
+  animation: inv-deplier .26s cubic-bezier(.22,.9,.26,1) both;
+  overflow: auto;
+}
+@keyframes inv-deplier {
+  from { opacity: 0; transform: translateY(14px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .inv-page { animation: none; } }
+
+.inv-titre {
+  margin: 0; font-size: .74rem; font-weight: 700;
+  letter-spacing: .22em; text-transform: uppercase; color: #3C5A54;
+}
+.inv-fermer {
+  position: absolute; top: .7rem; right: .7rem;
+  width: 38px; height: 38px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 1rem; line-height: 1;
+  color: #24413D; background: #FFFDF4; border: 2px solid #A9793F;
+  box-shadow: 0 2px 0 rgba(122,84,40,.35);
+}
+.inv-fermer:hover { background: #FFF3D4; }
+.inv-fermer:active { transform: translateY(2px); box-shadow: none; }
+
+/* Les onglets : des languettes de parchemin, celle du dessus plus claire. */
+.inv-onglets { display: flex; gap: .4rem; flex-wrap: wrap; }
+.inv-onglets button {
+  font: inherit; font-size: .82rem; font-weight: 650; cursor: pointer;
+  padding: .36rem .85rem; min-height: 34px;
+  color: #3C5A54; background: #F0E2C0;
+  border: 2px solid #A9793F; border-radius: 13px 13px 6px 6px;
+  box-shadow: inset 0 -3px 0 rgba(122,84,40,.16);
+}
+.inv-onglets button[aria-selected="true"] {
+  color: #24413D; background: #FFFDF4;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.9), 0 2px 0 rgba(122,84,40,.3);
+}
+
+/* La grille. « auto-fill » plutôt qu'un nombre de colonnes : une case fait
+   la même taille sur un téléphone et sur un écran large, et c'est leur
+   NOMBRE par rangée qui change. Un menu d'objets ne s'étire pas. */
+.inv-grille {
+  display: grid; gap: .55rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(104px, 100%), 1fr));
+}
+.inv-case {
+  position: relative; cursor: pointer; font: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .3rem; min-height: 104px; padding: .5rem .35rem;
+  text-align: center; color: #24413D;
+  background: linear-gradient(180deg, #FFFDF4, #F3E6CA);
+  border: 2px solid #C2A06B; border-radius: 14px;
+  box-shadow: inset 0 2px 5px rgba(122,84,40,.18);
+  transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.inv-case:hover { border-color: #A9793F; }
+/* La case choisie sort de la page : cadre franc, ombre portée, et deux
+   pixels vers le haut. C'est le CADRE qui porte l'information — un lecteur
+   qui ne distingue pas la teinte voit quand même où il en est. */
+.inv-case[aria-current="true"] {
+  border-color: #0C7A76; transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(12,122,118,.22), 0 4px 0 rgba(122,84,40,.3);
+}
+.inv-case .inv-glyphe {
+  font-size: 1.5rem; line-height: 1; font-weight: 700;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  /* L'accent clair du thème (#0C7A76) donnait 4,18:1 sur le creux d'une
+     case. En 24 px gras c'est conforme — le seuil d'un GRAND texte est 3:1 —
+     mais un chiffre qui ne tient que grâce à sa taille se casse le jour où
+     l'on réduit la taille. L'accent sombre que le site définit déjà le met
+     hors de portée de cette question. */
+  color: #075C59;
+}
+.inv-case .inv-lib {
+  font-size: .72rem; line-height: 1.25; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.inv-case .inv-compte {
+  font-size: .64rem; color: #3C5A54; letter-spacing: .04em;
+}
+
+/* La plaque du bas : le nom de l'objet, ce qu'il fait, et le geste. */
+.inv-fiche {
+  display: flex; flex-direction: column; gap: .35rem;
+  padding: .8rem .9rem; min-height: 92px;
+  background: #FFFDF4; border: 2px solid #A9793F; border-radius: 16px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.9);
+}
+.inv-nom { margin: 0; font-size: 1.02rem; line-height: 1.2; color: #24413D; }
+.inv-dit { margin: 0; font-size: .82rem; line-height: 1.45; color: #3C5A54; }
+.inv-aller {
+  align-self: flex-start; margin-top: .2rem;
+  font: inherit; font-size: .82rem; font-weight: 650; cursor: pointer;
+  min-height: 36px; padding: .4rem 1rem; border-radius: 999px;
+  color: #FFFFFF; background: #0C7A76; border: 2px solid #075C59;
+  box-shadow: 0 2px 0 rgba(7,92,89,.5);
+}
+.inv-aller:hover { background: #075C59; }
+.inv-aller:active { transform: translateY(2px); box-shadow: none; }
+.inv-vide { margin: 0; font-size: .84rem; color: #3C5A54; grid-column: 1 / -1; }
+.inv-note { margin: 0; font-size: .7rem; color: #3C5A54; }
+.inv-note kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .66rem;
+  padding: .08rem .3rem; border-radius: 5px;
+  background: #F0E2C0; border: 1px solid #C2A06B;
+}
+/* Sur un téléphone, les touches nommées n'existent pas. */
+@media (pointer: coarse) { .inv-note { display: none; } }
