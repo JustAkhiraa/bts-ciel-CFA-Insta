@@ -1033,9 +1033,33 @@ document.getElementById("go-monde").addEventListener("click", async () => {
                       "entrée en " + L + "×" + H, retards, vue);
       await attendre(900);
       const C = vue.CIEL;
+      let verreVu = null;
       for (const h of ["nuit", "jour"]) {
         C.poserHeure(h);
-        await attendre(800);
+        /* ATTENDRE QUE L'HEURE SOIT POSÉE — et non huit cents millisecondes.
+           Le village FAIT FONDRE ses jetons d'une heure à l'autre. Pendant
+           le fondu, le verre est encore celui du jour et l'encre est déjà
+           celle de la nuit : du blanc sur du blanc, 1,01:1. Le banc l'a
+           signalé deux campagnes de suite, et deux fois je l'ai mis sur le
+           compte d'un artefact. Une mesure indépendante a donné le même
+           1,01 — donc le banc avait raison — puis le même texte, une fois
+           l'heure POSÉE, a donné 15,48. Les deux étaient vrais : l'un
+           pendant le fondu, l'autre après.
+
+           C'est exactement la section 33 : un instrument doit FIGER ce
+           qu'il mesure. On attend donc que le verre ait cessé de bouger —
+           deux lectures identiques — et que la classe de l'heure soit celle
+           qu'on a demandée. Pas un délai choisi : une condition. */
+        verreVu = null;
+        await patienter(() => {
+          const v = vue.getComputedStyle(doc.documentElement)
+                       .getPropertyValue("--verre").trim();
+          const pose = doc.body.classList.contains("jour") === (h === "jour");
+          const stable = v !== "" && v === verreVu;
+          verreVu = v;
+          return pose && stable;
+        }, h + "/" + L + "×" + H + " · l'heure ne se pose pas", retards, vue, 300);
+        await attendre(400);
         /* L'allée : les enseignes, le titre, la boussole, son invite — et
            l'aide, qui s'ouvre d'elle-même au premier passage. On la mesure
            donc ici, puis on la referme pour qu'elle ne couvre pas les
