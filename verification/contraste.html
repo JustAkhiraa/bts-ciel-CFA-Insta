@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=136393c6">
+<link rel="stylesheet" href="../assets/fiche.css?v=2ccdadb2">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -691,14 +691,57 @@ async function attendreQue(test, quoi, max = 25000) {
    transparente est écartée d'elle-même, sans rien fausser. On note donc le
    retard, on mesure ce qui est là, et on continue — et le rapport dit combien
    d'états ont été manqués, parce qu'une couverture incomplète qui se présente
-   comme complète est pire qu'une panne. */
-async function patienter(test, quoi, journal, max = 16000) {
-  const t0 = performance.now();
-  while (!test()) {
-    if (performance.now() - t0 > max) { journal.push(quoi); return false; }
-    await attendre(60);
-  }
-  return true;
+   comme complète est pire qu'une panne.
+
+   ── ET L'ATTENTE SE COMPTE EN IMAGES, PAS EN MILLISECONDES ──────────────
+   La ruée vers un parvis dure une quarantaine d'IMAGES. Un budget en temps
+   suppose donc un nombre d'images par seconde, et cette hypothèse a cédé :
+   le 12 octobre, une campagne entière a tourné à 1 à 3 images par seconde et
+   déclaré VINGT-QUATRE états sur quarante « pas prêts » — pour des animations
+   qui se déroulaient normalement, seulement vingt fois plus lentement. Le
+   relevé était à jeter, et ses dix alertes portaient toutes la signature d'un
+   rendu absent (1,00 à 1,64 sur 100 % de la surface). Mesuré le lendemain sur
+   la même machine, le même village tournait à 60,5 images par seconde : rien
+   n'était cassé, l'unité était fausse.
+
+   Le budget est donc compté dans la seule unité qui ne ment pas, avec un
+   plafond en temps pour le cas où les images ne viennent PLUS DU TOUT. Et les
+   deux échecs ne se ressemblent pas :
+     · les images arrivent et l'état ne vient pas → c'est le VILLAGE qui a un
+       défaut, et il faut le dire ;
+     · les images n'arrivent pas → c'est l'INSTRUMENT qui est aveugle, et il
+       ne faut surtout pas dire autre chose.
+   L'ancien message annonçait toujours la seconde, même quand c'était la
+   première. Trois sorties, un seul verrou : l'image qui compte, la sonde qui
+   regarde même sans image, et le chien de garde qui tranche si le cadre a
+   cessé de peindre. */
+async function patienter(test, quoi, journal, vue, imagesMax = 900, msMax = 90000) {
+  if (test()) return true;
+  const demander = vue && vue.requestAnimationFrame
+                 ? (f) => vue.requestAnimationFrame(f)
+                 : (f) => setTimeout(f, 16);
+  let images = 0, fini = false;
+  return await new Promise((res) => {
+    const finir = (ok, note) => {
+      if (fini) return;
+      fini = true;
+      clearInterval(sonde); clearTimeout(chien);
+      if (!ok) journal.push(quoi + " (" + note + ")");
+      res(ok);
+    };
+    const chien = setTimeout(() => finir(false, images + " images en "
+      + Math.round(msMax / 1000) + " s — le cadre ne peint plus"), msMax);
+    const sonde = setInterval(() => { if (test()) finir(true); }, 60);
+    const tic = () => {
+      if (fini) return;
+      images++;
+      if (test()) return finir(true);
+      if (images >= imagesMax)
+        return finir(false, images + " images, et l'état n'est pas venu");
+      demander(tic);
+    };
+    demander(tic);
+  });
 }
 
 /* L'ENCRE, et le piège du titre peint au dégradé. « .pont-tete h1 » et
@@ -835,8 +878,25 @@ function mesurerVillage(f, sonde, ou, pire, compte) {
        déborde du cadre n'est pas un défaut de contraste. */
     if (r.right <= 1 || r.bottom <= 1
         || r.left >= vue.innerWidth - 1 || r.top >= vue.innerHeight - 1) continue;
+    /* PAS DE PIXEL À LIRE ? ON ENCADRE, AU LIEU D'ÉCARTER.
+       Un texte dont le rendu n'est pas lisible — hors tampon, boîte dégénérée,
+       cadre qui n'a pas peint — était jeté en silence, et le rapport en
+       donnait seulement le nombre. C'est le pire des deux mondes : la
+       couverture baisse sans que personne sache ce qui n'a pas été vu.
+
+       Or le rendu est BORNÉ : chacun de ses pixels est quelque part entre le
+       noir et le blanc. Composer la pile des calques CSS sur ces deux
+       extrêmes encadre donc le rapport réel, quel que soit le village qui se
+       trouvait là. Si la borne basse passe le seuil, le texte est prouvé
+       lisible — et c'est une affirmation PLUS FORTE qu'un échantillon, qui ne
+       vaut que pour l'image qu'on a eue.
+
+       C'est la mesure qui a confirmé la réparation du plan de chapitre quand
+       la campagne, elle, s'était invalidée : 7,52 à 12,37:1 contre 1,07 à
+       1,75 pour l'ancienne couleur. Elle avait sa place dans l'instrument. */
     const base = sonde(r);
-    if (!base) { compte.sansSocle++; continue; }
+    const encadre = !base;
+    if (encadre) compte.encadres++;
     const enc = encresDe(el, vue);
     /* On lit la feuille de style UNE fois, puis on compose ces calques sur
        chaque pixel. Passer par « fondsReels » serait plus court et faux : elle
@@ -853,7 +913,9 @@ function mesurerVillage(f, sonde, ou, pire, compte) {
        moins. */
     const opaque = niveaux.length
       && niveaux[niveaux.length - 1].every(c => c[3] >= 1);
-    const pixels = opaque ? [base[0]] : base;
+    const SOCLE_BORNES = [[0, 0, 0, 1], [255, 255, 255, 1]];
+    const lus = base || SOCLE_BORNES;
+    const pixels = opaque ? [lus[0]] : lus;
     /* L'échelle à l'écran. Une carte de chapitre est un élément HTML de 230
        pixels projeté en 3D : sa feuille de style dit « .55rem », et ce que
        l'œil reçoit vaut .55rem × cette échelle. C'est la taille VUE qui décide
@@ -906,9 +968,10 @@ function mesurerVillage(f, sonde, ou, pire, compte) {
         ? "." + el.className.split(" ").filter(Boolean).slice(0, 2).join(".") : "");
     const cle = sig + " — " + t.slice(0, 26);
     const x = pire[cle] || (pire[cle] = { r: Infinity, seuil: seuil, ou: "",
-                                          part: 0, px: Infinity, ouPx: "" });
+                                          part: 0, px: Infinity, ouPx: "",
+                                          encadre: false });
     if (r5 < x.r) { x.r = +r5.toFixed(2); x.seuil = seuil; x.ou = ou;
-                    x.part = Math.round(part * 100); }
+                    x.part = Math.round(part * 100); x.encadre = encadre; }
     if (pxVu < x.px) { x.px = +pxVu.toFixed(1); x.ouPx = ou; }
   }
 }
@@ -941,7 +1004,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
   const dire = (m) => { et.textContent = m; ban.textContent = m; };
   ban.classList.add("vu");
   f.classList.add("devant");
-  const pire = {}, compte = { n: 0, sansSocle: 0, etats: 0 };
+  const pire = {}, compte = { n: 0, sansSocle: 0, encadres: 0, etats: 0 };
   const retards = [];
   const bilan = { lus: 0, vides: 0 };
   let souci = "", heureGardee = null;
@@ -967,7 +1030,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
       await attendreQue(() => vue.CIEL, "le village n'a pas démarré en "
                                         + L + "×" + H, 40000);
       await patienter(() => doc.body.classList.contains("entre"),
-                      "entrée en " + L + "×" + H, retards);
+                      "entrée en " + L + "×" + H, retards, vue);
       await attendre(900);
       const C = vue.CIEL;
       for (const h of ["nuit", "jour"]) {
@@ -994,7 +1057,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
           const nom = C.matieres[i].pole.court || C.matieres[i].pole.titre;
           C.allerA(i);
           await patienter(() => doc.body.classList.contains("entre"),
-                          h + "/" + L + "×" + H + " · " + nom, retards);
+                          h + "/" + L + "×" + H + " · " + nom, retards, vue);
           await attendre(1000);
           dire(h + " " + L + "×" + H + " — " + nom + " · " + compte.n + " textes");
           releve(h + "/" + L + "×" + H + " · " + nom);
@@ -1009,7 +1072,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
           const corps = doc.getElementById("lecture-corps");
           await patienter(() => !doc.getElementById("lecture").hidden
                                 && corps.textContent.trim().length > 40,
-                          h + "/" + L + "×" + H + " · lecture", retards);
+                          h + "/" + L + "×" + H + " · lecture", retards, vue);
           await attendre(800);
           dire(h + " " + L + "×" + H + " — fenêtre de lecture");
           releve(h + "/" + L + "×" + H + " · lecture");
@@ -1027,7 +1090,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
         if (bInv) {
           bInv.click();
           await patienter(() => !doc.getElementById("inv").hidden,
-                          h + "/" + L + "×" + H + " · inventaire", retards);
+                          h + "/" + L + "×" + H + " · inventaire", retards, vue);
           const pages = [...doc.querySelectorAll("#inv-onglets button")];
           for (let k = 0; k < pages.length; k++) {
             doc.querySelectorAll("#inv-onglets button")[k].click();
@@ -1042,7 +1105,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
 
         C.allerA(-1);
         await patienter(() => doc.body.classList.contains("entre"),
-                        h + "/" + L + "×" + H + " · retour", retards);
+                        h + "/" + L + "×" + H + " · retour", retards, vue);
         await attendre(700);
       }
     }
@@ -1086,9 +1149,16 @@ document.getElementById("go-monde").addEventListener("click", async () => {
       + " capté, donc aucun fond mesuré ne vaut rien.</p>");
   if (retards.length)
     l.push('<p class="ko">⚠️ ' + retards.length + " état(s) mesurés avant d'être"
-      + " prêts — le cadre n'a pas reçu ses images à temps. Laisser le volet"
-      + " visible pendant la campagne : " + retards.slice(0, 6).join(" · ")
-      + "</p>");
+      + " prêts. Chaque note dit LAQUELLE des deux causes : « l'état n'est pas"
+      + " venu » est un défaut du village, à corriger ; « le cadre ne peint"
+      + " plus » est un défaut de la mesure — laisser le volet visible et"
+      + " refaire la campagne, le relevé ne vaut rien. " 
+      + retards.slice(0, 6).join(" · ") + "</p>");
+  if (compte.encadres)
+    l.push("<p>" + compte.encadres + " texte(s) sans pixel de rendu lisible :"
+      + " <b>encadrés</b> plutôt qu'écartés — la pile des calques composée sur"
+      + " un rendu entièrement noir puis entièrement blanc, et le pire des deux"
+      + " retenu. Le verdict vaut alors pour tous les rendus possibles.</p>");
   if (compte.sansSocle)
     l.push("<p>" + compte.sansSocle + " texte(s) écartés : aucun pixel de rendu"
       + " sous eux.</p>");
@@ -1102,8 +1172,15 @@ document.getElementById("go-monde").addEventListener("click", async () => {
                    .sort((a, b) => a[1].px - b[1].px);
   l.push(echecs.length
     ? '<p class="ko">' + echecs.length + " texte(s) sous le seuil AA :</p>"
+      /* Un texte ENCADRÉ n'a pas de « part de surface » : il n'a pas été
+         échantillonné, il a été borné. Annoncer « 50 % de la surface »
+         parce que l'une des deux bornes échoue serait un chiffre inventé —
+         et un chiffre inventé dans un rapport de mesure est pire qu'un
+         chiffre absent. */
       + echecs.map(x => "<p>" + x[1].r + " &lt; " + x[1].seuil + "  ("
-          + x[1].part + " % de la surface)  (" + x[1].ou + ")  "
+          + (x[1].encadre ? "borne basse, rendu quelconque"
+                          : x[1].part + " % de la surface)")
+          + (x[1].encadre ? ")" : "") + "  (" + x[1].ou + ")  "
           + x[0] + "</p>").join("")
     : '<p class="ok">OK — aucun texte du village sous le seuil AA sur 95 % de'
       + " sa surface, ni de jour ni de nuit, ni sur portable.</p>");

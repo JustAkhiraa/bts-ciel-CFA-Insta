@@ -2124,6 +2124,68 @@ function pose(x, y, z, sx, sy, sz, ry) {
   _quat.setFromEuler(_eul);
   return _mat4.compose(_pos.set(x, y, z), _quat, _ech.set(sx, sy, sz));
 }
+/* ═══════════════════ l'occlusion ambiante, cuite ═══════════════════════
+   Le dernier gain visuel disponible qui ne coûte rien à l'image : pas une
+   lumière de plus, pas un appel de rendu de plus — trois flottants par
+   sommet, écrits une fois à la construction.
+
+   Deux termes, et les deux sont physiques :
+
+   · LE CIEL. Une face tournée vers le haut voit tout le ciel ; une face
+     tournée vers le bas n'en voit rien. C'est l'éclairage hémisphérique,
+     mais figé dans le maillage au lieu d'être recalculé à chaque image.
+     La normale suffit, et elle est déjà là.
+   · LE SOL. Tout ce qui est près du sol est à l'ombre de ce qui
+     l'entoure — le mur d'en face, le pavé, le bâtiment voisin. On ne
+     cherche pas QUI occulte : on constate que, dans un village, le bas
+     des choses est toujours plus sombre que le haut. Mesuré sur rien,
+     constaté partout.
+
+   C'est une approximation, et elle est assumée : la vraie occlusion
+   demanderait de lancer des rayons depuis chaque sommet, c'est-à-dire de
+   connaître les voisins — or chaque pièce arrive ici SEULE, déjà placée
+   dans le monde. Le rapport qualité/prix de ces deux termes est ce qui
+   fait tenir les scènes en voxels depuis quinze ans. */
+const AO_HAUTEUR = 3.4;   // la hauteur sur laquelle le contact au sol s'estompe
+const AO_FOND = 0.62;     // ce qui reste de lumière dans le sommet le plus enfoui
+function cuireOcclusion(g) {
+  const p = g.attributes.position, nor = g.attributes.normal;
+  if (!p) return;
+  const n = p.count, col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const ny = nor ? Math.max(-1, Math.min(1, nor.getY(i))) : 1;
+    const ciel = 0.5 + 0.5 * ny;
+    const sol = Math.max(0, Math.min(1, p.getY(i) / AO_HAUTEUR));
+    const v = AO_FOND + (1 - AO_FOND) * (0.55 * ciel + 0.45 * sol);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+}
+
+/* LE FILET. « vertexColors » posé sur une matière PARTAGÉE rend noir tout
+   maillage dont la géométrie n'a pas d'attribut « color » : un attribut
+   absent vaut (0,0,0) dans le nuanceur, et noir multiplié par n'importe
+   quoi reste noir. Le village compte quatre-vingt-un assemblages à la
+   main en plus de ceux qui passent par « ajoute » ; les auditer un par un,
+   c'est se promettre de n'en oublier aucun. On parcourt donc la scène une
+   fois, on donne du blanc neutre à ceux qui n'en ont pas, et ON COMPTE —
+   un filet qui dit combien de fois il a servi est un filet qu'on peut
+   croire. */
+function filetCouleurs() {
+  let posees = 0;
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.material) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    if (!mats.some((m) => m && m.vertexColors)) return;
+    if (o.geometry.attributes.color || !o.geometry.attributes.position) return;
+    const n = o.geometry.attributes.position.count;
+    o.geometry.setAttribute("color",
+      new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3));
+    posees++;
+  });
+  return posees;
+}
+
 function ajoute(mat, geo, m) {
   let l = SEAUX.get(mat);
   if (!l) SEAUX.set(mat, l = []);
@@ -2131,7 +2193,11 @@ function ajoute(mat, geo, m) {
      et c'est le cas des plans et des toits extrudés. On ne convertit que ce
      qui a un index. */
   const g = geo.index ? geo.clone().toNonIndexed() : geo.clone();
-  l.push(g.applyMatrix4(m));
+  /* L'occlusion se cuit APRÈS la mise en place : elle lit la hauteur dans
+     le monde et la normale dans le monde, pas celles de la boîte unité. */
+  g.applyMatrix4(m);
+  cuireOcclusion(g);
+  l.push(g);
 }
 function fondre() {
   let objets = 0, appels = 0;
@@ -2142,6 +2208,11 @@ function fondre() {
     liste.forEach((x) => x.dispose());
     if (!g) continue;
     g.computeBoundingSphere();
+    /* La matière est PARTAGÉE avec des maillages posés à la main ; on la
+       marque ici, et le filet se charge de ceux-là. */
+    if (g.attributes.color && !mat.vertexColors) {
+      mat.vertexColors = true; mat.needsUpdate = true;
+    }
     const o = new THREE.Mesh(g, mat);
     o.frustumCulled = false;   // une seule boîte englobante pour tout le bourg
     scene.add(o);
@@ -6773,6 +6844,12 @@ addEventListener("orientationchange", () => {
 camera.fov = fovVoulu();
 camera.updateProjectionMatrix();
 batirEnseignes();
+/* Le filet, APRÈS la dernière pierre : les trois fusions, les enseignes et
+   tout ce qui s'assemble à la main sont posés. Il se compte lui-même, et
+   « diagnostic() » rend ce compte — sans quoi on ne saurait jamais s'il a
+   servi zéro fois parce que tout allait bien, ou zéro fois parce qu'il
+   était passé trop tôt. */
+const COULEURS_RATTRAPEES = filetCouleurs();
 let heureDepart = "nuit";
 try { heureDepart = localStorage.getItem(CLE_HEURE) === "jour" ? "jour" : "nuit"; }
 catch (e) {}
@@ -6818,6 +6895,10 @@ catch (e) { aide.hidden = false; }
    À lancer dans les deux navigateurs : CIEL.diagnostic() */
 function diagnostic() {
   const gl = rendu.getContext();
+  /* « occlusion » dit ce que la cuisson a touché : combien de maillages
+     portent une couleur par sommet, et combien ont dû être rattrapés en
+     blanc parce que leur matière était partagée. Un rattrapage élevé n'est
+     pas une faute — c'est la mesure de ce que le filet a évité. */
   const info = gl.getExtension("WEBGL_debug_renderer_info");
   const flottant = !!(gl.getExtension("EXT_color_buffer_float")
                    || gl.getExtension("EXT_color_buffer_half_float")
@@ -6829,6 +6910,13 @@ function diagnostic() {
     bitsDeProfondeur: gl.getParameter(gl.DEPTH_BITS),
     virguleFlottante: flottant,
     ombres: rendu.shadowMap.enabled + " / " + rendu.shadowMap.type,
+    occlusion: (() => {
+      let avec = 0, sans = 0;
+      scene.traverse((o) => { if (!o.isMesh || !o.geometry || !o.geometry.attributes) return;
+        if (o.geometry.attributes.color) avec++; else sans++; });
+      return avec + " maillage(s) à couleur par sommet, " + sans + " sans, "
+             + COULEURS_RATTRAPEES + " rattrapé(s) en blanc par le filet";
+    })(),
     pixels: rendu.getPixelRatio(),
     animationsReduites: CALME,
     appelsDeRendu: rendu.info.render.calls,
