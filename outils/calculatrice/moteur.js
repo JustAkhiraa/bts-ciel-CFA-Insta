@@ -677,8 +677,25 @@ const EX = {
    priorités, alors qu'elle demande une grammaire entière ailleurs. */
 
 const SYMBOLES = { "×": "*", "·": "*", "÷": "/", "−": "-", "–": "-", "—": "-",
-                   "∗": "*", "⁻": "-", ",": ";", "²": "^2", "³": "^3",
-                   "⁴": "^4", "≤": "<=", "≥": ">=", "→": "->", "▶": "->" };
+                   "∗": "*", ",": ";",
+                   "≤": "<=", "≥": ">=", "→": "->", "▶": "->" };
+
+/* ── Les exposants écrits en petit ──────────────────────────────────────
+   Demandé : « quand j'écris e^1 je veux que le 1 se mette en puissance en
+   haut, et pareil pour tout. » La page les produit donc à la frappe, et
+   le moteur doit les lire.
+
+   Les lire comme UN exposant, et non comme une suite : « 2¹⁰ » vaut mille
+   vingt-quatre, pas (2¹)⁰ = 1. L'ancienne table traitait « ² » et « ³ »
+   un caractère à la fois — ce qui suffisait tant que personne ne pouvait
+   en écrire deux de suite.
+
+   Et « ⁻ » y était rangé comme un moins ORDINAIRE. « 2⁻³ » s'y lisait
+   donc « 2 − 2³ », soit −6 au lieu de 0,125. Le défaut n'était atteignable
+   par personne tant que rien ne produisait ce caractère ; il le devient
+   aujourd'hui, et c'est la raison pour laquelle on le trouve maintenant. */
+const LU_EN_EXPOSANT = { "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5",
+                         "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9", "⁻": "-", "⁺": "+" };
 
 function lire(src) {
   const jetons = [];
@@ -687,12 +704,24 @@ function lire(src) {
   while (i < n) {
     let c = src[i];
     if (c === " " || c === "\t" || c === "\n") { i++; continue; }
+    /* La suite ENTIÈRE des petits caractères fait un seul exposant, et on
+       la parenthèse : sans les parenthèses, « 2⁻³ » rendrait « 2^-3 », que
+       l'analyseur lit « (2^) − 3 ». */
+    if (LU_EN_EXPOSANT[c]) {
+      let j = i, brut = "";
+      while (j < n && LU_EN_EXPOSANT[src[j]]) { brut += LU_EN_EXPOSANT[src[j]]; j++; }
+      const signe = brut[0] === "-" || brut[0] === "+" ? brut[0] : "";
+      const chiffres = signe ? brut.slice(1) : brut;
+      if (!chiffres || /[^0-9]/.test(chiffres))
+        return { erreur: "Exposant illisible : « " + src.slice(i, j) + " »." };
+      jetons.push({ t: "op", v: "^" }, { t: "(", v: "(" });
+      if (signe === "-") jetons.push({ t: "op", v: "-" });
+      jetons.push({ t: "num", v: chiffres, exact: EX.depuisTexte(chiffres) },
+                  { t: ")", v: ")" });
+      i = j; continue;
+    }
     if (SYMBOLES[c]) {
       const t = SYMBOLES[c];
-      if (t === "^2" || t === "^3" || t === "^4") {
-        jetons.push({ t: "op", v: "^" }, { t: "num", v: t.slice(1), exact: EX.depuisTexte(t.slice(1)) });
-        i++; continue;
-      }
       i++;
       /* « -> » peut venir du symbole ou des deux caractères : une seule
          sortie pour les deux écritures. */
@@ -1592,6 +1621,12 @@ function arrondiBig(a) {       // au plus proche, et le 0,5 s'éloigne de zéro
    scientifique au même endroit que lui : au-dessus de 10¹⁰ et en dessous
    de 10⁻⁴ — pas parce que c'est joli, mais parce qu'en dessous l'écriture
    décimale devient une file de zéros qu'on ne compte pas à l'œil. */
+/* Cette table ÉCRIT les exposants ; « LU_EN_EXPOSANT », plus haut, les
+   LIT. Les deux n'existaient pas en même temps : le moteur rendait
+   « 2,5⁻⁰⁹ » en écriture scientifique depuis toujours, et son propre
+   analyseur ne savait pas relire ce qu'il venait d'écrire. Recopier un
+   résultat dans la ligne de saisie donnait une faute de lecture — un
+   aller-retour qu'aucun banc ne faisait. */
 const EXPOSANTS = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
                     "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
 const enExposant = (s) => String(s).split("").map((c) => EXPOSANTS[c] || c).join("");

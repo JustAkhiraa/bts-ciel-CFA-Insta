@@ -276,6 +276,42 @@
         && a.type !== "range") return a;
     return $(".nw-champ", page) || null;
   }
+  /* ── Les exposants s'écrivent en petit, à la frappe ──────────────────
+     Demandé : « quand j'écris e^1 je veux que le 1 se mette en puissance
+     en haut, et pareil pour tout. »
+
+     Fait avec les VRAIS caractères d'exposant, et non avec une couche
+     dessinée par-dessus le champ. Un exposant rendu en HTML au-dessus
+     d'un <input> ne peut pas suivre le curseur : les lettres n'ont plus
+     la même largeur, et le trait clignotant se décale d'autant à chaque
+     puissance. Un caractère pour un caractère, et le curseur, la
+     sélection, le copier-coller et le clavier du téléphone continuent de
+     marcher sans rien savoir de nous.
+
+     Le mode exposant se PROLONGE tant que viennent des chiffres —
+     « 2^10 » donne « 2¹⁰ » et non « 2¹0 » — et s'arrête à tout le reste,
+     de sorte que « 2^10+3 » s'écrit tout seul. « ^( » reste tel quel :
+     une parenthèse ne s'écrit pas en petit, et un accent circonflexe
+     honnête vaut mieux qu'un exposant à moitié. */
+  const EN_PETIT = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+                     "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
+  const petit = (t) => t.split("").map((c) => EN_PETIT[c] || c).join("");
+  function enExposants(t) {
+    return t.replace(/\^(-?\d+)/g, (m, d) => petit(d))
+            .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹])(\d+)/g, (m, e, d) => e + petit(d));
+  }
+  /* Le curseur se replace à la main : la réécriture RACCOURCIT le texte
+     (« ^1 » fait deux caractères, « ¹ » un seul) et le navigateur, lui,
+     remet le curseur à la fin dès qu'on touche à « value ». */
+  function exposantsALaFrappe(c) {
+    const avant = c.value, apres = enExposants(avant);
+    if (apres === avant) return;
+    const pos = c.selectionStart === null ? avant.length : c.selectionStart;
+    const neuf = Math.max(0, pos - (avant.length - apres.length));
+    c.value = apres;
+    try { c.setSelectionRange(neuf, neuf); } catch (e) {}
+  }
+
   function inserer(texte) {
     const c = champActif();
     if (!c) return;
@@ -620,7 +656,9 @@
         + '<p class="nw-sous">La <b>forme exacte</b> est au-dessus, sa valeur approchée '
         + 'en dessous : sur une copie, c\'est la forme exacte qu\'on recopie. '
         + '<kbd>↑</kbd> rappelle le calcul précédent, et <b>un clic sur un calcul '
-        + 'passé le reprend</b>.</p>';
+        + 'passé le reprend</b>. Les <b>puissances s\'écrivent en petit</b> : '
+        + 'tapez <code>^</code> puis les chiffres, et <code>e^1</code> devient '
+        + '<code>e¹</code>.</p>';
     },
     apres() {
       const flux = $("#nw-flux");
@@ -1928,6 +1966,19 @@
     document.body.classList.toggle("nw-fige", grand);
     bPlein.setAttribute("aria-pressed", String(grand));
     $(".nw-lib-plein").textContent = grand ? "Réduire" : "Agrandir";
+  });
+
+  /* Un seul écouteur, posé sur l'écran qui ne change jamais : il attrape
+     la frappe au clavier ET les touches dessinées, puisque « inserer »
+     émet le même événement. Tous les champs de texte de l'appareil en
+     profitent — la ligne de calcul, les expressions de fonctions, les
+     suites —, et c'est le « pareil pour tout » demandé. */
+  page.addEventListener("input", (e) => {
+    const c = e.target;
+    if (!c || c.tagName !== "INPUT") return;
+    const type = (c.getAttribute("type") || "text").toLowerCase();
+    if (type !== "text" && type !== "search") return;
+    exposantsALaFrappe(c);
   });
 
   page.addEventListener("click", (e) => {
