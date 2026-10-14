@@ -1,0 +1,58 @@
+# Met à jour le planning publié, tout seul, une fois par semaine.
+#
+# Pourquoi ici et pas sur la machine : le site doit rester juste même quand
+# l'ordinateur est éteint. Et pourquoi seulement le planning : le générateur
+# vit dans le dépôt privé, qui n'est pas sur GitHub. Cette Action ne sait
+# donc remplacer que ce qui vieillit — l'agenda, les semaines, le bandeau.
+#
+# L'API visée est l'affichage public du hall du CFA
+# (https://connect.cfa-insta.fr/planning/) : son chemin contient « /public/ »
+# et elle répond sans authentification. Un jour par requête, week-ends sautés,
+# une fois par semaine : ce n'est pas une API qu'on martèle.
+name: Planning
+
+on:
+  schedule:
+    # Lundi 5 h 17 UTC. Une heure creuse, et une minute qui n'est pas ronde
+    # pour ne pas tomber dans la même rafale que tout le monde.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:        # et à la demande, depuis l'onglet Actions
+
+permissions:
+  contents: write           # le seul droit nécessaire : committer la mise à jour
+
+concurrency:
+  group: planning
+  cancel-in-progress: false
+
+jobs:
+  mettre-a-jour:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Récupérer le planning et réécrire ce qui vieillit
+        run: python3 outillage/planning-ci.py 10
+
+      # Le garde-fou passe APRÈS la mise à jour et AVANT le commit : c'est le
+      # seul ordre qui empêche une donnée personnelle ou un lien mort de
+      # partir en ligne. Si l'API se mettait un jour à renvoyer un nom de
+      # professeur, la publication échouerait ici.
+      - name: Vérifier avant de publier
+        run: python3 verification/verifier.py
+
+      - name: Committer s'il y a du changement
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Rien n'a changé — aucun commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Planning : mise à jour automatique"
+          git push
