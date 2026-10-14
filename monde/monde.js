@@ -7282,13 +7282,26 @@ function diagnostic() {
      portent une couleur par sommet, et combien ont dû être rattrapés en
      blanc parce que leur matière était partagée. Un rattrapage élevé n'est
      pas une faute — c'est la mesure de ce que le filet a évité. */
+  /* Firefox 157 l'a dit lui-même dans la console pendant un relevé :
+     « WEBGL_debug_renderer_info is deprecated in Firefox and will be removed.
+     Please use RENDERER. » J'ai d'abord écrit l'inverse de ce qui suit —
+     RENDERER d'abord, l'extension en secours — puis je l'ai mesuré : sur ce
+     moteur RENDERER répond « WebKit WebGL », et sur Chromium
+     « WebGL 2.0 (OpenGL ES 3.0 Chromium) ». Les deux sont des étiquettes de
+     moteur, pas des noms de carte : le relevé aurait perdu « Apple M1 » pour
+     ne plus rien nommer. La dépréciation parle de l'avenir de l'API, pas de
+     la valeur du champ aujourd'hui. On garde donc l'extension tant qu'elle
+     existe, et RENDERER prend le relais le jour où elle sera retirée — sans
+     que personne ait à y repasser. */
   const info = gl.getExtension("WEBGL_debug_renderer_info");
+  const brut = gl.getParameter(gl.RENDERER) || "";
   const flottant = !!(gl.getExtension("EXT_color_buffer_float")
                    || gl.getExtension("EXT_color_buffer_half_float")
                    || gl.getExtension("OES_texture_float"));
   return {
     navigateur: navigator.userAgent,
-    pilote: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "(masqué)",
+    pilote: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL)
+                 : (brut || "(masqué)"),
     webgl: rendu.capabilities.isWebGL2 ? 2 : 1,
     bitsDeProfondeur: gl.getParameter(gl.DEPTH_BITS),
     virguleFlottante: flottant,
