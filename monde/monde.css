@@ -74,6 +74,18 @@ body.jour {
   --verre-fort: rgba(255, 255, 255, .84);
 }
 
+/* ── Le temps d'une bascule, rien ne fond ────────────────────────────────
+   Posée par « sansFondu() » autour du changement d'heure, retirée deux
+   images plus tard. Elle coupe TOUT : transitions et animations, sur
+   l'élément comme sur ses pseudo-éléments. C'est volontairement brutal —
+   une règle qui n'énumère pas les propriétés concernées n'a pas besoin
+   d'être tenue à jour quand on en ajoute une. */
+body.bascule, body.bascule *, body.bascule *::before, body.bascule *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
 * { box-sizing: border-box; }
 
 /* L'attribut « hidden » ne vaut qu'un display de feuille par défaut : toute
@@ -822,6 +834,22 @@ body.en-marche .boussole:not(:focus-within)  { transform: translateY(12px); }
   background: var(--verre); border: 1px solid var(--trait);
   display: inline-flex; align-items: center; gap: .42rem;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  /* ── Pourquoi « background » n'est PAS dans la transition ─────────────
+     Le banc a mesuré ces pastilles à **1,00:1 au passage à la nuit** — du
+     blanc sur du blanc — et il avait raison. Le jeton « --verre » bascule
+     d'un coup, lui : une propriété personnalisée ne s'interpole pas. Ce
+     qui fondait, c'était le FOND RÉSOLU de la pastille, sur 150 ms, du
+     verre clair du jour vers le verre sombre de la nuit — pendant que la
+     couleur du texte, elle, n'ayant aucune transition, sautait tout de
+     suite à l'encre claire de la nuit.
+     Deux propriétés du même couple, l'une qui fond et l'autre qui saute :
+     le résultat est un sixième de seconde de texte illisible à chaque
+     changement d'heure. Les faire fondre toutes les deux ne réglerait
+     rien — le milieu du fondu serait du gris sur du gris. On enlève donc
+     la transition du fond : le survol change de fond sans fondu, ce qui
+     ne coûte rien, et le couple encre/verre ne peut plus se désaccorder.
+     La règle générale : **deux propriétés qui forment un contraste
+     doivent changer ensemble, ou pas du tout.** */
   transition: border-color .15s, background .15s, transform .12s;
 }
 .chip:hover { border-color: var(--c, #6FC8FF); background: var(--verre-fort); }
