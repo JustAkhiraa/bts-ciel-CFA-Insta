@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WSL Containers (wslc) — QCM | BTS CIEL</title>
+<meta name="description" content="Seize questions sur wslc : prérequis, premier conteneur, registres, ports, Containerfile, build, nettoyage et les limites de l'outil.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=da7e9d94">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 19</span>
+    <span class="sep">/</span><span class="badge">QCM — bonus</span>
+  </div>
+  <h1>WSL Containers (wslc) — QCM</h1>
+  <p class="chapeau">16 questions. Une seule bonne réponse par question, et l'explication
+     s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 16</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Qu&#x27;est-ce qu&#x27;il faut installer en plus de Windows pour utiliser wslc ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Rien : wslc est livré avec WSL</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Docker Desktop</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Podman</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une machine virtuelle Linux</span></button>
+      </div>
+      <p class="qcm-why" hidden>C'est tout l'intérêt de l'outil : <code>wslc.exe</code> est un <b>binaire intégré à WSL</b>. Il faut seulement que WSL soit à jour — version <b>2.9.3 ou supérieure</b> — ce que donne <code>wsl --update</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>Quelle commande met WSL à jour et donne donc accès aux conteneurs ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>wslc --update</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>wsl --update</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>wsl --upgrade</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>winget upgrade wsl</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>wsl --update</code>, dans PowerShell, puis un redémarrage du PC. <code>wsl --version</code> permet de vérifier qu'on a bien atteint 2.9.3.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>D&#x27;où wslc télécharge-t-il l&#x27;image ubuntu:latest ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>D&#x27;un catalogue Microsoft dédié</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Du Microsoft Store</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Des registres d&#x27;images habituels, Docker Hub en tête</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il la construit localement</span></button>
+      </div>
+      <p class="qcm-why" hidden>Ce n'est pas un format concurrent : wslc va chercher dans les <b>mêmes registres</b> que Docker — Docker Hub, GitHub Container Registry, Azure Container Registry. Une image construite pour Docker tourne sous wslc.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">4</span>Que fait exactement l&#x27;option --rm de wslc run ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Elle supprime l&#x27;image après usage</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Elle retire les volumes</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Elle redémarre le conteneur en cas d&#x27;erreur</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Elle détruit le conteneur dès qu&#x27;il s&#x27;arrête</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>--rm</code> ne touche <b>pas</b> à l'image, qui reste en cache. Elle détruit le <b>conteneur</b> à sa sortie, ce qui évite d'accumuler des dizaines de conteneurs arrêtés au fil d'un TP.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>Dans wslc run -d --rm -p 8080:80 --name web nginx, que signifie 8080:80 ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le port 8080 de la machine mène au 80 du conteneur</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le port 80 de la machine mène au 8080 du conteneur</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le conteneur écoute sur les deux ports</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>C&#x27;est une plage de ports</span></button>
+      </div>
+      <p class="qcm-why" hidden><b>Le dehors est toujours à gauche.</b> On tape <code>localhost:8080</code> dans son navigateur, et nginx répond depuis son port 80 à l'intérieur. Inverser les deux est l'erreur la plus fréquente, et elle ne produit aucun message : la page ne répond pas, c'est tout.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Quelle est la différence entre wslc run et wslc exec ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Aucune, ce sont deux noms pour la même chose</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>run crée un conteneur à partir d&#x27;une image, exec lance une commande dans un conteneur qui tourne</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>run lance une commande dans un conteneur existant, exec en crée un</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>exec ne marche que sur les images Microsoft</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>run</code> part d'une <b>image</b> et fabrique un conteneur neuf. <code>exec</code> entre dans un conteneur <b>qui existe déjà</b>. Faire un <code>run</code> en croyant entrer dans son serveur donne un second serveur vide — et on cherche longtemps ses fichiers.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>Comment voir les conteneurs arrêtés, et pas seulement ceux qui tournent ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>wslc stats --all</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>wslc container list -a --stopped</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>wslc container list --all</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>wslc events</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>wslc container list</code> ne montre que ce qui tourne ; <code>--all</code> ajoute les conteneurs arrêtés. C'est la même logique que <code>docker ps -a</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">8</span>À quoi sert wslc events ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>À programmer un conteneur à une heure donnée</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>À planifier une mise à jour de WSL</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>À lister les ports ouverts</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>À afficher en direct l&#x27;activité des conteneurs de la machine</span></button>
+      </div>
+      <p class="qcm-why" hidden>C'est un <b>journal en direct</b>. Lancé dans une console pendant qu'on travaille dans une autre, il montre la séquence réelle d'un <code>run --rm</code> : création, connexion au réseau, démarrage, arrêt, déconnexion, destruction.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">9</span>Comment s&#x27;appelle, dans le tutoriel de Microsoft, le fichier qui décrit la construction d&#x27;une image ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Containerfile</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Dockerfile</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>wslcfile</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>image.yaml</span></button>
+      </div>
+      <p class="qcm-why" hidden>Microsoft le nomme <b><code>Containerfile</code></b>. Son <b>contenu</b> ne change pas : <code>FROM</code>, <code>WORKDIR</code>, <code>COPY</code>, <code>RUN</code>, <code>EXPOSE</code>, <code>CMD</code> — exactement la syntaxe du chapitre 18.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">10</span>Dans un Containerfile, quelle est la différence entre RUN et CMD ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>RUN s&#x27;exécute au démarrage du conteneur, CMD à la construction</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>RUN s&#x27;exécute à la construction de l&#x27;image, CMD au démarrage du conteneur</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Les deux s&#x27;exécutent à la construction</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>CMD ne sert que pour les images Windows</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>RUN</code> tourne <b>une fois, pendant le build</b>, et son résultat est figé dans l'image. <code>CMD</code> ne tourne pas du tout au build : c'est <b>ce que fera le conteneur</b> au démarrage. Mettre son serveur dans un <code>RUN</code> produit une image qui ne lance rien.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">11</span>Que vaut wslc build -t monimage . ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il télécharge l&#x27;image monimage</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il lance un conteneur nommé monimage</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il construit une image depuis le dossier courant et l&#x27;étiquette monimage</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il exporte l&#x27;image dans un fichier</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le <b>point final</b> est le <i>contexte</i> : le dossier qui contient le <code>Containerfile</code> et les fichiers à copier. <code>-t</code> donne le nom par lequel on pourra ensuite faire <code>wslc run monimage</code>.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">12</span>Pourquoi Microsoft recommande-t-il de garder les fichiers du projet du côté Linux (\\wsl$) ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Pour la sécurité</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Pour la place disque</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Parce que wslc ne lit pas le disque Windows</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Pour la performance : traverser la passerelle Windows/Linux à chaque fichier est lent</span></button>
+      </div>
+      <p class="qcm-why" hidden>Les deux mondes se voient, mais chaque accès traverse une passerelle. Un <code>build</code> lit <b>des milliers de fichiers</b> : le même projet rangé côté Windows se construit nettement plus lentement.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">13</span>Qu&#x27;est-ce qui reste indispensable sur le PC pour que wslc fonctionne ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>La virtualisation activée dans le BIOS/UEFI</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Une carte graphique dédiée</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Un compte Microsoft</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une connexion permanente à Internet</span></button>
+      </div>
+      <p class="qcm-why" hidden>WSL 2 fait tourner un <b>vrai noyau Linux dans une machine virtuelle légère</b>. Sans la virtualisation matérielle, WSL ne démarre pas — et wslc non plus. C'est le blocage classique en salle de TP, et il se règle dans le BIOS, pas dans Windows.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">14</span>Laquelle de ces affirmations est FAUSSE ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>wslc fait tourner des conteneurs Linux depuis Windows</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>wslc remplace Docker sur un Mac ou un serveur Linux</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>wslc emploie les mêmes images que Docker</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>wslc n&#x27;a pas d&#x27;interface graphique</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>wslc</code> est un <b>composant de Windows</b>. Il fait tourner des conteneurs Linux, mais depuis Windows seulement. Sur un Mac ou un serveur Linux, c'est Docker ou Podman.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">15</span>Deux commandes font le ménage. Lesquelles ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>wslc clean et wslc purge</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>wslc system reset</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>wslc container prune et wslc image prune</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>wsl --unregister</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>wslc container prune</code> efface les conteneurs arrêtés, <code>wslc image prune</code> les images que plus aucun conteneur n'emploie. Ce sont les images qui pèsent : une dizaine d'essais occupent déjà un gigaoctet.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">16</span>Un Containerfile contient EXPOSE 8000. Le conteneur est lancé sans option -p. L'application est-elle joignable depuis Windows ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Oui, EXPOSE publie le port</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Oui, mais seulement sur localhost</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Oui, si le conteneur tourne en -d</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Non : EXPOSE documente le port, seul -p le publie</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>EXPOSE</code> est une <b>indication écrite dans l'image</b> : elle dit à qui la lit quel port l'application utilise. Elle n'ouvre rien. Seul <code>-p 8000:8000</code>, au lancement, crée réellement le passage entre la machine et le conteneur. C'est une des confusions les plus fréquentes, et elle ne produit aucun message d'erreur — la page ne répond pas, c'est tout.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../18-docker-conteneurs/qcm.html"><span>Chapitre précédent</span><b>Docker — conteneurs</b></a><span class="vide"></span></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=da7e9d94"></script>
+<script src="../../assets/app.js?v=da7e9d94"></script>
+</body>
+</html>

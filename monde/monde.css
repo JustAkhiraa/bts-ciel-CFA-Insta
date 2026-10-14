@@ -74,6 +74,18 @@ body.jour {
   --verre-fort: rgba(255, 255, 255, .84);
 }
 
+/* ── Le temps d'une bascule, rien ne fond ────────────────────────────────
+   Posée par « sansFondu() » autour du changement d'heure, retirée deux
+   images plus tard. Elle coupe TOUT : transitions et animations, sur
+   l'élément comme sur ses pseudo-éléments. C'est volontairement brutal —
+   une règle qui n'énumère pas les propriétés concernées n'a pas besoin
+   d'être tenue à jour quand on en ajoute une. */
+body.bascule, body.bascule *, body.bascule *::before, body.bascule *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+
 * { box-sizing: border-box; }
 
 /* L'attribut « hidden » ne vaut qu'un display de feuille par défaut : toute
@@ -522,7 +534,7 @@ body.jour .accueil-tete h1 em {
 .ens-ic {
   width: 52px; height: 52px; flex: 0 0 auto; border-radius: 15px;
   display: grid; place-items: center; font-family: var(--mono);
-  font-size: 1.2rem; font-weight: 700; color: var(--c);
+  font-size: 1.2rem; font-weight: 700; color: var(--c-encre);
   background: color-mix(in srgb, var(--c) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);
 }
@@ -822,6 +834,22 @@ body.en-marche .boussole:not(:focus-within)  { transform: translateY(12px); }
   background: var(--verre); border: 1px solid var(--trait);
   display: inline-flex; align-items: center; gap: .42rem;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  /* ── Pourquoi « background » n'est PAS dans la transition ─────────────
+     Le banc a mesuré ces pastilles à **1,00:1 au passage à la nuit** — du
+     blanc sur du blanc — et il avait raison. Le jeton « --verre » bascule
+     d'un coup, lui : une propriété personnalisée ne s'interpole pas. Ce
+     qui fondait, c'était le FOND RÉSOLU de la pastille, sur 150 ms, du
+     verre clair du jour vers le verre sombre de la nuit — pendant que la
+     couleur du texte, elle, n'ayant aucune transition, sautait tout de
+     suite à l'encre claire de la nuit.
+     Deux propriétés du même couple, l'une qui fond et l'autre qui saute :
+     le résultat est un sixième de seconde de texte illisible à chaque
+     changement d'heure. Les faire fondre toutes les deux ne réglerait
+     rien — le milieu du fondu serait du gris sur du gris. On enlève donc
+     la transition du fond : le survol change de fond sans fondu, ce qui
+     ne coûte rien, et le couple encre/verre ne peut plus se désaccorder.
+     La règle générale : **deux propriétés qui forment un contraste
+     doivent changer ensemble, ou pas du tout.** */
   transition: border-color .15s, background .15s, transform .12s;
 }
 .chip:hover { border-color: var(--c, #6FC8FF); background: var(--verre-fort); }
@@ -964,7 +992,7 @@ body.en-marche .boussole:not(:focus-within)  { transform: translateY(12px); }
   background: linear-gradient(160deg, color-mix(in srgb, var(--c) 18%, transparent),
                               transparent 70%); }
 .lecture-matiere { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--c); font-weight: 700; }
+  color: var(--c-encre); font-weight: 700; }
 .lecture h2 { margin: .3rem 0 .2rem; font-size: 1.62rem; line-height: 1.16;
   letter-spacing: -.02em; }
 .lecture > header p { margin: 0; font-size: .84rem; color: var(--encre-douce); }
@@ -1202,9 +1230,34 @@ body.jour .lecture-corps {
 .lecture-corps h2 { font-size: 1.1rem; margin: 2rem 0 .6rem; line-height: 1.25;
   padding-bottom: .4rem; border-bottom: 1px solid var(--trait); }
 .lecture-corps h3 { font-size: .97rem; margin: 1.4rem 0 .4rem; }
+/* ── L'ENCRE DE MATIÈRE ─────────────────────────────────────────────
+   La règle de la maison, écrite dans « theme.css » depuis le premier
+   jour : « --accent » sert aux SURFACES, « --accent-sombre » au TEXTE.
+   Le village avait un « --c » de surface et PAS d'encre jumelle — il
+   écrivait donc ses textes dans la couleur qui sert à peindre les traits
+   et les fonds.
+
+   Mesuré par encadrement, sur les cinq matières et les deux heures :
+   trente couples, dont HUIT sous le seuil, tous de jour. Le lien de
+   prose en vert tombait à 3,30:1 ; l'étiquette de matière et les numéros
+   à 3,77 ; l'anglais à 3,80 ; le réseau à 4,12 ; les maths à 4,22. Le
+   défaut avait déjà frappé une fois — l'entrée allumée du plan de
+   chapitre à 4,36 — et je l'avais corrigé À UN SEUL ENDROIT. Corriger
+   l'endroit où le défaut s'est montré laisse derrière soi tous ceux où
+   il ne s'est pas encore montré.
+
+   L'encre est la couleur de la matière RAMENÉE vers l'encre du moment.
+   De jour l'encre est sombre et la fonce ; de nuit elle est claire et
+   l'éclaircit. Un seul mélange suffit pour les deux heures, parce que
+   c'est « --encre » qui bascule — et la teinte reste reconnaissable à
+   65 %. Déclarée sur les éléments qui PORTENT « --c » dans leur style en
+   ligne : un jeton calculé se fige à l'endroit où il est déclaré, donc
+   le déclarer plus haut le figerait sur la mauvaise matière. */
+[style*="--c"] { --c-encre: color-mix(in srgb, var(--c) 65%, var(--encre)); }
+
 .lecture-corps p { color: var(--encre); margin: .85rem 0; line-height: 1.68; }
 .lecture-corps .chapeau { font-size: 1rem; color: var(--encre-douce); }
-.lecture-corps a { color: var(--c); }
+.lecture-corps a { color: var(--c-encre); }
 .lecture-corps ul, .lecture-corps ol { padding-left: 1.2rem; }
 .lecture-corps li { margin: .3rem 0; }
 .lecture-corps strong, .lecture-corps b { color: var(--encre); font-weight: 700; }
@@ -1230,7 +1283,7 @@ body.jour .lecture-corps {
 .lecture-corps .memo, .lecture-corps .exo {
   margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px;
   border: 1px solid var(--trait); background: color-mix(in srgb, var(--encre) 5%, transparent); }
-.lecture-corps .no, .lecture-corps .num { font-family: var(--mono); color: var(--c);
+.lecture-corps .no, .lecture-corps .num { font-family: var(--mono); color: var(--c-encre);
   font-weight: 700; margin-right: .4rem; }
 .lecture-corps .niveau { font-size: .72rem; letter-spacing: .1em;
   text-transform: uppercase; color: var(--encre-douce); margin-left: .4rem; }
@@ -1252,7 +1305,7 @@ body.jour .lecture-corps {
 .lecture-corps .qcm-tete { display: flex; align-items: center; gap: .8rem;
   margin: 0 0 1.2rem; }
 .lecture-corps .qcm-tete .sc { font-family: var(--mono); font-size: .86rem;
-  font-weight: 700; color: var(--c); flex: 0 0 auto; }
+  font-weight: 700; color: var(--c-encre); flex: 0 0 auto; }
 .lecture-corps .qcm-tete .av { flex: 1 1 auto; height: 5px; border-radius: 999px;
   background: color-mix(in srgb, var(--encre) 12%, transparent); overflow: hidden; }
 .lecture-corps .qcm-tete .av > span { display: block; height: 100%; width: 0;
@@ -1261,7 +1314,7 @@ body.jour .lecture-corps {
 .lecture-corps .qcm-n { display: inline-flex; align-items: center;
   justify-content: center; min-width: 1.5rem; height: 1.5rem; margin-right: .5rem;
   border-radius: 999px; font-family: var(--mono); font-size: .72rem;
-  font-weight: 700; color: var(--c);
+  font-weight: 700; color: var(--c-encre);
   background: color-mix(in srgb, var(--c) 16%, transparent); }
 .lecture-corps .qcm-opts { display: grid; gap: .4rem; margin-top: .7rem;
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
@@ -1373,7 +1426,7 @@ body.jour .lecture-corps .qcm-opt.faux .qcm-lt { background: #A82C2C; color: #FF
   pointer-events: none; }
 .lecture-corps .bonjour-qui { flex: 0 0 auto; display: inline-flex;
   align-items: center; justify-content: center; width: 2rem; height: 2rem;
-  border-radius: 50%; font-size: 1.05rem; color: var(--c);
+  border-radius: 50%; font-size: 1.05rem; color: var(--c-encre);
   background: color-mix(in srgb, var(--c) 26%, transparent); }
 /* L'outil vit dans son propre document : il garde donc ses scripts, et
    l'atelier C compile pour de bon à l'intérieur de la boutique. Il remplit

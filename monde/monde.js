@@ -337,8 +337,20 @@ const CHEMINS = {
   /* Chaque branche court jusqu'à la CEINTURE : elle y trouve une placette,
      une arche et un poteau indicateur. Un chemin qui s'arrête au milieu d'un
      pré promet quelque chose qu'il ne tient pas. */
-  lac: [[-62, 150], [-168, 196], [-262, 178], [-344, 128], [-430, 92],
-        [-556, 2], [-676, -96], [-790, -176], [-880, -236],
+  /* Signalé : « met pas un cheminn sur l'eau en plus les png eux y vont ».
+     Mesuré : la branche du lac passait 367 unités DANS l'eau, jusqu'à
+     112 unités de la rive, et la ceinture 271 de plus. Les promeneurs
+     suivent le tracé sans savoir ce qu'il y a dessous — ils marchaient donc
+     sur le lac pendant que le joueur, lui, était arrêté par la berge. Ce
+     n'était pas deux défauts mais un seul : un tracé posé avant le lac, et
+     jamais relu après.
+     Le chemin CONTOURNE maintenant, par un arc à 275 unités du centre — soit
+     39 de marge au-delà de la grève, assez pour que la demi-largeur de la
+     route (19) tienne au sec, y compris au milieu des cordes. Et il longe
+     la rive du bon côté : celui où il entrait et sortait déjà. */
+  lac: [[-62, 150], [-168, 196], [-262, 178], [-344, 128],
+        [-369, 108], [-372, 0], [-415, -98], [-492, -172],
+        [-592, -211], [-700, -208], [-798, -165], [-880, -236],
         [-1070, -330], [-1250, -392], [-1412, -404]],
   parc: [[62, 182], [168, 252], [268, 318], [372, 374], [452, 408],
          [566, 470], [668, 556], [742, 660], [788, 772],
@@ -356,11 +368,15 @@ const CHEMINS = {
 /* La ceinture : elle ne part de nulle part et ne mène nulle part, et c'est
    justement ce qui en fait une route de campagne. Elle croise les cinq
    branches, et chaque croisement devient un lieu. */
-CHEMINS.ceinture = [[-556, 2], [-452, -300], [-396, -492], [-150, -640],
+/* Son point de jonction avec la branche du lac était lui aussi dans l'eau
+   (-556, 2) : il se pose sur l'arc, et les deux routes partagent la rive —
+   ce que font les vraies routes quand elles doivent contourner la même
+   chose. */
+CHEMINS.ceinture = [[-492, -172], [-452, -300], [-396, -492], [-150, -640],
                     [180, -620], [430, -470], [600, -230], [706, -126],
                     [760, 120], [742, 400], [566, 470], [330, 590],
                     [60, 640], [-196, 560], [-306, 300], [-344, 128],
-                    [-430, 92], [-556, 2]];
+                    [-369, 108], [-372, 0], [-415, -98], [-492, -172]];
 /* Les chemins étaient trop étroits pour se lire de loin : vingt unités de
    large vus d'en haut, c'est un fil. Une route de village fait la largeur de
    deux charrettes — on la double, et elle devient ce qu'elle doit être :
@@ -378,21 +394,26 @@ const LARGEURS = { lac: [38, 22], parc: [38, 24], bibli: [34, 22],
    bourg où les maisons se serrent. Entre deux noyaux, presque rien : des
    champs, un arbre, un muret. C'est cet écart qui fait qu'on sait, en
    marchant, qu'on quitte un hameau et qu'on en rejoint un autre. */
+/* Les rayons passent de ~125 à ~200 : un noyau de 120 unités tenait douze
+   maisons, c'est-à-dire un lieu-dit. Un bourg de Shiganshina en tient
+   quarante. Le CONTRASTE reste — c'est lui qui donne la lecture — mais il
+   s'exerce maintenant entre un quartier et un pré, et non entre trois
+   maisons et un pré. */
 const NOYAUX = {
-  lac:   [{ s: 80, r: 120 }, { s: 330, r: 130 }, { s: 620, r: 120 },
-          { s: 1020, r: 130 }],
-  parc:  [{ s: 90, r: 125 }, { s: 350, r: 140 }, { s: 660, r: 125 },
-          { s: 1060, r: 130 }],
-  bibli: [{ s: 85, r: 120 }, { s: 330, r: 130 }, { s: 640, r: 120 },
-          { s: 1040, r: 130 }],
-  est:   [{ s: 95, r: 130 }, { s: 400, r: 145 }, { s: 720, r: 135 },
-          { s: 1120, r: 130 }],
-  nord:  [{ s: 90, r: 125 }, { s: 410, r: 140 }, { s: 760, r: 130 },
-          { s: 1140, r: 130 }],
+  lac:   [{ s: 80, r: 190 }, { s: 330, r: 205 }, { s: 620, r: 190 },
+          { s: 1020, r: 200 }],
+  parc:  [{ s: 90, r: 195 }, { s: 350, r: 215 }, { s: 660, r: 195 },
+          { s: 1060, r: 200 }],
+  bibli: [{ s: 85, r: 190 }, { s: 330, r: 205 }, { s: 640, r: 190 },
+          { s: 1040, r: 200 }],
+  est:   [{ s: 95, r: 200 }, { s: 400, r: 220 }, { s: 720, r: 205 },
+          { s: 1120, r: 200 }],
+  nord:  [{ s: 90, r: 195 }, { s: 410, r: 215 }, { s: 760, r: 200 },
+          { s: 1140, r: 200 }],
   /* Sur la ceinture, les maisons se serrent aux CROISEMENTS : c'est là que
      naissent les hameaux, parce que c'est là qu'on se rencontre. */
-  ceinture: [{ s: 300, r: 110 }, { s: 760, r: 120 }, { s: 1250, r: 115 },
-             { s: 1700, r: 110 }, { s: 2150, r: 115 }],
+  ceinture: [{ s: 300, r: 175 }, { s: 760, r: 185 }, { s: 1250, r: 180 },
+             { s: 1700, r: 175 }, { s: 2150, r: 180 }],
 };
 
 /* La distance d'un point à un segment — la seule façon honnête de savoir si
@@ -890,6 +911,10 @@ const TEX = {
    Les cylindres et les cônes sont créés à la demande, ils sont rares. */
 const BOITE = new THREE.BoxGeometry(1, 1, 1);
 const PLAN  = new THREE.PlaneGeometry(1, 1);
+/* Une nappe est un plan DÉJÀ couché : « pose » ne sait tourner qu'autour de
+   Y, et un champ qui se dresse à la verticale n'est pas un champ. */
+const NAPPE = new THREE.PlaneGeometry(1, 1);
+NAPPE.rotateX(-Math.PI / 2);
 
 function lambert(couleur, plus) {
   return new THREE.MeshLambertMaterial(
@@ -921,6 +946,23 @@ const M = {
                                               metalness: 0.7, flatShading: true }),
   or:        new THREE.MeshStandardMaterial({ color: 0xD7A94E, roughness: 0.34,
                                               metalness: 0.8, flatShading: true }),
+  /* ── Les cultures ──────────────────────────────────────────────────
+     Demandé : « une ville comme dans snk l'attaque des titans pareil en
+     terme d'espace de maison le style les champ etc. »
+
+     Ce qui fait la campagne de Shiganshina n'est pas le nombre de maisons :
+     c'est que le sol autour d'elles est TRAVAILLÉ. Une plaine d'herbe
+     uniforme reste un terrain de jeu quelle que soit sa densité ; un
+     damier de parcelles de couleurs différentes devient un pays nourri par
+     quelqu'un. Cinq teintes suffisent, parce que ce qui se lit de loin
+     n'est pas la plante mais le CONTRASTE entre deux parcelles voisines. */
+  ble:       lambert(0xDCBB5E),   // le blé mûr, juste avant la moisson
+  pousse:    lambert(0x9CB95C),   // la jeune pousse, vert acide
+  labour:    lambert(0x8A6B4C),   // la terre retournée
+  jachere:   lambert(0xC8C389),   // la jachère, paille sèche
+  luzerne:   lambert(0x5F7F4A),   // la luzerne, vert profond
+  chaume:    lambert(0xC9A86A),   // les meules et les gerbes
+  haie:      lambert(0x6F8C4F),   // la haie vive, plus claire que le feuillage
   feuille:   lambert(0x4C6B3C),
   sapin:     lambert(0x35513C),
   sakura:    lambert(0xE7A3BE),
@@ -948,6 +990,13 @@ const OBSTACLES_BOUT = [];
    la liste se remplit pendant la construction et se verse dans OBSTACLES
    quand il existe. */
 const OBSTACLES_CAMPAGNE = [];
+let CHAMPS_POSES = 0;      // le nombre de parcelles cultivées, pour le diagnostic
+let MAISONS_RUE = 0;       // les maisons de l'allée
+let MAISONS_CAMPAGNE = 0;  // celles des hameaux et de la ceinture
+/* On COMPTE, parce que « c'est trop vide » est un jugement et que je n'ai
+   rien à lui opposer tant que je n'ai pas de nombre. Les trois compteurs
+   sortent dans diagnostic() : la densité devient alors une mesure qu'on
+   compare d'une version à l'autre, et non une impression. */
 /* ── Ce qui est déjà bâti, pour de bon ───────────────────────────────────
    La campagne s'interdisait de bâtir dans une BOÎTE autour du bourg :
    « |x| < 296 et z entre −430 et 360 ». Mesure faite, elle n'a rendu que
@@ -1426,6 +1475,35 @@ for (const s of [-1, 1]) {
 const SOLIDES = [];
 function solide(x, z, r) { SOLIDES.push({ x, z, r }); }
 
+/* ── Ce qui a la forme de ce qu'on heurte ────────────────────────────────
+   Signalé, pour la deuxième fois : « je n'aimais pas les mure invisible
+   donc sois tu epouses les forme des mure et la oui je peux pas passer car
+   y'a un mur met me bloque pas 5 cm avant ».
+
+   Il décrit exactement la faute. Tout obstacle était un CERCLE, et une
+   maison n'est pas ronde. Pour une maison de 40 × 26, le cercle valait
+   max(40, 26)/2 + 2 = 22 : le long de la façade on était arrêté 22 unités
+   avant un mur qui n'en était qu'à 13. Neuf unités de vide, sur toute la
+   longueur de la rue, et bien davantage dans les angles rentrants où deux
+   cercles se chevauchent. Ce n'est pas une marge de sécurité, c'est le mur
+   invisible qu'il décrit.
+
+   Une boîte ORIENTÉE règle les deux à la fois : elle épouse le plan du
+   bâtiment, et la marge tombe à la seule qui ait un sens physique — la
+   demi-épaisseur du marcheur. On s'arrête le nez au mur, et on longe la
+   façade sans jamais la quitter.
+
+   « r » reste rempli, au rayon circonscrit : il ne sert plus à arrêter, il
+   sert à POSER. Un arbre qui cherche une place doit rester prudent, sinon
+   il pousse dans un angle de toit. Arrêter et placer n'ont pas besoin de la
+   même précision, et les confondre coûterait l'une des deux. */
+const RAYON_MARCHEUR = 4;
+function solideBoite(x, z, dl, dp, rot) {
+  SOLIDES.push({ x, z, r: Math.hypot(dl, dp),
+                 dl: dl + RAYON_MARCHEUR, dp: dp + RAYON_MARCHEUR,
+                 rot: rot || 0 });
+}
+
 /* Ce qui est déjà occupé, au moment où l'on demande. Les cinq bâtiments et
    les échoppes ne sont pas dans SOLIDES — ils ont leur propre liste — mais un
    arbre doit les éviter tous les trois. On interroge donc ce qui existe, et
@@ -1454,9 +1532,13 @@ function occupeDeja(x, z, r) {
    « arbre » refuse maintenant, et rend « null ». Les appelants n'ont rien à
    changer : un arbre qui ne pousse pas ne manque à personne, un arbre dans
    une porte se voit de loin. */
+/* Le compteur est DANS le planteur, et nulle part ailleurs. C'est la seule
+   place où un arbre ne peut pas être oublié : qui plante, compte. */
+let ARBRES_POSES = 0;
 function arbre(x, z, type, echelle) {
   const e0 = echelle || 1;
   if (occupeDeja(x, z, 4.4 * e0)) return null;
+  ARBRES_POSES++;
   const g = new THREE.Group();
   g.position.set(x, 0, z);
   const e = echelle || 1;
@@ -2124,6 +2206,68 @@ function pose(x, y, z, sx, sy, sz, ry) {
   _quat.setFromEuler(_eul);
   return _mat4.compose(_pos.set(x, y, z), _quat, _ech.set(sx, sy, sz));
 }
+/* ═══════════════════ l'occlusion ambiante, cuite ═══════════════════════
+   Le dernier gain visuel disponible qui ne coûte rien à l'image : pas une
+   lumière de plus, pas un appel de rendu de plus — trois flottants par
+   sommet, écrits une fois à la construction.
+
+   Deux termes, et les deux sont physiques :
+
+   · LE CIEL. Une face tournée vers le haut voit tout le ciel ; une face
+     tournée vers le bas n'en voit rien. C'est l'éclairage hémisphérique,
+     mais figé dans le maillage au lieu d'être recalculé à chaque image.
+     La normale suffit, et elle est déjà là.
+   · LE SOL. Tout ce qui est près du sol est à l'ombre de ce qui
+     l'entoure — le mur d'en face, le pavé, le bâtiment voisin. On ne
+     cherche pas QUI occulte : on constate que, dans un village, le bas
+     des choses est toujours plus sombre que le haut. Mesuré sur rien,
+     constaté partout.
+
+   C'est une approximation, et elle est assumée : la vraie occlusion
+   demanderait de lancer des rayons depuis chaque sommet, c'est-à-dire de
+   connaître les voisins — or chaque pièce arrive ici SEULE, déjà placée
+   dans le monde. Le rapport qualité/prix de ces deux termes est ce qui
+   fait tenir les scènes en voxels depuis quinze ans. */
+const AO_HAUTEUR = 3.4;   // la hauteur sur laquelle le contact au sol s'estompe
+const AO_FOND = 0.62;     // ce qui reste de lumière dans le sommet le plus enfoui
+function cuireOcclusion(g) {
+  const p = g.attributes.position, nor = g.attributes.normal;
+  if (!p) return;
+  const n = p.count, col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const ny = nor ? Math.max(-1, Math.min(1, nor.getY(i))) : 1;
+    const ciel = 0.5 + 0.5 * ny;
+    const sol = Math.max(0, Math.min(1, p.getY(i) / AO_HAUTEUR));
+    const v = AO_FOND + (1 - AO_FOND) * (0.55 * ciel + 0.45 * sol);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+}
+
+/* LE FILET. « vertexColors » posé sur une matière PARTAGÉE rend noir tout
+   maillage dont la géométrie n'a pas d'attribut « color » : un attribut
+   absent vaut (0,0,0) dans le nuanceur, et noir multiplié par n'importe
+   quoi reste noir. Le village compte quatre-vingt-un assemblages à la
+   main en plus de ceux qui passent par « ajoute » ; les auditer un par un,
+   c'est se promettre de n'en oublier aucun. On parcourt donc la scène une
+   fois, on donne du blanc neutre à ceux qui n'en ont pas, et ON COMPTE —
+   un filet qui dit combien de fois il a servi est un filet qu'on peut
+   croire. */
+function filetCouleurs() {
+  let posees = 0;
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes || !o.material) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    if (!mats.some((m) => m && m.vertexColors)) return;
+    if (o.geometry.attributes.color || !o.geometry.attributes.position) return;
+    const n = o.geometry.attributes.position.count;
+    o.geometry.setAttribute("color",
+      new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3));
+    posees++;
+  });
+  return posees;
+}
+
 function ajoute(mat, geo, m) {
   let l = SEAUX.get(mat);
   if (!l) SEAUX.set(mat, l = []);
@@ -2131,7 +2275,11 @@ function ajoute(mat, geo, m) {
      et c'est le cas des plans et des toits extrudés. On ne convertit que ce
      qui a un index. */
   const g = geo.index ? geo.clone().toNonIndexed() : geo.clone();
-  l.push(g.applyMatrix4(m));
+  /* L'occlusion se cuit APRÈS la mise en place : elle lit la hauteur dans
+     le monde et la normale dans le monde, pas celles de la boîte unité. */
+  g.applyMatrix4(m);
+  cuireOcclusion(g);
+  l.push(g);
 }
 function fondre() {
   let objets = 0, appels = 0;
@@ -2142,6 +2290,11 @@ function fondre() {
     liste.forEach((x) => x.dispose());
     if (!g) continue;
     g.computeBoundingSphere();
+    /* La matière est PARTAGÉE avec des maillages posés à la main ; on la
+       marque ici, et le filet se charge de ceux-là. */
+    if (g.attributes.color && !mat.vertexColors) {
+      mat.vertexColors = true; mat.needsUpdate = true;
+    }
     const o = new THREE.Mesh(g, mat);
     o.frustumCulled = false;   // une seule boîte englobante pour tout le bourg
     scene.add(o);
@@ -2410,7 +2563,15 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
          jardin ou un passage. Les vides font le rythme d'une rue ; sans eux
          elle n'est qu'un mur percé de fenêtres. */
   for (const s of [-1, 1]) {
-    for (const bord of [V.demiAllee + 9, V.demiAllee + 104, V.demiAllee + 192]) {
+    /* Cinq rangs au lieu de trois. Le plancher « moins de 24 maisons » était
+       franchi depuis le début — 18 posées, et personne n'était allé voir
+       pourquoi. La cause n'est pas le hasard : les cinq PARVIS taillent
+       chacun un couloir de 240 unités de large dans les trois premiers
+       rangs, et ce qu'ils mangent ne revient jamais. Deux rangs de plus,
+       posés au-delà des couloirs, rendent à la rue ce que les parvis lui
+       prennent — sans rien bâtir devant une façade. */
+    for (const bord of [V.demiAllee + 9, V.demiAllee + 104, V.demiAllee + 192,
+                        V.demiAllee + 286, V.demiAllee + 378]) {
       let z = V.zPortail + 30;
       while (z > -206) {
         const larg = 26 + rnd() * 18;
@@ -2420,7 +2581,7 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
         const decale = (rnd() - 0.5) * 44;              // le recul propre à celle-ci
         const x = s * (bord + prof / 2 + decale);
         const rot = (s > 0 ? -Math.PI / 2 : Math.PI / 2) + (rnd() - 0.5) * 0.16;
-        if (rnd() < 0.19) {                             // une cour, pas une maison
+        if (rnd() < 0.11) {                             // une cour, pas une maison
           for (let k = -1; k <= 1; k++)
             ajoute(M.pierreF, BOITE,
                    pose(x, 2.2, z + k * 8, 3, 4.4, 8.4, rot));
@@ -2485,14 +2646,19 @@ const BOUT_L = 30, BOUT_P = 26, BOUT_X = V.demiAllee + 9 + BOUT_P / 2;
                     1, 15, 7, rot));
         posees++;
         BATIS.push({ x, z, r: Math.max(larg, prof) / 2 + 3 });
-        solide(x, z, Math.max(larg, prof) / 2 + 2);
-        z -= larg + 8 + rnd() * 12;
+        /* « larg » est l'étendue en X du gabarit, « prof » celle en Z, et
+           « rot » les tourne : la boîte reprend les trois, donc elle est
+           exactement le plan au sol de la maison qu'on vient de bâtir. */
+        solideBoite(x, z, larg / 2, prof / 2, rot);
+        /* Front bâti : trois unités entre deux pignons, pas douze. */
+        z -= larg + 3 + rnd() * 9;
       }
     }
   }
   fondre();
   /* Un plancher : si la rue se vidait, le village redeviendrait cinq objets
      dans un pré, et rien à l'écran ne le dirait. */
+  MAISONS_RUE = posees;
   if (posees < 24) console.warn("village : seulement " + posees + " maisons");
 }
 
@@ -2587,8 +2753,13 @@ function tracerChemin(pts, l0, l1) {
 function longerLeChemin(pts, o) {
   const rnd = o.rnd;
   const L = longueurChemin(pts);
-  const MURS = [M.platre, M.pierreC, M.brique, M.platre];
-  const TOITS = [M.tuile, M.ardoise, M.tuile];
+  /* Le style de Shiganshina, et il tient en trois traits : un enduit clair,
+     une TUILE de terre cuite presque partout, et un pan de bois apparent.
+     L'ardoise passe de un sur trois à un sur six — c'est la dominante de
+     toits rouges qui fait qu'on reconnaît la ville avant d'en voir une
+     seule maison. */
+  const MURS = [M.platre, M.pierreC, M.platre, M.platre, M.brique];
+  const TOITS = [M.tuile, M.tuile, M.tuile, M.tuile, M.tuile, M.ardoise];
   let poses = 0;
   for (const cote of [-1, 1]) {
     let s = o.debut + rnd() * 40;
@@ -2609,6 +2780,11 @@ function longerLeChemin(pts, o) {
       for (const n of (o.noyaux || []))
         dens = Math.max(dens, 1 - Math.min(1, Math.abs(s - n.s) / n.r));
       dens = dens * dens * (3 - 2 * dens);          // adouci aux bords
+      /* Le second rang n'existe qu'au CŒUR. Une ville dense n'est pas un
+         ruban plus large : c'est un ruban qui, par endroits, devient un
+         bloc. Posé partout, le rang d'arrière ne ferait que doubler le
+         ruban — et doubler un ruban donne un ruban. */
+      if (o.arriere && dens < 0.5) { s += 34 + rnd() * 26; continue; }
       /* Un trou : jardin, verger ou pré. Il est rare au cœur d'un hameau et
          presque certain entre deux. */
       const quoi = rnd();
@@ -2654,7 +2830,12 @@ function longerLeChemin(pts, o) {
                     z - Math.sin(rot) * (larg / 2 + al / 2 - 1),
                     al, ah, prof * 0.74, rot));
       }
-      const hp = 7 + rnd() * 7;
+      /* Des toits RAIDES. C'est la silhouette qui porte tout le style : un
+         toit plat se lit comme un hangar, un toit à 50° comme une maison du
+         Nord. On passe d'une pente de 7 à 17 unités de flèche à une de 12 à
+         26 — pour une maison large de vingt-cinq, c'est l'écart entre un
+         chapeau et une capuche. */
+      const hp = 12 + rnd() * 14;
       const f = new THREE.Shape();
       f.moveTo(-larg / 2 - 2, 0); f.lineTo(larg / 2 + 2, 0); f.lineTo(0, hp);
       f.closePath();
@@ -2676,6 +2857,30 @@ function longerLeChemin(pts, o) {
                       h / etages * (e + 0.55),
                       fz - Math.sin(rot) * w * larg * 0.26, 5, 6.4, 1, rot));
       ajoute(M.bois, BOITE, pose(fx, 7, fz, 6.4, 14, 1, rot));
+      /* Le pan de bois : deux montants, une sablière, une écharpe. Quatre
+         pièces, et la façade cesse d'être un mur peint. Une maison sur
+         deux seulement — un village entièrement à colombages est un décor
+         de carte postale, pas une ville où l'on habite. */
+      if (rnd() < 0.5) {
+        const pb = (dx, y, l, ep) =>
+          ajoute(M.bois, BOITE,
+                 pose(fx + Math.cos(rot) * dx, y, fz - Math.sin(rot) * dx,
+                      l, ep, 1.1, rot));
+        for (const dx of [-larg * 0.34, 0, larg * 0.34])
+          pb(dx, h / 2, 1.5, h - 2);
+        pb(0, h - 1.2, larg * 0.92, 1.5);
+        if (etages > 1) pb(0, h / 2, larg * 0.92, 1.4);
+        /* L'écharpe : la diagonale. Elle ne peut pas être tournée par
+           « pose », qui ne tourne qu'autour de Y — on la fabrique donc
+           penchée, puis on la place. */
+        const ec = BOITE.clone();
+        ec.scale(1.4, h * 0.46, 1.1);
+        ec.rotateZ(rnd() < 0.5 ? 0.62 : -0.62);
+        ajoute(M.bois, ec,
+               pose(fx + Math.cos(rot) * larg * 0.17, h * 0.3,
+                    fz - Math.sin(rot) * larg * 0.17, 1, 1, 1, rot));
+        ec.dispose();
+      }
       /* Une barrière devant, une fois sur deux : c'est elle qui raccroche la
          maison à la route au lieu de la laisser flotter dans l'herbe. */
       if (rnd() < 0.5) {
@@ -2686,11 +2891,22 @@ function longerLeChemin(pts, o) {
                  pose(bx + Math.cos(rot) * k * 6, 2.6, bz - Math.sin(rot) * k * 6,
                       1.3, 5.2, 1.3, rot));
       }
-      o.obstacles.push({ x, z, r: Math.max(larg, prof) / 2 + 4 });
+      /* Les fermes aussi épousent leur plan : c'est la campagne qu'on
+         traverse le plus longtemps, donc celle où un cercle trop large se
+         remarque le plus. */
+      o.obstacles.push({ x, z, r: Math.hypot(larg, prof) / 2,
+                         dl: larg / 2 + RAYON_MARCHEUR,
+                         dp: prof / 2 + RAYON_MARCHEUR, rot });
       poses++;
       /* Serrées dans le hameau, espacées dehors : de huit unités d'écart au
          cœur à soixante en rase campagne. */
-      s += larg + 6 + (1 - dens) * 38 + rnd() * 16;
+      /* L'espacement, et c'est le nombre qu'il désigne par « pareil en terme
+         d'espace de maison ». À six unités d'écart au cœur, les maisons
+         restaient des maisons individuelles alignées ; à deux, elles se
+         touchent presque et la rue devient un FRONT BÂTI. C'est ça, une
+         ville close : pas de jardin entre deux façades, parce qu'il n'y a
+         pas de place. Le vide est rejeté dehors, dans les champs. */
+      s += larg + 2 + (1 - dens) * 34 + rnd() * 11;
     }
   }
   return poses;
@@ -2832,7 +3048,14 @@ function bosquet(cx, cz, n, rayon, o) {
     }
     /* On ne marche pas dans l'eau : l'obstacle s'arrête à la grève, pas au
        bord du disque, pour qu'on puisse longer la rive sans patauger. */
-    dejaPose.push({ x: LAC.x, z: LAC.z, r: R_LAC + 4 });
+    /* L'eau arrête, et c'est juste — mais le ponton la franchit, et il est
+       fait pour qu'on s'y avance : neuf planches de 8,4 posées tous les 9,
+       de +150 à +222 du centre, larges de 26. Le couloir reprend ces
+       mesures exactement. Sans lui, on bute à 214 sur une passerelle qu'on
+       voit se prolonger jusqu'à 226. */
+    dejaPose.push({ x: LAC.x, z: LAC.z, r: R_LAC + 4,
+                    passage: { x: LAC.x + 186, z: LAC.z,
+                               dl: 42, dp: 13, rot: 0 } });
   }
 
   /* ── Le parc ──────────────────────────────────────────────────────────
@@ -2998,6 +3221,27 @@ function bosquet(cx, cz, n, rayon, o) {
     { ...opts, noyaux: NOYAUX.ceinture, debut: 40, recul: [24, 56],
       larg: [19, 31], hautes: 0.18 });
 
+  /* ── Le second rang ───────────────────────────────────────────────────
+     Le même bâtisseur, rappelé avec un recul plus grand et « arriere » :
+     il ne pose alors QUE dans les noyaux. Les hameaux cessent d'être une
+     file de maisons et deviennent des îlots qu'on peut contourner — ce
+     qui, au passage, donne les ruelles. Les maisons du fond sont un peu
+     plus hautes : c'est ce qui fait qu'un bloc se lit en volume depuis la
+     route, au lieu de disparaître derrière le premier rang. */
+  const ARRIERE = { ...opts, arriere: true, recul: [78, 112], hautes: 0.55 };
+  maisonnettes += longerLeChemin(CHEMINS.lac,
+    { ...ARRIERE, noyaux: NOYAUX.lac, debut: 70, larg: [20, 32] });
+  maisonnettes += longerLeChemin(CHEMINS.parc,
+    { ...ARRIERE, noyaux: NOYAUX.parc, debut: 80, larg: [19, 30] });
+  maisonnettes += longerLeChemin(CHEMINS.bibli,
+    { ...ARRIERE, noyaux: NOYAUX.bibli, debut: 90, larg: [20, 33] });
+  maisonnettes += longerLeChemin(CHEMINS.est,
+    { ...ARRIERE, noyaux: NOYAUX.est, debut: 60, larg: [19, 31] });
+  maisonnettes += longerLeChemin(CHEMINS.nord,
+    { ...ARRIERE, noyaux: NOYAUX.nord, debut: 70, larg: [19, 29] });
+  maisonnettes += longerLeChemin(CHEMINS.ceinture,
+    { ...ARRIERE, noyaux: NOYAUX.ceinture, debut: 40, larg: [18, 29] });
+
   /* ── Trois vrais hameaux, aux carrefours ──────────────────────────────
      Un hameau n'est pas un cercle de maisons : c'est l'endroit où un chemin
      en croise un autre, et où quelques maisons se sont serrées autour de ce
@@ -3023,8 +3267,17 @@ function bosquet(cx, cz, n, rayon, o) {
   const BOIS = [[-820, -330, 26, 150], [740, 480, 22, 130], [-120, 880, 28, 160],
                 [880, 120, 20, 120], [-700, 620, 18, 110], [420, -780, 24, 140]];
   for (const [bx, bz, n, r] of BOIS) bosquet(bx, bz, n, r, { rnd, libre });
+  /* Le plafond disait « 46 » et le plancher, trente lignes plus bas,
+     « moins de 60 est une alerte ». La boucle s'arrêtait donc à 46 et le
+     village criait au secours à chaque chargement, depuis toujours, pour
+     une alerte qu'il était impossible de satisfaire. Et le compte était
+     faux en plus d'être contradictoire : « plantes » ne comptait que les
+     arbres des prés, pas les alignements ni les bois — c'est-à-dire la
+     grande majorité. On compte maintenant dans « arbre » lui-même, et le
+     plafond des prés monte à 130 : la campagne a cinq fois plus de maisons
+     qu'avant, il lui faut de quoi les ombrager. */
   let plantes = 0;
-  for (let i = 0; i < 260 && plantes < 46; i++) {
+  for (let i = 0; i < 620 && plantes < 130; i++) {
     const a = rnd() * Math.PI * 2, d = 360 + rnd() * 620;
     const x = Math.cos(a) * d, z = Math.sin(a) * d;
     if (!libre(x, z, 40)) continue;
@@ -3231,6 +3484,117 @@ function bosquet(cx, cz, n, rayon, o) {
     if (tiges < 300) console.warn("bambouseraie : " + tiges + " tiges");
   }
 
+  /* ── Le damier des cultures ───────────────────────────────────────────
+     Demandé : « une ville comme dans snk […] le style les champ etc. »
+
+     Les parcelles ne sont pas semées au hasard : elles s'alignent sur un
+     CAP DE CANTON, un angle tiré au sort par secteur de plaine et partagé
+     par toutes les parcelles du même secteur. C'est ce qui sépare un damier
+     d'un tas de rectangles : dans un vrai terroir, les champs voisins ont
+     été labourés dans le même sens, parce qu'on laboure dans le sens de la
+     pente et qu'on se partage les mêmes chemins d'accès.
+
+     Et elles ne bloquent pas. Un muret de culture fait trois unités : on
+     l'enjambe. Le faire solide serait remettre, en pleine campagne, le mur
+     dont on vient de débarrasser le village. */
+  let parcelles = 0;
+  {
+    const CULTURES = [M.ble, M.pousse, M.labour, M.jachere, M.luzerne];
+    /* Huit cantons, chacun son cap. Deux parcelles voisines ont donc
+       presque toujours le même, et le damier se lit. */
+    const capCanton = [];
+    for (let k = 0; k < 8; k++) capCanton.push(rnd() * Math.PI);
+    const canton = (x, z) => {
+      const a = Math.atan2(z, x) + Math.PI;
+      return capCanton[Math.min(7, Math.floor(a / (Math.PI * 2) * 8))];
+    };
+    /* On balaie la plaine par anneaux : l'aire d'un anneau croît avec son
+       rayon, donc le pas angulaire doit décroître — sinon la campagne est
+       serrée près du bourg et vide au loin. */
+    for (let R = 330; R < 1430; R += 118) {
+      const pas = 112 / R;                       // ~112 unités d'arc
+      for (let a = rnd() * pas; a < Math.PI * 2; a += pas * (0.82 + rnd() * 0.5)) {
+        const x = Math.cos(a) * R + (rnd() - 0.5) * 70;
+        const z = Math.sin(a) * R + (rnd() - 0.5) * 70;
+        const larg = 64 + rnd() * 96, prof = 48 + rnd() * 74;
+        const demi = Math.hypot(larg, prof) / 2;
+        if (SUR_LE_PAVE(x, z)) continue;
+        if (Math.hypot(x, z) > 1430) continue;
+        if (surUnChemin(x, z, demi + 10)) continue;
+        if (BATIS.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + demi)) continue;
+        if (dejaPose.some((o) => Math.hypot(x - o.x, z - o.z) < o.r + demi)) continue;
+        if (occupeDeja(x, z, demi)) continue;
+
+        const rot = canton(x, z) + (rnd() - 0.5) * 0.12;
+        const culture = CULTURES[Math.floor(rnd() * CULTURES.length)];
+        /* ── Un champ a une ÉPAISSEUR ─────────────────────────────────
+           Premier jet : une nappe plate, au ras de l'herbe. Mesuré en
+           regardant, et c'est imparable : à hauteur d'homme, une surface
+           horizontale est écrasée à presque rien par la perspective,
+           tandis qu'une haie de trois unités se voit en entier. Le damier
+           existait et ne se voyait pas — on ne lisait que ses bordures,
+           c'est-à-dire exactement le contraire de ce qu'on voulait.
+
+           Les vues de Shiganshina qui ont cette lecture-là sont prises du
+           haut du mur. Depuis le sol, ce qui donne un champ de blé, c'est
+           sa MASSE : une nappe debout, pas une nappe couchée. Le blé, la
+           jeune pousse et la luzerne deviennent donc des volumes de trois
+           à cinq unités ; la terre retournée et la jachère restent rases,
+           parce qu'elles le sont vraiment — et ce contraste de hauteur
+           entre parcelles est un second damier, qui se lit encore quand
+           le soleil efface le premier. */
+        const debout = culture === M.ble ? 4.6
+                     : culture === M.pousse ? 2.6
+                     : culture === M.luzerne ? 3.4 : 0;
+        if (debout > 0)
+          ajoute(culture, BOITE, pose(x, debout / 2, z, larg, debout, prof, rot));
+        else
+          ajoute(culture, NAPPE, pose(x, 0.3, z, larg, 1, prof, rot));
+
+        /* Les sillons : c'est eux qui disent qu'un champ est labouré et non
+           peint. Seulement sur la terre retournée et le blé — une luzerne
+           n'a pas de raies visibles. */
+        if (culture === M.labour || culture === M.ble) {
+          const n = Math.max(4, Math.round(prof / 11));
+          for (let i = 0; i < n; i++) {
+            const dz = -prof / 2 + prof / (n + 1) * (i + 1);
+            ajoute(culture === M.labour ? M.jachere : M.chaume, BOITE,
+                   pose(x - Math.sin(rot) * dz, debout + 0.5,
+                        z - Math.cos(rot) * dz, larg * 0.97, 0.7, 1.6, rot));
+          }
+        }
+        /* La bordure : un muret bas sur deux côtés, une haie sur les deux
+           autres. Jamais les quatre en pierre — un terroir où tout est
+           muré est un cimetière. */
+        /* Premier jet : muret de 3 unités et haie de 4, en « feuille »
+           sombre. De loin, les bordures l'emportaient sur les cultures —
+           on voyait un grillage noir, pas un terroir. Ce qu'on doit lire
+           d'un damier, c'est le DAMIER ; la bordure n'est là que pour dire
+           où finit une parcelle. On la baisse, on l'amincit, et la haie
+           prend un vert plus clair que celui des arbres. */
+        for (const c of [-1, 1]) {
+          ajoute(M.pierreF, BOITE,
+                 pose(x + Math.cos(rot) * c * larg / 2, 1.1,
+                      z - Math.sin(rot) * c * larg / 2, 1.1, 2.2, prof, rot));
+          ajoute(M.haie, BOITE,
+                 pose(x - Math.sin(rot) * c * prof / 2, 1.3,
+                      z - Math.cos(rot) * c * prof / 2, larg, 2.6, 1.6, rot));
+        }
+        /* Une meule une fois sur quatre, dans les champs moissonnés. */
+        if ((culture === M.jachere || culture === M.ble) && rnd() < 0.3) {
+          const mx = x + (rnd() - 0.5) * larg * 0.5, mz = z + (rnd() - 0.5) * prof * 0.5;
+          ajoute(M.chaume, new THREE.CylinderGeometry(5.5, 7, 1, 9),
+                 pose(mx, debout + 4, mz, 1, 8, 1, rnd() * 3));
+          ajoute(M.chaume, new THREE.ConeGeometry(7, 1, 9),
+                 pose(mx, debout + 11, mz, 1, 7, 1, rnd() * 3));
+        }
+        parcelles++;
+      }
+    }
+    if (parcelles < 40) console.warn("campagne : " + parcelles + " parcelles");
+  }
+  CHAMPS_POSES = parcelles;
+
   /* Tout ce que la campagne a posé devient un obstacle de marche. On verse
      en une fois : pendant la construction, la même liste sert à s'empêcher de
      bâtir deux fois au même endroit. Une seule liste pour les deux usages,
@@ -3240,8 +3604,11 @@ function bosquet(cx, cz, n, rayon, o) {
   fondre();
   /* Les mêmes planchers que pour la rue : si l'un de ces comptes tombe, la
      campagne s'est vidée sans que rien ne le dise à l'écran. */
+  MAISONS_CAMPAGNE = maisonnettes;
   if (maisonnettes < 20) console.warn("campagne : " + maisonnettes + " maisonnettes");
-  if (plantes < 60) console.warn("campagne : " + plantes + " arbres");
+  if (ARBRES_POSES < 190)
+    console.warn("campagne : " + ARBRES_POSES + " arbres en tout, dont "
+                 + plantes + " dans les prés");
 }
 
 
@@ -3494,7 +3861,10 @@ const groupesBout = [];
     groupesBout.push(g);
     /* On ne traverse pas une échoppe : elle entre dans les obstacles comme
        les cinq bâtiments. */
-    OBSTACLES_BOUT.push({ x: b.x, z: b.z, r: Math.max(BOUT_L, BOUT_P) / 2 + 6 });
+    OBSTACLES_BOUT.push({ x: b.x, z: b.z,
+                          r: Math.hypot(BOUT_L, BOUT_P) / 2,
+                          dl: BOUT_L / 2 + RAYON_MARCHEUR,
+                          dp: BOUT_P / 2 + RAYON_MARCHEUR, rot: b.rot });
   });
 }
 
@@ -4775,9 +5145,19 @@ const CIEL_VIVANT = (() => {
    W sur un clavier anglais, et « KeyW » désigne les deux. Lire la lettre
    aurait donné un village qui ne marche que sur un clavier. */
 const OBSTACLES = [];
+/* Les cinq bâtiments étaient des cercles de « demiLargeur + 14 ». Deux
+   défauts dans le même nombre : quatorze unités de vide devant chaque
+   façade, et — parce qu'un cercle de rayon égal à la DEMI-LARGEUR est
+   inscrit dans le carré, pas circonscrit — des angles qu'on traversait
+   quand même. La boîte carrée corrige les deux d'un coup : elle couvre les
+   angles, et elle s'arrête au mur. */
 matieres.forEach((m) => OBSTACLES.push(
-  { x: m.L.x, z: m.L.z, r: m.b.demiLargeur + 14 }));
-OBSTACLES.push({ x: 0, z: V.zFontaine, r: V.rFontaine + 9 });
+  { x: m.L.x, z: m.L.z, r: m.b.demiLargeur * 1.4143,
+    dl: m.b.demiLargeur + RAYON_MARCHEUR,
+    dp: m.b.demiLargeur + RAYON_MARCHEUR, rot: m.L.rot || 0 }));
+/* La fontaine, elle, est VRAIMENT ronde : un cercle est sa forme, pas une
+   approximation. Seule la marge tombe. */
+OBSTACLES.push({ x: 0, z: V.zFontaine, r: V.rFontaine + RAYON_MARCHEUR });
 for (const o of OBSTACLES_BOUT) OBSTACLES.push(o);
 for (const o of OBSTACLES_CAMPAGNE) OBSTACLES.push(o);
 /* Et tout ce qui s'est déclaré solide en se posant : les arbres, les bancs,
@@ -4816,8 +5196,38 @@ const PENTE_MAX = 0.62;
 function glisserContre(x, z) {
   for (const o of OBSTACLES) {
     const dx = x - o.x, dz = z - o.z;
+    if (o.dl !== undefined) {
+      /* ── Une boîte orientée ───────────────────────────────────────────
+         On passe dans le repère du bâtiment, on regarde par quelle face on
+         sort le MOINS profondément, et on ressort par celle-là. Choisir la
+         face la moins enfoncée est ce qui fait qu'on longe un mur au lieu
+         d'être éjecté en travers : le pas de côté est toujours le plus
+         court des deux. */
+      const c = Math.cos(o.rot), si = Math.sin(o.rot);
+      const lx = c * dx - si * dz, lz = si * dx + c * dz;
+      const ox = o.dl - Math.abs(lx), oz = o.dp - Math.abs(lz);
+      if (ox > 0 && oz > 0) {
+        let nx = lx, nz = lz;
+        if (ox < oz) nx = (lx < 0 ? -1 : 1) * o.dl;
+        else         nz = (lz < 0 ? -1 : 1) * o.dp;
+        x = o.x + c * nx + si * nz;
+        z = o.z - si * nx + c * nz;
+      }
+      continue;
+    }
     const d2 = dx * dx + dz * dz;
     if (d2 < o.r * o.r) {
+      /* Le passage : une planche posée sur l'eau est faite pour être
+         empruntée. Sans cette exception, le ponton du lac est un objet
+         qu'on voit, qu'on comprend, et sur lequel on ne peut pas monter —
+         c'est-à-dire exactement le mur invisible qu'on vient d'enlever
+         ailleurs. */
+      if (o.passage) {
+        const c = Math.cos(o.passage.rot), si = Math.sin(o.passage.rot);
+        const px = x - o.passage.x, pz = z - o.passage.z;
+        if (Math.abs(c * px - si * pz) < o.passage.dl &&
+            Math.abs(si * px + c * pz) < o.passage.dp) continue;
+      }
       const d = Math.sqrt(d2) || 0.001;
       x = o.x + dx / d * o.r;
       z = o.z + dz / d * o.r;
@@ -5578,6 +5988,39 @@ $("tout").addEventListener("click", () => allerA(-1));
 /* ═══════════════════════════════════════ le jour et la nuit ═════════ */
 const CLE_HEURE = "ciel-monde-heure";
 let heure = "nuit";
+/* ── Le changement d'heure ne se FOND pas ────────────────────────────────
+   Le banc de contraste a mesuré les pastilles de matière à **1,00:1** au
+   passage à la nuit, et il avait raison — c'est la troisième fois qu'il a
+   raison sur ce fondu et la première où j'en trouve la vraie cause.
+
+   Elle n'est pas dans les jetons : une propriété personnalisée bascule d'un
+   coup, elle ne s'interpole pas. Elle est dans les ÉLÉMENTS. Une pastille
+   déclare « transition: background .15s » pour son survol ; au changement
+   d'heure, ce même fondu s'applique — le fond part du verre clair du jour
+   vers le verre sombre de la nuit en 150 ms, pendant que la couleur du
+   texte, qui n'a aucune transition, saute tout de suite à l'encre claire.
+   Du blanc sur du blanc, un sixième de seconde, à chaque bascule.
+
+   Les faire fondre toutes les deux ne réglerait rien : le milieu du fondu
+   serait du gris sur du gris. La règle est donc : **deux propriétés qui
+   forment un contraste changent ensemble, ou pas du tout.** On coupe les
+   transitions le temps de la bascule, pour TOUT le village d'un coup — et
+   non pastille par pastille, parce que la prochaine règle qui déclarera un
+   fondu de fond n'aura rien à savoir de tout ceci.
+
+   Deux images d'attente avant de rendre les transitions : une seule ne
+   suffit pas — le style recalculé dans la même image que le retrait de la
+   classe repart en fondu. */
+function sansFondu(faire) {
+  const b = document.body;
+  if (!b) return faire();
+  b.classList.add("bascule");
+  faire();
+  void b.offsetWidth;                       // on force le recalcul tout de suite
+  requestAnimationFrame(() => requestAnimationFrame(
+    () => b.classList.remove("bascule")));
+}
+
 function poserHeure(h) {
   heure = h;
   const H = HEURES[h];
@@ -5664,7 +6107,9 @@ function poserHeure(h) {
     m.anneau.material.color.setHex(c);
     if (m.enseigne) m.enseigne.style.setProperty("--c", m.css);
   });
-  document.body.classList.toggle("jour", h === "jour");
+  /* La bascule de la classe est le MOMENT où tous les jetons changent :
+     c'est elle qu'on enveloppe, et pas le reste de la fonction. */
+  sansFondu(() => document.body.classList.toggle("jour", h === "jour"));
   $("btn-heure").setAttribute("aria-label",
     h === "jour" ? "Passer à la nuit" : "Passer en plein jour");
   [...chips.children].forEach((b, k) => b.style.setProperty("--c", matieres[k].css));
@@ -6595,14 +7040,23 @@ function image(now) {
     const p = surChemin(v.pts, v.s);
     if (!p) continue;
     v.g.position.set(p.x, Math.abs(Math.sin(t * 3.2 + v.s * 0.1)) * 0.7, p.z);
-    v.g.rotation.y = p.cap + (v.sens > 0 ? Math.PI : 0);
+    /* Signalé : « les png il marche a l'envers des fois ».
+       « Des fois » était l'indice : ils marchaient à l'envers exactement UNE
+       fois sur deux — à l'aller. Le demi-tour était posé sur le mauvais sens.
+       « cap » vaut atan2(dx, dz), c'est-à-dire l'angle qui envoie le +Z local
+       dans la direction où s AUGMENTE ; et les silhouettes regardent bien
+       vers +Z — la cravate du mib est à z = +1,5, la fente des yeux du ninja
+       à +1,4, son sabre dans le dos à −1,9. Donc à l'aller on garde le cap,
+       et c'est au RETOUR qu'on ajoute un demi-tour. L'ancienne ligne faisait
+       l'inverse. */
+    v.g.rotation.y = p.cap + (v.sens > 0 ? 0 : Math.PI);
     if (v.charrette) {
       /* La charrette suit à douze unités derrière, et elle est tournée
          comme lui : une charrette qui garde son cap pendant que son
          marchand tourne est la faute qu'on remarque tout de suite. */
       const q = surChemin(v.pts, Math.max(0, Math.min(v.L, v.s - v.sens * 13)));
       if (q) { v.charrette.position.set(q.x, 0, q.z);
-               v.charrette.rotation.y = q.cap + (v.sens > 0 ? Math.PI : 0); }
+               v.charrette.rotation.y = q.cap + (v.sens > 0 ? 0 : Math.PI); }
     }
   }
 
@@ -6773,6 +7227,12 @@ addEventListener("orientationchange", () => {
 camera.fov = fovVoulu();
 camera.updateProjectionMatrix();
 batirEnseignes();
+/* Le filet, APRÈS la dernière pierre : les trois fusions, les enseignes et
+   tout ce qui s'assemble à la main sont posés. Il se compte lui-même, et
+   « diagnostic() » rend ce compte — sans quoi on ne saurait jamais s'il a
+   servi zéro fois parce que tout allait bien, ou zéro fois parce qu'il
+   était passé trop tôt. */
+const COULEURS_RATTRAPEES = filetCouleurs();
 let heureDepart = "nuit";
 try { heureDepart = localStorage.getItem(CLE_HEURE) === "jour" ? "jour" : "nuit"; }
 catch (e) {}
@@ -6818,6 +7278,10 @@ catch (e) { aide.hidden = false; }
    À lancer dans les deux navigateurs : CIEL.diagnostic() */
 function diagnostic() {
   const gl = rendu.getContext();
+  /* « occlusion » dit ce que la cuisson a touché : combien de maillages
+     portent une couleur par sommet, et combien ont dû être rattrapés en
+     blanc parce que leur matière était partagée. Un rattrapage élevé n'est
+     pas une faute — c'est la mesure de ce que le filet a évité. */
   const info = gl.getExtension("WEBGL_debug_renderer_info");
   const flottant = !!(gl.getExtension("EXT_color_buffer_float")
                    || gl.getExtension("EXT_color_buffer_half_float")
@@ -6829,6 +7293,16 @@ function diagnostic() {
     bitsDeProfondeur: gl.getParameter(gl.DEPTH_BITS),
     virguleFlottante: flottant,
     ombres: rendu.shadowMap.enabled + " / " + rendu.shadowMap.type,
+    occlusion: (() => {
+      let avec = 0, sans = 0;
+      scene.traverse((o) => { if (!o.isMesh || !o.geometry || !o.geometry.attributes) return;
+        if (o.geometry.attributes.color) avec++; else sans++; });
+      return avec + " maillage(s) à couleur par sommet, " + sans + " sans, "
+             + COULEURS_RATTRAPEES + " rattrapé(s) en blanc par le filet";
+    })(),
+    densite: MAISONS_RUE + " maison(s) dans l'allée, " + MAISONS_CAMPAGNE
+            + " en campagne, " + CHAMPS_POSES + " parcelle(s) cultivée(s), "
+            + ARBRES_POSES + " arbre(s)",
     pixels: rendu.getPixelRatio(),
     animationsReduites: CALME,
     appelsDeRendu: rendu.info.render.calls,

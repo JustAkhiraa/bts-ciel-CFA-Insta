@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WSL Containers (wslc) — le TP | BTS CIEL</title>
+<meta name="description" content="TP bonus sur PC Windows : installer wslc, lancer un premier conteneur, publier un port, construire une image depuis un Containerfile, surveiller et nettoyer.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=da7e9d94">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#p1">1 · Mettre en place</a></li>
+    <li><a href="#p2">2 · Le premier conteneur</a></li>
+    <li><a href="#p3">3 · Un serveur web</a></li>
+    <li><a href="#p4">4 · Construire son image</a></li>
+    <li><a href="#p5">5 · Surveiller et nettoyer</a></li>
+    <li><a href="#p6">6 · Traduire du Docker</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+    <span class="sep">/</span><span>Chapitre 19</span>
+    <span class="sep">/</span><span class="badge">TP — bonus</span>
+  </div>
+  <h1>WSL Containers — le TP</h1>
+  <p class="chapeau">Dix-sept questions à faire <strong>sur un PC Windows</strong>. Les
+     corrections donnent la commande et ce qu'elle doit produire.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Il faut un poste Windows</div>
+    <p><code>wslc</code> est un composant de Windows. Sur un Mac ou un serveur Linux, faites
+       plutôt le TP du chapitre <a href="../18-docker-conteneurs/exercices.html">18</a> : les
+       notions sont les mêmes, et c'est celui qui est au programme.</p>
+    <p class="rap">Les corrections viennent de la
+       <a href="https://learn.microsoft.com/fr-fr/windows/wsl/tutorials/wsl-containers">documentation
+       de Microsoft</a>, relevée le 14 octobre 2026. L'outil est récent : <strong>si votre
+       machine répond autre chose, c'est elle qui a raison</strong>. Notez l'écart, il vaut
+       la peine d'être signalé.</p>
+  </div>
+</header>
+
+<section id="p1">
+  <h2><span class="num">1</span>Mettre en place</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Savoir si la machine est prête <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.1</strong> Dans PowerShell, afficher la version de WSL installée. Est-elle
+         suffisante pour les conteneurs ?</p>
+      <p><strong>1.2</strong> Mettre WSL à jour, puis redémarrer le PC.</p>
+      <p><strong>1.3</strong> Vérifier que le moteur de conteneurs répond.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wsl</span> <span class="j-att">--version</span>
+<span class="j-fn">wsl</span> <span class="j-att">--update</span>
+<span class="j-fn">wslc</span> version</code></pre></div>
+        <p>Il faut <strong>WSL 2.9.3 au minimum</strong>. La version stable publiée fin
+           septembre 2026 porte le numéro 3.0.1 ; les deux chiffres circulent et ne se
+           contredisent pas — 2.9.3 est le plancher annoncé par Microsoft, 3.0.1 est ce
+           qu'on installe aujourd'hui.</p>
+        <p><code>wsl --version</code> dit si la <strong>commande</strong> est là.
+           <code>wslc version</code> dit si le <strong>moteur de conteneurs</strong> répond :
+           c'est celui-ci qui compte, exactement comme <code>docker info</code> au chapitre 18.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Si WSL n'a jamais été installé <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>2.1</strong> Quelle commande installe WSL, et dans quelle condition
+         particulière faut-il la lancer ?</p>
+      <p><strong>2.2</strong> Un camarade a tapé la commande, elle a échoué, et il n'y a
+         aucun message clair. Quelle est la cause la plus probable, et où se règle-t-elle ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wsl</span> <span class="j-att">--install</span>     <span class="j-com"># dans une console OUVERTE EN ADMINISTRATEUR</span></code></pre></div>
+        <p><strong>2.2</strong> La <strong>virtualisation désactivée dans le BIOS/UEFI</strong>.
+           WSL 2 fait tourner un vrai noyau Linux dans une machine virtuelle légère : sans le
+           support matériel, rien ne démarre.</p>
+        <p class="rap">Et cela <strong>ne se règle pas depuis Windows</strong> : il faut
+           redémarrer, entrer dans le BIOS, et activer VT-x (Intel) ou SVM (AMD). C'est le
+           blocage le plus fréquent en salle de TP.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Se débrouiller seul <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>3.1</strong> Afficher la liste de toutes les commandes de <code>wslc</code>.</p>
+      <p><strong>3.2</strong> Afficher le détail d'une seule d'entre elles,
+         <code>run</code>.</p>
+      <p><strong>3.3</strong> Pourquoi cette habitude est-elle plus importante ici que pour
+         un outil ancien ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> <span class="j-att">--help</span>
+<span class="j-fn">wslc</span> run <span class="j-att">--help</span></code></pre></div>
+        <p><strong>3.3</strong> Parce que l'outil a quelques semaines. <code>wslc --help</code>
+           est <strong>plus récent que ce cours</strong>, plus récent que n'importe quel
+           tutoriel et que n'importe quelle vidéo : il décrit la version installée sur votre
+           machine, pas celle d'il y a un mois.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p2">
+  <h2><span class="num">2</span>Le premier conteneur</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Hello world <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>4.1</strong> Lancer un conteneur jetable à partir de l'image
+         <code>hello-world</code>.</p>
+      <p><strong>4.2</strong> Énumérer, dans l'ordre, les quatre choses qui se passent.</p>
+      <p><strong>4.3</strong> Relancer la même commande. Pourquoi est-ce bien plus rapide ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> run <span class="j-att">--rm</span> hello-world</code></pre></div>
+        <p><strong>4.2</strong> L'image est <strong>téléchargée</strong> (elle n'est pas
+           là) → un conteneur est <strong>créé</strong> → il est <strong>démarré</strong>,
+           affiche son message et son processus se termine → <code>--rm</code> le
+           <strong>détruit</strong>.</p>
+        <p><strong>4.3</strong> L'image est maintenant <strong>en cache local</strong> :
+           la première exécution était presque entièrement du téléchargement. Un conteneur
+           démarre, lui, en quelques dizaines de millisecondes.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Un conteneur qui fait quelque chose <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>5.1</strong> Lancer une commande <code>echo</code> dans un conteneur Ubuntu
+         jetable, avec un terminal.</p>
+      <p><strong>5.2</strong> Que fait chacune des options employées ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> run <span class="j-att">--rm</span> <span class="j-att">-it</span> ubuntu:latest bash <span class="j-att">-c</span> <span class="j-txt">"echo Hello world from WSL container!"</span></code></pre></div>
+        <div class="tableau">
+        <table>
+          <tbody>
+            <tr><td><code>--rm</code></td><td>détruire le conteneur à la sortie</td></tr>
+            <tr><td><code>-i</code></td><td>garder l'entrée standard ouverte</td></tr>
+            <tr><td><code>-t</code></td><td>allouer un terminal</td></tr>
+            <tr><td><code>ubuntu:latest</code></td><td>l'image et son tag</td></tr>
+            <tr><td><code>bash -c "…"</code></td><td>ce qu'on exécute dans le conteneur</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="rap"><code>-i</code> et <code>-t</code> vont presque toujours ensemble :
+           un terminal sans entrée ne sert à rien.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Le tag <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>6.1</strong> Que vaut <code>ubuntu</code> sans tag ?</p>
+      <p><strong>6.2</strong> Pourquoi <code>latest</code> est-il un mauvais choix pour un
+         serveur qui doit se comporter pareil dans six mois ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>6.1</strong> <code>ubuntu</code> vaut <code>ubuntu:latest</code> : sans
+           tag, c'est <code>latest</code> qui est pris.</p>
+        <p><strong>6.2</strong> Parce que <code>latest</code> n'est <strong>pas une
+           version</strong> : c'est une étiquette, et l'auteur de l'image la
+           <strong>déplace</strong> à chaque publication. La même commande peut donc donner
+           deux images différentes à six mois d'écart.</p>
+        <p class="rap">Très bien pour essayer. Très mauvais en production, où l'on écrit le
+           numéro.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p3">
+  <h2><span class="num">3</span>Un serveur web</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Publier un port <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>7.1</strong> Lancer nginx en arrière-plan, sous le nom <code>web</code>,
+         joignable depuis Windows sur le port 8080.</p>
+      <p><strong>7.2</strong> Vérifier qu'il répond, sans ouvrir de navigateur.</p>
+      <p><strong>7.3</strong> Justifier l'ordre des deux nombres de <code>-p</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> run <span class="j-att">-d</span> <span class="j-att">--rm</span> <span class="j-att">-p</span> <span class="j-num">8080</span>:<span class="j-num">80</span> <span class="j-att">--name</span> web nginx
+<span class="j-fn">curl</span> localhost:<span class="j-num">8080</span></code></pre></div>
+        <p><strong>7.3</strong> <code>-p 8080:80</code> se lit
+           <strong>hôte : conteneur</strong>. Le 8080 de la machine mène au 80 du conteneur,
+           où nginx écoute.</p>
+        <p class="rap">Moyen de ne plus se tromper : on écrit <strong>en premier l'adresse
+           qu'on va taper</strong>. <code>localhost:8080</code> → <code>-p 8080:…</code></p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Voir ce qui tourne <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>8.1</strong> Lister les conteneurs en cours d'exécution.</p>
+      <p><strong>8.2</strong> Lister aussi ceux qui sont arrêtés.</p>
+      <p><strong>8.3</strong> Lire ce que le conteneur <code>web</code> a écrit.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> container list
+<span class="j-fn">wslc</span> container list <span class="j-att">--all</span>
+<span class="j-fn">wslc</span> container logs web</code></pre></div>
+        <p class="rap">Équivalents Docker : <code>docker ps</code>,
+           <code>docker ps -a</code>, <code>docker logs web</code>.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Entrer dans le conteneur <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>9.1</strong> Afficher, depuis le conteneur <code>web</code>, le contenu de
+         <code>/etc/os-release</code>. Sur quelle distribution l'image nginx est-elle
+         bâtie ?</p>
+      <p><strong>9.2</strong> Ouvrir un shell interactif dans ce même conteneur.</p>
+      <p><strong>9.3</strong> Un camarade tape <code>wslc run -it nginx bash</code> pour
+         « entrer dans son serveur ». Que se passe-t-il réellement ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> exec web cat /etc/os-release
+<span class="j-fn">wslc</span> exec <span class="j-att">-it</span> web bash</code></pre></div>
+        <p><strong>9.3</strong> <code>run</code> <strong>crée un deuxième conteneur</strong>,
+           tout neuf, à partir de l'image. Il n'a aucun des fichiers ni aucune des
+           modifications du premier, et il ne publie aucun port. On cherche alors longtemps
+           pourquoi « son » serveur est vide.</p>
+        <p class="rap">La règle : <code>run</code> part d'une <strong>image</strong>,
+           <code>exec</code> entre dans un <strong>conteneur</strong>.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Arrêter proprement <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>10.1</strong> Arrêter le conteneur <code>web</code>.</p>
+      <p><strong>10.2</strong> Le retrouver dans la liste. Pourquoi n'y est-il pas ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> container stop web
+<span class="j-fn">wslc</span> container list <span class="j-att">--all</span></code></pre></div>
+        <p><strong>10.2</strong> Il avait été lancé avec <code>--rm</code> : il a donc été
+           <strong>détruit</strong> en s'arrêtant, et il n'apparaît même pas dans
+           <code>--all</code>. Sans <code>--rm</code>, il y serait, à l'état
+           <em>arrêté</em>.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p4">
+  <h2><span class="num">4</span>Construire son image</h2>
+
+  <article class="exo">
+    <h3><span class="no">11</span>Écrire le Containerfile <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>11.1</strong> Écrire un <code>Containerfile</code> pour une application
+         Python qui part de l'image <code>python:3</code>, travaille dans <code>/app</code>,
+         installe ses dépendances depuis <code>requirements.txt</code>, copie le projet,
+         annonce le port 8000 et lance le serveur Django.</p>
+      <p><strong>11.2</strong> Pourquoi copier <code>requirements.txt</code>
+         <em>avant</em> le reste du projet ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code"><span class="langue">dockerfile</span><pre><code>FROM python:3
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]</code></pre></div>
+        <p><strong>11.2</strong> Pour le <strong>cache de construction</strong>. Chaque ligne
+           produit une couche réutilisée tant que ce qu'elle copie n'a pas changé. En copiant
+           d'abord le seul <code>requirements.txt</code>, l'installation des dépendances —
+           la ligne la plus lente — n'est <strong>refaite que si les dépendances
+           changent</strong>. Copier tout le projet d'abord la referait à chaque virgule
+           modifiée dans le code.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">12</span>Construire et lancer <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>12.1</strong> Construire l'image sous le nom
+         <code>helloworld-django</code>, depuis le dossier du projet.</p>
+      <p><strong>12.2</strong> Vérifier qu'elle est bien là.</p>
+      <p><strong>12.3</strong> La lancer en arrière-plan sur le port 8000, sous le nom
+         <code>django</code>, et lire ses journaux.</p>
+      <p><strong>12.4</strong> Prouver, en une commande, que le programme tourne bien sur
+         un noyau Linux.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> build <span class="j-att">-t</span> helloworld-django .
+<span class="j-fn">wslc</span> image list
+<span class="j-fn">wslc</span> run <span class="j-att">-d</span> <span class="j-att">--rm</span> <span class="j-att">-p</span> <span class="j-num">8000</span>:<span class="j-num">8000</span> <span class="j-att">--name</span> django helloworld-django
+<span class="j-fn">wslc</span> container logs django
+<span class="j-fn">wslc</span> exec django uname</code></pre></div>
+        <p><strong>12.4</strong> <code>wslc exec django uname</code> répond
+           <strong><code>Linux</code></strong>. C'est la preuve la plus courte : on est sous
+           Windows, on n'a installé aucun moteur de conteneurs, et le programme s'exécute
+           pourtant sur le noyau Linux de WSL 2.</p>
+        <p class="rap">Le <strong>point final</strong> de <code>wslc build -t nom .</code>
+           est le <em>contexte</em> : le dossier qui contient le <code>Containerfile</code>
+           et les fichiers à copier. L'oublier est l'erreur classique.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">13</span>RUN, CMD et EXPOSE <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p><strong>13.1</strong> Un camarade a écrit
+         <code>RUN python manage.py runserver</code> à la place du <code>CMD</code>. Que
+         produit sa construction, et que fait son conteneur au démarrage ?</p>
+      <p><strong>13.2</strong> Il a aussi retiré le <code>-p</code> en disant qu'
+         <code>EXPOSE 8000</code> suffit. A-t-il raison ?</p>
+      <p><strong>13.3</strong> Où faut-il ranger les fichiers du projet, et pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>13.1</strong> <code>RUN</code> s'exécute <strong>pendant la
+           construction</strong>. Le serveur démarrerait donc au milieu du build — et comme
+           il ne rend jamais la main, la construction resterait bloquée. Et quand bien même
+           elle aboutirait : l'image n'aurait <strong>aucun <code>CMD</code></strong>, donc
+           le conteneur ne lancerait rien au démarrage.</p>
+        <p><strong>13.2</strong> Non. <code>EXPOSE</code> <strong>documente</strong> le port
+           : c'est une indication écrite dans l'image, lisible par les humains et les outils.
+           <strong>Elle ne publie rien.</strong> Seul <code>-p</code> ouvre réellement le
+           passage vers la machine hôte.</p>
+        <p><strong>13.3</strong> <strong>Du côté Linux</strong> (<code>\\wsl$</code>), pas sur
+           le disque Windows. Les deux mondes se voient, mais chaque accès traverse une
+           passerelle — et un <code>build</code> lit des milliers de fichiers. Microsoft le
+           recommande explicitement.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p5">
+  <h2><span class="num">5</span>Surveiller et nettoyer</h2>
+
+  <article class="exo">
+    <h3><span class="no">14</span>Regarder travailler le moteur <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>14.1</strong> Ouvrir une seconde console et y lancer le journal des
+         événements. Dans la première, relancer <code>wslc run --rm hello-world</code>.</p>
+      <p><strong>14.2</strong> Quelles étapes voit-on défiler ?</p>
+      <p><strong>14.3</strong> Afficher la consommation des conteneurs en cours, puis l'état
+         général de l'environnement.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> events          <span class="j-com"># console de gauche, on la laisse tourner</span>
+<span class="j-fn">wslc</span> stats
+<span class="j-fn">wslc</span> system info</code></pre></div>
+        <p><strong>14.2</strong> La séquence complète d'un conteneur jetable :
+           <strong>création</strong> → <strong>connexion au réseau</strong> →
+           <strong>démarrage</strong> → <strong>arrêt</strong> →
+           <strong>déconnexion du réseau</strong> → <strong>destruction</strong>. La
+           dernière étape n'est là que parce qu'on a mis <code>--rm</code>.</p>
+        <p class="rap">C'est le meilleur exercice du TP : la liste des événements explique
+           le cycle de vie d'un conteneur mieux qu'un paragraphe.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">15</span>Reprendre de la place <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>15.1</strong> Supprimer tous les conteneurs arrêtés, puis toutes les images
+         que plus aucun conteneur n'emploie.</p>
+      <p><strong>15.2</strong> Des deux, laquelle libère le plus d'espace ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> container prune
+<span class="j-fn">wslc</span> image prune</code></pre></div>
+        <p><strong>15.2</strong> Les <strong>images</strong>, de très loin. Un conteneur
+           arrêté ne pèse que sa couche d'écriture — souvent quelques kilooctets. Une image
+           <code>python:3</code> pèse plusieurs centaines de mégaoctets, et une dizaine
+           d'essais occupent déjà un gigaoctet.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p6">
+  <h2><span class="num">6</span>Traduire du Docker</h2>
+
+  <article class="exo">
+    <h3><span class="no">16</span>Six lignes à transposer <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Réécrire ces commandes Docker en <code>wslc</code> :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">--rm</span> <span class="j-att">-it</span> alpine sh
+<span class="j-fn">docker</span> ps <span class="j-att">-a</span>
+<span class="j-fn">docker</span> images
+<span class="j-fn">docker</span> exec <span class="j-att">-it</span> api bash
+<span class="j-fn">docker</span> logs api
+<span class="j-fn">docker</span> build <span class="j-att">-t</span> monapi .</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> run <span class="j-att">--rm</span> <span class="j-att">-it</span> alpine sh
+<span class="j-fn">wslc</span> container list <span class="j-att">--all</span>
+<span class="j-fn">wslc</span> image list
+<span class="j-fn">wslc</span> exec <span class="j-att">-it</span> api bash
+<span class="j-fn">wslc</span> container logs api
+<span class="j-fn">wslc</span> build <span class="j-att">-t</span> monapi .</code></pre></div>
+        <p>Les <strong>options ne changent pas</strong> : <code>--rm</code>,
+           <code>-it</code>, <code>-d</code>, <code>-p</code>, <code>-t</code> se lisent
+           pareil. Ce qui change, c'est que wslc met <strong>l'objet avant le verbe</strong>
+           — <code>container list</code>, <code>container logs</code> — là où Docker accepte
+           ses raccourcis historiques <code>ps</code> et <code>images</code>.</p>
+        <p class="rap">C'est en réalité la forme <em>moderne</em> de Docker, celle que sa
+           propre documentation recommande. Prenez l'habitude de
+           <code>docker container ls</code> et <code>docker image ls</code> : les deux outils
+           vous obéiront.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">17</span>Savoir quoi en dire <span class="niveau n3">Exigeant</span></h3>
+    <div class="enonce">
+      <p><strong>17.1</strong> En entretien, on vous demande pourquoi une entreprise sous
+         Windows regarderait wslc. Donner trois arguments.</p>
+      <p><strong>17.2</strong> On vous demande ensuite pourquoi cela ne remplace pas Docker.
+         Donner trois limites.</p>
+      <p><strong>17.3</strong> Que répondre à « c'est au programme du BTS ? »</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p><strong>17.1</strong> <strong>Rien à installer</strong> — c'est un composant de
+           Windows, donc rien à déployer ni à maintenir sur un parc.
+           <strong>Pas de licence</strong> à acheter au-delà d'une certaine taille
+           d'entreprise. <strong>Mêmes images et presque même syntaxe</strong> : les
+           compétences et les fichiers existants se transposent.</p>
+        <p><strong>17.2</strong> <strong>Windows seulement</strong> : sur un Mac ou un
+           serveur Linux, il faut autre chose. <strong>Pas d'interface graphique</strong>.
+           <strong>L'écosystème</strong> — tutoriels, intégration continue, extensions
+           d'éditeur — parle encore <code>docker</code>, et la traduction se fait à la main.</p>
+        <p><strong>17.3</strong> Non, et c'est assumé : ce chapitre est un bonus. La bonne
+           réponse est « <strong>Docker est ce que j'apprends, wslc est ce que je
+           surveille</strong> » — elle montre qu'on sait distinguer ce qui est établi de ce
+           qui est nouveau, ce qui vaut mieux que de citer un outil de trois semaines comme
+           s'il était un standard.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer class="sources">
+  <div class="encart">
+    <div class="titre">Sources</div>
+    <ul>
+      <li>Microsoft Learn — <a href="https://learn.microsoft.com/fr-fr/windows/wsl/tutorials/wsl-containers">Get
+          started with containers on WSL</a> et
+          <a href="https://learn.microsoft.com/fr-fr/windows/wsl/wsl-container">WSL container</a>,
+          pages du 29 septembre 2026, relevées le 14 octobre 2026.</li>
+      <li>Chapitre <a href="../18-docker-conteneurs/exercices.html">18 — le TP Docker</a>,
+          dont ce TP reprend volontairement la progression : les deux se comparent
+          question par question.</li>
+    </ul>
+    <p class="rap">L'outil a quelques semaines, et les commandes peuvent encore bouger
+       d'une version à l'autre. <code>wslc --help</code> décrit celle que vous avez : en cas
+       de désaccord avec ce TP, c'est elle qui tranche.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../18-docker-conteneurs/exercices.html"><span>Chapitre précédent</span><b>Docker — conteneurs</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=da7e9d94"></script>
+<script src="../../assets/app.js?v=da7e9d94"></script>
+</body>
+</html>
