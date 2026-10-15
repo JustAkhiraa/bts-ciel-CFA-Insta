@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistiques — une et deux variables | BTS CIEL</title>
+<meta name="description" content="Cours : moyenne et écart-type d'une série, le centre des classes, l'intervalle à un écart-type, puis les séries à deux variables — nuage de points, coefficient de corrélation, droite de régression, calcul prévisionnel et changement de variable y = ln C pour un ajustement exponentiel.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=405951fb">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#deux">1 · Deux statistiques, pas une</a></li>
+    <li><a href="#moyenne">2 · La moyenne pondérée</a></li>
+    <li><a href="#classes">3 · Des classes : on prend le centre</a></li>
+    <li><a href="#ecart">4 · L'écart-type : ce qu'il mesure</a></li>
+    <li><a href="#intervalle">5 · L'intervalle à un écart-type</a></li>
+    <li><a href="#calculatrice">6 · La calculatrice, et ses DEUX écarts-types</a></li>
+    <li><a href="#nuage">7 · Deux variables : le nuage de points</a></li>
+    <li><a href="#correlation">8 · Le coefficient de corrélation</a></li>
+    <li><a href="#regression">9 · La droite de régression</a></li>
+    <li><a href="#prevision">10 · Le calcul prévisionnel</a></li>
+    <li><a href="#arrondis">11 · Le piège des arrondis</a></li>
+    <li><a href="#changement">12 · Quand le nuage n'est pas droit</a></li>
+    <li><a href="#recap">13 · Récap en 2 minutes</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Mathématiques</a>
+    <span class="sep">/</span><span>Chapitre 13</span>
+  </div>
+
+  <h1>Statistiques — une et deux variables</h1>
+  <p class="chapeau">Deux chapitres en un. Le premier <strong>résume</strong> une série de
+     nombres par deux valeurs : la moyenne et l'écart-type. Le second cherche un
+     <strong>lien</strong> entre deux séries, et s'en sert pour prévoir.
+     <a href="exercices.html">Les exercices</a> ·
+     <a href="fiche-revision.html">La fiche</a> · <a href="qcm.html">Le QCM</a></p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+    <p><strong>Une variable :</strong> la moyenne dit où est le centre, l'écart-type dit si
+       la série est groupée ou dispersée, et l'intervalle <code>[x̄−σ ; x̄+σ]</code> contient
+       la grande majorité de la population.</p>
+    <p><strong>Deux variables :</strong> si <code>r</code> est proche de <code>1</code> ou de
+       <code>−1</code>, le nuage est quasi aligné et on peut poser une droite dessus —
+       <code>y = ax + b</code> — qui sert à prévoir.</p>
+    <p><strong>Et si le nuage monte trop vite :</strong> on pose <code>y = ln C</code>, on
+       ajuste cette série-là, et on revient par <code>C = e<sup>y</sup></code>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#moyenne</code> <code>#ecart-type</code> <code>#centre-de-classe</code>
+    <code>#intervalle-1-sigma</code> <code>#nuage-de-points</code>
+    <code>#correlation</code> <code>#moindres-carres</code> <code>#regression</code>
+    <code>#calcul-previsionnel</code> <code>#changement-de-variable</code>
+    <code>#ajustement-exponentiel</code> <code>#arrondis</code>
+  </p>
+</header>
+
+<section id="deux">
+  <h2><span class="num">01</span> Deux statistiques, pas une</h2>
+
+  <p>Le mot « statistiques » recouvre deux questions qui n'ont rien à voir, et c'est la
+     première chose à savoir trier en devoir.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Ce que chaque moitié du chapitre cherche</caption>
+      <thead><tr><th>Une variable</th><th>Deux variables</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Une seule mesure, prise sur beaucoup d'individus : la distance domicile-lycée
+              de 250 étudiants.</td>
+          <td>Deux mesures prises sur les mêmes individus : l'âge <em>et</em> la taille d'un
+              enfant, mois après mois.</td>
+        </tr>
+        <tr>
+          <td>Question : <strong>à quoi ressemble cette série ?</strong> Où est son centre,
+              est-elle groupée ou étalée ?</td>
+          <td>Question : <strong>ces deux mesures sont-elles liées ?</strong> Et si oui,
+              peut-on deviner l'une à partir de l'autre ?</td>
+        </tr>
+        <tr>
+          <td>Outils : la moyenne <code>x̄</code>, l'écart-type <code>σ</code>.</td>
+          <td>Outils : le coefficient <code>r</code>, la droite <code>y = ax + b</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="rap">Un sujet d'examen donne presque toujours un tableau à <strong>deux
+     lignes</strong> pour la seconde question et à <strong>deux lignes aussi</strong> pour la
+     première — valeurs et effectifs. Ce qui les distingue : dans une série à une variable,
+     la seconde ligne compte des <em>individus</em> (« nb d'étudiants ») ; dans une série à
+     deux variables, elle mesure <em>autre chose</em> (« taille en cm »).</p>
+</section>
+
+<section id="moyenne">
+  <h2><span class="num">02</span> La moyenne pondérée</h2>
+
+  <p>Quand une valeur revient plusieurs fois, on ne l'écrit pas plusieurs fois : on note son
+     <strong>effectif</strong>. La moyenne tient compte de ce poids.</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>        n1 x1 <span class="j-op">+</span> n2 x2 <span class="j-op">+</span> ... <span class="j-op">+</span> np xp        <span class="j-num">1</span>
+   x <span class="j-op">=</span> <span class="j-op">------------------------------</span>  <span class="j-op">=</span>  <span class="j-op">---</span> Σ ni xi       <span class="j-com">← n = Σ ni</span>
+                    n                      n</code></pre></div>
+  <p>C'est la même moyenne que d'habitude : on additionne toutes les valeurs — chacune autant
+     de fois qu'elle apparaît — et on divise par le nombre total d'individus.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Diviser par le bon nombre</div>
+    <p>On divise par <strong><code>n</code>, l'effectif total</strong>, pas par le nombre de
+       colonnes du tableau. Sept colonnes et 250 étudiants : c'est 250 le diviseur.</p>
+  </div>
+</section>
+
+<section id="classes">
+  <h2><span class="num">03</span> Des classes : on prend le centre</h2>
+
+  <p>Souvent le tableau ne donne pas des valeurs mais des <strong>intervalles</strong> : « de
+     0 à 2 km », « de 2 à 4 km ». On ne sait donc pas ce que vaut chaque mesure. La règle est
+     posée une fois pour toutes :</p>
+
+  <div class="encart methode">
+    <div class="titre">🛠️ La règle du centre de classe</div>
+    <p>Lorsque les valeurs se présentent sous forme d'intervalles, <strong>on prend le centre
+       des intervalles</strong>.</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   centre de [a ; b]  <span class="j-op">=</span>  (a <span class="j-op">+</span> b) <span class="j-op">/</span> <span class="j-num">2</span></code></pre></div>
+    <p class="rap">Exemple : <code>[0 ; 2[</code> donne <strong>1</strong>,
+       <code>[10 ; 14[</code> donne <strong>12</strong>, <code>[14 ; 20[</code> donne
+       <strong>17</strong>. Attention, les classes n'ont pas toutes la même largeur — on
+       recalcule chaque centre, on ne continue pas une suite.</p>
+  </div>
+
+  <p>Ce centre devient le <code>xi</code> de la formule précédente, et tout le reste suit
+     comme si le tableau avait donné des valeurs exactes.</p>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi a-t-on le droit de faire ça ?</div>
+    <button type="button" data-ouvrir="Voir la réponse" data-fermer="Masquer la réponse">Voir la réponse</button>
+    <div class="reponse">
+      <p>On ne l'a pas, à la rigueur : le centre est une <strong>approximation</strong>. Elle
+         se justifie en supposant les valeurs réparties à peu près uniformément dans chaque
+         classe — ce qui est raisonnable quand les classes sont étroites. Le résultat est
+         donc approché, et c'est pour cela qu'un énoncé dit toujours « à 10<sup>−1</sup>
+         près » ou « à 1 % près ».</p>
+    </div>
+  </div>
+</section>
+
+<section id="ecart">
+  <h2><span class="num">04</span> L'écart-type : ce qu'il mesure</h2>
+
+  <p>Deux classes peuvent avoir <strong>la même moyenne</strong> et n'avoir rien à voir : l'une
+     où tout le monde est à 10, l'autre où la moitié est à 0 et l'autre à 20. La moyenne ne
+     dit rien de l'étalement. L'écart-type, si.</p>
+
+  <p>On mesure la distance de chaque valeur à la moyenne, on l'élève au carré pour que les
+     écarts négatifs ne compensent pas les positifs, et on en prend la moyenne : c'est la
+     <strong>variance</strong>. Sa racine carrée est l'<strong>écart-type</strong>, qui a
+     l'avantage d'être dans la même unité que les données.</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>            <span class="j-num">1</span>
+   <span class="j-fn">V</span>(x) <span class="j-op">=</span> <span class="j-op">---</span> Σ <span class="j-fn">ni</span> (xi − x)<span class="j-num">²</span>            <span class="j-com">← la variance, en unite²</span>
+            n
+
+   σ  <span class="j-op">=</span> <span class="j-op">√</span> <span class="j-fn">V</span>(x)                           <span class="j-com">← l'ecart-type, dans l'unite des donnees</span></code></pre></div>
+  <div class="encart savoir">
+    <div class="titre">💡 Ce qu'il faut retenir, et ce qu'on ne calcule jamais à la main</div>
+    <p><strong>Plus l'écart-type est élevé, plus la série est dispersée</strong>
+       (hétérogène). Plus il est petit, plus elle est groupée (homogène).</p>
+    <p>En BTS, <strong>il est donné par la calculatrice</strong>. La formule est là pour
+       comprendre ce que le nombre veut dire, pas pour être appliquée sur sept classes à la
+       main.</p>
+  </div>
+</section>
+
+<section id="intervalle">
+  <h2><span class="num">05</span> L'intervalle à un écart-type</h2>
+
+  <p>C'est l'intervalle <code>[x̄ − σ ; x̄ + σ]</code>, et sa propriété est ce qui rend
+     l'écart-type utile :</p>
+
+  <div class="encart methode">
+    <div class="titre">🛠️ « Intervalle à 1σ »</div>
+    <p>Dans cet intervalle, on trouve <strong>une grande majorité de la population</strong> —
+       de l'ordre de <strong>2/3 à 3/4</strong>.</p>
+    <p class="rap">Une question d'examen classique : calculer le pourcentage d'individus qui
+       s'y trouvent, et constater qu'il tombe bien dans cette fourchette.</p>
+  </div>
+
+  <p>La méthode en devoir, dans l'ordre :</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   <span class="j-num">1</span>.  x  et  σ          <span class="j-com">← la calculatrice</span>
+   <span class="j-num">2</span>.  x − σ  et  x <span class="j-op">+</span> σ  <span class="j-com">← arrondis COMME L'ENONCE le demande</span>
+   <span class="j-num">3</span>.  on lit dans le tableau les classes qui tombent dedans
+   <span class="j-num">4</span>.  on additionne leurs effectifs, on divise par n, x <span class="j-num">100</span></code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Arrondir les bornes change les classes retenues</div>
+    <p>Avec <code>x̄ = 6,25</code> et <code>σ = 4,21</code>, les bornes valent
+       <code>2,04</code> et <code>10,46</code>. Arrondies à l'unité :
+       <code>[2 ; 10]</code>. Si on avait arrondi vers le haut — <code>[3 ; 11]</code> — on
+       changerait la liste des classes, donc le résultat. <strong>L'arrondi demandé fait
+       partie de la question.</strong></p>
+  </div>
+</section>
+
+<section id="calculatrice">
+  <h2><span class="num">06</span> La calculatrice, et ses DEUX écarts-types</h2>
+
+  <p>La marche à suivre, sur une Casio Graph :</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code><span class="j-com">   MENU</span>  <span class="j-op">-&gt;</span>  STAT
+<span class="j-com">   EDIT</span>  <span class="j-op">-&gt;</span>  List <span class="j-num">1</span> : les valeurs <span class="j-fn">xi</span>      (les CENTRES de classe s'il y a des classes)
+             List <span class="j-num">2</span> : les effectifs ni
+<span class="j-com">   CALC</span>  <span class="j-op">-&gt;</span>  SET   : <span class="j-num">1</span>Var XList <span class="j-op">=</span> List <span class="j-num">1</span>,  <span class="j-num">1</span>Var Freq <span class="j-op">=</span> List <span class="j-num">2</span>
+<span class="j-com">   CALC</span>  <span class="j-op">-&gt;</span>  <span class="j-num">1</span>VAR  : la calculatrice affiche x, σx, sx, n ...</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Deux lignes ressemblent à l'écart-type. Une seule est la bonne</div>
+    <p>L'écran affiche <code>σx</code> <strong>et</strong> <code>sx</code>. Ce ne sont pas des
+       doublons :</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   σx  <span class="j-op">=</span>  <span class="j-op">√</span>( (<span class="j-num">1</span><span class="j-op">/</span>n)     Σ <span class="j-fn">ni</span> (xi − x)<span class="j-num">²</span> )     <span class="j-com">← celui du cours : on divise par n</span>
+   sx  <span class="j-op">=</span>  <span class="j-op">√</span>( (<span class="j-num">1</span><span class="j-op">/</span>(n−<span class="j-num">1</span>)) Σ <span class="j-fn">ni</span> (xi − x)<span class="j-num">²</span> )     <span class="j-com">← l'estimation sur un echantillon</span></code></pre></div>
+    <p>Sur la série des 250 distances, <code>σx = 4,20</code> et <code>sx = 4,21</code> : dix
+       millièmes d'écart, invisibles — jusqu'au jour où le barème les distingue.
+       <strong>La définition du cours est celle de <code>σx</code></strong>, et c'est celle
+       qu'on prend, sauf énoncé qui dit explicitement le contraire.</p>
+    <p class="rap">Plus <code>n</code> est grand, plus les deux se rapprochent : diviser par
+       249 ou par 250 ne change presque rien. Sur une série de 12 valeurs, en revanche,
+       l'écart devient visible — <code>2,74</code> contre <code>2,86</code>.</p>
+  </div>
+</section>
+
+<section id="nuage">
+  <h2><span class="num">07</span> Deux variables : le nuage de points</h2>
+
+  <p>On a maintenant <strong>deux mesures par individu</strong>. Chaque individu devient un
+     <strong>point</strong> <code>(xi ; yi)</code>, et l'ensemble s'appelle le
+     <strong>nuage de points</strong>.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 700 260" role="img" aria-label="Trois nuages de points : l'un aligné et croissant, l'un aligné et décroissant, l'un sans forme">
+      <style>
+        .st-ax { stroke: var(--encre-douce); stroke-width: 1.5; fill: none; }
+        .st-pt { fill: var(--accent); }
+        .st-dr { stroke: var(--accent-sombre); stroke-width: 2; fill: none; stroke-dasharray: 5 4; }
+        .st-lg { font: 13px var(--mono); fill: var(--encre); }
+        .st-sg { font: 12px var(--mono); fill: var(--encre-douce); }
+      </style>
+      <g transform="translate(20,20)">
+        <path class="st-ax" d="M20 180 H190 M20 180 V10"/>
+        <circle class="st-pt" cx="40" cy="160" r="4"/><circle class="st-pt" cx="68" cy="138" r="4"/>
+        <circle class="st-pt" cx="96" cy="112" r="4"/><circle class="st-pt" cx="124" cy="88" r="4"/>
+        <circle class="st-pt" cx="152" cy="62" r="4"/><circle class="st-pt" cx="178" cy="36" r="4"/>
+        <path class="st-dr" d="M36 164 L182 34"/>
+        <text class="st-lg" x="22" y="212">r proche de +1</text>
+        <text class="st-sg" x="22" y="230">aligné, croissant</text>
+      </g>
+      <g transform="translate(250,20)">
+        <path class="st-ax" d="M20 180 H190 M20 180 V10"/>
+        <circle class="st-pt" cx="40" cy="34" r="4"/><circle class="st-pt" cx="68" cy="58" r="4"/>
+        <circle class="st-pt" cx="96" cy="84" r="4"/><circle class="st-pt" cx="124" cy="112" r="4"/>
+        <circle class="st-pt" cx="152" cy="136" r="4"/><circle class="st-pt" cx="178" cy="162" r="4"/>
+        <path class="st-dr" d="M36 30 L182 166"/>
+        <text class="st-lg" x="22" y="212">r proche de −1</text>
+        <text class="st-sg" x="22" y="230">aligné, décroissant</text>
+      </g>
+      <g transform="translate(480,20)">
+        <path class="st-ax" d="M20 180 H190 M20 180 V10"/>
+        <circle class="st-pt" cx="44" cy="60" r="4"/><circle class="st-pt" cx="72" cy="150" r="4"/>
+        <circle class="st-pt" cx="100" cy="42" r="4"/><circle class="st-pt" cx="128" cy="130" r="4"/>
+        <circle class="st-pt" cx="156" cy="74" r="4"/><circle class="st-pt" cx="178" cy="118" r="4"/>
+        <text class="st-lg" x="22" y="212">r proche de 0</text>
+        <text class="st-sg" x="22" y="230">aucune forme</text>
+      </g>
+    </svg>
+  </div>
+
+  <p class="rap">Le nuage se trace <strong>avant</strong> tout calcul, et il répond déjà à la
+     question : est-ce aligné ? Le coefficient <code>r</code> ne fera que chiffrer ce que
+     l'œil voit.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Les échelles sont données, et elles ne sont pas les mêmes sur les deux axes</div>
+    <p>« 2 cm pour 1 en <code>x</code>, 1 cm pour 10 000 en <code>C</code> » : c'est une
+       consigne de construction, pas un détail. Un nuage tracé à une autre échelle a une
+       autre allure — et comme la question suivante demande souvent « quelle allure ? »,
+       l'échelle fait partie de la réponse.</p>
+  </div>
+</section>
+
+<section id="correlation">
+  <h2><span class="num">08</span> Le coefficient de corrélation</h2>
+
+  <p>Le <strong>coefficient de corrélation linéaire</strong>, noté <code>r</code>, mesure à
+     quel point le nuage est <em>aligné</em>. Il vaut toujours entre <code>−1</code> et
+     <code>1</code>, et la calculatrice le donne en même temps que la droite.</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   r <span class="j-op">=</span> <span class="j-op">+</span><span class="j-num">1</span>   les points sont EXACTEMENT sur une droite croissante
+   r <span class="j-op">=</span> −<span class="j-num">1</span>   ... sur une droite decroissante
+   r <span class="j-op">=</span>  <span class="j-num">0</span>   aucune tendance lineaire
+
+   |r| proche de <span class="j-num">1</span>  <span class="j-op">-&gt;</span>  l'ajustement affine est legitime</code></pre></div>
+  <div class="encart methode">
+    <div class="titre">🛠️ La phrase à écrire, et elle rapporte des points</div>
+    <p>Un énoncé ne demande jamais seulement la valeur : il demande
+       d'<strong>interpréter</strong>. La formule attendue, mot pour mot :</p>
+    <p class="rap">« <code>r</code> est très proche de 1, donc la corrélation linéaire entre
+       <code>x</code> et <code>y</code> est très forte : <strong>on peut envisager une
+       régression linéaire (ajustement affine)</strong>. »</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Corrélation n'est pas causalité</div>
+    <p><code>r</code> dit que deux séries varient ensemble. Il ne dit <strong>pas</strong> que
+       l'une cause l'autre. L'âge d'un enfant ne « cause » pas sa taille au sens où on
+       pourrait la fixer ; les deux suivent la croissance. En devoir, on écrit « lien
+       linéaire fort », jamais « donc x provoque y ».</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 <code>r = −0,98</code> : la corrélation est-elle faible ?</div>
+    <button type="button" data-ouvrir="Voir la réponse" data-fermer="Masquer la réponse">Voir la réponse</button>
+    <div class="reponse">
+      <p><strong>Non, elle est très forte.</strong> C'est <code>|r|</code> qui mesure la
+         force ; le signe ne dit que le <em>sens</em>. <code>−0,98</code> décrit un nuage
+         presque parfaitement aligné, et <strong>décroissant</strong>. L'ajustement affine
+         est tout aussi légitime qu'avec <code>+0,98</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="regression">
+  <h2><span class="num">09</span> La droite de régression</h2>
+
+  <p>Une fois <code>r</code> jugé suffisant, on pose sur le nuage la droite qui le résume :
+     la <strong>droite de régression de <code>y</code> en <code>x</code></strong>, obtenue par
+     la <strong>méthode des moindres carrés</strong>.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Pourquoi « moindres carrés »</div>
+    <p>Parmi toutes les droites possibles, on garde celle qui rend la somme des
+       <strong>carrés</strong> des écarts verticaux la plus petite. Les carrés, encore :
+       comme pour la variance, ils empêchent un écart au-dessus de compenser un écart en
+       dessous, et ils pénalisent lourdement les points très éloignés.</p>
+  </div>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   MENU <span class="j-op">-&gt;</span> STAT, List <span class="j-num">1</span> : les xi, List <span class="j-num">2</span> : les yi
+   CALC <span class="j-op">-&gt;</span> SET  : <span class="j-num">2</span>Var XList <span class="j-op">=</span> List <span class="j-num">1</span>, <span class="j-num">2</span>Var YList <span class="j-op">=</span> List <span class="j-num">2</span>
+   CALC <span class="j-op">-&gt;</span> REG <span class="j-op">-&gt;</span> X  <span class="j-op">-&gt;</span>  ax<span class="j-op">+</span>b
+
+<span class="j-com">   la calculatrice rend  a,  b   et</span>  r</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ « de <em>y</em> en <em>x</em> » n'est pas « de <em>x</em> en <em>y</em> »</div>
+    <p>L'énoncé précise toujours le sens, et les deux droites sont <strong>différentes</strong>
+       : l'une minimise les écarts verticaux, l'autre les écarts horizontaux. « Droite de
+       régression de <code>y</code> en <code>x</code> » veut dire <code>y = ax + b</code> —
+       <code>y</code> s'exprime en fonction de <code>x</code>.</p>
+  </div>
+
+  <p class="rap">Les coefficients s'arrondissent <strong>comme l'énoncé le demande</strong>,
+     en général à 10<sup>−2</sup> : on écrit <code>y = 0,94x + 62,32</code>, et on précise
+     « <code>a</code> et <code>b</code> arrondis à 10<sup>−2</sup> ».</p>
+</section>
+
+<section id="prevision">
+  <h2><span class="num">10</span> Le calcul prévisionnel</h2>
+
+  <p>C'est à cela que sert la droite : <strong>deviner une valeur qu'on n'a pas mesurée</strong>.
+     Deux questions, et elles se traitent dans deux sens opposés.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Les deux sens d'une même droite</caption>
+      <thead><tr><th>La question</th><th>Ce qu'on fait</th></tr></thead>
+      <tbody>
+        <tr><td>« Quelle taille à 3 ans ? »</td>
+            <td><code>x</code> est connu (36 mois) : on <strong>remplace</strong> et on
+                calcule <code>y</code>.</td></tr>
+        <tr><td>« À quel âge mesure-t-on 75 cm ? »</td>
+            <td><code>y</code> est connu : on <strong>résout l'équation</strong>
+                <code>0,94x + 62,32 = 75</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   <span class="j-num">0,94</span> x <span class="j-op">+</span> <span class="j-num">62,32</span> <span class="j-op">=</span> <span class="j-num">75</span>
+   <span class="j-num">0,94</span> x         <span class="j-op">=</span> <span class="j-num">75</span> − <span class="j-num">62,32</span>
+   <span class="j-num">0,94</span> x         <span class="j-op">=</span> <span class="j-num">12,68</span>
+        x         <span class="j-op">=</span> <span class="j-num">12,68</span> <span class="j-op">/</span> <span class="j-num">0,94</span>
+        x         <span class="j-op">=</span> <span class="j-num">13,5</span>   a <span class="j-num">10</span>⁻<span class="j-num">¹</span> pres        <span class="j-com">← soit 13 mois et demi</span></code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Une unité se convertit AVANT de remplacer</div>
+    <p>La série donne l'âge <strong>en mois</strong>. « 3 ans » doit donc devenir
+       <strong>36</strong>, pas 3. Remplacer <code>x</code> par 3 donne 65 cm — la taille
+       d'un nourrisson de trois mois, ce qui devrait alerter.</p>
+    <p class="rap">Et le résultat se relit : une réponse de 13,5 <em>mois</em> pour 75 cm est
+       cohérente ; une réponse de 13,5 <em>ans</em> ne l'aurait pas été.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Jusqu'où a-t-on le droit de prévoir ?</div>
+    <p>La droite a été construite sur des âges de 6 à 33 mois. L'utiliser à 36 mois est
+       raisonnable : on prolonge à peine. L'utiliser à 300 mois (25 ans) annoncerait
+       <strong>343 cm</strong>. Le modèle n'est valable que <strong>près de l'intervalle
+       observé</strong>, et un énoncé qui demande une prévision lointaine attend souvent
+       qu'on le dise.</p>
+  </div>
+</section>
+
+<section id="arrondis">
+  <h2><span class="num">11</span> Le piège des arrondis</h2>
+
+  <p>C'est le point du chapitre qui coûte le plus de points, et il tient en une phrase :
+     <strong>dans une exponentielle, un arrondi se paie cher</strong>.</p>
+
+  <p>Sur le calcul prévisionnel d'un hôtel — mêmes données, deux chemins, tous deux écrits au
+     tableau :</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   y7 <span class="j-op">=</span> <span class="j-num">0,41</span> x <span class="j-num">7</span> <span class="j-op">+</span> <span class="j-num">8,06</span> <span class="j-op">=</span> <span class="j-num">10,93</span>
+
+   chemin A : on arrondit y7 a <span class="j-num">10</span>⁻<span class="j-num">¹</span>      chemin B : on garde <span class="j-num">10,93</span>
+      y7 <span class="j-op">=</span> <span class="j-num">10,9</span>                             C7 <span class="j-op">=</span> e<span class="j-op">^</span><span class="j-num">10,93</span>
+      C7 <span class="j-op">=</span> e<span class="j-op">^</span><span class="j-num">10,9</span> <span class="j-op">=</span> <span class="j-num">54</span> <span class="j-num">176</span> €                C7 <span class="j-op">=</span> <span class="j-num">55</span> <span class="j-num">826</span> €
+
+                        ecart : <span class="j-num">1</span> <span class="j-num">650</span> €</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ 1 650 € d'écart, et aucune faute de calcul</div>
+    <p>Les deux chemins sont corrects ligne par ligne. L'écart vient d'un seul arrondi, à
+       <strong>trois centièmes près</strong>, placé <em>avant</em> l'exponentielle — qui
+       l'amplifie. <code>e<sup>10,93</sup></code> vaut 3 % de plus que
+       <code>e<sup>10,9</sup></code>, et 3 % de 55 000 €, cela fait 1 650 €.</p>
+    <p class="rap">La règle : <strong>on arrondit le plus tard possible</strong>, et surtout
+       jamais juste avant une exponentielle — sauf si l'énoncé le demande explicitement.</p>
+  </div>
+
+  <div class="encart methode">
+    <div class="titre">🛠️ Quand l'énoncé impose l'arrondi, il fait partie de la réponse</div>
+    <p>Un sujet d'examen écrit par exemple : « <code>α</code> sera arrondie à
+       10<sup>−1</sup> et <code>β</code> à 10<sup>−2</sup> ». Alors
+       <code>β = 0,0207</code> devient <strong><code>0,02</code></strong>, et c'est avec
+       <code>0,02</code> qu'on finit le calcul — même si <code>0,021</code> serait plus
+       précis.</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   avec β <span class="j-op">=</span> <span class="j-num">0,02</span>  (impose)   : ρ <span class="j-op">=</span> <span class="j-num">5,0</span> x e<span class="j-op">^</span>(<span class="j-num">0,02</span> x <span class="j-num">35</span>)  <span class="j-op">=</span> <span class="j-num">10,1</span> millions
+   avec β <span class="j-op">=</span> <span class="j-num">0,021</span> (plus juste) : ρ <span class="j-op">=</span> <span class="j-num">5,0</span> x e<span class="j-op">^</span>(<span class="j-num">0,021</span> x <span class="j-num">35</span>) <span class="j-op">=</span> <span class="j-num">10,4</span> millions</code></pre></div>
+    <p class="rap">Trois dixièmes de million, soit 300 000 habitants, pour un millième sur
+       <code>β</code>. Le barème attend <strong>la valeur demandée</strong> : on suit
+       l'énoncé, on ne fait pas mieux que lui.</p>
+  </div>
+</section>
+
+<section id="changement">
+  <h2><span class="num">12</span> Quand le nuage n'est pas droit : le changement de variable</h2>
+
+  <p>Parfois le nuage monte de plus en plus vite : il n'a pas une allure rectiligne, mais une
+     <strong>allure exponentielle</strong>. Poser une droite dessus n'aurait aucun sens. La
+     parade est un <strong>changement de variable</strong>.</p>
+
+  <div class="schema">
+    <svg viewBox="0 0 700 230" role="img" aria-label="À gauche un nuage courbe en C ; au centre la transformation y égale logarithme de C ; à droite le nuage devenu rectiligne">
+      <style>
+        .cv-ax { stroke: var(--encre-douce); stroke-width: 1.5; fill: none; }
+        .cv-pt { fill: var(--accent); }
+        .cv-cb { stroke: var(--accent-sombre); stroke-width: 2; fill: none; }
+        .cv-fl { stroke: var(--encre); stroke-width: 2; fill: none; marker-end: url(#cv-t); }
+        .cv-lg { font: 13px var(--mono); fill: var(--encre); }
+        .cv-sg { font: 12px var(--mono); fill: var(--encre-douce); }
+      </style>
+      <defs>
+        <marker id="cv-t" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 z" fill="var(--encre)"/>
+        </marker>
+      </defs>
+      <g transform="translate(10,15)">
+        <path class="cv-ax" d="M25 160 H205 M25 160 V10"/>
+        <path class="cv-cb" d="M35 152 Q110 148 145 100 T195 20"/>
+        <circle class="cv-pt" cx="42" cy="150" r="4"/><circle class="cv-pt" cx="72" cy="143" r="4"/>
+        <circle class="cv-pt" cx="102" cy="128" r="4"/><circle class="cv-pt" cx="132" cy="104" r="4"/>
+        <circle class="cv-pt" cx="162" cy="68" r="4"/><circle class="cv-pt" cx="190" cy="22" r="4"/>
+        <text class="cv-lg" x="27" y="190">nuage (x ; C)</text>
+        <text class="cv-sg" x="27" y="208">allure exponentielle</text>
+      </g>
+      <g transform="translate(248,15)">
+        <path class="cv-fl" d="M10 62 H160"/>
+        <text class="cv-lg" x="38" y="52">y = ln C</text>
+        <path class="cv-fl" d="M160 118 H10"/>
+        <text class="cv-lg" x="34" y="142">C = e^y</text>
+        <text class="cv-sg" x="14" y="190">changement de variable</text>
+        <text class="cv-sg" x="14" y="208">dans les deux sens</text>
+      </g>
+      <g transform="translate(455,15)">
+        <path class="cv-ax" d="M25 160 H205 M25 160 V10"/>
+        <path class="cv-cb" d="M34 146 L196 36" stroke-dasharray="5 4"/>
+        <circle class="cv-pt" cx="42" cy="142" r="4"/><circle class="cv-pt" cx="72" cy="124" r="4"/>
+        <circle class="cv-pt" cx="102" cy="100" r="4"/><circle class="cv-pt" cx="132" cy="82" r="4"/>
+        <circle class="cv-pt" cx="162" cy="60" r="4"/><circle class="cv-pt" cx="190" cy="38" r="4"/>
+        <text class="cv-lg" x="27" y="190">nuage (x ; y)</text>
+        <text class="cv-sg" x="27" y="208">allure rectiligne</text>
+      </g>
+    </svg>
+  </div>
+
+  <p>L'idée tient en une propriété du logarithme : il <strong>transforme une croissance
+     multiplicative en croissance additive</strong>. Si <code>C</code> est de la forme
+     <code>α e<sup>βx</sup></code>, alors <code>ln C = ln α + βx</code> — une droite.</p>
+
+  <div class="encart methode">
+    <div class="titre">🛠️ Les quatre étapes, toujours les mêmes</div>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   <span class="j-num">1</span>.  on POSE          y <span class="j-op">=</span> ln C          <span class="j-com">← et on remplit la ligne des yi</span>
+   <span class="j-num">2</span>.  on <span class="j-fn">AJUSTE</span>       (x ; y) par la droite des moindres carres :  y <span class="j-op">=</span> ax <span class="j-op">+</span> b
+   <span class="j-num">3</span>.  on PREVOIT      y7 <span class="j-op">=</span> a x <span class="j-num">7</span> <span class="j-op">+</span> b
+   <span class="j-num">4</span>.  on REVIENT      C7 <span class="j-op">=</span> e<span class="j-op">^</span>(y7)                <span class="j-com">← changement de variable a l'envers</span></code></pre></div>
+    <p class="rap">Le retour repose sur <code>e<sup>ln C</sup> = C</code> : l'exponentielle
+       défait exactement ce que le logarithme a fait.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 L'autre écriture, celle que demande l'examen</div>
+    <p>Au lieu de prévoir une valeur, un sujet demande souvent d'exprimer <code>C</code> en
+       fonction de <code>x</code> sous la forme <code>C = α e<sup>βx</sup></code>. C'est la
+       même chose, écrite autrement :</p>
+<div class="bloc-code" data-fam="calcul"><span class="langue">calcul</span><pre><code>   y <span class="j-op">=</span> ax <span class="j-op">+</span> b   et   C <span class="j-op">=</span> e<span class="j-op">^</span>y
+
+   C <span class="j-op">=</span> e<span class="j-op">^</span>(ax <span class="j-op">+</span> b)  <span class="j-op">=</span>  e<span class="j-op">^</span>b x e<span class="j-op">^</span>(ax)        <span class="j-com">← e^(u+v) = e^u x e^v</span>
+
+<span class="j-com">   donc </span>  α <span class="j-op">=</span> e<span class="j-op">^</span>b     et     β <span class="j-op">=</span> a</code></pre></div>
+    <p class="rap">Sur l'exemple de l'hôtel : <code>b = 8,06</code> donne
+       <code>α = e<sup>8,06</sup> = 3 165,29</code> et <code>β = 0,41</code>. La forme
+       <code>C = 3 165,29 e<sup>0,41x</sup></code> redonne bien
+       <strong>55 826 €</strong> — c'est le chemin B de la section précédente, celui qui
+       n'arrondit rien en route.</p>
+  </div>
+
+  <div class="quiz">
+    <div class="titre">🤔 Pourquoi <code>ln</code> et pas une autre transformation ?</div>
+    <button type="button" data-ouvrir="Voir la réponse" data-fermer="Masquer la réponse">Voir la réponse</button>
+    <div class="reponse">
+      <p>Parce que c'est <strong>celle qui redresse exactement une exponentielle</strong>.
+         <code>ln(α e<sup>βx</sup>) = ln α + βx</code> : le résultat est une fonction affine
+         de <code>x</code>, sans approximation. Pour un nuage en forme de puissance
+         (<code>y = αx<sup>β</sup></code>), c'est un autre changement qu'il faudrait —
+         <code>ln</code> sur les <em>deux</em> variables. On choisit la transformation
+         d'après l'allure observée, pas au hasard.</p>
+    </div>
+  </div>
+</section>
+
+<section id="recap">
+  <h2><span class="num">13</span> Récap en 2 minutes</h2>
+
+  <div class="recap">
+    <h2>⚡ Une variable</h2>
+    <p><strong>Classes → centres.</strong> <code>(a+b)/2</code>, chaque classe à son tour.</p>
+    <p><strong>x̄</strong> dit où est le centre, <strong>σ</strong> dit si c'est groupé.
+       Plus <code>σ</code> est grand, plus c'est dispersé.</p>
+    <p><strong><code>[x̄−σ ; x̄+σ]</code></strong> contient 2/3 à 3/4 de la population.</p>
+    <p><strong>σx et sx</strong> sur la calculatrice : le cours, c'est <code>σx</code>.</p>
+  </div>
+
+  <div class="recap">
+    <h2>⚡ Deux variables</h2>
+    <p><strong>Tracer le nuage</strong> d'abord, aux échelles données.</p>
+    <p><strong><code>r</code> proche de ±1</strong> → « la corrélation linéaire est très
+       forte : on peut envisager un ajustement affine ».</p>
+    <p><strong><code>y = ax + b</code></strong> par les moindres carrés ; on remplace pour
+       prévoir <code>y</code>, on résout pour retrouver <code>x</code>.</p>
+    <p><strong>Nuage courbe</strong> → <code>y = ln C</code>, on ajuste, puis
+       <code>C = e<sup>y</sup></code>.</p>
+    <p><strong>Les arrondis</strong> : le plus tard possible — sauf si l'énoncé les impose,
+       auquel cas ils font partie de la réponse.</p>
+  </div>
+
+  <p class="rap">La suite logique du chapitre, ce sont
+     <a href="exercices.html">les quatre exercices corrigés</a> : une série à classes, une
+     régression simple, deux séries comparées par une inéquation, et un sujet d'examen
+     complet avec changement de variable.</p>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Le cours manuscrit de statistiques du professeur de mathématiques — tableau
+          complet des séances, des définitions jusqu'au sujet d'examen</li>
+      <li>Les énoncés imprimés qui l'accompagnent : exercices 1.1, 2, 3, 5 et 6</li>
+    </ul>
+    <p class="rap"><strong>Toutes les valeurs chiffrées de ce chapitre ont été recalculées
+       depuis les séries brutes</strong> : moyennes, écarts-types, coefficients de
+       corrélation, pentes, ordonnées à l'origine et prévisions. Un écart avec le corrigé
+       d'origine a été trouvé de cette façon, et il est signalé à l'endroit où il
+       apparaît.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-integrales-primitives/cours.html"><span>Chapitre précédent</span><b>Primitives et calcul intégral</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=405951fb"></script>
+<script src="../../assets/app.js?v=405951fb"></script>
+</body>
+</html>
