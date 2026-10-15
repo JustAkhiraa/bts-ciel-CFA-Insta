@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docker — le TP d'initiation corrigé | BTS CIEL</title>
-<meta name="description" content="Les six parties du TP d'initiation Docker corrigées : images et tags, cycle de vie d'un conteneur, publication de ports, volumes et persistance, puis le nettoyage.">
+<title>Docker — les deux TP corrigés | BTS CIEL</title>
+<meta name="description" content="Les deux TP Docker corrigés : initiation (images, conteneurs, ports, volumes), puis le réseau (bridge par défaut, réseau personnalisé, IP fixe, isolation, ports publiés) avec des sorties réellement obtenues.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=2b232d48">
+<link rel="stylesheet" href="../../assets/fiche.css?v=e00c350a">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -22,6 +22,13 @@
     <li><a href="#p4">4 · Exposer un service sur un port</a></li>
     <li><a href="#p5">5 · Persister des données</a></li>
     <li><a href="#p6">6 · Nettoyage, et les trois mots</a></li>
+    <li><a href="#p7">7 · Découvrir les réseaux de Docker <em>(TP 2)</em></a></li>
+    <li><a href="#p8">8 · Le bridge par défaut, et ses deux défauts</a></li>
+    <li><a href="#p9">9 · Un réseau personnalisé</a></li>
+    <li><a href="#p10">10 · Attribuer une adresse fixe</a></li>
+    <li><a href="#p11">11 · Isoler deux réseaux, et essayer de les relier</a></li>
+    <li><a href="#p12">12 · Réseau interne et ports publiés</a></li>
+    <li><a href="#p13">13 · Nettoyage — et l'ordre qui compte</a></li>
   </ol>
 </nav>
 
@@ -33,9 +40,10 @@
     <span class="sep">/</span><span>Chapitre 18</span>
     <span class="sep">/</span><span class="badge">Exercices corrigés</span>
   </div>
-  <h1>Docker — le TP d'initiation</h1>
-  <p class="chapeau">Les six parties du sujet, question par question. Les commandes sont à
-     taper, pas à lire : ce TP ne se révise pas, il se refait.
+  <h1>Docker — les deux TP</h1>
+  <p class="chapeau">Deux sujets corrigés question par question : <strong>l'initiation</strong>
+     (parties 1 à 6) et <strong>le réseau</strong> (parties 7 à 13). Les commandes sont à taper,
+     pas à lire : un TP ne se révise pas, il se refait.
      <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
 </header>
 
@@ -565,19 +573,447 @@ connectivity on endpoint web3: Bind for 0.0.0.0:8080 failed: port is already all
   </article>
 </section>
 
+<section id="p7">
+  <h2><span class="num">7</span>Découvrir les réseaux de Docker</h2>
+  <p class="chapeau">Second TP, autre sujet : <strong>comment les conteneurs se parlent</strong>.
+     Les parties 7 à 13 reprennent le TP « Le réseau avec Docker », partie par partie.
+     Toutes les sorties qui suivent ont été <strong>obtenues sur une machine</strong>, le
+     15 octobre 2026 — elles ne sont pas recopiées d'une documentation.</p>
+  <article class="exo">
+    <h3><span class="no">13</span>Lister et inspecter les réseaux <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.1 et 1.2</strong> Lister les réseaux présents, en relevant le nom et le
+         pilote de chacun. Inspecter le réseau <code>bridge</code> : relever son sous-réseau
+         et sa passerelle. La liste <code>Containers</code> est-elle vide ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> network ls
+<span class="j-fn">docker</span> network inspect bridge</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>NETWORK ID     NAME      DRIVER    SCOPE
+6bca5b86a5e3   bridge    bridge    local
+a647ec3084f5   host      host      local
+b002c30b9b60   none      null      local</code></pre></div>
+        <p>Sur une installation neuve, <code>inspect</code> donne un sous-réseau
+           <strong>172.17.0.0/16</strong>, une passerelle <strong>172.17.0.1</strong>, et une
+           liste <code>Containers</code> <strong>vide</strong> — aucun conteneur ne tourne
+           encore. Pour n'en lire que l'essentiel :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> network inspect bridge <span class="j-att">--format</span> <span class="j-txt">'{{json .IPAM.Config}}'</span></code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>[{"Subnet":"172.17.0.0/16","Gateway":"172.17.0.1"}]</code></pre></div>
+        <div class="tableau">
+          <table>
+            <caption>Question 1.1 — les trois réseaux livrés avec Docker</caption>
+            <thead><tr><th>Réseau / pilote</th><th>Rôle</th></tr></thead>
+            <tbody>
+              <tr><td><code>bridge</code> / bridge</td><td>Le réseau par défaut. Chaque conteneur
+                  y reçoit une adresse privée et sort vers l'extérieur par traduction d'adresse.
+                  C'est celui qu'on obtient sans rien demander.</td></tr>
+              <tr><td><code>host</code> / host</td><td>Pas d'isolation réseau : le conteneur
+                  partage directement la pile réseau de la machine. Pas d'adresse à lui, pas de
+                  publication de port à faire — mais pas de cloisonnement non plus.</td></tr>
+              <tr><td><code>none</code> / null</td><td>Aucune interface, sauf <code>lo</code>.
+                  Pour un conteneur qui ne doit parler à personne : un calcul isolé, l'analyse
+                  d'un fichier douteux.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="rap">Le pilote <code>bridge</code> apparaît deux fois dans ce TP : une fois
+           comme <em>nom</em> du réseau par défaut, une fois comme <em>pilote</em> des réseaux
+           qu'on crée soi-même. Ce sont deux choses différentes, et la partie 9 montre à quel
+           point elles ne se comportent pas pareil.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p8">
+  <h2><span class="num">8</span>Le réseau bridge par défaut, et ses deux défauts</h2>
+  <article class="exo">
+    <h3><span class="no">14</span>Deux conteneurs, par adresse puis par nom <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>2.1 à 2.5</strong> Lancer deux conteneurs Alpine sans préciser de réseau,
+         relever leurs adresses, puis tester la communication <em>par adresse</em> et
+         <em>par nom</em>. Observer <code>/etc/resolv.conf</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> c1 alpine
+<span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> c2 alpine
+<span class="j-fn">docker</span> exec c1 ip addr show eth0</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>11: eth0@if17: &lt;BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN&gt; mtu 65535 qdisc noqueue state UP
+    link/ether 82:a5:60:83:81:7f brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.2/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever</code></pre></div>
+        <p>c1 reçoit <strong>172.17.0.2</strong>, c2 <strong>172.17.0.3</strong> : le réseau
+           <code>bridge</code> distribue dans l'ordre d'arrivée, à partir de l'adresse qui suit
+           la passerelle. Par adresse, la communication passe :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> exec c1 ping <span class="j-att">-c</span> <span class="j-num">2</span> <span class="j-num">172.17</span>.<span class="j-num">0.3</span></code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>PING 172.17.0.3 (172.17.0.3): 56 data bytes
+64 bytes from 172.17.0.3: seq=0 ttl=64 time=0.110 ms
+64 bytes from 172.17.0.3: seq=1 ttl=64 time=0.199 ms
+
+--- 172.17.0.3 ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss</code></pre></div>
+        <p>Par nom, elle ne passe pas :</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> exec c1 ping <span class="j-att">-c</span> <span class="j-num">2</span> c2</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>ping: bad address 'c2'</code></pre></div>
+        <p>La raison est dans <code>/etc/resolv.conf</code> : le conteneur n'a <strong>aucun
+           résolveur Docker</strong>, il pointe sur celui de la machine hôte.</p>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code># Generated by Docker Engine.
+nameserver 192.168.65.7
+
+# Based on host file: '/etc/resolv.conf' (legacy)</code></pre></div>
+        <div class="encart savoir">
+          <div class="titre">💡 L'adresse du résolveur dépend de l'installation</div>
+          <p>Ici <code>192.168.65.7</code> : c'est le résolveur de la machine virtuelle de
+             Docker Desktop. Sur un Linux natif ce serait l'adresse du résolveur du poste. Ce
+             qui compte n'est pas le chiffre, c'est ce qu'il <em>n'est pas</em> :
+             <strong>127.0.0.11</strong>, le résolveur interne de Docker — et la partie 9
+             montre où celui-là apparaît.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">15</span>Les adresses ne tiennent pas <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>2.6</strong> Arrêter les deux conteneurs, les redémarrer <strong>dans l'ordre
+         inverse</strong>, et relever de nouveau leurs adresses.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> stop c1 c2
+<span class="j-fn">docker</span> start c2
+<span class="j-fn">docker</span> start c1
+<span class="j-fn">docker</span> exec c1 ip -<span class="j-num">4</span> <span class="j-att">-o</span> addr show eth0
+<span class="j-fn">docker</span> exec c2 ip -<span class="j-num">4</span> <span class="j-att">-o</span> addr show eth0</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>11: eth0    inet 172.17.0.3/16 ...   (c1)
+11: eth0    inet 172.17.0.2/16 ...   (c2)</code></pre></div>
+        <p><strong>Les deux adresses ont été échangées.</strong> c1 avait 172.17.0.2, il a
+           maintenant 172.17.0.3 : l'adresse ne suit pas le conteneur, elle suit
+           <strong>l'ordre de démarrage</strong>.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Question 2.2 — pourquoi c'est grave</div>
+          <p>Une application configurée avec <code>BDD_HOST=172.17.0.2</code> fonctionne
+             jusqu'au premier redémarrage de la machine. Ce jour-là, l'adresse désigne un autre
+             conteneur — ou personne. <strong>Une panne qui n'arrive qu'après un reboot est la
+             plus coûteuse à diagnostiquer</strong>, parce que rien n'a changé dans le code.</p>
+          <p class="rap">C'est tout l'enjeu des deux questions : sur le réseau par défaut, les
+             noms ne résolvent pas et les adresses bougent. Il ne reste donc <em>aucun</em>
+             moyen fiable de désigner un conteneur. La partie 9 règle les deux d'un coup.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p9">
+  <h2><span class="num">9</span>Un réseau personnalisé : les noms se mettent à marcher</h2>
+  <article class="exo">
+    <h3><span class="no">16</span>Créer son réseau et y parler par nom <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>3.1 à 3.6</strong> Créer un réseau avec son propre sous-réseau et sa passerelle, y lancer deux conteneurs, relever leurs adresses, tester la communication par nom et identifier le serveur DNS qui répond.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> rm <span class="j-att">-f</span> c1 c2
+<span class="j-fn">docker</span> network create <span class="j-att">--subnet</span> <span class="j-num">192.168</span>.<span class="j-num">50.0</span>/<span class="j-num">24</span> <span class="j-att">--gateway</span> <span class="j-num">192.168</span>.<span class="j-num">50.254</span> reseau-lan
+<span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> c1 <span class="j-att">--network</span> reseau-lan alpine
+<span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> c2 <span class="j-att">--network</span> reseau-lan alpine
+<span class="j-fn">docker</span> exec c1 ip -<span class="j-num">4</span> <span class="j-att">-o</span> addr show eth0</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>11: eth0    inet 192.168.50.1/24 ...   (c1)
+11: eth0    inet 192.168.50.2/24 ...   (c2)</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ Le sujet annonce .2 et .3 — la machine donne .1 et .2</div>
+          <p>Ce n'est pas une erreur du sujet, c'est une conséquence de la passerelle. Sur le
+             réseau <code>bridge</code>, la passerelle occupe <code>172.17.0.1</code>, donc la
+             distribution commence à <code>.2</code>. Ici la passerelle a été placée en
+             <code>192.168.50.254</code> : <code>.1</code> est libre, et c'est elle qui est
+             attribuée la première.</p>
+          <p class="rap"><strong>La première adresse distribuée dépend d'où est la
+             passerelle.</strong> Un schéma qui annonce des adresses se vérifie toujours avec
+             <code>ip addr</code> — c'est la machine qui a le dernier mot.</p>
+        </div>
+        <p>Par nom, cette fois, ça passe :</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> exec c1 ping <span class="j-att">-c</span> <span class="j-num">2</span> c2
+<span class="j-fn">docker</span> exec c1 nslookup c2</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>PING c2 (192.168.50.2): 56 data bytes
+64 bytes from 192.168.50.2: seq=0 ttl=64 time=0.097 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+
+Server:    127.0.0.11
+Address:   127.0.0.11:53
+Name:  c2
+Address: 192.168.50.2</code></pre></div><p><strong>Question 3.1 — la différence majeure :</strong> sur un réseau personnalisé,
+           Docker active son <strong>résolveur interne</strong>. Chaque conteneur y est
+           enregistré sous son nom, et <code>/etc/resolv.conf</code> ne pointe plus sur l'hôte
+           mais sur <code>127.0.0.11</code>.</p><div class="bloc-code"><span class="langue">sortie</span><pre><code>nameserver 127.0.0.11
+options ndots:0
+
+# Based on host file: '/etc/resolv.conf' (internal resolver)
+# ExtServers: [host(192.168.65.7)]</code></pre></div><p><strong>Question 3.2 — qui répond :</strong> <code>127.0.0.11</code> est une adresse
+           de bouclage <em>du conteneur</em>, pas un serveur du réseau. Docker y place un petit
+           résolveur qui connaît les noms des conteneurs du réseau ; tout ce qu'il ignore, il le
+           renvoie au résolveur de l'hôte — la ligne <code>ExtServers</code> le dit.
+           <strong>Les deux défauts de la partie 8 tombent ensemble</strong> : on désigne les
+           conteneurs par leur nom, et le nom ne change pas au redémarrage.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p10">
+  <h2><span class="num">10</span>Attribuer une adresse fixe — et voir ce qui est refusé</h2>
+  <article class="exo">
+    <h3><span class="no">17</span>Deux adresses choisies, et deux refus <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>4.1 à 4.4</strong> Lancer deux conteneurs avec une adresse choisie. Essayer ensuite une adresse déjà prise, puis une adresse imposée sur le réseau <code>bridge</code> par défaut. Nettoyer.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> client <span class="j-att">--network</span> reseau-lan <span class="j-att">--ip</span> <span class="j-num">192.168</span>.<span class="j-num">50.10</span> alpine
+<span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> poste2 <span class="j-att">--network</span> reseau-lan <span class="j-att">--ip</span> <span class="j-num">192.168</span>.<span class="j-num">50.20</span> alpine</code></pre></div><p>Les deux obtiennent exactement l'adresse demandée. Les deux essais suivants échouent, et <strong>pas pour la même raison</strong> :</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> doublon <span class="j-att">--network</span> reseau-lan <span class="j-att">--ip</span> <span class="j-num">192.168</span>.<span class="j-num">50.10</span> alpine</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>docker: Error response from daemon: failed to set up container networking:
+Address already in use</code></pre></div><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> test-ip <span class="j-att">--ip</span> <span class="j-num">172.17</span>.<span class="j-num">0.50</span> alpine</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>docker: Error response from daemon: invalid config for network bridge:
+invalid endpoint settings: user-specified IP address is supported on
+user-defined networks only</code></pre></div><p>Le premier refus est un <strong>conflit</strong> : l'adresse est prise. Le second
+           est un <strong>interdit</strong> : le réseau par défaut ne gère pas les adresses
+           imposées, quelle que soit l'adresse. D'où la déduction attendue — <strong>une adresse
+           fixe n'est possible que sur un réseau qu'on a créé soi-même</strong>.</p>
+        <div class="encart methode">
+          <div class="titre">🛠️ Pourquoi le sujet demande de nettoyer en 4.4</div>
+          <p>Parce que les deux essais ne laissent pas la même trace. <code>doublon</code> a été
+             <strong>créé puis a échoué au démarrage</strong> : il apparaît à l'état
+             <code>Created</code> et il occupe le nom. <code>test-ip</code>, lui, a été refusé
+             <em>avant</em> d'exister — <code>docker rm -f test-ip</code> n'a donc rien à
+             supprimer, et ne s'en plaint pas.</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps <span class="j-att">-a</span> <span class="j-att">--format</span> <span class="j-txt">'{{.Names}} | {{.Status}}'</span></code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>doublon | Created
+poste2 | Up Less than a second
+client | Up Less than a second</code></pre></div><p class="rap">Un conteneur à l'état <code>Created</code> est un piège discret : il ne
+             tourne pas, il n'apparaît pas dans <code>docker ps</code> sans <code>-a</code>, et
+             pourtant il réserve son nom. Le prochain <code>run --name doublon</code> échouera
+             sans qu'on comprenne pourquoi.</p>
+        </div>
+        <p><strong>Question 4.1 — fixe ou nom ?</strong> L'adresse fixe sert quand quelque chose
+           d'extérieur à Docker doit viser le conteneur : une règle de pare-feu, une route, un
+           équipement qui ne fait pas de DNS, un fichier de configuration qu'on ne maîtrise pas.
+           <strong>Partout ailleurs, le nom suffit et vaut mieux</strong> : il survit au
+           redémarrage, il ne crée pas de conflit, et il n'oblige pas à tenir un plan
+           d'adressage à jour.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p11">
+  <h2><span class="num">11</span>Isoler deux réseaux, et essayer de les relier</h2>
+  <article class="exo">
+    <h3><span class="no">18</span>Deux réseaux, aucun chemin entre eux <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>5.1 et 5.2</strong> Créer un second réseau pour la zone serveurs, y lancer un serveur web, puis tenter de le joindre depuis <code>client</code>, qui est resté sur le réseau des postes.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> network create <span class="j-att">--subnet</span> <span class="j-num">172.16</span>.<span class="j-num">10.0</span>/<span class="j-num">24</span> reseau-srv
+<span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> serveur <span class="j-att">--network</span> reseau-srv <span class="j-att">--ip</span> <span class="j-num">172.16</span>.<span class="j-num">10.5</span> nginx
+<span class="j-fn">docker</span> exec client ping <span class="j-att">-c</span> <span class="j-num">2</span> <span class="j-att">-W</span> <span class="j-num">2</span> <span class="j-num">172.16</span>.<span class="j-num">10.5</span></code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>PING 172.16.10.5 (172.16.10.5): 56 data bytes
+
+--- 172.16.10.5 ping statistics ---
+2 packets transmitted, 0 packets received, 100% packet loss</code></pre></div><p><strong>Question 5.1 — pourquoi ça ne passe pas.</strong> Parce qu'être sur la
+           <em>même machine</em> ne veut rien dire pour un réseau. Chaque réseau Docker est un
+           commutateur virtuel séparé, et <code>client</code> n'a qu'une patte, sur
+           <code>reseau-lan</code>. Pour atteindre 172.16.10.5, il lui faudrait une
+           <strong>route</strong> vers ce réseau et <strong>quelqu'un pour router</strong> :
+           il n'a ni l'une ni l'autre. Son seul chemin par défaut mène à la passerelle de son
+           propre réseau, qui ne relaie pas vers l'autre.</p>
+        <p class="rap">C'est exactement la situation de deux VLAN sans routeur entre eux. Le
+           câble existe, l'isolation aussi.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">19</span>Un conteneur à deux pattes ne route pas <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p><strong>5.3 à 5.5</strong> Créer un conteneur raccordé aux deux réseaux, compter ses interfaces, tester les deux côtés depuis lui, puis refaire le test de 5.2 depuis <code>client</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-dit</span> <span class="j-att">--name</span> passerelle <span class="j-att">--network</span> reseau-lan alpine
+<span class="j-fn">docker</span> network connect reseau-srv passerelle
+<span class="j-fn">docker</span> exec passerelle ip -<span class="j-num">4</span> <span class="j-att">-o</span> addr show</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>1: lo      inet 127.0.0.1/8 scope host lo
+11: eth0   inet 192.168.50.3/24 brd 192.168.50.255 scope global eth0
+12: eth1   inet 172.16.10.2/24 brd 172.16.10.255 scope global eth1</code></pre></div><p><strong>Deux interfaces</strong>, une par réseau : <code>eth0</code> dans
+           <code>reseau-lan</code>, <code>eth1</code> dans <code>reseau-srv</code>. Et elle
+           joint les deux côtés, par leur nom :</p><div class="bloc-code"><span class="langue">sortie</span><pre><code>$ docker exec passerelle ping -c 2 client
+64 bytes from 192.168.50.10: seq=0 ttl=64 time=0.115 ms
+
+$ docker exec passerelle ping -c 2 serveur
+64 bytes from 172.16.10.5: seq=0 ttl=64 time=0.195 ms</code></pre></div><p>Et pourtant, <code>client</code> ne joint toujours pas <code>serveur</code> :
+           <strong>100 % de perte</strong>, exactement comme avant.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Question 5.2 — pourquoi la passerelle ne sert à rien, ici</div>
+          <p>Un conteneur raccordé à deux réseaux <em>parle</em> aux deux. Il ne
+             <em>transmet</em> pas pour autant : router n'est pas la même chose que joindre.
+             Il manque deux choses, et il faut les deux.</p>
+          <p><strong>Sur la passerelle</strong> : activer le transfert de paquets
+             (<code>net.ipv4.ip_forward</code>), ce qui demande en plus un conteneur
+             privilégié — par défaut, un conteneur n'a pas le droit de toucher à ce réglage
+             du noyau.</p>
+          <p><strong>Sur le client</strong> : une route disant que <code>172.16.10.0/24</code>
+             se joint <em>via</em> <code>192.168.50.3</code>. Sans elle, le client envoie vers
+             sa passerelle par défaut, qui n'est pas ce conteneur.</p>
+          <p class="rap">Et même avec les deux, il resterait le retour : <code>serveur</code>
+             devrait savoir revenir vers <code>192.168.50.0/24</code>. <strong>Une route n'est
+             jamais à sens unique</strong> — c'est la faute la plus classique du TP de routage,
+             et elle se retrouve ici à l'identique.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">20</span>Le raccordement direct, et ce qu'il coûte <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>5.6</strong> Raccorder <code>client</code> directement au réseau des serveurs, tester, puis l'en retirer et retester.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> network connect reseau-srv client
+<span class="j-fn">docker</span> exec client ping <span class="j-att">-c</span> <span class="j-num">2</span> serveur
+<span class="j-fn">docker</span> network disconnect reseau-srv client
+<span class="j-fn">docker</span> exec client ping <span class="j-att">-c</span> <span class="j-num">2</span> <span class="j-att">-W</span> <span class="j-num">2</span> serveur</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>64 bytes from 172.16.10.5: seq=0 ttl=64 time=0.096 ms
+2 packets transmitted, 2 packets received, 0% packet loss
+
+ping: bad address 'serveur'</code></pre></div><p>Raccordé, il joint. Débranché, <strong>le nom lui-même cesse d'exister</strong> —
+           pas « 100 % de perte », mais <code>bad address</code>. Le résolveur interne ne
+           répond que pour les réseaux auxquels on appartient : on perd la résolution avant
+           même de perdre le chemin.</p>
+        <p><strong>Question 5.3 — pourquoi c'est une mauvaise idée.</strong> Parce que ça marche.
+           C'est précisément le danger : la solution qui fonctionne tout de suite est celle qui
+           supprime la segmentation. Relier le poste utilisateur au réseau des serveurs, c'est
+           lui donner accès à <strong>tout</strong> ce qui s'y trouve, pas au seul service dont
+           il a besoin — et le jour où ce poste est compromis, l'attaquant hérite du même
+           accès. La segmentation ne sert à rien si on la perce dès qu'elle gêne ; ce qu'on
+           veut, c'est un point de passage contrôlé, pas un fil direct.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p12">
+  <h2><span class="num">12</span>Réseau interne et ports publiés : deux mondes</h2>
+  <article class="exo">
+    <h3><span class="no">21</span>Pourquoi « -p » ne sert pas à ce qu'on croit <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>6.1 à 6.3</strong> Récupérer la page du serveur depuis un conteneur du même réseau, sans aucun port publié. Tenter la même chose depuis le navigateur de la machine, puis relancer un serveur avec <code>-p 8080:80</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> exec passerelle wget <span class="j-att">-qO-</span> http://serveur | head -<span class="j-num">5</span></code></pre></div><div class="bloc-code" data-fam="html"><span class="langue">sortie</span><pre><code><span class="j-bal">&lt;!DOCTYPE html&gt;</span>
+<span class="j-bal">&lt;html</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;head</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;title</span><span class="j-bal">&gt;</span>Welcome to nginx!<span class="j-bal">&lt;/title</span><span class="j-bal">&gt;</span></code></pre></div><p>Aucune option <code>-p</code> n'a été donnée à <code>serveur</code>, et pourtant la
+           page arrive. Depuis le navigateur de la machine, au contraire :</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">curl</span> <span class="j-att">-s</span> <span class="j-att">-m</span> <span class="j-num">3</span> http://localhost:<span class="j-num">8080</span></code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>curl: (7) Failed to connect to localhost port 8080: Connection refused</code></pre></div><p>Après publication du port, la même adresse répond :</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> run <span class="j-att">-d</span> <span class="j-att">--name</span> serveur-pub <span class="j-att">--network</span> reseau-srv <span class="j-att">-p</span> <span class="j-num">8080</span>:<span class="j-num">80</span> nginx
+<span class="j-fn">curl</span> <span class="j-att">-s</span> http://localhost:<span class="j-num">8080</span> | head -<span class="j-num">4</span>
+<span class="j-fn">docker</span> port serveur-pub</code></pre></div><div class="bloc-code" data-fam="html"><span class="langue">sortie</span><pre><code><span class="j-bal">&lt;!DOCTYPE html&gt;</span>
+<span class="j-bal">&lt;html</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;head</span><span class="j-bal">&gt;</span>
+<span class="j-bal">&lt;title</span><span class="j-bal">&gt;</span>Welcome to nginx!<span class="j-bal">&lt;/title</span><span class="j-bal">&gt;</span>
+
+80/tcp -<span class="j-bal">&gt;</span> 0.0.0.0:8080
+80/tcp -<span class="j-bal">&gt;</span> [::]:8080</code></pre></div><p><strong>Question 6.1 — la seule phrase à retenir :</strong> <code>-p</code> ne sert
+           <em>jamais</em> à faire communiquer deux conteneurs. Il sert à percer la frontière
+           entre la machine et le réseau Docker. <code>passerelle</code> est <em>dans</em>
+           <code>reseau-srv</code> : elle est déjà du bon côté. Le navigateur, lui, est
+           <em>dehors</em> — pour lui, le port 80 du conteneur n'existe pas tant qu'on ne l'a
+           pas publié sur un port de la machine.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Question 6.2 — ce que <code>docker port</code> avoue</div>
+          <p>La sortie dit <code>0.0.0.0:8080</code>, pas <code>127.0.0.1:8080</code> :
+             <strong>toutes les interfaces de la machine</strong>, y compris celle du Wi-Fi.
+             Un service qu'on croyait « en local » est en réalité offert à tout le réseau de
+             la salle, du logement ou de l'entreprise.</p>
+          <p>Un service joignable seulement depuis un réseau Docker interne a une surface
+             d'attaque qui s'arrête aux conteneurs du même réseau. Publié, il s'expose à tout
+             ce qui peut atteindre la machine. Si la publication est nécessaire, elle se limite
+             à l'interface de bouclage : <code>-p 127.0.0.1:8080:80</code>.</p>
+          <p class="rap"><strong>La règle :</strong> on publie ce qui doit être public — une
+             façade web — et on laisse tout le reste (bases de données, caches, files) sur le
+             réseau interne. Une base publiée par confort est la fuite de données de l'année
+             suivante.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p13">
+  <h2><span class="num">13</span>Nettoyage — et l'ordre qui compte</h2>
+  <article class="exo">
+    <h3><span class="no">22</span>Pourquoi les conteneurs avant les réseaux <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>7.1 et 7.2</strong> Lister ce qui existe, puis tout supprimer. Essayer d'abord de supprimer un réseau sans toucher aux conteneurs : la réponse de Docker <em>est</em> la correction de la question.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> network rm reseau-lan</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>Error response from daemon: error while removing network: network
+reseau-lan has active endpoints (name:"poste2" ..., name:"passerelle" ...,
+name:"c1" ..., name:"c2" ..., name:"client" ...)</code></pre></div><p>Voilà la réponse, donnée par Docker lui-même : <strong>un réseau qui porte encore
+           des extrémités actives ne se supprime pas</strong>. Chaque conteneur raccordé y
+           possède un point d'attache ; supprimer le réseau sous leurs pieds laisserait des
+           conteneurs branchés sur rien. Dans l'ordre, donc :</p><div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> rm <span class="j-att">-f</span> c1 c2 client poste2 passerelle serveur serveur-pub
+<span class="j-fn">docker</span> network rm reseau-lan reseau-srv
+<span class="j-fn">docker</span> ps <span class="j-att">-a</span>
+<span class="j-fn">docker</span> network ls</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+NETWORK ID     NAME      DRIVER    SCOPE
+6bca5b86a5e3   bridge    bridge    local
+a647ec3084f5   host      host      local
+b002c30b9b60   none      null      local</code></pre></div><p>Plus aucun conteneur, et les trois réseaux livrés avec Docker — <strong>exactement
+           l'état du début</strong>. C'est le contrôle qui termine le TP : on ne range pas « à
+           peu près ».</p>
+        <div class="encart methode">
+          <div class="titre">🛠️ Les images, elles, restent</div>
+          <p><code>docker rm</code> supprime des conteneurs, pas des images.
+             <code>alpine</code> et <code>nginx</code> occupent encore le disque, et c'est
+             voulu : les re-télécharger à chaque TP serait absurde. Pour les enlever quand
+             même, c'est <code>docker rmi alpine nginx</code> — et <code>docker system df</code>
+             dit ce que tout cela pèse.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
       <li>« TP d'initiation — Manipuler Docker », Réseaux &amp; Systèmes : six parties,
           vingt-cinq questions numérotées, et son aide-mémoire de commandes</li>
+      <li>« TP — Le réseau avec Docker », Systèmes &amp; Réseaux : sept parties, douze
+          questions de cours, cinq schémas d'architecture</li>
       <li>Documentation officielle <a href="https://docs.docker.com/">docs.docker.com</a> —
           messages d'erreur et comportements vérifiés le 9 octobre 2026</li>
     </ul>
     <p class="rap">Les sorties reproduites ici sont celles d'une installation neuve.
        <strong>Les identifiants d'images et leurs tailles changent d'un jour à l'autre</strong> :
-       ce sont des images publiques qui évoluent, et aucune des réponses de ce TP ne repose
+       ce sont des images publiques qui évoluent, et aucune des réponses de ces TP ne repose
        sur ces valeurs-là.</p>
+    <p class="rap"><strong>Les sorties des parties 7 à 13 ont été obtenues en exécutant le TP,
+       le 15 octobre 2026</strong>, du premier <code>docker network ls</code> au nettoyage
+       final : adresses, messages d'erreur et temps de réponse sont ceux qu'une machine a
+       rendus, pas ceux qu'une documentation annonce. Deux écarts avec l'énoncé ont été
+       relevés à cette occasion, et sont expliqués là où ils apparaissent — l'adresse
+       distribuée en premier (partie 9) et la trace laissée par les deux essais refusés
+       (partie 10). <strong>Une sortie recopiée n'est pas une sortie vérifiée.</strong></p>
   </div>
 </footer>
 
@@ -585,7 +1021,7 @@ connectivity on endpoint web3: Bind for 0.0.0.0:8080 failed: port is already all
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/exercices.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/exercices.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=2b232d48"></script>
-<script src="../../assets/app.js?v=2b232d48"></script>
+<script src="../../assets/fiche.js?v=e00c350a"></script>
+<script src="../../assets/app.js?v=e00c350a"></script>
 </body>
 </html>

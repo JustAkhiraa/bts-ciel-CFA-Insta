@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Docker — images, conteneurs et volumes — QCM | BTS CIEL</title>
-<meta name="description" content="Quinze questions sur le TP d'initiation : installation, images et tags, cycle de vie d'un conteneur, ports, volumes et nettoyage.">
+<meta name="description" content="Vingt-trois questions sur les deux TP : installation, images et tags, cycle de vie d'un conteneur, ports, volumes, nettoyage — puis le réseau, le résolveur interne, l'adresse fixe, l'isolation et les ports publiés.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=2b232d48">
+<link rel="stylesheet" href="../../assets/fiche.css?v=e00c350a">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -19,7 +19,7 @@
     <span class="sep">/</span><span class="badge">QCM</span>
   </div>
   <h1>Docker — images, conteneurs et volumes — QCM</h1>
-  <p class="chapeau">15 questions. Une seule bonne réponse par question, et
+  <p class="chapeau">23 questions. Une seule bonne réponse par question, et
      l'explication s'affiche dès que vous avez répondu.
      <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
 </header>
@@ -27,7 +27,7 @@
 <main class="corps">
 
 <div class="qcm-tete">
-  <span class="sc" id="qcm-sc">0 / 15</span>
+  <span class="sc" id="qcm-sc">0 / 23</span>
   <span class="av"><span id="qcm-av"></span></span>
 </div>
 
@@ -182,6 +182,86 @@
       </div>
       <p class="qcm-why" hidden><code>$(docker ps -aq)</code> sur une liste vide passe zéro argument à <code>docker rm</code>, qui répond <code>requires at least 1 argument</code>. <code>prune</code> gère ce cas, demande confirmation et annonce les octets récupérés.</p>
     </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">16</span>Deux conteneurs lancés sans <code>--network</code> : « ping c2 » depuis c1 répond quoi ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>ping: bad address 'c2'</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>La réponse normale du ping</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Une erreur de permission</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une résolution par le DNS de l'hôte</span></button>
+      </div>
+      <p class="qcm-why" hidden>Sur le réseau <code>bridge</code> par défaut, <b>il n'y a pas de résolveur Docker</b> : <code>/etc/resolv.conf</code> pointe sur celui de la machine, qui ne connaît aucun nom de conteneur. La communication par ADRESSE, elle, passe très bien — c'est uniquement le nom qui manque.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">17</span>Sur un réseau personnalisé, quelle adresse figure dans <code>/etc/resolv.conf</code> ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>127.0.0.1</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>127.0.0.11</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>172.17.0.1</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>L'adresse de la passerelle du réseau</span></button>
+      </div>
+      <p class="qcm-why" hidden><b><code>127.0.0.11</code></b> est le résolveur interne de Docker : une adresse de bouclage DU CONTENEUR, où Docker place un petit serveur DNS qui connaît les noms des conteneurs du réseau. Ce qu'il ignore, il le renvoie au résolveur de l'hôte.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">18</span>On arrête deux conteneurs du réseau par défaut et on les redémarre dans l'ordre inverse. Leurs adresses ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Elles sont conservées</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Elles sont perdues jusqu'au prochain run</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Elles sont échangées</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Elles passent en 172.18.0.0/16</span></button>
+      </div>
+      <p class="qcm-why" hidden>L'adresse <b>suit l'ordre de démarrage, pas le conteneur</b>. C'est la raison pour laquelle configurer une application avec l'adresse d'un autre conteneur produit une panne au premier redémarrage — un jour où personne n'a touché au code.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">19</span><code>docker run --ip 172.17.0.50 alpine</code>, sans <code>--network</code> : que répond Docker ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il accepte et attribue l'adresse</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il refuse : l'adresse est déjà utilisée</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il accepte mais ignore l'option</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Il refuse : l'adresse imposée n'existe que sur un réseau personnalisé</span></button>
+      </div>
+      <p class="qcm-why" hidden>Message exact : <code>user-specified IP address is supported on user-defined networks only</code>. C'est un <b>interdit</b>, pas un conflit : le réseau par défaut ne gère pas les adresses imposées, quelle que soit l'adresse demandée.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">20</span>Un conteneur raccordé à deux réseaux permet-il aux autres de passer de l'un à l'autre ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Non : parler aux deux n'est pas router entre les deux</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Oui, automatiquement</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Oui, si les deux réseaux ont le même pilote</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Oui, après un redémarrage du conteneur</span></button>
+      </div>
+      <p class="qcm-why" hidden>Il faut <b>trois choses</b>, et aucune n'est automatique : le transfert de paquets activé sur la passerelle, une route chez le client vers l'autre réseau, et une route de retour chez le serveur. Une route n'est jamais à sens unique.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">21</span>À quoi sert <code>-p 8080:80</code> ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>À autoriser les autres conteneurs à joindre le port 80</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>À rendre le conteneur joignable depuis la MACHINE, pas depuis les autres conteneurs</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>À donner une adresse fixe au conteneur</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>À chiffrer le trafic du port 80</span></button>
+      </div>
+      <p class="qcm-why" hidden>Deux conteneurs du même réseau se joignent <b>sans aucune option</b> — <code>wget http://serveur</code> suffit. <code>-p</code> ne sert qu'à percer la frontière entre la machine et le réseau Docker.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">22</span><code>docker port</code> affiche <code>0.0.0.0:8080</code>. Qu'est-ce que cela implique ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le service n'est accessible que depuis la machine</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Le port est fermé par le pare-feu</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le service est offert sur toutes les interfaces, Wi-Fi compris</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le conteneur écoute sur toutes ses interfaces internes</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>0.0.0.0</code> n'est pas <code>127.0.0.1</code> : ce qu'on croyait « en local » est visible de tout le réseau de la salle. Pour ne l'ouvrir qu'à soi-même, <b><code>-p 127.0.0.1:8080:80</code></b>.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">23</span>Pourquoi faut-il supprimer les conteneurs avant les réseaux ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Pour libérer les adresses IP d'abord</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce que les réseaux sont supprimés automatiquement sinon</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Pour que le DNS interne se vide</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Un réseau qui porte des extrémités actives refuse d'être supprimé</span></button>
+      </div>
+      <p class="qcm-why" hidden>Docker le dit lui-même : <code>network reseau-lan has active endpoints</code>. Chaque conteneur raccordé y possède un point d'attache ; le supprimer sous leurs pieds laisserait des conteneurs branchés sur rien.</p>
+    </article>
 </section>
 
 <div class="qcm-fin" id="qcm-fin" hidden>
@@ -265,7 +345,7 @@
   majuscule();
 })();
 </script>
-<script src="../../assets/fiche.js?v=2b232d48"></script>
-<script src="../../assets/app.js?v=2b232d48"></script>
+<script src="../../assets/fiche.js?v=e00c350a"></script>
+<script src="../../assets/app.js?v=e00c350a"></script>
 </body>
 </html>

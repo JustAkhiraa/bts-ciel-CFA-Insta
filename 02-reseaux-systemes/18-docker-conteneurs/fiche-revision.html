@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche imprimable : image, conteneur, volume, les commandes du TP, la publication de ports, les volumes, le nettoyage et les pièges qui coûtent du temps.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=2b232d48">
+<link rel="stylesheet" href="../../assets/fiche.css?v=e00c350a">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -135,6 +135,36 @@
   </article>
 
   <article class="memo">
+    <h2>⚡ Le réseau en cinq phrases</h2>
+    <p><strong>Sur le réseau par défaut, les noms ne résolvent pas</strong> —
+       <code>ping c2</code> rend <code>bad address</code> — <strong>et les adresses bougent</strong> :
+       redémarrés dans l'autre ordre, deux conteneurs échangent la leur.</p>
+    <p><strong>Un réseau qu'on crée soi-même règle les deux</strong> : Docker y active son
+       résolveur interne, <code>127.0.0.11</code>, et le nom devient l'identité stable.</p>
+    <p><strong><code>--ip</code> n'existe que sur un réseau personnalisé.</strong> Le réseau
+       par défaut la refuse, quelle que soit l'adresse.</p>
+    <p><strong>Deux réseaux ne se parlent pas</strong>, et un conteneur à deux pattes ne les
+       relie pas : parler n'est pas router — il faut le transfert de paquets, une route aller
+       ET une route retour.</p>
+    <p><strong><code>-p</code> ne sert jamais entre conteneurs</strong>, seulement à percer la
+       frontière depuis la machine. Et <code>0.0.0.0:8080</code> veut dire « toutes les
+       interfaces », Wi-Fi compris.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les commandes réseau</h2>
+    <p><code>docker network ls</code> · <code>docker network inspect &lt;réseau&gt;</code></p>
+    <p><code>docker network create --subnet &lt;CIDR&gt; --gateway &lt;IP&gt; &lt;nom&gt;</code></p>
+    <p><code>docker run --network &lt;nom&gt; --ip &lt;IP&gt; …</code></p>
+    <p><code>docker network connect &lt;réseau&gt; &lt;conteneur&gt;</code> ·
+       <code>disconnect</code> pour l'inverse</p>
+    <p><code>docker port &lt;conteneur&gt;</code> — ce qui est réellement publié, et sur quelle
+       interface</p>
+    <p><strong>Nettoyage : les conteneurs d'abord, les réseaux ensuite</strong> — sinon
+       <code>has active endpoints</code>.</p>
+  </article>
+
+  <article class="memo">
     <h2>Les 25 questions, en un coup d'œil</h2>
     <p><strong>1</strong> le moteur répond · une image ne se télécharge qu'une fois.</p>
     <p><strong>2</strong> pull, images, rmi · le tag fait l'identité.</p>
@@ -143,6 +173,13 @@
     <p><strong>4</strong> <code>-p</code> · deux fois le port 80, un seul 8080.</p>
     <p><strong>5</strong> le volume survit au conteneur.</p>
     <p><strong>6</strong> nettoyer · image, conteneur, volume.</p>
+    <p class="rap"><strong>TP 2, le réseau — 7</strong> les trois réseaux ·
+       <strong>8</strong> le bridge par défaut : pas de noms, adresses instables ·
+       <strong>9</strong> réseau personnalisé et <code>127.0.0.11</code> ·
+       <strong>10</strong> l'adresse fixe et ses deux refus ·
+       <strong>11</strong> isolation, et la passerelle qui ne route pas ·
+       <strong>12</strong> <code>-p</code> perce la frontière, pas le réseau ·
+       <strong>13</strong> l'ordre du nettoyage.</p>
   </article>
 
 </section>
@@ -150,7 +187,7 @@
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/fiche-revision.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/fiche-revision.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=2b232d48"></script>
-<script src="../../assets/app.js?v=2b232d48"></script>
+<script src="../../assets/fiche.js?v=e00c350a"></script>
+<script src="../../assets/app.js?v=e00c350a"></script>
 </body>
 </html>
