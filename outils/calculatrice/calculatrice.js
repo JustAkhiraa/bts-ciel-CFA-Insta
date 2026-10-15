@@ -638,7 +638,14 @@
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
             : '<span class="nw-resultat">' + ech(l.exact || l.approx) + '</span>'
               + (l.deux ? '<span class="nw-approche">≈ ' + ech(l.approx) + '</span>' : ''))
-          + '</div>').join("")
+          + '</div>')
+        /* Demandé : « inverse le sens met le exe en haut et quand on tape
+           ca part en bas l'historique ». L'index de « data-reprendre » est
+           posé AVANT le retournement : il doit continuer de désigner la
+           même ligne de l'historique, qui, lui, reste dans l'ordre où les
+           calculs ont été faits. Retourner la liste et retourner les
+           numéros serait deux fois la même idée, et une fois de trop. */
+        .reverse().join("")
         /* Les quatre exemples sont CLIQUABLES. Un écran vide qui donne un
            exemple est déjà poli ; un écran vide qui fait l'exemple à
            votre place supprime le seul obstacle qui reste — savoir quoi
@@ -659,12 +666,17 @@
           + (vars.length ? '<button type="button" class="nw-bouton" id="nw-vider-vars">'
               + 'Tout effacer</button>' : '')
           + '</div>' : "";
-      return '<div class="nw-flux" id="nw-flux">' + lignes + '</div>' + panneau
-        + '<div class="nw-saisie-boite">'
+      /* La saisie passe EN TÊTE, et le dernier calcul apparaît juste en
+         dessous d'elle. Ce qu'on vient de taper et ce qu'on vient
+         d'obtenir se touchent : plus rien ne pousse le résultat hors de
+         l'écran à mesure que l'historique s'allonge, et sur un téléphone
+         le champ ne fuit plus sous le clavier. */
+      return '<div class="nw-saisie-boite">'
         + '<input type="text" class="nw-champ" id="nw-calc" autocomplete="off" '
         + 'spellcheck="false" autocapitalize="off" aria-label="Votre calcul" '
         + 'placeholder="votre calcul, puis Entrée">'
         + '<button type="button" class="nw-valider" id="nw-calc-ok">EXE</button></div>'
+        + '<div class="nw-flux" id="nw-flux">' + lignes + '</div>' + panneau
         + '<p class="nw-sous">La <b>forme exacte</b> est au-dessus, sa valeur approchée '
         + 'en dessous : sur une copie, c\'est la forme exacte qu\'on recopie. '
         + '<kbd>↑</kbd> rappelle le calcul précédent, et <b>un clic sur un calcul '
@@ -673,8 +685,9 @@
         + '<code>e¹</code>.</p>';
     },
     apres() {
+      /* Le plus récent est en haut : c'est donc en haut qu'on se place. */
       const flux = $("#nw-flux");
-      if (flux) flux.scrollTop = flux.scrollHeight;
+      if (flux) flux.scrollTop = 0;
       const champ = $("#nw-calc");
       if (champ) champ.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); valider(); }

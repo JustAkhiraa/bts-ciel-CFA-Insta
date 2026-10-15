@@ -1094,6 +1094,16 @@ function evaluer(noeud, ctx) {
       const fns = ctx.fonctions || {};
       if (typeof fns[nom] === "function")
         return fns[nom].apply(null, noeud.args.map(ev));
+      /* « e(2) » n'est PAS l'exponentielle : la règle d'en dessous en
+         ferait e × 2 = 5,44, quand celui qui l'écrit attend 7,39. Et le
+         piège se referme sur le seul essai qu'on fait pour vérifier :
+         « e(1) » rend 2,718, la bonne valeur, par accident — e × 1 vaut
+         bien e. Le premier test est donc précisément celui qui ne révèle
+         rien. Une réponse plausible et fausse vaut moins qu'un refus qui
+         dit quoi écrire ; on refuse, et on donne les deux écritures. */
+      if (nom === "e" && noeud.args.length === 1)
+        boum("« e(…) » n'est pas l'exponentielle : écrivez « exp(…) » ou "
+             + "« e^… ». Pour multiplier par e, écrivez « e*… ».");
       /* Pas de fonction de ce nom : si la lettre porte une valeur, la
          parenthèse était une multiplication implicite. */
       const connue = (ctx.vars && ctx.vars.has(nom))
