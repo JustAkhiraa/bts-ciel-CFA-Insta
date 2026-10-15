@@ -709,10 +709,20 @@ function lire(src) {
        l'analyseur lit « (2^) − 3 ». */
     if (LU_EN_EXPOSANT[c]) {
       let j = i, brut = "";
-      while (j < n && LU_EN_EXPOSANT[src[j]]) { brut += LU_EN_EXPOSANT[src[j]]; j++; }
+      while (j < n) {
+        if (LU_EN_EXPOSANT[src[j]]) { brut += LU_EN_EXPOSANT[src[j]]; j++; continue; }
+        /* Un point n'appartient à l'exposant que s'il est ENCADRÉ de petits
+           chiffres. « e¹⁰.⁹³ » est un seul exposant ; « 2³.5 », dont le 5
+           est resté en gros, reste un cube multiplié par 0,5 — le moteur
+           lit donc ce que l'œil lit, et c'est la seule règle qui tienne. */
+        if (src[j] === "." && LU_EN_EXPOSANT[src[j + 1]]) { brut += "."; j++; continue; }
+        break;
+      }
       const signe = brut[0] === "-" || brut[0] === "+" ? brut[0] : "";
       const chiffres = signe ? brut.slice(1) : brut;
-      if (!chiffres || /[^0-9]/.test(chiffres))
+      /* Un seul point : « e¹.².³ » est une faute de frappe, et une faute de
+         frappe se dit. Elle ne se rattrape pas en silence par un produit. */
+      if (!/^[0-9]+(?:\.[0-9]+)?$/.test(chiffres))
         return { erreur: "Exposant illisible : « " + src.slice(i, j) + " »." };
       jetons.push({ t: "op", v: "^" }, { t: "(", v: "(" });
       if (signe === "-") jetons.push({ t: "op", v: "-" });

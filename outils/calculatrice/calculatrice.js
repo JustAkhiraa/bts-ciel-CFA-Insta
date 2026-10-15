@@ -292,13 +292,25 @@
      « 2^10 » donne « 2¹⁰ » et non « 2¹0 » — et s'arrête à tout le reste,
      de sorte que « 2^10+3 » s'écrit tout seul. « ^( » reste tel quel :
      une parenthèse ne s'écrit pas en petit, et un accent circonflexe
-     honnête vaut mieux qu'un exposant à moitié. */
+     honnête vaut mieux qu'un exposant à moitié.
+
+     Signalé : « je peux pas mettre de point dans les puissance ».
+     « e^10.93 » s'écrivait « e¹⁰.93 » — et le pire n'était pas l'écriture :
+     le moteur lisait « e¹⁰ » puis « 0,93 » et rendait leur PRODUIT,
+     20484,6 au lieu de 55700,5. Une réponse fausse rendue sans un mot, sur
+     un outil de révision. Le point PROLONGE donc l'exposant lui aussi, à
+     une condition : qu'un chiffre le suive. « e¹⁰. » attend, « e¹⁰.⁹³ »
+     est un seul exposant. Le point reste écrit en grand parce qu'Unicode
+     n'a pas de point en exposant, et que « · » veut déjà dire « fois »
+     dans ce moteur : lui donner un second sens serait un piège d'énoncé.
+     Ce qui lève l'ambiguïté, ce sont les chiffres des DEUX côtés — si le
+     5 de « 2³.5 » reste en gros, c'est bien un cube multiplié par 0,5. */
   const EN_PETIT = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
                      "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
   const petit = (t) => t.split("").map((c) => EN_PETIT[c] || c).join("");
   function enExposants(t) {
-    return t.replace(/\^(-?\d+)/g, (m, d) => petit(d))
-            .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹])(\d+)/g, (m, e, d) => e + petit(d));
+    return t.replace(/\^(-?\d+(?:\.\d+)?)/g, (m, d) => petit(d))
+            .replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹])(\.?\d+)/g, (m, e, d) => e + petit(d));
   }
   /* Le curseur se replace à la main : la réécriture RACCOURCIT le texte
      (« ^1 » fait deux caractères, « ¹ » un seul) et le navigateur, lui,
