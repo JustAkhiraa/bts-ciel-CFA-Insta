@@ -1433,23 +1433,35 @@
           return onglets + '<p class="nw-vide">Il faut au moins deux points '
             + 'complets pour tracer quoi que ce soit.</p>';
         }
-        const xs = [].concat(...tous.map((d) => d.X));
-        const ys = [].concat(...tous.map((d) => d.Y));
+        /* La fenêtre englobe l'ORIGINE, comme le mode « Auto » de la machine.
+           Cadrée sur les seules données, elle ne montrait ni axes ni zéro : le
+           nuage flottait sur une grille, et on ne pouvait pas lire b. */
+        const xs = [].concat(...tous.map((d) => d.X), 0);
+        const ys = [].concat(...tous.map((d) => d.Y), 0);
         const dx = Math.max(1e-9, Math.max(...xs) - Math.min(...xs));
         const dy = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
         const points = [];
         deux.forEach((d, j) => {
           if (d) d.X.forEach((x, i) => points.push({ x, y: d.Y[i], classe: COUL_SERIE[j] }));
         });
+        /* Le point moyen (x̄ ; ȳ) : la machine le marque, et toute droite des
+           moindres carrés y passe — c'est la vérification visuelle la plus
+           rapide qu'un ajustement affine n'est pas aberrant. */
+        if (G.pointMoyen !== false) {
+          deux.forEach((d, j) => {
+            if (d) points.push({ x: d.moyenneX, y: d.moyenneY,
+                                 classe: COUL_SERIE[j] + " nw-moyen" });
+          });
+        }
         const svg = tracer({
           xmin: Math.min(...xs) - dx * 0.1, xmax: Math.max(...xs) + dx * 0.1,
           ymin: Math.min(...ys) - dy * 0.15, ymax: Math.max(...ys) + dy * 0.15,
           courbes: ajust.map((r, j) => r.erreur ? null : { f: r.f, classe: COUL_SERIE[j] })
                         .filter(Boolean),
           points: points,
-          aide: "Nuage de points et courbes ajustées",
+          aide: "Nuage de points, point moyen et courbes ajustées",
         });
-        const j = G.actif, r = ajust[j];
+        const j = G.actif, r = ajust[j], d = deux[j];
         return onglets
           + '<div class="nw-rangee">' + choixSerie
           + '<label for="nw-modele">modèle</label>'
@@ -1458,17 +1470,55 @@
             + (G.series[j].modele === k ? " selected" : "") + '>'
             + ech(CALC.MODELES[k].titre) + ' — ' + ech(CALC.MODELES[k].forme)
             + '</option>').join("")
-          + '</select></div>'
+          + '</select>'
+          + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
+          + (G.pointMoyen !== false ? " checked" : "") + '> Point moyen</label>'
+          + '</div>'
           + svg
-          + '<p class="nw-equation">' + (r.erreur ? ech(r.erreur)
+          + '<p class="nw-equation">' + (r.erreur
+              ? '<b>Les données ne conviennent pas</b> — ' + ech(r.erreur)
               : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)) + '</p>'
+          + (d ? '<p class="nw-moyenne">Point moyen &#8195; x&#772; = ' + ech(fmt(d.moyenneX))
+                 + ' &#8195; y&#772; = ' + ech(fmt(d.moyenneY)) + '</p>' : "")
           + '<div class="nw-rangee" style="margin-top:.6rem">'
-          + '<label for="nw-pred">prédire pour x =</label>'
+          + '<label for="nw-pred">prédiction sachant X</label>'
           + '<input type="text" class="nw-petit" id="nw-pred" value="' + ech(G.pred || "") + '">'
           + '<span class="nw-resultat" style="text-align:left">'
           + (G.pred !== undefined && G.pred !== "" && !r.erreur
               ? (() => { const x = nombreSaisi(G.pred);
-                         return x === null ? "—" : "y ≈ " + ech(fmt(r.f(x))); })()
+                         return x === null ? "—" : "y = " + ech(fmt(r.f(x))); })()
+              : "") + '</span></div>'
+          + '<div class="nw-rangee">'
+          + '<label for="nw-predy">prédiction sachant Y</label>'
+          + '<input type="text" class="nw-petit" id="nw-predy" value="' + ech(G.predY || "") + '">'
+          + '<span class="nw-resultat" style="text-align:left">'
+          + (G.predY !== undefined && G.predY !== "" && !r.erreur
+              ? (() => {
+                  const y = nombreSaisi(G.predY);
+                  if (y === null) return "—";
+                  /* On cherche x tel que f(x) = y en balayant la fenêtre puis
+                     en coupant en deux. Sans monotonie garantie — la
+                     trigonométrique n'en a pas — c'est le PREMIER x trouvé, et
+                     la machine dit la même chose : « dans cette fenêtre ». */
+                  const a0 = Math.min(...xs) - dx * 0.1, b0 = Math.max(...xs) + dx * 0.1;
+                  const g = (x) => r.f(x) - y;
+                  let pa = a0, ga = g(a0), trouve = null;
+                  for (let k = 1; k <= 600; k++) {
+                    const pb = a0 + (b0 - a0) * k / 600, gb = g(pb);
+                    if (Number.isFinite(ga) && Number.isFinite(gb) && ga * gb <= 0) {
+                      let lo = pa, hi = pb;
+                      for (let it = 0; it < 80; it++) {
+                        const mi = (lo + hi) / 2;
+                        if (g(lo) * g(mi) <= 0) hi = mi; else lo = mi;
+                      }
+                      trouve = (lo + hi) / 2; break;
+                    }
+                    pa = pb; ga = gb;
+                  }
+                  return trouve === null
+                    ? "valeur non atteinte dans cette fenêtre"
+                    : "x = " + ech(fmt(trouve));
+                })()
               : "") + '</span></div>';
       }
 
@@ -1476,14 +1526,14 @@
       const lettres = "abcde".split("");
       const maxP = Math.max(...ajust.map((r) => r.erreur ? 0 : r.params.length));
       const rangs = [
-        ["effectif n", (d) => d ? String(d.n) : "—"],
+        ["nombre de points", (d) => d ? String(d.n) : "—"],
         ["moyenne x̄", (d) => d ? fmt(d.moyenneX) : "—"],
         ["moyenne ȳ", (d) => d ? fmt(d.moyenneY) : "—"],
         ["écart type σx", (d) => d ? fmt(d.ecartTypeX) : "—"],
         ["écart type σy", (d) => d ? fmt(d.ecartTypeY) : "—"],
         ["somme Σx", (d) => d ? fmt(d.sommeX) : "—"],
         ["somme Σy", (d) => d ? fmt(d.sommeY) : "—"],
-        ["somme Σxy", (d) => d ? fmt(d.sommeXY) : "—"],
+        ["somme des produits Σxy", (d) => d ? fmt(d.sommeXY) : "—"],
         ["covariance", (d) => d ? fmt(d.covariance) : "—"],
       ];
       let corps = '<tr><th scope="row">modèle</th>'
@@ -1494,10 +1544,21 @@
           + ajust.map((r) => '<td>' + (r.erreur || r.params[k] === undefined
               ? "—" : ech(fmt(r.params[k]))) + '</td>').join("") + '</tr>';
       }
-      corps += '<tr><th scope="row">coefficient r</th>'
+      /* L'écart-type résiduel : la machine l'affiche, et c'est lui qui dit
+         en UNITÉS DE Y ce que r² dit sans unité. Un r² de 0,98 sur des prix
+         en euros ne renseigne pas ; « on se trompe de 1,20 € en moyenne » si. */
+      corps += '<tr><th scope="row">écart-type résiduel</th>'
+        + ajust.map((r, j) => {
+            const d2 = deux[j];
+            if (r.erreur || !d2) return '<td>—</td>';
+            let sse = 0;
+            for (let i = 0; i < d2.X.length; i++) sse += (d2.Y[i] - r.f(d2.X[i])) ** 2;
+            return '<td>' + ech(fmt(Math.sqrt(sse / d2.n))) + '</td>';
+          }).join("") + '</tr>';
+      corps += '<tr><th scope="row">coeff. corrélation r</th>'
         + ajust.map((r) => '<td>' + (r.erreur || r.r === undefined ? "—"
             : ech(fmt(r.r))) + '</td>').join("") + '</tr>'
-        + '<tr><th scope="row">r²</th>'
+        + '<tr><th scope="row">coeff. détermination r²</th>'
         + ajust.map((r) => '<td>' + (r.erreur ? "—" : ech(fmt(r.r2))) + '</td>').join("")
         + '</tr>';
       rangs.forEach(([lib, f]) => {
@@ -1565,12 +1626,17 @@
         G.series.pop();
         G.actif = Math.min(G.actif, G.series.length - 1); garder(); redessiner();
       });
-      const pr = $("#nw-pred");
-      if (pr) {
-        const maj = () => { G.pred = pr.value; garder(); redessiner(); };
-        pr.addEventListener("change", maj);
-        pr.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
-      }
+      const pm = $("#nw-moyen");
+      if (pm) pm.addEventListener("change", () => {
+        G.pointMoyen = pm.checked; garder(); redessiner();
+      });
+      [["#nw-pred", "pred"], ["#nw-predy", "predY"]].forEach(([sel, cle]) => {
+        const c = $(sel);
+        if (!c) return;
+        const maj = () => { G[cle] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
     },
   };
 

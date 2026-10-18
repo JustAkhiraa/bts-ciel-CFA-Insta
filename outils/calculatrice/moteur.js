@@ -1938,9 +1938,14 @@ function moindresCarres(A, y) {
   return x;
 }
 
+/* Les noms sont ceux de la machine, et ils sont aussi les bons : en français,
+   « linéaire » désigne x ↦ ax et « affine » désigne x ↦ ax + b. Nous avions
+   l'inverse — un élève qui lisait « Linéaire » ici et choisissait « Linéaire »
+   sur sa NumWorks ne prenait pas le même modèle. Les CLÉS ne bougent pas : une
+   mémoire enregistrée avant la correction désigne toujours son modèle. */
 const MODELES = {
-  lineaire:      { titre: "Linéaire",       forme: "ax + b" },
-  proportionnel: { titre: "Proportionnelle", forme: "ax" },
+  lineaire:      { titre: "Affine",         forme: "ax + b" },
+  proportionnel: { titre: "Linéaire",       forme: "ax" },
   quadratique:   { titre: "Quadratique",    forme: "ax² + bx + c" },
   cubique:       { titre: "Cubique",        forme: "ax³ + bx² + cx + d" },
   quartique:     { titre: "Quartique",      forme: "ax⁴ + bx³ + cx² + dx + e" },
@@ -1950,6 +1955,13 @@ const MODELES = {
   puissance:     { titre: "Puissance",      forme: "a·xᵇ" },
   trigonometrique:{ titre: "Trigonométrique", forme: "a·sin(bx + c) + d" },
   logistique:    { titre: "Logistique",     forme: "c / (1 + a·e^(−bx))" },
+  /* Médiane-médiane : le treizième modèle de la machine, et le seul qui ne
+     passe pas par les moindres carrés. On coupe le nuage en trois paquets
+     d'effectifs aussi égaux que possible, on prend le point médian de chacun,
+     et la droite passe par les deux paquets extrêmes puis se décale d'un tiers
+     vers celui du milieu. Un point aberrant pèse alors sur une médiane, pas
+     sur une moyenne : la droite ne part pas avec lui. */
+  medianeMediane:{ titre: "Médiane-médiane", forme: "ax + b" },
 };
 
 function ajuster(xs, ys, modele) {
@@ -1991,6 +2003,34 @@ function ajuster(xs, ys, modele) {
       if (sxx === 0) { res = { erreur: "Toutes les abscisses sont nulles." }; break; }
       const a = sxy / sxx;
       res = { params: [a], f: (x) => a * x };
+      break;
+    }
+    case "medianeMediane": {
+      /* Les trois paquets de la méthode : on trie par abscisse, puis on répartit
+         n points en trois groupes dont les effectifs ne diffèrent jamais de plus
+         de un — reste 0, 1 ou 2, et c'est le groupe du MILIEU qui grossit, comme
+         le veut la méthode. */
+      const P = X.map((x, i) => [x, Y[i]]).sort((u, v) => u[0] - v[0]);
+      if (P.length < 3) { res = { erreur: "Il faut au moins trois points." }; break; }
+      const q = Math.floor(P.length / 3), r = P.length % 3;
+      const t1 = q + (r === 2 ? 1 : 0);
+      const t2 = q + (r >= 1 ? 1 : 0);
+      const paquets = [P.slice(0, t1), P.slice(t1, t1 + t2), P.slice(t1 + t2)];
+      const med = (v) => {
+        const w = v.slice().sort((p, q2) => p - q2), m = w.length >> 1;
+        return w.length % 2 ? w[m] : (w[m - 1] + w[m]) / 2;
+      };
+      const S = paquets.map((g) => [med(g.map((p) => p[0])), med(g.map((p) => p[1]))]);
+      if (S[2][0] === S[0][0]) {
+        res = { erreur: "Ces points ne déterminent pas ce modèle (abscisses confondues)." };
+        break;
+      }
+      const a0 = (S[2][1] - S[0][1]) / (S[2][0] - S[0][0]);
+      /* L'ordonnée à l'origine est la MOYENNE des trois, ce qui revient à
+         décaler d'un tiers la droite des extrêmes vers le point du milieu. */
+      const b0 = (S[0][1] - a0 * S[0][0] + S[1][1] - a0 * S[1][0]
+                + S[2][1] - a0 * S[2][0]) / 3;
+      res = { params: [a0, b0], f: (x) => a0 * x + b0 };
       break;
     }
     case "logarithmique":
