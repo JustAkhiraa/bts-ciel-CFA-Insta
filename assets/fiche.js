@@ -425,6 +425,15 @@
     const vTot = rail.querySelector(".r-tot");
 
     /* Le titre sans son numéro : il est déjà affiché à gauche. */
+    /* Avant la première section, le rail portait du vide et restait caché.
+       Sur une fiche, l'en-tête et le sommaire font 1 100 px — presque deux
+       écrans. On descendait donc longtemps sans que rien n'apparaisse, et
+       on en concluait qu'il n'y avait pas de rail. Il porte maintenant le
+       TITRE DU CHAPITRE pendant ce trajet : il se montre dès que le grand
+       titre sort par le haut, et il a toujours quelque chose à dire. */
+    const grandTitre = corps.querySelector("h1");
+    const nomChapitre = grandTitre ? grandTitre.textContent.trim() : "";
+
     const titres = sections.map(function (s) {
       const h = s.querySelector("h2").cloneNode(true);
       const n = h.querySelector(".num");
@@ -446,9 +455,29 @@
       }
       /* Passé la dernière section, le rail n'a plus rien à dire. */
       if (i >= 0 && sections[i].getBoundingClientRect().bottom < seuil) i = -1;
-      if (i === courante) return;
+      /* « −1 » recouvre deux états — avant la première section et après la
+         dernière — et le rail n'y dit pas la même chose. On ne peut donc
+         pas court-circuiter sur « rien n'a changé » quand i vaut −1. */
+      if (i === courante && i >= 0) return;
       courante = i;
-      if (i < 0) { rail.hidden = true; return; }
+      if (i < 0) {
+        /* Avant la première section : le nom du chapitre, dès que le grand
+           titre est passé. Après la dernière, plus rien — on est dans le
+           pied de page. */
+        const avantTout = !sections.length
+          || sections[0].getBoundingClientRect().top > seuil;
+        const titrePasse = grandTitre
+          && grandTitre.getBoundingClientRect().bottom <= seuil;
+        if (avantTout && titrePasse && nomChapitre) {
+          vNum.textContent = "";
+          vTitre.textContent = nomChapitre;
+          vTot.textContent = sections.length + " sections";
+          rail.hidden = false;
+        } else {
+          rail.hidden = true;
+        }
+        return;
+      }
       vNum.textContent = titres[i].num;
       vTitre.textContent = titres[i].texte;
       vTot.textContent = (i + 1) + "/" + sections.length;
