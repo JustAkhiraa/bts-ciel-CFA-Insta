@@ -792,6 +792,11 @@ const ALIAS = {
   "partieentiere": "floor", "ent": "floor", "plancher": "floor",
   "plafond": "ceil", "troncature": "trunc", "arrondi": "round",
   "factorielle": "fact",
+  "asinh": "argsh", "acosh": "argch", "atanh": "argth",
+  "argsinh": "argsh", "argcosh": "argch", "argtanh": "argth",
+  "secante": "sec", "sécante": "sec", "cosecante": "csc", "cosécante": "csc",
+  "cotangente": "cot", "cotan": "cot",
+  "arcsecante": "arcsec", "arccosecante": "arccsc", "arccotangente": "arccot",
   "combinaison": "combinaison", "ncr": "combinaison", "binome": "combinaison",
   "arrangement": "arrangement", "npr": "arrangement",
   "pgcd": "pgcd", "gcd": "pgcd", "ppcm": "ppcm", "lcm": "ppcm",
@@ -826,6 +831,7 @@ const ALIAS = {
 const N_FONCTIONS = new Set([
   "sqrt", "abs", "floor", "ceil", "trunc", "round", "fact", "exp", "ln", "log",
   "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh",
+  "argsh", "argch", "argth", "sec", "csc", "cot", "arcsec", "arccsc", "arccot",
   "combinaison", "arrangement", "pgcd", "ppcm", "mod", "quotient",
   "derivee", "integrale", "somme", "produit", "min", "max", "signe",
   "moyenne", "ecartType", "variance", "mediane",
@@ -1220,6 +1226,44 @@ function appeler(noeud, ctx, R) {
     case "sinh": return Math.sinh(n1("Le sinus hyperbolique"));
     case "cosh": return Math.cosh(n1("Le cosinus hyperbolique"));
     case "tanh": return Math.tanh(n1("La tangente hyperbolique"));
+    /* Les réciproques hyperboliques. La machine les nomme « argument
+       cosinus hyperbolique » et non « arc » : ce ne sont pas des angles,
+       et le domaine n'est pas le même — d'où des refus différents. */
+    case "argsh": return Math.asinh(n1("L'argument sinus hyperbolique"));
+    case "argch": { const x = n1("L'argument cosinus hyperbolique");
+      if (x < 1) boum("L'argument cosinus hyperbolique n'accepte qu'un nombre ⩾ 1.");
+      return Math.acosh(x); }
+    case "argth": { const x = n1("L'argument tangente hyperbolique");
+      if (x <= -1 || x >= 1)
+        boum("L'argument tangente hyperbolique n'accepte qu'un nombre strictement "
+             + "entre −1 et 1.");
+      return Math.atanh(x); }
+    /* Les trois inverses. Elles ne valent pas « 1/sin » posé tel quel :
+       il faut refuser là où la fonction du dessous s'annule, sinon on
+       rend l'infini sans rien dire. */
+    case "sec": { const x = versRadian(n1("La sécante"), R.angle);
+      const c = Math.cos(x);
+      if (Math.abs(c) < 1e-15) boum("La sécante n'existe pas là : le cosinus y est nul.");
+      return 1 / c; }
+    case "csc": { const x = versRadian(n1("La cosécante"), R.angle);
+      const v = Math.sin(x);
+      if (Math.abs(v) < 1e-15) boum("La cosécante n'existe pas là : le sinus y est nul.");
+      return 1 / v; }
+    case "cot": { const x = versRadian(n1("La cotangente"), R.angle);
+      const v = Math.sin(x);
+      if (Math.abs(v) < 1e-15) boum("La cotangente n'existe pas là : le sinus y est nul.");
+      return Math.cos(x) / v; }
+    case "arcsec": { const x = n1("L'arc sécante");
+      if (Math.abs(x) < 1) boum("L'arc sécante n'accepte qu'un nombre de valeur absolue ⩾ 1.");
+      return depuisRadian(Math.acos(1 / x), R.angle); }
+    case "arccsc": { const x = n1("L'arc cosécante");
+      if (Math.abs(x) < 1) boum("L'arc cosécante n'accepte qu'un nombre de valeur absolue ⩾ 1.");
+      return depuisRadian(Math.asin(1 / x), R.angle); }
+    /* arccot sur ]0 ; π[ — la convention continue, celle de la machine.
+       « atan(1/x) » aurait sauté de π en 0 et donné un angle négatif
+       pour x < 0, ce qu'aucun énoncé n'attend. */
+    case "arccot": { const x = n1("L'arc cotangente");
+      return depuisRadian(Math.PI / 2 - Math.atan(x), R.angle); }
     case "combinaison": {
       nbArgs("Une combinaison", 2, 2);
       const n = ev(A[0]), k = ev(A[1]);
