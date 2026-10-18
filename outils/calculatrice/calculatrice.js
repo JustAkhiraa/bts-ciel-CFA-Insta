@@ -59,13 +59,22 @@
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
     stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1] },
-    regression: { X: [1, 2, 3, 4, 5, 6], Y: [2.1, 3.9, 6.2, 8.1, 9.8, 12.2], modele: "lineaire" },
+    /* La machine range les régressions en SÉRIES — X1/Y1, X2/Y2, X3/Y3 —
+       et chacune a son modèle. Une seule paire de colonnes ne permettait
+       pas de comparer deux jeux de mesures sur le même nuage, ce que les
+       sujets demandent dès qu'il y a un « avant » et un « après ». */
+    regression: {
+      series: [{ X: [1, 2, 3, 4, 5, 6], Y: [2.1, 3.9, 6.2, 8.1, 9.8, 12.2],
+                 modele: "lineaire" }],
+      actif: 0, pred: "",
+    },
     probas: { loi: "binomiale", n: 10, p: 0.3, mu: 0, sigma: 1, lambda: 0.25,
               a: 0, b: 1, N: 49, K: 6, nu: 10, d1: 3, d2: 12,
               question: "egal", k: 3, k2: 5, seuil: 0.95 },
     equations: { mode: "polynome", coeffs: ["1", "-3", "2"], degre: 2,
                  systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2 },
-    onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees" },
+    onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees",
+               regression: "donnees" },
   });
   let ETAT = PAR_DEFAUT();
   try {
@@ -83,6 +92,21 @@
       }
     }
   } catch (e) { /* mémoire illisible : on repart du neuf, sans rien dire */ }
+  /* Une mémoire écrite avant les séries porte « X », « Y » et « modele »
+     à plat. La fusion champ par champ les a recopiés tels quels, à côté
+     d'un « series » resté par défaut : les points de l'étudiant seraient
+     remplacés par l'exemple. On les remonte en première série. */
+  if (Array.isArray(ETAT.regression.X) && ETAT.regression.X.length) {
+    ETAT.regression.series = [{ X: ETAT.regression.X,
+                                Y: ETAT.regression.Y || [],
+                                modele: ETAT.regression.modele || "lineaire" }];
+  }
+  delete ETAT.regression.X; delete ETAT.regression.Y; delete ETAT.regression.modele;
+  if (!Array.isArray(ETAT.regression.series) || !ETAT.regression.series.length) {
+    ETAT.regression.series = PAR_DEFAUT().regression.series;
+  }
+  ETAT.regression.actif = Math.min(ETAT.regression.actif | 0,
+                                   ETAT.regression.series.length - 1);
   let appel = 0;
   function garder() {
     clearTimeout(appel);
@@ -440,7 +464,8 @@
     (o.points || []).forEach((p) => {
       if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
       if (p.x < xmin || p.x > xmax || p.y < ymin || p.y > ymax) return;
-      bouts.push('<circle class="point" cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1)
+      bouts.push('<circle class="point' + (p.classe ? " " + p.classe : "")
+        + '" cx="' + X(p.x).toFixed(1) + '" cy="' + Y(p.y).toFixed(1)
         + '" r="' + (p.r || 2.4) + '"/>');
     });
     (o.segments || []).forEach((s) => {
@@ -1330,101 +1355,219 @@
   };
 
   /* ═══════════════ 10. Régressions ═══════════════════════════════════ */
+  /* ═══════════════ 10. Régressions ═══════════════════════════════════
+     Rangée comme sur la machine : Données · Graphique · Stats. Ce n'est
+     pas un détail d'habillage. Un élève qui a la NumWorks en main pendant
+     l'épreuve cherche l'onglet qu'il connaît ; s'il doit réapprendre un
+     rangement ici, l'outil lui coûte plus qu'il ne lui rapporte.
+
+     Les données tiennent dans un tableau à COLONNES — X1 Y1 X2 Y2 — et
+     non en lignes « x ; y » : c'est ce que la machine affiche, et c'est
+     aussi la forme sous laquelle un énoncé donne ses mesures. */
+  const COUL_SERIE = ["c2", "c3", "c4"];
   APPS.regression = {
     nom: "Régressions", icone: "ax+b",
     html() {
       const G = ETAT.regression;
-      const n = Math.max(G.X.length, G.Y.length);
-      let corps = "";
-      for (let i = 0; i < n; i++) {
-        corps += '<tr><td>' + (i + 1) + '</td>'
-          + '<td><input class="nw-cellule" data-cle="rx' + i + '" data-rx="' + i + '" value="'
-          + ech(G.X[i] === undefined ? "" : G.X[i]) + '" aria-label="x' + (i + 1) + '"></td>'
-          + '<td><input class="nw-cellule" data-cle="ry' + i + '" data-ry="' + i + '" value="'
-          + ech(G.Y[i] === undefined ? "" : G.Y[i]) + '" aria-label="y' + (i + 1) + '"></td></tr>';
-      }
-      const r = CALC.ajuster(G.X, G.Y, G.modele);
-      const d = CALC.STATS.deuxVariables(G.X, G.Y);
-      let bloc = "";
-      if (r.erreur) bloc = '<p class="nw-erreur">' + ech(r.erreur) + '</p>';
-      else {
-        const lettres = "abcde".split("");
-        bloc = '<dl class="nw-valeurs">'
-          + '<dt>modèle</dt><dd>y = ' + ech(r.forme) + '</dd>'
-          + r.params.map((v, i) => '<dt>' + lettres[i] + '</dt><dd>' + ech(fmt(v)) + '</dd>').join("")
-          + (r.r !== undefined ? '<dt>coefficient r</dt><dd>' + ech(fmt(r.r)) + '</dd>' : "")
-          + '<dt>r²</dt><dd>' + ech(fmt(r.r2)) + '</dd>'
-          + (d ? '<dt>covariance</dt><dd>' + ech(fmt(d.covariance)) + '</dd>'
-               + '<dt>x̄ · ȳ</dt><dd>' + ech(fmt(d.moyenneX)) + " · " + ech(fmt(d.moyenneY))
-               + '</dd>' : "")
-          + '</dl>';
-      }
-      let svg = "";
-      if (d) {
-        const dx = Math.max(1e-9, Math.max(...d.X) - Math.min(...d.X));
-        const dy = Math.max(1e-9, Math.max(...d.Y) - Math.min(...d.Y));
-        svg = tracer({
-          xmin: Math.min(...d.X) - dx * 0.1, xmax: Math.max(...d.X) + dx * 0.1,
-          ymin: Math.min(...d.Y) - dy * 0.15, ymax: Math.max(...d.Y) + dy * 0.15,
-          courbes: r.erreur ? [] : [{ f: r.f, classe: "c2" }],
-          points: d.X.map((x, i) => ({ x, y: d.Y[i] })),
-          aide: "Nuage de points et courbe ajustée",
+      const vue = ETAT.onglets.regression;
+      const onglets = '<div class="nw-onglets" role="tablist">'
+        + [["donnees", "Données"], ["graphique", "Graphique"], ["stats", "Stats"]]
+          .map(([c, t]) => '<button type="button" class="nw-onglet" role="tab" '
+            + 'data-onglet="regression:' + c + '" aria-selected="' + (vue === c)
+            + '">' + t + '</button>').join("")
+        + '</div>';
+
+      /* ── Données : le tableau à colonnes de la machine ───────────── */
+      if (vue === "donnees") {
+        const lignes = Math.max(1, ...G.series.map((S) => Math.max(S.X.length, S.Y.length)));
+        let tete = '<th>#</th>';
+        G.series.forEach((S, j) => {
+          tete += '<th class="nw-col-' + COUL_SERIE[j] + '">X' + (j + 1) + '</th>'
+                + '<th class="nw-col-' + COUL_SERIE[j] + '">Y' + (j + 1) + '</th>';
         });
+        let corps = "";
+        for (let i = 0; i < lignes; i++) {
+          corps += '<tr><td>' + (i + 1) + '</td>';
+          G.series.forEach((S, j) => {
+            corps += '<td><input class="nw-cellule" data-cle="rx' + j + '_' + i
+              + '" data-serie="' + j + '" data-axe="X" data-rang="' + i + '" value="'
+              + ech(S.X[i] === undefined ? "" : S.X[i])
+              + '" aria-label="X' + (j + 1) + ' ligne ' + (i + 1) + '"></td>'
+              + '<td><input class="nw-cellule" data-cle="ry' + j + '_' + i
+              + '" data-serie="' + j + '" data-axe="Y" data-rang="' + i + '" value="'
+              + ech(S.Y[i] === undefined ? "" : S.Y[i])
+              + '" aria-label="Y' + (j + 1) + ' ligne ' + (i + 1) + '"></td>';
+          });
+          corps += '</tr>';
+        }
+        return onglets
+          + '<div class="nw-defile"><table class="nw-table nw-table-reg"><thead><tr>'
+          + tete + '</tr></thead><tbody>' + corps + '</tbody></table></div>'
+          + '<div class="nw-rangee" style="margin-top:.5rem">'
+          + '<button type="button" class="nw-bouton" id="nw-rligne-plus">+ une ligne</button>'
+          + '<button type="button" class="nw-bouton" id="nw-rligne-moins">− la dernière</button>'
+          + '<button type="button" class="nw-bouton" id="nw-rserie-plus"'
+          + (G.series.length >= 3 ? " disabled" : "") + '>+ une série</button>'
+          + '<button type="button" class="nw-bouton" id="nw-rserie-moins"'
+          + (G.series.length <= 1 ? " disabled" : "") + '>− la dernière série</button>'
+          + '</div>'
+          + '<p class="nw-sous">Une colonne vide ne compte pas : un point n\'existe '
+          + 'que si <b>X et Y</b> sont tous deux renseignés sur la ligne.</p>';
       }
-      return '<div class="nw-rangee">'
-        + '<label for="nw-modele">modèle</label>'
-        + '<select class="nw-petit" id="nw-modele">'
-        + Object.keys(CALC.MODELES).map((k) => '<option value="' + k + '"'
-          + (G.modele === k ? " selected" : "") + '>' + ech(CALC.MODELES[k].titre)
-          + ' — ' + ech(CALC.MODELES[k].forme) + '</option>').join("")
-        + '</select>'
-        + '<button type="button" class="nw-bouton" id="nw-rligne-plus">+ un point</button>'
-        + '<button type="button" class="nw-bouton" id="nw-rligne-moins">− le dernier</button>'
-        + '</div>'
-        + svg + bloc
-        + '<div class="nw-rangee" style="margin-top:.6rem">'
-        + '<label for="nw-pred">prédire pour x =</label>'
-        + '<input type="text" class="nw-petit" id="nw-pred" value="' + ech(G.pred || "") + '">'
-        + '<span class="nw-resultat" style="text-align:left">'
-        + (G.pred !== undefined && G.pred !== "" && !r.erreur
-            ? (() => { const x = nombreSaisi(G.pred);
-                       return x === null ? "—" : "y ≈ " + ech(fmt(r.f(x))); })()
-            : "") + '</span></div>'
-        + '<div class="nw-defile"><table class="nw-table"><thead><tr><th>#</th><th>x</th>'
-        + '<th>y</th></tr></thead><tbody>' + corps + '</tbody></table></div>'
+
+      /* ── les ajustements, calculés une fois pour les deux autres vues ── */
+      const ajust = G.series.map((S) => CALC.ajuster(S.X, S.Y, S.modele));
+      const deux = G.series.map((S) => CALC.STATS.deuxVariables(S.X, S.Y));
+      const choixSerie = G.series.length < 2 ? "" :
+        '<label for="nw-rserie">série</label>'
+        + '<select class="nw-petit" id="nw-rserie">'
+        + G.series.map((S, j) => '<option value="' + j + '"'
+          + (G.actif === j ? " selected" : "") + '>X' + (j + 1) + ' / Y' + (j + 1)
+          + '</option>').join("")
+        + '</select>';
+
+      /* ── Graphique : tous les nuages, toutes les courbes ─────────── */
+      if (vue === "graphique") {
+        const tous = deux.filter(Boolean);
+        if (!tous.length) {
+          return onglets + '<p class="nw-vide">Il faut au moins deux points '
+            + 'complets pour tracer quoi que ce soit.</p>';
+        }
+        const xs = [].concat(...tous.map((d) => d.X));
+        const ys = [].concat(...tous.map((d) => d.Y));
+        const dx = Math.max(1e-9, Math.max(...xs) - Math.min(...xs));
+        const dy = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
+        const points = [];
+        deux.forEach((d, j) => {
+          if (d) d.X.forEach((x, i) => points.push({ x, y: d.Y[i], classe: COUL_SERIE[j] }));
+        });
+        const svg = tracer({
+          xmin: Math.min(...xs) - dx * 0.1, xmax: Math.max(...xs) + dx * 0.1,
+          ymin: Math.min(...ys) - dy * 0.15, ymax: Math.max(...ys) + dy * 0.15,
+          courbes: ajust.map((r, j) => r.erreur ? null : { f: r.f, classe: COUL_SERIE[j] })
+                        .filter(Boolean),
+          points: points,
+          aide: "Nuage de points et courbes ajustées",
+        });
+        const j = G.actif, r = ajust[j];
+        return onglets
+          + '<div class="nw-rangee">' + choixSerie
+          + '<label for="nw-modele">modèle</label>'
+          + '<select class="nw-petit" id="nw-modele">'
+          + Object.keys(CALC.MODELES).map((k) => '<option value="' + k + '"'
+            + (G.series[j].modele === k ? " selected" : "") + '>'
+            + ech(CALC.MODELES[k].titre) + ' — ' + ech(CALC.MODELES[k].forme)
+            + '</option>').join("")
+          + '</select></div>'
+          + svg
+          + '<p class="nw-equation">' + (r.erreur ? ech(r.erreur)
+              : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)) + '</p>'
+          + '<div class="nw-rangee" style="margin-top:.6rem">'
+          + '<label for="nw-pred">prédire pour x =</label>'
+          + '<input type="text" class="nw-petit" id="nw-pred" value="' + ech(G.pred || "") + '">'
+          + '<span class="nw-resultat" style="text-align:left">'
+          + (G.pred !== undefined && G.pred !== "" && !r.erreur
+              ? (() => { const x = nombreSaisi(G.pred);
+                         return x === null ? "—" : "y ≈ " + ech(fmt(r.f(x))); })()
+              : "") + '</span></div>';
+      }
+
+      /* ── Stats : une COLONNE par série, comme sur la machine ─────── */
+      const lettres = "abcde".split("");
+      const maxP = Math.max(...ajust.map((r) => r.erreur ? 0 : r.params.length));
+      const rangs = [
+        ["effectif n", (d) => d ? String(d.n) : "—"],
+        ["moyenne x̄", (d) => d ? fmt(d.moyenneX) : "—"],
+        ["moyenne ȳ", (d) => d ? fmt(d.moyenneY) : "—"],
+        ["écart type σx", (d) => d ? fmt(d.ecartTypeX) : "—"],
+        ["écart type σy", (d) => d ? fmt(d.ecartTypeY) : "—"],
+        ["somme Σx", (d) => d ? fmt(d.sommeX) : "—"],
+        ["somme Σy", (d) => d ? fmt(d.sommeY) : "—"],
+        ["somme Σxy", (d) => d ? fmt(d.sommeXY) : "—"],
+        ["covariance", (d) => d ? fmt(d.covariance) : "—"],
+      ];
+      let corps = '<tr><th scope="row">modèle</th>'
+        + ajust.map((r) => '<td>' + (r.erreur ? "—" : "y = " + ech(r.forme)) + '</td>').join("")
+        + '</tr>';
+      for (let k = 0; k < maxP; k++) {
+        corps += '<tr><th scope="row">' + lettres[k] + '</th>'
+          + ajust.map((r) => '<td>' + (r.erreur || r.params[k] === undefined
+              ? "—" : ech(fmt(r.params[k]))) + '</td>').join("") + '</tr>';
+      }
+      corps += '<tr><th scope="row">coefficient r</th>'
+        + ajust.map((r) => '<td>' + (r.erreur || r.r === undefined ? "—"
+            : ech(fmt(r.r))) + '</td>').join("") + '</tr>'
+        + '<tr><th scope="row">r²</th>'
+        + ajust.map((r) => '<td>' + (r.erreur ? "—" : ech(fmt(r.r2))) + '</td>').join("")
+        + '</tr>';
+      rangs.forEach(([lib, f]) => {
+        corps += '<tr><th scope="row">' + lib + '</th>'
+          + deux.map((d) => '<td>' + ech(f(d)) + '</td>').join("") + '</tr>';
+      });
+      const erreurs = ajust.map((r, j) => r.erreur
+        ? 'X' + (j + 1) + '/Y' + (j + 1) + ' : ' + r.erreur : null).filter(Boolean);
+      return onglets
+        + '<div class="nw-defile"><table class="nw-table nw-table-reg"><thead><tr><th></th>'
+        + G.series.map((S, j) => '<th class="nw-col-' + COUL_SERIE[j] + '">X' + (j + 1)
+            + '/Y' + (j + 1) + '</th>').join("")
+        + '</tr></thead><tbody>' + corps + '</tbody></table></div>'
+        + (erreurs.length ? '<p class="nw-erreur">' + ech(erreurs.join(" · ")) + '</p>' : "")
         + '<p class="nw-sous">r² est calculé sur les <b>points d\'origine</b>, jamais sur '
         + 'les données transformées : un ajustement exponentiel qui paraît parfait en '
         + 'échelle logarithmique peut être médiocre sur les vraies ordonnées.</p>';
     },
     apres() {
+      brancherOnglets();
+      const G = ETAT.regression;
       const m = $("#nw-modele");
       if (m) m.addEventListener("change", () => {
-        ETAT.regression.modele = m.value; garder(); redessiner();
+        G.series[G.actif].modele = m.value; garder(); redessiner();
       });
-      $$("[data-rx]", page).forEach((c) => c.addEventListener("change", () => {
+      const se = $("#nw-rserie");
+      if (se) se.addEventListener("change", () => {
+        G.actif = Number(se.value); garder(); redessiner();
+      });
+      $$("[data-serie]", page).forEach((c) => c.addEventListener("change", () => {
+        const j = Number(c.dataset.serie), i = Number(c.dataset.rang), axe = c.dataset.axe;
+        /* Une cellule vidée retire le point : sans ça, on ne pourrait plus
+           jamais raccourcir une série autrement que par le bouton. */
+        if (c.value.trim() === "") {
+          G.series[j][axe][i] = undefined; dire(""); garder(); redessiner(); return;
+        }
         const v = nombreSaisi(c.value);
         if (v === null) { dire("« " + c.value + " » n'est pas un nombre.", "e-erreur"); return; }
-        ETAT.regression.X[Number(c.dataset.rx)] = v; dire(""); garder(); redessiner();
-      }));
-      $$("[data-ry]", page).forEach((c) => c.addEventListener("change", () => {
-        const v = nombreSaisi(c.value);
-        if (v === null) { dire("« " + c.value + " » n'est pas un nombre.", "e-erreur"); return; }
-        ETAT.regression.Y[Number(c.dataset.ry)] = v; dire(""); garder(); redessiner();
+        G.series[j][axe][i] = v; dire(""); garder(); redessiner();
       }));
       const p = $("#nw-rligne-plus");
       if (p) p.addEventListener("click", () => {
-        ETAT.regression.X.push(0); ETAT.regression.Y.push(0); garder(); redessiner();
+        const n = Math.max(...G.series.map((S) => Math.max(S.X.length, S.Y.length)));
+        G.series.forEach((S) => { S.X[n] = undefined; S.Y[n] = undefined;
+                                  S.X.length = n + 1; S.Y.length = n + 1; });
+        garder(); redessiner();
       });
       const mo = $("#nw-rligne-moins");
       if (mo) mo.addEventListener("click", () => {
-        if (ETAT.regression.X.length <= 2) {
-          dire("Deux points au minimum.", "e-erreur"); return;
-        }
-        ETAT.regression.X.pop(); ETAT.regression.Y.pop(); garder(); redessiner();
+        const n = Math.max(...G.series.map((S) => Math.max(S.X.length, S.Y.length)));
+        if (n <= 2) { dire("Deux lignes au minimum.", "e-erreur"); return; }
+        G.series.forEach((S) => { S.X.length = Math.min(S.X.length, n - 1);
+                                  S.Y.length = Math.min(S.Y.length, n - 1); });
+        garder(); redessiner();
+      });
+      const sp = $("#nw-rserie-plus");
+      if (sp) sp.addEventListener("click", () => {
+        if (G.series.length >= 3) return;
+        G.series.push({ X: [], Y: [], modele: "lineaire" });
+        G.actif = G.series.length - 1; garder(); redessiner();
+      });
+      const sm = $("#nw-rserie-moins");
+      if (sm) sm.addEventListener("click", () => {
+        if (G.series.length <= 1) return;
+        G.series.pop();
+        G.actif = Math.min(G.actif, G.series.length - 1); garder(); redessiner();
       });
       const pr = $("#nw-pred");
       if (pr) {
-        const maj = () => { ETAT.regression.pred = pr.value; garder(); redessiner(); };
+        const maj = () => { G.pred = pr.value; garder(); redessiner(); };
         pr.addEventListener("change", maj);
         pr.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
       }
