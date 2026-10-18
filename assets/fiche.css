@@ -4659,8 +4659,23 @@ html[data-anim="0"] .apparait { opacity: 1; }
 /* « flex: none » interdisait à la barre de rétrécir : sans ce remplacement,
    les deux règles ci-dessous ne serviraient à rien. */
 .app-tete nav { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; justify-content: flex-end; }
+/* ── La barre serrée : une seule rangée, le badge seul ───────────────────
+   Signalé : « le menu est moche, il est gros, il prend beaucoup de place —
+   tu peux peut-être mettre l'icône sur la même ligne et retirer le texte
+   BTS CIEL quand l'écran est serré ».
+
+   Mesuré avant de corriger, et ce n'est pas le texte qui débordait : à
+   390 px il était DÉJÀ tronqué à rien, et la barre faisait quand même
+   112 px de haut sur deux rangées. Le compte : 390 − 26 de rembourrage
+   − 34 de porte-logo − 8 d'écart = 322 px disponibles pour une rangée de
+   liens qui en réclame 327. Il manquait CINQ pixels.
+
+   On les prend donc là où ils ne coûtent rien — l'écart entre les liens et
+   le rembourrage de la barre — et pas sur les liens eux-mêmes, qui sont des
+   cibles tactiles et doivent rester à 34 px. Et le mot disparaît pour de
+   bon sous 480 px au lieu de s'effilocher en « … » : un titre tronqué à
+   deux lettres n'informe personne et occupe quand même sa place. */
 @media (max-width: 480px) {
-  .app-tete { gap: .5rem; padding: .6rem .8rem; }
   .app-tete nav a { font-size: .7879rem; }
   .app-marque { font-size: .8485rem; }
   .app-marque .sigle { width: 27px; height: 27px; }
@@ -7523,6 +7538,76 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 @media (max-width: 760px) {
   .at-surligneur { order: 9; }
   .at-menu { right: auto; left: 0; }
+}
+
+/* ── La barre serrée : une seule rangée, et le badge seul ────────────────
+   Écrite À LA FIN de la feuille, et c'est la moitié du correctif : la même
+   règle placée plus haut ne s'appliquait pas — à spécificité égale, c'est la
+   dernière qui gagne (§ 34), et une autre reprenait le rembourrage large.
+   Mesuré : le rembourrage calculé restait à 13,2 px alors que la règle en
+   demandait 8.
+
+   Le compte, à 390 px : la rangée réclame 315 px de liens plus 7 écarts, le
+   badge en prend 34 et la barre 26 de rembourrage — il manquait CINQ pixels.
+   On les prend sur le rembourrage et les écarts, jamais sur les liens :
+   « min-width/min-height: 34px » les tient au plancher tactile du banc,
+   quoi qu'il arrive ensuite au reste de la feuille.
+
+   Et le mot « BTS CIEL » disparaît pour de bon plutôt que de s'effilocher
+   en « … » : un titre tronqué à deux lettres n'informe personne et occupe
+   quand même sa place. Le badge, lui, reste — c'est l'identité du site. */
+@media (max-width: 480px) {
+  .app-marque .nom { display: none; }
+  .app-tete { gap: .35rem; padding: .55rem .45rem; }
+  .app-tete nav { gap: 2px; }
+  .app-tete nav a,
+  .app-tete nav button {
+    min-width: 34px; min-height: 34px; padding: .38rem;
+    justify-content: center;
+  }
+}
+
+/* ── Le kit de survie ────────────────────────────────────────────────────
+   Un guide tenu par la promotion, pas un cours : il a donc ses cartes à
+   lui, plus aérées qu'un chapitre, et aucune couleur qui ne vienne du
+   design system — ces blocs se lisent sur les 41 thèmes comme le reste. */
+.kit-partie { margin-top: 2.4rem; }
+.kit-partie > h2 {
+  margin: 0 0 .9rem; font-size: 1.1818rem; color: var(--encre);
+  padding-bottom: .5rem; border-bottom: 2px solid var(--accent-pale);
+}
+.kit-intro { margin: 0 0 .9rem; color: var(--encre-douce); }
+.kit-carte {
+  margin-top: .9rem; padding: 1rem 1.1rem;
+  background: var(--carte); border: 1px solid var(--bord); border-radius: 13px;
+}
+.kit-carte h3 { margin: 0 0 .35rem; font-size: 1rem; color: var(--encre); }
+.kit-carte ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+.kit-carte li { margin: .25rem 0; }
+.kit-quoi { margin: 0; color: var(--encre-douce); }
+.kit-os {
+  margin-left: .4rem; padding: .1rem .45rem; border-radius: 999px;
+  font-size: .7273rem; font-weight: 600; letter-spacing: .03em;
+  color: var(--sur-accent); background: var(--accent-sombre);
+}
+.kit-lien { margin: .6rem 0 0; font-size: .8485rem; }
+.kit-encart {
+  margin-top: 1rem; padding: .9rem 1.1rem;
+  background: var(--accent-pale); border-radius: 13px;
+  border-left: 4px solid var(--accent-sombre);
+}
+.kit-encart h3 { margin: 0 0 .4rem; font-size: .9394rem; color: var(--encre); }
+.kit-encart p { margin: .35rem 0 0; }
+.kit-rap { margin: .7rem 0 0; font-size: .8485rem; color: var(--encre-douce); }
+.kit-fin {
+  margin: 2.6rem 0 1rem; padding: 1.2rem 1.3rem;
+  background: var(--carte-creuse); border: 1px dashed var(--bord-fort);
+  border-radius: 15px;
+}
+.kit-fin h2 { margin: 0 0 .5rem; font-size: 1.0909rem; }
+.kit-fin p { margin: .4rem 0 0; }
+@media (max-width: 480px) {
+  .kit-carte, .kit-encart, .kit-fin { padding: .85rem .9rem; }
 }
 
 
