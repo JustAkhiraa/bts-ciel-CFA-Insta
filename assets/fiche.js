@@ -387,6 +387,83 @@
     });
   }
 
+  /* ── Le rail de section ───────────────────────────────────────────────
+     Une page de cours fait trente-sept sections. Arrivé à la quatorzième,
+     on ne sait plus si le paragraphe qu'on lit relève encore des pointeurs
+     — et le sommaire est resté tout en haut.
+
+     Un rail d'une ligne, collé sous le bord de l'écran, qui dit le numéro
+     et le titre de la section courante, et combien il en reste. Repris de
+     getartcraft.com, où chaque chapitre porte sa barre collante ; ici une
+     SEULE barre dont le texte change, pour ne pas répéter trente-sept fois
+     le même titre dans le document.
+
+     Il est « aria-hidden » : les titres de section existent déjà, un
+     lecteur d'écran les annonce, et une barre qui répète le titre courant
+     ne ferait que doubler chaque annonce.
+
+     Posé uniquement là où « data-rail » le demande : on l'essaie sur un
+     chapitre avant de l'imposer aux soixante. */
+  function railDeSection() {
+    const corps = document.querySelector("main[data-rail]");
+    if (!corps) return;
+    const sections = Array.prototype.slice.call(
+      corps.querySelectorAll(":scope > section[id] > h2")
+    ).map(function (h) { return h.parentNode; });
+    if (sections.length < 4) return;   /* trois sections se tiennent de tête */
+
+    const rail = document.createElement("div");
+    rail.className = "rail";
+    rail.setAttribute("aria-hidden", "true");
+    rail.hidden = true;
+    rail.innerHTML = '<span class="r-num"></span>'
+                   + '<span class="r-titre"></span>'
+                   + '<span class="r-tot"></span>';
+    corps.insertBefore(rail, corps.firstChild);
+    const vNum = rail.querySelector(".r-num");
+    const vTitre = rail.querySelector(".r-titre");
+    const vTot = rail.querySelector(".r-tot");
+
+    /* Le titre sans son numéro : il est déjà affiché à gauche. */
+    const titres = sections.map(function (s) {
+      const h = s.querySelector("h2").cloneNode(true);
+      const n = h.querySelector(".num");
+      const num = n ? n.textContent.trim() : "";
+      if (n) n.remove();
+      return { num: num, texte: h.textContent.trim() };
+    });
+
+    let courante = -1, attend = false;
+    function placer() {
+      attend = false;
+      /* La DERNIÈRE section dont le haut est passé sous le rail. On mesure
+         la hauteur du rail au lieu de la supposer : elle change avec la
+         taille de police choisie dans les réglages. */
+      const seuil = rail.offsetHeight + 2;
+      let i = -1;
+      for (let k = 0; k < sections.length; k++) {
+        if (sections[k].getBoundingClientRect().top <= seuil) i = k; else break;
+      }
+      /* Passé la dernière section, le rail n'a plus rien à dire. */
+      if (i >= 0 && sections[i].getBoundingClientRect().bottom < seuil) i = -1;
+      if (i === courante) return;
+      courante = i;
+      if (i < 0) { rail.hidden = true; return; }
+      vNum.textContent = titres[i].num;
+      vTitre.textContent = titres[i].texte;
+      vTot.textContent = (i + 1) + "/" + sections.length;
+      rail.hidden = false;
+    }
+    function auDefilement() {
+      if (attend) return;
+      attend = true;
+      requestAnimationFrame(placer);
+    }
+    addEventListener("scroll", auDefilement, { passive: true });
+    addEventListener("resize", auDefilement);
+    placer();
+  }
+
   function init() {
     tableauxDefilables();
     construireSommaire();
@@ -395,6 +472,7 @@
     boutonsCopier();
     quiz();
     suivreLecture();
+    railDeSection();
   }
 
   if (document.readyState === "loading") {
