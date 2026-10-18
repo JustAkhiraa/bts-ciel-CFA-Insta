@@ -936,7 +936,16 @@ function analyser(src) {
       if (/^[A-Za-zα-ωΑ-Ω][0-9]?$/.test(brut) || brut === "ans" || brut === "Ans") {
         return { t: "var", n: brut === "Ans" ? "ans" : brut };
       }
+      /* Les constantes physiques. Le souligné les distingue des mémoires —
+         « e » appartient à l'utilisateur, « _e » est la charge élémentaire. */
+      if (Object.prototype.hasOwnProperty.call(CONSTANTES, brut)) {
+        return { t: "var", n: brut };
+      }
       if (bas === "e") return { t: "var", n: "e" };
+      if (brut[0] === "_") {
+        return rater("« " + brut + " » n'est pas une constante connue. Les constantes "
+                     + "sont " + Object.keys(CONSTANTES).join(", ") + ".");
+      }
       return rater("« " + brut + " » : je ne connais pas ce nom. "
                    + "Les fonctions s'écrivent avec des parenthèses, et les variables "
                    + "sont des lettres seules.");
@@ -1038,6 +1047,9 @@ function evaluer(noeud, ctx) {
     case "var": {
       const n = noeud.n;
       if (n === "e") return Math.E;
+      /* Les constantes AVANT les mémoires : « _c » n'est pas un nom qu'on
+         peut ranger, et le lui laisser prendre rendrait la table muette. */
+      if (Object.prototype.hasOwnProperty.call(CONSTANTES, n)) return CONSTANTES[n];
       if (ctx.vars && ctx.vars.has(n)) return ctx.vars.get(n);
       if (ctx.locales && n in ctx.locales) return ctx.locales[n];
       boum("La variable « " + n + " » n'a pas de valeur. "
@@ -1943,6 +1955,35 @@ function moindresCarres(A, y) {
    l'inverse — un élève qui lisait « Linéaire » ici et choisissait « Linéaire »
    sur sa NumWorks ne prenait pas le même modèle. Les CLÉS ne bougent pas : une
    mémoire enregistrée avant la correction désigne toujours son modèle. */
+/* ── Les constantes physiques ────────────────────────────────────────────
+   Celles de la machine, aux mêmes valeurs (CODATA 2018). Le souligné
+   initial est la convention de la NumWorks, et il sert à quelque chose :
+   les lettres seules — A, B, … Z — sont les mémoires de l'utilisateur, et
+   « c » ou « e » lui appartiennent. Sans préfixe, ranger 5 dans « e »
+   aurait écrasé la charge élémentaire.
+
+   Les valeurs se recoupent entre elles, ce qui est le seul contrôle qui
+   vaille sur une table recopiée : 1/(4π·ε₀) redonne kₑ aux dix chiffres,
+   et 1/(ε₀·μ₀) redonne c² à 4·10⁻¹⁴ près. Quatre d'entre elles sont
+   EXACTES depuis la redéfinition du SI de 2019 — c, e, k, Nₐ, h — parce
+   qu'elles définissent les unités au lieu d'être mesurées. */
+const CONSTANTES = {
+  _c:  299792458,             // vitesse de la lumière dans le vide (m/s, exacte)
+  _e:  1.602176634e-19,       // charge élémentaire (C, exacte)
+  _G:  6.6743e-11,            // constante gravitationnelle (m³/kg/s²)
+  _g:  9.80665,               // accélération de la pesanteur (m/s², conventionnelle)
+  _k:  1.380649e-23,          // constante de Boltzmann (J/K, exacte)
+  _ke: 8.9875517923e9,        // constante de Coulomb (N·m²/C²)
+  _me: 9.1093837015e-31,      // masse de l'électron (kg)
+  _mn: 1.67492749804e-27,     // masse du neutron (kg)
+  _mp: 1.67262192369e-27,     // masse du proton (kg)
+  _Na: 6.02214076e23,         // constante d'Avogadro (mol⁻¹, exacte)
+  _R:  8.314462618,           // constante des gaz parfaits (J/mol/K)
+  _eps0: 8.8541878128e-12,    // permittivité du vide (F/m)
+  _mu0: 1.25663706212e-6,     // perméabilité du vide (N/A²)
+  _h:  6.62607015e-34,        // constante de Planck (J·s, exacte)
+};
+
 const MODELES = {
   lineaire:      { titre: "Affine",         forme: "ax + b" },
   proportionnel: { titre: "Linéaire",       forme: "ax" },
@@ -2270,7 +2311,7 @@ const ALGEBRE = {
 /* ═════════════════════ 11. Ce qui sort d'ici ═══════════════════════════ */
 return {
   REGLAGES, contexte, calculer, analyser, evaluer, exacte, formater, fonction, suite,
-  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE,
+  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES,
   /* La liste des fonctions, exportée pour que le banc puisse vérifier
      qu'AUCUNE ne manque au catalogue — et que le catalogue n'en annonce
      aucune qui n'existe pas. */
