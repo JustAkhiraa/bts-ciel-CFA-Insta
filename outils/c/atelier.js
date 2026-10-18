@@ -1027,6 +1027,31 @@
         return;
       }
 
+      /* ── deux espaces ne font pas un point ────────────────────────────
+         Signalé : « si des fois je clic deux fois sur espace ca genere
+         un . ». Ce n'est pas l'éditeur : c'est la substitution du
+         système — « ajouter un point avec deux espaces » — qui remplace
+         la paire d'espaces par « . ». Dans un programme en C, elle
+         frappe à chaque indentation tapée à la main.
+
+         « autocorrect=off » est posé sur le champ depuis le premier jour
+         et ne l'arrête pas : la substitution est faite par la couche de
+         saisie du système, en amont du document. Le seul moyen sûr est
+         de ne pas lui laisser la touche — on écrit l'espace nous-mêmes,
+         et le système n'a plus de paire à reconnaître.
+
+         Uniquement sur un curseur simple précédé d'un espace : c'est le
+         seul cas que le système substitue, et le chemin multi-sélection
+         passe déjà par « frapperPartout », qui empêche la même chose
+         pour la même raison. « remplacer » écrit par execCommand, donc
+         Ctrl+Z défait l'espace comme s'il avait été tapé. */
+      if (e.key === " " && !e.ctrlKey && !e.metaKey && !e.altKey
+          && multi.length < 2 && d === f && d > 0 && t[d - 1] === " ") {
+        e.preventDefault();
+        remplacer(d, f, " ", d + 1, d + 1);
+        return;
+      }
+
       /* ── la frappe quand plusieurs sélections sont posées ─────────────
          Le champ natif n'en connaît qu'une : si on le laissait écrire, il
          ne toucherait que celle-là. On prend donc la main sur les touches
@@ -1379,9 +1404,34 @@
       saisie.focus();
       saisie.setSelectionRange(p, p);
       /* Centrer la ligne visée : un curseur posé hors du cadre visible ne
-         sert à rien. */
-      const h = saisie.scrollHeight / Math.max(1, lignes.length);
-      saisie.scrollTop = Math.max(0, (ligne - 1) * h - saisie.clientHeight / 2);
+         sert à rien.
+
+         Signalé : « quand je fais alt z les lignes ne sont pas les
+         bonnes ». Le curseur, lui, était au bon endroit — c'est le
+         DÉFILEMENT qui montrait ailleurs. Il divisait la hauteur totale
+         par le nombre de lignes, ce qui n'est juste que si chaque ligne
+         occupe exactement une rangée : vrai tant que l'enroulement est
+         éteint, faux dès qu'Alt+Z l'allume. Mesuré sur un programme de
+         huit lignes dont deux s'enroulent : la ligne 4 est à 142 px, la
+         moyenne visait 308 — sept rangées trop bas.
+
+         C'est MOT POUR MOT le défaut du clic dans la marge, corrigé en
+         son temps… dans la marge seulement. La marge, elle, porte déjà
+         la bonne géométrie : ses numéros ont la hauteur des lignes
+         enroulées. On lui demande donc la position au lieu de la
+         recalculer — et la réponse est juste dans les deux modes, y
+         compris sur une ligne vide, qu'aucune mesure de texte ne sait
+         situer. */
+      const nums = marge.children;
+      const premier = nums[0];
+      const vise = nums[Math.min(Math.max(1, ligne), nums.length) - 1];
+      if (premier && vise) {
+        saisie.scrollTop = Math.max(0, vise.offsetTop - premier.offsetTop
+                                       - saisie.clientHeight / 2);
+      } else {
+        const h = saisie.scrollHeight / Math.max(1, lignes.length);
+        saisie.scrollTop = Math.max(0, (ligne - 1) * h - saisie.clientHeight / 2);
+      }
       saisie.dispatchEvent(new Event("scroll"));
     }
 
