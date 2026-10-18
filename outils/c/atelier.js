@@ -1070,6 +1070,87 @@
       marge.scrollTop = saisie.scrollTop;
     });
 
+    /* ── Le défilement pendant une sélection à la souris ───────────────
+       Signalé : « quand je sélectionne et monte le curseur en haut pour
+       que ça sélectionne le haut et que ça scroll auto, ça veut pas
+       scroller. » Mesuré : la sélection s'étend bien — 296 caractères —
+       mais « scrollTop » ne bouge pas d'un pixel. On s'arrête donc à la
+       première ligne visible, et il faut lâcher, remonter à la molette,
+       recommencer.
+
+       Le navigateur ne le fait pas ici ; on le fait. La vitesse suit le
+       dépassement du pointeur hors du champ — quelques pixels par image
+       quand on effleure le bord, quarante quand on tire loin — parce
+       qu'une vitesse fixe est soit trop lente sur un fichier long, soit
+       incontrôlable sur un court.
+
+       La tête de la sélection est posée sur la PREMIÈRE ou la DERNIÈRE
+       ligne visible, lue dans la marge. Pas calculée par division :
+       depuis que les lignes s'enroulent, elles n'ont plus toutes la même
+       hauteur, et une division désignerait n'importe laquelle (§ 47). */
+    let ancreSel = null, filant = false, dernierY = 0;
+
+    function ligneAuBord(versLeHaut) {
+      const nums = marge.children;
+      if (!nums.length) return 0;
+      const base = nums[0].offsetTop;
+      const y = saisie.scrollTop + (versLeHaut ? 0 : saisie.clientHeight);
+      let trouvee = 0;
+      for (let i = 0; i < nums.length; i++) {
+        if (nums[i].offsetTop - base <= y) trouvee = i; else break;
+      }
+      return trouvee;
+    }
+
+    function etendreAuBord(vitesse) {
+      if (ancreSel === null) return;
+      const b = bornesLigne(ligneAuBord(vitesse < 0));
+      const tete = vitesse < 0 ? b.d : b.f;
+      saisie.setSelectionRange(Math.min(ancreSel, tete), Math.max(ancreSel, tete),
+                               tete < ancreSel ? "backward" : "forward");
+      redessiner();
+    }
+
+    function filer() {
+      if (!filant) return;
+      const r = saisie.getBoundingClientRect();
+      const dessus = r.top - dernierY, dessous = dernierY - r.bottom;
+      let v = 0;
+      if (dessus > 0) v = -Math.min(40, 4 + dessus / 2);
+      else if (dessous > 0) v = Math.min(40, 4 + dessous / 2);
+      if (v) {
+        const avant = saisie.scrollTop;
+        saisie.scrollTop += v;
+        /* Seulement si l'on a VRAIMENT bougé : en butée, réécrire la
+           sélection à chaque image la ferait clignoter sans rien gagner. */
+        if (saisie.scrollTop !== avant) etendreAuBord(v);
+      }
+      requestAnimationFrame(filer);
+    }
+
+    saisie.addEventListener("pointerdown", (e) => {
+      /* Souris seulement : au doigt, le glissement fait défiler la page,
+         et s'en mêler casserait un geste qui marche déjà. */
+      if (e.button !== 0 || e.pointerType === "touch") return;
+      dernierY = e.clientY;
+      /* L'ancre se lit APRÈS que le navigateur a posé le curseur, sinon
+         c'est l'ancienne sélection qu'on retiendrait. */
+      requestAnimationFrame(() => { ancreSel = saisie.selectionStart; });
+      const bouger = (ev) => {
+        dernierY = ev.clientY;
+        if (!filant) { filant = true; requestAnimationFrame(filer); }
+      };
+      const lacher = () => {
+        filant = false; ancreSel = null;
+        document.removeEventListener("pointermove", bouger);
+        document.removeEventListener("pointerup", lacher);
+        document.removeEventListener("pointercancel", lacher);
+      };
+      document.addEventListener("pointermove", bouger);
+      document.addEventListener("pointerup", lacher);
+      document.addEventListener("pointercancel", lacher);
+    });
+
     /* ── confort de frappe ────────────────────────────────────────────
        Chaque geste ci-dessous remplace un aller-retour à la souris. Tab
        reste capturé — c'est ce qu'on attend d'un éditeur — mais Échap rend

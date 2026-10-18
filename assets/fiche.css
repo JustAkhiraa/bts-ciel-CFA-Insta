@@ -5852,10 +5852,77 @@ td.etat.sur   { color: var(--vert); }
   display: grid; gap: .9rem;
   grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
 }
+/* ── Le thème de l'atelier pilote TOUT le chrome, pas seulement le code ──
+   Il ne pilotait que deux éléments — le <pre> peint et le flux de la
+   console. Le volet, la barre d'onglet, la marge, les numéros de ligne,
+   le curseur, la sélection et les teintes de la console restaient câblés
+   sur « nuit ». Sur les trois autres thèmes sombres la couture se voyait ;
+   sur « papier » le thème devenait inutilisable : encre 1,09 · numéros
+   2,91 · onglet 1,71 · notes 2,32 — mesuré, pas estimé.
+
+   Une variable par rôle, redéclarée par thème : une pièce de chrome
+   ajoutée plus tard lit la variable et suit les cinq thèmes sans qu'on
+   ait à y penser. Les valeurs par défaut sont celles de « nuit », donc
+   ce thème ne bouge pas d'un pixel. */
+#atelier {
+  --edi-fond:   #23211E;
+  --edi-encre:  #EDE7DC;
+  --edi-barre:  rgba(255,255,255,.055);
+  --edi-trait:  rgba(255,255,255,.09);
+  --edi-filet:  rgba(255,255,255,.07);
+  --edi-voile:  rgba(0,0,0,.18);
+  --edi-num:    #938E86;
+  --edi-onglet: #B8B0A2;
+  --edi-note:   #A79F92;
+  --edi-douce:  #D8D1C4;
+  --edi-ambre:  #F7C46B;
+  --edi-vert:   #9CD67F;
+  --edi-rouge:  #FF9E93;
+  --edi-bleu:   #82AAFF;
+  --edi-caret:  #FFD79A;
+  --edi-select: rgba(130,170,255,.32);
+  --edi-champ:  #1D1B19;
+  --edi-plein-encre: #23211E;   /* encre sur un bouton plein ambre */
+}
+/* Les trois autres thèmes sombres ne changent que le fond : les teintes
+   ci-dessus ont été mesurées sur #23211E, le plus clair des quatre, et
+   elles ne font que gagner sur un fond plus sombre (pire cas : ardoise,
+   numéros de ligne 5,14). */
+#atelier[data-edi-theme="ardoise"]   { --edi-fond: #1E2430; }
+#atelier[data-edi-theme="encre"]     { --edi-fond: #14161A; }
+#atelier[data-edi-theme="contraste"] { --edi-fond: #000000; --edi-encre: #FFFFFF; }
+
+/* « papier » inverse tout : chaque teinte est reprise de la palette
+   d'impression, déjà mesurée, et revérifiée contre SON fond réel — la
+   marge et la barre portent un voile noir, pas blanc.
+     fond #F4F1EC · marge #E8E5E0 · barre #E7E4DF
+     encre 14,25 · numéros 5,44 · onglet 6,29 · notes 6,56 · boutons 7,40
+     ambre 6,04 · vert 5,75 · rouge 6,69 · bleu 6,81 · curseur 4,82 */
+#atelier[data-edi-theme="papier"] {
+  --edi-fond:   #F4F1EC;
+  --edi-encre:  #23211E;
+  --edi-barre:  rgba(0,0,0,.055);
+  --edi-trait:  rgba(0,0,0,.12);
+  --edi-filet:  rgba(0,0,0,.10);
+  --edi-voile:  rgba(0,0,0,.05);
+  --edi-num:    #5F5A52;
+  --edi-onglet: #55504A;
+  --edi-note:   #5A554D;
+  --edi-douce:  #4A463F;
+  --edi-ambre:  #8A4B00;
+  --edi-vert:   #2F6B1E;
+  --edi-rouge:  #A32020;
+  --edi-bleu:   #1D4FA8;
+  --edi-caret:  #9A5B00;
+  --edi-select: rgba(76,125,240,.32);
+  --edi-champ:  #FFFFFF;
+  --edi-plein-encre: #2A1800;
+}
+
 .at-volet {
   display: flex; flex-direction: column; min-width: 0;
   border: 1px solid var(--bord-fort); border-radius: var(--r); overflow: hidden;
-  background: #23211E;
+  background: var(--edi-fond);
   /* « resize » du navigateur plutôt qu'une poignée en JavaScript : c'est la
      même que celle d'un textarea, elle existe déjà dans la tête de tout le
      monde, elle marche au clavier des lecteurs d'écran, et elle ne coûte pas
@@ -5896,7 +5963,7 @@ td.etat.sur   { color: var(--vert); }
 }
 .at-volet-tete {
   display: flex; align-items: center; gap: .5rem; padding: .4rem .7rem;
-  background: rgba(255,255,255,.055); border-bottom: 1px solid rgba(255,255,255,.09);
+  background: var(--edi-barre); border-bottom: 1px solid var(--edi-trait);
 }
 /* Les teintes posées sur ce fond sombre, mesurées contre #23211E — et
    contre #1D1B19 pour la marge, qui porte un voile noir de 18 %.
@@ -5915,7 +5982,7 @@ td.etat.sur   { color: var(--vert); }
    blocs de code plutôt que d'en inventer une. */
 .at-onglet {
   font-family: var(--mono); font-size: .7273rem; font-weight: 600;
-  color: #B8B0A2; letter-spacing: -.01em;
+  color: var(--edi-onglet); letter-spacing: -.01em;
 }
 
 /* ── l'éditeur ───────────────────────────────────────────────────────
@@ -5930,7 +5997,7 @@ td.etat.sur   { color: var(--vert); }
 }
 .edi-marge {
   overflow: hidden; padding: var(--edi-pad) 0;
-  background: rgba(0,0,0,.18); border-right: 1px solid rgba(255,255,255,.07);
+  background: var(--edi-voile); border-right: 1px solid var(--edi-filet);
   text-align: right; user-select: none;
 }
 .edi-num {
@@ -5941,11 +6008,11 @@ td.etat.sur   { color: var(--vert); }
      3,20:1 sur le fond de la marge : sous le seuil AA, sur un texte qu'on
      lit pour se rendre à une ligne d'erreur. #938E86 tient 5,28:1 sur la
      marge et 4,94:1 sur le volet. */
-  color: #938E86; text-align: right;
+  color: var(--edi-num); text-align: right;
 }
 .edi-num.a-erreur, .edi-num.a-avert { font-weight: 700; }
-.edi-num.a-erreur { color: #FF9E93; background: rgba(255,120,110,.16); }
-.edi-num.a-avert  { color: #F7C46B; background: rgba(247,180,90,.14); }
+.edi-num.a-erreur { color: var(--edi-rouge); background: rgba(255,120,110,.16); }
+.edi-num.a-avert  { color: var(--edi-ambre); background: rgba(247,180,90,.14); }
 
 .edi-champ { position: relative; min-width: 0; overflow: hidden; }
 .edi-peint, .edi-saisie {
@@ -5962,14 +6029,21 @@ td.etat.sur   { color: var(--vert); }
      l'impression. C'est cet invariant qui autorise UNE seule palette de
      coloration pour les quarante thèmes. Le rendu est identique — le volet
      porte déjà la même couleur — mais la règle redevient vraie. */
-  background: #23211E; color: #EDE7DC; border-radius: 0; will-change: transform;
+  background: var(--edi-fond); color: var(--edi-encre); border-radius: 0;
+  will-change: transform;
 }
 .edi-saisie {
   position: relative; width: 100%; height: 100%; display: block;
   overflow: auto; resize: none; outline: none;
-  background: transparent; color: transparent; caret-color: #FFD79A;
+  background: transparent; color: transparent; caret-color: var(--edi-caret);
 }
-.edi-saisie::selection { background: rgba(130,170,255,.3); color: transparent; }
+.edi-saisie::selection {
+  background: var(--edi-select);
+  /* WebKit ignore « color » dans ::selection quand le texte porte un
+     « -webkit-text-fill-color » : sans cette seconde ligne, la sélection
+     révèle le texte transparent du textarea PAR-DESSUS la couche peinte. */
+  color: transparent; -webkit-text-fill-color: transparent;
+}
 .edi-saisie:focus { outline: none; }
 .edi-champ:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
 
@@ -5978,18 +6052,18 @@ td.etat.sur   { color: var(--vert); }
 .con-flux {
   min-height: 9rem;
   flex: 1; margin: 0; padding: .8rem .9rem; overflow: auto;
-  background: #23211E; border-radius: 0;   /* même invariant que .edi-peint */
+  background: var(--edi-fond); border-radius: 0;   /* même invariant que .edi-peint */
   font-family: var(--mono); font-size: .8061rem; line-height: 1.6;
-  color: #EDE7DC; white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--edi-encre); white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.con-prog { color: #EDE7DC; }
-.con-prog.con-err { color: #F7C46B; }
-.con-saisie { color: #9CD67F; font-weight: 700; }
+.con-prog { color: var(--edi-encre); }
+.con-prog.con-err { color: var(--edi-ambre); }
+.con-saisie { color: var(--edi-vert); font-weight: 700; }
 .con-saisie::before { content: "› "; opacity: .65; }
-.con-note { color: #A79F92; font-style: italic; }
-.con-note.con-stop { color: #FF9E93; font-style: normal; font-weight: 650; }
-.con-note.con-garde { color: #F7C46B; font-style: normal; font-weight: 650; }
-.con-note.con-info { color: #82AAFF; font-style: normal; }
+.con-note { color: var(--edi-note); font-style: italic; }
+.con-note.con-stop { color: var(--edi-rouge); font-style: normal; font-weight: 650; }
+.con-note.con-garde { color: var(--edi-ambre); font-style: normal; font-weight: 650; }
+.con-note.con-info { color: var(--edi-bleu); font-style: normal; }
 
 .at-entree {
   padding: .55rem .7rem .65rem;
@@ -5997,14 +6071,14 @@ td.etat.sur   { color: var(--vert); }
 }
 .at-entree label {
   display: block; margin-bottom: .35rem;
-  font-size: .7273rem; font-weight: 650; color: #F7C46B;
+  font-size: .7273rem; font-weight: 650; color: var(--edi-ambre);
 }
 .at-entree-rangee { display: flex; gap: .4rem; }
 .at-entree input {
   flex: 1; min-width: 0; min-height: 38px; box-sizing: border-box;
   padding: .4rem .6rem; border-radius: 6px;
   font-family: var(--mono); font-size: .8061rem;
-  background: rgba(0,0,0,.3); color: #EDE7DC;
+  background: var(--edi-voile); color: var(--edi-encre);
   border: 1px solid rgba(255,255,255,.2);
 }
 .at-entree input:focus { outline: none; border-color: #9CD67F; box-shadow: 0 0 0 2px rgba(156,214,127,.25); }
@@ -6015,7 +6089,7 @@ td.etat.sur   { color: var(--vert); }
 }
 .at-entree button:hover { background: var(--accent-sombre); }
 .at-entree .at-eof {
-  background: rgba(255,255,255,.1); color: #D8D1C4;
+  background: var(--edi-barre); color: var(--edi-douce);
   border-color: rgba(255,255,255,.22); font-weight: 600;
 }
 .at-entree .at-eof:hover { background: rgba(255,255,255,.18); color: #fff; }
@@ -6498,7 +6572,7 @@ body.at-fige { overflow: hidden; }
    dans VS Code, et c'est lui qui dit où la frappe va atterrir. */
 .edi-sel {
   background: rgba(130, 170, 255, .3);
-  border-right: 2px solid #FFD79A;
+  border-right: 2px solid var(--edi-caret);
   border-radius: 1px;
 }
 /* Une sélection réduite à un curseur — après avoir tapé — ne doit pas
@@ -6514,7 +6588,7 @@ body.at-fige { overflow: hidden; }
 .edi-etat {
   margin-left: auto;
   font: 600 .7273rem/1.2 var(--mono); letter-spacing: -.01em;
-  color: #B8B0A2;
+  color: var(--edi-onglet);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   max-width: 55%;
 }
@@ -6528,24 +6602,25 @@ body.at-fige { overflow: hidden; }
 }
 .edi-renommer[hidden] { display: none; }
 .edi-renommer label {
-  font-size: .7273rem; color: #B8B0A2; white-space: nowrap;
+  font-size: .7273rem; color: var(--edi-onglet); white-space: nowrap;
 }
 .edi-renommer input {
   font: 500 .7273rem/1 var(--mono);
   padding: .3rem .45rem; width: 9rem; min-width: 5rem;
   border: 1px solid rgba(255,255,255,.22); border-radius: 4px;
-  background: #1D1B19; color: #EDE7DC;
+  background: var(--edi-champ); color: var(--edi-encre);
 }
-.edi-renommer input:focus { outline: 2px solid #FFD79A; outline-offset: 1px; }
-.edi-renommer input[aria-invalid="true"] { border-color: #FF9E93; }
+.edi-renommer input:focus { outline: 2px solid var(--edi-caret); outline-offset: 1px; }
+.edi-renommer input[aria-invalid="true"] { border-color: var(--edi-rouge); }
 /* 34 px : la hauteur minimale d'une commande, règle du site. */
 .edi-renommer button {
   font-size: .7273rem; padding: .34rem .6rem; min-height: 34px;
   border-radius: 4px; border: 1px solid rgba(255,255,255,.22);
-  background: transparent; color: #D8D1C4; cursor: pointer;
+  background: transparent; color: var(--edi-douce); cursor: pointer;
 }
 .edi-renommer button[type="submit"] {
-  background: #F7C46B; border-color: transparent; color: #23211E; font-weight: 600;
+  background: var(--edi-ambre); border-color: transparent;
+  color: var(--edi-plein-encre); font-weight: 600;
 }
 /* Le retour à la ligne : les DEUX couches basculent ensemble. Si le champ
    enroule et que sa peinture ne le fait pas, le texte coloré se décale d'une
@@ -7115,6 +7190,69 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-trace .c3 { stroke: var(--nw-c3); } .nw-trace .c4 { stroke: var(--nw-c4); }
 .nw-trace .aire { fill: var(--nw-c1); opacity: .18; stroke: none; }
 .nw-trace .point { fill: var(--nw-c1); }
+/* Un nuage par série, chacun de la couleur de SA courbe : sans ça, trois
+   séries donnent trois courbes distinctes au-dessus d'un seul tas de
+   points bleus, et on ne sait plus quel point appartient à quoi. */
+.nw-trace .point.c2 { fill: var(--nw-c2); }
+.nw-trace .point.c3 { fill: var(--nw-c3); }
+.nw-trace .point.c4 { fill: var(--nw-c4); }
+/* Les en-têtes du tableau des régressions portent la même couleur : la
+   colonne X2 et la courbe X2 se reconnaissent sans légende. */
+.nw-col-c2 { color: var(--nw-c2); }
+.nw-col-c3 { color: var(--nw-c3); }
+.nw-col-c4 { color: var(--nw-c4); }
+.nw-table-reg th[scope="row"] {
+  text-align: left; font-weight: 500; color: var(--nw-encre-douce);
+  white-space: nowrap;
+}
+/* Le point moyen se distingue des points de mesure : un anneau, pas un
+   disque. La machine fait pareil — il n'appartient pas aux données. */
+.nw-trace .point.nw-moyen { fill: none; stroke-width: 2.5; r: 4.5; }
+.nw-trace .point.nw-moyen.c2 { stroke: var(--nw-c2); }
+.nw-trace .point.nw-moyen.c3 { stroke: var(--nw-c3); }
+.nw-trace .point.nw-moyen.c4 { stroke: var(--nw-c4); }
+.nw-moyenne {
+  margin: .35rem 0 0; padding: .35rem .6rem;
+  background: var(--nw-creuse); border-radius: 6px;
+  font-family: var(--mono); font-size: .7576rem; color: var(--nw-encre);
+}
+.nw-case { display: inline-flex; align-items: center; gap: .3rem; }
+/* La barre de l'onglet Graphique, comme sur la machine : des entrées
+   posées à plat, séparées par rien d'autre que l'espace. Pas des
+   boutons en relief — ce sont des rubriques, et la machine les montre
+   ainsi. */
+.nw-barre-outils {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .15rem;
+  margin: 0 0 .5rem; padding: .25rem 0;
+  border-bottom: 1px solid var(--nw-filet);
+}
+.nw-outil {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .3rem .6rem; min-height: 32px;
+  border: 0; border-radius: 7px; background: none; cursor: pointer;
+  font: inherit; font-size: .7879rem; color: var(--nw-encre);
+}
+.nw-outil:hover { background: var(--nw-creuse); }
+.nw-outil:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nw-outil.nw-ouvert {
+  background: var(--nw-choix); color: var(--nw-sur-choix); font-weight: 600;
+}
+/* La pastille d'« Auto » : allumée ou éteinte. Un cercle vide dit
+   « éteint » plus clairement qu'un cercle absent, qui dit « rien ». */
+.nw-pastille {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid var(--nw-encre-douce);
+}
+.nw-pastille.nw-allumee { background: var(--nw-choix); border-color: var(--nw-choix); }
+.nw-panneau {
+  margin: 0 0 .5rem; padding: .5rem .6rem;
+  background: var(--nw-creuse); border-radius: 8px;
+}
+.nw-court { width: 5.5ch; }
+.nw-equation {
+  margin: .5rem 0 0; font-family: var(--mono); font-size: .8061rem;
+  color: var(--nw-encre);
+}
 .nw-trace .barre { fill: var(--nw-c1); }
 .nw-trace .barre-choisie { fill: var(--nw-choix); stroke: var(--nw-encre); stroke-width: .8; }
 .nw-trace .curseur { stroke: var(--nw-encre); stroke-width: 1; stroke-dasharray: 3 2; }
@@ -7499,14 +7637,6 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
        encre     fond #14161A   pire teinte 5,50
        contraste fond #000000   pire teinte 6,38
        papier    fond #F4F1EC   pire teinte 4,78  (la palette d'impression) */
-#atelier[data-edi-theme="ardoise"]   .edi-peint,
-#atelier[data-edi-theme="ardoise"]   .con-flux { background: #1E2430; color: #E3E8F0; }
-#atelier[data-edi-theme="encre"]     .edi-peint,
-#atelier[data-edi-theme="encre"]     .con-flux { background: #14161A; color: #E8E6E1; }
-#atelier[data-edi-theme="contraste"] .edi-peint,
-#atelier[data-edi-theme="contraste"] .con-flux { background: #000000; color: #FFFFFF; }
-#atelier[data-edi-theme="papier"]    .edi-peint,
-#atelier[data-edi-theme="papier"]    .con-flux { background: #F4F1EC; color: #23211E; }
 
 /* Papier inverse le fond : la palette d'écran y passerait sous le seuil.
    Ce sont les teintes déjà mesurées pour l'impression. */
@@ -7599,16 +7729,42 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 .kit-encart h3 { margin: 0 0 .4rem; font-size: .9394rem; color: var(--encre); }
 .kit-encart p { margin: .35rem 0 0; }
 .kit-rap { margin: .7rem 0 0; font-size: .8485rem; color: var(--encre-douce); }
-.kit-fin {
-  margin: 2.6rem 0 1rem; padding: 1.2rem 1.3rem;
-  background: var(--carte-creuse); border: 1px dashed var(--bord-fort);
-  border-radius: 15px;
-}
-.kit-fin h2 { margin: 0 0 .5rem; font-size: 1.0909rem; }
-.kit-fin p { margin: .4rem 0 0; }
 @media (max-width: 480px) {
-  .kit-carte, .kit-encart, .kit-fin { padding: .85rem .9rem; }
+  .kit-carte, .kit-encart { padding: .85rem .9rem; }
 }
+
+
+/* ── Le rail de section ──────────────────────────────────────────────────
+   Repris de getartcraft.com : là-bas chaque chapitre porte sa barre
+   collante, et elles se chassent l'une l'autre. Ici une seule barre dont
+   le texte change — répéter trente-sept fois le titre dans le document
+   l'alourdirait pour rien, et le ferait lire deux fois.
+
+   Le fond reprend la recette de « .app-tete » : elle est déjà éprouvée sur
+   les quarante thèmes, y compris ceux qui posent une image de fond, où un
+   aplat opaque ferait une bande. */
+.rail {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: baseline; gap: .6rem;
+  margin: 0 0 1.1rem; padding: .45rem .7rem;
+  background: color-mix(in srgb, var(--papier) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border-bottom: 1px solid var(--bord); border-radius: 0 0 8px 8px;
+  font-family: var(--mono); font-size: .7273rem; letter-spacing: .04em;
+  color: var(--encre-douce); line-height: 1.5;
+}
+.rail[hidden] { display: none; }
+.rail .r-num { font-weight: 700; color: var(--accent-sombre); flex: none; }
+.rail .r-titre {
+  flex: 1; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; color: var(--encre);
+}
+/* « tabular-nums » : sans lui, le compteur saute d'un pixel à chaque
+   changement de section — un mouvement qu'on ne regarde pas mais qu'on
+   voit. */
+.rail .r-tot { flex: none; font-variant-numeric: tabular-nums; }
+@media print { .rail { display: none; } }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────

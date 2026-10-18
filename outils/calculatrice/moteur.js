@@ -792,6 +792,11 @@ const ALIAS = {
   "partieentiere": "floor", "ent": "floor", "plancher": "floor",
   "plafond": "ceil", "troncature": "trunc", "arrondi": "round",
   "factorielle": "fact",
+  "asinh": "argsh", "acosh": "argch", "atanh": "argth",
+  "argsinh": "argsh", "argcosh": "argch", "argtanh": "argth",
+  "secante": "sec", "sécante": "sec", "cosecante": "csc", "cosécante": "csc",
+  "cotangente": "cot", "cotan": "cot",
+  "arcsecante": "arcsec", "arccosecante": "arccsc", "arccotangente": "arccot",
   "combinaison": "combinaison", "ncr": "combinaison", "binome": "combinaison",
   "arrangement": "arrangement", "npr": "arrangement",
   "pgcd": "pgcd", "gcd": "pgcd", "ppcm": "ppcm", "lcm": "ppcm",
@@ -826,6 +831,7 @@ const ALIAS = {
 const N_FONCTIONS = new Set([
   "sqrt", "abs", "floor", "ceil", "trunc", "round", "fact", "exp", "ln", "log",
   "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh",
+  "argsh", "argch", "argth", "sec", "csc", "cot", "arcsec", "arccsc", "arccot",
   "combinaison", "arrangement", "pgcd", "ppcm", "mod", "quotient",
   "derivee", "integrale", "somme", "produit", "min", "max", "signe",
   "moyenne", "ecartType", "variance", "mediane",
@@ -936,7 +942,16 @@ function analyser(src) {
       if (/^[A-Za-zα-ωΑ-Ω][0-9]?$/.test(brut) || brut === "ans" || brut === "Ans") {
         return { t: "var", n: brut === "Ans" ? "ans" : brut };
       }
+      /* Les constantes physiques. Le souligné les distingue des mémoires —
+         « e » appartient à l'utilisateur, « _e » est la charge élémentaire. */
+      if (Object.prototype.hasOwnProperty.call(CONSTANTES, brut)) {
+        return { t: "var", n: brut };
+      }
       if (bas === "e") return { t: "var", n: "e" };
+      if (brut[0] === "_") {
+        return rater("« " + brut + " » n'est pas une constante connue. Les constantes "
+                     + "sont " + Object.keys(CONSTANTES).join(", ") + ".");
+      }
       return rater("« " + brut + " » : je ne connais pas ce nom. "
                    + "Les fonctions s'écrivent avec des parenthèses, et les variables "
                    + "sont des lettres seules.");
@@ -1038,6 +1053,9 @@ function evaluer(noeud, ctx) {
     case "var": {
       const n = noeud.n;
       if (n === "e") return Math.E;
+      /* Les constantes AVANT les mémoires : « _c » n'est pas un nom qu'on
+         peut ranger, et le lui laisser prendre rendrait la table muette. */
+      if (Object.prototype.hasOwnProperty.call(CONSTANTES, n)) return CONSTANTES[n];
       if (ctx.vars && ctx.vars.has(n)) return ctx.vars.get(n);
       if (ctx.locales && n in ctx.locales) return ctx.locales[n];
       boum("La variable « " + n + " » n'a pas de valeur. "
@@ -1208,6 +1226,44 @@ function appeler(noeud, ctx, R) {
     case "sinh": return Math.sinh(n1("Le sinus hyperbolique"));
     case "cosh": return Math.cosh(n1("Le cosinus hyperbolique"));
     case "tanh": return Math.tanh(n1("La tangente hyperbolique"));
+    /* Les réciproques hyperboliques. La machine les nomme « argument
+       cosinus hyperbolique » et non « arc » : ce ne sont pas des angles,
+       et le domaine n'est pas le même — d'où des refus différents. */
+    case "argsh": return Math.asinh(n1("L'argument sinus hyperbolique"));
+    case "argch": { const x = n1("L'argument cosinus hyperbolique");
+      if (x < 1) boum("L'argument cosinus hyperbolique n'accepte qu'un nombre ⩾ 1.");
+      return Math.acosh(x); }
+    case "argth": { const x = n1("L'argument tangente hyperbolique");
+      if (x <= -1 || x >= 1)
+        boum("L'argument tangente hyperbolique n'accepte qu'un nombre strictement "
+             + "entre −1 et 1.");
+      return Math.atanh(x); }
+    /* Les trois inverses. Elles ne valent pas « 1/sin » posé tel quel :
+       il faut refuser là où la fonction du dessous s'annule, sinon on
+       rend l'infini sans rien dire. */
+    case "sec": { const x = versRadian(n1("La sécante"), R.angle);
+      const c = Math.cos(x);
+      if (Math.abs(c) < 1e-15) boum("La sécante n'existe pas là : le cosinus y est nul.");
+      return 1 / c; }
+    case "csc": { const x = versRadian(n1("La cosécante"), R.angle);
+      const v = Math.sin(x);
+      if (Math.abs(v) < 1e-15) boum("La cosécante n'existe pas là : le sinus y est nul.");
+      return 1 / v; }
+    case "cot": { const x = versRadian(n1("La cotangente"), R.angle);
+      const v = Math.sin(x);
+      if (Math.abs(v) < 1e-15) boum("La cotangente n'existe pas là : le sinus y est nul.");
+      return Math.cos(x) / v; }
+    case "arcsec": { const x = n1("L'arc sécante");
+      if (Math.abs(x) < 1) boum("L'arc sécante n'accepte qu'un nombre de valeur absolue ⩾ 1.");
+      return depuisRadian(Math.acos(1 / x), R.angle); }
+    case "arccsc": { const x = n1("L'arc cosécante");
+      if (Math.abs(x) < 1) boum("L'arc cosécante n'accepte qu'un nombre de valeur absolue ⩾ 1.");
+      return depuisRadian(Math.asin(1 / x), R.angle); }
+    /* arccot sur ]0 ; π[ — la convention continue, celle de la machine.
+       « atan(1/x) » aurait sauté de π en 0 et donné un angle négatif
+       pour x < 0, ce qu'aucun énoncé n'attend. */
+    case "arccot": { const x = n1("L'arc cotangente");
+      return depuisRadian(Math.PI / 2 - Math.atan(x), R.angle); }
     case "combinaison": {
       nbArgs("Une combinaison", 2, 2);
       const n = ev(A[0]), k = ev(A[1]);
@@ -1938,9 +1994,43 @@ function moindresCarres(A, y) {
   return x;
 }
 
+/* Les noms sont ceux de la machine, et ils sont aussi les bons : en français,
+   « linéaire » désigne x ↦ ax et « affine » désigne x ↦ ax + b. Nous avions
+   l'inverse — un élève qui lisait « Linéaire » ici et choisissait « Linéaire »
+   sur sa NumWorks ne prenait pas le même modèle. Les CLÉS ne bougent pas : une
+   mémoire enregistrée avant la correction désigne toujours son modèle. */
+/* ── Les constantes physiques ────────────────────────────────────────────
+   Celles de la machine, aux mêmes valeurs (CODATA 2018). Le souligné
+   initial est la convention de la NumWorks, et il sert à quelque chose :
+   les lettres seules — A, B, … Z — sont les mémoires de l'utilisateur, et
+   « c » ou « e » lui appartiennent. Sans préfixe, ranger 5 dans « e »
+   aurait écrasé la charge élémentaire.
+
+   Les valeurs se recoupent entre elles, ce qui est le seul contrôle qui
+   vaille sur une table recopiée : 1/(4π·ε₀) redonne kₑ aux dix chiffres,
+   et 1/(ε₀·μ₀) redonne c² à 4·10⁻¹⁴ près. Quatre d'entre elles sont
+   EXACTES depuis la redéfinition du SI de 2019 — c, e, k, Nₐ, h — parce
+   qu'elles définissent les unités au lieu d'être mesurées. */
+const CONSTANTES = {
+  _c:  299792458,             // vitesse de la lumière dans le vide (m/s, exacte)
+  _e:  1.602176634e-19,       // charge élémentaire (C, exacte)
+  _G:  6.6743e-11,            // constante gravitationnelle (m³/kg/s²)
+  _g:  9.80665,               // accélération de la pesanteur (m/s², conventionnelle)
+  _k:  1.380649e-23,          // constante de Boltzmann (J/K, exacte)
+  _ke: 8.9875517923e9,        // constante de Coulomb (N·m²/C²)
+  _me: 9.1093837015e-31,      // masse de l'électron (kg)
+  _mn: 1.67492749804e-27,     // masse du neutron (kg)
+  _mp: 1.67262192369e-27,     // masse du proton (kg)
+  _Na: 6.02214076e23,         // constante d'Avogadro (mol⁻¹, exacte)
+  _R:  8.314462618,           // constante des gaz parfaits (J/mol/K)
+  _eps0: 8.8541878128e-12,    // permittivité du vide (F/m)
+  _mu0: 1.25663706212e-6,     // perméabilité du vide (N/A²)
+  _h:  6.62607015e-34,        // constante de Planck (J·s, exacte)
+};
+
 const MODELES = {
-  lineaire:      { titre: "Linéaire",       forme: "ax + b" },
-  proportionnel: { titre: "Proportionnelle", forme: "ax" },
+  lineaire:      { titre: "Affine",         forme: "ax + b" },
+  proportionnel: { titre: "Linéaire",       forme: "ax" },
   quadratique:   { titre: "Quadratique",    forme: "ax² + bx + c" },
   cubique:       { titre: "Cubique",        forme: "ax³ + bx² + cx + d" },
   quartique:     { titre: "Quartique",      forme: "ax⁴ + bx³ + cx² + dx + e" },
@@ -1950,6 +2040,13 @@ const MODELES = {
   puissance:     { titre: "Puissance",      forme: "a·xᵇ" },
   trigonometrique:{ titre: "Trigonométrique", forme: "a·sin(bx + c) + d" },
   logistique:    { titre: "Logistique",     forme: "c / (1 + a·e^(−bx))" },
+  /* Médiane-médiane : le treizième modèle de la machine, et le seul qui ne
+     passe pas par les moindres carrés. On coupe le nuage en trois paquets
+     d'effectifs aussi égaux que possible, on prend le point médian de chacun,
+     et la droite passe par les deux paquets extrêmes puis se décale d'un tiers
+     vers celui du milieu. Un point aberrant pèse alors sur une médiane, pas
+     sur une moyenne : la droite ne part pas avec lui. */
+  medianeMediane:{ titre: "Médiane-médiane", forme: "ax + b" },
 };
 
 function ajuster(xs, ys, modele) {
@@ -1991,6 +2088,34 @@ function ajuster(xs, ys, modele) {
       if (sxx === 0) { res = { erreur: "Toutes les abscisses sont nulles." }; break; }
       const a = sxy / sxx;
       res = { params: [a], f: (x) => a * x };
+      break;
+    }
+    case "medianeMediane": {
+      /* Les trois paquets de la méthode : on trie par abscisse, puis on répartit
+         n points en trois groupes dont les effectifs ne diffèrent jamais de plus
+         de un — reste 0, 1 ou 2, et c'est le groupe du MILIEU qui grossit, comme
+         le veut la méthode. */
+      const P = X.map((x, i) => [x, Y[i]]).sort((u, v) => u[0] - v[0]);
+      if (P.length < 3) { res = { erreur: "Il faut au moins trois points." }; break; }
+      const q = Math.floor(P.length / 3), r = P.length % 3;
+      const t1 = q + (r === 2 ? 1 : 0);
+      const t2 = q + (r >= 1 ? 1 : 0);
+      const paquets = [P.slice(0, t1), P.slice(t1, t1 + t2), P.slice(t1 + t2)];
+      const med = (v) => {
+        const w = v.slice().sort((p, q2) => p - q2), m = w.length >> 1;
+        return w.length % 2 ? w[m] : (w[m - 1] + w[m]) / 2;
+      };
+      const S = paquets.map((g) => [med(g.map((p) => p[0])), med(g.map((p) => p[1]))]);
+      if (S[2][0] === S[0][0]) {
+        res = { erreur: "Ces points ne déterminent pas ce modèle (abscisses confondues)." };
+        break;
+      }
+      const a0 = (S[2][1] - S[0][1]) / (S[2][0] - S[0][0]);
+      /* L'ordonnée à l'origine est la MOYENNE des trois, ce qui revient à
+         décaler d'un tiers la droite des extrêmes vers le point du milieu. */
+      const b0 = (S[0][1] - a0 * S[0][0] + S[1][1] - a0 * S[1][0]
+                + S[2][1] - a0 * S[2][0]) / 3;
+      res = { params: [a0, b0], f: (x) => a0 * x + b0 };
       break;
     }
     case "logarithmique":
@@ -2230,7 +2355,7 @@ const ALGEBRE = {
 /* ═════════════════════ 11. Ce qui sort d'ici ═══════════════════════════ */
 return {
   REGLAGES, contexte, calculer, analyser, evaluer, exacte, formater, fonction, suite,
-  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE,
+  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES,
   /* La liste des fonctions, exportée pour que le banc puisse vérifier
      qu'AUCUNE ne manque au catalogue — et que le catalogue n'en annonce
      aucune qui n'existe pas. */

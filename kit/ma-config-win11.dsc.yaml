@@ -1,0 +1,455 @@
+# =============================================================================
+# CONFIGURATION DSC POUR WINDOWS 11 - INSTALLATION AUTOMATISÉE COMPLÈTE
+# =============================================================================
+# Fichier : ma-config-win11.dsc.yaml
+# Objectif : Déployer automatiquement 35 applications via Winget Package Manager
+# Prérequis : Windows 11 avec Winget préinstallé
+# Exécution : winget configure -f .\ma-config-win11.dsc.yaml (en administrateur)
+# =============================================================================
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+#
+# Origine : configuration partagée dans le salon de la promotion.
+# Deux écarts avec l'original, assumés ici :
+#   • Python passe de 3.10 à 3.14, la dernière branche publiée dans winget ;
+#   • OnlyOffice (ONLYOFFICE.DesktopEditors) est ajouté à la bureautique.
+
+configurationVersion: 0.2.0
+
+properties:
+  resources:
+    # =========================================================================
+    # SECTION 1 : DÉVELOPPEMENT & PROGRAMMATION
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: VisualStudioCode
+      directives:
+        securityContext: elevated  # Installation système pour tous les utilisateurs
+      settings:
+        id: Microsoft.VisualStudioCode
+        source: winget
+      metadata:
+        category: "développement"
+        priority: "haute"
+        description: "Éditeur de code polyvalent avec extensions"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NodeJS
+      directives:
+        securityContext: elevated
+      settings:
+        id: OpenJS.NodeJS
+        source: winget
+      metadata:
+        category: "développement"
+        description: "Runtime JavaScript pour applications serveur"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Python
+      directives:
+        securityContext: elevated
+      settings:
+        id: Python.Python.3.14
+        source: winget
+      metadata:
+        category: "développement"
+        description: "Langage de programmation Python 3.14"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Git
+      directives:
+        securityContext: elevated
+      settings:
+        id: Git.Git
+        source: winget
+      metadata:
+        category: "développement"
+        priority: "haute"
+        description: "Contrôle de version distribué"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Postman
+      directives:
+        securityContext: elevated
+      settings:
+        id: Postman.Postman
+        source: winget
+      metadata:
+        category: "développement"
+        description: "Client API pour tests HTTP/REST"
+
+    # =========================================================================
+    # SECTION 2 : NAVIGATEURS WEB & COMMUNICATION
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Firefox
+      directives:
+        securityContext: elevated
+      settings:
+        id: Mozilla.Firefox
+        source: winget
+      metadata:
+        category: "navigation"
+        description: "Navigateur web open source"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Brave
+      directives:
+        securityContext: elevated
+      settings:
+        id: Brave.Brave
+        source: winget
+      metadata:
+        category: "navigation"
+        description: "Navigateur privé avec bloqueur de pubs"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Discord
+      directives:
+        securityContext: elevated
+      settings:
+        id: Discord.Discord
+        source: winget
+      metadata:
+        category: "communication"
+        description: "Messagerie vocale et textuelle"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Telegram
+      directives:
+        securityContext: elevated
+      settings:
+        id: Telegram.TelegramDesktop
+        source: winget
+      metadata:
+        category: "communication"
+        description: "Client desktop pour Telegram"
+
+    # =========================================================================
+    # SECTION 3 : RÉSEAU, VPN & VIRTUALISATION (élévation obligatoire)
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: ProtonVPN
+      directives:
+        securityContext: elevated  # Pilote réseau requis
+      settings:
+        id: Proton.ProtonVPN
+        source: winget
+      metadata:
+        category: "réseau"
+        security: "pilote-tun"
+        description: "Client VPN avec chiffrement"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Wireshark
+      directives:
+        securityContext: elevated  # Pilote Npcap requis
+      settings:
+        id: WiresharkFoundation.Wireshark
+        source: winget
+      metadata:
+        category: "réseau"
+        security: "pilote-npcap"
+        description: "Analyseur de paquets réseau"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: VirtualBox
+      directives:
+        securityContext: elevated  # Pilotes virtualisation
+      settings:
+        id: Oracle.VirtualBox
+        source: winget
+      metadata:
+        category: "virtualisation"
+        security: "pilote-hyperv"
+        description: "Hyperviseur open source"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: VMWarePlayer
+      directives:
+        securityContext: elevated  # Pilotes virtualisation
+      settings:
+        id: VMware.WorkstationPlayer
+        source: winget
+      metadata:
+        category: "virtualisation"
+        description: "Player VMware gratuit"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: CiscoPacketTracer
+      directives:
+        securityContext: elevated  # Simulation réseau avancée
+      settings:
+        id: Cisco.PacketTracer
+        source: winget
+      metadata:
+        category: "réseau"
+        description: "Simulateur réseau Cisco"
+
+    # =========================================================================
+    # SECTION 4 : SÉCURITÉ & GESTION D'IDENTITÉS
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Bitwarden
+      directives:
+        securityContext: elevated
+      settings:
+        id: Bitwarden.Bitwarden
+        source: winget
+      metadata:
+        category: "sécurité"
+        priority: "haute"
+        description: "Gestionnaire de mots de passe"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: KeePassXC
+      directives:
+        securityContext: elevated
+      settings:
+        id: KeePassXC.KeePassXC
+        source: winget
+      metadata:
+        category: "sécurité"
+        description: "Base de données mots de passe offline"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: CrystalDiskInfo
+      directives:
+        securityContext: elevated  # Accès bas niveau aux disques
+      settings:
+        id: CrystalDewWorld.CrystalDiskInfo
+        source: winget
+      metadata:
+        category: "système"
+        description: "Surveillance santé des disques"
+
+    # =========================================================================
+    # SECTION 5 : UTILITAIRES SYSTÈME & PRODUCTIVITÉ
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: PowerToys
+      directives:
+        securityContext: elevated  # Intégration système profonde
+      settings:
+        id: Microsoft.PowerToys
+        source: winget
+      metadata:
+        category: "productivité"
+        description: "Suite d'utilitaires Microsoft"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: 7Zip
+      directives:
+        securityContext: elevated
+      settings:
+        id: 7zip.7zip
+        source: winget
+      metadata:
+        category: "compression"
+        description: "Archiveur 7-Zip classique"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NanaZip
+      directives:
+        securityContext: elevated
+      settings:
+        id: M2Team.NanaZip
+        source: winget
+      metadata:
+        category: "compression"
+        description: "Archiveur moderne Windows 11"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: PuTTY
+      directives:
+        securityContext: elevated
+      settings:
+        id: PuTTY.PuTTY
+        source: winget
+      metadata:
+        category: "réseau"
+        description: "Client SSH/Telnet"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Spacedesk
+      directives:
+        securityContext: elevated  # Pilote d'affichage
+      settings:
+        id: Datronicsoft.SpacedeskViewer.Client.Beta
+        source: winget
+      metadata:
+        category: "affichage"
+        description: "Écran réseau multi-moniteur"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RustDesk
+      directives:
+        securityContext: elevated  # Service système
+      settings:
+        id: RustDesk.RustDesk
+        source: winget
+      metadata:
+        category: "accès-distant"
+        description: "Alternative open source à TeamViewer"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Rufus
+      directives:
+        securityContext: elevated  # Accès disques bruts
+      settings:
+        id: Rufus.Rufus
+        source: winget
+      metadata:
+        category: "système"
+        description: "Créateur de supports bootables"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Ventoy
+      directives:
+        securityContext: elevated  # Accès disques bruts
+      settings:
+        id: Ventoy.Ventoy
+        source: winget
+      metadata:
+        category: "système"
+        description: "Multi-boot sur clé USB"
+
+    # =========================================================================
+    # SECTION 6 : MULTIMÉDIA, JEUX & BUREAUTIQUE
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: LibreOffice
+      directives:
+        securityContext: elevated
+      settings:
+        id: LibreOffice.LibreOffice
+        source: winget
+      metadata:
+        category: "bureautique"
+        description: "Suite Office gratuite"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: OnlyOffice
+      directives:
+        securityContext: elevated
+      settings:
+        id: ONLYOFFICE.DesktopEditors
+        source: winget
+      metadata:
+        category: "bureautique"
+        description: "Suite bureautique compatible avec les formats Office"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Steam
+      directives:
+        securityContext: elevated
+      settings:
+        id: Valve.Steam
+        source: winget
+      metadata:
+        category: "jeux"
+        description: "Plateforme de jeux Steam"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: PaintDotNet
+      directives:
+        securityContext: elevated
+      settings:
+        id: dotPDN.PaintDotNet
+        source: winget
+      metadata:
+        category: "graphisme"
+        description: "Éditeur d'images .NET"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: VLC
+      directives:
+        securityContext: elevated
+      settings:
+        id: VideoLAN.VLC
+        source: winget
+      metadata:
+        category: "multimédia"
+        priority: "haute"
+        description: "Lecteur multimédia universel"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: iTunes
+      directives:
+        securityContext: elevated  # Services Apple
+      settings:
+        id: Apple.iTunes
+        source: winget
+      metadata:
+        category: "multimédia"
+        description: "Gestionnaire média Apple"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Stremio
+      directives:
+        securityContext: elevated
+      settings:
+        id: Stremio.Stremio
+        source: winget
+      metadata:
+        category: "streaming"
+        description: "Agrégateur de contenu vidéo"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: JellyfinPlayer
+      directives:
+        securityContext: elevated
+      settings:
+        id: Jellyfin.JellyfinMediaPlayer
+        source: winget
+      metadata:
+        category: "streaming"
+        description: "Client pour serveur Jellyfin"
+
+    # =========================================================================
+    # SECTION 7 : TÉLÉCHARGEMENT & PARTAGE
+    # =========================================================================
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: qBittorrent
+      directives:
+        securityContext: elevated
+      settings:
+        id: qBittorrent.qBittorrent
+        source: winget
+      metadata:
+        category: "téléchargement"
+        description: "Client BitTorrent open source"
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: JDownloader2
+      directives:
+        securityContext: elevated  # Service de téléchargement
+      settings:
+        id: AppWork.JDownloader
+        source: winget
+      metadata:
+        category: "téléchargement"
+        description: "Gestionnaire de téléchargement"
+
+# =============================================================================
+# INSTRUCTIONS D'EXÉCUTION
+# =============================================================================
+# 1. Sauvegarder ce fichier sous : ma-config-win11.dsc.yaml
+# 2. Ouvrir PowerShell en tant qu'Administrateur
+# 3. Exécuter la commande suivante :
+#
+#    winget configure --file .\ma-config-win11.dsc.yaml
+#
+#    ou version courte :
+#    winget configure -f .\ma-config-win11.dsc.yaml
+#
+# 4. Patienter pendant l'installation des 35 applications
+#
+# NOTES IMPORTANTES :
+# - Tous les paquets ont securityContext: elevated pour une installation système
+# - L'installation se fait dans C:\Program Files\ (pour la plupart)
+# - Temps d'installation estimé : 15-30 minutes selon la connexion
+# - Redémarrage possible après installation des pilotes (VirtualBox, Wireshark)
+# =============================================================================
+# STATISTIQUES :
+# - Total applications : 35
+# - Catégories : 7

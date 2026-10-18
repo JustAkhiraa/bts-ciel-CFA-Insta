@@ -10,7 +10,7 @@
 <link rel="icon" href="assets/logo-classe.jpg">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-180.png">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="assets/fiche.css?v=1cd45f8e">
+<link rel="stylesheet" href="assets/fiche.css?v=cfed4fa2">
 </head>
 <body data-matiere="dev">
 
@@ -245,14 +245,41 @@
        d'un fichier de configuration. Plus de « je retélécharge tout un par un » après un
        formatage.</p>
     <div class="bloc-code"><span class="langue">bash</span><pre><code>winget configure -f .\ma-config-win11.dsc.yaml</code></pre></div>
-    <p>Le fichier liste les paquets par identifiant. La configuration tenue par la promotion
-       en compte <strong>trente-quatre</strong> :</p>
+    <p>Encore faut-il avoir le fichier. Le voici, prêt à l'emploi :</p>
+    <p class="kit-lien"><a href="kit/ma-config-win11.dsc.yaml" download>Télécharger
+       <code>ma-config-win11.dsc.yaml</code></a> — 455 lignes, 35 applications.</p>
+    <p>Il n'a rien de mystérieux : c'est <strong>un bloc par application</strong>, toujours
+       la même forme, précédé de deux lignes d'en-tête.</p>
+    <div class="bloc-code"><span class="langue">yaml</span><pre><code># yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+configurationVersion: 0.2.0
+
+properties:
+  resources:
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Python
+      directives:
+        securityContext: elevated
+      settings:
+        id: Python.Python.3.14
+        source: winget
+      metadata:
+        category: "développement"
+        description: "Langage de programmation Python 3.14"</code></pre></div>
+    <p>Deux lignes comptent vraiment. <code>settings.id</code> est l'identifiant winget du
+       paquet — c'est lui qui décide ce qui s'installe. <code>securityContext: elevated</code>
+       installe pour toute la machine, et c'est ce qui oblige à lancer PowerShell en
+       administrateur.</p>
+    <p>Pour enlever une application, on supprime son bloc. Pour en ajouter une,
+       on recopie un bloc et on change les deux <code>id</code> ; l'identifiant exact se
+       trouve avec <code>winget search nom-du-logiciel</code>.</p>
+    <p>La configuration tenue par la promotion compte <strong>trente-cinq</strong>
+       applications :</p>
     <div class="tableau">
       <table>
         <thead><tr><th>Catégorie</th><th>Applications</th></tr></thead>
         <tbody>
           <tr><td>Développement</td>
-              <td>Visual Studio Code · Node.js · Python 3.10 · Git · Postman</td></tr>
+              <td>Visual Studio Code · Node.js · Python 3.14 · Git · Postman</td></tr>
           <tr><td>Navigateurs et communication</td>
               <td>Firefox · Brave · Discord · Telegram Desktop</td></tr>
           <tr><td>Réseau et virtualisation</td>
@@ -264,8 +291,8 @@
               <td>PowerToys · 7-Zip · NanaZip · PuTTY · Spacedesk Viewer · RustDesk ·
                   Rufus · Ventoy</td></tr>
           <tr><td>Multimédia et bureautique</td>
-              <td>LibreOffice · Steam · Paint.NET · VLC · iTunes · Stremio ·
-                  Jellyfin Media Player</td></tr>
+              <td>LibreOffice · <strong>OnlyOffice</strong> · Steam · Paint.NET · VLC ·
+                  iTunes · Stremio · Jellyfin Media Player</td></tr>
           <tr><td>Téléchargement</td>
               <td>qBittorrent · JDownloader 2</td></tr>
         </tbody>
@@ -277,7 +304,7 @@
          VirtualBox, VS Code et Git. Les autres sont un confort personnel — on prend ce qu'on
          veut et on laisse le reste.</p>
       <p class="kit-rap">Et la commande ne s'exécute pas les yeux fermés : elle installe
-         trente-quatre logiciels sur la machine, en administrateur. On lit le fichier avant,
+         trente-cinq logiciels sur la machine, en administrateur. On lit le fichier avant,
          on retire ce qu'on ne connaît pas.</p>
     </div>
   </section>
@@ -292,23 +319,30 @@
       <p class="kit-lien"><a href="https://distrosea.com/fr/">distrosea.com</a></p>
     </div>
     <div class="kit-carte">
+      <h3>Une suite créative libre, en treize applications</h3>
+      <p class="kit-quoi"><strong>ArtCraft</strong> — treize applications open source écrites
+         en Rust : image, vectoriel, vidéo, PDF, mise en page, maquette d'interface, audio,
+         présentation, CAO, tableur. Gratuites, sans abonnement.</p>
+      <p class="kit-rap">Deux précisions avant de se lancer. L'application principale existe
+         pour <strong>Windows, macOS et le navigateur</strong> ; le lanceur des treize
+         « Craft Apps », lui, n'est pour l'instant proposé qu'en image disque <strong>macOS</strong>.
+         Et elle n'est pas dans winget : elle ne figure donc pas dans le fichier de la section 6,
+         on l'installe à la main. Les générations par IA se paient en crédits — le reste du
+         logiciel s'utilise sans abonnement.</p>
+      <p class="kit-lien"><a href="https://getartcraft.com/">getartcraft.com</a> ·
+         <a href="https://getartcraft.com/apps">les treize applications</a> ·
+         <a href="https://github.com/storytold/artcraft">le code source</a></p>
+    </div>
+    <div class="kit-carte">
       <h3>Apprendre Python en jouant</h3>
-      <p class="kit-quoi">Une application mobile qui fait écrire du vrai Python sous forme de
-         jeu. À faire dans les transports plutôt que de relire un cours sur un écran de
-         téléphone.</p>
+      <p class="kit-quoi"><strong>Citizen Code</strong> — une application mobile gratuite qui
+         fait écrire du vrai Python sous forme de jeu. À faire dans les transports plutôt que
+         de relire un cours sur un écran de téléphone.</p>
+      <p class="kit-lien"><a href="https://apps.apple.com/fr/app/id6749066871">iPhone et
+         iPad</a> · <a href="https://play.google.com/store/apps/details?id=com.Tralalere.CitizenCode&amp;hl=fr">Android</a></p>
     </div>
   </section>
 
-  <div class="kit-fin">
-    <h2>Ce guide n'est pas fini</h2>
-    <p>Tout ce qui est écrit ici vient de ce que des étudiants de la promotion utilisent
-       vraiment. Si vous avez une idée, une astuce ou une correction,
-       <strong>ajoutez-la dans le salon de la classe</strong> : elle arrivera ici à la
-       prochaine mise à jour.</p>
-    <p class="kit-rap">Les outils de ce site complètent le kit :
-       <a href="outils/index.html">la boîte à outils</a> pour les calculs, les masques et le
-       C, et <a href="index.html">les fiches</a> pour le cours lui-même.</p>
-  </div>
 </main>
 
 <footer class="app-pied">
@@ -321,7 +355,7 @@
   </p>
 </footer>
 
-<script src="assets/app.js?v=1cd45f8e"></script>
+<script src="assets/app.js?v=cfed4fa2"></script>
 <script>if("serviceWorker" in navigator){addEventListener("load",function(){
   navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
 </body>
