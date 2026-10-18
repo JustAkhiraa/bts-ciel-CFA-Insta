@@ -1273,12 +1273,23 @@
           + l("effectif total N", R.N) + l("somme Σxᵢnᵢ", R.somme)
           + l("Σxᵢ²nᵢ", R.sommeCarres) + l("moyenne x̄", R.moyenne)
           + l("variance V", R.variance) + l("écart type σ", R.ecartType)
+          /* La machine donne la variance d'échantillon à côté de son écart
+             type ; nous calculions la première depuis toujours sans jamais
+             l'afficher. s² est ce qu'un sujet demande quand il parle d'un
+             ÉCHANTILLON et non d'une population. */
+          + l("variance s² (échantillon)", R.varianceEch)
           + l("écart type s (échantillon)", R.ecartTypeEch)
           + l("minimum", R.min) + l("maximum", R.max) + l("étendue", R.etendue)
           + l("premier quartile Q1", R.q1) + l("médiane Me", R.mediane)
           + l("troisième quartile Q3", R.q3) + l("écart interquartile", R.interquartile)
           + '<dt>mode</dt><dd>' + ech(R.modes.length === R.paires.length ? "aucun"
               : R.modes.map((m) => fmt(m)).join(" · ")) + '</dd>'
+          /* L'effectif du mode : « 4 » ne dit pas si la valeur revient deux
+             fois ou trente. La machine l'affiche, et c'est lui qui dit si le
+             mode veut dire quelque chose. */
+          + (R.modes.length === R.paires.length ? ""
+             : '<dt>effectif du mode Nm</dt><dd>'
+               + ech(fmt(Math.max(...R.paires.map((p) => p[1])))) + '</dd>')
           + '</dl>'
           + '<p class="nw-sous"><b>Convention française des quartiles</b> : Q1 est la plus '
           + 'petite valeur telle qu\'au moins un quart de l\'effectif lui est inférieur ou '
