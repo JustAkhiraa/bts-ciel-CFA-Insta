@@ -81,7 +81,7 @@ def verifier_champs(objet, attendus, ou, pbs):
     if inconnus:
         pbs.append(f"{ou} : champ(s) inconnu(s) {', '.join(inconnus)} — "
                    "vérifiez qu'aucun n'est une donnée personnelle, "
-                   "puis ajoutez-le à la liste blanche de planning.py")
+                   "puis ajoutez-le à CHAMPS_* dans planning_noyau.py")
 
 
 def salle_de(c, pbs, ou):
