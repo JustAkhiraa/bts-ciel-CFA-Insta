@@ -66,7 +66,12 @@
     regression: {
       series: [{ X: [1, 2, 3, 4, 5, 6], Y: [2.1, 3.9, 6.2, 8.1, 9.8, 12.2],
                  modele: "lineaire" }],
-      actif: 0, pred: "",
+      actif: 0, pred: "", predY: "", pointMoyen: true,
+      /* La barre de l'onglet Graphique, comme sur la machine :
+         « Auto » cadre tout seul, « Axes » ouvre la fenêtre à la main,
+         « Naviguer » promène un curseur de point en point. */
+      auto: true, panneau: "", curseur: null,
+      fenetre: { xmin: "-10", xmax: "10", ymin: "-10", ymax: "10" },
     },
     probas: { loi: "binomiale", n: 10, p: 0.3, mu: 0, sigma: 1, lambda: 0.25,
               a: 0, b: 1, N: 49, K: 6, nu: 10, d1: 3, d2: 12,
@@ -497,8 +502,14 @@
 
   /* ═══════════════ 4. Le routage et le rendu ═════════════════════════ */
   const APPS = {};          // rempli par les sections suivantes
-  const ORDRE = ["calculs", "fonctions", "suites", "stats", "regression",
-                 "probas", "equations", "reglages"];
+  /* L'ordre de la machine, pas le nôtre. Un élève qui a la NumWorks en main
+     retrouve ses applications à la place où il a l'habitude de les voir — et
+     l'accueil est justement l'écran qu'on traverse sans lire. Les quatre
+     applications que la machine a en plus (Python, Éléments, Inférence,
+     Finance) laissent un trou dans la grille : il est assumé, et dit sur la
+     page plutôt que caché par un réarrangement. */
+  const ORDRE = ["calculs", "fonctions", "stats", "probas", "equations",
+                 "suites", "regression", "reglages"];
   let courante = "accueil", choisi = 0;
 
   function aller(cle) {
@@ -829,7 +840,7 @@
   }
 
   APPS.fonctions = {
-    nom: "Fonctions", icone: "f(x)",
+    nom: "Grapheur", icone: "f(x)",
     chapitre: ["03-fonctions-variations", "Fonctions et variations"],
     html() {
       const vue = ETAT.onglets.fonctions;
@@ -1426,60 +1437,127 @@
           + '</option>').join("")
         + '</select>';
 
-      /* ── Graphique : tous les nuages, toutes les courbes ─────────── */
+      /* ── Graphique : la barre de la machine, puis le tracé ───────── */
       if (vue === "graphique") {
         const tous = deux.filter(Boolean);
         if (!tous.length) {
           return onglets + '<p class="nw-vide">Il faut au moins deux points '
             + 'complets pour tracer quoi que ce soit.</p>';
         }
-        /* La fenêtre englobe l'ORIGINE, comme le mode « Auto » de la machine.
-           Cadrée sur les seules données, elle ne montrait ni axes ni zéro : le
-           nuage flottait sur une grille, et on ne pouvait pas lire b. */
-        const xs = [].concat(...tous.map((d) => d.X), 0);
-        const ys = [].concat(...tous.map((d) => d.Y), 0);
+        const j = G.actif, r = ajust[j], d = deux[j];
+
+        /* La barre : quatre entrées, dans l'ordre de la machine. « Auto »
+           porte une pastille allumée ou éteinte — c'est un état, pas une
+           action, et la machine le montre ainsi. */
+        const barre = '<div class="nw-barre-outils" role="toolbar">'
+          + '<button type="button" class="nw-outil" id="nw-auto" aria-pressed="'
+          + (G.auto ? "true" : "false") + '">Auto <span class="nw-pastille'
+          + (G.auto ? " nw-allumee" : "") + '" aria-hidden="true"></span></button>'
+          + ['axes', "Axes", "naviguer", "Naviguer", "regression", "Régression"]
+              .reduce((acc, _, i, t) => i % 2 ? acc.concat([[t[i - 1], t[i]]]) : acc, [])
+              .map(([cle, lib]) => '<button type="button" class="nw-outil'
+                + (G.panneau === cle ? " nw-ouvert" : "") + '" data-panneau="' + cle
+                + '" aria-expanded="' + (G.panneau === cle) + '">' + lib + '</button>')
+              .join("")
+          + '</div>';
+
+        /* La fenêtre : cadrée sur les données ET l'origine tant qu'« Auto »
+           est allumé — sans l'origine, le nuage flotte sur une grille et on
+           ne peut pas lire b. Éteint, ce sont les bornes de « Axes ». */
+        const brut = (v, repli) => {
+          const x = nombreSaisi(String(v));
+          return x === null ? repli : x;
+        };
+        const xs = [].concat(...tous.map((e) => e.X), 0);
+        const ys = [].concat(...tous.map((e) => e.Y), 0);
         const dx = Math.max(1e-9, Math.max(...xs) - Math.min(...xs));
         const dy = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
+        let F;
+        if (G.auto) {
+          F = { xmin: Math.min(...xs) - dx * 0.1, xmax: Math.max(...xs) + dx * 0.1,
+                ymin: Math.min(...ys) - dy * 0.15, ymax: Math.max(...ys) + dy * 0.15 };
+        } else {
+          F = { xmin: brut(G.fenetre.xmin, -10), xmax: brut(G.fenetre.xmax, 10),
+                ymin: brut(G.fenetre.ymin, -10), ymax: brut(G.fenetre.ymax, 10) };
+          if (F.xmax <= F.xmin) { F.xmin = -10; F.xmax = 10; }
+          if (F.ymax <= F.ymin) { F.ymin = -10; F.ymax = 10; }
+        }
+
         const points = [];
-        deux.forEach((d, j) => {
-          if (d) d.X.forEach((x, i) => points.push({ x, y: d.Y[i], classe: COUL_SERIE[j] }));
+        deux.forEach((e, k) => {
+          if (e) e.X.forEach((x, i) => points.push({ x, y: e.Y[i], classe: COUL_SERIE[k] }));
         });
         /* Le point moyen (x̄ ; ȳ) : la machine le marque, et toute droite des
-           moindres carrés y passe — c'est la vérification visuelle la plus
-           rapide qu'un ajustement affine n'est pas aberrant. */
+           moindres carrés y passe — la vérification visuelle la plus rapide
+           qu'un ajustement affine n'est pas aberrant. */
         if (G.pointMoyen !== false) {
-          deux.forEach((d, j) => {
-            if (d) points.push({ x: d.moyenneX, y: d.moyenneY,
-                                 classe: COUL_SERIE[j] + " nw-moyen" });
+          deux.forEach((e, k) => {
+            if (e) points.push({ x: e.moyenneX, y: e.moyenneY,
+                                 classe: COUL_SERIE[k] + " nw-moyen" });
           });
         }
+        /* Le curseur de « Naviguer » : un point de la série active. */
+        let vise = null;
+        if (G.panneau === "naviguer" && d) {
+          const i = Math.min(Math.max(0, G.curseur | 0), d.X.length - 1);
+          vise = { i, x: d.X[i], y: d.Y[i] };
+        }
         const svg = tracer({
-          xmin: Math.min(...xs) - dx * 0.1, xmax: Math.max(...xs) + dx * 0.1,
-          ymin: Math.min(...ys) - dy * 0.15, ymax: Math.max(...ys) + dy * 0.15,
-          courbes: ajust.map((r, j) => r.erreur ? null : { f: r.f, classe: COUL_SERIE[j] })
+          xmin: F.xmin, xmax: F.xmax, ymin: F.ymin, ymax: F.ymax,
+          courbes: ajust.map((e, k) => e.erreur ? null : { f: e.f, classe: COUL_SERIE[k] })
                         .filter(Boolean),
           points: points,
+          curseur: vise ? { x: vise.x, y: vise.y } : null,
           aide: "Nuage de points, point moyen et courbes ajustées",
         });
-        const j = G.actif, r = ajust[j], d = deux[j];
-        return onglets
-          + '<div class="nw-rangee">' + choixSerie
-          + '<label for="nw-modele">modèle</label>'
-          + '<select class="nw-petit" id="nw-modele">'
-          + Object.keys(CALC.MODELES).map((k) => '<option value="' + k + '"'
-            + (G.series[j].modele === k ? " selected" : "") + '>'
-            + ech(CALC.MODELES[k].titre) + ' — ' + ech(CALC.MODELES[k].forme)
-            + '</option>').join("")
-          + '</select>'
-          + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
-          + (G.pointMoyen !== false ? " checked" : "") + '> Point moyen</label>'
-          + '</div>'
-          + svg
+
+        /* Le panneau ouvert sous la barre — un seul à la fois, comme un menu. */
+        let panneau = "";
+        if (G.panneau === "axes") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + ["xmin", "xmax", "ymin", "ymax"].map((c) =>
+                '<label for="nw-f-' + c + '">' + c + '</label>'
+                + '<input type="text" class="nw-petit nw-court" id="nw-f-' + c
+                + '" data-fenetre="' + c + '" value="' + ech(G.fenetre[c]) + '"'
+                + (G.auto ? " disabled" : "") + '>').join("")
+            + '</div>'
+            + (G.auto ? '<p class="nw-sous">« Auto » est allumé : la fenêtre suit '
+                        + 'les données. Éteignez-le pour saisir des bornes.</p>' : "")
+            + '</div>';
+        } else if (G.panneau === "naviguer") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + choixSerie
+            + '<button type="button" class="nw-bouton" id="nw-prec">◀ précédent</button>'
+            + '<button type="button" class="nw-bouton" id="nw-suiv">suivant ▶</button>'
+            + '</div></div>';
+        } else if (G.panneau === "regression") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">' + choixSerie
+            + '<label for="nw-modele">modèle</label>'
+            + '<select class="nw-petit" id="nw-modele">'
+            + Object.keys(CALC.MODELES).map((k) => '<option value="' + k + '"'
+              + (G.series[j].modele === k ? " selected" : "") + '>'
+              + ech(CALC.MODELES[k].titre) + ' — ' + ech(CALC.MODELES[k].forme)
+              + '</option>').join("")
+            + '</select>'
+            + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
+            + (G.pointMoyen !== false ? " checked" : "") + '> Point moyen</label>'
+            + '</div></div>';
+        }
+
+        /* Le bandeau du bas : ce que la machine y met — le point visé quand on
+           navigue, le point moyen sinon. */
+        const bandeau = vise
+          ? '<p class="nw-moyenne">Point ' + (vise.i + 1) + ' sur ' + d.X.length
+            + ' &#8195; x = ' + ech(fmt(vise.x)) + ' &#8195; y = ' + ech(fmt(vise.y))
+            + (r.erreur ? "" : ' &#8195; résidu = ' + ech(fmt(vise.y - r.f(vise.x)))) + '</p>'
+          : (d ? '<p class="nw-moyenne">Point moyen &#8195; x&#772; = ' + ech(fmt(d.moyenneX))
+                 + ' &#8195; y&#772; = ' + ech(fmt(d.moyenneY)) + '</p>' : "");
+
+        return onglets + barre + panneau + svg
           + '<p class="nw-equation">' + (r.erreur
               ? '<b>Les données ne conviennent pas</b> — ' + ech(r.erreur)
               : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)) + '</p>'
-          + (d ? '<p class="nw-moyenne">Point moyen &#8195; x&#772; = ' + ech(fmt(d.moyenneX))
-                 + ' &#8195; y&#772; = ' + ech(fmt(d.moyenneY)) + '</p>' : "")
+          + bandeau
           + '<div class="nw-rangee" style="margin-top:.6rem">'
           + '<label for="nw-pred">prédiction sachant X</label>'
           + '<input type="text" class="nw-petit" id="nw-pred" value="' + ech(G.pred || "") + '">'
@@ -1496,15 +1574,14 @@
               ? (() => {
                   const y = nombreSaisi(G.predY);
                   if (y === null) return "—";
-                  /* On cherche x tel que f(x) = y en balayant la fenêtre puis
-                     en coupant en deux. Sans monotonie garantie — la
-                     trigonométrique n'en a pas — c'est le PREMIER x trouvé, et
-                     la machine dit la même chose : « dans cette fenêtre ». */
-                  const a0 = Math.min(...xs) - dx * 0.1, b0 = Math.max(...xs) + dx * 0.1;
+                  /* On cherche x tel que f(x) = y en balayant la fenêtre puis en
+                     coupant en deux. Sans monotonie garantie — la trigonométrique
+                     n'en a pas — c'est le PREMIER x trouvé, et la machine dit la
+                     même chose : « dans cette fenêtre ». */
                   const g = (x) => r.f(x) - y;
-                  let pa = a0, ga = g(a0), trouve = null;
+                  let pa = F.xmin, ga = g(F.xmin), trouve = null;
                   for (let k = 1; k <= 600; k++) {
-                    const pb = a0 + (b0 - a0) * k / 600, gb = g(pb);
+                    const pb = F.xmin + (F.xmax - F.xmin) * k / 600, gb = g(pb);
                     if (Number.isFinite(ga) && Number.isFinite(gb) && ga * gb <= 0) {
                       let lo = pa, hi = pb;
                       for (let it = 0; it < 80; it++) {
@@ -1626,6 +1703,28 @@
         G.series.pop();
         G.actif = Math.min(G.actif, G.series.length - 1); garder(); redessiner();
       });
+      const au = $("#nw-auto");
+      if (au) au.addEventListener("click", () => {
+        G.auto = !G.auto; garder(); redessiner();
+      });
+      $$("[data-panneau]", page).forEach((b2) => b2.addEventListener("click", () => {
+        /* Un deuxième clic referme : c'est un menu, pas un onglet. */
+        G.panneau = G.panneau === b2.dataset.panneau ? "" : b2.dataset.panneau;
+        if (G.panneau === "naviguer" && G.curseur === null) G.curseur = 0;
+        garder(); redessiner();
+      }));
+      $$("[data-fenetre]", page).forEach((c) => c.addEventListener("change", () => {
+        G.fenetre[c.dataset.fenetre] = c.value; garder(); redessiner();
+      }));
+      const pas = (sens) => {
+        const S = G.series[G.actif];
+        const n = CALC.STATS.deuxVariables(S.X, S.Y);
+        if (!n) return;
+        G.curseur = Math.min(Math.max(0, (G.curseur | 0) + sens), n.X.length - 1);
+        garder(); redessiner();
+      };
+      const pv = $("#nw-prec"); if (pv) pv.addEventListener("click", () => pas(-1));
+      const sv = $("#nw-suiv"); if (sv) sv.addEventListener("click", () => pas(1));
       const pm = $("#nw-moyen");
       if (pm) pm.addEventListener("change", () => {
         G.pointMoyen = pm.checked; garder(); redessiner();
@@ -1896,7 +1995,7 @@
 
   /* ═══════════════ 12. Équations ═════════════════════════════════════ */
   APPS.equations = {
-    nom: "Équations", icone: "x=?",
+    nom: "Equations", icone: "x=?",
     chapitre: ["03-fonctions-variations", "Fonctions et variations"],
     html() {
       const E = ETAT.equations;
@@ -2042,7 +2141,7 @@
 
   /* ═══════════════ 13. Réglages ══════════════════════════════════════ */
   APPS.reglages = {
-    nom: "Réglages", icone: "⚙",
+    nom: "Paramètres", icone: "⚙",
     html() {
       const R = ETAT.reglages;
       const seg = (nom, valeurs, actuel) => valeurs.map(([v, t]) =>
