@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : compilation, types, opérateurs, printf et scanf, conditions et boucles, les fonctions et les tableaux, puis les pointeurs, l'allocation dynamique (malloc, calloc, free) et les structures.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=da7e9d94">
+<link rel="stylesheet" href="../../assets/fiche.css?v=1cd45f8e">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -46,6 +46,13 @@
     <li><a href="#tableaux-structures">28 · Un tableau de structures</a></li>
     <li><a href="#structures-fonctions">29 · <code>.</code> ou <code>-&gt;</code></a></li>
     <li><a href="#typedef">30 · Alléger, imbriquer, allouer</a></li>
+    <li><a href="#chaines">31 · Une chaîne est un tableau de <code>char</code></a></li>
+    <li><a href="#zero-final">32 · Le <code>'\0'</code> : la marque de fin</a></li>
+    <li><a href="#afficher-chaine">33 · <code>%s</code> et <code>%c</code></a></li>
+    <li><a href="#saisir-chaine">34 · <code>scanf</code>, <code>fgets</code></a></li>
+    <li><a href="#string-h">35 · Les quatre fonctions de <code>&lt;string.h&gt;</code></a></li>
+    <li><a href="#strcmp">36 · <code>strcmp</code> : le piège du <code>0</code></a></li>
+    <li><a href="#parcourir-chaine">37 · Parcourir caractère par caractère</a></li>
   </ol>
 </nav>
 
@@ -3024,6 +3031,278 @@ Moyenne : 15.50</code></pre></div>
   </div>
 </section>
 
+<section id="chaines">
+  <h2><span class="num">31</span>Une chaîne, c'est un tableau de <code>char</code></h2>
+
+  <p>Le C n'a pas de type « chaîne de caractères ». Il a des tableaux, et des
+     <code>char</code> : une chaîne est un <strong>tableau de caractères</strong>, et rien
+     d'autre. Tout ce qui suit découle de cette seule phrase.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];             <span class="j-com">/* 30 cases, chacune un caractere */</span>
+<span class="j-typ">char</span> <span class="j-var">mot</span>[] <span class="j-op">=</span> <span class="j-txt">"Salut"</span>;     <span class="j-com">/* le compilateur compte pour vous */</span></code></pre></div>
+  <p>Une chaîne peut contenir des lettres, des chiffres, des espaces et des caractères
+     spéciaux — <code>"BTS CIEL"</code> et <code>"12345"</code> sont des chaînes tout
+     autant que <code>"Bonjour"</code>.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🔗 Une rangée de casiers</div>
+    <p>Chaque case du tableau contient <strong>un</strong> caractère, comme une rangée de
+       casiers portant chacun une lettre. Ce qui fait la chaîne, ce n'est pas le tableau :
+       c'est la <strong>marque de fin</strong> posée dans le casier d'après.</p>
+  </div>
+</section>
+
+<section id="zero-final">
+  <h2><span class="num">32</span>Le <code>'\0'</code> : la marque de fin</h2>
+
+  <p>Rien, dans un tableau, ne dit où la chaîne s'arrête. Le C résout cela par une
+     convention : la chaîne se termine par le caractère spécial <code>'\0'</code>, dit
+     <strong>caractère de fin de chaîne</strong>.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">char</span> <span class="j-var">mot</span>[] <span class="j-op">=</span> <span class="j-txt">"Salut"</span>;
+
+<span class="j-com">/*  s  |  a  |  l  |  u  |  t  | \0   &lt;- 6 cases pour 5 lettres */</span></code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Il faut TOUJOURS une case de plus</div>
+    <p>« Un mot de 49 caractères maximum » se déclare <code>char mot[50]</code> : 49
+       lettres <strong>plus</strong> le <code>'\0'</code>. Oublier cette case est l'erreur
+       la plus fréquente du chapitre, et elle ne se voit pas tout de suite — le programme
+       écrit dans la case d'après, qui appartient à quelqu'un d'autre.</p>
+  </div>
+
+  <p>Deux écritures équivalentes, et la seconde montre ce que fait vraiment la première :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">char</span> <span class="j-var">nom</span>[] <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;
+<span class="j-typ">char</span> <span class="j-var">nom</span>[] <span class="j-op">=</span> {<span class="j-txt">'A'</span>, <span class="j-txt">'l'</span>, <span class="j-txt">'i'</span>, <span class="j-txt">'c'</span>, <span class="j-txt">'e'</span>, <span class="j-txt">'\0'</span>};   <span class="j-com">/* exactement la meme chose */</span></code></pre></div>
+  <p>Et si l'on précise une taille plus grande, <strong>les cases restantes sont remplies de
+     <code>'\0'</code></strong> :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">20</span>] <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;   <span class="j-com">/* A l i c e \0 \0 \0 ... jusqu'a la 20e case */</span></code></pre></div>
+</section>
+
+<section id="afficher-chaine">
+  <h2><span class="num">33</span>Afficher : <code>%s</code> et <code>%c</code></h2>
+
+  <p>Deux formats, et il ne faut pas les confondre : <code>%s</code> affiche
+     <strong>une chaîne</strong>, <code>%c</code> affiche <strong>un seul
+     caractère</strong>.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">lettre</span> <span class="j-op">=</span> <span class="j-txt">'A'</span>;          <span class="j-com">/* apostrophes simples : UN caractere  */</span>
+    <span class="j-typ">char</span> <span class="j-var">mot</span>[] <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;       <span class="j-com">/* guillemets : une CHAINE             */</span>
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"%c\n"</span>, <span class="j-var">lettre</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s\n"</span>, <span class="j-var">mot</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>A
+Alice</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>'A'</code> et <code>"A"</code> ne sont pas la même chose</div>
+    <p><code>'A'</code> est un caractère : une case. <code>"A"</code> est une chaîne : deux
+       cases, le <code>A</code> et le <code>'\0'</code>. Le compilateur ne les accepte pas
+       aux mêmes endroits, et c'est lui qui vous le dira.</p>
+  </div>
+</section>
+
+<section id="saisir-chaine">
+  <h2><span class="num">34</span>Saisir : <code>scanf</code> s'arrête à l'espace</h2>
+
+  <p><code>scanf("%s", chaine)</code> lit une chaîne au clavier. Deux choses à remarquer, et
+     la seconde est un piège d'examen.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre nom : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%s"</span>, <span class="j-var">nom</span>);                 <span class="j-com">/* pas de &amp; : voir l'encart */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Bonjour %s !\n"</span>, <span class="j-var">nom</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi pas de <code>&amp;</code> devant <code>nom</code> ?</div>
+    <p>Parce qu'un tableau <strong>est déjà une adresse</strong> — c'est tout le chapitre
+       sur les pointeurs qui ressort ici. <code>scanf("%d", &amp;age)</code> a besoin du
+       <code>&amp;</code> parce qu'<code>age</code> est une variable ordinaire ;
+       <code>nom</code>, lui, désigne déjà l'endroit où écrire.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La lecture s'arrête au premier espace</div>
+    <p>Avec <code>%s</code>, la lecture s'arrête dès qu'elle rencontre un <strong>espace, une
+       tabulation ou un retour à la ligne</strong>. Taper <code>Jean Dupont</code> ne range
+       que <code>Jean</code> — et <code>Dupont</code> reste dans le tampon, prêt à être lu
+       par le <code>scanf</code> suivant, qui semblera alors « ne pas attendre ».</p>
+  </div>
+
+  <p>D'où la seconde fonction, <code>fgets</code>, qui lit la ligne <strong>entière</strong>
+     et à qui l'on donne la taille du tableau :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">50</span>];
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre nom : "</span>);
+    <span class="j-fn">fgets</span>(<span class="j-var">nom</span>, <span class="j-num">50</span>, <span class="j-var">stdin</span>);            <span class="j-com">/* stdin : le clavier */</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Bonjour %s"</span>, <span class="j-var">nom</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <p class="rap"><code>fgets</code> lit <code>Jean Dupont</code> en entier. En contrepartie
+     il <strong>garde le retour à la ligne</strong> dans la chaîne — c'est la raison pour
+     laquelle le <code>printf</code> ci-dessus n'a pas de <code>\n</code>.</p>
+</section>
+
+<section id="string-h">
+  <h2><span class="num">35</span>Les quatre fonctions de <code>&lt;string.h&gt;</code></h2>
+
+  <p>Elles font ce qu'un opérateur ferait dans un autre langage. En C, <code>=</code> et
+     <code>==</code> ne marchent pas sur des chaînes — il faut ces fonctions, et il faut
+     inclure <code>&lt;string.h&gt;</code>.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Ce que chacune fait, et ce qu'elle rend</caption>
+      <thead><tr><th>Fonction</th><th>Rôle</th><th>Valeur rendue</th></tr></thead>
+      <tbody>
+        <tr><td><code>strlen(ch)</code></td><td>la longueur</td>
+            <td>un <code>size_t</code> — <strong>sans compter le <code>'\0'</code></strong></td></tr>
+        <tr><td><code>strcpy(dest, src)</code></td><td>copier <em>en remplaçant</em></td>
+            <td>— (on l'utilise pour son effet)</td></tr>
+        <tr><td><code>strcat(dest, src)</code></td><td>coller <em>à la suite</em></td>
+            <td>—</td></tr>
+        <tr><td><code>strcmp(a, b)</code></td><td>comparer</td>
+            <td><strong>0 si identiques</strong>, non nul sinon</td></tr>
+      </tbody>
+    </table>
+  </div>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">source</span>[] <span class="j-op">=</span> <span class="j-txt">"Bonjour"</span>;
+    <span class="j-typ">char</span> <span class="j-var">destination</span>[<span class="j-num">20</span>];
+    <span class="j-typ">char</span> <span class="j-var">prenom</span>[<span class="j-num">50</span>] <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[] <span class="j-op">=</span> <span class="j-txt">" Dupont"</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur : %zu\n"</span>, <span class="j-fn">strlen</span>(<span class="j-var">source</span>));
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">destination</span>, <span class="j-var">source</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Copie    : %s\n"</span>, <span class="j-var">destination</span>);
+
+    <span class="j-fn">strcat</span>(<span class="j-var">prenom</span>, <span class="j-var">nom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Colle    : %s\n"</span>, <span class="j-var">prenom</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>Longueur : 7
+Copie    : Bonjour
+Colle    : Alice Dupont</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>%zu</code>, et non <code>%d</code>, pour <code>strlen</code></div>
+    <p><code>strlen</code> rend un <code>size_t</code>, qui n'est pas un <code>int</code>.
+       Le format correct est <strong><code>%zu</code></strong>. Avec <code>%d</code>, le
+       compilateur avertit et l'affichage peut être faux.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La destination doit être assez grande — personne ne vérifie</div>
+    <p><code>strcpy</code> et <code>strcat</code> écrivent sans se demander s'il y a la
+       place. <code>char prenom[50] = "Alice"</code> peut recevoir <code>" Dupont"</code> ;
+       un <code>char prenom[6]</code> aurait débordé, sans le moindre message. C'est pour
+       cela que la destination se déclare large.</p>
+    <p class="rap">Et <code>strcat</code> <strong>ajoute</strong> là où <code>strcpy</code>
+       <strong>remplace</strong> : c'est la seule différence entre les deux, et elle est
+       entière.</p>
+  </div>
+</section>
+
+<section id="strcmp">
+  <h2><span class="num">36</span><code>strcmp</code> : le piège du <code>0</code></h2>
+
+  <p>Pour savoir si deux chaînes sont identiques, on ne peut pas écrire
+     <code>nom1 == nom2</code> : cela comparerait deux <strong>adresses</strong>, pas deux
+     contenus. On compare avec <code>strcmp</code> — qui rend <strong>0 quand elles sont
+     identiques</strong>.</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">nom1</span>[] <span class="j-op">=</span> <span class="j-txt">"Alice"</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom2</span>[] <span class="j-op">=</span> <span class="j-txt">"Sara"</span>;
+
+    <span class="j-mc">if</span> (<span class="j-fn">strcmp</span>(<span class="j-var">nom1</span>, <span class="j-var">nom2</span>) <span class="j-op">==</span> <span class="j-num">0</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms sont identiques.\n"</span>);
+    } <span class="j-mc">else</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms ne sont pas identiques.\n"</span>);
+    }
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>Les deux noms ne sont pas identiques.</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Zéro veut dire « égales », et c'est contre-intuitif</div>
+    <p>Partout ailleurs en C, <code>0</code> veut dire <em>faux</em>. Ici il veut dire
+       <em>identiques</em>. Écrire <code>if (strcmp(a, b))</code> teste donc exactement le
+       contraire de ce qu'on croit : la condition est vraie quand les chaînes sont
+       <strong>différentes</strong>.</p>
+    <p class="rap">On écrit toujours la comparaison en entier :
+       <code>strcmp(a, b) == 0</code> pour « identiques »,
+       <code>strcmp(a, b) != 0</code> pour « différentes ».</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 La valeur non nulle n'est pas portable, son SIGNE l'est</div>
+    <p><code>strcmp("Dupont", "Durand")</code> rend <code>−2</code> sur cette machine :
+       <code>'p'</code> vaut 112, <code>'r'</code> vaut 114, et la fonction s'arrête au
+       premier caractère qui diffère. Mais la norme ne garantit que le
+       <strong>signe</strong> — négatif si la première chaîne vient avant dans l'ordre
+       alphabétique, positif sinon.</p>
+    <p class="rap">Donc jamais <code>if (strcmp(a, b) == -1)</code>. On teste
+       <code>&lt; 0</code>, <code>== 0</code> ou <code>&gt; 0</code>.</p>
+  </div>
+</section>
+
+<section id="parcourir-chaine">
+  <h2><span class="num">37</span>Parcourir caractère par caractère</h2>
+
+  <p>Puisqu'une chaîne est un tableau, on la parcourt avec une boucle. Et puisqu'elle se
+     termine par <code>'\0'</code>, on sait quand s'arrêter <strong>sans connaître sa
+     longueur</strong> :</p>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">mot</span>[] <span class="j-op">=</span> <span class="j-txt">"Bonjour"</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-mc">while</span> (<span class="j-var">mot</span>[<span class="j-var">i</span>] <span class="j-op">!=</span> <span class="j-txt">'\0'</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%c\n"</span>, <span class="j-var">mot</span>[<span class="j-var">i</span>]);
+        <span class="j-var">i</span><span class="j-op">++</span>;
+    }
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>B
+o
+n
+j
+o
+u
+r</code></pre></div>
+  <div class="encart savoir">
+    <div class="titre">💡 Deux façons de s'arrêter, et elles ne coûtent pas pareil</div>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-mc">while</span> (<span class="j-var">mot</span>[<span class="j-var">i</span>] <span class="j-op">!=</span> <span class="j-txt">'\0'</span>)              <span class="j-com">/* on s'arrete sur la marque de fin */</span>
+
+<span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-fn">strlen</span>(<span class="j-var">mot</span>); <span class="j-var">i</span><span class="j-op">++</span>)   <span class="j-com">/* on appelle strlen a CHAQUE tour */</span></code></pre></div>
+    <p>La seconde relit toute la chaîne à chaque tour pour en recompter la longueur. Sur un
+       mot de 25 lettres, cela fait 25 parcours au lieu d'un. Si l'on veut la forme
+       <code>for</code>, on range la longueur avant :
+       <code>size_t n = strlen(mot);</code> puis <code>i &lt; n</code>.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -3134,7 +3413,7 @@ Moyenne : 15.50</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=da7e9d94"></script>
-<script src="../../assets/app.js?v=da7e9d94"></script>
+<script src="../../assets/fiche.js?v=1cd45f8e"></script>
+<script src="../../assets/app.js?v=1cd45f8e"></script>
 </body>
 </html>

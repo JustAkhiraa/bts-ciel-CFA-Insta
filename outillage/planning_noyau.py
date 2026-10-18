@@ -28,7 +28,14 @@ CHAMPS_CRENEAU = {"_id", "__v", "start", "end", "courseId", "promoId", "room",
                   "attendanceType", "name", "capacity", "campus"}
 CHAMPS_COURS   = {"name", "yearNumber", "_id", "__v"}
 CHAMPS_PROMO   = {"name", "diplomaName", "major", "option", "_id", "__v"}
-CHAMPS_CAMPUS  = {"_id", "name", "__v", "address"}
+# « address », « googleMapsLink » et « phone » sont RECONNUS pour ne pas
+# arrêter le script, et ne sortent jamais : seul « name » est repris plus
+# bas. Les deux derniers sont apparus dans la réponse de l'API le 16 octobre
+# 2026 et ont fait échouer l'Action — ce qui est exactement ce qu'on lui
+# demande. Un numéro de téléphone qui part en ligne sans que personne l'ait
+# décidé est précisément le risque que cette liste blanche existe pour
+# couvrir ; on l'acquitte ici, on ne le publie pas.
+CHAMPS_CAMPUS  = {"_id", "name", "__v", "address", "googleMapsLink", "phone"}
 CHAMPS_SALLE   = {"_id", "__v", "name", "capacity", "campus"}
 
 

@@ -228,7 +228,13 @@
 
     function redessiner() {
       const t = saisie.value;
+      deplacerSurlignages(texteConnu, t);
+      texteConnu = t;
       peint.innerHTML = peindre(t, langue) + "\n";
+      /* Le surlignage se pose AVANT les autres marques : c'est un fond, et
+         le mot courant ou la paire d'accolades doivent rester visibles
+         par-dessus. */
+      peindreSurlignages();
       /* Après la coloration, jamais avant : surligner d'abord reviendrait à
          faire colorer des balises qu'on vient d'insérer. */
       if (multi.length > 1) {
@@ -889,6 +895,86 @@
       redessiner();
     }
 
+    /* ── Le surlignage ────────────────────────────────────────────────────
+       Demandé : « je sélectionne une ligne, par exemple le commentaire de la
+       question 1 d'un TP, et une commande ou un bouton me la surligne en une
+       couleur ».
+
+       Trois décisions, et chacune évite un piège :
+
+       · SANS SÉLECTION, c'est la LIGNE ENTIÈRE qui est prise. C'est le geste
+         décrit — on veut marquer une question, pas trois caractères — et ça
+         évite d'avoir à sélectionner proprement avant de cliquer.
+       · Les marques sont rangées par POSITION, et déplacées à chaque
+         modification du texte. Sans ça, écrire une ligne au-dessus décalerait
+         tous les surlignages d'en dessous, ce qui est pire que de ne rien
+         marquer : on croirait avoir marqué autre chose.
+       · Repasser la MÊME couleur sur une zone déjà marquée l'enlève. Un
+         marqueur qu'on ne peut pas retirer n'est pas un marqueur. */
+    let surlignages = [];
+    let texteConnu = saisie.value;
+
+    function deplacerSurlignages(ancien, nouveau) {
+      if (ancien === nouveau || !surlignages.length) return;
+      const court = Math.min(ancien.length, nouveau.length);
+      let p = 0;
+      while (p < court && ancien[p] === nouveau[p]) p++;
+      let q = 0;
+      while (q < court - p
+             && ancien[ancien.length - 1 - q] === nouveau[nouveau.length - 1 - q]) q++;
+      const finA = ancien.length - q, delta = (nouveau.length - q) - finA;
+      const bouge = (x) => (x <= p ? x : (x >= finA ? x + delta : p));
+      const gardees = [];
+      for (const m of surlignages) {
+        const d = bouge(m.d), f = bouge(m.f);
+        if (f > d) gardees.push({ d: d, f: f, couleur: m.couleur });
+      }
+      surlignages = gardees;
+    }
+
+    function peindreSurlignages() {
+      for (const m of surlignages)
+        marquerIntervalle(m.d, m.f, "edi-surligne edi-surligne-" + m.couleur);
+    }
+
+    /* La zone à marquer : la sélection si elle existe, la ligne entière
+       sinon — bornes de ligne comprises, sans le retour à la ligne. */
+    function zoneAMarquer() {
+      const d = saisie.selectionStart, f = saisie.selectionEnd, t = saisie.value;
+      if (f > d) return { d: d, f: f };
+      const deb = t.lastIndexOf("\n", d - 1) + 1;
+      let fin = t.indexOf("\n", d);
+      if (fin < 0) fin = t.length;
+      return { d: deb, f: fin };
+    }
+
+    function surligner(couleur) {
+      const z = zoneAMarquer();
+      if (z.f <= z.d) return 0;
+      const restantes = [];
+      let enleve = 0;
+      for (const m of surlignages) {
+        const croise = m.d < z.f && z.d < m.f;
+        if (!croise) { restantes.push(m); continue; }
+        enleve++;
+        if (m.couleur !== couleur) {
+          /* Une autre couleur : on garde ce qui dépasse de part et d'autre,
+             sinon marquer en rouge au milieu d'un bloc vert effacerait tout
+             le vert. */
+          if (m.d < z.d) restantes.push({ d: m.d, f: z.d, couleur: m.couleur });
+          if (z.f < m.f) restantes.push({ d: z.f, f: m.f, couleur: m.couleur });
+        }
+      }
+      const memeCouleur = enleve > 0 && surlignages.some(
+        (m) => m.couleur === couleur && m.d < z.f && z.d < m.f);
+      if (couleur && !memeCouleur) restantes.push({ d: z.d, f: z.f, couleur: couleur });
+      restantes.sort((a, b) => a.d - b.d);
+      surlignages = restantes;
+      redessiner();
+      saisie.focus();
+      return 1;
+    }
+
     saisie.addEventListener("input", () => {
       /* Une frappe ordinaire — collage, dictée, saisie tactile — n'a touché
          qu'une sélection : les autres ne veulent plus rien dire. */
@@ -1024,6 +1110,51 @@
           lettre(e, "l")) {
         e.preventDefault();
         toutesLesOccurrences();
+        return;
+      }
+
+      /* ── surligner au clavier ─────────────────────────────────────────
+         ⇧⌘1 à ⇧⌘4 posent une couleur, ⇧⌘0 l'enlève. Les chiffres se
+         reconnaissent par « code », pas par « key » : sous Maj, la touche 1
+         d'un AZERTY produit « 1 » mais celle d'un QWERTY produit « ! ».
+         C'est la même leçon que l'Option+Z du § 27, à l'autre bout du
+         clavier. */
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey) {
+        const COULEURS = { Digit1: "rouge", Digit2: "ambre", Digit3: "vert",
+                           Digit4: "bleu", Digit0: "" };
+        let c = COULEURS[e.code];
+        if (c === undefined && /^[0-4]$/.test(e.key))
+          c = ["", "rouge", "ambre", "vert", "bleu"][+e.key];
+        if (c !== undefined) {
+          e.preventDefault();
+          surligner(c);
+          if (etat) etat.textContent = c ? "surligné en " + c : "surlignage enlevé";
+          return;
+        }
+      }
+
+      /* ── deux espaces ne font pas un point ────────────────────────────
+         Signalé : « si des fois je clic deux fois sur espace ca genere
+         un . ». Ce n'est pas l'éditeur : c'est la substitution du
+         système — « ajouter un point avec deux espaces » — qui remplace
+         la paire d'espaces par « . ». Dans un programme en C, elle
+         frappe à chaque indentation tapée à la main.
+
+         « autocorrect=off » est posé sur le champ depuis le premier jour
+         et ne l'arrête pas : la substitution est faite par la couche de
+         saisie du système, en amont du document. Le seul moyen sûr est
+         de ne pas lui laisser la touche — on écrit l'espace nous-mêmes,
+         et le système n'a plus de paire à reconnaître.
+
+         Uniquement sur un curseur simple précédé d'un espace : c'est le
+         seul cas que le système substitue, et le chemin multi-sélection
+         passe déjà par « frapperPartout », qui empêche la même chose
+         pour la même raison. « remplacer » écrit par execCommand, donc
+         Ctrl+Z défait l'espace comme s'il avait été tapé. */
+      if (e.key === " " && !e.ctrlKey && !e.metaKey && !e.altKey
+          && multi.length < 2 && d === f && d > 0 && t[d - 1] === " ") {
+        e.preventDefault();
+        remplacer(d, f, " ", d + 1, d + 1);
         return;
       }
 
@@ -1379,9 +1510,34 @@
       saisie.focus();
       saisie.setSelectionRange(p, p);
       /* Centrer la ligne visée : un curseur posé hors du cadre visible ne
-         sert à rien. */
-      const h = saisie.scrollHeight / Math.max(1, lignes.length);
-      saisie.scrollTop = Math.max(0, (ligne - 1) * h - saisie.clientHeight / 2);
+         sert à rien.
+
+         Signalé : « quand je fais alt z les lignes ne sont pas les
+         bonnes ». Le curseur, lui, était au bon endroit — c'est le
+         DÉFILEMENT qui montrait ailleurs. Il divisait la hauteur totale
+         par le nombre de lignes, ce qui n'est juste que si chaque ligne
+         occupe exactement une rangée : vrai tant que l'enroulement est
+         éteint, faux dès qu'Alt+Z l'allume. Mesuré sur un programme de
+         huit lignes dont deux s'enroulent : la ligne 4 est à 142 px, la
+         moyenne visait 308 — sept rangées trop bas.
+
+         C'est MOT POUR MOT le défaut du clic dans la marge, corrigé en
+         son temps… dans la marge seulement. La marge, elle, porte déjà
+         la bonne géométrie : ses numéros ont la hauteur des lignes
+         enroulées. On lui demande donc la position au lieu de la
+         recalculer — et la réponse est juste dans les deux modes, y
+         compris sur une ligne vide, qu'aucune mesure de texte ne sait
+         situer. */
+      const nums = marge.children;
+      const premier = nums[0];
+      const vise = nums[Math.min(Math.max(1, ligne), nums.length) - 1];
+      if (premier && vise) {
+        saisie.scrollTop = Math.max(0, vise.offsetTop - premier.offsetTop
+                                       - saisie.clientHeight / 2);
+      } else {
+        const h = saisie.scrollHeight / Math.max(1, lignes.length);
+        saisie.scrollTop = Math.max(0, (ligne - 1) * h - saisie.clientHeight / 2);
+      }
       saisie.dispatchEvent(new Event("scroll"));
     }
 
@@ -1564,6 +1720,14 @@
       get langue() { return langue; },
       set langue(l) { langue = l; redessiner(); },
       set marquesErreur(m) { marques = m; marge.dataset.marques = "-"; redessiner(); },
+      get surlignages() { return surlignages.map((m) => [m.d, m.f, m.couleur]); },
+      set surlignages(v) {
+        surlignages = (Array.isArray(v) ? v : []).filter(
+          (m) => Array.isArray(m) && m.length === 3 && m[1] > m[0]
+        ).map((m) => ({ d: m[0], f: m[1], couleur: m[2] }));
+        redessiner();
+      },
+      surligner,
       aller, focus: () => saisie.focus(), element: saisie, diagnostic, realigner,
     };
   }
@@ -2179,10 +2343,76 @@
        temporelle lève — même interrogé par « typeof ». Ce dépôt s'est
        déjà fait avoir par quatre déclarations dans cet ordre-là. */
     let partVolets = 0.5;
+    let ediTheme = "nuit";
+
+    /* ── Le menu Réglages ──────────────────────────────────────────────
+       Il se ferme sur un clic ailleurs et sur Échap, et PAS quand on
+       actionne ce qu'il contient : on veut pouvoir basculer les contrôles
+       d'exécution puis changer de thème sans le rouvrir deux fois. Les
+       trois actions — indenter, partager, commandes — le ferment, elles,
+       parce qu'elles emmènent ailleurs. */
+    const btReglages = $("#at-reglages", racine);
+    const menu = $("#at-menu", racine);
+    function ouvrirMenu(ouvrir) {
+      if (!menu || !btReglages) return;
+      menu.hidden = !ouvrir;
+      btReglages.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+    }
+    if (btReglages && menu) {
+      btReglages.addEventListener("click", () => ouvrirMenu(menu.hidden));
+      document.addEventListener("click", (e) => {
+        if (menu.hidden) return;
+        if (!menu.contains(e.target) && e.target !== btReglages
+            && !btReglages.contains(e.target)) ouvrirMenu(false);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !menu.hidden) { ouvrirMenu(false); btReglages.focus(); }
+      });
+      for (const id of ["at-indenter", "at-partager", "at-commandes", "at-exemples"]) {
+        const b = $("#" + id, racine);
+        if (b) b.addEventListener("click", () => ouvrirMenu(false));
+      }
+    }
+
+    /* ── Les pastilles de surlignage ───────────────────────────────────
+       Elles agissent sur la sélection — ou sur la ligne du curseur quand il
+       n'y a pas de sélection. On ne vole pas le focus avant d'agir : la
+       sélection du champ reste lisible même quand le champ n'a plus le
+       focus, et c'est elle qui compte. */
+    for (const b of racine.querySelectorAll("[data-surligne]")) {
+      b.addEventListener("click", () => {
+        const c = b.dataset.surligne;
+        editeur.surligner(c);
+        if (etat) etat.textContent =
+          c ? "Surligné en " + c + "." : "Surlignage enlevé.";
+      });
+    }
+
+    /* ── Les cinq jeux de couleurs ─────────────────────────────────────
+       Demandé : « j'aimerais pouvoir changer la couleur du thème de la
+       console et du compilateur […] j'en veux plusieurs sélectionnables ».
+       Le choix porte sur l'atelier seulement, pas sur le site : on peut
+       vouloir lire ses fiches en clair et programmer en sombre.
+
+       Chaque jeu a été mesuré avant d'être proposé — onze teintes de code
+       contre leur fond, et les quatre surlignages contre ces teintes. Le
+       pire rapport des cinq est 4,73 ; le seuil est 4,5. */
+    racine.dataset.ediTheme = "nuit";
+    function poserTheme(nom) {
+      ediTheme = nom;
+      racine.dataset.ediTheme = nom;
+      for (const b of racine.querySelectorAll("[data-edi-theme]"))
+        b.setAttribute("aria-pressed", b.dataset.ediTheme === nom ? "true" : "false");
+    }
+    for (const b of racine.querySelectorAll("[data-edi-theme]")) {
+      b.addEventListener("click", () => { poserTheme(b.dataset.ediTheme); sauver(); });
+    }
+
     function sauver() {
       try {
         localStorage.setItem(CLE, JSON.stringify({
           source: editeur.valeur, langue, strict, quand: Date.now(), part: partVolets,
+          theme: ediTheme, surlignages: editeur.surlignages,
         }));
       } catch (e) {}
       modifie = false;
@@ -2348,6 +2578,14 @@
           strict = s.strict !== false;
           bStrict.setAttribute("aria-pressed", String(strict));
           poserLangue(s.langue === "c++" ? "c++" : "c");
+          /* Le jeu de couleurs et les surlignages reviennent avec le
+             programme : un marqueur qu'on perd en fermant l'onglet ne sert
+             à rien pour réviser. Les deux sont relus avec méfiance — une
+             valeur inconnue retombe sur « nuit », et une marque mal formée
+             est jetée par le filtre de l'accesseur. */
+          poserTheme(["nuit", "ardoise", "encre", "contraste", "papier"]
+                     .indexOf(s.theme) >= 0 ? s.theme : "nuit");
+          editeur.surlignages = s.surlignages || [];
           return;
         }
       } catch (e) {}

@@ -7,7 +7,7 @@
 <meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=da7e9d94">
+<link rel="stylesheet" href="../../assets/fiche.css?v=1cd45f8e">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -31,6 +31,7 @@
     <li><a href="#tp4">13 · TP 4 · Les tableaux à deux dimensions</a></li>
     <li><a href="#tp5">14 · TP 5 · Les pointeurs</a></li>
     <li><a href="#tp6">15 · TP 6 · Les structures</a></li>
+    <li><a href="#tp7">16 · TP 7 · Les chaînes de caractères</a></li>
   </ol>
 </nav>
 
@@ -3112,6 +3113,349 @@ ex.7  Ordinateur, 1250.00 EUR, achete le 15/09/2026</code></pre></div>
   </article>
 </section>
 
+<section id="tp7">
+  <h2><span class="num">16</span>TP 7 · Les chaînes de caractères</h2>
+  <p class="chapeau">Quatre exercices, et le même réflexe à chaque fois : une chaîne est un
+     tableau, donc on la parcourt — et on réserve toujours une case de plus pour le
+     <code>'\0'</code>.</p>
+  <article class="exo">
+    <h3><span class="no">25</span>Analyser un mot saisi <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 1.</strong> Déclarer un tableau pouvant contenir un mot de <strong>49 caractères maximum</strong>, le demander à l'utilisateur, afficher sa longueur avec <code>strlen()</code>, son premier et son dernier caractère, puis compter les voyelles (a, e, i, o, u, y) en minuscules <em>et</em> en majuscules.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">mot</span>[<span class="j-num">50</span>];
+    <span class="j-typ">size_t</span> <span class="j-var">longueur</span>;
+    <span class="j-typ">size_t</span> <span class="j-var">i</span>;
+    <span class="j-typ">int</span> <span class="j-var">voyelles</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Entrez un mot : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">mot</span>);
+
+    <span class="j-var">longueur</span> <span class="j-op">=</span> <span class="j-fn">strlen</span>(<span class="j-var">mot</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur : %zu\n"</span>, <span class="j-var">longueur</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Premier caractere : %c\n"</span>, <span class="j-var">mot</span>[<span class="j-num">0</span>]);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Dernier caractere : %c\n"</span>, <span class="j-var">mot</span>[<span class="j-var">longueur</span> <span class="j-op">-</span> <span class="j-num">1</span>]);
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">longueur</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-typ">char</span> <span class="j-var">c</span> <span class="j-op">=</span> <span class="j-var">mot</span>[<span class="j-var">i</span>];
+        <span class="j-mc">if</span> (<span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'a'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'e'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'i'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'o'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'u'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'y'</span>
+         <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'A'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'E'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'I'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'O'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'U'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'Y'</span>) {
+            <span class="j-var">voyelles</span><span class="j-op">++</span>;
+        }
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nombre de voyelles : %d\n"</span>, <span class="j-var">voyelles</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie réelle — saisies : Bonjour</span><pre><code>Entrez un mot : Longueur : 7
+Premier caractere : B
+Dernier caractere : r
+Nombre de voyelles : 3</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ 49 caractères se déclarent <code>[50]</code></div>
+          <p>Le sujet dit « 49 caractères maximum ». Le tableau en compte
+             <strong>50</strong> : les 49 lettres, plus la case du <code>'\0'</code>. Et
+             <code>scanf("%49s", …)</code> borne la saisie à ces 49 — sans cette borne, un
+             mot plus long écrirait au-delà du tableau.</p>
+          <p class="rap">Le dernier caractère est à l'indice <code>longueur − 1</code>,
+             jamais <code>longueur</code> : à cet indice-là se trouve le
+             <code>'\0'</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">26</span>Comparer et copier deux noms <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 2.</strong> Saisir deux noms, afficher la longueur de chacun, les comparer avec <code>strcmp()</code>, dire s'ils sont identiques, puis copier le premier dans un troisième tableau avec <code>strcpy()</code> et l'afficher.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">nom1</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span> <span class="j-var">nom2</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span> <span class="j-var">copie</span>[<span class="j-num">50</span>];
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Premier nom  : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">nom1</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Deuxieme nom : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">nom2</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nLongueur de %s : %zu\n"</span>, <span class="j-var">nom1</span>, <span class="j-fn">strlen</span>(<span class="j-var">nom1</span>));
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur de %s : %zu\n"</span>, <span class="j-var">nom2</span>, <span class="j-fn">strlen</span>(<span class="j-var">nom2</span>));
+
+    <span class="j-mc">if</span> (<span class="j-fn">strcmp</span>(<span class="j-var">nom1</span>, <span class="j-var">nom2</span>) <span class="j-op">==</span> <span class="j-num">0</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms sont identiques.\n"</span>);
+    } <span class="j-mc">else</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms ne sont pas identiques.\n"</span>);
+    }
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">copie</span>, <span class="j-var">nom1</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Copie du premier nom : %s\n"</span>, <span class="j-var">copie</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie réelle — saisies : Dupont puis Durand</span><pre><code>Premier nom  : Deuxieme nom :
+Longueur de Dupont : 6
+Longueur de Durand : 6
+Les deux noms ne sont pas identiques.
+Copie du premier nom : Dupont</code></pre></div><p class="rap">Deux noms de <strong>même longueur</strong> ne sont pas deux noms
+           identiques : c'est <code>strcmp</code> qui tranche, pas <code>strlen</code>.
+           L'exemple est choisi pour ça.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">27</span>Cinq serveurs, le plus long nom, et une recherche <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 3.</strong> À partir du tableau <code>char serveurs[5][30]</code> donné dans l'énoncé : afficher chaque nom et sa longueur, déterminer le nom le plus long, puis demander un nom à rechercher et dire s'il existe.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">serveurs</span>[<span class="j-num">5</span>][<span class="j-num">30</span>] <span class="j-op">=</span> {
+        <span class="j-txt">"SRV_WEB"</span>,
+        <span class="j-txt">"SRV_DNS"</span>,
+        <span class="j-txt">"SRV_BDD"</span>,
+        <span class="j-txt">"SRV_FICHIERS"</span>,
+        <span class="j-txt">"SRV_BACKUP"</span>
+    };
+    <span class="j-typ">char</span> <span class="j-var">recherche</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+    <span class="j-typ">int</span> <span class="j-var">plus_long</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">int</span> <span class="j-var">trouve</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Liste des serveurs :\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"  %s (%zu caracteres)\n"</span>, <span class="j-var">serveurs</span>[<span class="j-var">i</span>], <span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>]));
+        <span class="j-mc">if</span> (<span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>]) <span class="j-op">&gt;</span> <span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">plus_long</span>])) {
+            <span class="j-var">plus_long</span> <span class="j-op">=</span> <span class="j-var">i</span>;
+        }
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nNom le plus long : %s\n"</span>, <span class="j-var">serveurs</span>[<span class="j-var">plus_long</span>]);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nServeur a rechercher : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">recherche</span>);
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-mc">if</span> (<span class="j-fn">strcmp</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>], <span class="j-var">recherche</span>) <span class="j-op">==</span> <span class="j-num">0</span>) {
+            <span class="j-var">trouve</span> <span class="j-op">=</span> <span class="j-num">1</span>;
+        }
+    }
+
+    <span class="j-mc">if</span> (<span class="j-var">trouve</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Le serveur %s existe.\n"</span>, <span class="j-var">recherche</span>);
+    } <span class="j-mc">else</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Le serveur %s est introuvable.\n"</span>, <span class="j-var">recherche</span>);
+    }
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie réelle — saisies : SRV_DNS</span><pre><code>Liste des serveurs :
+  SRV_WEB (7 caracteres)
+  SRV_DNS (7 caracteres)
+  SRV_BDD (7 caracteres)
+  SRV_FICHIERS (12 caracteres)
+  SRV_BACKUP (10 caracteres)
+
+Nom le plus long : SRV_FICHIERS
+
+Serveur a rechercher : Le serveur SRV_DNS existe.</code></pre></div><div class="encart savoir">
+          <div class="titre">💡 <code>char serveurs[5][30]</code> : cinq casiers de trente</div>
+          <p>C'est un tableau à deux dimensions, exactement comme les matrices du TP 4 — sauf
+             que chaque <strong>ligne</strong> est une chaîne. <code>serveurs[i]</code>
+             désigne la chaîne numéro <code>i</code>, et <code>serveurs[i][j]</code> son
+             <code>j</code>-ième caractère.</p>
+          <p class="rap">C'est pour cela que <code>strlen(serveurs[i])</code> et
+             <code>strcmp(serveurs[i], recherche)</code> fonctionnent sans rien de plus :
+             on leur donne une ligne, c'est-à-dire une chaîne.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">28</span>Construire un identifiant <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 4.</strong> Demander un prénom puis un nom, construire une chaîne contenant le prénom, un <code>_</code>, puis le nom. Afficher l'identifiant et sa longueur. L'énoncé donne le résultat attendu : <code>Jean_Dupont</code>, longueur <strong>11</strong>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">prenom</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span> <span class="j-var">identifiant</span>[<span class="j-num">101</span>];
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Prenom : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">prenom</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%49s"</span>, <span class="j-var">nom</span>);
+
+    <span class="j-fn">strcpy</span>(<span class="j-var">identifiant</span>, <span class="j-var">prenom</span>);
+    <span class="j-fn">strcat</span>(<span class="j-var">identifiant</span>, <span class="j-txt">"_"</span>);
+    <span class="j-fn">strcat</span>(<span class="j-var">identifiant</span>, <span class="j-var">nom</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nIdentifiant : %s\n"</span>, <span class="j-var">identifiant</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur : %zu\n"</span>, <span class="j-fn">strlen</span>(<span class="j-var">identifiant</span>));
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie réelle — saisies : Jean puis Dupont</span><pre><code>Prenom : Nom :
+Identifiant : Jean_Dupont
+Longueur : 11</code></pre></div><div class="encart methode">
+          <div class="titre">🛠️ Un <code>strcpy</code> puis deux <code>strcat</code></div>
+          <p>On <strong>copie</strong> d'abord — <code>identifiant</code> ne contient rien de
+             sûr avant — puis on <strong>colle</strong> le reste. Faire trois
+             <code>strcat</code> sur un tableau non initialisé collerait à la suite de ce qui
+             s'y trouvait, c'est-à-dire n'importe quoi.</p>
+          <p class="rap">La taille : 50 + 1 + 50, plus le <code>'\0'</code> →
+             <code>[101]</code>. Le résultat, <strong>11 caractères</strong>, correspond
+             exactement à ce que l'énoncé annonce.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">29</span>Le programme de contrôle, sans aucune saisie <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Pour vérifier vos quatre programmes d'un coup.</strong> Les données sont écrites dans le code, il n'y a rien à taper : la sortie est donc comparable, et elle est vérifiée à chaque publication.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">voyelles</span>(<span class="j-mc">const</span> <span class="j-typ">char</span> <span class="j-op">*</span><span class="j-var">mot</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-typ">size_t</span> <span class="j-var">i</span>;
+
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-fn">strlen</span>(<span class="j-var">mot</span>); <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-typ">char</span> <span class="j-var">c</span> <span class="j-op">=</span> <span class="j-var">mot</span>[<span class="j-var">i</span>];
+        <span class="j-mc">if</span> (<span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'a'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'e'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'i'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'o'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'u'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'y'</span>
+         <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'A'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'E'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'I'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'O'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'U'</span> <span class="j-op">||</span> <span class="j-var">c</span> <span class="j-op">==</span> <span class="j-txt">'Y'</span>) {
+            <span class="j-var">n</span><span class="j-op">++</span>;
+        }
+    }
+    <span class="j-mc">return</span> <span class="j-var">n</span>;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">char</span> <span class="j-var">serveurs</span>[<span class="j-num">5</span>][<span class="j-num">30</span>] <span class="j-op">=</span> {
+        <span class="j-txt">"SRV_WEB"</span>, <span class="j-txt">"SRV_DNS"</span>, <span class="j-txt">"SRV_BDD"</span>, <span class="j-txt">"SRV_FICHIERS"</span>, <span class="j-txt">"SRV_BACKUP"</span>
+    };
+    <span class="j-typ">char</span> <span class="j-var">mot</span>[] <span class="j-op">=</span> <span class="j-txt">"Anticonstitutionnellement"</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom1</span>[] <span class="j-op">=</span> <span class="j-txt">"Dupont"</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom2</span>[] <span class="j-op">=</span> <span class="j-txt">"Durand"</span>;
+    <span class="j-typ">char</span> <span class="j-var">copie</span>[<span class="j-num">50</span>];
+    <span class="j-typ">char</span> <span class="j-var">identifiant</span>[<span class="j-num">101</span>] <span class="j-op">=</span> <span class="j-txt">"Jean"</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">plus_long</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">trouve</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"=== EXERCICE 1 : analyser un mot ===\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Mot              : %s\n"</span>, <span class="j-var">mot</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur         : %zu\n"</span>, <span class="j-fn">strlen</span>(<span class="j-var">mot</span>));
+    <span class="j-fn">printf</span>(<span class="j-txt">"Premier caractere: %c\n"</span>, <span class="j-var">mot</span>[<span class="j-num">0</span>]);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Dernier caractere: %c\n"</span>, <span class="j-var">mot</span>[<span class="j-fn">strlen</span>(<span class="j-var">mot</span>) <span class="j-op">-</span> <span class="j-num">1</span>]);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Voyelles         : %d\n"</span>, <span class="j-fn">voyelles</span>(<span class="j-var">mot</span>));
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n=== EXERCICE 2 : comparer deux noms ===\n"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s : %zu caracteres\n"</span>, <span class="j-var">nom1</span>, <span class="j-fn">strlen</span>(<span class="j-var">nom1</span>));
+    <span class="j-fn">printf</span>(<span class="j-txt">"%s : %zu caracteres\n"</span>, <span class="j-var">nom2</span>, <span class="j-fn">strlen</span>(<span class="j-var">nom2</span>));
+    <span class="j-fn">printf</span>(<span class="j-txt">"strcmp(\"%s\", \"%s\") = %d\n"</span>, <span class="j-var">nom1</span>, <span class="j-var">nom2</span>, <span class="j-fn">strcmp</span>(<span class="j-var">nom1</span>, <span class="j-var">nom2</span>));
+    <span class="j-mc">if</span> (<span class="j-fn">strcmp</span>(<span class="j-var">nom1</span>, <span class="j-var">nom2</span>) <span class="j-op">==</span> <span class="j-num">0</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms sont identiques.\n"</span>);
+    } <span class="j-mc">else</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Les deux noms ne sont pas identiques.\n"</span>);
+    }
+    <span class="j-fn">strcpy</span>(<span class="j-var">copie</span>, <span class="j-var">nom1</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Copie : %s\n"</span>, <span class="j-var">copie</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n=== EXERCICE 3 : les cinq serveurs ===\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"  %-13s %zu caracteres\n"</span>, <span class="j-var">serveurs</span>[<span class="j-var">i</span>], <span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>]));
+        <span class="j-mc">if</span> (<span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>]) <span class="j-op">&gt;</span> <span class="j-fn">strlen</span>(<span class="j-var">serveurs</span>[<span class="j-var">plus_long</span>])) {
+            <span class="j-var">plus_long</span> <span class="j-op">=</span> <span class="j-var">i</span>;
+        }
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom le plus long : %s\n"</span>, <span class="j-var">serveurs</span>[<span class="j-var">plus_long</span>]);
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-mc">if</span> (<span class="j-fn">strcmp</span>(<span class="j-var">serveurs</span>[<span class="j-var">i</span>], <span class="j-txt">"SRV_DNS"</span>) <span class="j-op">==</span> <span class="j-num">0</span>) {
+            <span class="j-var">trouve</span> <span class="j-op">=</span> <span class="j-num">1</span>;
+        }
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"Recherche de SRV_DNS : %s\n"</span>, <span class="j-var">trouve</span> <span class="j-op">?</span> <span class="j-txt">"trouve"</span> <span class="j-op">:</span> <span class="j-txt">"introuvable"</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n=== EXERCICE 4 : construire un identifiant ===\n"</span>);
+    <span class="j-fn">strcat</span>(<span class="j-var">identifiant</span>, <span class="j-txt">"_"</span>);
+    <span class="j-fn">strcat</span>(<span class="j-var">identifiant</span>, <span class="j-txt">"Dupont"</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Identifiant : %s\n"</span>, <span class="j-var">identifiant</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Longueur    : %zu\n"</span>, <span class="j-fn">strlen</span>(<span class="j-var">identifiant</span>));
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie</span><pre><code>=== EXERCICE 1 : analyser un mot ===
+Mot              : Anticonstitutionnellement
+Longueur         : 25
+Premier caractere: A
+Dernier caractere: t
+Voyelles         : 10
+
+=== EXERCICE 2 : comparer deux noms ===
+Dupont : 6 caracteres
+Durand : 6 caracteres
+strcmp(&quot;Dupont&quot;, &quot;Durand&quot;) = -2
+Les deux noms ne sont pas identiques.
+Copie : Dupont
+
+=== EXERCICE 3 : les cinq serveurs ===
+  SRV_WEB       7 caracteres
+  SRV_DNS       7 caracteres
+  SRV_BDD       7 caracteres
+  SRV_FICHIERS  12 caracteres
+  SRV_BACKUP    10 caracteres
+Nom le plus long : SRV_FICHIERS
+Recherche de SRV_DNS : trouve
+
+=== EXERCICE 4 : construire un identifiant ===
+Identifiant : Jean_Dupont
+Longueur    : 11</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ <code>strcmp</code> rend <code>−2</code> ici, pas <code>−1</code></div>
+          <p><code>'p'</code> vaut 112 et <code>'r'</code> 114 : la différence est
+             <code>−2</code>. Mais la norme ne garantit <strong>que le signe</strong> —
+             une autre bibliothèque C pourrait rendre <code>−1</code>. On teste donc
+             <code>&lt; 0</code>, <code>== 0</code> ou <code>&gt; 0</code>, jamais une
+             valeur précise.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces trois TP font travailler</h2>
@@ -3209,7 +3553,7 @@ ex.7  Ordinateur, 1250.00 EUR, achete le 15/09/2026</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=da7e9d94"></script>
-<script src="../../assets/app.js?v=da7e9d94"></script>
+<script src="../../assets/fiche.js?v=1cd45f8e"></script>
+<script src="../../assets/app.js?v=1cd45f8e"></script>
 </body>
 </html>
