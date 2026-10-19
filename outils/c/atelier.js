@@ -272,7 +272,7 @@
         if (etat) etat.textContent = multi.length + " sélections — tapez pour les changer toutes";
       } else {
         if (typeof motCourant === "string" && motCourant) {
-          surligner(motCourant, posCourante);
+          surlignerOccurrences(motCourant, posCourante);
           const [k, n] = rangOccurrence(motCourant, posCourante);
           direEtat(motCourant, k, n);
         } else direEtat("", -1, 0);
@@ -737,7 +737,14 @@
        expression régulière — ce serait colorer des balises. On marche sur les
        NŒUDS DE TEXTE du rendu et on découpe ceux qui portent le mot : le texte
        n'est pas modifié d'un caractère, il est seulement enveloppé. */
-    function surligner(mot, posActive) {
+    /* Elle s'appelait « surligner », comme la fonction des COULEURS huit cents
+       lignes plus bas. Deux déclarations de même nom dans la même portée : la
+       seconde gagne, et celle-ci n'a jamais été appelée. L'appel d'en haut
+       atterrissait donc dans le surlignage de couleur, avec le MOT CLIQUÉ en
+       guise de couleur — ce qui effaçait la couleur posée et fabriquait une
+       classe que le style ne connaît pas. Signalé : « je mets en rouge, je
+       clique dessus, ça retire ». */
+    function surlignerOccurrences(mot, posActive) {
       /* Le seuil était à DEUX lettres, et c'était une erreur : « i » est le
          compteur de boucle de tout le langage C, donc le mot qu'on suit le
          plus souvent des yeux. Mesuré sur son exemple : l'état annonçait
@@ -970,6 +977,7 @@
          marquer : on croirait avoir marqué autre chose.
        · Repasser la MÊME couleur sur une zone déjà marquée l'enlève. Un
          marqueur qu'on ne peut pas retirer n'est pas un marqueur. */
+    const TEINTES = ["rouge", "ambre", "vert", "bleu"];
     let surlignages = [];
     let texteConnu = saisie.value;
 
@@ -1901,8 +1909,14 @@
       set marquesErreur(m) { marques = m; marge.dataset.marques = "-"; redessiner(); },
       get surlignages() { return surlignages.map((m) => [m.d, m.f, m.couleur]); },
       set surlignages(v) {
+        /* Les quatre teintes, et rien d'autre. Un état enregistré pendant
+           que le défaut ci-dessus était vivant porte des « couleurs » qui
+           sont des mots du programme : elles n'ont aucune règle de style,
+           donc un surlignage invisible qui mange les vrais. On les jette au
+           chargement plutôt que de les laisser revenir. */
         surlignages = (Array.isArray(v) ? v : []).filter(
           (m) => Array.isArray(m) && m.length === 3 && m[1] > m[0]
+                 && TEINTES.indexOf(m[2]) >= 0
         ).map((m) => ({ d: m[0], f: m[1], couleur: m[2] }));
         redessiner();
       },
