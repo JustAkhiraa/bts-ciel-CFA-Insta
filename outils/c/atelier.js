@@ -2586,9 +2586,26 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !menu.hidden) { ouvrirMenu(false); btReglages.focus(); }
       });
-      for (const id of ["at-indenter", "at-partager", "at-commandes", "at-exemples"]) {
+      for (const id of ["at-indenter", "at-partager", "at-commandes", "at-exemples",
+                        "at-notice-btn"]) {
         const b = $("#" + id, racine);
         if (b) b.addEventListener("click", () => ouvrirMenu(false));
+      }
+
+      /* La notice des six fautes. Elle ne s'affiche plus d'elle-même — elle
+         encombrait la page sous l'éditeur alors qu'on la lit une fois. Le
+         bouton du menu est son seul accès : il la montre, la déplie, et
+         l'amène sous les yeux. Un second appui la range. */
+      const btNotice = $("#at-notice-btn", racine);
+      const notice = document.getElementById("at-notice");
+      if (btNotice && notice) {
+        btNotice.addEventListener("click", () => {
+          const montrer = notice.hidden || !notice.open;
+          notice.hidden = !montrer;
+          notice.open = montrer;
+          btNotice.setAttribute("aria-expanded", montrer ? "true" : "false");
+          if (montrer) notice.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       }
     }
 

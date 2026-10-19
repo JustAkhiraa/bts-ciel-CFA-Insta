@@ -7628,11 +7628,27 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    Exécuter, le langage, les cinq pastilles de surlignage, Réglages,
    Agrandir. Le reste est à un clic, et n'encombre plus. */
 .at-reglages-boite { position: relative; }
+/* Signalé : « c'est moche, on voit pas la limite, on sait pas si c'est des
+   boutons ou quoi ». Les deux tenaient à la MÊME cause, et ce n'était pas
+   une affaire de goût : « --creuse » et « --filet » n'existent nulle part —
+   ni dans theme.css, ni ailleurs. Ce sont des fautes de frappe pour
+   « --carte-creuse » et « --bord-fort ». Une variable inconnue rend la
+   déclaration invalide, en silence : le panneau n'avait donc PAS de bordure,
+   et les pastilles de thème n'avaient ni fond ni contour — du texte posé.
+   Six déclarations étaient touchées, y compris les pastilles de surlignage.
+   (C'est le défaut de la classe sans règle, CLAUDE.md § 7, dans sa version
+   « jeton sans déclaration » : valide, silencieux, et sans effet.) */
 .at-menu {
   position: absolute; top: calc(100% + .35rem); right: 0; z-index: 40;
-  min-width: 15rem; padding: .35rem; display: flex; flex-direction: column; gap: .15rem;
-  background: var(--carte); border: 1px solid var(--filet); border-radius: 11px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+  min-width: 15.5rem; padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
+  background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.22);
+}
+/* Un filet entre les groupes : sans lui, neuf commandes se lisent comme une
+   seule liste et l'œil ne sait plus où une famille s'arrête. */
+.at-menu-sep {
+  height: 1px; margin: .3rem .45rem; background: var(--bord-fort); opacity: .7;
+  border: 0; flex: none;
 }
 .at-menu[hidden] { display: none; }
 .at-menu-item {
@@ -7641,7 +7657,7 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
   background: none; border: 0; border-radius: 7px; cursor: pointer;
   font: inherit; font-size: .8182rem; color: var(--encre);
 }
-.at-menu-item:hover, .at-menu-item:focus-visible { background: var(--creuse); }
+.at-menu-item:hover, .at-menu-item:focus-visible { background: var(--carte-creuse); }
 .at-menu-item kbd { margin-left: auto; }
 .at-menu-titre {
   margin: .4rem .55rem .15rem; font-size: .7273rem; letter-spacing: .04em;
@@ -7649,27 +7665,33 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 }
 .at-themes { display: flex; flex-wrap: wrap; gap: .25rem; padding: 0 .35rem .25rem; }
 .at-themes button {
-  min-height: 30px; padding: .2rem .5rem; cursor: pointer; font: inherit;
+  min-height: 34px; padding: .2rem .62rem; cursor: pointer; font: inherit;
   font-size: .7727rem; color: var(--encre-douce);
-  background: var(--creuse); border: 1px solid var(--filet); border-radius: 7px;
+  background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: 7px;
 }
+/* L'état choisi : le contour d'accent sur le fond de carte, et le gras.
+   J'avais essayé « --accent-sombre sur --accent-pale », plus franc à l'œil —
+   mesuré, il tombe à 1,42:1 sur les thèmes sombres, où l'encre d'accent est
+   bleu foncé sur un panneau foncé. Le couple n'est pas un couple de la
+   maison ; celui-ci l'est, et le banc l'a déjà validé. */
 .at-themes button[aria-pressed="true"] {
   color: var(--encre); border-color: var(--accent); background: var(--carte);
+  font-weight: 600;
 }
 
 /* Les pastilles de surlignage : des cibles de 34 px, comme tout le reste. */
 .at-surligneur { display: flex; gap: .25rem; align-items: center; }
 .at-couleur {
   width: 34px; height: 34px; padding: 0; cursor: pointer; border-radius: 9px;
-  border: 1px solid var(--filet); font: inherit; font-size: .8182rem;
-  color: var(--encre-douce); background: var(--creuse);
+  border: 1px solid var(--bord-fort); font: inherit; font-size: .8182rem;
+  color: var(--encre-douce); background: var(--carte-creuse);
 }
 .at-couleur:hover, .at-couleur:focus-visible { border-color: var(--accent); }
 .at-c-rouge  { background: #D63031; }
 .at-c-ambre  { background: #D68C00; }
 .at-c-vert   { background: #2EA043; }
 .at-c-bleu   { background: #1F6FEB; }
-.at-c-effacer { background: var(--creuse); }
+.at-c-effacer { background: var(--carte-creuse); }
 
 /* ── Les cinq jeux de couleurs de l'éditeur et de la console ─────────────
    L'invariant « tout pre du site a le fond #23211E » (§ 23) vaut toujours
