@@ -877,7 +877,19 @@
         : mot + " · " + (k >= 0 ? k + 1 : "–") + " sur " + n;
     }
 
-    function majOccurrences() {
+    /* « repeindre » à faux : on met l'état à jour SANS redessiner, parce
+       que l'appelant va le faire lui-même juste après. Signalé : « j'ai
+       lancé un compilateur vide, j'ai écrit une ligne et c'est lent ».
+       Mesuré sur le site, en tapant pour de vrai : des images à 419 ms.
+       La cause tenait en deux lignes — « input » redessinait, puis
+       « keyup » appelait majOccurrences qui redessinait une SECONDE fois.
+       Deux repeints complets du fichier par caractère frappé.
+
+       Mes premières mesures ne voyaient rien parce qu'elles envoyaient des
+       événements « input » fabriqués : sans vrai clavier, pas de « keyup »,
+       donc pas de second repeint. L'instrument manquait la moitié du
+       chemin. */
+    function majOccurrences(repeindre) {
       const t = saisie.value;
       const sel = t.slice(saisie.selectionStart, saisie.selectionEnd);
       let mot = "", pos = -1;
@@ -910,7 +922,7 @@
          pas. */
       motCourant = mot;
       posCourante = pos;
-      redessiner();
+      if (repeindre !== false) redessiner();
     }
 
     /* ── Le surlignage ────────────────────────────────────────────────────
@@ -1001,6 +1013,10 @@
       /* Une frappe ordinaire — collage, dictée, saisie tactile — n'a touché
          qu'une sélection : les autres ne veulent plus rien dire. */
       if (multi.length > 1 && !enFrappeMultiple) multi = [];
+      /* L'état des occurrences AVANT le repeint, et un seul repeint : le
+         « keyup » qui suit trouvera l'état déjà à jour et sortira sans
+         rien redessiner. */
+      majOccurrences(false);
       redessiner();
     });
     /* ── coller, couper, copier quand plusieurs sélections sont posées ─
@@ -1056,8 +1072,8 @@
       if (etat) etat.textContent = "sélections coupées, une par ligne";
     });
 
-    saisie.addEventListener("keyup", majOccurrences);
-    saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(); });
+    saisie.addEventListener("keyup", () => majOccurrences(true));
+    saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(true); });
     saisie.addEventListener("blur", (e) => {
       /* Passer dans le champ de renommage ne doit pas effacer le surlignage :
          c'est précisément ce qu'on est en train de renommer. */
