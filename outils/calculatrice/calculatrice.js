@@ -81,6 +81,14 @@
               question: "egal", k: 3, k2: 5, seuil: 0.95 },
     equations: { mode: "polynome", coeffs: ["1", "-3", "2"], degre: 2,
                  systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2 },
+    finance: {
+      mode: "composes", cherche: "paiement",
+      /* Intérêts simples */
+      capital: "5000", taux: "4", jours: "90", base: "365", interets: "",
+      /* Intérêts composés — les six paramètres du solveur classique */
+      n: "60", tauxN: "5", pv: "10000", pmt: "", fv: "0",
+      parAn: "12", composition: "12", quand: "fin",
+    },
     onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees",
                regression: "donnees" },
   });
@@ -512,7 +520,7 @@
      Finance) laissent un trou dans la grille : il est assumé, et dit sur la
      page plutôt que caché par un réarrangement. */
   const ORDRE = ["calculs", "fonctions", "stats", "probas", "equations",
-                 "suites", "regression", "reglages"];
+                 "suites", "regression", "finance", "reglages"];
   let courante = "accueil", choisi = 0;
 
   function aller(cle) {
@@ -2238,6 +2246,149 @@
         };
         c.addEventListener("change", maj);
         c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
+    },
+  };
+
+  /* ═══════════════ 12 bis. Finance ═══════════════════════════════════
+     Les deux calculs de la machine. Ce n'est pas au programme de BTS
+     CIEL, mais c'est au programme de la vie : le jour où l'on signe un
+     crédit, savoir ce que paie vraiment une mensualité vaut un chapitre.
+
+     Le principe du solveur : on écrit UNE équation, et on résout pour
+     celui des paramètres qu'on laisse vide. Les quatre premiers se
+     retournent à la main ; le TAUX, lui, n'a pas de forme close — on le
+     cherche par dichotomie, exactement comme la machine. */
+  APPS.finance = {
+    nom: "Finance", icone: "€",
+    html() {
+      const F = ETAT.finance;
+      const v = (c) => nombreSaisi(String(F[c]));
+      const champ = (cle, lib, taille) =>
+        '<label for="nw-f-' + cle + '">' + ech(lib) + '</label>'
+        + '<input type="text" class="nw-petit' + (taille || "") + '" id="nw-f-' + cle
+        + '" data-fin="' + cle + '" value="' + ech(F[cle]) + '">';
+
+      const onglets = '<div class="nw-onglets" role="tablist">'
+        + [["simples", "Intérêts simples"], ["composes", "Intérêts composés"]]
+          .map(([c, t]) => '<button type="button" class="nw-onglet" role="tab" '
+            + 'data-fmode="' + c + '" aria-selected="' + (F.mode === c) + '">'
+            + t + '</button>').join("")
+        + '</div>';
+
+      if (F.mode === "simples") {
+        /* I = C × t/100 × j/base. Quatre inconnues, une équation : on
+           résout celle qu'on laisse vide. La BASE n'est pas un détail —
+           360 jours est la convention bancaire, 365 la civile, et l'écart
+           se voit dès le premier exemple : 50,00 € contre 49,32 €. */
+        const C = v("capital"), tx = v("taux"), j = v("jours"), base = v("base");
+        const I = v("interets");
+        let reponse = "", quoi = "";
+        const vides = [["capital", C], ["taux", tx], ["jours", j], ["interets", I]]
+          .filter(([, x]) => x === null).map(([k]) => k);
+        if (!base || base <= 0) reponse = "La base doit être 360 ou 365.";
+        else if (vides.length !== 1)
+          reponse = vides.length === 0
+            ? "Laissez UN champ vide : c'est lui qui sera calculé."
+            : "Il y a " + vides.length + " champs vides : je ne peux en calculer qu'un.";
+        else {
+          quoi = vides[0];
+          if (quoi === "interets") reponse = fmt(C * tx / 100 * j / base) + " €";
+          else if (quoi === "capital") reponse = fmt(I / (tx / 100 * j / base)) + " €";
+          else if (quoi === "taux") reponse = fmt(I / (C * j / base) * 100) + " %";
+          else reponse = fmt(I / (C * tx / 100) * base) + " jours";
+        }
+        return onglets
+          + '<div class="nw-rangee">' + champ("capital", "capital de départ (€)")
+          + champ("taux", "taux annuel (%)") + '</div>'
+          + '<div class="nw-rangee">' + champ("jours", "nombre de jours")
+          + '<label for="nw-f-base">jours dans l\'année</label>'
+          + '<select class="nw-petit" id="nw-f-base" data-fin="base">'
+          + ["360", "365"].map((b2) => '<option value="' + b2 + '"'
+              + (String(F.base) === b2 ? " selected" : "") + '>' + b2 + '</option>').join("")
+          + '</select></div>'
+          + '<div class="nw-rangee">' + champ("interets", "intérêts (€)") + '</div>'
+          + '<p class="nw-moyenne">' + (quoi ? ech(quoi) + " = " : "") + ech(reponse) + '</p>'
+          + '<p class="nw-sous">Laissez <b>un seul champ vide</b> : c\'est celui-là qui est '
+          + 'calculé. La base de 360 jours est la convention bancaire, 365 la convention '
+          + 'civile — sur 5 000 € à 4 % pendant 90 jours, l\'écart est de 68 centimes.</p>';
+      }
+
+      /* ── Intérêts composés : l'équation du solveur ─────────────────
+         PV(1+i)^N + PMT(1 + i·d)·((1+i)^N − 1)/i + FV = 0
+         avec i le taux par période de PAIEMENT, et d = 1 si le paiement
+         tombe en début de période. */
+      const N = v("n"), tN = v("tauxN"), PV = v("pv"), PMT = v("pmt"), FV = v("fv");
+      const pAn = v("parAn") || 12, cAn = v("composition") || 12;
+      const d = F.quand === "debut" ? 1 : 0;
+      const tauxPeriode = (tAnnuel) =>
+        Math.pow(1 + tAnnuel / 100 / cAn, cAn / pAn) - 1;
+      const bilan = (n2, i, pv, pmt, fv) => {
+        if (Math.abs(i) < 1e-12) return pv + pmt * n2 + fv;
+        const g = Math.pow(1 + i, n2);
+        return pv * g + pmt * (1 + i * d) * (g - 1) / i + fv;
+      };
+      const vides = [["n", N], ["tauxN", tN], ["pv", PV], ["pmt", PMT], ["fv", FV]]
+        .filter(([, x]) => x === null).map(([k]) => k);
+      let quoi = "", reponse = "";
+      if (vides.length !== 1) {
+        reponse = vides.length === 0
+          ? "Laissez UN champ vide : c'est lui qui sera calculé."
+          : "Il y a " + vides.length + " champs vides : je ne peux en calculer qu'un.";
+      } else {
+        quoi = vides[0];
+        const i = tauxPeriode(tN);
+        const g = Math.pow(1 + i, N);
+        if (quoi === "pv") reponse = fmt(-(PMT * (1 + i * d) * (g - 1) / i + FV) / g) + " €";
+        else if (quoi === "fv") reponse = fmt(-(PV * g + PMT * (1 + i * d) * (g - 1) / i)) + " €";
+        else if (quoi === "pmt") {
+          reponse = Math.abs(i) < 1e-12
+            ? fmt(-(PV + FV) / N) + " €"
+            : fmt(-(PV * g + FV) * i / ((1 + i * d) * (g - 1))) + " €";
+        } else if (quoi === "n") {
+          /* N se cherche aussi par dichotomie : la forme close demande un
+             logarithme qui n'existe pas pour tous les signes de PMT. */
+          const f = (x) => bilan(x, i, PV, PMT, FV);
+          const z = CALC.num.zeros(f, 0.0001, 2000);
+          reponse = z.length ? fmt(z[0]) + " périodes"
+                             : "aucune durée ne solde ce plan";
+        } else {
+          /* LE TAUX : pas de forme close. Dichotomie sur [−99 ; 200] %,
+             exactement ce que fait la machine. */
+          const f = (t2) => bilan(N, tauxPeriode(t2), PV, PMT, FV);
+          const z = CALC.num.zeros(f, -99, 200);
+          reponse = z.length ? fmt(z[0]) + " %" : "aucun taux ne solde ce plan";
+        }
+      }
+      return onglets
+        + '<div class="nw-rangee">' + champ("n", "nombre de paiements N")
+        + champ("tauxN", "taux nominal annuel (%)") + '</div>'
+        + '<div class="nw-rangee">' + champ("pv", "montant de départ PV (€)")
+        + champ("pmt", "paiement par période (€)") + '</div>'
+        + '<div class="nw-rangee">' + champ("fv", "montant final FV (€)")
+        + '<label for="nw-f-quand">paiement</label>'
+        + '<select class="nw-petit" id="nw-f-quand" data-fin="quand">'
+        + [["fin", "en fin de période"], ["debut", "en début de période"]]
+          .map(([k, t2]) => '<option value="' + k + '"'
+            + (F.quand === k ? " selected" : "") + '>' + t2 + '</option>').join("")
+        + '</select></div>'
+        + '<div class="nw-rangee">' + champ("parAn", "paiements par an")
+        + champ("composition", "compositions par an") + '</div>'
+        + '<p class="nw-moyenne">' + (quoi ? ech(quoi) + " = " : "") + ech(reponse) + '</p>'
+        + '<p class="nw-sous">Un emprunt se saisit avec <b>PV positif</b> (on reçoit) et le '
+        + 'paiement ressort <b>négatif</b> (on verse) : c\'est la convention de signe de la '
+        + 'machine, et elle évite de se tromper de sens. 10 000 € à 5 % sur 60 mois donnent '
+        + '−188,71 € par mois.</p>';
+    },
+    apres() {
+      $$("[data-fmode]", page).forEach((b2) => b2.addEventListener("click", () => {
+        ETAT.finance.mode = b2.dataset.fmode; garder(); redessiner();
+      }));
+      $$("[data-fin]", page).forEach((c) => {
+        const maj = () => { ETAT.finance[c.dataset.fin] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        if (c.tagName === "INPUT")
+          c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
       });
     },
   };
