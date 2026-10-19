@@ -1858,7 +1858,17 @@ function suite(def, ctx) {
     memo.set(n, v);
     return v;
   }
-  return { terme, rang0 };
+  /* La FONCTION de récurrence, pour le graphique en escalier : celle qui
+     envoie u(n) sur u(n+1). Elle n'existe que pour une suite récurrente
+     d'ordre 1 — à l'ordre 2 il faudrait deux variables, et une suite
+     explicite n'en a pas. Le rang est passé en second argument parce que
+     la récurrence a le droit d'en dépendre ; l'appelant compare alors deux
+     rangs pour savoir s'il peut tracer une courbe unique. */
+  function image(u, n) {
+    if (def.type !== "recurrente") return NaN;
+    return evalAvec({ n: Number.isFinite(n) ? n : rang0, [nom]: u });
+  }
+  return { terme, rang0, image, type: def.type };
 }
 
 /* ═════════════════════ 9. Statistiques ═════════════════════════════════

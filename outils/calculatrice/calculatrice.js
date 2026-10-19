@@ -58,7 +58,8 @@
     tableau: { debut: 0, pas: 1 },
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
-    stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1] },
+    stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1],
+             graphe: "histogramme", histo: { largeur: "", debut: "" } },
     /* La machine range les régressions en SÉRIES — X1/Y1, X2/Y2, X3/Y3 —
        et chacune a son modèle. Une seule paire de colonnes ne permettait
        pas de comparer deux jeux de mesures sur le même nuage, ce que les
@@ -80,7 +81,11 @@
               a: 0, b: 1, N: 49, K: 6, nu: 10, d1: 3, d2: 12,
               question: "egal", k: 3, k2: 5, seuil: 0.95 },
     equations: { mode: "polynome", coeffs: ["1", "-3", "2"], degre: 2,
-                 systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2 },
+                 systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2,
+                 /* La troisième porte de la machine : une équation QUELCONQUE,
+                    résolue numériquement sur un intervalle qu'on choisit. Un
+                    polynôme a ses racines exactes ; cos(x) = x n'en a pas. */
+                 gauche: "cos(x)", droite: "x", a: "-10", b: "10" },
     finance: {
       mode: "composes", cherche: "paiement",
       /* Intérêts simples */
@@ -89,6 +94,15 @@
       n: "60", tauxN: "5", pv: "10000", pmt: "", fv: "0",
       parAn: "12", composition: "12", quand: "fin",
     },
+    /* La vue graphique des Suites, avec la MÊME barre que le Grapheur et les
+       Régressions : « Auto », « Axes », « Naviguer », et un quatrième bouton
+       propre à l'application. Le contrôleur partagé d'Epsilon n'en déclare
+       que quatre, et c'est pourquoi ils se ressemblent d'une application à
+       l'autre : m_autoButton, m_rangeButton, m_navigationButton et un
+       m_calculusButton que chaque application remplit à sa façon. */
+    suitesVue: { auto: true, panneau: "", nmin: "0", nmax: "25",
+                 ymin: "-10", ymax: "10", curseur: 0, suite: 0,
+                 escalier: false, sommeDe: "0", sommeA: "10" },
     onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees",
                regression: "donnees" },
   });
@@ -1379,15 +1393,155 @@
       });
       if (vue === "graphique") {
         if (!pts.length) return onglets + '<p class="nw-vide">Aucune suite calculable.</p>';
-        if (haut - bas < 1e-9) { bas -= 1; haut += 1; }
-        const marge = (haut - bas) * 0.1;
-        return onglets + tracer({
-          xmin: rang0 - 1, xmax: rang0 + n + 1, ymin: bas - marge, ymax: haut + marge,
-          points: pts.map((p) => ({ x: p.x, y: p.y, r: 2.2 })),
+        const V = ETAT.suitesVue;
+        const pan = V.panneau || "";
+        /* La barre de la machine. Les quatre boutons sont ceux du
+           contrôleur partagé d'Epsilon ; seul le dernier change de nom
+           d'une application à l'autre. Ici « Calculer » fait la SOMME des
+           termes, qui est la question posée dans tous les sujets de suites. */
+        const barre = '<div class="nw-barre-outils" role="toolbar">'
+          + '<button type="button" class="nw-outil" id="nw-s-auto" aria-pressed="'
+          + (V.auto ? "true" : "false") + '">Auto <span class="nw-pastille'
+          + (V.auto ? " nw-allumee" : "") + '" aria-hidden="true"></span></button>'
+          + [["axes", "Axes"], ["naviguer", "Naviguer"], ["calculer", "Calculer"]]
+            .map(([c, t]) => '<button type="button" class="nw-outil'
+              + (pan === c ? " nw-ouvert" : "") + '" data-span="' + c
+              + '" aria-expanded="' + (pan === c) + '">' + t + '</button>').join("")
+          + '</div>';
+
+        const nmin = V.auto ? rang0 - 1 : (parseFloat(V.nmin) || 0) - 1;
+        const nmax = V.auto ? rang0 + n + 1 : (parseFloat(V.nmax) || 25) + 1;
+        let ybas = bas, yhaut = haut;
+        if (!V.auto) { ybas = parseFloat(V.ymin); yhaut = parseFloat(V.ymax); }
+        if (!(yhaut - ybas > 1e-9)) { ybas -= 1; yhaut += 1; }
+        const marge = V.auto ? (yhaut - ybas) * 0.1 : 0;
+
+        let panneau = "";
+        if (pan === "axes") {
+          const champ = (k, lib) => '<label for="nw-s-' + k + '">' + lib
+            + '</label><input type="text" class="nw-petit nw-court" id="nw-s-' + k
+            + '" data-sfen="' + k + '" value="' + ech(V[k]) + '">';
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + champ("nmin", "n min") + champ("nmax", "n max")
+            + (V.auto ? "" : champ("ymin", "y min") + champ("ymax", "y max"))
+            + '</div>'
+            + (V.auto ? '<p class="nw-sous">« Auto » est allumé : les ordonnées suivent '
+                + 'les termes. Éteignez-le pour saisir y min et y max.</p>' : "")
+            + '<div class="nw-rangee"><button type="button" class="nw-bascule nw-bouton" '
+            + 'id="nw-s-escalier" aria-pressed="' + (V.escalier ? "true" : "false") + '">'
+            + 'Graphique en escalier</button></div>'
+            + '<p class="nw-sous">L\'escalier ne vaut que pour une suite '
+            + '<strong>récurrente</strong> : il trace y = x et la courbe de la fonction de '
+            + 'récurrence, puis saute de l\'une à l\'autre. C\'est ce qui montre la '
+            + 'convergence — ou son absence.</p></div>';
+        } else if (pan === "naviguer") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-sterme="-1">◀ terme précédent</button>'
+            + '<button type="button" class="nw-bouton" data-sterme="1">terme suivant ▶</button>'
+            + (suites.filter((x) => x && !x.erreur).length > 1
+               ? '<button type="button" class="nw-bouton" id="nw-s-suite">suite suivante</button>'
+               : "")
+            + '</div></div>';
+        }
+
+        /* L'escalier : la première bissectrice, la courbe de récurrence, et
+           le chemin qui va de l'une à l'autre. On ne le propose QUE si la
+           suite choisie est récurrente — sur une suite explicite il ne
+           voudrait rien dire, et un dessin qui ne veut rien dire est pire
+           qu'un dessin absent. */
+        const choisie = Math.min(V.suite, ETAT.suites.length - 1);
+        const def = ETAT.suites[choisie];
+        const sc = suites[choisie];
+        const segments = [];
+        let courbesEsc = [];
+        /* La courbe de récurrence n'existe QUE si la relation ne dépend pas
+           du rang : « u+3 » en a une, « u+n » en aurait une par rang. On ne
+           le devine pas sur le texte, on le MESURE — deux rangs, la même
+           image ou non. L'escalier reste tracé dans les deux cas, mais sans
+           courbe quand elle n'a pas de sens. */
+        let dependDeN = false;
+        if (V.escalier && def && def.type === "recurrente" && sc && !sc.erreur) {
+          const a1 = sc.image(1, 0), a2 = sc.image(1, 7);
+          dependDeN = Number.isFinite(a1) && Number.isFinite(a2)
+                      && Math.abs(a1 - a2) > 1e-12;
+          const f = (x) => {
+            try { return sc.image(x, def.rang0); } catch (e) { return NaN; }
+          };
+          /* « f », et non « fn » : c'est le nom que « tracer » attend. Le
+             premier essai a planté la vue entière — un onglet qui ne
+             s'ouvre plus — et c'est la console qui l'a dit, pas l'écran. */
+          courbesEsc = [{ f: (x) => x, classe: "appui" }];
+          if (!dependDeN) courbesEsc.push({ f: f, classe: "c1" });
+          let x = sc.terme(def.rang0);
+          for (let k = 0; k < 14 && Number.isFinite(x); k++) {
+            const y = sc.terme(def.rang0 + k + 1);
+            if (!Number.isFinite(y)) break;
+            segments.push({ x1: x, y1: x, x2: x, y2: y });
+            segments.push({ x1: x, y1: y, x2: y, y2: y });
+            x = y;
+          }
+        }
+
+        const curseur = Math.max(0, Math.min(V.curseur, n));
+        const rangCur = rang0 + curseur;
+        const yCur = sc && !sc.erreur ? sc.terme(rangCur) : NaN;
+
+        const svg = tracer({
+          xmin: nmin, xmax: nmax, ymin: ybas - marge, ymax: yhaut + marge,
+          points: pts.filter((p) => p.x >= nmin && p.x <= nmax)
+                     .map((p) => ({ x: p.x, y: p.y, r: 2.2 })),
+          courbes: courbesEsc.length ? courbesEsc : undefined,
+          segments: segments.length ? segments : undefined,
+          curseur: Number.isFinite(yCur) ? { x: rangCur, y: yCur } : undefined,
           aide: "Termes des suites",
-        })
+        });
+
+        let calcul = "";
+        if (pan === "calculer") {
+          const de = Math.round(parseFloat(V.sommeDe));
+          const a2 = Math.round(parseFloat(V.sommeA));
+          let somme = null, termes = 0;
+          if (sc && !sc.erreur && Number.isFinite(de) && Number.isFinite(a2) && a2 >= de
+              && a2 - de <= 5000) {
+            somme = 0;
+            for (let k = de; k <= a2; k++) {
+              const y = sc.terme(k);
+              if (!Number.isFinite(y)) { somme = null; break; }
+              somme += y; termes++;
+            }
+          }
+          calcul = '<div class="nw-panneau"><p class="nw-sous">Somme des termes de '
+            + ech(NOMS_U[choisie]) + '</p><div class="nw-rangee">'
+            + '<label for="nw-s-de">de n =</label>'
+            + '<input type="text" class="nw-petit nw-court" id="nw-s-de" data-ssomme="sommeDe" '
+            + 'value="' + ech(V.sommeDe) + '">'
+            + '<label for="nw-s-a">à n =</label>'
+            + '<input type="text" class="nw-petit nw-court" id="nw-s-a" data-ssomme="sommeA" '
+            + 'value="' + ech(V.sommeA) + '"></div>'
+            + '<dl class="nw-valeurs"><dt>Σ</dt><dd>'
+            + ech(somme === null ? "—" : fmt(somme)) + '</dd>'
+            + '<dt>termes additionnés</dt><dd>' + termes + '</dd></dl></div>';
+        }
+
+        return onglets + barre + panneau + svg
+          + '<p class="nw-curseur-info"><span>'
+          + (sc && !sc.erreur
+             ? ech(NOMS_U[choisie]) + '(' + rangCur + ') = '
+               + ech(Number.isFinite(yCur) ? fmt(yCur) : "n\'existe pas")
+             : "Aucune suite calculable.")
+          + '</span></p>'
           + '<p class="nw-sous">Les termes sont des POINTS, pas une courbe : une suite '
-          + 'n\'est définie que sur les entiers. Les relier serait une faute de lecture.</p>';
+          + 'n\'est définie que sur les entiers. Les relier serait une faute de lecture.</p>'
+          + (V.escalier && def && def.type !== "recurrente"
+             ? '<p class="nw-sous">L\'escalier est demandé, mais ' + ech(NOMS_U[choisie])
+               + ' n\'est pas récurrente : il n\'y a pas de fonction à faire rebondir. '
+               + 'Seuls les termes sont tracés.</p>'
+             : "")
+          + (dependDeN ? '<p class="nw-sous">La récurrence dépend du rang <code>n</code> : '
+               + 'il n\'y a donc pas UNE courbe y = f(x), mais une par rang. L\'escalier '
+               + 'est tracé, la courbe est écartée — la dessiner serait affirmer une '
+               + 'relation qui change à chaque pas.</p>' : "")
+          + calcul;
       }
       let corps = "";
       for (let k = 0; k <= 24; k++) {
@@ -1418,6 +1572,40 @@
     },
     apres() {
       brancherOnglets();
+      /* La barre de la vue graphique. Chaque bouton fait quelque chose :
+         un bouton posé qui ne répond pas est pire qu'un bouton absent. */
+      const V = ETAT.suitesVue;
+      const bAuto = $("#nw-s-auto", page);
+      if (bAuto) bAuto.addEventListener("click", () => {
+        V.auto = !V.auto; garder(); redessiner();
+      });
+      $$("[data-span]", page).forEach((b2) => b2.addEventListener("click", () => {
+        V.panneau = V.panneau === b2.dataset.span ? "" : b2.dataset.span;
+        garder(); redessiner();
+      }));
+      $$("[data-sfen]", page).forEach((c) => {
+        const maj = () => { V[c.dataset.sfen] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
+      const bEsc = $("#nw-s-escalier", page);
+      if (bEsc) bEsc.addEventListener("click", () => {
+        V.escalier = !V.escalier; garder(); redessiner();
+      });
+      $$("[data-sterme]", page).forEach((b2) => b2.addEventListener("click", () => {
+        V.curseur = Math.max(0, Math.min(30, V.curseur + Number(b2.dataset.sterme)));
+        garder(); redessiner();
+      }));
+      const bSuite = $("#nw-s-suite", page);
+      if (bSuite) bSuite.addEventListener("click", () => {
+        V.suite = (V.suite + 1) % ETAT.suites.length;
+        garder(); redessiner();
+      });
+      $$("[data-ssomme]", page).forEach((c) => {
+        const maj = () => { V[c.dataset.ssomme] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
       $$("[data-stype]", page).forEach((s) => s.addEventListener("change", () => {
         ETAT.suites[Number(s.dataset.stype)].type = s.value; garder(); redessiner();
       }));
@@ -1465,6 +1653,31 @@
             + '" value="' + ech(S.effectifs[i]) + '" aria-label="Effectif ' + (i + 1)
             + '"></td></tr>';
         }
+        /* Les colonnes CALCULÉES de la machine : fréquence, effectifs
+           cumulés croissants, fréquences cumulées croissantes. Elles ne se
+           saisissent pas — elles se lisent, et c'est précisément ce qu'un
+           sujet demande de savoir lire. Elles suivent l'ordre des valeurs
+           TRIÉES, sinon un cumul ne veut rien dire. */
+        const aperçu = CALC.STATS.unVariable(S.valeurs, S.effectifs);
+        let colonnes = "";
+        if (aperçu && aperçu.N > 0) {
+          let cum = 0;
+          colonnes = '<div class="nw-defile"><table class="nw-table"><thead><tr>'
+            + '<th>valeur</th><th>effectif</th><th>fréquence</th>'
+            + '<th>ECC</th><th>FCC</th></tr></thead><tbody>'
+            + aperçu.paires.map((pr) => {
+                cum += pr[1];
+                return '<tr><td>' + ech(fmt(pr[0])) + '</td><td>' + ech(fmt(pr[1]))
+                  + '</td><td>' + ech(fmt(pr[1] / aperçu.N))
+                  + '</td><td>' + ech(fmt(cum))
+                  + '</td><td>' + ech(fmt(cum / aperçu.N)) + '</td></tr>';
+              }).join("")
+            + '</tbody></table></div>'
+            + '<p class="nw-sous"><b>ECC</b> : effectifs cumulés croissants — combien '
+            + 'd\'individus ont une valeur inférieure ou égale. <b>FCC</b> : la même '
+            + 'chose en fréquence. Les valeurs sont triées : un cumul sur des valeurs '
+            + 'en désordre ne veut rien dire.</p>';
+        }
         return onglets + '<div class="nw-defile"><table class="nw-table"><thead><tr>'
           + '<th>#</th><th>valeur</th><th>effectif</th></tr></thead><tbody>' + corps
           + '</tbody></table></div>'
@@ -1474,7 +1687,8 @@
           + '<button type="button" class="nw-bouton" id="nw-stats-vider">Tout effacer</button>'
           + '</div>'
           + '<p class="nw-sous">Un effectif de 1 partout, c\'est une liste brute. '
-          + 'Les valeurs répétées sont regroupées automatiquement.</p>';
+          + 'Les valeurs répétées sont regroupées automatiquement.</p>'
+          + colonnes;
       }
       const R = CALC.STATS.unVariable(S.valeurs, S.effectifs);
       if (!R) return onglets + '<p class="nw-vide">Aucune donnée exploitable.</p>';
@@ -1515,15 +1729,57 @@
           + (mode === v ? ' aria-pressed="true"' : '') + '>' + t + '</button>').join("")
         + '</div>';
       let svg = "";
+      let reglages = "";
       if (mode === "histogramme") {
-        const hmax = Math.max(...R.paires.map((p) => p[1]));
-        const larg = R.paires.length > 1
-          ? (R.paires[R.paires.length - 1][0] - R.paires[0][0]) / (R.paires.length - 1) : 1;
-        svg = tracer({
-          xmin: R.min - larg, xmax: R.max + larg, ymin: 0, ymax: hmax * 1.15,
-          barres: R.paires.map((p) => ({ x0: p[0] - larg * 0.4, x1: p[0] + larg * 0.4, h: p[1] })),
-          aide: "Histogramme des effectifs",
-        });
+        /* La machine règle son histogramme par DEUX nombres — la largeur
+           d'une barre et le début de la première. Sans eux, un relevé de
+           notes sur 20 se rend en vingt bâtonnets d'un individu chacun,
+           alors que la question porte sur des classes. Laissés vides, on
+           garde une barre par valeur : c'est le comportement d'avant, et
+           c'est le bon quand les valeurs sont déjà des classes. */
+        const H = S.histo || {};
+        const pasBarre = parseFloat(H.largeur);
+        const debut = parseFloat(H.debut);
+        reglages = '<div class="nw-panneau"><div class="nw-rangee">'
+          + '<label for="nw-h-larg">largeur</label>'
+          + '<input type="text" class="nw-petit nw-court" id="nw-h-larg" data-histo="largeur" '
+          + 'value="' + ech(H.largeur || "") + '" placeholder="auto">'
+          + '<label for="nw-h-deb">début</label>'
+          + '<input type="text" class="nw-petit nw-court" id="nw-h-deb" data-histo="debut" '
+          + 'value="' + ech(H.debut || "") + '" placeholder="auto">'
+          + '</div><p class="nw-sous">Vides, une barre par valeur. Remplis, les valeurs '
+          + 'sont groupées en classes de cette largeur à partir de ce début — c\'est ce que '
+          + 'fait la machine, et ce que demande un énoncé qui parle de classes.</p></div>';
+
+        if (pasBarre > 0) {
+          const d0 = Number.isFinite(debut) ? debut : R.min;
+          const classes = new Map();
+          R.paires.forEach((pr) => {
+            const k = Math.floor((pr[0] - d0) / pasBarre);
+            classes.set(k, (classes.get(k) || 0) + pr[1]);
+          });
+          const cles = [...classes.keys()].sort((x, y) => x - y);
+          const hmax = Math.max(...classes.values());
+          svg = tracer({
+            xmin: d0 + (cles[0] - 0.3) * pasBarre,
+            xmax: d0 + (cles[cles.length - 1] + 1.3) * pasBarre,
+            ymin: 0, ymax: hmax * 1.15,
+            barres: cles.map((k) => ({ x0: d0 + k * pasBarre,
+                                       x1: d0 + (k + 1) * pasBarre,
+                                       h: classes.get(k) })),
+            aide: "Histogramme par classes",
+          });
+        } else {
+          const hmax = Math.max(...R.paires.map((p) => p[1]));
+          const larg = R.paires.length > 1
+            ? (R.paires[R.paires.length - 1][0] - R.paires[0][0]) / (R.paires.length - 1) : 1;
+          svg = tracer({
+            xmin: R.min - larg, xmax: R.max + larg, ymin: 0, ymax: hmax * 1.15,
+            barres: R.paires.map((p) => ({ x0: p[0] - larg * 0.4, x1: p[0] + larg * 0.4,
+                                           h: p[1] })),
+            aide: "Histogramme des effectifs",
+          });
+        }
       } else if (mode === "moustaches") {
         const dx = Math.max(1e-9, R.max - R.min);
         svg = tracer({
@@ -1548,9 +1804,28 @@
           aide: "Effectifs cumulés croissants",
         });
       }
-      return onglets + choix + svg
+      /* Les valeurs ABERRANTES, au sens usuel : au-delà de 1,5 écart
+         interquartile des quartiles. Les moustaches, elles, gardent la
+         convention du lycée — elles vont aux extrêmes. On ne change donc
+         pas le dessin, on NOMME ce qu'il contient : un sujet qui demande
+         « y a-t-il des valeurs aberrantes ? » attend ce calcul-là. */
+      let aberrantes = "";
+      if (mode === "moustaches") {
+        const bas = R.q1 - 1.5 * R.interquartile;
+        const haut2 = R.q3 + 1.5 * R.interquartile;
+        const hors = R.paires.filter((pr) => pr[0] < bas || pr[0] > haut2).map((pr) => pr[0]);
+        aberrantes = '<dl class="nw-valeurs">'
+          + '<dt>seuil bas — Q1 − 1,5 × EIQ</dt><dd>' + ech(fmt(bas)) + '</dd>'
+          + '<dt>seuil haut — Q3 + 1,5 × EIQ</dt><dd>' + ech(fmt(haut2)) + '</dd>'
+          + '<dt>valeurs aberrantes</dt><dd>'
+          + (hors.length ? ech(hors.map((v) => fmt(v)).join(" · ")) : "aucune") + '</dd>'
+          + '</dl>';
+      }
+      return onglets + choix + reglages + svg
         + (mode === "moustaches" ? '<p class="nw-sous">Les moustaches vont jusqu\'aux valeurs '
-            + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile.</p>' : "");
+            + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile. Le seuil '
+            + 'de 1,5 sert à NOMMER les valeurs aberrantes, pas à couper le dessin.</p>'
+            + aberrantes : "");
     },
     apres() {
       brancherOnglets();
@@ -1584,6 +1859,15 @@
       $$("[data-sgraphe]", page).forEach((b) => b.addEventListener("click", () => {
         ETAT.stats.graphe = b.dataset.sgraphe; garder(); redessiner();
       }));
+      $$("[data-histo]", page).forEach((c) => {
+        const maj = () => {
+          ETAT.stats.histo = ETAT.stats.histo || {};
+          ETAT.stats.histo[c.dataset.histo] = c.value.trim();
+          garder(); redessiner();
+        };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
     },
   };
 
@@ -2263,9 +2547,58 @@
     html() {
       const E = ETAT.equations;
       const choix = '<div class="nw-onglets">'
-        + [["polynome", "Polynôme"], ["systeme", "Système linéaire"]].map(([v, t]) =>
+        + [["polynome", "Polynôme"], ["systeme", "Système linéaire"],
+           ["quelconque", "Équation quelconque"]].map(([v, t]) =>
           '<button type="button" class="nw-onglet" data-emode="' + v + '" aria-selected="'
           + (E.mode === v) + '">' + t + '</button>').join("") + '</div>';
+      if (E.mode === "quelconque") {
+        /* Deux expressions, un intervalle, et des solutions APPROCHÉES. Le
+           mot compte : on ne rend pas une forme exacte, on rend des nombres
+           trouvés par changement de signe puis dichotomie. Annoncer « x =
+           0,739085 » sans dire « approchée » serait affirmer plus que ce
+           qu'on a calculé. L'intervalle est à l'élève : hors de lui, on ne
+           cherche pas, et on le dit. */
+        /* « CALC.fonction », comme le Grapheur : c'est la porte d'entrée du
+           moteur pour une expression d'une variable, et elle rend « f ». */
+        const compile = (txt) => {
+          const r = CALC.fonction(txt, "x", contexte());
+          return r && !r.erreur && r.f ? r.f : null;
+        };
+        const G = compile(E.gauche), D = compile(E.droite);
+        const a0 = parseFloat(E.a), b0 = parseFloat(E.b);
+        let bloc;
+        if (!G || !D) {
+          bloc = '<p class="nw-erreur">Une des deux expressions ne se lit pas.</p>';
+        } else if (!(b0 > a0)) {
+          bloc = '<p class="nw-erreur">L\'intervalle de recherche demande a &lt; b.</p>';
+        } else {
+          const diff = (x) => {
+            const g = G(x), d2 = D(x);
+            return Number.isFinite(g) && Number.isFinite(d2) ? g - d2 : NaN;
+          };
+          const sols = CALC.num.zeros(diff, a0, b0, 2000);
+          bloc = sols.length
+            ? '<dl class="nw-valeurs">' + sols.map((x, i) => '<dt>solution '
+                + (i + 1) + ' (approchée)</dt><dd>x ≈ ' + ech(fmt(x)) + '</dd>').join("")
+              + '</dl>'
+            : '<p class="nw-resultat" style="text-align:left">Aucune solution trouvée '
+              + 'sur [' + ech(fmt(a0)) + ' ; ' + ech(fmt(b0)) + '].</p>';
+        }
+        const champ = (cle, lib, large) => '<label for="nw-eq-' + cle + '">' + lib
+          + '</label><input type="text" class="nw-petit' + (large ? "" : " nw-court")
+          + '" id="nw-eq-' + cle + '" data-eq="' + cle + '" value="' + ech(E[cle]) + '">';
+        return choix
+          + '<div class="nw-rangee">' + champ("gauche", "f(x) =", true)
+          + champ("droite", "g(x) =", true) + '</div>'
+          + '<div class="nw-rangee">' + champ("a", "chercher de x =")
+          + champ("b", "à x =") + '</div>'
+          + bloc
+          + '<p class="nw-sous">Les solutions sont <b>approchées</b> : elles viennent d\'un '
+          + 'changement de signe de f − g, puis d\'une dichotomie. Deux solutions très '
+          + 'proches peuvent n\'en faire qu\'une à l\'écran, et une solution hors de '
+          + 'l\'intervalle n\'est pas cherchée — c\'est pour cela que l\'intervalle se '
+          + 'saisit.</p>';
+      }
       if (E.mode === "polynome") {
         const d = E.degre;
         const termes = [];
@@ -2367,6 +2700,11 @@
       $$("[data-emode]", page).forEach((b) => b.addEventListener("click", () => {
         ETAT.equations.mode = b.dataset.emode; garder(); redessiner();
       }));
+      $$("[data-eq]", page).forEach((c) => {
+        const maj = () => { ETAT.equations[c.dataset.eq] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
       const dg = $("#nw-degre");
       if (dg) dg.addEventListener("change", () => {
         const d = Number(dg.value);
@@ -2629,6 +2967,21 @@
         + '</div>'
         + '<div class="nw-rangee"><label>mode examen</label>'
         + seg("examen", [[false, "éteint"], [true, "allumé"]], R.examen) + '</div>'
+        /* La machine a un sixième réglage : la forme des nombres complexes.
+           Le moteur ne les calcule pas — « complexe: false » depuis le
+           premier jour. Le réglage est donc montré À SA PLACE, et il dit
+           qu'il ne fait rien : une case grisée sans explication laisse
+           croire à une panne, et une case active qui ne répond pas est
+           pire encore. */
+        + '<div class="nw-rangee nw-avenir-ligne"><label>forme des nombres complexes</label>'
+        + '<span class="nw-tuile-badge">à venir</span></div>'
+        + '<p class="nw-sous">La machine propose ici <i>réel</i>, <i>algébrique</i> (a + ib) '
+        + 'et <i>exponentielle</i> (r·e<sup>iθ</sup>). Ce moteur ne calcule pas encore dans '
+        + 'ℂ : <code>√(−4)</code> répond « hors domaine » plutôt que <code>2i</code>. Le '
+        + 'réglage est posé à sa place pour que la liste soit juste, et il le dit au lieu '
+        + 'de faire semblant. Ce qu\'il faudrait : une arithmétique complexe dans le '
+        + 'moteur, et les fonctions usuelles qui la suivent — c\'est un chantier, pas un '
+        + 'réglage.</p>'
         + '<p class="nw-sous"><b>Le mode examen efface les mémoires</b> — les variables, '
         + 'les fonctions, les suites, les listes — et l\'affiche en haut de l\'écran, comme '
         + 'la machine. Mais il faut être honnête : une page web ne se scelle pas. C\'est un '
@@ -2639,7 +2992,23 @@
         + 'Tout remettre à zéro</button></div>'
         + '<p class="nw-sous">Remet les réglages, les fonctions, les listes et l\'historique '
         + 'dans leur état d\'origine. Rien n\'est envoyé nulle part : tout vit dans ce '
-        + 'navigateur, sur cet appareil.</p>';
+        + 'navigateur, sur cet appareil.</p>'
+        /* « À propos », comme la machine — et il dit ce qui est vrai de
+           celle-ci : douze applications, ce qu'elle sait, ce qu'elle ne sait
+           pas encore. Un outil doit savoir se décrire. */
+        + '<h3 class="nw-titre-bloc">À propos</h3>'
+        + '<dl class="nw-valeurs">'
+        + '<dt>applications</dt><dd>' + ORDRE.length + '</dd>'
+        + '<dt>écrites</dt><dd>' + ORDRE.filter((c) => APPS[c] && !APPS[c].aVenir).length
+        + '</dd>'
+        + '<dt>à venir</dt><dd>' + ORDRE.filter((c) => APPS[c] && APPS[c].aVenir)
+            .map((c) => APPS[c].nom).join(" · ") + '</dd>'
+        + '<dt>fonctions du moteur</dt><dd>' + (CALC.FONCTIONS ? CALC.FONCTIONS.length : "—")
+        + '</dd>'
+        + '</dl>'
+        + '<p class="nw-sous">Tout est calculé ici, dans la page : aucun serveur, aucune '
+        + 'requête, et le travail reste sur l\'appareil. La calculatrice s\'ouvre hors '
+        + 'ligne une fois la page visitée.</p>';
     },
     apres() {
       $$("[data-reglage]", page).forEach((b) => b.addEventListener("click", () => {

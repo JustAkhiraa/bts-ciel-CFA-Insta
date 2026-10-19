@@ -983,6 +983,20 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
    on révise avec ce qu'on a sous la main, pas avec un sujet resté en cours. */
 @media print { .appui-tp { display: none; } }
 
+/* « Tu ajoutes des exos alors que je t'ai pas demandé — TP 6, y'a pas
+   d'exo 8. » Il avait raison : le programme de contrôle, qui sert à
+   vérifier les chiffres sans saisie, portait un numéro d'exercice et se
+   lisait donc comme un huitième exercice du sujet. Il garde sa place —
+   c'est lui qui rend les résultats recomparables — mais il porte
+   maintenant son étiquette, et il n'a plus de numéro. */
+.exo h3 .hors-sujet {
+  display: inline-block; margin-right: .5rem; padding: .1rem .45rem;
+  border-radius: 999px; font-size: .62rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--encre-douce); background: var(--carte-creuse);
+  border: 1px solid var(--bord-fort); vertical-align: middle;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    AMBIANCES — 24 thèmes
    Repris du projet Sakina et transposés sur les variables de ces fiches.
@@ -5834,6 +5848,14 @@ td.etat.sur   { color: var(--vert); }
 .at-ex-groupe { display: grid; gap: .4rem;
   grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); }
 .at-ex-groupe h4 { grid-column: 1 / -1; }
+/* Signalé : « pourquoi autant de vide ? mets-les à la suite ». Les cartes
+   de TP ont leur propre grille, qui se range toute seule ; mais elle était
+   POSÉE DANS une cellule du groupe, large de 250 px. Cinq cartes tenaient
+   donc sur deux colonnes dans un coin, pendant que les trois quarts de la
+   largeur restaient vides. Elle prend la rangée entière, comme le titre
+   juste au-dessus — et sa propre grille fait le reste : autant de cartes
+   par rangée que la place le permet. */
+.at-ex-groupe > .at-dossiers { grid-column: 1 / -1; }
 .at-ex {
   display: flex; flex-direction: column; gap: .15rem; text-align: left;
   min-height: 44px; padding: .55rem .75rem; border-radius: var(--r);
@@ -6711,11 +6733,22 @@ body.at-fige { overflow: hidden; }
 }
 .at-sac-fermer:hover { border-color: var(--accent); }
 .at-sac-grille { display: grid; gap: .45rem; }
-/* Le numéro est celui de la LISTE, pas celui du sujet : les corrigés publiés
-   ne reprennent pas la numérotation de la feuille de la professeure, et
-   l'inventer serait affirmer quelque chose de faux à la veille d'un TP. Il
-   sert à se repérer dans le dossier, et le titre dit le reste. */
+/* Le numéro est celui du SUJET depuis que les énoncés y sont recopiés : le
+   troisième exercice du dossier est le troisième de la feuille. Le programme
+   de contrôle, lui, les refait tous — il ne consomme donc pas de rang et
+   porte « tous ». */
 .at-ex-sac { position: relative; padding-left: 2.4rem; }
+/* Signalé, capture à l'appui : « ça se chevauche ». La pastille est posée en
+   absolu, donc sa largeur ne pousse rien — « tous » débordait sur le titre
+   que les 2,4 rem de retrait laissaient commencer trop tôt. Une ligne large
+   demande un retrait large : c'est la règle, et elle vaut pour tout ce qu'on
+   posera un jour dans cette pastille. */
+.at-ex-sac-tous { padding-left: 4rem; }
+.at-ex-sac-tous > i {
+  width: auto; min-width: 2.6rem; padding: .1rem .42rem; border-radius: 999px;
+}
+/* Il n'est pas un exercice : un filet l'en sépare, comme dans le menu. */
+.at-ex-sac-tous { margin-top: .35rem; border-top-color: var(--bord-fort); }
 .at-ex-sac > i {
   position: absolute; left: .7rem; top: .62rem; font-style: normal;
   width: 1.3rem; height: 1.3rem; border-radius: 50%;
@@ -7628,11 +7661,27 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    Exécuter, le langage, les cinq pastilles de surlignage, Réglages,
    Agrandir. Le reste est à un clic, et n'encombre plus. */
 .at-reglages-boite { position: relative; }
+/* Signalé : « c'est moche, on voit pas la limite, on sait pas si c'est des
+   boutons ou quoi ». Les deux tenaient à la MÊME cause, et ce n'était pas
+   une affaire de goût : « --creuse » et « --filet » n'existent nulle part —
+   ni dans theme.css, ni ailleurs. Ce sont des fautes de frappe pour
+   « --carte-creuse » et « --bord-fort ». Une variable inconnue rend la
+   déclaration invalide, en silence : le panneau n'avait donc PAS de bordure,
+   et les pastilles de thème n'avaient ni fond ni contour — du texte posé.
+   Six déclarations étaient touchées, y compris les pastilles de surlignage.
+   (C'est le défaut de la classe sans règle, CLAUDE.md § 7, dans sa version
+   « jeton sans déclaration » : valide, silencieux, et sans effet.) */
 .at-menu {
   position: absolute; top: calc(100% + .35rem); right: 0; z-index: 40;
-  min-width: 15rem; padding: .35rem; display: flex; flex-direction: column; gap: .15rem;
-  background: var(--carte); border: 1px solid var(--filet); border-radius: 11px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+  min-width: 15.5rem; padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
+  background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.22);
+}
+/* Un filet entre les groupes : sans lui, neuf commandes se lisent comme une
+   seule liste et l'œil ne sait plus où une famille s'arrête. */
+.at-menu-sep {
+  height: 1px; margin: .3rem .45rem; background: var(--bord-fort); opacity: .7;
+  border: 0; flex: none;
 }
 .at-menu[hidden] { display: none; }
 .at-menu-item {
@@ -7641,7 +7690,7 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
   background: none; border: 0; border-radius: 7px; cursor: pointer;
   font: inherit; font-size: .8182rem; color: var(--encre);
 }
-.at-menu-item:hover, .at-menu-item:focus-visible { background: var(--creuse); }
+.at-menu-item:hover, .at-menu-item:focus-visible { background: var(--carte-creuse); }
 .at-menu-item kbd { margin-left: auto; }
 .at-menu-titre {
   margin: .4rem .55rem .15rem; font-size: .7273rem; letter-spacing: .04em;
@@ -7649,27 +7698,33 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 }
 .at-themes { display: flex; flex-wrap: wrap; gap: .25rem; padding: 0 .35rem .25rem; }
 .at-themes button {
-  min-height: 30px; padding: .2rem .5rem; cursor: pointer; font: inherit;
+  min-height: 34px; padding: .2rem .62rem; cursor: pointer; font: inherit;
   font-size: .7727rem; color: var(--encre-douce);
-  background: var(--creuse); border: 1px solid var(--filet); border-radius: 7px;
+  background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: 7px;
 }
+/* L'état choisi : le contour d'accent sur le fond de carte, et le gras.
+   J'avais essayé « --accent-sombre sur --accent-pale », plus franc à l'œil —
+   mesuré, il tombe à 1,42:1 sur les thèmes sombres, où l'encre d'accent est
+   bleu foncé sur un panneau foncé. Le couple n'est pas un couple de la
+   maison ; celui-ci l'est, et le banc l'a déjà validé. */
 .at-themes button[aria-pressed="true"] {
   color: var(--encre); border-color: var(--accent); background: var(--carte);
+  font-weight: 600;
 }
 
 /* Les pastilles de surlignage : des cibles de 34 px, comme tout le reste. */
 .at-surligneur { display: flex; gap: .25rem; align-items: center; }
 .at-couleur {
   width: 34px; height: 34px; padding: 0; cursor: pointer; border-radius: 9px;
-  border: 1px solid var(--filet); font: inherit; font-size: .8182rem;
-  color: var(--encre-douce); background: var(--creuse);
+  border: 1px solid var(--bord-fort); font: inherit; font-size: .8182rem;
+  color: var(--encre-douce); background: var(--carte-creuse);
 }
 .at-couleur:hover, .at-couleur:focus-visible { border-color: var(--accent); }
 .at-c-rouge  { background: #D63031; }
 .at-c-ambre  { background: #D68C00; }
 .at-c-vert   { background: #2EA043; }
 .at-c-bleu   { background: #1F6FEB; }
-.at-c-effacer { background: var(--creuse); }
+.at-c-effacer { background: var(--carte-creuse); }
 
 /* ── Les cinq jeux de couleurs de l'éditeur et de la console ─────────────
    L'invariant « tout pre du site a le fond #23211E » (§ 23) vaut toujours
@@ -7810,6 +7865,29 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    voit. */
 .rail .r-tot { flex: none; font-variant-numeric: tabular-nums; }
 @media print { .rail { display: none; } }
+
+/* « tous » à la place d'un rang : le programme de contrôle refait les
+   exercices du TP, il n'en est pas un de plus. Plus étroit qu'un chiffre
+   dans le même rond, donc la pastille s'allonge au lieu de déborder. */
+.at-ex .at-ex-tous {
+  font-style: normal; font-size: .58rem; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* Trois styles du dernier chantier de la calculatrice : l'intitulé d'un
+   bloc dans Paramètres, et la ligne d'un réglage qui existe sur la machine
+   mais pas encore ici — posé à sa place, et qui le dit. */
+.nw-titre-bloc {
+  margin: 1.1rem 0 .4rem; font-size: .8485rem; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--encre-douce);
+}
+.nw-avenir-ligne { opacity: .72; }
+.nw-tuile-badge {
+  display: inline-block; padding: .1rem .45rem; border-radius: 999px;
+  font-size: .62rem; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--encre-douce);
+  background: var(--carte-creuse); border: 1px solid var(--bord-fort);
+}
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────

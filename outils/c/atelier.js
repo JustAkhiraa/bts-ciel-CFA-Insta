@@ -371,6 +371,10 @@
       const pas = parseFloat(getComputedStyle(peint).lineHeight);
       if (!(pas > 0)) return;
       const r = document.createRange();
+      /* L'origine de la grille, lue UNE fois : toutes les mesures qui
+         suivent sont relatives à elle, et aucune écriture n'a encore eu
+         lieu — la mise en page ne peut donc pas avoir bougé entre deux. */
+      const hautPeint = peint.getBoundingClientRect().top;
       const rangees = [];
       let debut = 0;
       for (let i = 0; i < nums.length; i++) {
@@ -395,16 +399,35 @@
            plusieurs rectangles — un par fragment coloré — d'où le
            regroupement à une demi-rangée près. Une ligne vide n'a aucun
            rectangle : elle vaut une rangée, comme à l'écran. */
+        /* Les rangées se comptent en RETOMBANT SUR LA GRILLE, et non en
+           comparant les sommets deux à deux.
+
+           Signalé : « quand je clique sur la ligne, ça ne me met pas la
+           bonne ligne » — avec, en capture, des numéros qui sautent une
+           ligne puis en doublent une autre. Le fichier en cause est plein
+           d'emoji (« 🎈 »), et c'est là que l'ancienne règle lâchait : un
+           emoji est rendu par une police de repli plus haute, donc son
+           rectangle commence PLUS HAUT que celui des lettres de la même
+           rangée. Tant que l'écart restait sous une demi-rangée, le
+           regroupement tenait ; au-delà, la même rangée comptait pour deux
+           — la cellule devenait deux fois trop haute, et tous les numéros
+           suivants glissaient. La marge faisant foi pour le clic (c'est
+           elle qu'on interroge, § 47), le clic désignait alors la
+           mauvaise ligne : un seul défaut, deux symptômes.
+
+           Une rangée a une position CONNUE : elle tombe sur un multiple du
+           pas, depuis le haut de la couche peinte. On y ramène donc chaque
+           rectangle au lieu de les comparer entre eux — un rectangle plus
+           haut de dix-huit pixels retombe sur la même rangée que ses
+           voisins, et deux rangées voisines restent à deux indices
+           distincts, quelle que soit la hauteur des glyphes. */
         const rects = r.getClientRects();
-        const sommets = [];
+        const bandes = [];
         for (let q = 0; q < rects.length; q++) {
-          const y = rects[q].top;
-          let vu = false;
-          for (let z = 0; z < sommets.length; z++)
-            if (Math.abs(sommets[z] - y) < pas / 2) { vu = true; break; }
-          if (!vu) sommets.push(y);
+          const rangee = Math.round((rects[q].top - hautPeint) / pas);
+          if (bandes.indexOf(rangee) < 0) bandes.push(rangee);
         }
-        rangees.push(Math.max(1, sommets.length));
+        rangees.push(Math.max(1, bandes.length));
         debut = fin + 1;
       }
       for (let i = 0; i < nums.length; i++)
@@ -2586,9 +2609,43 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !menu.hidden) { ouvrirMenu(false); btReglages.focus(); }
       });
-      for (const id of ["at-indenter", "at-partager", "at-commandes", "at-exemples"]) {
+      for (const id of ["at-indenter", "at-partager", "at-commandes", "at-exemples",
+                        "at-notice-btn"]) {
         const b = $("#" + id, racine);
         if (b) b.addEventListener("click", () => ouvrirMenu(false));
+      }
+
+      /* La notice des six fautes. Demandé : « retire-moi ce texte de base,
+         mets-le ailleurs dans réglages — tu cliques sur un bouton, ça
+         t'ouvre une fenêtre sur la même page, tu lis. »
+
+         Elle n'est donc plus un pavé dépliable sous l'éditeur : c'est un
+         panneau, posé DANS l'atelier comme la liste des commandes, qu'on
+         referme d'un Échap ou de sa croix. Même géométrie, même fond, même
+         ombre — un seul objet à comprendre plutôt que deux. Il est déplacé
+         ici plutôt que dans le gabarit : sa place dépend du positionnement
+         de l'atelier, qui est connu de ce fichier et de lui seul. */
+      const btNotice = $("#at-notice-btn", racine);
+      const notice = document.getElementById("at-notice");
+      if (btNotice && notice) {
+        if (notice.parentElement !== racine) racine.appendChild(notice);
+        const montrerNotice = (oui) => {
+          notice.hidden = !oui;
+          btNotice.setAttribute("aria-expanded", oui ? "true" : "false");
+          if (oui) {
+            const croix = notice.querySelector("[data-fermer-notice]");
+            if (croix) croix.focus();
+          } else btNotice.focus();
+        };
+        btNotice.addEventListener("click", () => montrerNotice(notice.hidden));
+        const croix = notice.querySelector("[data-fermer-notice]");
+        if (croix) croix.addEventListener("click", () => montrerNotice(false));
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !notice.hidden) {
+            e.preventDefault();
+            montrerNotice(false);
+          }
+        });
       }
     }
 
@@ -2871,11 +2928,15 @@
                téléphone, et pour la même raison. */
             const vignettes = liste.slice(0, 9)
               .map(() => '<span class="at-vignette"></span>').join("");
+            /* Le compte annoncé est celui du SUJET : le programme de contrôle
+               n'est pas un exercice de plus, il les refait tous. Annoncer huit
+               pour un TP qui en a sept, c'est la même erreur que le numéro. */
+            const nbExos = liste.filter((o) => !o.e.hors).length;
             return '<button type="button" class="at-dossier" data-g="' + ech(g) +
                    '" data-tp="' + ech(cle) + '">' +
                    '<span class="at-dossier-grille">' + vignettes + "</span>" +
-                   "<b>" + ech(cle) + "</b><span>" + liste.length +
-                   (liste.length > 1 ? " exercices" : " exercice") + "</span></button>";
+                   "<b>" + ech(cle) + "</b><span>" + nbExos +
+                   (nbExos > 1 ? " exercices" : " exercice") + "</span></button>";
           }).join("") + "</div>";
         }
         return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
@@ -2892,14 +2953,29 @@
       listeEx.parentNode.appendChild(sac);
       let rendeur = null;
 
+      /* Combien de programmes « hors sujet » avant le rang k : c'est ce qu'il
+         faut retrancher pour que les exercices gardent leur numéro du sujet. */
+      function horsAvant(liste, k) {
+        let n = 0;
+        for (let q = 0; q < k; q++) if (liste[q].e.hors) n++;
+        return n;
+      }
+
       function ouvrirDossier(g, cle, bouton) {
         const liste = enFamilles(groupes[g]).fam.get(cle) || [];
         sac.innerHTML =
           '<div class="at-sac-tete"><h5>' + ech(cle) + "</h5>" +
           '<button type="button" class="at-sac-fermer" aria-label="Fermer le dossier">✕</button></div>' +
           '<div class="at-sac-grille">' + liste.map((o, k) =>
-            '<button type="button" class="at-ex at-ex-sac" data-g="' + ech(g) +
-            '" data-i="' + o.i + '"><i>' + (k + 1) + "</i>" +
+            '<button type="button" class="at-ex at-ex-sac' +
+            (o.e.hors ? " at-ex-sac-tous" : "") + '" data-g="' + ech(g) +
+            /* Signalé : « quand je vois 8, j'ai l'impression que c'est l'exo 8 ».
+               Le programme de contrôle refait TOUS les exercices du TP ; il n'en
+               est pas un de plus. Il porte donc « tous » au lieu d'un rang, et il
+               ne consomme pas de numéro : le septième exercice reste le 7. */
+            '" data-i="' + o.i + '">' +
+            (o.e.hors ? '<i class="at-ex-tous">tous</i>'
+                      : "<i>" + (k + 1 - horsAvant(liste, k)) + "</i>") +
             "<b>" + ech(o.court) + "</b><span>" + ech(o.e.quoi || "") +
             "</span></button>").join("") + "</div>";
         sac.hidden = false;
