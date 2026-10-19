@@ -71,6 +71,9 @@
          « Auto » cadre tout seul, « Axes » ouvre la fenêtre à la main,
          « Naviguer » promène un curseur de point en point. */
       auto: true, panneau: "", curseur: null,
+      /* Deux vues du même ajustement, comme sur la machine : le nuage,
+         ou ses RÉSIDUS. Et « sans modèle », pour regarder le nuage seul. */
+      residus: false, sansModele: false,
       fenetre: { xmin: "-10", xmax: "10", ymin: "-10", ymax: "10" },
     },
     probas: { loi: "binomiale", n: 10, p: 0.3, mu: 0, sigma: 1, lambda: 0.25,
@@ -1480,7 +1483,15 @@
           return x === null ? repli : x;
         };
         const xs = [].concat(...tous.map((e) => e.X), 0);
-        const ys = [].concat(...tous.map((e) => e.Y), 0);
+        /* En résidus, l'échelle des y est celle des ÉCARTS : reprendre celle
+           des données écraserait le nuage sur une ligne. */
+        const ys = G.residus
+          ? [].concat(...deux.map((e, k) => {
+              const r2 = ajust[k];
+              return (!e || r2.erreur) ? []
+                : e.X.map((x, i) => e.Y[i] - r2.f(x));
+            }), 0)
+          : [].concat(...tous.map((e) => e.Y), 0);
         const dx = Math.max(1e-9, Math.max(...xs) - Math.min(...xs));
         const dy = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
         let F;
@@ -1494,14 +1505,27 @@
           if (F.ymax <= F.ymin) { F.ymin = -10; F.ymax = 10; }
         }
 
+        /* Les résidus : y − f(x), tracés contre x. Une droite qui ajuste bien
+           donne un nuage de résidus SANS FORME ; s'il reste une courbure, le
+           modèle choisi n'est pas le bon — et ça se voit là où ça ne se voit
+           pas sur le nuage d'origine, parce que l'échelle des y y est cent
+           fois plus grande que les écarts. C'est tout l'intérêt de la vue. */
         const points = [];
         deux.forEach((e, k) => {
-          if (e) e.X.forEach((x, i) => points.push({ x, y: e.Y[i], classe: COUL_SERIE[k] }));
+          if (!e) return;
+          const r2 = ajust[k];
+          e.X.forEach((x, i) => points.push({
+            x, y: G.residus ? (r2.erreur ? NaN : e.Y[i] - r2.f(x)) : e.Y[i],
+            classe: COUL_SERIE[k] }));
         });
+        if (G.residus) {
+          for (let k = points.length - 1; k >= 0; k--)
+            if (!Number.isFinite(points[k].y)) points.splice(k, 1);
+        }
         /* Le point moyen (x̄ ; ȳ) : la machine le marque, et toute droite des
            moindres carrés y passe — la vérification visuelle la plus rapide
            qu'un ajustement affine n'est pas aberrant. */
-        if (G.pointMoyen !== false) {
+        if (G.pointMoyen !== false && !G.residus) {
           deux.forEach((e, k) => {
             if (e) points.push({ x: e.moyenneX, y: e.moyenneY,
                                  classe: COUL_SERIE[k] + " nw-moyen" });
@@ -1515,8 +1539,12 @@
         }
         const svg = tracer({
           xmin: F.xmin, xmax: F.xmax, ymin: F.ymin, ymax: F.ymax,
-          courbes: ajust.map((e, k) => e.erreur ? null : { f: e.f, classe: COUL_SERIE[k] })
-                        .filter(Boolean),
+          /* En résidus, la seule ligne qui compte est y = 0 ; les courbes
+             ajustées n'y ont aucun sens. « Supprimer le modèle » les retire
+             aussi, pour regarder le nuage seul. */
+          courbes: (G.residus || G.sansModele) ? []
+            : ajust.map((e, k) => e.erreur ? null : { f: e.f, classe: COUL_SERIE[k] })
+                   .filter(Boolean),
           points: points,
           curseur: vise ? { x: vise.x, y: vise.y } : null,
           aide: "Nuage de points, point moyen et courbes ajustées",
@@ -1552,6 +1580,11 @@
             + '</select>'
             + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
             + (G.pointMoyen !== false ? " checked" : "") + '> Point moyen</label>'
+            + '</div><div class="nw-rangee">'
+            + '<label class="nw-case"><input type="checkbox" id="nw-residus"'
+            + (G.residus ? " checked" : "") + '> Graphique des résidus</label>'
+            + '<label class="nw-case"><input type="checkbox" id="nw-sans-modele"'
+            + (G.sansModele ? " checked" : "") + '> Supprimer le modèle</label>'
             + '</div></div>';
         }
 
@@ -1567,7 +1600,10 @@
         return onglets + barre + panneau + svg
           + '<p class="nw-equation">' + (r.erreur
               ? '<b>Les données ne conviennent pas</b> — ' + ech(r.erreur)
-              : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)) + '</p>'
+              : (G.residus ? 'Résidus de X' + (j + 1) + '/Y' + (j + 1)
+                             + ' — y = ' + ech(r.forme)
+                           : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)))
+          + '</p>'
           + bandeau
           + '<div class="nw-rangee" style="margin-top:.6rem">'
           + '<label for="nw-pred">prédiction sachant X</label>'
@@ -1739,6 +1775,14 @@
       const pm = $("#nw-moyen");
       if (pm) pm.addEventListener("change", () => {
         G.pointMoyen = pm.checked; garder(); redessiner();
+      });
+      const rs = $("#nw-residus");
+      if (rs) rs.addEventListener("change", () => {
+        G.residus = rs.checked; garder(); redessiner();
+      });
+      const sm2 = $("#nw-sans-modele");
+      if (sm2) sm2.addEventListener("change", () => {
+        G.sansModele = sm2.checked; garder(); redessiner();
       });
       [["#nw-pred", "pred"], ["#nw-predy", "predY"]].forEach(([sel, cle]) => {
         const c = $(sel);
