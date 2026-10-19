@@ -2928,11 +2928,15 @@
                téléphone, et pour la même raison. */
             const vignettes = liste.slice(0, 9)
               .map(() => '<span class="at-vignette"></span>').join("");
+            /* Le compte annoncé est celui du SUJET : le programme de contrôle
+               n'est pas un exercice de plus, il les refait tous. Annoncer huit
+               pour un TP qui en a sept, c'est la même erreur que le numéro. */
+            const nbExos = liste.filter((o) => !o.e.hors).length;
             return '<button type="button" class="at-dossier" data-g="' + ech(g) +
                    '" data-tp="' + ech(cle) + '">' +
                    '<span class="at-dossier-grille">' + vignettes + "</span>" +
-                   "<b>" + ech(cle) + "</b><span>" + liste.length +
-                   (liste.length > 1 ? " exercices" : " exercice") + "</span></button>";
+                   "<b>" + ech(cle) + "</b><span>" + nbExos +
+                   (nbExos > 1 ? " exercices" : " exercice") + "</span></button>";
           }).join("") + "</div>";
         }
         return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
@@ -2949,6 +2953,14 @@
       listeEx.parentNode.appendChild(sac);
       let rendeur = null;
 
+      /* Combien de programmes « hors sujet » avant le rang k : c'est ce qu'il
+         faut retrancher pour que les exercices gardent leur numéro du sujet. */
+      function horsAvant(liste, k) {
+        let n = 0;
+        for (let q = 0; q < k; q++) if (liste[q].e.hors) n++;
+        return n;
+      }
+
       function ouvrirDossier(g, cle, bouton) {
         const liste = enFamilles(groupes[g]).fam.get(cle) || [];
         sac.innerHTML =
@@ -2956,7 +2968,13 @@
           '<button type="button" class="at-sac-fermer" aria-label="Fermer le dossier">✕</button></div>' +
           '<div class="at-sac-grille">' + liste.map((o, k) =>
             '<button type="button" class="at-ex at-ex-sac" data-g="' + ech(g) +
-            '" data-i="' + o.i + '"><i>' + (k + 1) + "</i>" +
+            /* Signalé : « quand je vois 8, j'ai l'impression que c'est l'exo 8 ».
+               Le programme de contrôle refait TOUS les exercices du TP ; il n'en
+               est pas un de plus. Il porte donc « tous » au lieu d'un rang, et il
+               ne consomme pas de numéro : le septième exercice reste le 7. */
+            '" data-i="' + o.i + '">' +
+            (o.e.hors ? '<i class="at-ex-tous">tous</i>'
+                      : "<i>" + (k + 1 - horsAvant(liste, k)) + "</i>") +
             "<b>" + ech(o.court) + "</b><span>" + ech(o.e.quoi || "") +
             "</span></button>").join("") + "</div>";
         sac.hidden = false;
