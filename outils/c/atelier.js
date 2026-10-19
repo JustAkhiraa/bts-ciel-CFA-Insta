@@ -226,7 +226,36 @@
       document.addEventListener("mouseup", lacher);
     });
 
+    /* ── Un repeint par IMAGE, pas un par frappe ──────────────────────
+       Signalé : « c'est toujours beaucoup trop lent là, trouve une
+       solution, c'est pas possible. »
+
+       Chaque appel reconstruisait tout le DOM coloré du fichier —
+       « peint.innerHTML = peindre(tout) » — puis le reparcourait trois
+       fois pour poser les marques, et la marge mesurait derrière. À la
+       frappe soutenue, à la répétition d'une touche ou à un collage, cela
+       se produisait une fois par caractère, chacune forçant un recalcul de
+       mise en page.
+
+       Or l'écran ne montre que soixante images par seconde : repeindre
+       plus souvent, c'est jeter le travail. On enregistre donc la demande
+       et on la sert à la prochaine image — dix frappes dans la même image
+       ne coûtent plus qu'un seul repeint.
+
+       « redessinerMaintenant » reste disponible pour les rares endroits
+       qui mesurent le rendu juste après l'avoir demandé. */
+    let repeintPlanifie = false;
+
     function redessiner() {
+      if (repeintPlanifie) return;
+      repeintPlanifie = true;
+      requestAnimationFrame(() => {
+        repeintPlanifie = false;
+        redessinerMaintenant();
+      });
+    }
+
+    function redessinerMaintenant() {
       const t = saisie.value;
       deplacerSurlignages(texteConnu, t);
       texteConnu = t;
