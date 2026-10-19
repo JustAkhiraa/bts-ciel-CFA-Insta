@@ -89,6 +89,15 @@
       n: "60", tauxN: "5", pv: "10000", pmt: "", fv: "0",
       parAn: "12", composition: "12", quand: "fin",
     },
+    /* La vue graphique des Suites, avec la MÊME barre que le Grapheur et les
+       Régressions : « Auto », « Axes », « Naviguer », et un quatrième bouton
+       propre à l'application. Le contrôleur partagé d'Epsilon n'en déclare
+       que quatre, et c'est pourquoi ils se ressemblent d'une application à
+       l'autre : m_autoButton, m_rangeButton, m_navigationButton et un
+       m_calculusButton que chaque application remplit à sa façon. */
+    suitesVue: { auto: true, panneau: "", nmin: "0", nmax: "25",
+                 ymin: "-10", ymax: "10", curseur: 0, suite: 0,
+                 escalier: false, sommeDe: "0", sommeA: "10" },
     onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees",
                regression: "donnees" },
   });
@@ -1379,15 +1388,155 @@
       });
       if (vue === "graphique") {
         if (!pts.length) return onglets + '<p class="nw-vide">Aucune suite calculable.</p>';
-        if (haut - bas < 1e-9) { bas -= 1; haut += 1; }
-        const marge = (haut - bas) * 0.1;
-        return onglets + tracer({
-          xmin: rang0 - 1, xmax: rang0 + n + 1, ymin: bas - marge, ymax: haut + marge,
-          points: pts.map((p) => ({ x: p.x, y: p.y, r: 2.2 })),
+        const V = ETAT.suitesVue;
+        const pan = V.panneau || "";
+        /* La barre de la machine. Les quatre boutons sont ceux du
+           contrôleur partagé d'Epsilon ; seul le dernier change de nom
+           d'une application à l'autre. Ici « Calculer » fait la SOMME des
+           termes, qui est la question posée dans tous les sujets de suites. */
+        const barre = '<div class="nw-barre-outils" role="toolbar">'
+          + '<button type="button" class="nw-outil" id="nw-s-auto" aria-pressed="'
+          + (V.auto ? "true" : "false") + '">Auto <span class="nw-pastille'
+          + (V.auto ? " nw-allumee" : "") + '" aria-hidden="true"></span></button>'
+          + [["axes", "Axes"], ["naviguer", "Naviguer"], ["calculer", "Calculer"]]
+            .map(([c, t]) => '<button type="button" class="nw-outil'
+              + (pan === c ? " nw-ouvert" : "") + '" data-span="' + c
+              + '" aria-expanded="' + (pan === c) + '">' + t + '</button>').join("")
+          + '</div>';
+
+        const nmin = V.auto ? rang0 - 1 : (parseFloat(V.nmin) || 0) - 1;
+        const nmax = V.auto ? rang0 + n + 1 : (parseFloat(V.nmax) || 25) + 1;
+        let ybas = bas, yhaut = haut;
+        if (!V.auto) { ybas = parseFloat(V.ymin); yhaut = parseFloat(V.ymax); }
+        if (!(yhaut - ybas > 1e-9)) { ybas -= 1; yhaut += 1; }
+        const marge = V.auto ? (yhaut - ybas) * 0.1 : 0;
+
+        let panneau = "";
+        if (pan === "axes") {
+          const champ = (k, lib) => '<label for="nw-s-' + k + '">' + lib
+            + '</label><input type="text" class="nw-petit nw-court" id="nw-s-' + k
+            + '" data-sfen="' + k + '" value="' + ech(V[k]) + '">';
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + champ("nmin", "n min") + champ("nmax", "n max")
+            + (V.auto ? "" : champ("ymin", "y min") + champ("ymax", "y max"))
+            + '</div>'
+            + (V.auto ? '<p class="nw-sous">« Auto » est allumé : les ordonnées suivent '
+                + 'les termes. Éteignez-le pour saisir y min et y max.</p>' : "")
+            + '<div class="nw-rangee"><button type="button" class="nw-bascule nw-bouton" '
+            + 'id="nw-s-escalier" aria-pressed="' + (V.escalier ? "true" : "false") + '">'
+            + 'Graphique en escalier</button></div>'
+            + '<p class="nw-sous">L\'escalier ne vaut que pour une suite '
+            + '<strong>récurrente</strong> : il trace y = x et la courbe de la fonction de '
+            + 'récurrence, puis saute de l\'une à l\'autre. C\'est ce qui montre la '
+            + 'convergence — ou son absence.</p></div>';
+        } else if (pan === "naviguer") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-sterme="-1">◀ terme précédent</button>'
+            + '<button type="button" class="nw-bouton" data-sterme="1">terme suivant ▶</button>'
+            + (suites.filter((x) => x && !x.erreur).length > 1
+               ? '<button type="button" class="nw-bouton" id="nw-s-suite">suite suivante</button>'
+               : "")
+            + '</div></div>';
+        }
+
+        /* L'escalier : la première bissectrice, la courbe de récurrence, et
+           le chemin qui va de l'une à l'autre. On ne le propose QUE si la
+           suite choisie est récurrente — sur une suite explicite il ne
+           voudrait rien dire, et un dessin qui ne veut rien dire est pire
+           qu'un dessin absent. */
+        const choisie = Math.min(V.suite, ETAT.suites.length - 1);
+        const def = ETAT.suites[choisie];
+        const sc = suites[choisie];
+        const segments = [];
+        let courbesEsc = [];
+        /* La courbe de récurrence n'existe QUE si la relation ne dépend pas
+           du rang : « u+3 » en a une, « u+n » en aurait une par rang. On ne
+           le devine pas sur le texte, on le MESURE — deux rangs, la même
+           image ou non. L'escalier reste tracé dans les deux cas, mais sans
+           courbe quand elle n'a pas de sens. */
+        let dependDeN = false;
+        if (V.escalier && def && def.type === "recurrente" && sc && !sc.erreur) {
+          const a1 = sc.image(1, 0), a2 = sc.image(1, 7);
+          dependDeN = Number.isFinite(a1) && Number.isFinite(a2)
+                      && Math.abs(a1 - a2) > 1e-12;
+          const f = (x) => {
+            try { return sc.image(x, def.rang0); } catch (e) { return NaN; }
+          };
+          /* « f », et non « fn » : c'est le nom que « tracer » attend. Le
+             premier essai a planté la vue entière — un onglet qui ne
+             s'ouvre plus — et c'est la console qui l'a dit, pas l'écran. */
+          courbesEsc = [{ f: (x) => x, classe: "appui" }];
+          if (!dependDeN) courbesEsc.push({ f: f, classe: "c1" });
+          let x = sc.terme(def.rang0);
+          for (let k = 0; k < 14 && Number.isFinite(x); k++) {
+            const y = sc.terme(def.rang0 + k + 1);
+            if (!Number.isFinite(y)) break;
+            segments.push({ x1: x, y1: x, x2: x, y2: y });
+            segments.push({ x1: x, y1: y, x2: y, y2: y });
+            x = y;
+          }
+        }
+
+        const curseur = Math.max(0, Math.min(V.curseur, n));
+        const rangCur = rang0 + curseur;
+        const yCur = sc && !sc.erreur ? sc.terme(rangCur) : NaN;
+
+        const svg = tracer({
+          xmin: nmin, xmax: nmax, ymin: ybas - marge, ymax: yhaut + marge,
+          points: pts.filter((p) => p.x >= nmin && p.x <= nmax)
+                     .map((p) => ({ x: p.x, y: p.y, r: 2.2 })),
+          courbes: courbesEsc.length ? courbesEsc : undefined,
+          segments: segments.length ? segments : undefined,
+          curseur: Number.isFinite(yCur) ? { x: rangCur, y: yCur } : undefined,
           aide: "Termes des suites",
-        })
+        });
+
+        let calcul = "";
+        if (pan === "calculer") {
+          const de = Math.round(parseFloat(V.sommeDe));
+          const a2 = Math.round(parseFloat(V.sommeA));
+          let somme = null, termes = 0;
+          if (sc && !sc.erreur && Number.isFinite(de) && Number.isFinite(a2) && a2 >= de
+              && a2 - de <= 5000) {
+            somme = 0;
+            for (let k = de; k <= a2; k++) {
+              const y = sc.terme(k);
+              if (!Number.isFinite(y)) { somme = null; break; }
+              somme += y; termes++;
+            }
+          }
+          calcul = '<div class="nw-panneau"><p class="nw-sous">Somme des termes de '
+            + ech(NOMS_U[choisie]) + '</p><div class="nw-rangee">'
+            + '<label for="nw-s-de">de n =</label>'
+            + '<input type="text" class="nw-petit nw-court" id="nw-s-de" data-ssomme="sommeDe" '
+            + 'value="' + ech(V.sommeDe) + '">'
+            + '<label for="nw-s-a">à n =</label>'
+            + '<input type="text" class="nw-petit nw-court" id="nw-s-a" data-ssomme="sommeA" '
+            + 'value="' + ech(V.sommeA) + '"></div>'
+            + '<dl class="nw-valeurs"><dt>Σ</dt><dd>'
+            + ech(somme === null ? "—" : fmt(somme)) + '</dd>'
+            + '<dt>termes additionnés</dt><dd>' + termes + '</dd></dl></div>';
+        }
+
+        return onglets + barre + panneau + svg
+          + '<p class="nw-curseur-info"><span>'
+          + (sc && !sc.erreur
+             ? ech(NOMS_U[choisie]) + '(' + rangCur + ') = '
+               + ech(Number.isFinite(yCur) ? fmt(yCur) : "n\'existe pas")
+             : "Aucune suite calculable.")
+          + '</span></p>'
           + '<p class="nw-sous">Les termes sont des POINTS, pas une courbe : une suite '
-          + 'n\'est définie que sur les entiers. Les relier serait une faute de lecture.</p>';
+          + 'n\'est définie que sur les entiers. Les relier serait une faute de lecture.</p>'
+          + (V.escalier && def && def.type !== "recurrente"
+             ? '<p class="nw-sous">L\'escalier est demandé, mais ' + ech(NOMS_U[choisie])
+               + ' n\'est pas récurrente : il n\'y a pas de fonction à faire rebondir. '
+               + 'Seuls les termes sont tracés.</p>'
+             : "")
+          + (dependDeN ? '<p class="nw-sous">La récurrence dépend du rang <code>n</code> : '
+               + 'il n\'y a donc pas UNE courbe y = f(x), mais une par rang. L\'escalier '
+               + 'est tracé, la courbe est écartée — la dessiner serait affirmer une '
+               + 'relation qui change à chaque pas.</p>' : "")
+          + calcul;
       }
       let corps = "";
       for (let k = 0; k <= 24; k++) {
@@ -1418,6 +1567,40 @@
     },
     apres() {
       brancherOnglets();
+      /* La barre de la vue graphique. Chaque bouton fait quelque chose :
+         un bouton posé qui ne répond pas est pire qu'un bouton absent. */
+      const V = ETAT.suitesVue;
+      const bAuto = $("#nw-s-auto", page);
+      if (bAuto) bAuto.addEventListener("click", () => {
+        V.auto = !V.auto; garder(); redessiner();
+      });
+      $$("[data-span]", page).forEach((b2) => b2.addEventListener("click", () => {
+        V.panneau = V.panneau === b2.dataset.span ? "" : b2.dataset.span;
+        garder(); redessiner();
+      }));
+      $$("[data-sfen]", page).forEach((c) => {
+        const maj = () => { V[c.dataset.sfen] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
+      const bEsc = $("#nw-s-escalier", page);
+      if (bEsc) bEsc.addEventListener("click", () => {
+        V.escalier = !V.escalier; garder(); redessiner();
+      });
+      $$("[data-sterme]", page).forEach((b2) => b2.addEventListener("click", () => {
+        V.curseur = Math.max(0, Math.min(30, V.curseur + Number(b2.dataset.sterme)));
+        garder(); redessiner();
+      }));
+      const bSuite = $("#nw-s-suite", page);
+      if (bSuite) bSuite.addEventListener("click", () => {
+        V.suite = (V.suite + 1) % ETAT.suites.length;
+        garder(); redessiner();
+      });
+      $$("[data-ssomme]", page).forEach((c) => {
+        const maj = () => { V[c.dataset.ssomme] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
       $$("[data-stype]", page).forEach((s) => s.addEventListener("change", () => {
         ETAT.suites[Number(s.dataset.stype)].type = s.value; garder(); redessiner();
       }));
