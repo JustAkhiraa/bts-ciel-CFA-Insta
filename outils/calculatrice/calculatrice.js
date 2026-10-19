@@ -878,7 +878,16 @@
         const ycur = act ? act.f(curseur.x) : NaN;
         const svg = tracer({
           xmin: F.xmin, xmax: F.xmax, ymin: F.ymin, ymax: F.ymax,
-          courbes: courbes.map((c) => ({ f: c.f, classe: c.classe })),
+          /* La tangente demandée par « calculer » est tracée AVEC les
+             courbes, en trait d'appui : on vérifie à l'œil qu'elle touche
+             la courbe au bon endroit, ce qu'une équation écrite ne montre
+             pas. Elle disparaît dès qu'on change une expression — une
+             tangente à une courbe qui n'existe plus mentirait. */
+          courbes: courbes.map((c) => ({ f: c.f, classe: c.classe }))
+            .concat(ETAT.fenetre.tangente
+              && courbes.some((c) => c.i === ETAT.fenetre.tangente.i)
+              ? [{ f: (x) => ETAT.fenetre.tangente.m * x + ETAT.fenetre.tangente.p,
+                   classe: "appui" }] : []),
           curseur: act ? { x: curseur.x, y: ycur } : null,
           aide: "Courbes de " + courbes.map((c) => c.nom).join(", "),
         });
@@ -942,10 +951,16 @@
       $$("[data-cle^='f']", page).forEach((c) => {
         const i = Number(c.dataset.cle.slice(1));
         c.addEventListener("change", () => {
-          ETAT.fonctions[i].expr = c.value; garder(); redessiner();
+          /* Une tangente calculée sur l'ancienne expression mentirait sur
+             la nouvelle : on l'oublie plutôt que de la laisser flotter. */
+          ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
+          garder(); redessiner();
         });
         c.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") { ETAT.fonctions[i].expr = c.value; garder(); redessiner(); }
+          if (e.key === "Enter") {
+            ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
+            garder(); redessiner();
+          }
         });
       });
       $$("[data-voir]", page).forEach((c) => c.addEventListener("change", () => {
@@ -1036,6 +1051,8 @@
       + '<option value="integrale">une intégrale</option>'
       + '<option value="derivee">un nombre dérivé</option>'
       + '<option value="intersections">les intersections</option>'
+      + '<option value="antecedent">un antécédent</option>'
+      + '<option value="tangente">la tangente</option>'
       + '</select>'
       + (courbes.length > 1 ? '<label for="nw-quelle">de</label>'
           + '<select class="nw-petit" id="nw-quelle">' + noms.join("") + '</select>' : "")
@@ -1086,6 +1103,37 @@
         const d = CALC.num.derivee(c.f, a);
         calculResultat = { question: c.nom + "′(" + fmt(a) + ")", reponse: fmt(d),
           note: "Calculé numériquement : c'est le nombre dérivé, pas la fonction dérivée." };
+      } else if (quoi === "antecedent") {
+        /* L'ANTÉCÉDENT, et non le zéro : on cherche x tel que f(x) = a. La
+           machine le propose parce qu'un énoncé demande bien plus souvent
+           « pour quelle valeur de x a-t-on 250 € ? » que « où s'annule-t-elle ».
+           C'est le même solveur, appliqué à f(x) − a. */
+        if (a === null) { dire("La valeur cherchée (a) est illisible.", "e-erreur"); return; }
+        const z = CALC.num.zeros((x) => c.f(x) - a, F.xmin, F.xmax);
+        calculResultat = {
+          question: c.nom + "(x) = " + fmt(a) + dansFenetre,
+          reponse: z.length ? z.map((x) => "x = " + fmt(x)).join("  ·  ") : "aucun",
+          note: z.length ? null
+            : "Aucun antécédent DANS CETTE FENÊTRE. Il peut en exister ailleurs : "
+              + "élargissez xmin et xmax avant de conclure.",
+        };
+      } else if (quoi === "tangente") {
+        /* La tangente en a : y = f′(a)·(x − a) + f(a). Elle est AJOUTÉE au
+           tracé, pas seulement écrite — c'est en la voyant toucher la courbe
+           qu'on vérifie qu'on n'a pas confondu le point et la pente. */
+        if (a === null) { dire("L'abscisse a est illisible.", "e-erreur"); return; }
+        const ya = c.f(a), m = CALC.num.derivee(c.f, a);
+        if (!Number.isFinite(ya) || !Number.isFinite(m)) {
+          dire("La courbe n'a pas de tangente en ce point.", "e-erreur"); return;
+        }
+        ETAT.fenetre.tangente = { i: c.i, a, m, p: ya - m * a };
+        const signe = (ya - m * a) < 0 ? " − " : " + ";
+        calculResultat = {
+          question: "tangente à " + c.nom + " en x = " + fmt(a),
+          reponse: "y = " + fmt(m) + "x" + signe + fmt(Math.abs(ya - m * a)),
+          note: "Pente f′(" + fmt(a) + ") = " + fmt(m) + ", point ("
+                + fmt(a) + " ; " + fmt(ya) + "). La tangente est tracée.",
+        };
       } else {
         const autres = courbes.filter((x) => x.i !== c.i);
         if (!autres.length) { dire("Il faut deux courbes tracées.", "e-erreur"); return; }
