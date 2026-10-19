@@ -2967,7 +2967,8 @@
           '<div class="at-sac-tete"><h5>' + ech(cle) + "</h5>" +
           '<button type="button" class="at-sac-fermer" aria-label="Fermer le dossier">✕</button></div>' +
           '<div class="at-sac-grille">' + liste.map((o, k) =>
-            '<button type="button" class="at-ex at-ex-sac" data-g="' + ech(g) +
+            '<button type="button" class="at-ex at-ex-sac' +
+            (o.e.hors ? " at-ex-sac-tous" : "") + '" data-g="' + ech(g) +
             /* Signalé : « quand je vois 8, j'ai l'impression que c'est l'exo 8 ».
                Le programme de contrôle refait TOUS les exercices du TP ; il n'en
                est pas un de plus. Il porte donc « tous » au lieu d'un rang, et il
