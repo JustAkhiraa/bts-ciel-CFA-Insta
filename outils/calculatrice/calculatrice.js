@@ -54,7 +54,7 @@
     historique: [],
     fonctions: [{ expr: "x^2-2", visible: true }, { expr: "", visible: true },
                 { expr: "", visible: true }, { expr: "", visible: true }],
-    fenetre: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true },
+    fenetre: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true, panneau: "" },
     tableau: { debut: 0, pas: 1 },
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
@@ -998,7 +998,56 @@
           curseur: act ? { x: curseur.x, y: ycur } : null,
           aide: "Courbes de " + courbes.map((c) => c.nom).join(", "),
         });
-        return onglets + svg
+        /* ── La barre du Grapheur ─────────────────────────────────────
+           Quatre boutons, et ce sont EXACTEMENT ceux de la machine : le
+           contrôleur partagé d'Epsilon en déclare quatre — m_autoButton,
+           m_rangeButton (Axes), m_navigationButton, et un quatrième
+           propre à l'application. D'où la même barre au Grapheur, aux
+           Suites et aux Régressions, le dernier bouton seul changeant de
+           nom : « Calculer » ici, « Régression » là-bas.
+
+           Rien n'est inventé ni perdu : les commandes existaient toutes,
+           empilées sous le tracé. Elles sont seulement remises à la place
+           où on les cherche. Une fonction qui existe ailleurs que là où
+           l'élève a l'habitude de la voir ne sert pas pendant une
+           épreuve. */
+        const pan = ETAT.fenetre.panneau || "";
+        const barre = '<div class="nw-barre-outils" role="toolbar">'
+          + '<button type="button" class="nw-outil" id="nw-g-auto" aria-pressed="'
+          + (ETAT.fenetre.auto ? "true" : "false") + '">Auto <span class="nw-pastille'
+          + (ETAT.fenetre.auto ? " nw-allumee" : "") + '" aria-hidden="true"></span></button>'
+          + [["axes", "Axes"], ["naviguer", "Naviguer"], ["calculer", "Calculer"]]
+            .map(([c, t]) => '<button type="button" class="nw-outil'
+              + (pan === c ? " nw-ouvert" : "") + '" data-gpan="' + c
+              + '" aria-expanded="' + (pan === c) + '">' + t + '</button>').join("")
+          + '</div>';
+        let panneau = "";
+        if (pan === "axes") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + ["xmin", "xmax"].map((k) => '<label for="nw-' + k + '">' + k
+              + '</label><input type="text" class="nw-petit nw-court" id="nw-' + k
+              + '" data-fen="' + k + '" value="' + ech(ETAT.fenetre[k]) + '">').join("")
+            + (ETAT.fenetre.auto ? ""
+              : ["ymin", "ymax"].map((k) => '<label for="nw-' + k + '">' + k
+                + '</label><input type="text" class="nw-petit nw-court" id="nw-' + k
+                + '" data-fen="' + k + '" value="' + ech(ETAT.fenetre[k]) + '">').join(""))
+            + '</div><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-zoom="0.5">Zoom +</button>'
+            + '<button type="button" class="nw-bouton" data-zoom="2">Zoom −</button>'
+            + '<button type="button" class="nw-bouton" id="nw-recadrer">Recadrer</button>'
+            + '</div>'
+            + (ETAT.fenetre.auto ? '<p class="nw-sous">« Auto » est allumé : les ordonnées '
+                + 'suivent les courbes. Éteignez-le pour saisir ymin et ymax.</p>' : "")
+            + '</div>';
+        } else if (pan === "naviguer") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-curseur="-1">◀ précédent</button>'
+            + '<button type="button" class="nw-bouton" data-curseur="1">suivant ▶</button>'
+            + (courbes.length > 1 ? '<button type="button" class="nw-bouton" id="nw-suivante">'
+                + 'courbe suivante</button>' : "")
+            + '</div></div>';
+        }
+        return onglets + barre + panneau + svg
           + '<p class="nw-curseur-info">'
           + (act ? '<span>' + ech(act.nom) + '(' + ech(fmt(curseur.x)) + ') = '
                    + ech(Number.isFinite(ycur) ? fmt(ycur) : "n\'existe pas") + '</span>'
@@ -1007,27 +1056,7 @@
           + '<div class="nw-legende">' + courbes.map((c) => '<span><i style="background:var(--nw-'
             + c.classe + ')"></i>' + ech(c.nom) + '(x) = ' + ech(c.expr) + '</span>').join("")
           + '</div>'
-          + '<div class="nw-rangee" style="margin-top:.6rem">'
-          + '<button type="button" class="nw-bouton" data-curseur="-1">◀ curseur</button>'
-          + '<button type="button" class="nw-bouton" data-curseur="1">curseur ▶</button>'
-          + (courbes.length > 1 ? '<button type="button" class="nw-bouton" id="nw-suivante">'
-              + 'courbe suivante</button>' : "")
-          + '<button type="button" class="nw-bouton" data-zoom="0.5">Zoom +</button>'
-          + '<button type="button" class="nw-bouton" data-zoom="2">Zoom −</button>'
-          + '<button type="button" class="nw-bouton" id="nw-recadrer">Recadrer</button>'
-          + '</div>'
-          + '<div class="nw-rangee">'
-          + ["xmin", "xmax"].map((k) => '<label for="nw-' + k + '">' + k
-            + '</label><input type="text" class="nw-petit" id="nw-' + k + '" data-fen="' + k
-            + '" value="' + ech(ETAT.fenetre[k]) + '">').join("")
-          + '<label><input type="checkbox" id="nw-auto"'
-          + (ETAT.fenetre.auto ? " checked" : "") + '> Y automatique</label>'
-          + '</div>'
-          + (ETAT.fenetre.auto ? "" : '<div class="nw-rangee">'
-            + ["ymin", "ymax"].map((k) => '<label for="nw-' + k + '">' + k
-              + '</label><input type="text" class="nw-petit" id="nw-' + k + '" data-fen="' + k
-              + '" value="' + ech(ETAT.fenetre[k]) + '">').join("") + '</div>')
-          + blocCalculer(courbes, F);
+          + (pan === "calculer" ? blocCalculer(courbes, F) : "");
       }
       const T = ETAT.tableau;
       const colonnes = liste.filter((c) => c && !c.erreur);
@@ -1095,16 +1124,27 @@
         Object.assign(ETAT.fenetre, { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true });
         curseur.x = 0; garder(); redessiner();
       });
-      const auto = $("#nw-auto");
-      if (auto) auto.addEventListener("change", () => {
-        ETAT.fenetre.auto = auto.checked;
-        if (!auto.checked) {
+      /* « Auto » est devenu un bouton d'état dans la barre, comme sur la
+         machine, au lieu d'une case à cocher perdue sous le tracé. En
+         l'éteignant, on recopie les bornes que le cadrage automatique
+         venait de trouver : repartir de −10/10 ferait sauter le tracé
+         alors qu'on voulait seulement le figer. */
+      const auto = $("#nw-g-auto");
+      if (auto) auto.addEventListener("click", () => {
+        ETAT.fenetre.auto = !ETAT.fenetre.auto;
+        if (!ETAT.fenetre.auto) {
           const F = fenetreAuto(fonctionsCompilees());
           ETAT.fenetre.ymin = Math.round(F.ymin * 1000) / 1000;
           ETAT.fenetre.ymax = Math.round(F.ymax * 1000) / 1000;
         }
         garder(); redessiner();
       });
+      /* Un deuxième clic referme : c'est un menu, pas un onglet. */
+      $$("[data-gpan]", page).forEach((b2) => b2.addEventListener("click", () => {
+        ETAT.fenetre.panneau =
+          ETAT.fenetre.panneau === b2.dataset.gpan ? "" : b2.dataset.gpan;
+        garder(); redessiner();
+      }));
       $$("[data-fen]", page).forEach((c) => c.addEventListener("change", () => {
         const v = nombreSaisi(c.value);
         if (v === null) { dire("« " + c.value + " » n'est pas un nombre.", "e-erreur"); return; }
