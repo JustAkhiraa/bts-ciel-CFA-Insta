@@ -81,7 +81,11 @@
               a: 0, b: 1, N: 49, K: 6, nu: 10, d1: 3, d2: 12,
               question: "egal", k: 3, k2: 5, seuil: 0.95 },
     equations: { mode: "polynome", coeffs: ["1", "-3", "2"], degre: 2,
-                 systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2 },
+                 systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2,
+                 /* La troisième porte de la machine : une équation QUELCONQUE,
+                    résolue numériquement sur un intervalle qu'on choisit. Un
+                    polynôme a ses racines exactes ; cos(x) = x n'en a pas. */
+                 gauche: "cos(x)", droite: "x", a: "-10", b: "10" },
     finance: {
       mode: "composes", cherche: "paiement",
       /* Intérêts simples */
@@ -2543,9 +2547,58 @@
     html() {
       const E = ETAT.equations;
       const choix = '<div class="nw-onglets">'
-        + [["polynome", "Polynôme"], ["systeme", "Système linéaire"]].map(([v, t]) =>
+        + [["polynome", "Polynôme"], ["systeme", "Système linéaire"],
+           ["quelconque", "Équation quelconque"]].map(([v, t]) =>
           '<button type="button" class="nw-onglet" data-emode="' + v + '" aria-selected="'
           + (E.mode === v) + '">' + t + '</button>').join("") + '</div>';
+      if (E.mode === "quelconque") {
+        /* Deux expressions, un intervalle, et des solutions APPROCHÉES. Le
+           mot compte : on ne rend pas une forme exacte, on rend des nombres
+           trouvés par changement de signe puis dichotomie. Annoncer « x =
+           0,739085 » sans dire « approchée » serait affirmer plus que ce
+           qu'on a calculé. L'intervalle est à l'élève : hors de lui, on ne
+           cherche pas, et on le dit. */
+        /* « CALC.fonction », comme le Grapheur : c'est la porte d'entrée du
+           moteur pour une expression d'une variable, et elle rend « f ». */
+        const compile = (txt) => {
+          const r = CALC.fonction(txt, "x", contexte());
+          return r && !r.erreur && r.f ? r.f : null;
+        };
+        const G = compile(E.gauche), D = compile(E.droite);
+        const a0 = parseFloat(E.a), b0 = parseFloat(E.b);
+        let bloc;
+        if (!G || !D) {
+          bloc = '<p class="nw-erreur">Une des deux expressions ne se lit pas.</p>';
+        } else if (!(b0 > a0)) {
+          bloc = '<p class="nw-erreur">L\'intervalle de recherche demande a &lt; b.</p>';
+        } else {
+          const diff = (x) => {
+            const g = G(x), d2 = D(x);
+            return Number.isFinite(g) && Number.isFinite(d2) ? g - d2 : NaN;
+          };
+          const sols = CALC.num.zeros(diff, a0, b0, 2000);
+          bloc = sols.length
+            ? '<dl class="nw-valeurs">' + sols.map((x, i) => '<dt>solution '
+                + (i + 1) + ' (approchée)</dt><dd>x ≈ ' + ech(fmt(x)) + '</dd>').join("")
+              + '</dl>'
+            : '<p class="nw-resultat" style="text-align:left">Aucune solution trouvée '
+              + 'sur [' + ech(fmt(a0)) + ' ; ' + ech(fmt(b0)) + '].</p>';
+        }
+        const champ = (cle, lib, large) => '<label for="nw-eq-' + cle + '">' + lib
+          + '</label><input type="text" class="nw-petit' + (large ? "" : " nw-court")
+          + '" id="nw-eq-' + cle + '" data-eq="' + cle + '" value="' + ech(E[cle]) + '">';
+        return choix
+          + '<div class="nw-rangee">' + champ("gauche", "f(x) =", true)
+          + champ("droite", "g(x) =", true) + '</div>'
+          + '<div class="nw-rangee">' + champ("a", "chercher de x =")
+          + champ("b", "à x =") + '</div>'
+          + bloc
+          + '<p class="nw-sous">Les solutions sont <b>approchées</b> : elles viennent d\'un '
+          + 'changement de signe de f − g, puis d\'une dichotomie. Deux solutions très '
+          + 'proches peuvent n\'en faire qu\'une à l\'écran, et une solution hors de '
+          + 'l\'intervalle n\'est pas cherchée — c\'est pour cela que l\'intervalle se '
+          + 'saisit.</p>';
+      }
       if (E.mode === "polynome") {
         const d = E.degre;
         const termes = [];
@@ -2647,6 +2700,11 @@
       $$("[data-emode]", page).forEach((b) => b.addEventListener("click", () => {
         ETAT.equations.mode = b.dataset.emode; garder(); redessiner();
       }));
+      $$("[data-eq]", page).forEach((c) => {
+        const maj = () => { ETAT.equations[c.dataset.eq] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
       const dg = $("#nw-degre");
       if (dg) dg.addEventListener("change", () => {
         const d = Number(dg.value);
@@ -2909,6 +2967,21 @@
         + '</div>'
         + '<div class="nw-rangee"><label>mode examen</label>'
         + seg("examen", [[false, "éteint"], [true, "allumé"]], R.examen) + '</div>'
+        /* La machine a un sixième réglage : la forme des nombres complexes.
+           Le moteur ne les calcule pas — « complexe: false » depuis le
+           premier jour. Le réglage est donc montré À SA PLACE, et il dit
+           qu'il ne fait rien : une case grisée sans explication laisse
+           croire à une panne, et une case active qui ne répond pas est
+           pire encore. */
+        + '<div class="nw-rangee nw-avenir-ligne"><label>forme des nombres complexes</label>'
+        + '<span class="nw-tuile-badge">à venir</span></div>'
+        + '<p class="nw-sous">La machine propose ici <i>réel</i>, <i>algébrique</i> (a + ib) '
+        + 'et <i>exponentielle</i> (r·e<sup>iθ</sup>). Ce moteur ne calcule pas encore dans '
+        + 'ℂ : <code>√(−4)</code> répond « hors domaine » plutôt que <code>2i</code>. Le '
+        + 'réglage est posé à sa place pour que la liste soit juste, et il le dit au lieu '
+        + 'de faire semblant. Ce qu\'il faudrait : une arithmétique complexe dans le '
+        + 'moteur, et les fonctions usuelles qui la suivent — c\'est un chantier, pas un '
+        + 'réglage.</p>'
         + '<p class="nw-sous"><b>Le mode examen efface les mémoires</b> — les variables, '
         + 'les fonctions, les suites, les listes — et l\'affiche en haut de l\'écran, comme '
         + 'la machine. Mais il faut être honnête : une page web ne se scelle pas. C\'est un '
@@ -2919,7 +2992,23 @@
         + 'Tout remettre à zéro</button></div>'
         + '<p class="nw-sous">Remet les réglages, les fonctions, les listes et l\'historique '
         + 'dans leur état d\'origine. Rien n\'est envoyé nulle part : tout vit dans ce '
-        + 'navigateur, sur cet appareil.</p>';
+        + 'navigateur, sur cet appareil.</p>'
+        /* « À propos », comme la machine — et il dit ce qui est vrai de
+           celle-ci : douze applications, ce qu'elle sait, ce qu'elle ne sait
+           pas encore. Un outil doit savoir se décrire. */
+        + '<h3 class="nw-titre-bloc">À propos</h3>'
+        + '<dl class="nw-valeurs">'
+        + '<dt>applications</dt><dd>' + ORDRE.length + '</dd>'
+        + '<dt>écrites</dt><dd>' + ORDRE.filter((c) => APPS[c] && !APPS[c].aVenir).length
+        + '</dd>'
+        + '<dt>à venir</dt><dd>' + ORDRE.filter((c) => APPS[c] && APPS[c].aVenir)
+            .map((c) => APPS[c].nom).join(" · ") + '</dd>'
+        + '<dt>fonctions du moteur</dt><dd>' + (CALC.FONCTIONS ? CALC.FONCTIONS.length : "—")
+        + '</dd>'
+        + '</dl>'
+        + '<p class="nw-sous">Tout est calculé ici, dans la page : aucun serveur, aucune '
+        + 'requête, et le travail reste sur l\'appareil. La calculatrice s\'ouvre hors '
+        + 'ligne une fois la page visitée.</p>';
     },
     apres() {
       $$("[data-reglage]", page).forEach((b) => b.addEventListener("click", () => {
