@@ -371,6 +371,10 @@
       const pas = parseFloat(getComputedStyle(peint).lineHeight);
       if (!(pas > 0)) return;
       const r = document.createRange();
+      /* L'origine de la grille, lue UNE fois : toutes les mesures qui
+         suivent sont relatives à elle, et aucune écriture n'a encore eu
+         lieu — la mise en page ne peut donc pas avoir bougé entre deux. */
+      const hautPeint = peint.getBoundingClientRect().top;
       const rangees = [];
       let debut = 0;
       for (let i = 0; i < nums.length; i++) {
@@ -395,16 +399,35 @@
            plusieurs rectangles — un par fragment coloré — d'où le
            regroupement à une demi-rangée près. Une ligne vide n'a aucun
            rectangle : elle vaut une rangée, comme à l'écran. */
+        /* Les rangées se comptent en RETOMBANT SUR LA GRILLE, et non en
+           comparant les sommets deux à deux.
+
+           Signalé : « quand je clique sur la ligne, ça ne me met pas la
+           bonne ligne » — avec, en capture, des numéros qui sautent une
+           ligne puis en doublent une autre. Le fichier en cause est plein
+           d'emoji (« 🎈 »), et c'est là que l'ancienne règle lâchait : un
+           emoji est rendu par une police de repli plus haute, donc son
+           rectangle commence PLUS HAUT que celui des lettres de la même
+           rangée. Tant que l'écart restait sous une demi-rangée, le
+           regroupement tenait ; au-delà, la même rangée comptait pour deux
+           — la cellule devenait deux fois trop haute, et tous les numéros
+           suivants glissaient. La marge faisant foi pour le clic (c'est
+           elle qu'on interroge, § 47), le clic désignait alors la
+           mauvaise ligne : un seul défaut, deux symptômes.
+
+           Une rangée a une position CONNUE : elle tombe sur un multiple du
+           pas, depuis le haut de la couche peinte. On y ramène donc chaque
+           rectangle au lieu de les comparer entre eux — un rectangle plus
+           haut de dix-huit pixels retombe sur la même rangée que ses
+           voisins, et deux rangées voisines restent à deux indices
+           distincts, quelle que soit la hauteur des glyphes. */
         const rects = r.getClientRects();
-        const sommets = [];
+        const bandes = [];
         for (let q = 0; q < rects.length; q++) {
-          const y = rects[q].top;
-          let vu = false;
-          for (let z = 0; z < sommets.length; z++)
-            if (Math.abs(sommets[z] - y) < pas / 2) { vu = true; break; }
-          if (!vu) sommets.push(y);
+          const rangee = Math.round((rects[q].top - hautPeint) / pas);
+          if (bandes.indexOf(rangee) < 0) bandes.push(rangee);
         }
-        rangees.push(Math.max(1, sommets.length));
+        rangees.push(Math.max(1, bandes.length));
         debut = fin + 1;
       }
       for (let i = 0; i < nums.length; i++)
@@ -2592,19 +2615,36 @@
         if (b) b.addEventListener("click", () => ouvrirMenu(false));
       }
 
-      /* La notice des six fautes. Elle ne s'affiche plus d'elle-même — elle
-         encombrait la page sous l'éditeur alors qu'on la lit une fois. Le
-         bouton du menu est son seul accès : il la montre, la déplie, et
-         l'amène sous les yeux. Un second appui la range. */
+      /* La notice des six fautes. Demandé : « retire-moi ce texte de base,
+         mets-le ailleurs dans réglages — tu cliques sur un bouton, ça
+         t'ouvre une fenêtre sur la même page, tu lis. »
+
+         Elle n'est donc plus un pavé dépliable sous l'éditeur : c'est un
+         panneau, posé DANS l'atelier comme la liste des commandes, qu'on
+         referme d'un Échap ou de sa croix. Même géométrie, même fond, même
+         ombre — un seul objet à comprendre plutôt que deux. Il est déplacé
+         ici plutôt que dans le gabarit : sa place dépend du positionnement
+         de l'atelier, qui est connu de ce fichier et de lui seul. */
       const btNotice = $("#at-notice-btn", racine);
       const notice = document.getElementById("at-notice");
       if (btNotice && notice) {
-        btNotice.addEventListener("click", () => {
-          const montrer = notice.hidden || !notice.open;
-          notice.hidden = !montrer;
-          notice.open = montrer;
-          btNotice.setAttribute("aria-expanded", montrer ? "true" : "false");
-          if (montrer) notice.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (notice.parentElement !== racine) racine.appendChild(notice);
+        const montrerNotice = (oui) => {
+          notice.hidden = !oui;
+          btNotice.setAttribute("aria-expanded", oui ? "true" : "false");
+          if (oui) {
+            const croix = notice.querySelector("[data-fermer-notice]");
+            if (croix) croix.focus();
+          } else btNotice.focus();
+        };
+        btNotice.addEventListener("click", () => montrerNotice(notice.hidden));
+        const croix = notice.querySelector("[data-fermer-notice]");
+        if (croix) croix.addEventListener("click", () => montrerNotice(false));
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !notice.hidden) {
+            e.preventDefault();
+            montrerNotice(false);
+          }
         });
       }
     }
