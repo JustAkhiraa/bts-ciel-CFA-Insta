@@ -54,7 +54,7 @@
     historique: [],
     fonctions: [{ expr: "x^2-2", visible: true }, { expr: "", visible: true },
                 { expr: "", visible: true }, { expr: "", visible: true }],
-    fenetre: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true },
+    fenetre: { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true, panneau: "" },
     tableau: { debut: 0, pas: 1 },
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
@@ -71,6 +71,9 @@
          « Auto » cadre tout seul, « Axes » ouvre la fenêtre à la main,
          « Naviguer » promène un curseur de point en point. */
       auto: true, panneau: "", curseur: null,
+      /* Deux vues du même ajustement, comme sur la machine : le nuage,
+         ou ses RÉSIDUS. Et « sans modèle », pour regarder le nuage seul. */
+      residus: false, sansModele: false,
       fenetre: { xmin: "-10", xmax: "10", ymin: "-10", ymax: "10" },
     },
     probas: { loi: "binomiale", n: 10, p: 0.3, mu: 0, sigma: 1, lambda: 0.25,
@@ -78,6 +81,14 @@
               question: "egal", k: 3, k2: 5, seuil: 0.95 },
     equations: { mode: "polynome", coeffs: ["1", "-3", "2"], degre: 2,
                  systeme: [["2", "1", "5"], ["1", "-1", "1"]], inconnues: 2 },
+    finance: {
+      mode: "composes", cherche: "paiement",
+      /* Intérêts simples */
+      capital: "5000", taux: "4", jours: "90", base: "365", interets: "",
+      /* Intérêts composés — les six paramètres du solveur classique */
+      n: "60", tauxN: "5", pv: "10000", pmt: "", fv: "0",
+      parAn: "12", composition: "12", quand: "fin",
+    },
     onglets: { fonctions: "expressions", suites: "expressions", stats: "donnees",
                regression: "donnees" },
   });
@@ -508,8 +519,18 @@
      applications que la machine a en plus (Python, Éléments, Inférence,
      Finance) laissent un trou dans la grille : il est assumé, et dit sur la
      page plutôt que caché par un réarrangement. */
-  const ORDRE = ["calculs", "fonctions", "stats", "probas", "equations",
-                 "suites", "regression", "reglages"];
+  /* L'ordre de l'accueil de la machine, les douze applications comprises.
+     Demandé : « mets Python même si la fonctionnalité n'est pas encore là,
+     mets-les tous à leur place. »
+
+     Les trois qui ne sont pas écrites y figurent donc, à leur rang, et
+     elles s'ouvrent sur un écran qui DIT ce qu'elles feront et pourquoi
+     elles ne le font pas encore. Un bouton posé doit faire quelque chose
+     ou dire qu'il ne fait rien : muet, on clique, rien ne vient, et on ne
+     sait pas si c'est cassé ou pas encore fait. */
+  const ORDRE = ["calculs", "fonctions", "python", "stats", "probas",
+                 "equations", "suites", "regression", "elements",
+                 "inference", "finance", "reglages"];
   let courante = "accueil", choisi = 0;
 
   function aller(cle) {
@@ -569,7 +590,10 @@
 
   function accueilHTML() {
     return '<div class="nw-accueil" id="nw-grille-apps">'
-      + ORDRE.map((c, i) => '<button type="button" class="nw-tuile" data-app="' + c + '"'
+      + ORDRE.map((c, i) => '<button type="button" class="nw-tuile'
+        + (APPS[c].aVenir ? " nw-tuile-avenir" : "") + '" data-app="' + c + '"'
+        + (APPS[c].aVenir ? ' title="Pas encore écrite — ouvrez pour savoir ce '
+            + 'qu\'elle fera"' : "")
         + ' aria-current="' + (i === choisi) + '">'
         + '<span class="nw-tuile-ic" aria-hidden="true">'
         + (APP_ICO[c] || ech(APPS[c].icone)) + '</span>'
@@ -656,6 +680,94 @@
 
   const ESSAIS = ["1/3+1/6", "cos(π/6)", "√12", "binomialeCdf(10;0.3;4)"];
 
+  /* ═══════════ Les résultats complémentaires de l'application Calculs ═══
+     La machine propose, sous un résultat, d'autres lectures du MÊME
+     nombre : hexadécimal, binaire, facteurs premiers, division
+     euclidienne, notation scientifique. Ce n'est pas un gadget — en BTS
+     CIEL, un masque se lit en binaire et une adresse en hexadécimal, et
+     retaper le nombre dans le convertisseur pour le voir autrement est
+     une rupture de geste.
+
+     On ne propose QUE ce qui a un sens pour le nombre obtenu : un
+     résultat décimal n'a pas de facteurs premiers, et un entier de vingt
+     chiffres ne se factorise pas en un temps raisonnable. Une rubrique
+     affichée mais vide vaudrait moins que pas de rubrique. */
+  const COMPL_MAX_FACTEURS = 1e12;
+
+  function facteursPremiers(n) {
+    const f = [];
+    let m = Math.abs(n), d = 2;
+    while (d * d <= m) {
+      while (m % d === 0) { f.push(d); m /= d; }
+      d += d === 2 ? 1 : 2;
+    }
+    if (m > 1) f.push(m);
+    return f;
+  }
+
+  function ecrireFacteurs(n) {
+    if (n === 0) return "0 n'a pas de décomposition.";
+    if (Math.abs(n) === 1) return String(n) + " n'a pas de facteur premier.";
+    const f = facteursPremiers(n);
+    if (f.length === 1) return (n < 0 ? "−" : "") + f[0] + " est premier.";
+    const groupes = [];
+    for (const p2 of f) {
+      const dernier = groupes[groupes.length - 1];
+      if (dernier && dernier[0] === p2) dernier[1]++;
+      else groupes.push([p2, 1]);
+    }
+    return (n < 0 ? "−" : "")
+      + groupes.map(([b, e]) => e > 1 ? b + petit(String(e)) : String(b)).join(" × ");
+  }
+
+  function complements(valeur, entree) {
+    if (!Number.isFinite(valeur)) return [];
+    const out = [];
+    const entier = Number.isInteger(valeur);
+
+    if (entier && Math.abs(valeur) <= Number.MAX_SAFE_INTEGER) {
+      const abs = Math.abs(valeur), signe = valeur < 0 ? "−" : "";
+      out.push(["Hexadécimal", signe + "0x" + abs.toString(16).toUpperCase()]);
+      out.push(["Binaire", signe + "0b" + abs.toString(2)]);
+      if (abs >= 2 && abs <= COMPL_MAX_FACTEURS)
+        out.push(["Facteurs premiers", ecrireFacteurs(valeur)]);
+    }
+
+    /* La division euclidienne ne se déduit PAS du résultat : il faut
+       l'entrée. « 123/7 » donne 17,571… et le quotient entier n'y est
+       plus. On relit donc ce qui a été tapé. */
+    const m = /^\s*(-?\d+)\s*\/\s*(-?\d+)\s*$/.exec(String(entree || ""));
+    if (m) {
+      const a = Number(m[1]), b = Number(m[2]);
+      if (b !== 0 && Number.isSafeInteger(a) && Number.isSafeInteger(b)) {
+        /* Le reste est celui des MATHÉMATIQUES, toujours positif, et non
+           celui de « % » en JavaScript qui prend le signe du dividende.
+           −123 % 7 vaut −4 en machine ; le reste euclidien est 3. */
+        const qe = Math.floor(a / b);
+        const r = a - b * qe;
+        const rr = r < 0 ? r + Math.abs(b) : r;
+        const qq = (a - rr) / b;
+        /* Le vrai signe moins, pas le trait d'union : tout le reste de la
+           calculatrice écrit « −5 », et deux glyphes pour la même idée se
+           remarquent dans une colonne de résultats. */
+        const moins = (x) => String(x).replace("-", "−");
+        out.push(["Division euclidienne",
+                  moins(a) + " = " + moins(b) + " × " + moins(qq) + " + " + rr]);
+      }
+    }
+
+    /* La notation scientifique n'a d'intérêt que si elle DIT quelque
+       chose : pour 42, elle n'apprend rien. */
+    const a2 = Math.abs(valeur);
+    if (valeur !== 0 && (a2 >= 1e5 || a2 < 1e-3)) {
+      const e = Math.floor(Math.log10(a2));
+      const mant = valeur / Math.pow(10, e);
+      out.push(["Notation scientifique",
+                fmt(mant) + " × 10" + petit(String(e))]);
+    }
+    return out;
+  }
+
   APPS.calculs = {
     nom: "Calculs", icone: "1+2",
     html() {
@@ -674,6 +786,16 @@
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
             : '<span class="nw-resultat">' + ech(l.exact || l.approx) + '</span>'
               + (l.deux ? '<span class="nw-approche">≈ ' + ech(l.approx) + '</span>' : ''))
+          /* Les compléments ne s'affichent que sous le DERNIER calcul :
+             les coller sous chaque ligne de l'historique noierait celui
+             qu'on vient de faire, qui est le seul qu'on regarde. */
+          + (i === h.length - 1 && !l.erreur && l.complements && l.complements.length
+            ? '<div class="nw-complements"><span class="nw-compl-titre">Résultats '
+              + 'complémentaires</span>'
+              + l.complements.map(([t, x]) => '<span class="nw-compl"><b>' + ech(t)
+                  + '</b> ' + ech(x) + '</span>').join("")
+              + '</div>'
+            : "")
           + '</div>')
         /* Demandé : « inverse le sens met le exe en haut et quand on tape
            ca part en bas l'historique ». L'index de « data-reprendre » est
@@ -788,7 +910,8 @@
     }
     ETAT.historique.push({ entree: prefixe ? prefixe + texte : texte,
                            exact: r.exact || null, approx: r.approx || "",
-                           deux: !!r.montrerLesDeux, erreur: r.ok ? null : r.erreur });
+                           deux: !!r.montrerLesDeux, erreur: r.ok ? null : r.erreur,
+                           complements: r.ok ? complements(r.valeur, texte) : [] });
     if (ETAT.historique.length > 40) ETAT.historique.splice(0, ETAT.historique.length - 40);
     rappel = -1;
     garder();
@@ -875,11 +998,69 @@
         const ycur = act ? act.f(curseur.x) : NaN;
         const svg = tracer({
           xmin: F.xmin, xmax: F.xmax, ymin: F.ymin, ymax: F.ymax,
-          courbes: courbes.map((c) => ({ f: c.f, classe: c.classe })),
+          /* La tangente demandée par « calculer » est tracée AVEC les
+             courbes, en trait d'appui : on vérifie à l'œil qu'elle touche
+             la courbe au bon endroit, ce qu'une équation écrite ne montre
+             pas. Elle disparaît dès qu'on change une expression — une
+             tangente à une courbe qui n'existe plus mentirait. */
+          courbes: courbes.map((c) => ({ f: c.f, classe: c.classe }))
+            .concat(ETAT.fenetre.tangente
+              && courbes.some((c) => c.i === ETAT.fenetre.tangente.i)
+              ? [{ f: (x) => ETAT.fenetre.tangente.m * x + ETAT.fenetre.tangente.p,
+                   classe: "appui" }] : []),
           curseur: act ? { x: curseur.x, y: ycur } : null,
           aide: "Courbes de " + courbes.map((c) => c.nom).join(", "),
         });
-        return onglets + svg
+        /* ── La barre du Grapheur ─────────────────────────────────────
+           Quatre boutons, et ce sont EXACTEMENT ceux de la machine : le
+           contrôleur partagé d'Epsilon en déclare quatre — m_autoButton,
+           m_rangeButton (Axes), m_navigationButton, et un quatrième
+           propre à l'application. D'où la même barre au Grapheur, aux
+           Suites et aux Régressions, le dernier bouton seul changeant de
+           nom : « Calculer » ici, « Régression » là-bas.
+
+           Rien n'est inventé ni perdu : les commandes existaient toutes,
+           empilées sous le tracé. Elles sont seulement remises à la place
+           où on les cherche. Une fonction qui existe ailleurs que là où
+           l'élève a l'habitude de la voir ne sert pas pendant une
+           épreuve. */
+        const pan = ETAT.fenetre.panneau || "";
+        const barre = '<div class="nw-barre-outils" role="toolbar">'
+          + '<button type="button" class="nw-outil" id="nw-g-auto" aria-pressed="'
+          + (ETAT.fenetre.auto ? "true" : "false") + '">Auto <span class="nw-pastille'
+          + (ETAT.fenetre.auto ? " nw-allumee" : "") + '" aria-hidden="true"></span></button>'
+          + [["axes", "Axes"], ["naviguer", "Naviguer"], ["calculer", "Calculer"]]
+            .map(([c, t]) => '<button type="button" class="nw-outil'
+              + (pan === c ? " nw-ouvert" : "") + '" data-gpan="' + c
+              + '" aria-expanded="' + (pan === c) + '">' + t + '</button>').join("")
+          + '</div>';
+        let panneau = "";
+        if (pan === "axes") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + ["xmin", "xmax"].map((k) => '<label for="nw-' + k + '">' + k
+              + '</label><input type="text" class="nw-petit nw-court" id="nw-' + k
+              + '" data-fen="' + k + '" value="' + ech(ETAT.fenetre[k]) + '">').join("")
+            + (ETAT.fenetre.auto ? ""
+              : ["ymin", "ymax"].map((k) => '<label for="nw-' + k + '">' + k
+                + '</label><input type="text" class="nw-petit nw-court" id="nw-' + k
+                + '" data-fen="' + k + '" value="' + ech(ETAT.fenetre[k]) + '">').join(""))
+            + '</div><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-zoom="0.5">Zoom +</button>'
+            + '<button type="button" class="nw-bouton" data-zoom="2">Zoom −</button>'
+            + '<button type="button" class="nw-bouton" id="nw-recadrer">Recadrer</button>'
+            + '</div>'
+            + (ETAT.fenetre.auto ? '<p class="nw-sous">« Auto » est allumé : les ordonnées '
+                + 'suivent les courbes. Éteignez-le pour saisir ymin et ymax.</p>' : "")
+            + '</div>';
+        } else if (pan === "naviguer") {
+          panneau = '<div class="nw-panneau"><div class="nw-rangee">'
+            + '<button type="button" class="nw-bouton" data-curseur="-1">◀ précédent</button>'
+            + '<button type="button" class="nw-bouton" data-curseur="1">suivant ▶</button>'
+            + (courbes.length > 1 ? '<button type="button" class="nw-bouton" id="nw-suivante">'
+                + 'courbe suivante</button>' : "")
+            + '</div></div>';
+        }
+        return onglets + barre + panneau + svg
           + '<p class="nw-curseur-info">'
           + (act ? '<span>' + ech(act.nom) + '(' + ech(fmt(curseur.x)) + ') = '
                    + ech(Number.isFinite(ycur) ? fmt(ycur) : "n\'existe pas") + '</span>'
@@ -888,27 +1069,7 @@
           + '<div class="nw-legende">' + courbes.map((c) => '<span><i style="background:var(--nw-'
             + c.classe + ')"></i>' + ech(c.nom) + '(x) = ' + ech(c.expr) + '</span>').join("")
           + '</div>'
-          + '<div class="nw-rangee" style="margin-top:.6rem">'
-          + '<button type="button" class="nw-bouton" data-curseur="-1">◀ curseur</button>'
-          + '<button type="button" class="nw-bouton" data-curseur="1">curseur ▶</button>'
-          + (courbes.length > 1 ? '<button type="button" class="nw-bouton" id="nw-suivante">'
-              + 'courbe suivante</button>' : "")
-          + '<button type="button" class="nw-bouton" data-zoom="0.5">Zoom +</button>'
-          + '<button type="button" class="nw-bouton" data-zoom="2">Zoom −</button>'
-          + '<button type="button" class="nw-bouton" id="nw-recadrer">Recadrer</button>'
-          + '</div>'
-          + '<div class="nw-rangee">'
-          + ["xmin", "xmax"].map((k) => '<label for="nw-' + k + '">' + k
-            + '</label><input type="text" class="nw-petit" id="nw-' + k + '" data-fen="' + k
-            + '" value="' + ech(ETAT.fenetre[k]) + '">').join("")
-          + '<label><input type="checkbox" id="nw-auto"'
-          + (ETAT.fenetre.auto ? " checked" : "") + '> Y automatique</label>'
-          + '</div>'
-          + (ETAT.fenetre.auto ? "" : '<div class="nw-rangee">'
-            + ["ymin", "ymax"].map((k) => '<label for="nw-' + k + '">' + k
-              + '</label><input type="text" class="nw-petit" id="nw-' + k + '" data-fen="' + k
-              + '" value="' + ech(ETAT.fenetre[k]) + '">').join("") + '</div>')
-          + blocCalculer(courbes, F);
+          + (pan === "calculer" ? blocCalculer(courbes, F) : "");
       }
       const T = ETAT.tableau;
       const colonnes = liste.filter((c) => c && !c.erreur);
@@ -939,10 +1100,16 @@
       $$("[data-cle^='f']", page).forEach((c) => {
         const i = Number(c.dataset.cle.slice(1));
         c.addEventListener("change", () => {
-          ETAT.fonctions[i].expr = c.value; garder(); redessiner();
+          /* Une tangente calculée sur l'ancienne expression mentirait sur
+             la nouvelle : on l'oublie plutôt que de la laisser flotter. */
+          ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
+          garder(); redessiner();
         });
         c.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") { ETAT.fonctions[i].expr = c.value; garder(); redessiner(); }
+          if (e.key === "Enter") {
+            ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
+            garder(); redessiner();
+          }
         });
       });
       $$("[data-voir]", page).forEach((c) => c.addEventListener("change", () => {
@@ -970,16 +1137,27 @@
         Object.assign(ETAT.fenetre, { xmin: -10, xmax: 10, ymin: -10, ymax: 10, auto: true });
         curseur.x = 0; garder(); redessiner();
       });
-      const auto = $("#nw-auto");
-      if (auto) auto.addEventListener("change", () => {
-        ETAT.fenetre.auto = auto.checked;
-        if (!auto.checked) {
+      /* « Auto » est devenu un bouton d'état dans la barre, comme sur la
+         machine, au lieu d'une case à cocher perdue sous le tracé. En
+         l'éteignant, on recopie les bornes que le cadrage automatique
+         venait de trouver : repartir de −10/10 ferait sauter le tracé
+         alors qu'on voulait seulement le figer. */
+      const auto = $("#nw-g-auto");
+      if (auto) auto.addEventListener("click", () => {
+        ETAT.fenetre.auto = !ETAT.fenetre.auto;
+        if (!ETAT.fenetre.auto) {
           const F = fenetreAuto(fonctionsCompilees());
           ETAT.fenetre.ymin = Math.round(F.ymin * 1000) / 1000;
           ETAT.fenetre.ymax = Math.round(F.ymax * 1000) / 1000;
         }
         garder(); redessiner();
       });
+      /* Un deuxième clic referme : c'est un menu, pas un onglet. */
+      $$("[data-gpan]", page).forEach((b2) => b2.addEventListener("click", () => {
+        ETAT.fenetre.panneau =
+          ETAT.fenetre.panneau === b2.dataset.gpan ? "" : b2.dataset.gpan;
+        garder(); redessiner();
+      }));
       $$("[data-fen]", page).forEach((c) => c.addEventListener("change", () => {
         const v = nombreSaisi(c.value);
         if (v === null) { dire("« " + c.value + " » n'est pas un nombre.", "e-erreur"); return; }
@@ -1033,6 +1211,8 @@
       + '<option value="integrale">une intégrale</option>'
       + '<option value="derivee">un nombre dérivé</option>'
       + '<option value="intersections">les intersections</option>'
+      + '<option value="antecedent">un antécédent</option>'
+      + '<option value="tangente">la tangente</option>'
       + '</select>'
       + (courbes.length > 1 ? '<label for="nw-quelle">de</label>'
           + '<select class="nw-petit" id="nw-quelle">' + noms.join("") + '</select>' : "")
@@ -1083,6 +1263,37 @@
         const d = CALC.num.derivee(c.f, a);
         calculResultat = { question: c.nom + "′(" + fmt(a) + ")", reponse: fmt(d),
           note: "Calculé numériquement : c'est le nombre dérivé, pas la fonction dérivée." };
+      } else if (quoi === "antecedent") {
+        /* L'ANTÉCÉDENT, et non le zéro : on cherche x tel que f(x) = a. La
+           machine le propose parce qu'un énoncé demande bien plus souvent
+           « pour quelle valeur de x a-t-on 250 € ? » que « où s'annule-t-elle ».
+           C'est le même solveur, appliqué à f(x) − a. */
+        if (a === null) { dire("La valeur cherchée (a) est illisible.", "e-erreur"); return; }
+        const z = CALC.num.zeros((x) => c.f(x) - a, F.xmin, F.xmax);
+        calculResultat = {
+          question: c.nom + "(x) = " + fmt(a) + dansFenetre,
+          reponse: z.length ? z.map((x) => "x = " + fmt(x)).join("  ·  ") : "aucun",
+          note: z.length ? null
+            : "Aucun antécédent DANS CETTE FENÊTRE. Il peut en exister ailleurs : "
+              + "élargissez xmin et xmax avant de conclure.",
+        };
+      } else if (quoi === "tangente") {
+        /* La tangente en a : y = f′(a)·(x − a) + f(a). Elle est AJOUTÉE au
+           tracé, pas seulement écrite — c'est en la voyant toucher la courbe
+           qu'on vérifie qu'on n'a pas confondu le point et la pente. */
+        if (a === null) { dire("L'abscisse a est illisible.", "e-erreur"); return; }
+        const ya = c.f(a), m = CALC.num.derivee(c.f, a);
+        if (!Number.isFinite(ya) || !Number.isFinite(m)) {
+          dire("La courbe n'a pas de tangente en ce point.", "e-erreur"); return;
+        }
+        ETAT.fenetre.tangente = { i: c.i, a, m, p: ya - m * a };
+        const signe = (ya - m * a) < 0 ? " − " : " + ";
+        calculResultat = {
+          question: "tangente à " + c.nom + " en x = " + fmt(a),
+          reponse: "y = " + fmt(m) + "x" + signe + fmt(Math.abs(ya - m * a)),
+          note: "Pente f′(" + fmt(a) + ") = " + fmt(m) + ", point ("
+                + fmt(a) + " ; " + fmt(ya) + "). La tangente est tracée.",
+        };
       } else {
         const autres = courbes.filter((x) => x.i !== c.i);
         if (!autres.length) { dire("Il faut deux courbes tracées.", "e-erreur"); return; }
@@ -1480,7 +1691,15 @@
           return x === null ? repli : x;
         };
         const xs = [].concat(...tous.map((e) => e.X), 0);
-        const ys = [].concat(...tous.map((e) => e.Y), 0);
+        /* En résidus, l'échelle des y est celle des ÉCARTS : reprendre celle
+           des données écraserait le nuage sur une ligne. */
+        const ys = G.residus
+          ? [].concat(...deux.map((e, k) => {
+              const r2 = ajust[k];
+              return (!e || r2.erreur) ? []
+                : e.X.map((x, i) => e.Y[i] - r2.f(x));
+            }), 0)
+          : [].concat(...tous.map((e) => e.Y), 0);
         const dx = Math.max(1e-9, Math.max(...xs) - Math.min(...xs));
         const dy = Math.max(1e-9, Math.max(...ys) - Math.min(...ys));
         let F;
@@ -1494,14 +1713,27 @@
           if (F.ymax <= F.ymin) { F.ymin = -10; F.ymax = 10; }
         }
 
+        /* Les résidus : y − f(x), tracés contre x. Une droite qui ajuste bien
+           donne un nuage de résidus SANS FORME ; s'il reste une courbure, le
+           modèle choisi n'est pas le bon — et ça se voit là où ça ne se voit
+           pas sur le nuage d'origine, parce que l'échelle des y y est cent
+           fois plus grande que les écarts. C'est tout l'intérêt de la vue. */
         const points = [];
         deux.forEach((e, k) => {
-          if (e) e.X.forEach((x, i) => points.push({ x, y: e.Y[i], classe: COUL_SERIE[k] }));
+          if (!e) return;
+          const r2 = ajust[k];
+          e.X.forEach((x, i) => points.push({
+            x, y: G.residus ? (r2.erreur ? NaN : e.Y[i] - r2.f(x)) : e.Y[i],
+            classe: COUL_SERIE[k] }));
         });
+        if (G.residus) {
+          for (let k = points.length - 1; k >= 0; k--)
+            if (!Number.isFinite(points[k].y)) points.splice(k, 1);
+        }
         /* Le point moyen (x̄ ; ȳ) : la machine le marque, et toute droite des
            moindres carrés y passe — la vérification visuelle la plus rapide
            qu'un ajustement affine n'est pas aberrant. */
-        if (G.pointMoyen !== false) {
+        if (G.pointMoyen !== false && !G.residus) {
           deux.forEach((e, k) => {
             if (e) points.push({ x: e.moyenneX, y: e.moyenneY,
                                  classe: COUL_SERIE[k] + " nw-moyen" });
@@ -1515,8 +1747,12 @@
         }
         const svg = tracer({
           xmin: F.xmin, xmax: F.xmax, ymin: F.ymin, ymax: F.ymax,
-          courbes: ajust.map((e, k) => e.erreur ? null : { f: e.f, classe: COUL_SERIE[k] })
-                        .filter(Boolean),
+          /* En résidus, la seule ligne qui compte est y = 0 ; les courbes
+             ajustées n'y ont aucun sens. « Supprimer le modèle » les retire
+             aussi, pour regarder le nuage seul. */
+          courbes: (G.residus || G.sansModele) ? []
+            : ajust.map((e, k) => e.erreur ? null : { f: e.f, classe: COUL_SERIE[k] })
+                   .filter(Boolean),
           points: points,
           curseur: vise ? { x: vise.x, y: vise.y } : null,
           aide: "Nuage de points, point moyen et courbes ajustées",
@@ -1552,6 +1788,11 @@
             + '</select>'
             + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
             + (G.pointMoyen !== false ? " checked" : "") + '> Point moyen</label>'
+            + '</div><div class="nw-rangee">'
+            + '<label class="nw-case"><input type="checkbox" id="nw-residus"'
+            + (G.residus ? " checked" : "") + '> Graphique des résidus</label>'
+            + '<label class="nw-case"><input type="checkbox" id="nw-sans-modele"'
+            + (G.sansModele ? " checked" : "") + '> Supprimer le modèle</label>'
             + '</div></div>';
         }
 
@@ -1567,7 +1808,10 @@
         return onglets + barre + panneau + svg
           + '<p class="nw-equation">' + (r.erreur
               ? '<b>Les données ne conviennent pas</b> — ' + ech(r.erreur)
-              : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)) + '</p>'
+              : (G.residus ? 'Résidus de X' + (j + 1) + '/Y' + (j + 1)
+                             + ' — y = ' + ech(r.forme)
+                           : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)))
+          + '</p>'
           + bandeau
           + '<div class="nw-rangee" style="margin-top:.6rem">'
           + '<label for="nw-pred">prédiction sachant X</label>'
@@ -1739,6 +1983,14 @@
       const pm = $("#nw-moyen");
       if (pm) pm.addEventListener("change", () => {
         G.pointMoyen = pm.checked; garder(); redessiner();
+      });
+      const rs = $("#nw-residus");
+      if (rs) rs.addEventListener("change", () => {
+        G.residus = rs.checked; garder(); redessiner();
+      });
+      const sm2 = $("#nw-sans-modele");
+      if (sm2) sm2.addEventListener("change", () => {
+        G.sansModele = sm2.checked; garder(); redessiner();
       });
       [["#nw-pred", "pred"], ["#nw-predy", "predY"]].forEach(([sel, cle]) => {
         const c = $(sel);
@@ -2149,6 +2401,211 @@
       });
     },
   };
+
+  /* ═══════════════ 12 bis. Finance ═══════════════════════════════════
+     Les deux calculs de la machine. Ce n'est pas au programme de BTS
+     CIEL, mais c'est au programme de la vie : le jour où l'on signe un
+     crédit, savoir ce que paie vraiment une mensualité vaut un chapitre.
+
+     Le principe du solveur : on écrit UNE équation, et on résout pour
+     celui des paramètres qu'on laisse vide. Les quatre premiers se
+     retournent à la main ; le TAUX, lui, n'a pas de forme close — on le
+     cherche par dichotomie, exactement comme la machine. */
+  APPS.finance = {
+    nom: "Finance", icone: "€",
+    html() {
+      const F = ETAT.finance;
+      const v = (c) => nombreSaisi(String(F[c]));
+      const champ = (cle, lib, taille) =>
+        '<label for="nw-f-' + cle + '">' + ech(lib) + '</label>'
+        + '<input type="text" class="nw-petit' + (taille || "") + '" id="nw-f-' + cle
+        + '" data-fin="' + cle + '" value="' + ech(F[cle]) + '">';
+
+      const onglets = '<div class="nw-onglets" role="tablist">'
+        + [["simples", "Intérêts simples"], ["composes", "Intérêts composés"]]
+          .map(([c, t]) => '<button type="button" class="nw-onglet" role="tab" '
+            + 'data-fmode="' + c + '" aria-selected="' + (F.mode === c) + '">'
+            + t + '</button>').join("")
+        + '</div>';
+
+      if (F.mode === "simples") {
+        /* I = C × t/100 × j/base. Quatre inconnues, une équation : on
+           résout celle qu'on laisse vide. La BASE n'est pas un détail —
+           360 jours est la convention bancaire, 365 la civile, et l'écart
+           se voit dès le premier exemple : 50,00 € contre 49,32 €. */
+        const C = v("capital"), tx = v("taux"), j = v("jours"), base = v("base");
+        const I = v("interets");
+        let reponse = "", quoi = "";
+        const vides = [["capital", C], ["taux", tx], ["jours", j], ["interets", I]]
+          .filter(([, x]) => x === null).map(([k]) => k);
+        if (!base || base <= 0) reponse = "La base doit être 360 ou 365.";
+        else if (vides.length !== 1)
+          reponse = vides.length === 0
+            ? "Laissez UN champ vide : c'est lui qui sera calculé."
+            : "Il y a " + vides.length + " champs vides : je ne peux en calculer qu'un.";
+        else {
+          quoi = vides[0];
+          if (quoi === "interets") reponse = fmt(C * tx / 100 * j / base) + " €";
+          else if (quoi === "capital") reponse = fmt(I / (tx / 100 * j / base)) + " €";
+          else if (quoi === "taux") reponse = fmt(I / (C * j / base) * 100) + " %";
+          else reponse = fmt(I / (C * tx / 100) * base) + " jours";
+        }
+        return onglets
+          + '<div class="nw-rangee">' + champ("capital", "capital de départ (€)")
+          + champ("taux", "taux annuel (%)") + '</div>'
+          + '<div class="nw-rangee">' + champ("jours", "nombre de jours")
+          + '<label for="nw-f-base">jours dans l\'année</label>'
+          + '<select class="nw-petit" id="nw-f-base" data-fin="base">'
+          + ["360", "365"].map((b2) => '<option value="' + b2 + '"'
+              + (String(F.base) === b2 ? " selected" : "") + '>' + b2 + '</option>').join("")
+          + '</select></div>'
+          + '<div class="nw-rangee">' + champ("interets", "intérêts (€)") + '</div>'
+          + '<p class="nw-moyenne">' + (quoi ? ech(quoi) + " = " : "") + ech(reponse) + '</p>'
+          + '<p class="nw-sous">Laissez <b>un seul champ vide</b> : c\'est celui-là qui est '
+          + 'calculé. La base de 360 jours est la convention bancaire, 365 la convention '
+          + 'civile — sur 5 000 € à 4 % pendant 90 jours, l\'écart est de 68 centimes.</p>';
+      }
+
+      /* ── Intérêts composés : l'équation du solveur ─────────────────
+         PV(1+i)^N + PMT(1 + i·d)·((1+i)^N − 1)/i + FV = 0
+         avec i le taux par période de PAIEMENT, et d = 1 si le paiement
+         tombe en début de période. */
+      const N = v("n"), tN = v("tauxN"), PV = v("pv"), PMT = v("pmt"), FV = v("fv");
+      const pAn = v("parAn") || 12, cAn = v("composition") || 12;
+      const d = F.quand === "debut" ? 1 : 0;
+      const tauxPeriode = (tAnnuel) =>
+        Math.pow(1 + tAnnuel / 100 / cAn, cAn / pAn) - 1;
+      const bilan = (n2, i, pv, pmt, fv) => {
+        if (Math.abs(i) < 1e-12) return pv + pmt * n2 + fv;
+        const g = Math.pow(1 + i, n2);
+        return pv * g + pmt * (1 + i * d) * (g - 1) / i + fv;
+      };
+      const vides = [["n", N], ["tauxN", tN], ["pv", PV], ["pmt", PMT], ["fv", FV]]
+        .filter(([, x]) => x === null).map(([k]) => k);
+      let quoi = "", reponse = "";
+      if (vides.length !== 1) {
+        reponse = vides.length === 0
+          ? "Laissez UN champ vide : c'est lui qui sera calculé."
+          : "Il y a " + vides.length + " champs vides : je ne peux en calculer qu'un.";
+      } else {
+        quoi = vides[0];
+        const i = tauxPeriode(tN);
+        const g = Math.pow(1 + i, N);
+        if (quoi === "pv") reponse = fmt(-(PMT * (1 + i * d) * (g - 1) / i + FV) / g) + " €";
+        else if (quoi === "fv") reponse = fmt(-(PV * g + PMT * (1 + i * d) * (g - 1) / i)) + " €";
+        else if (quoi === "pmt") {
+          reponse = Math.abs(i) < 1e-12
+            ? fmt(-(PV + FV) / N) + " €"
+            : fmt(-(PV * g + FV) * i / ((1 + i * d) * (g - 1))) + " €";
+        } else if (quoi === "n") {
+          /* N se cherche aussi par dichotomie : la forme close demande un
+             logarithme qui n'existe pas pour tous les signes de PMT. */
+          const f = (x) => bilan(x, i, PV, PMT, FV);
+          const z = CALC.num.zeros(f, 0.0001, 2000);
+          reponse = z.length ? fmt(z[0]) + " périodes"
+                             : "aucune durée ne solde ce plan";
+        } else {
+          /* LE TAUX : pas de forme close. Dichotomie sur [−99 ; 200] %,
+             exactement ce que fait la machine. */
+          const f = (t2) => bilan(N, tauxPeriode(t2), PV, PMT, FV);
+          const z = CALC.num.zeros(f, -99, 200);
+          reponse = z.length ? fmt(z[0]) + " %" : "aucun taux ne solde ce plan";
+        }
+      }
+      return onglets
+        + '<div class="nw-rangee">' + champ("n", "nombre de paiements N")
+        + champ("tauxN", "taux nominal annuel (%)") + '</div>'
+        + '<div class="nw-rangee">' + champ("pv", "montant de départ PV (€)")
+        + champ("pmt", "paiement par période (€)") + '</div>'
+        + '<div class="nw-rangee">' + champ("fv", "montant final FV (€)")
+        + '<label for="nw-f-quand">paiement</label>'
+        + '<select class="nw-petit" id="nw-f-quand" data-fin="quand">'
+        + [["fin", "en fin de période"], ["debut", "en début de période"]]
+          .map(([k, t2]) => '<option value="' + k + '"'
+            + (F.quand === k ? " selected" : "") + '>' + t2 + '</option>').join("")
+        + '</select></div>'
+        + '<div class="nw-rangee">' + champ("parAn", "paiements par an")
+        + champ("composition", "compositions par an") + '</div>'
+        + '<p class="nw-moyenne">' + (quoi ? ech(quoi) + " = " : "") + ech(reponse) + '</p>'
+        + '<p class="nw-sous">Un emprunt se saisit avec <b>PV positif</b> (on reçoit) et le '
+        + 'paiement ressort <b>négatif</b> (on verse) : c\'est la convention de signe de la '
+        + 'machine, et elle évite de se tromper de sens. 10 000 € à 5 % sur 60 mois donnent '
+        + '−188,71 € par mois.</p>';
+    },
+    apres() {
+      $$("[data-fmode]", page).forEach((b2) => b2.addEventListener("click", () => {
+        ETAT.finance.mode = b2.dataset.fmode; garder(); redessiner();
+      }));
+      $$("[data-fin]", page).forEach((c) => {
+        const maj = () => { ETAT.finance[c.dataset.fin] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        if (c.tagName === "INPUT")
+          c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
+    },
+  };
+
+  /* ═══════════════ Les applications encore à écrire ══════════════════
+     Elles tiennent leur place dans l'accueil pour que la carte soit juste
+     — et chacune dit ce qu'elle fera, ce qu'il faut pour y arriver, et ce
+     qu'on peut utiliser en attendant. Une application annoncée qui
+     n'explique rien ferait perdre deux minutes à chaque fois qu'on
+     l'ouvre par curiosité. */
+  const A_VENIR = {
+    python: {
+      nom: "Python", icone: "py",
+      quoi: "Un vrai interpréteur Python dans la page, comme sur la machine : "
+          + "on écrit un script, on l'exécute, la console répond.",
+      pourquoi: "C'est le plus gros des trois : il faut porter un interpréteur "
+          + "(MicroPython ou Pyodide) en WebAssembly, du même ordre que le "
+          + "compilateur C de l'atelier et ses soixante mégaoctets.",
+      enAttendant: "L'atelier C et C++ compile et exécute déjà dans la page, "
+          + "avec les mêmes gestes.",
+      lien: ["../outils/langage-c.html", "L'atelier C et C++"],
+    },
+    elements: {
+      nom: "Eléments", icone: "⚛",
+      quoi: "Le tableau périodique : 118 éléments, leur masse, leur numéro, "
+          + "leur famille, leur état, et la fiche de chacun.",
+      pourquoi: "C'est surtout de la donnée à rassembler et à vérifier — 118 "
+          + "éléments et huit propriétés chacun. Rien de difficile, mais "
+          + "rien qui s'invente : une masse atomique fausse est pire "
+          + "qu'absente.",
+      enAttendant: "Les quatorze constantes physiques sont déjà dans la boîte "
+          + "à outils, avec le souligné : _c, _e, _Na, _h…",
+      lien: null,
+    },
+    inference: {
+      nom: "Inférence", icone: "x̄±",
+      quoi: "Intervalles de confiance et tests d'hypothèse : sur une moyenne, "
+          + "sur une proportion, et la comparaison de deux échantillons.",
+      pourquoi: "Les lois dont elle a besoin sont déjà là — normale, Student, "
+          + "khi-2, Fisher. Ce qui manque est l'application elle-même : "
+          + "choisir le test, saisir les données, lire la conclusion.",
+      enAttendant: "L'application Probabilités donne déjà les dix lois et leurs "
+          + "quantiles, dont invNormale et studentCdf.",
+      lien: null,
+    },
+  };
+
+  for (const cle of Object.keys(A_VENIR)) {
+    const d = A_VENIR[cle];
+    APPS[cle] = {
+      nom: d.nom, icone: d.icone, aVenir: true,
+      html() {
+        return '<div class="nw-avenir">'
+          + '<p class="nw-avenir-titre">Pas encore écrite</p>'
+          + '<p>' + ech(d.quoi) + '</p>'
+          + '<p class="nw-sous"><b>Ce qu\'il faut pour y arriver.</b> '
+          + ech(d.pourquoi) + '</p>'
+          + '<p class="nw-sous"><b>En attendant.</b> ' + ech(d.enAttendant) + '</p>'
+          + (d.lien ? '<p class="nw-lien-outil"><a href="' + d.lien[0] + '">'
+              + ech(d.lien[1]) + '</a></p>' : "")
+          + '</div>';
+      },
+      apres() {},
+    };
+  }
 
   /* ═══════════════ 13. Réglages ══════════════════════════════════════ */
   APPS.reglages = {

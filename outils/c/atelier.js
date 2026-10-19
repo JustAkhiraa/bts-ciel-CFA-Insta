@@ -226,7 +226,36 @@
       document.addEventListener("mouseup", lacher);
     });
 
+    /* ── Un repeint par IMAGE, pas un par frappe ──────────────────────
+       Signalé : « c'est toujours beaucoup trop lent là, trouve une
+       solution, c'est pas possible. »
+
+       Chaque appel reconstruisait tout le DOM coloré du fichier —
+       « peint.innerHTML = peindre(tout) » — puis le reparcourait trois
+       fois pour poser les marques, et la marge mesurait derrière. À la
+       frappe soutenue, à la répétition d'une touche ou à un collage, cela
+       se produisait une fois par caractère, chacune forçant un recalcul de
+       mise en page.
+
+       Or l'écran ne montre que soixante images par seconde : repeindre
+       plus souvent, c'est jeter le travail. On enregistre donc la demande
+       et on la sert à la prochaine image — dix frappes dans la même image
+       ne coûtent plus qu'un seul repeint.
+
+       « redessinerMaintenant » reste disponible pour les rares endroits
+       qui mesurent le rendu juste après l'avoir demandé. */
+    let repeintPlanifie = false;
+
     function redessiner() {
+      if (repeintPlanifie) return;
+      repeintPlanifie = true;
+      requestAnimationFrame(() => {
+        repeintPlanifie = false;
+        redessinerMaintenant();
+      });
+    }
+
+    function redessinerMaintenant() {
       const t = saisie.value;
       deplacerSurlignages(texteConnu, t);
       texteConnu = t;
@@ -351,13 +380,31 @@
         const [nb, ob] = place(fin);
         r.setStart(na, oa);
         r.setEnd(nb, ob);
-        /* Ce qu'un rectangle mesure, c'est le TEXTE, pas la rangée : une
-           ligne seule rend 15,5 px là où la rangée en fait 22. On ne
-           reporte donc pas la hauteur mesurée — on en déduit un NOMBRE DE
-           RANGÉES, et c'est lui qui redevient une hauteur. Une ligne vide
-           n'a aucun rectangle : elle vaut une rangée, comme à l'écran. */
-        const h = r.getBoundingClientRect().height;
-        rangees.push(Math.max(1, Math.round(h / pas)));
+        /* On COMPTE les rangées, on ne les déduit plus d'une hauteur.
+           L'ancien calcul faisait « round(hauteur du texte / pas) », ce qui
+           suppose que les glyphes occupent toujours la même part de la
+           rangée — 15,5 px sur 22. Un emoji est plus haut qu'une lettre :
+           avec « 🎈 » dans la ligne, la hauteur mesurée passait au-dessus
+           de la demie et l'arrondi inventait une rangée. La marge gagnait
+           un cran que le texte n'avait pas, et tout ce qui suivait était
+           décalé — des numéros disparaissaient sous la ligne suivante.
+
+           Chaque rangée d'un intervalle a son propre rectangle. Il suffit
+           donc de compter les SOMMETS distincts : c'est exact quelle que
+           soit la hauteur des glyphes. Une même rangée peut rendre
+           plusieurs rectangles — un par fragment coloré — d'où le
+           regroupement à une demi-rangée près. Une ligne vide n'a aucun
+           rectangle : elle vaut une rangée, comme à l'écran. */
+        const rects = r.getClientRects();
+        const sommets = [];
+        for (let q = 0; q < rects.length; q++) {
+          const y = rects[q].top;
+          let vu = false;
+          for (let z = 0; z < sommets.length; z++)
+            if (Math.abs(sommets[z] - y) < pas / 2) { vu = true; break; }
+          if (!vu) sommets.push(y);
+        }
+        rangees.push(Math.max(1, sommets.length));
         debut = fin + 1;
       }
       for (let i = 0; i < nums.length; i++)
@@ -859,7 +906,19 @@
         : mot + " · " + (k >= 0 ? k + 1 : "–") + " sur " + n;
     }
 
-    function majOccurrences() {
+    /* « repeindre » à faux : on met l'état à jour SANS redessiner, parce
+       que l'appelant va le faire lui-même juste après. Signalé : « j'ai
+       lancé un compilateur vide, j'ai écrit une ligne et c'est lent ».
+       Mesuré sur le site, en tapant pour de vrai : des images à 419 ms.
+       La cause tenait en deux lignes — « input » redessinait, puis
+       « keyup » appelait majOccurrences qui redessinait une SECONDE fois.
+       Deux repeints complets du fichier par caractère frappé.
+
+       Mes premières mesures ne voyaient rien parce qu'elles envoyaient des
+       événements « input » fabriqués : sans vrai clavier, pas de « keyup »,
+       donc pas de second repeint. L'instrument manquait la moitié du
+       chemin. */
+    function majOccurrences(repeindre) {
       const t = saisie.value;
       const sel = t.slice(saisie.selectionStart, saisie.selectionEnd);
       let mot = "", pos = -1;
@@ -892,7 +951,7 @@
          pas. */
       motCourant = mot;
       posCourante = pos;
-      redessiner();
+      if (repeindre !== false) redessiner();
     }
 
     /* ── Le surlignage ────────────────────────────────────────────────────
@@ -965,9 +1024,13 @@
           if (z.f < m.f) restantes.push({ d: z.f, f: m.f, couleur: m.couleur });
         }
       }
-      const memeCouleur = enleve > 0 && surlignages.some(
-        (m) => m.couleur === couleur && m.d < z.f && z.d < m.f);
-      if (couleur && !memeCouleur) restantes.push({ d: z.d, f: z.f, couleur: couleur });
+      /* Une pastille POSE toujours sa couleur. Elle basculait : recliquer
+         du rouge sur du rouge l'effaçait. Signalé : « quand je clique sur
+         une ligne avec une couleur ça retire la couleur, c'est pas normal,
+         c'est moi qui décide quand la couleur part. » Il a raison — la
+         croix est là pour enlever, et elle seule. Une bascule oblige à se
+         souvenir de ce qu'on a mis pour prévoir ce qu'un clic va faire. */
+      if (couleur) restantes.push({ d: z.d, f: z.f, couleur: couleur });
       restantes.sort((a, b) => a.d - b.d);
       surlignages = restantes;
       redessiner();
@@ -979,6 +1042,10 @@
       /* Une frappe ordinaire — collage, dictée, saisie tactile — n'a touché
          qu'une sélection : les autres ne veulent plus rien dire. */
       if (multi.length > 1 && !enFrappeMultiple) multi = [];
+      /* L'état des occurrences AVANT le repeint, et un seul repeint : le
+         « keyup » qui suit trouvera l'état déjà à jour et sortira sans
+         rien redessiner. */
+      majOccurrences(false);
       redessiner();
     });
     /* ── coller, couper, copier quand plusieurs sélections sont posées ─
@@ -1034,8 +1101,8 @@
       if (etat) etat.textContent = "sélections coupées, une par ligne";
     });
 
-    saisie.addEventListener("keyup", majOccurrences);
-    saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(); });
+    saisie.addEventListener("keyup", () => majOccurrences(true));
+    saisie.addEventListener("click", () => { oublierMulti(); majOccurrences(true); });
     saisie.addEventListener("blur", (e) => {
       /* Passer dans le champ de renommage ne doit pas effacer le surlignage :
          c'est précisément ce qu'on est en train de renommer. */
@@ -1102,9 +1169,17 @@
       return trouvee;
     }
 
+    /* La dernière ligne visée, pour ne repeindre que lorsqu'elle CHANGE.
+       Repeindre à chaque image coûtait un fichier entier recoloré soixante
+       fois par seconde — c'est ce qui rendait l'éditeur inutilisable. */
+    let derniereTete = null;
+
     function etendreAuBord(vitesse) {
       if (ancreSel === null) return;
-      const b = bornesLigne(ligneAuBord(vitesse < 0));
+      const ligne = ligneAuBord(vitesse < 0);
+      if (ligne === derniereTete) return;
+      derniereTete = ligne;
+      const b = bornesLigne(ligne);
       const tete = vitesse < 0 ? b.d : b.f;
       saisie.setSelectionRange(Math.min(ancreSel, tete), Math.max(ancreSel, tete),
                                tete < ancreSel ? "backward" : "forward");
@@ -1118,13 +1193,21 @@
       let v = 0;
       if (dessus > 0) v = -Math.min(40, 4 + dessus / 2);
       else if (dessous > 0) v = Math.min(40, 4 + dessous / 2);
-      if (v) {
-        const avant = saisie.scrollTop;
-        saisie.scrollTop += v;
-        /* Seulement si l'on a VRAIMENT bougé : en butée, réécrire la
-           sélection à chaque image la ferait clignoter sans rien gagner. */
-        if (saisie.scrollTop !== avant) etendreAuBord(v);
+      if (!v) {
+        /* Le pointeur est revenu DANS le champ : plus rien à faire. On
+           arrête la boucle au lieu de la laisser tourner à vide — le
+           prochain déplacement la relancera. Une boucle qui ne s'arrête
+           que sur un événement finit toujours par survivre à sa raison
+           d'être. */
+        filant = false;
+        return;
       }
+      const avant = saisie.scrollTop;
+      saisie.scrollTop += v;
+      /* Seulement si l'on a VRAIMENT bougé : en butée, réécrire la
+         sélection à chaque image la ferait clignoter sans rien gagner. */
+      if (saisie.scrollTop !== avant) etendreAuBord(v);
+      else { filant = false; return; }   /* butée : plus rien à défiler */
       requestAnimationFrame(filer);
     }
 
@@ -1133,22 +1216,37 @@
          et s'en mêler casserait un geste qui marche déjà. */
       if (e.button !== 0 || e.pointerType === "touch") return;
       dernierY = e.clientY;
+      derniereTete = null;
       /* L'ancre se lit APRÈS que le navigateur a posé le curseur, sinon
          c'est l'ancienne sélection qu'on retiendrait. */
       requestAnimationFrame(() => { ancreSel = saisie.selectionStart; });
+      /* La CAPTURE du pointeur : sans elle, un bouton relâché hors de la
+         fenêtre ne nous revient jamais, la boucle tourne indéfiniment et
+         l'éditeur se met à ramer sans qu'on sache pourquoi. Mesuré : deux
+         secondes par image. La capture garantit le « pointerup », et
+         « lostpointercapture » rattrape le reste. */
+      try { saisie.setPointerCapture(e.pointerId); } catch (x) {}
       const bouger = (ev) => {
+        /* Ceinture et bretelles : si plus aucun bouton n'est tenu, le
+           relâchement s'est perdu — on arrête là plutôt que de filer. */
+        if (!(ev.buttons & 1)) { lacher(); return; }
         dernierY = ev.clientY;
         if (!filant) { filant = true; requestAnimationFrame(filer); }
       };
       const lacher = () => {
-        filant = false; ancreSel = null;
+        filant = false; ancreSel = null; derniereTete = null;
+        try { saisie.releasePointerCapture(e.pointerId); } catch (x) {}
         document.removeEventListener("pointermove", bouger);
         document.removeEventListener("pointerup", lacher);
         document.removeEventListener("pointercancel", lacher);
+        saisie.removeEventListener("lostpointercapture", lacher);
+        removeEventListener("blur", lacher);
       };
       document.addEventListener("pointermove", bouger);
       document.addEventListener("pointerup", lacher);
       document.addEventListener("pointercancel", lacher);
+      saisie.addEventListener("lostpointercapture", lacher);
+      addEventListener("blur", lacher);
     });
 
     /* ── confort de frappe ────────────────────────────────────────────
@@ -1989,9 +2087,11 @@
     const champEntree = $("#at-champ-entree");
     const choixLangue = $$("#at-langue [data-langue]");
     const bStrict = $("#at-strict");
+    const bRelecture = $("#at-relecture");
 
     let langue = "c";
     let strict = true;
+    let relirePendantLaFrappe = true;
     let ouvrierExec = null, minuteur = null, budget = 5000;
     let entreeCumul = "", attendEntree = false, wasmCourant = null, fichiers = {};
     let finSaisie = false;
@@ -2227,6 +2327,13 @@
     let minuterieRelire = null, texteRelu = null;
     const DELAI_RELIRE = 900;
     function planifierRelecture() {
+      /* La relecture pendant la frappe est un CONFORT, pas une garantie :
+         l'exécution dit de toute façon la vérité. Elle fait travailler le
+         compilateur à chaque pause, et sur une machine lente ce travail se
+         voit. Signalé : « quand je code maintenant c'est devenu super
+         lent. » On peut donc l'éteindre — et c'est à lui d'en décider,
+         pas à moi de supposer que sa machine suit. */
+      if (!relirePendantLaFrappe) return;
       if (!moteur.pret) return;
       clearTimeout(minuterieRelire);
       minuterieRelire = setTimeout(relireMaintenant, DELAI_RELIRE);
@@ -2413,6 +2520,22 @@
       planifierSauvegarde();
     });
 
+    if (bRelecture) bRelecture.addEventListener("click", () => {
+      relirePendantLaFrappe = !relirePendantLaFrappe;
+      bRelecture.setAttribute("aria-pressed", String(relirePendantLaFrappe));
+      if (!relirePendantLaFrappe) {
+        /* Éteindre doit aussi EFFACER ce qui était affiché : laisser un
+           soulignement rouge qui ne se mettra plus jamais à jour serait
+           pire que de ne rien montrer. */
+        clearTimeout(minuterieRelire);
+        texteRelu = null;
+        afficherDiagnostics([]);
+      } else {
+        planifierRelecture();
+      }
+      planifierSauvegarde();
+    });
+
     let tSauve = null, modifie = false;
     function marquerModifie() { modifie = true; }
     function planifierSauvegarde() {
@@ -2492,7 +2615,8 @@
     function sauver() {
       try {
         localStorage.setItem(CLE, JSON.stringify({
-          source: editeur.valeur, langue, strict, quand: Date.now(), part: partVolets,
+          source: editeur.valeur, langue, strict, relirePendantLaFrappe,
+          quand: Date.now(), part: partVolets,
           theme: ediTheme, surlignages: editeur.surlignages,
         }));
       } catch (e) {}
@@ -2657,6 +2781,9 @@
         if (s && s.source) {
           editeur.valeur = s.source;
           strict = s.strict !== false;
+          relirePendantLaFrappe = s.relirePendantLaFrappe !== false;
+          if (bRelecture)
+            bRelecture.setAttribute("aria-pressed", String(relirePendantLaFrappe));
           bStrict.setAttribute("aria-pressed", String(strict));
           poserLangue(s.langue === "c++" ? "c++" : "c");
           /* Le jeu de couleurs et les surlignages reviennent avec le
