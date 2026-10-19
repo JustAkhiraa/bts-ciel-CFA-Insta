@@ -7,7 +7,7 @@
 <meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=4b8b5a0e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=b847670a">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -1732,31 +1732,57 @@ ex.9  meilleure note : 16</code></pre></div>
   <article class="exo">
     <h3><span class="no">11</span>La matrice des connexions entre serveurs <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Quatre serveurs. Une matrice 4 × 4 où la ligne est le serveur qui établit la
-         connexion, la colonne le serveur destinataire, et la case le nombre de connexions.
-         Déclarer la matrice, la saisir, l'afficher en tableau, puis afficher le total général
-         et le total <strong>par serveur émetteur</strong>.</p>
+      <p><strong>Exercice 1.</strong> Un administrateur réseau souhaite analyser le nombre de connexions établies entre 4 serveurs. On utilise une matrice 4 × 4 : chaque ligne représente le serveur qui établit la connexion, chaque colonne le serveur destinataire, et chaque case contient le nombre de connexions.</p>
+      <p>Écrire un programme en langage C qui :</p>
+      <ol>
+        <li>Déclare une matrice de 4 × 4 entiers.</li>
+        <li>Demande à l&#x27;utilisateur de saisir les valeurs de la matrice.</li>
+        <li>Affiche la matrice sous forme de tableau.</li>
+        <li>Calcule et affiche le nombre total de connexions établies entre tous les serveurs.</li>
+        <li>Calcule et affiche le nombre total de connexions établies par chaque serveur.</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 1 :
+ ========================================
+Un administrateur réseau souhaite analyser le nombre de connexions établies
+entre 4 serveurs. On utilise une matrice 4 × 4 : chaque ligne représente le
+serveur qui établit la connexion, chaque colonne le serveur destinataire, et
+chaque case contient le nombre de connexions.
+
+Écrire un programme en langage C qui :
+    1. Déclare une matrice de 4 × 4 entiers.
+    2. Demande à l'utilisateur de saisir les valeurs de la matrice.
+    3. Affiche la matrice sous forme de tableau.
+    4. Calcule et affiche le nombre total de connexions établies entre tous
+       les serveurs.
+    5. Calcule et affiche le nombre total de connexions établies par chaque
+       serveur.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 
 <span class="j-pre">#define</span> <span class="j-var">N</span> <span class="j-num">4</span>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
+    <span class="j-com">// 1. Déclare une matrice de 4 × 4 entiers.</span>
     <span class="j-typ">int</span> <span class="j-var">connexions</span>[<span class="j-var">N</span>][<span class="j-var">N</span>];
     <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">j</span>, <span class="j-var">total</span> <span class="j-op">=</span> <span class="j-num">0</span>;
 
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+            <span class="j-com">// 2. Demande à l'utilisateur de saisir les valeurs de la matrice.</span>
             <span class="j-fn">printf</span>(<span class="j-txt">"Connexions du serveur %d vers le serveur %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">j</span> <span class="j-op">+</span> <span class="j-num">1</span>);
             <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">connexions</span>[<span class="j-var">i</span>][<span class="j-var">j</span>]);
         }
     }
 
+    <span class="j-com">// 3. Affiche la matrice sous forme de tableau.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nMatrice des connexions :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">j</span><span class="j-op">++</span>)
@@ -1767,8 +1793,10 @@ ex.9  meilleure note : 16</code></pre></div>
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>)
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">j</span><span class="j-op">++</span>)
             <span class="j-var">total</span> <span class="j-op">+=</span> <span class="j-var">connexions</span>[<span class="j-var">i</span>][<span class="j-var">j</span>];
+    <span class="j-com">// 4. Calcule et affiche le nombre total de connexions établies entre tous les serveurs.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nTotal des connexions : %d\n"</span>, <span class="j-var">total</span>);
 
+    <span class="j-com">// 5. Calcule et affiche le nombre total de connexions établies par chaque serveur.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nConnexions etablies par chaque serveur :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">N</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
@@ -1825,33 +1853,59 @@ Connexions etablies par chaque serveur :
   <article class="exo">
     <h3><span class="no">12</span>Cinq jours de températures sur quatre serveurs <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Une matrice 5 × 4 de <code>float</code> : une ligne par jour, une colonne par
-         serveur. Saisir, afficher, puis donner la température <strong>moyenne de chaque
-         serveur</strong>, le nombre de relevés au-dessus de 30 °C, et la température maximale
-         enregistrée.</p>
+      <p><strong>Exercice 2.</strong> Une entreprise souhaite surveiller la température de ses serveurs pendant 5 jours. Pour chaque jour, on mesure la température de 4 serveurs. On utilise donc une matrice 5 × 4 : chaque ligne représente un jour, chaque colonne un serveur, et chaque case la température mesurée en °C.</p>
+      <p>Écrire un programme en langage C qui :</p>
+      <ol>
+        <li>Déclare une matrice 5 × 4 de nombres réels (float).</li>
+        <li>Demande à l&#x27;utilisateur de saisir les températures.</li>
+        <li>Affiche toutes les températures sous forme de matrice.</li>
+        <li>Calcule et affiche la température moyenne de chaque serveur.</li>
+        <li>Compte le nombre de températures supérieures à 30 °C.</li>
+        <li>Affiche la température maximale enregistrée.</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 2 :
+ ========================================
+Une entreprise souhaite surveiller la température de ses serveurs pendant 5
+jours. Pour chaque jour, on mesure la température de 4 serveurs. On utilise
+donc une matrice 5 × 4 : chaque ligne représente un jour, chaque colonne un
+serveur, et chaque case la température mesurée en °C.
+
+Écrire un programme en langage C qui :
+    1. Déclare une matrice 5 × 4 de nombres réels (float).
+    2. Demande à l'utilisateur de saisir les températures.
+    3. Affiche toutes les températures sous forme de matrice.
+    4. Calcule et affiche la température moyenne de chaque serveur.
+    5. Compte le nombre de températures supérieures à 30 °C.
+    6. Affiche la température maximale enregistrée.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 
 <span class="j-pre">#define</span> <span class="j-var">JOURS</span>    <span class="j-num">5</span>
 <span class="j-pre">#define</span> <span class="j-var">SERVEURS</span> <span class="j-num">4</span>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
+    <span class="j-com">// 1. Déclare une matrice 5 × 4 de nombres réels (float).</span>
     <span class="j-typ">float</span> <span class="j-var">temperatures</span>[<span class="j-var">JOURS</span>][<span class="j-var">SERVEURS</span>];
     <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">j</span>, <span class="j-var">chaudes</span> <span class="j-op">=</span> <span class="j-num">0</span>;
     <span class="j-typ">float</span> <span class="j-var">maximum</span>;
 
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">JOURS</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">SERVEURS</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+            <span class="j-com">// 2. Demande à l'utilisateur de saisir les températures.</span>
             <span class="j-fn">printf</span>(<span class="j-txt">"Jour %d, serveur %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">j</span> <span class="j-op">+</span> <span class="j-num">1</span>);
             <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">temperatures</span>[<span class="j-var">i</span>][<span class="j-var">j</span>]);
         }
     }
 
+    <span class="j-com">// 3. Affiche toutes les températures sous forme de matrice.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nReleve des temperatures :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">JOURS</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">SERVEURS</span>; <span class="j-var">j</span><span class="j-op">++</span>)
@@ -1859,6 +1913,7 @@ Connexions etablies par chaque serveur :
         <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
     }
 
+    <span class="j-com">// 4. Calcule et affiche la température moyenne de chaque serveur.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nTemperature moyenne de chaque serveur :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">SERVEURS</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
         <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
@@ -1876,7 +1931,9 @@ Connexions etablies par chaque serveur :
                 <span class="j-var">maximum</span> <span class="j-op">=</span> <span class="j-var">temperatures</span>[<span class="j-var">i</span>][<span class="j-var">j</span>];
         }
 
+    <span class="j-com">// 5. Compte le nombre de températures supérieures à 30 °C.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nReleves au-dessus de 30 C : %d\n"</span>, <span class="j-var">chaudes</span>);
+    <span class="j-com">// 6. Affiche la température maximale enregistrée.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"Temperature maximale : %.1f C\n"</span>, <span class="j-var">maximum</span>);
     <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
@@ -1931,17 +1988,45 @@ Temperature maximale : 34.6 C</code></pre></div>
   <article class="exo">
     <h3><span class="no">13</span>Les tentatives de connexion, et une fonction qui reçoit la matrice <span class="niveau n3">Difficile</span></h3>
     <div class="enonce">
-      <p>Un tableau 4 × 5 : une ligne par utilisateur, une colonne par jour, et le nombre de
-         tentatives de connexion dans chaque case. Saisir, afficher, puis écrire une fonction
-         <code>totalUtilisateur()</code> qui reçoit le tableau et un numéro de ligne et renvoie
-         le total de cette ligne. L'appeler pour chaque utilisateur, et désigner celui qui a
-         fait le plus de tentatives.</p>
+      <p><strong>Exercice 3.</strong> Un administrateur réseau souhaite analyser les tentatives de connexion effectuées sur 4 comptes utilisateurs pendant 5 jours. On utilise un tableau à deux dimensions 4 × 5 : chaque ligne représente un utilisateur, chaque colonne un jour, et chaque case le nombre de tentatives de connexion effectuées par un utilisateur pendant un jour.</p>
+      <p>Écrire un programme en langage C qui permet de :</p>
+      <ol>
+        <li>Déclarer un tableau à deux dimensions de 4 lignes et 5 colonnes.</li>
+        <li>Demander à l&#x27;utilisateur de saisir le nombre de tentatives de connexion pour chaque utilisateur et chaque jour.</li>
+        <li>Afficher le tableau.</li>
+        <li>Créer une fonction totalUtilisateur() qui reçoit le tableau et le numéro d&#x27;une ligne et qui retourne le nombre total de tentatives de connexion de l&#x27;utilisateur correspondant.</li>
+        <li>Appeler cette fonction pour chaque utilisateur et afficher son nombre total de tentatives.</li>
+        <li>Déterminer et afficher l&#x27;utilisateur ayant effectué le plus grand nombre de tentatives de connexion.</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+        <div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 3 :
+ ========================================
+Un administrateur réseau souhaite analyser les tentatives de connexion
+effectuées sur 4 comptes utilisateurs pendant 5 jours. On utilise un tableau
+à deux dimensions 4 × 5 : chaque ligne représente un utilisateur, chaque
+colonne un jour, et chaque case le nombre de tentatives de connexion
+effectuées par un utilisateur pendant un jour.
+
+Écrire un programme en langage C qui permet de :
+    1. Déclarer un tableau à deux dimensions de 4 lignes et 5 colonnes.
+    2. Demander à l'utilisateur de saisir le nombre de tentatives de
+       connexion pour chaque utilisateur et chaque jour.
+    3. Afficher le tableau.
+    4. Créer une fonction totalUtilisateur() qui reçoit le tableau et le
+       numéro d'une ligne et qui retourne le nombre total de tentatives de
+       connexion de l'utilisateur correspondant.
+    5. Appeler cette fonction pour chaque utilisateur et afficher son
+       nombre total de tentatives.
+    6. Déterminer et afficher l'utilisateur ayant effectué le plus grand
+       nombre de tentatives de connexion.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 
 <span class="j-pre">#define</span> <span class="j-var">UTILISATEURS</span> <span class="j-num">4</span>
 <span class="j-pre">#define</span> <span class="j-var">JOURS</span>        <span class="j-num">5</span>
@@ -1950,16 +2035,19 @@ Temperature maximale : 34.6 C</code></pre></div>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
+    <span class="j-com">// 1. Déclarer un tableau à deux dimensions de 4 lignes et 5 colonnes.</span>
     <span class="j-typ">int</span> <span class="j-var">tentatives</span>[<span class="j-var">UTILISATEURS</span>][<span class="j-var">JOURS</span>];
     <span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-var">j</span>, <span class="j-var">total</span>, <span class="j-var">meilleur</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">record</span>;
 
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">UTILISATEURS</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">JOURS</span>; <span class="j-var">j</span><span class="j-op">++</span>) {
+            <span class="j-com">// 2. Demander à l'utilisateur de saisir le nombre de tentatives de connexion pour chaque utilisateur et chaque jour.</span>
             <span class="j-fn">printf</span>(<span class="j-txt">"Utilisateur %d, jour %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">j</span> <span class="j-op">+</span> <span class="j-num">1</span>);
             <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">tentatives</span>[<span class="j-var">i</span>][<span class="j-var">j</span>]);
         }
     }
 
+    <span class="j-com">// 3. Afficher le tableau.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nTentatives de connexion :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">UTILISATEURS</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-mc">for</span> (<span class="j-var">j</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">j</span> <span class="j-op">&lt;</span> <span class="j-var">JOURS</span>; <span class="j-var">j</span><span class="j-op">++</span>)
@@ -1967,6 +2055,7 @@ Temperature maximale : 34.6 C</code></pre></div>
         <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
     }
 
+    <span class="j-com">// 5. Appeler cette fonction pour chaque utilisateur et afficher son nombre total de tentatives.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nTotal par utilisateur :\n"</span>);
     <span class="j-var">record</span> <span class="j-op">=</span> <span class="j-fn">totalUtilisateur</span>(<span class="j-var">tentatives</span>, <span class="j-num">0</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">UTILISATEURS</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
@@ -1978,11 +2067,13 @@ Temperature maximale : 34.6 C</code></pre></div>
         }
     }
 
+    <span class="j-com">// 6. Déterminer et afficher l'utilisateur ayant effectué le plus grand nombre de tentatives de connexion.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nPlus grand nombre de tentatives : utilisateur %d (%d)\n"</span>,
            <span class="j-var">meilleur</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">record</span>);
     <span class="j-mc">return</span> <span class="j-num">0</span>;
 }
 
+<span class="j-com">// 4. Créer une fonction totalUtilisateur() qui reçoit le tableau et le numéro d'une ligne et qui retourne le nombre total de tentatives de connexion de l'utilisateur correspondant.</span>
 <span class="j-typ">int</span> <span class="j-fn">totalUtilisateur</span>(<span class="j-typ">int</span> <span class="j-var">tentatives</span>[][<span class="j-var">JOURS</span>], <span class="j-typ">int</span> <span class="j-var">ligne</span>)
 {
     <span class="j-typ">int</span> <span class="j-var">j</span>, <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
@@ -2077,21 +2168,49 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
   <article class="exo">
     <h3><span class="no">12</span>Huit mesures, parcourues au pointeur <span class="niveau n1">Facile</span></h3>
     <div class="enonce">
-      <p>Un technicien relève huit mesures : <code>{12, 18, 7, 25, 14, 9, 21, 16}</code>.
-         Déclarer le tableau, déclarer un pointeur <code>p</code>, l'initialiser avec
-         l'adresse du premier élément, puis <strong>parcourir le tableau uniquement à l'aide
-         du pointeur</strong> : afficher chaque mesure, calculer la somme, afficher la plus
-         grande.</p>
+      <p><strong>Exercice 1.</strong> Un technicien relève 8 mesures provenant d&#x27;un équipement. On dispose du tableau :</p>
+      <div class="bloc-code" data-fam="c"><span class="langue">C — donné par le sujet</span><pre><code><span class="j-typ">int</span> <span class="j-var">mesures</span>[<span class="j-num">8</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>, <span class="j-num">14</span>, <span class="j-num">9</span>, <span class="j-num">21</span>, <span class="j-num">16</span>};</code></pre></div>
+      <p>Écrire un programme qui :</p>
+      <ol>
+        <li>Déclare le tableau.</li>
+        <li>Déclare un pointeur p.</li>
+        <li>Initialise p avec l&#x27;adresse du premier élément du tableau.</li>
+        <li>Parcourt le tableau uniquement à l&#x27;aide du pointeur.</li>
+        <li>Affiche chaque mesure.</li>
+        <li>Calcule la somme des mesures.</li>
+        <li>Affiche la plus grande mesure.</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 1 :
+ ========================================
+Un technicien relève 8 mesures provenant d'un équipement. On dispose du
+tableau :
+
+int mesures[8] = {12, 18, 7, 25, 14, 9, 21, 16};
+
+Écrire un programme qui :
+    1. Déclare le tableau.
+    2. Déclare un pointeur p.
+    3. Initialise p avec l'adresse du premier élément du tableau.
+    4. Parcourt le tableau uniquement à l'aide du pointeur.
+    5. Affiche chaque mesure.
+    6. Calcule la somme des mesures.
+    7. Affiche la plus grande mesure.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
+    <span class="j-com">// 1. Déclare le tableau.</span>
     <span class="j-typ">int</span> <span class="j-var">mesures</span>[<span class="j-num">8</span>] <span class="j-op">=</span> {<span class="j-num">12</span>, <span class="j-num">18</span>, <span class="j-num">7</span>, <span class="j-num">25</span>, <span class="j-num">14</span>, <span class="j-num">9</span>, <span class="j-num">21</span>, <span class="j-num">16</span>};
+    <span class="j-com">// 2. Déclare un pointeur p.</span>
+    <span class="j-com">// 3. Initialise p avec l'adresse du premier élément du tableau.</span>
     <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">mesures</span>;          <span class="j-com">/* 3. p recoit l'adresse du premier element */</span>
     <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
     <span class="j-typ">int</span> <span class="j-var">maxi</span>;
@@ -2099,8 +2218,11 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
 
     <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;                 <span class="j-com">/* on part de la premiere mesure, pas de 0 */</span>
 
+    <span class="j-com">// 4. Parcourt le tableau uniquement à l'aide du pointeur.</span>
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-num">8</span>; <span class="j-var">i</span><span class="j-op">++</span>) {  <span class="j-com">/* 4. on ne parcourt QU'AVEC le pointeur */</span>
+        <span class="j-com">// 5. Affiche chaque mesure.</span>
         <span class="j-fn">printf</span>(<span class="j-txt">"mesure %d : %d\n"</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-op">*</span><span class="j-var">p</span>);
+        <span class="j-com">// 6. Calcule la somme des mesures.</span>
         <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-op">*</span><span class="j-var">p</span>;
         <span class="j-mc">if</span> (<span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">&gt;</span> <span class="j-var">maxi</span>)
             <span class="j-var">maxi</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;
@@ -2108,6 +2230,7 @@ Plus grand nombre de tentatives : utilisateur 3 (54)</code></pre></div>
     }
 
     <span class="j-fn">printf</span>(<span class="j-txt">"somme            : %d\n"</span>, <span class="j-var">somme</span>);
+    <span class="j-com">// 7. Affiche la plus grande mesure.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"plus grande      : %d\n"</span>, <span class="j-var">maxi</span>);
     <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
@@ -2142,25 +2265,54 @@ plus grande      : 25</code></pre></div>
   <article class="exo">
     <h3><span class="no">13</span>Autant de valeurs que l'utilisateur veut <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Le nombre de valeurs n'est pas connu à l'avance. Demander ce nombre, déclarer un
-         pointeur, réserver la mémoire avec <code>malloc()</code>, saisir les valeurs, les
-         afficher, calculer la somme et la moyenne, puis libérer avec <code>free()</code>.</p>
+      <p><strong>Exercice 2.</strong> Un programme doit permettre à l&#x27;utilisateur de saisir une série de valeurs. Le nombre de valeurs n&#x27;est pas connu à l&#x27;avance.</p>
+      <p>Écrire un programme qui :</p>
+      <ol>
+        <li>Demande à l&#x27;utilisateur le nombre de valeurs à saisir.</li>
+        <li>Déclare un pointeur p.</li>
+        <li>Utilise malloc() pour réserver la mémoire nécessaire.</li>
+        <li>Demande les valeurs à l&#x27;utilisateur.</li>
+        <li>Affiche les valeurs saisies.</li>
+        <li>Calcule la somme.</li>
+        <li>Affiche la moyenne.</li>
+        <li>Libère la mémoire avec free().</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 2 :
+ ========================================
+Un programme doit permettre à l'utilisateur de saisir une série de valeurs.
+Le nombre de valeurs n'est pas connu à l'avance.
+
+Écrire un programme qui :
+    1. Demande à l'utilisateur le nombre de valeurs à saisir.
+    2. Déclare un pointeur p.
+    3. Utilise malloc() pour réserver la mémoire nécessaire.
+    4. Demande les valeurs à l'utilisateur.
+    5. Affiche les valeurs saisies.
+    6. Calcule la somme.
+    7. Affiche la moyenne.
+    8. Libère la mémoire avec free().
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 <span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
 {
+    <span class="j-com">// 2. Déclare un pointeur p.</span>
     <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span>;
     <span class="j-typ">int</span> <span class="j-var">n</span>, <span class="j-var">i</span>, <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
 
+    <span class="j-com">// 1. Demande à l'utilisateur le nombre de valeurs à saisir.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"Combien de valeurs ? "</span>);
     <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>);
 
+    <span class="j-com">// 3. Utilise malloc() pour réserver la mémoire nécessaire.</span>
     <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span>(<span class="j-typ">int</span>));
     <span class="j-mc">if</span> (<span class="j-var">p</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
         <span class="j-fn">printf</span>(<span class="j-txt">"Allocation impossible\n"</span>);
@@ -2168,19 +2320,24 @@ plus grande      : 25</code></pre></div>
     }
 
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-com">// 4. Demande les valeurs à l'utilisateur.</span>
         <span class="j-fn">printf</span>(<span class="j-txt">"valeur %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
         <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">p</span>[<span class="j-var">i</span>]);
     }
 
+    <span class="j-com">// 5. Affiche les valeurs saisies.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"\nValeurs saisies :\n"</span>);
     <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
         <span class="j-fn">printf</span>(<span class="j-txt">"%d\n"</span>, <span class="j-var">p</span>[<span class="j-var">i</span>]);
+        <span class="j-com">// 6. Calcule la somme.</span>
         <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">p</span>[<span class="j-var">i</span>];
     }
 
     <span class="j-fn">printf</span>(<span class="j-txt">"somme   : %d\n"</span>, <span class="j-var">somme</span>);
+    <span class="j-com">// 7. Affiche la moyenne.</span>
     <span class="j-fn">printf</span>(<span class="j-txt">"moyenne : %.2f\n"</span>, (<span class="j-typ">float</span>)<span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">n</span>);
 
+    <span class="j-com">// 8. Libère la mémoire avec free().</span>
     <span class="j-fn">free</span>(<span class="j-var">p</span>);
     <span class="j-mc">return</span> <span class="j-num">0</span>;
 }</code></pre></div>
@@ -2318,17 +2475,43 @@ Le programme doit :
   <article class="exo">
     <h3><span class="no">15</span>Un capteur, un nombre de mesures inconnu, et <code>calloc</code> <span class="niveau n3">Difficile</span></h3>
     <div class="enonce">
-      <p>Un système industriel relève des mesures à intervalles réguliers ; le nombre est
-         saisi au début. Allouer dynamiquement un tableau de <code>float</code>
-         <strong>avec <code>calloc</code></strong>, <strong>vérifier que l'allocation a
-         réussi</strong>, saisir les mesures, les afficher en utilisant un pointeur, puis
-         calculer la moyenne, la valeur minimale et la valeur maximale. Libérer.</p>
+      <p><strong>Exercice 4.</strong> Un système industriel récupère les mesures d&#x27;un capteur à intervalles réguliers. Le nombre de mesures à enregistrer n&#x27;est pas connu à l&#x27;avance : il est saisi par l&#x27;utilisateur au début du programme. Écrire un programme en langage C qui permet de gérer ces mesures.</p>
+      <p>Le programme doit :</p>
+      <ol>
+        <li>Demander à l&#x27;utilisateur le nombre de mesures à enregistrer.</li>
+        <li>Allouer dynamiquement un tableau de float permettant de stocker ces mesures. L&#x27;allocation devra être réalisée avec la fonction calloc.</li>
+        <li>Vérifier que l&#x27;allocation mémoire a réussi.</li>
+        <li>Demander à l&#x27;utilisateur de saisir les différentes mesures.</li>
+        <li>Afficher toutes les mesures enregistrées en utilisant un pointeur.</li>
+        <li>Calculer et afficher : la moyenne des mesures ; la valeur minimale ; la valeur maximale.</li>
+        <li>Libérer la mémoire allouée dynamiquement à l&#x27;aide de free.</li>
+      </ol>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 4 :
+ ========================================
+Un système industriel récupère les mesures d'un capteur à intervalles
+réguliers. Le nombre de mesures à enregistrer n'est pas connu à l'avance :
+il est saisi par l'utilisateur au début du programme. Écrire un programme en
+langage C qui permet de gérer ces mesures.
+
+Le programme doit :
+    1. Demander à l'utilisateur le nombre de mesures à enregistrer.
+    2. Allouer dynamiquement un tableau de float permettant de stocker ces
+       mesures. L'allocation devra être réalisée avec la fonction calloc.
+    3. Vérifier que l'allocation mémoire a réussi.
+    4. Demander à l'utilisateur de saisir les différentes mesures.
+    5. Afficher toutes les mesures enregistrées en utilisant un pointeur.
+    6. Calculer et afficher : la moyenne des mesures ; la valeur minimale ;
+       la valeur maximale.
+    7. Libérer la mémoire allouée dynamiquement à l'aide de free.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
 <span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
 
 <span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
@@ -2713,6 +2896,12 @@ Nouveau kilometrage : Apres  : Renault Kangoo (2019) — 91200 km</code></pre></
 Une entreprise possède 5 produits en stock, décrits par la structure Produit
 (nom, prix, quantité).
 
+struct Produit {
+    char nom[30];
+    float prix;
+    int quantite;
+};
+
 Écrire un programme qui :
     1. Déclare un tableau de 5 produits.
     2. Permet de saisir les informations des 5 produits.
@@ -2815,6 +3004,16 @@ On souhaite organiser le programme à l'aide de fonctions, avec la structure
 Ordinateur (modèle, RAM en Go, stockage en Go, prix). Créer
 saisirOrdinateur() et afficherOrdinateur().
 
+struct Ordinateur {
+    char modele[30];
+    int ram;
+    int stockage;
+    float prix;
+};
+
+void saisirOrdinateur(...);
+void afficherOrdinateur(...);
+
 Écrire un programme qui :
     1. Déclarer un ordinateur.
     2. Appeler la fonction de saisie.
@@ -2916,6 +3115,12 @@ ThinkPad-T14 — 16 Go de RAM, 512 Go de stockage, 980.00 EUR</code></pre></div>
 On souhaite accéder aux champs d'une structure à l'aide d'un pointeur, avec
 la structure Capteur (nom, valeur, seuil).
 
+struct Capteur {
+    char nom[30];
+    float valeur;
+    float seuil;
+};
+
 Écrire un programme en langage C qui permet de :
     1. Déclarer une variable de type struct Capteur.
     2. Déclarer un pointeur permettant de pointer vers cette structure.
@@ -3015,6 +3220,13 @@ c.valeur vaut 29.40 — c&#x27;est bien la MEME variable</code></pre></div>
 Une bibliothèque souhaite gérer un nombre variable de livres, décrits par la
 structure Livre (titre, auteur, année, prix). Le nombre de livres n'est pas
 connu à l'avance.
+
+struct Livre {
+    char titre[50];
+    char auteur[30];
+    int annee;
+    float prix;
+};
 
 Écrire un programme en langage C qui permet de :
     1. Demander à l'utilisateur le nombre de livres à enregistrer.
@@ -3146,6 +3358,18 @@ informatiques. Une date est représentée par la structure Date (jour, mois,
 année), et un équipement par la structure Equipement (nom, prix, et un champ
 dateAchat de type struct Date).
 
+struct Date {
+    int jour;
+    int mois;
+    int annee;
+};
+
+struct Equipement {
+    char nom[30];
+    float prix;
+    struct Date dateAchat;
+};
+
 Écrire un programme qui :
     1. Déclare une variable de type struct Equipement.
     2. Demande à l'utilisateur de saisir le nom de l'équipement.
@@ -3153,6 +3377,11 @@ dateAchat de type struct Date).
     4. Demande la date d'achat : jour, mois et année.
     5. Affiche toutes les informations de l'équipement.
     6. Affiche la date d'achat sous la forme jj/mm/aaaa.
+
+Exemple d'affichage :
+    Nom: Ordinateur
+    Prix: 1250.00 €
+    Date d'achat: 15/09/2026
 */</span>
 
 <span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
@@ -3890,7 +4119,7 @@ Longueur    : 11</code></pre></div><div class="encart piege">
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=4b8b5a0e"></script>
-<script src="../../assets/app.js?v=4b8b5a0e"></script>
+<script src="../../assets/fiche.js?v=b847670a"></script>
+<script src="../../assets/app.js?v=b847670a"></script>
 </body>
 </html>
