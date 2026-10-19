@@ -667,6 +667,94 @@
 
   const ESSAIS = ["1/3+1/6", "cos(π/6)", "√12", "binomialeCdf(10;0.3;4)"];
 
+  /* ═══════════ Les résultats complémentaires de l'application Calculs ═══
+     La machine propose, sous un résultat, d'autres lectures du MÊME
+     nombre : hexadécimal, binaire, facteurs premiers, division
+     euclidienne, notation scientifique. Ce n'est pas un gadget — en BTS
+     CIEL, un masque se lit en binaire et une adresse en hexadécimal, et
+     retaper le nombre dans le convertisseur pour le voir autrement est
+     une rupture de geste.
+
+     On ne propose QUE ce qui a un sens pour le nombre obtenu : un
+     résultat décimal n'a pas de facteurs premiers, et un entier de vingt
+     chiffres ne se factorise pas en un temps raisonnable. Une rubrique
+     affichée mais vide vaudrait moins que pas de rubrique. */
+  const COMPL_MAX_FACTEURS = 1e12;
+
+  function facteursPremiers(n) {
+    const f = [];
+    let m = Math.abs(n), d = 2;
+    while (d * d <= m) {
+      while (m % d === 0) { f.push(d); m /= d; }
+      d += d === 2 ? 1 : 2;
+    }
+    if (m > 1) f.push(m);
+    return f;
+  }
+
+  function ecrireFacteurs(n) {
+    if (n === 0) return "0 n'a pas de décomposition.";
+    if (Math.abs(n) === 1) return String(n) + " n'a pas de facteur premier.";
+    const f = facteursPremiers(n);
+    if (f.length === 1) return (n < 0 ? "−" : "") + f[0] + " est premier.";
+    const groupes = [];
+    for (const p2 of f) {
+      const dernier = groupes[groupes.length - 1];
+      if (dernier && dernier[0] === p2) dernier[1]++;
+      else groupes.push([p2, 1]);
+    }
+    return (n < 0 ? "−" : "")
+      + groupes.map(([b, e]) => e > 1 ? b + petit(String(e)) : String(b)).join(" × ");
+  }
+
+  function complements(valeur, entree) {
+    if (!Number.isFinite(valeur)) return [];
+    const out = [];
+    const entier = Number.isInteger(valeur);
+
+    if (entier && Math.abs(valeur) <= Number.MAX_SAFE_INTEGER) {
+      const abs = Math.abs(valeur), signe = valeur < 0 ? "−" : "";
+      out.push(["Hexadécimal", signe + "0x" + abs.toString(16).toUpperCase()]);
+      out.push(["Binaire", signe + "0b" + abs.toString(2)]);
+      if (abs >= 2 && abs <= COMPL_MAX_FACTEURS)
+        out.push(["Facteurs premiers", ecrireFacteurs(valeur)]);
+    }
+
+    /* La division euclidienne ne se déduit PAS du résultat : il faut
+       l'entrée. « 123/7 » donne 17,571… et le quotient entier n'y est
+       plus. On relit donc ce qui a été tapé. */
+    const m = /^\s*(-?\d+)\s*\/\s*(-?\d+)\s*$/.exec(String(entree || ""));
+    if (m) {
+      const a = Number(m[1]), b = Number(m[2]);
+      if (b !== 0 && Number.isSafeInteger(a) && Number.isSafeInteger(b)) {
+        /* Le reste est celui des MATHÉMATIQUES, toujours positif, et non
+           celui de « % » en JavaScript qui prend le signe du dividende.
+           −123 % 7 vaut −4 en machine ; le reste euclidien est 3. */
+        const qe = Math.floor(a / b);
+        const r = a - b * qe;
+        const rr = r < 0 ? r + Math.abs(b) : r;
+        const qq = (a - rr) / b;
+        /* Le vrai signe moins, pas le trait d'union : tout le reste de la
+           calculatrice écrit « −5 », et deux glyphes pour la même idée se
+           remarquent dans une colonne de résultats. */
+        const moins = (x) => String(x).replace("-", "−");
+        out.push(["Division euclidienne",
+                  moins(a) + " = " + moins(b) + " × " + moins(qq) + " + " + rr]);
+      }
+    }
+
+    /* La notation scientifique n'a d'intérêt que si elle DIT quelque
+       chose : pour 42, elle n'apprend rien. */
+    const a2 = Math.abs(valeur);
+    if (valeur !== 0 && (a2 >= 1e5 || a2 < 1e-3)) {
+      const e = Math.floor(Math.log10(a2));
+      const mant = valeur / Math.pow(10, e);
+      out.push(["Notation scientifique",
+                fmt(mant) + " × 10" + petit(String(e))]);
+    }
+    return out;
+  }
+
   APPS.calculs = {
     nom: "Calculs", icone: "1+2",
     html() {
@@ -685,6 +773,16 @@
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
             : '<span class="nw-resultat">' + ech(l.exact || l.approx) + '</span>'
               + (l.deux ? '<span class="nw-approche">≈ ' + ech(l.approx) + '</span>' : ''))
+          /* Les compléments ne s'affichent que sous le DERNIER calcul :
+             les coller sous chaque ligne de l'historique noierait celui
+             qu'on vient de faire, qui est le seul qu'on regarde. */
+          + (i === h.length - 1 && !l.erreur && l.complements && l.complements.length
+            ? '<div class="nw-complements"><span class="nw-compl-titre">Résultats '
+              + 'complémentaires</span>'
+              + l.complements.map(([t, x]) => '<span class="nw-compl"><b>' + ech(t)
+                  + '</b> ' + ech(x) + '</span>').join("")
+              + '</div>'
+            : "")
           + '</div>')
         /* Demandé : « inverse le sens met le exe en haut et quand on tape
            ca part en bas l'historique ». L'index de « data-reprendre » est
@@ -799,7 +897,8 @@
     }
     ETAT.historique.push({ entree: prefixe ? prefixe + texte : texte,
                            exact: r.exact || null, approx: r.approx || "",
-                           deux: !!r.montrerLesDeux, erreur: r.ok ? null : r.erreur });
+                           deux: !!r.montrerLesDeux, erreur: r.ok ? null : r.erreur,
+                           complements: r.ok ? complements(r.valeur, texte) : [] });
     if (ETAT.historique.length > 40) ETAT.historique.splice(0, ETAT.historique.length - 40);
     rappel = -1;
     garder();
