@@ -519,8 +519,18 @@
      applications que la machine a en plus (Python, Éléments, Inférence,
      Finance) laissent un trou dans la grille : il est assumé, et dit sur la
      page plutôt que caché par un réarrangement. */
-  const ORDRE = ["calculs", "fonctions", "stats", "probas", "equations",
-                 "suites", "regression", "finance", "reglages"];
+  /* L'ordre de l'accueil de la machine, les douze applications comprises.
+     Demandé : « mets Python même si la fonctionnalité n'est pas encore là,
+     mets-les tous à leur place. »
+
+     Les trois qui ne sont pas écrites y figurent donc, à leur rang, et
+     elles s'ouvrent sur un écran qui DIT ce qu'elles feront et pourquoi
+     elles ne le font pas encore. Un bouton posé doit faire quelque chose
+     ou dire qu'il ne fait rien : muet, on clique, rien ne vient, et on ne
+     sait pas si c'est cassé ou pas encore fait. */
+  const ORDRE = ["calculs", "fonctions", "python", "stats", "probas",
+                 "equations", "suites", "regression", "elements",
+                 "inference", "finance", "reglages"];
   let courante = "accueil", choisi = 0;
 
   function aller(cle) {
@@ -580,7 +590,10 @@
 
   function accueilHTML() {
     return '<div class="nw-accueil" id="nw-grille-apps">'
-      + ORDRE.map((c, i) => '<button type="button" class="nw-tuile" data-app="' + c + '"'
+      + ORDRE.map((c, i) => '<button type="button" class="nw-tuile'
+        + (APPS[c].aVenir ? " nw-tuile-avenir" : "") + '" data-app="' + c + '"'
+        + (APPS[c].aVenir ? ' title="Pas encore écrite — ouvrez pour savoir ce '
+            + 'qu\'elle fera"' : "")
         + ' aria-current="' + (i === choisi) + '">'
         + '<span class="nw-tuile-ic" aria-hidden="true">'
         + (APP_ICO[c] || ech(APPS[c].icone)) + '</span>'
@@ -2531,6 +2544,68 @@
       });
     },
   };
+
+  /* ═══════════════ Les applications encore à écrire ══════════════════
+     Elles tiennent leur place dans l'accueil pour que la carte soit juste
+     — et chacune dit ce qu'elle fera, ce qu'il faut pour y arriver, et ce
+     qu'on peut utiliser en attendant. Une application annoncée qui
+     n'explique rien ferait perdre deux minutes à chaque fois qu'on
+     l'ouvre par curiosité. */
+  const A_VENIR = {
+    python: {
+      nom: "Python", icone: "py",
+      quoi: "Un vrai interpréteur Python dans la page, comme sur la machine : "
+          + "on écrit un script, on l'exécute, la console répond.",
+      pourquoi: "C'est le plus gros des trois : il faut porter un interpréteur "
+          + "(MicroPython ou Pyodide) en WebAssembly, du même ordre que le "
+          + "compilateur C de l'atelier et ses soixante mégaoctets.",
+      enAttendant: "L'atelier C et C++ compile et exécute déjà dans la page, "
+          + "avec les mêmes gestes.",
+      lien: ["../outils/langage-c.html", "L'atelier C et C++"],
+    },
+    elements: {
+      nom: "Eléments", icone: "⚛",
+      quoi: "Le tableau périodique : 118 éléments, leur masse, leur numéro, "
+          + "leur famille, leur état, et la fiche de chacun.",
+      pourquoi: "C'est surtout de la donnée à rassembler et à vérifier — 118 "
+          + "éléments et huit propriétés chacun. Rien de difficile, mais "
+          + "rien qui s'invente : une masse atomique fausse est pire "
+          + "qu'absente.",
+      enAttendant: "Les quatorze constantes physiques sont déjà dans la boîte "
+          + "à outils, avec le souligné : _c, _e, _Na, _h…",
+      lien: null,
+    },
+    inference: {
+      nom: "Inférence", icone: "x̄±",
+      quoi: "Intervalles de confiance et tests d'hypothèse : sur une moyenne, "
+          + "sur une proportion, et la comparaison de deux échantillons.",
+      pourquoi: "Les lois dont elle a besoin sont déjà là — normale, Student, "
+          + "khi-2, Fisher. Ce qui manque est l'application elle-même : "
+          + "choisir le test, saisir les données, lire la conclusion.",
+      enAttendant: "L'application Probabilités donne déjà les dix lois et leurs "
+          + "quantiles, dont invNormale et studentCdf.",
+      lien: null,
+    },
+  };
+
+  for (const cle of Object.keys(A_VENIR)) {
+    const d = A_VENIR[cle];
+    APPS[cle] = {
+      nom: d.nom, icone: d.icone, aVenir: true,
+      html() {
+        return '<div class="nw-avenir">'
+          + '<p class="nw-avenir-titre">Pas encore écrite</p>'
+          + '<p>' + ech(d.quoi) + '</p>'
+          + '<p class="nw-sous"><b>Ce qu\'il faut pour y arriver.</b> '
+          + ech(d.pourquoi) + '</p>'
+          + '<p class="nw-sous"><b>En attendant.</b> ' + ech(d.enAttendant) + '</p>'
+          + (d.lien ? '<p class="nw-lien-outil"><a href="' + d.lien[0] + '">'
+              + ech(d.lien[1]) + '</a></p>' : "")
+          + '</div>';
+      },
+      apres() {},
+    };
+  }
 
   /* ═══════════════ 13. Réglages ══════════════════════════════════════ */
   APPS.reglages = {
