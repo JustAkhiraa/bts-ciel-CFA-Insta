@@ -58,7 +58,8 @@
     tableau: { debut: 0, pas: 1 },
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
-    stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1] },
+    stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1],
+             graphe: "histogramme", histo: { largeur: "", debut: "" } },
     /* La machine range les régressions en SÉRIES — X1/Y1, X2/Y2, X3/Y3 —
        et chacune a son modèle. Une seule paire de colonnes ne permettait
        pas de comparer deux jeux de mesures sur le même nuage, ce que les
@@ -1648,6 +1649,31 @@
             + '" value="' + ech(S.effectifs[i]) + '" aria-label="Effectif ' + (i + 1)
             + '"></td></tr>';
         }
+        /* Les colonnes CALCULÉES de la machine : fréquence, effectifs
+           cumulés croissants, fréquences cumulées croissantes. Elles ne se
+           saisissent pas — elles se lisent, et c'est précisément ce qu'un
+           sujet demande de savoir lire. Elles suivent l'ordre des valeurs
+           TRIÉES, sinon un cumul ne veut rien dire. */
+        const aperçu = CALC.STATS.unVariable(S.valeurs, S.effectifs);
+        let colonnes = "";
+        if (aperçu && aperçu.N > 0) {
+          let cum = 0;
+          colonnes = '<div class="nw-defile"><table class="nw-table"><thead><tr>'
+            + '<th>valeur</th><th>effectif</th><th>fréquence</th>'
+            + '<th>ECC</th><th>FCC</th></tr></thead><tbody>'
+            + aperçu.paires.map((pr) => {
+                cum += pr[1];
+                return '<tr><td>' + ech(fmt(pr[0])) + '</td><td>' + ech(fmt(pr[1]))
+                  + '</td><td>' + ech(fmt(pr[1] / aperçu.N))
+                  + '</td><td>' + ech(fmt(cum))
+                  + '</td><td>' + ech(fmt(cum / aperçu.N)) + '</td></tr>';
+              }).join("")
+            + '</tbody></table></div>'
+            + '<p class="nw-sous"><b>ECC</b> : effectifs cumulés croissants — combien '
+            + 'd\'individus ont une valeur inférieure ou égale. <b>FCC</b> : la même '
+            + 'chose en fréquence. Les valeurs sont triées : un cumul sur des valeurs '
+            + 'en désordre ne veut rien dire.</p>';
+        }
         return onglets + '<div class="nw-defile"><table class="nw-table"><thead><tr>'
           + '<th>#</th><th>valeur</th><th>effectif</th></tr></thead><tbody>' + corps
           + '</tbody></table></div>'
@@ -1657,7 +1683,8 @@
           + '<button type="button" class="nw-bouton" id="nw-stats-vider">Tout effacer</button>'
           + '</div>'
           + '<p class="nw-sous">Un effectif de 1 partout, c\'est une liste brute. '
-          + 'Les valeurs répétées sont regroupées automatiquement.</p>';
+          + 'Les valeurs répétées sont regroupées automatiquement.</p>'
+          + colonnes;
       }
       const R = CALC.STATS.unVariable(S.valeurs, S.effectifs);
       if (!R) return onglets + '<p class="nw-vide">Aucune donnée exploitable.</p>';
@@ -1698,15 +1725,57 @@
           + (mode === v ? ' aria-pressed="true"' : '') + '>' + t + '</button>').join("")
         + '</div>';
       let svg = "";
+      let reglages = "";
       if (mode === "histogramme") {
-        const hmax = Math.max(...R.paires.map((p) => p[1]));
-        const larg = R.paires.length > 1
-          ? (R.paires[R.paires.length - 1][0] - R.paires[0][0]) / (R.paires.length - 1) : 1;
-        svg = tracer({
-          xmin: R.min - larg, xmax: R.max + larg, ymin: 0, ymax: hmax * 1.15,
-          barres: R.paires.map((p) => ({ x0: p[0] - larg * 0.4, x1: p[0] + larg * 0.4, h: p[1] })),
-          aide: "Histogramme des effectifs",
-        });
+        /* La machine règle son histogramme par DEUX nombres — la largeur
+           d'une barre et le début de la première. Sans eux, un relevé de
+           notes sur 20 se rend en vingt bâtonnets d'un individu chacun,
+           alors que la question porte sur des classes. Laissés vides, on
+           garde une barre par valeur : c'est le comportement d'avant, et
+           c'est le bon quand les valeurs sont déjà des classes. */
+        const H = S.histo || {};
+        const pasBarre = parseFloat(H.largeur);
+        const debut = parseFloat(H.debut);
+        reglages = '<div class="nw-panneau"><div class="nw-rangee">'
+          + '<label for="nw-h-larg">largeur</label>'
+          + '<input type="text" class="nw-petit nw-court" id="nw-h-larg" data-histo="largeur" '
+          + 'value="' + ech(H.largeur || "") + '" placeholder="auto">'
+          + '<label for="nw-h-deb">début</label>'
+          + '<input type="text" class="nw-petit nw-court" id="nw-h-deb" data-histo="debut" '
+          + 'value="' + ech(H.debut || "") + '" placeholder="auto">'
+          + '</div><p class="nw-sous">Vides, une barre par valeur. Remplis, les valeurs '
+          + 'sont groupées en classes de cette largeur à partir de ce début — c\'est ce que '
+          + 'fait la machine, et ce que demande un énoncé qui parle de classes.</p></div>';
+
+        if (pasBarre > 0) {
+          const d0 = Number.isFinite(debut) ? debut : R.min;
+          const classes = new Map();
+          R.paires.forEach((pr) => {
+            const k = Math.floor((pr[0] - d0) / pasBarre);
+            classes.set(k, (classes.get(k) || 0) + pr[1]);
+          });
+          const cles = [...classes.keys()].sort((x, y) => x - y);
+          const hmax = Math.max(...classes.values());
+          svg = tracer({
+            xmin: d0 + (cles[0] - 0.3) * pasBarre,
+            xmax: d0 + (cles[cles.length - 1] + 1.3) * pasBarre,
+            ymin: 0, ymax: hmax * 1.15,
+            barres: cles.map((k) => ({ x0: d0 + k * pasBarre,
+                                       x1: d0 + (k + 1) * pasBarre,
+                                       h: classes.get(k) })),
+            aide: "Histogramme par classes",
+          });
+        } else {
+          const hmax = Math.max(...R.paires.map((p) => p[1]));
+          const larg = R.paires.length > 1
+            ? (R.paires[R.paires.length - 1][0] - R.paires[0][0]) / (R.paires.length - 1) : 1;
+          svg = tracer({
+            xmin: R.min - larg, xmax: R.max + larg, ymin: 0, ymax: hmax * 1.15,
+            barres: R.paires.map((p) => ({ x0: p[0] - larg * 0.4, x1: p[0] + larg * 0.4,
+                                           h: p[1] })),
+            aide: "Histogramme des effectifs",
+          });
+        }
       } else if (mode === "moustaches") {
         const dx = Math.max(1e-9, R.max - R.min);
         svg = tracer({
@@ -1731,9 +1800,28 @@
           aide: "Effectifs cumulés croissants",
         });
       }
-      return onglets + choix + svg
+      /* Les valeurs ABERRANTES, au sens usuel : au-delà de 1,5 écart
+         interquartile des quartiles. Les moustaches, elles, gardent la
+         convention du lycée — elles vont aux extrêmes. On ne change donc
+         pas le dessin, on NOMME ce qu'il contient : un sujet qui demande
+         « y a-t-il des valeurs aberrantes ? » attend ce calcul-là. */
+      let aberrantes = "";
+      if (mode === "moustaches") {
+        const bas = R.q1 - 1.5 * R.interquartile;
+        const haut2 = R.q3 + 1.5 * R.interquartile;
+        const hors = R.paires.filter((pr) => pr[0] < bas || pr[0] > haut2).map((pr) => pr[0]);
+        aberrantes = '<dl class="nw-valeurs">'
+          + '<dt>seuil bas — Q1 − 1,5 × EIQ</dt><dd>' + ech(fmt(bas)) + '</dd>'
+          + '<dt>seuil haut — Q3 + 1,5 × EIQ</dt><dd>' + ech(fmt(haut2)) + '</dd>'
+          + '<dt>valeurs aberrantes</dt><dd>'
+          + (hors.length ? ech(hors.map((v) => fmt(v)).join(" · ")) : "aucune") + '</dd>'
+          + '</dl>';
+      }
+      return onglets + choix + reglages + svg
         + (mode === "moustaches" ? '<p class="nw-sous">Les moustaches vont jusqu\'aux valeurs '
-            + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile.</p>' : "");
+            + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile. Le seuil '
+            + 'de 1,5 sert à NOMMER les valeurs aberrantes, pas à couper le dessin.</p>'
+            + aberrantes : "");
     },
     apres() {
       brancherOnglets();
@@ -1767,6 +1855,15 @@
       $$("[data-sgraphe]", page).forEach((b) => b.addEventListener("click", () => {
         ETAT.stats.graphe = b.dataset.sgraphe; garder(); redessiner();
       }));
+      $$("[data-histo]", page).forEach((c) => {
+        const maj = () => {
+          ETAT.stats.histo = ETAT.stats.histo || {};
+          ETAT.stats.histo[c.dataset.histo] = c.value.trim();
+          garder(); redessiner();
+        };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
     },
   };
 
