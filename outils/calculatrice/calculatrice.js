@@ -2937,25 +2937,25 @@
       const nb = (cle) => { const v = nombreSaisi(I[cle]); return v === null ? NaN : v; };
 
       const tetes = '<div class="nw-onglets">'
-        + [["intervalle", "Intervalle de confiance"], ["test", "Test d’hypothèse"]]
+        + [["intervalle", "Intervalles"], ["test", "Tests"]]
           .map(([v, t]) => '<button type="button" class="nw-onglet" data-inf="famille:' + v
             + '" aria-selected="' + (I.famille === v) + '">' + t + '</button>').join("")
         + '</div>'
         + '<div class="nw-rangee"><label>grandeur</label>'
-        + seg("grandeur", [["moyenne", "une moyenne"], ["proportion", "une proportion"]])
+        + seg("grandeur", [["moyenne", "Une moyenne"], ["proportion", "Une proportion"]])
         + '</div>';
 
       const n = I.grandeur === "moyenne" ? nb("nEch") : nb("nProp");
       let saisie = "", bloc = "", conditions = "";
 
       if (I.grandeur === "moyenne") {
-        saisie = '<div class="nw-rangee">' + champ("xbar", "x̄") + champ("nEch", "n")
+        saisie = '<div class="nw-rangee">' + champ("xbar", "Moyenne échantillon") + champ("nEch", "Taille échantillon")
           + '</div><div class="nw-rangee"><label>écart type</label>'
-          + seg("sigmaConnu", [[false, "s de l’échantillon"], [true, "σ connu"]])
-          + (I.sigmaConnu ? champ("sigma", "σ") : champ("sEch", "s")) + '</div>';
+          + seg("sigmaConnu", [[false, "Ecart-type de l’échantillon"], [true, "Ecart-type de la population"]])
+          + (I.sigmaConnu ? champ("sigma", "σ population") : champ("sEch", "s échantillon")) + '</div>';
       } else {
-        saisie = '<div class="nw-rangee">' + champ("f", "fréquence f")
-          + champ("nProp", "n") + '</div>';
+        saisie = '<div class="nw-rangee">' + champ("f", "Proportion échantillon")
+          + champ("nProp", "Taille échantillon") + '</div>';
         const f = nb("f");
         if (Number.isFinite(f) && Number.isFinite(n)) {
           const c1 = n >= 30, c2 = n * f >= 5, c3 = n * (1 - f) >= 5;
@@ -2974,7 +2974,7 @@
 
       if (I.famille === "intervalle") {
         const niv = nb("niveau");
-        saisie += '<div class="nw-rangee">' + champ("niveau", "niveau de confiance")
+        saisie += '<div class="nw-rangee">' + champ("niveau", "Seuil de confiance")
           + '</div>';
         if (!(niv > 0 && niv < 1)) {
           bloc = '<p class="nw-erreur">Le niveau de confiance est entre 0 et 1 — 0,95 pour 95 %.</p>';
@@ -2995,9 +2995,9 @@
             bloc = '<dl class="nw-valeurs">'
               + '<dt>' + (I.sigmaConnu ? "quantile z" : "quantile t à " + fmt(n - 1) + " degrés")
               + '</dt><dd>' + ech(fmt(t)) + '</dd>'
-              + '<dt>erreur type</dt><dd>' + ech(fmt(ec / Math.sqrt(n))) + '</dd>'
-              + '<dt>marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
-              + '<dt>intervalle</dt><dd>[ ' + ech(fmt(xbar - marge)) + ' ; '
+              + '<dt>Erreur-type</dt><dd>' + ech(fmt(ec / Math.sqrt(n))) + '</dd>'
+              + '<dt>Marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
+              + '<dt>Intervalle de confiance</dt><dd>[ ' + ech(fmt(xbar - marge)) + ' ; '
               + ech(fmt(xbar + marge)) + ' ]</dd></dl>'
               + '<p class="nw-sous">À retenir pour la copie : « au niveau de confiance '
               + ech(fmt(niv * 100)) + ' %, la moyenne de la population appartient à cet '
@@ -3015,8 +3015,8 @@
             const simple = 1 / Math.sqrt(n);
             bloc = '<dl class="nw-valeurs">'
               + '<dt>quantile z</dt><dd>' + ech(fmt(z)) + '</dd>'
-              + '<dt>marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
-              + '<dt>intervalle</dt><dd>[ ' + ech(fmt(Math.max(0, f - marge))) + ' ; '
+              + '<dt>Marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
+              + '<dt>Intervalle de confiance</dt><dd>[ ' + ech(fmt(Math.max(0, f - marge))) + ' ; '
               + ech(fmt(Math.min(1, f + marge))) + ' ]</dd>'
               + '<dt>intervalle simplifié f ± 1/√n</dt><dd>[ '
               + ech(fmt(Math.max(0, f - simple))) + ' ; '
@@ -3031,7 +3031,7 @@
         saisie += '<div class="nw-rangee">'
           + champ(I.grandeur === "moyenne" ? "mu0" : "p0",
                   I.grandeur === "moyenne" ? "μ₀ de H₀" : "p₀ de H₀")
-          + champ("alpha", "risque α") + '</div>'
+          + champ("alpha", "Seuil de risque") + '</div>'
           + '<div class="nw-rangee"><label>hypothèse H₁</label>'
           + seg("cote", [["bilateral", "≠"], ["gauche", "<"], ["droite", ">"]]) + '</div>';
         if (!(alpha > 0 && alpha < 1)) {
@@ -3066,11 +3066,11 @@
             const rejette = pval < alpha;
             const signe = I.cote === "bilateral" ? "≠" : I.cote === "gauche" ? "<" : ">";
             bloc = '<dl class="nw-valeurs">'
-              + '<dt>H₀</dt><dd>' + ech(h0) + '</dd>'
-              + '<dt>H₁</dt><dd>' + ech(h0.replace("=", signe)) + '</dd>'
+              + '<dt>Hypothèse nulle H₀</dt><dd>' + ech(h0) + '</dd>'
+              + '<dt>Hypothèse alternative H₁</dt><dd>' + ech(h0.replace("=", signe)) + '</dd>'
               + '<dt>observé</dt><dd>' + ech(obs) + '</dd>'
-              + '<dt>statistique ' + ech(loiNom) + '</dt><dd>' + ech(fmt(stat)) + '</dd>'
-              + '<dt>p-valeur</dt><dd>' + ech(fmt(pval)) + '</dd>'
+              + '<dt>Variable de décision ' + ech(loiNom) + '</dt><dd>' + ech(fmt(stat)) + '</dd>'
+              + '<dt>valeur-p</dt><dd>' + ech(fmt(pval)) + '</dd>'
               + '<dt>décision au seuil ' + ech(fmt(alpha * 100)) + ' %</dt><dd>'
               + (rejette ? "on REJETTE H₀" : "on ne rejette pas H₀") + '</dd></dl>'
               + '<p class="nw-resultat" style="text-align:left">'
@@ -3264,7 +3264,7 @@
       const err = P.erreur;
       return '<div class="nw-rangee">'
         + '<button type="button" class="nw-bouton nw-bouton-fort" id="nw-py-run">'
-        + '▶ Exécuter</button>'
+        + '▶ Exécuter le script</button>'
         + '<button type="button" class="nw-bouton" id="nw-py-effacer">Effacer la console</button>'
         + '<button type="button" class="nw-bouton" id="nw-py-exemple">Un exemple</button>'
         + '</div>'
@@ -3274,7 +3274,7 @@
         + '<label class="nw-sous" for="nw-py-entree">entrées de input(), une par ligne</label>'
         + '<textarea id="nw-py-entree" class="nw-py-entree" spellcheck="false" rows="2">'
         + ech(P.entree) + '</textarea>'
-        + '<p class="nw-sous">console</p>'
+        + '<p class="nw-sous">Console d\u2019exécution</p>'
         + '<pre class="nw-py-console">' + (sortie.length ? ech(sortie.join("\n")) : "")
         + (err ? (sortie.length ? "\n" : "")
                  + '<span class="nw-py-err">Erreur'
