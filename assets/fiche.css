@@ -6905,20 +6905,41 @@ body.at-fige { overflow: hidden; }
   --nw-grain: rgba(255, 255, 255, .022);
 }
 
+/* Demandé : « mets les boutons juste au-dessus de la barre noire, en
+   petit — comme ça ça s'intègre et c'est facile d'accès. »
+
+   Ils étaient en grosses pastilles de 40 px qui débordaient sur deux
+   rangées : la commande occupait plus de place que l'écran qu'elle
+   commande. Ils tiennent maintenant sur UNE rangée, posés au ras du
+   châssis — même largeur que lui, coins du haut arrondis, coins du bas
+   droits — de sorte qu'ils se lisent comme la coiffe de la machine et non
+   comme des boutons de page.
+
+   Ce qui NE change pas : la cible tactile reste à 34 px, le plancher de la
+   maison. On gagne la place sur le rembourrage et la graisse, jamais sur
+   ce que le doigt doit atteindre. */
 .nw-barre {
-  display: flex; flex-wrap: wrap; align-items: center; gap: .45rem;
-  margin-bottom: .9rem;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem;
+  margin: 0 0 -1px; padding: .3rem .45rem;
+  background: var(--carte-creuse);
+  border: 1px solid var(--bord-fort); border-bottom: 0;
+  border-radius: 14px 14px 0 0;
 }
+/* Le châssis perd ses arrondis du haut : la coiffe les porte désormais, et
+   les deux ne font qu'une pièce. */
+.nw-corps { border-top-left-radius: 0; border-top-right-radius: 0; }
 .nw-barre button { font: inherit; cursor: pointer; }
 .nw-creux {
-  display: inline-flex; align-items: center; gap: .4rem;
-  min-height: 40px; padding: 0 .9rem; border-radius: 999px;
-  background: var(--carte-creuse); color: var(--encre-douce);
-  border: 1px solid var(--bord-fort); font-weight: 600; font-size: .8182rem;
-  box-shadow: var(--nw-relief);
+  display: inline-flex; align-items: center; gap: .32rem;
+  min-height: 34px; padding: 0 .6rem; border-radius: 8px;
+  background: var(--carte); color: var(--encre-douce);
+  border: 1px solid var(--bord); font-weight: 600; font-size: .7576rem;
 }
 .nw-creux:hover { border-color: var(--accent); color: var(--encre); }
-.nw-creux:active { transform: translateY(1.5px); box-shadow: var(--nw-relief-bas); }
+.nw-creux:active { transform: translateY(1px); }
+/* L'état de la machine se lit à droite de la même rangée : il appartient
+   à la coiffe, pas à la page. */
+.nw-barre .nw-etat { font-size: .7273rem; }
 .nw-creux[aria-expanded="true"], .nw-creux[aria-pressed="true"] {
   border-color: var(--accent); color: var(--accent-sombre); background: var(--accent-pale);
 }
@@ -7887,6 +7908,100 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
   font-size: .62rem; font-weight: 700; letter-spacing: .07em;
   text-transform: uppercase; color: var(--encre-douce);
   background: var(--carte-creuse); border: 1px solid var(--bord-fort);
+}
+
+/* ── Le tableau périodique ───────────────────────────────────────────
+   Dix-huit colonnes, et les positions viennent de la DONNÉE : le tableau
+   a des trous, et ils sont à leur place. Chaque case est une commande —
+   elle ouvre la fiche — donc elle tient le plancher tactile dès qu'il y a
+   la place, et descend à la taille d'une vignette sur téléphone, où la
+   grille entière doit tenir sans défilement horizontal.
+
+   Les couleurs de famille ne sont pas neuves : ce sont les teintes
+   sémantiques du design system, déjà mesurées sur les 41 thèmes. Pour une
+   propriété continue — masse, électronégativité, fusion — la case porte
+   son rang « --el-t » entre 0 et 1, et le fond s'obtient par mélange avec
+   l'accent : une échelle, pas neuf couleurs de plus. */
+.nw-el-grille {
+  display: grid; grid-template-columns: repeat(18, minmax(0, 1fr));
+  gap: 2px; margin: .5rem 0 .7rem;
+}
+.nw-el {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 34px; padding: .15rem 0; border-radius: 5px; cursor: pointer;
+  border: 1px solid var(--bord); background: var(--carte-creuse);
+  color: var(--encre); font: inherit; line-height: 1.05; overflow: hidden;
+}
+.nw-el i { font-style: normal; font-size: .5rem; color: var(--encre-douce); }
+.nw-el b { font-size: .72rem; font-weight: 700; }
+.nw-el:hover { border-color: var(--accent); }
+.nw-el-actif { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nw-el-degrade {
+  background: color-mix(in srgb, var(--accent) calc(var(--el-t, 0) * 55%), var(--carte));
+}
+/* Les neuf familles. Chaque couple fond/texte est un couple de la maison :
+   une encre d'accent sur sa surface pâle, déjà mesurée. */
+.nw-el-f1 { background: var(--rouge-pale); color: var(--rouge); }
+.nw-el-f2 { background: var(--ambre-pale); color: var(--ambre-sombre); }
+.nw-el-f3 { background: var(--accent-pale); color: var(--accent-sombre); }
+.nw-el-f4 { background: var(--carte-creuse); color: var(--encre); }
+.nw-el-f5 { background: var(--vert-pale); color: var(--vert); }
+.nw-el-f6 { background: var(--violet-pale, var(--accent-pale)); color: var(--encre); }
+.nw-el-f7 { background: var(--accent-pale); color: var(--encre); }
+.nw-el-f8 { background: var(--ambre-pale); color: var(--encre); }
+.nw-el-f9 { background: var(--rouge-pale); color: var(--encre); }
+.nw-el-f0 { background: var(--carte); color: var(--encre-douce); }
+.nw-el-e-sol { background: var(--carte-creuse); color: var(--encre); }
+.nw-el-e-liq { background: var(--accent-pale); color: var(--accent-sombre); }
+.nw-el-e-gaz { background: var(--vert-pale); color: var(--vert); }
+.nw-el-e-inc { background: var(--carte); color: var(--encre-douce); }
+.nw-el-legende {
+  display: flex; flex-wrap: wrap; gap: .3rem; margin: .2rem 0 .6rem;
+}
+.nw-el-legende span {
+  padding: .12rem .45rem; border-radius: 999px; font-size: .68rem;
+  border: 1px solid var(--bord);
+}
+.nw-el-fiche { margin-top: .4rem; }
+.nw-el-tete { display: flex; align-items: baseline; gap: .5rem; margin: 0 0 .3rem; }
+.nw-el-z { font-size: .78rem; color: var(--encre-douce); }
+.nw-el-s { font-size: 1.6rem; font-weight: 700; color: var(--encre); }
+.nw-el-n { font-size: 1rem; color: var(--encre-douce); }
+@media (max-width: 760px) {
+  .nw-el { min-height: 22px; border-radius: 3px; }
+  .nw-el i { display: none; }
+  .nw-el b { font-size: .55rem; }
+}
+
+/* ── L'application Python ────────────────────────────────────────────
+   L'éditeur est un champ de saisie ordinaire : un TP de première année
+   tient en trente lignes, et l'atelier C à côté montre ce que coûte un
+   éditeur peint. La console reprend le fond des <pre> du site —
+   l'invariant qui autorise UNE palette pour quarante et un thèmes. */
+.nw-py-editeur, .nw-py-entree {
+  width: 100%; margin: .2rem 0 .5rem; padding: .55rem .7rem;
+  border: 1px solid var(--bord-fort); border-radius: 8px;
+  background: var(--carte); color: var(--encre);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .8182rem; line-height: 1.5; resize: vertical; tab-size: 4;
+}
+.nw-py-editeur:focus, .nw-py-entree:focus {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.nw-py-console {
+  margin: .2rem 0 .6rem; padding: .6rem .7rem; min-height: 3.2rem;
+  border-radius: 8px; background: #23211E; color: #E8E4DC;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .8182rem; line-height: 1.5; white-space: pre-wrap;
+  overflow-x: auto;
+}
+.nw-py-err { color: #F2A0A0; }
+.nw-py-vide { color: #8C8578; font-style: italic; }
+.nw-py-limites { margin-top: .4rem; }
+.nw-py-limites > summary { cursor: pointer; font-size: .8182rem; color: var(--encre-douce); }
+.nw-bouton-fort {
+  background: var(--accent); color: var(--sur-accent); border-color: var(--accent);
+  font-weight: 650;
 }
 
 
