@@ -20,7 +20,10 @@
     theme: "bloc-notes", variante: "", taille: "normal", largeur: "normal", police: "systeme",
     interligne: "normal", anim: 1, curseur: 1, reponses: 0, faits: [],
     son: "", sonVolume: 30,
-    derniere: null, recents: []
+    derniere: null, recents: [],
+    /* La présentation de l'accueil. « lanceur » par défaut ; « classique »
+       ramène les grandes cartes, pour qui les préfère. */
+    style: "lanceur"
   };
   var S = (function () {
     try { return Object.assign({}, DEFAUTS, JSON.parse(localStorage.getItem(CLE) || "{}")); }
@@ -129,6 +132,19 @@
   }
   S.memoClair  = memoValide(S.memoClair);
   S.memoSombre = memoValide(S.memoSombre);
+
+  /* Deux présentations de l'accueil, et un interrupteur pour revenir.
+     Je préférais n'en garder qu'une : deux mises en page, c'est deux
+     vérités à tenir, et celle qu'on ne regarde pas pourrit — la carte
+     « Outils » a annoncé « 2 outils » pendant des mois alors qu'il y en
+     avait huit. Demandé quand même, et c'est son site.
+     La garantie qu'on se donne : les DEUX accueils sont fabriqués à
+     partir des mêmes compteurs, à la publication. Aucun nombre n'est
+     tapé à la main nulle part — l'ancien ne peut donc plus mentir. */
+  var STYLES = [
+    { id: "lanceur",   nom: "Lanceur" },
+    { id: "classique", nom: "Classique" }
+  ];
 
   var TAILLES = [
     { id: "petit", nom: "Petit" }, { id: "normal", nom: "Normal" },
@@ -430,6 +446,7 @@
     d.dataset.largeur    = S.largeur || "normal";
     d.dataset.police     = S.police || "systeme";
     d.dataset.interligne = S.interligne || "normal";
+    d.dataset.style      = S.style || "lanceur";
     d.dataset.anim       = S.anim ? "1" : "0";
     /* Six univers portent leur propre curseur. Un curseur imposé est le genre
        de fantaisie dont on se lasse, et il gêne qui a du mal à viser : il se
@@ -830,6 +847,11 @@
           '<span class="ap-carte"><i></i><b></b></span>' +
           '<span class="ap-txt">Aperçu du thème</span></div></div>' +
 
+        '<div class="reglage"><h3>Accueil</h3>' +
+        '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
+        '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
+        'le classique garde les grandes cartes.</p></div>' +
+
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
 
@@ -1121,7 +1143,13 @@
   }
 
   function poserBoutons() {
-    var tete = document.querySelector(".app-tete nav");
+    /* Sur l'accueil, les boutons utilitaires n'ont pas à flotter seuls
+       au-dessus du papier : ils se rangent dans la barre d'actions de la
+       fenêtre, avec le reste des actions. Ailleurs, ils restent dans
+       l'en-tête. On DÉPLACE la cible, on ne recrée rien : tout ce qui
+       était branché le reste. */
+    var tete = document.querySelector(".lan-actions .lan-nav")
+            || document.querySelector(".app-tete nav");
     if (!tete) return barreOutils();
 
     if (!document.getElementById("q")) {
@@ -1148,7 +1176,12 @@
      animations ou si son système en demande moins — un objet qui bouge sous
      la souris est exactement ce qui gêne alors. */
   function poserBouton3D(tete) {
-    var url = tete.dataset.monde;
+    /* L'adresse du village est écrite par publier.py sur le <nav> de
+       l'en-tête — une seule source. Quand les boutons déménagent dans la
+       barre d'actions, elle n'est plus sur leur parent : on va la
+       chercher là où elle est écrite, plutôt que de l'écrire deux fois. */
+    var url = tete.dataset.monde ||
+              (document.querySelector("[data-monde]") || { dataset: {} }).dataset.monde;
     if (!url) return;
     var a = document.createElement("a");
     a.className = "bouton-3d";

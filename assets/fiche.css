@@ -8326,12 +8326,19 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
    sa marge — de quoi faire défiler une page qu'on venait de faire tenir.
    Sur l'accueil seulement, il se resserre : il dit la même chose, plus
    bas. */
-.lan-scene { min-height: calc(100svh - 300px); }
-body:has(.lan-scene) .app-pied {
+/* L'en-tête et le pied partis, la scène peut enfin prendre toute la
+   hauteur : la fenêtre se centre au lieu de coller en haut avec deux
+   cents pixels de vide dessous. « border-box » pour que le rembourrage
+   soit COMPRIS dans les 100 % — sinon la page déborde de ce qu'il
+   ajoute, et on refait défiler ce qu'on vient de faire tenir. */
+html[data-style="lanceur"] .lan-scene {
+  box-sizing: border-box; min-height: 100svh;
+}
+html[data-style="lanceur"] .app-pied {
   margin-top: 1.1rem; padding: .9rem 1rem 1.1rem; font-size: .7879rem;
 }
-body:has(.lan-scene) .app-pied p { margin: .2rem 0; }
-body:has(.lan-scene) .app-pied .liens { margin-top: .5rem; }
+html[data-style="lanceur"] .app-pied p { margin: .2rem 0; }
+html[data-style="lanceur"] .app-pied .liens { margin-top: .5rem; }
 
 /* =====================================================================
    SUR L'ACCUEIL, LA FENÊTRE FLOTTE SEULE
@@ -8347,23 +8354,114 @@ body:has(.lan-scene) .app-pied .liens { margin-top: .5rem; }
    que les trois liens, en tout petit. Une page d'accueil n'a pas à se
    justifier deux fois.
    ===================================================================== */
-body:has(.lan-scene) .app-tete {
+html[data-style="lanceur"] .app-tete {
   background: none; border: 0; box-shadow: none; backdrop-filter: none;
 }
 /* Le bouton du village est un <a>, pas un <button> : une règle qui
    visait « nav > a » l'emportait avec les quatre liens. Mesuré sur la
    page, pas deviné — il avait disparu. On nomme donc ce qu'on retire,
    pas ce qui lui ressemble. */
-body:has(.lan-scene) .app-marque,
-body:has(.lan-scene) .app-tete nav > a:not([href*="monde/"]) { display: none; }
-body:has(.lan-scene) .app-tete nav { margin-left: auto; }
+html[data-style="lanceur"] .app-marque,
+html[data-style="lanceur"] .app-tete nav > a:not([href*="monde/"]) { display: none; }
+html[data-style="lanceur"] .app-tete nav { margin-left: auto; }
 
-body:has(.lan-scene) .app-pied {
+html[data-style="lanceur"] .app-pied {
   margin-top: .4rem; padding: 0 1rem 1rem; border: 0; background: none;
 }
-body:has(.lan-scene) .app-pied p:not(.liens) { display: none; }
-body:has(.lan-scene) .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
-body:has(.lan-scene) .app-pied .liens a { color: var(--encre-tenue); }
+html[data-style="lanceur"] .app-pied p:not(.liens) { display: none; }
+html[data-style="lanceur"] .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
+html[data-style="lanceur"] .app-pied .liens a { color: var(--encre-tenue); }
+
+/* =====================================================================
+   TOUT RENTRE DANS LA BARRE
+   Demandé : ne plus voir flotter les trois boutons en haut à droite ni
+   les trois liens en bas. Ils ne sont pas supprimés — ils sont RANGÉS :
+   le thème, les réglages et le village dans la barre d'actions de la
+   fenêtre ; le kit, « à propos » et le code source derrière un « ⋯ »
+   qui s'ouvre au même endroit. C'est la place qu'ils ont dans un
+   lanceur : la barre du bas porte les actions, pas le décor.
+   ===================================================================== */
+html[data-style="lanceur"] .app-tete,
+html[data-style="lanceur"] .app-pied { display: none; }
+
+.lan-nav { display: flex; align-items: center; gap: .3rem; flex: none; }
+.lan-nav:empty { display: none; }
+/* Les boutons arrivent de l'en-tête, où ils étaient habillés par
+   « .app-tete nav … » ; ce sélecteur ne les suit pas. On les rhabille
+   ici, à la taille de la barre. */
+.lan-nav > :is(button, a) {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  border: 1px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre-douce); cursor: pointer;
+  transition: border-color .14s, color .14s, background .14s;
+}
+.lan-nav > :is(button, a):hover {
+  border-color: var(--accent); color: var(--accent-sombre);
+}
+.lan-nav .ico { width: 15px; height: 15px; }
+/* Le bouton du village garde son relief : c'est le seul de la barre qui
+   mène ailleurs, et il le dit. */
+.lan-nav .bouton-3d { width: auto; min-width: 34px; padding: 0 .4rem;
+  font-size: .6667rem; font-weight: 800; letter-spacing: .04em; }
+
+.lan-plus { position: relative; flex: none; }
+.lan-plus > summary {
+  list-style: none; cursor: pointer;
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre-douce);
+  font-size: .9091rem; line-height: 1;
+}
+.lan-plus > summary::-webkit-details-marker { display: none; }
+.lan-plus > summary:hover { border-color: var(--accent); color: var(--accent-sombre); }
+.lan-plus > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lan-plus[open] > summary { border-color: var(--accent); color: var(--accent-sombre); }
+.lan-plus-menu {
+  position: absolute; bottom: calc(100% + .45rem); right: 0; z-index: 40;
+  display: flex; flex-direction: column; min-width: 10rem; padding: .25rem;
+  border: 1px solid var(--bord-fort); border-radius: 12px;
+  background: color-mix(in srgb, var(--carte) 97%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3); box-shadow: var(--ombre-haut);
+}
+.lan-plus-menu a {
+  padding: .4rem .6rem; border-radius: 8px; text-decoration: none;
+  color: var(--encre-douce); font-size: .7879rem; font-weight: 600;
+}
+.lan-plus-menu a:hover { background: var(--lan-choisi); color: var(--encre-forte); }
+@media (pointer: coarse) {
+  .lan-nav > :is(button, a), .lan-plus > summary { width: 40px; height: 40px; }
+  .lan-plus-menu a { padding: .6rem .7rem; }
+}
+
+/* Au doigt, « Ouvrir ⏎ » ne sert à rien : il n'y a pas de touche Entrée.
+   Le retirer là — et seulement là — remet la rangée d'actions sur UNE
+   ligne ; sans ça la barre montait à 147 px, le « ⋯ » se retrouvait au
+   bord gauche de sa rangée, et son menu sortait de la fenêtre, qui le
+   coupait. Mesuré, pas supposé. */
+@media (pointer: coarse) {
+  .lan-act:not(.lan-de) { display: none; }
+}
+@media (max-width: 560px) {
+  .lan-comptes { flex-basis: 100%; order: 2; font-size: .6970rem; gap: .7rem; }
+  .lan-de { font-size: .7273rem; }
+}
+.lan-plus-menu { max-width: min(14rem, 75vw); }
+
+/* =====================================================================
+   L'INTERRUPTEUR DE L'ACCUEIL
+   Demandé : pouvoir revenir à l'ancien dessin. Les deux mises en page
+   sont dans la page, et le réglage en montre une. Le choix est posé par
+   l'amorce anti-éclair, AVANT le premier rendu : sans ça l'accueil
+   s'afficherait dans l'un puis sauterait dans l'autre.
+
+   Je préférais n'en garder qu'une — deux mises en page, c'est deux
+   vérités à tenir, et celle qu'on ne regarde pas pourrit. La garantie
+   qu'on se donne : les deux sont fabriquées des mêmes compteurs, à la
+   publication. Aucun nombre n'est tapé à la main nulle part.
+   ===================================================================== */
+.accueil-classique { display: none; }
+html[data-style="classique"] .accueil-classique { display: block; }
+html[data-style="classique"] .lan-scene { display: none; }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
