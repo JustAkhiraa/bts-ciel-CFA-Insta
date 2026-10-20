@@ -97,6 +97,8 @@
     /* Inférence. Deux familles, comme sur la machine : estimer (intervalle
        de confiance) et décider (test d'hypothèse). Et deux grandeurs : une
        moyenne, une proportion — ce sont celles des sujets de BTS. */
+    python: { source: "", entree: "", sortie: [], erreur: null },
+    elements: { z: 6, colorer: "famille" },
     inference: {
       famille: "intervalle", grandeur: "moyenne",
       /* moyenne */
@@ -3102,31 +3104,240 @@
     },
   };
 
-  const A_VENIR = {
-    python: {
-      nom: "Python", icone: "py",
-      quoi: "Un vrai interpréteur Python dans la page, comme sur la machine : "
-          + "on écrit un script, on l'exécute, la console répond.",
-      pourquoi: "C'est le plus gros des trois : il faut porter un interpréteur "
-          + "(MicroPython ou Pyodide) en WebAssembly, du même ordre que le "
-          + "compilateur C de l'atelier et ses soixante mégaoctets.",
-      enAttendant: "L'atelier C et C++ compile et exécute déjà dans la page, "
-          + "avec les mêmes gestes.",
-      lien: ["../outils/langage-c.html", "L'atelier C et C++"],
+
+  /* ═══════════════ 11. Éléments ══════════════════════════════════════
+     Le tableau périodique. La donnée n'est pas tapée ici : elle est
+     CONSTRUITE par « _pilotage/scripts/elements.py » depuis un jeu public,
+     puis recontrôlée — numéros contigus, symboles distincts, huit valeurs
+     d'ancrage, et les trois seules inversions de masse qu'un tableau réel
+     porte chez les éléments stables. Deux masses sont ramenées à la valeur
+     conventionnelle IUPAC, que la source écrivait avec un chiffre de trop.
+     « Une masse atomique fausse est pire qu'absente. »
+
+     La machine colore le tableau par PROPRIÉTÉ, et c'est ce qui le rend
+     utile : la même grille raconte les familles, puis les masses, puis les
+     états. On reprend ce geste. */
+  const EL_FAMILLES = {
+    "métal alcalin": "f1", "métal alcalino-terreux": "f2",
+    "métal de transition": "f3", "métal pauvre": "f4", "métalloïde": "f5",
+    "non-métal": "f6", "gaz noble": "f7", "lanthanide": "f8", "actinide": "f9",
+  };
+  function elFamille(c) {
+    if (EL_FAMILLES[c]) return EL_FAMILLES[c];
+    for (const cle of Object.keys(EL_FAMILLES))
+      if (c && c.indexOf(cle) >= 0) return EL_FAMILLES[cle];
+    return "f0";
+  }
+  APPS.elements = {
+    nom: "Eléments", icone: "⚛",
+    chapitre: null,
+    html() {
+      if (typeof ELEMENTS === "undefined" || !ELEMENTS.length) {
+        return '<p class="nw-vide">Le tableau périodique n’a pas été chargé.</p>';
+      }
+      const E = ETAT.elements;
+      const choisi = ELEMENTS.find((x) => x.z === E.z) || ELEMENTS[0];
+      const colorer = E.colorer || "famille";
+
+      /* Les bornes de la propriété colorée, calculées sur les éléments qui
+         l'ont : une échelle inventée mentirait sur les extrêmes. */
+      let bornes = null;
+      if (colorer !== "famille" && colorer !== "etat") {
+        const vs = ELEMENTS.map((x) => x[colorer]).filter((v) => typeof v === "number");
+        if (vs.length) bornes = [Math.min(...vs), Math.max(...vs)];
+      }
+      const teinte = (x) => {
+        if (colorer === "famille") return "nw-el-" + elFamille(x.c);
+        if (colorer === "etat") return "nw-el-" + (x.e === "gaz" ? "e-gaz"
+          : x.e === "liquide" ? "e-liq" : x.e === "solide" ? "e-sol" : "e-inc");
+        return "";
+      };
+      const fond = (x) => {
+        if (!bornes || typeof x[colorer] !== "number") return "";
+        const t = (x[colorer] - bornes[0]) / (bornes[1] - bornes[0] || 1);
+        return ' style="--el-t:' + t.toFixed(3) + '"';
+      };
+
+      /* La grille : 18 colonnes, les deux rangées détachées en dessous.
+         Les positions viennent de la donnée (xpos/ypos), pas d'un calcul —
+         le tableau a des trous, et ils sont à leur place. */
+      let cases = "";
+      for (const x of ELEMENTS) {
+        cases += '<button type="button" class="nw-el ' + teinte(x)
+          + (x.z === choisi.z ? " nw-el-actif" : "")
+          + (colorer !== "famille" && colorer !== "etat" ? " nw-el-degrade" : "")
+          + '" data-el="' + x.z + '"'
+          + ' style="grid-column:' + x.x + ';grid-row:' + x.y + ';'
+          + (bornes && typeof x[colorer] === "number"
+             ? "--el-t:" + ((x[colorer] - bornes[0]) / (bornes[1] - bornes[0] || 1)).toFixed(3)
+             : "") + '"'
+          + ' aria-pressed="' + (x.z === choisi.z) + '">'
+          + '<i>' + x.z + '</i><b>' + ech(x.s) + '</b></button>';
+      }
+
+      const choixCouleur = '<div class="nw-rangee">'
+        + [["famille", "famille"], ["etat", "état"], ["m", "masse"],
+           ["en", "électronégativité"], ["fus", "fusion"]].map(([v, t]) =>
+          '<button type="button" class="nw-bouton" data-elcol="' + v + '"'
+          + (colorer === v ? ' aria-pressed="true"' : '') + '>' + ech(t) + '</button>').join("")
+        + '</div>';
+
+      const l = (t, v, u) => v === null || v === undefined || v === ""
+        ? '<dt>' + t + '</dt><dd>inconnue</dd>'
+        : '<dt>' + t + '</dt><dd>' + ech(typeof v === "number" ? fmt(v) : v)
+          + (u ? " " + u : "") + '</dd>';
+
+      const fiche = '<div class="nw-el-fiche">'
+        + '<p class="nw-el-tete"><span class="nw-el-z">' + choisi.z + '</span>'
+        + '<span class="nw-el-s">' + ech(choisi.s) + '</span>'
+        + '<span class="nw-el-n">' + ech(choisi.n) + '</span></p>'
+        + '<dl class="nw-valeurs">'
+        + l("masse atomique", choisi.m, "u")
+        + l("famille", choisi.c)
+        /* Au-delà du rutherfordium, l'état n'est pas mesuré : il est PRÉVU.
+           Quelques atomes produits un par un ne forment ni solide ni
+           liquide. Le dire change la nature de la ligne — c'est une
+           prédiction, pas un relevé. */
+        + l("état à 25 °C", choisi.z >= 104 ? "prévu : " + choisi.e : choisi.e)
+        + l("configuration", choisi.cfg)
+        + l("électronégativité (Pauling)", choisi.en)
+        + l("masse volumique", choisi.d, choisi.e === "gaz" ? "g/L" : "g/cm³")
+        + l("fusion", choisi.fus, "K")
+        + l("ébullition", choisi.eb, "K")
+        + l("période · groupe · bloc",
+            choisi.p + " · " + (choisi.g ? choisi.g : "—") + " · " + (choisi.b || "—"))
+        + '</dl></div>';
+
+      const legende = colorer === "famille"
+        ? '<div class="nw-el-legende">'
+          + Object.keys(EL_FAMILLES).map((c) => '<span class="nw-el-' + EL_FAMILLES[c]
+            + '">' + ech(c) + '</span>').join("") + '</div>'
+        : colorer === "etat"
+          ? '<div class="nw-el-legende"><span class="nw-el-e-sol">solide</span>'
+            + '<span class="nw-el-e-liq">liquide</span>'
+            + '<span class="nw-el-e-gaz">gaz</span></div>'
+          : bornes
+            ? '<p class="nw-sous">Du plus clair au plus foncé, de '
+              + ech(fmt(bornes[0])) + ' à ' + ech(fmt(bornes[1]))
+              + '. Les éléments sans valeur connue restent neutres.</p>'
+            : "";
+
+      return choixCouleur
+        + '<div class="nw-el-grille" role="group" aria-label="Tableau périodique">'
+        + cases + '</div>' + legende + fiche
+        + '<p class="nw-sous">Les masses sont les valeurs conventionnelles de l’IUPAC. '
+        + 'Au-delà du bismuth (Z = 83), ce n’est plus une moyenne isotopique mais le '
+        + '<b>nombre de masse de l’isotope le plus stable</b> : c’est pour cela que '
+        + 'la suite des masses n’y est plus croissante.</p>';
     },
-    elements: {
-      nom: "Eléments", icone: "⚛",
-      quoi: "Le tableau périodique : 118 éléments, leur masse, leur numéro, "
-          + "leur famille, leur état, et la fiche de chacun.",
-      pourquoi: "C'est surtout de la donnée à rassembler et à vérifier — 118 "
-          + "éléments et huit propriétés chacun. Rien de difficile, mais "
-          + "rien qui s'invente : une masse atomique fausse est pire "
-          + "qu'absente.",
-      enAttendant: "Les quatorze constantes physiques sont déjà dans la boîte "
-          + "à outils, avec le souligné : _c, _e, _Na, _h…",
-      lien: null,
+    apres() {
+      $$("[data-el]", page).forEach((b) => b.addEventListener("click", () => {
+        ETAT.elements.z = Number(b.dataset.el); garder(); redessiner();
+      }));
+      $$("[data-elcol]", page).forEach((b) => b.addEventListener("click", () => {
+        ETAT.elements.colorer = b.dataset.elcol; garder(); redessiner();
+      }));
     },
   };
+
+
+  /* ═══════════════ 3 bis. Python ═════════════════════════════════════
+     Un interprète du Python DU COURS, écrit à la main (« python-mini.js »).
+     Pourquoi pas le vrai : le porter demanderait MicroPython ou Pyodide en
+     WebAssembly, dix à trente mégaoctets. L'atelier C les paie parce qu'un
+     TP de C se compile ou ne se compile pas. Un TP de Python de première
+     année, lui, tient dans un sous-ensemble — et ce sous-ensemble est
+     ANNONCÉ, pas espéré : ce qui manque est écrit sous l'éditeur.
+
+     Le banc ne compare pas l'interprète à lui-même : il exécute quinze
+     programmes avec le VRAI python3 et compare les sorties caractère pour
+     caractère, plus douze refus qui doivent refuser. */
+  APPS.python = {
+    nom: "Python", icone: "py",
+    chapitre: ["07-python", "Python"],
+    html() {
+      const P = ETAT.python;
+      if (typeof PYMINI === "undefined") {
+        return '<p class="nw-vide">L’interprète Python n’a pas été chargé.</p>';
+      }
+      const sortie = P.sortie || [];
+      const err = P.erreur;
+      return '<div class="nw-rangee">'
+        + '<button type="button" class="nw-bouton nw-bouton-fort" id="nw-py-run">'
+        + '▶ Exécuter</button>'
+        + '<button type="button" class="nw-bouton" id="nw-py-effacer">Effacer la console</button>'
+        + '<button type="button" class="nw-bouton" id="nw-py-exemple">Un exemple</button>'
+        + '</div>'
+        + '<label class="nw-sous" for="nw-py-src">script.py</label>'
+        + '<textarea id="nw-py-src" class="nw-py-editeur" spellcheck="false" '
+        + 'autocapitalize="off" autocorrect="off" rows="12">' + ech(P.source) + '</textarea>'
+        + '<label class="nw-sous" for="nw-py-entree">entrées de input(), une par ligne</label>'
+        + '<textarea id="nw-py-entree" class="nw-py-entree" spellcheck="false" rows="2">'
+        + ech(P.entree) + '</textarea>'
+        + '<p class="nw-sous">console</p>'
+        + '<pre class="nw-py-console">' + (sortie.length ? ech(sortie.join("\n")) : "")
+        + (err ? (sortie.length ? "\n" : "")
+                 + '<span class="nw-py-err">Erreur'
+                 + (err.ligne ? " ligne " + err.ligne : "") + " — " + ech(err.message)
+                 + '</span>' : "")
+        + (!sortie.length && !err ? '<span class="nw-py-vide">rien pour l’instant</span>' : "")
+        + '</pre>'
+        + '<details class="nw-py-limites"><summary>Ce que cet interprète ne fait pas</summary>'
+        + '<dl class="nw-valeurs">'
+        + PYMINI.MANQUES.map((m) => '<dt>' + ech(m[0]) + '</dt><dd>' + ech(m[1]) + '</dd>').join("")
+        + '</dl>'
+        + '<p class="nw-sous">Un programme qui emploie l’une de ces constructions reçoit '
+        + 'une phrase qui la nomme — jamais un résultat faux. Le reste du Python de '
+        + 'première année est là : variables, calcul, chaînes, listes, conditions, '
+        + 'boucles, fonctions, et la récursivité.</p></details>';
+    },
+    apres() {
+      const src = $("#nw-py-src", page), ent = $("#nw-py-entree", page);
+      if (src) src.addEventListener("change", () => { ETAT.python.source = src.value; garder(); });
+      if (ent) ent.addEventListener("change", () => { ETAT.python.entree = ent.value; garder(); });
+      const run = $("#nw-py-run", page);
+      if (run) run.addEventListener("click", () => {
+        ETAT.python.source = src ? src.value : ETAT.python.source;
+        ETAT.python.entree = ent ? ent.value : ETAT.python.entree;
+        const entrees = ETAT.python.entree.split("\n").filter((x, k, t) =>
+          x !== "" || k < t.length - 1);
+        const r = PYMINI.executer(ETAT.python.source, { entree: entrees });
+        ETAT.python.sortie = r.sortie;
+        ETAT.python.erreur = r.ok ? null : r.erreur;
+        garder(); redessiner();
+        dire(r.ok ? "Programme terminé." : "Le programme s'est arrêté.",
+             r.ok ? "e-ok" : "e-erreur");
+      });
+      const eff = $("#nw-py-effacer", page);
+      if (eff) eff.addEventListener("click", () => {
+        ETAT.python.sortie = []; ETAT.python.erreur = null; garder(); redessiner();
+      });
+      const ex = $("#nw-py-exemple", page);
+      if (ex) ex.addEventListener("click", () => {
+        ETAT.python.source = PY_EXEMPLE;
+        ETAT.python.sortie = []; ETAT.python.erreur = null;
+        garder(); redessiner();
+      });
+    },
+  };
+  const PY_EXEMPLE = "# Moyenne d'une serie de notes\n"
+    + "notes = [12, 15, 8, 17, 11]\n\n"
+    + "total = 0\n"
+    + "for n in notes:\n"
+    + "    total += n\n\n"
+    + "moyenne = total / len(notes)\n"
+    + "print(\"Notes   :\", notes)\n"
+    + "print(\"Moyenne :\", round(moyenne, 2))\n\n"
+    + "admis = 0\n"
+    + "for n in notes:\n"
+    + "    if n >= 10:\n"
+    + "        admis += 1\n\n"
+    + "print(\"Admis   :\", admis, \"sur\", len(notes))\n";
+
+  /* Plus aucune application « à venir » : les douze sont écrites. Le
+     mécanisme reste, parce qu'il servira à la suivante — et parce qu'un
+     écran qui dit « pas encore » vaut toujours mieux qu'un bouton muet. */
+  const A_VENIR = {};
 
   for (const cle of Object.keys(A_VENIR)) {
     const d = A_VENIR[cle];
