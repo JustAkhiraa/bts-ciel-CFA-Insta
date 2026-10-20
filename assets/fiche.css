@@ -8079,6 +8079,292 @@ html[data-sombre="1"] [data-cat="reprendre"] { --cat:#7FCFBC; }
 }
 html[data-sombre="1"] { --lan-lavis: 11%; }
 
+/* =====================================================================
+   LE KIT « LANCEUR » — étape 2 : les pièces.
+   UNE fenêtre, et tout vit dedans : la recherche en haut, les listes au
+   milieu, la barre d'actions en bas. Le planning n'est plus une boîte
+   posée À CÔTÉ du titre — c'est une colonne de la même fenêtre,
+   séparée par un filet d'un pixel. Toute la différence entre « posé à
+   côté » et « intégré » tient là.
+   ===================================================================== */
+
+/* La lumière vient de DERRIÈRE l'objet, pas d'à côté : floutée, dessous,
+   débordant un peu. C'est elle qui pose la fenêtre dans la page au lieu
+   de l'y coller. */
+.lan-scene { display: grid; align-content: center;
+  min-height: calc(100svh - 150px);
+  width: min(1120px, 100% - 2rem); margin-inline: auto;
+  padding: 1.2rem 0 1rem; }
+.lan-dedans { position: relative; }
+.lan-lueur { position: absolute; z-index: 0; pointer-events: none;
+  inset: 4% 6% 22%; filter: blur(44px); opacity: var(--lan-op, .75);
+  background:
+    radial-gradient(at 28% 42%, color-mix(in srgb, var(--accent) var(--lan-g1), transparent), transparent 72%),
+    radial-gradient(at 74% 30%, color-mix(in srgb, var(--violet) var(--lan-g2), transparent), transparent 70%),
+    radial-gradient(at 55% 86%, color-mix(in srgb, var(--ambre)  var(--lan-g3), transparent), transparent 74%); }
+:root { --lan-g1: 30%; --lan-g2: 20%; --lan-g3: 16%; --lan-op: .75; }
+html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1; }
+[data-anim="0"] .lan-lueur { opacity: .4; }
+
+.lan-tete { position: relative; z-index: 1; text-align: center; margin-bottom: .9rem; }
+.lan-tete h1 { margin: 0; font-size: clamp(1.5rem, 2.6vw, 2.05rem);
+  line-height: 1.1; letter-spacing: -.018em; color: var(--encre-forte); }
+
+/* ── Le matériau ──────────────────────────────────────────────────────
+   Un fond presque opaque, un grand rayon, une ombre profonde — et un
+   ::after qui peint DEUX traits à l'intérieur : un filet sur tout le
+   tour, et un demi-pixel plus clair sur le bord HAUT. C'est ce
+   demi-pixel qui fait qu'une boîte devient un objet qui accroche la
+   lumière, et pas une zone de couleur. */
+.lan-fen { position: relative; z-index: 1; isolation: isolate;
+  border-radius: 22px; overflow: hidden;
+  background: linear-gradient(
+      color-mix(in srgb, var(--carte) 96%, transparent),
+      color-mix(in srgb, var(--carte) 99%, transparent));
+  backdrop-filter: blur(30px) saturate(1.2);
+  box-shadow:
+    0 16px 48px 8px color-mix(in srgb, var(--encre) 16%, transparent),
+    0 4px 10px      color-mix(in srgb, var(--encre) 10%, transparent); }
+.lan-fen::after { content: ""; position: absolute; inset: 0; z-index: 10;
+  border-radius: inherit; pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px var(--lan-filet),
+    inset 0 .5px 0 color-mix(in srgb, #fff 26%, transparent); }
+
+/* La recherche garde sa mécanique — c'est le vrai moteur du site, avec
+   son index et sa liste de résultats. Seule la robe change. */
+.lan-rech { max-width: none; margin: .6rem .6rem 0; }
+.lan-rech input { padding: .66rem 1rem .66rem 2.6rem; border: 0;
+  background: var(--lan-creux); box-shadow: none; border-radius: 16px; }
+.lan-rech input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+.lan-rech svg { left: .9rem; }
+.lan-sep { height: 1px; margin-top: .6rem; background: var(--lan-filet); }
+
+.lan-corps { display: grid; grid-template-columns: minmax(0,1.22fr) minmax(300px,1fr); }
+.lan-col { padding: .6rem; min-width: 0; }
+.lan-col + .lan-col { border-left: 1px solid var(--lan-filet); }
+
+/* ── Le bloc de catégorie ─────────────────────────────────────────────
+   Un lavis très transparent par groupe : assez pour que l'œil voie une
+   BANDE, trop peu pour concurrencer les pastilles de matière.
+   La règle qui évite la bouillie : petit et saturé = une matière ;
+   large et pâle = une catégorie. Deux rôles, deux échelles. */
+.lan-groupe { border-radius: 14px; margin-bottom: .3rem; padding: .1rem .25rem .25rem;
+  background: color-mix(in srgb, var(--cat, var(--encre)) var(--lan-lavis), transparent); }
+.lan-gtitre { display: flex; align-items: baseline; gap: .5rem;
+  padding: .35rem .5rem .25rem; font-size: .6364rem; font-weight: 800;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--cat, var(--encre-tenue)) 70%, var(--encre-douce)); }
+.lan-gtitre b, .lan-gtitre a { margin-left: auto; font-weight: 600; letter-spacing: .02em;
+  text-transform: none; font-size: .7273rem; text-decoration: none;
+  color: color-mix(in srgb, var(--cat, var(--accent)) 78%, var(--encre)); }
+.lan-gtitre a:hover { text-decoration: underline; }
+
+/* ── La ligne ─────────────────────────────────────────────────────────
+   L'heure et le nom se lisent d'un coup ; la fin du cours et la salle
+   descendent sur une seconde ligne, en retrait. Le reste attend qu'on
+   le cherche. */
+.lan-liste { list-style: none; margin: 0; padding: 0; }
+.lan-ligne { position: relative; display: flex; align-items: center; gap: .6rem;
+  padding: .36rem .6rem; border-radius: 10px; text-decoration: none;
+  color: inherit; cursor: pointer; }
+.lan-ligne:hover { background: color-mix(in srgb, var(--encre) 7%, var(--carte)); }
+.lan-ligne[data-choisi] { background: color-mix(in srgb, var(--encre) 10%, var(--carte)); }
+.lan-ligne[data-choisi] .lan-entree { opacity: 1; }
+
+.lan-ic { flex: none; width: 28px; height: 28px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--mat) 20%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat) 42%, transparent);
+  color: var(--mat-t); }
+.lan-ic .ico { width: 16px; height: 16px; }
+
+.lan-bloc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
+.lan-l1 { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.lan-h { flex: none; font-family: var(--mono); font-size: .8485rem; font-weight: 700;
+  color: var(--encre); font-variant-numeric: tabular-nums; }
+/* Le nom est intouchable, la glose est sacrifiable. Sur les six thèmes à
+   chasse fixe le texte est ~20 % plus large : sans cette règle, c'est le
+   NOM qui perdait des lettres. On choisit ce qu'on sacrifie. */
+.lan-nom { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: .35rem;
+  font-size: .8788rem; color: var(--encre); }
+.lan-nom > .lan-t { flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lan-nom > i { flex: 0 9999 auto; min-width: 0; font-style: normal;
+  color: var(--encre-tenue);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* --encre-tenue sur --carte mesure ~3,9:1 — sous le seuil pour du petit
+   texte. La seconde ligne est en --encre-douce (~6:1). */
+.lan-l2 { display: flex; align-items: center; gap: .4rem; min-width: 0;
+  font-size: .7576rem; color: var(--encre-douce);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lan-l2 .lan-fin { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.lan-l2 .lan-salle { color: var(--encre); font-weight: 700; }
+
+/* Le cours en cours : une barre d'avancement de 2 px au bas de la ligne.
+   Elle ne coûte pas une rangée de plus, et c'est la seule chose de la
+   colonne qui bouge — donc l'œil y va. */
+.lan-ligne.lan-maintenant { background: color-mix(in srgb, var(--mat) 10%, transparent); }
+.lan-ligne.lan-maintenant::after { content: ""; position: absolute;
+  left: .6rem; right: .6rem; bottom: 3px; height: 2px; border-radius: 2px;
+  background: linear-gradient(to right,
+      var(--mat) 0 var(--av, 0%),
+      color-mix(in srgb, var(--mat) 22%, transparent) var(--av, 0%) 100%); }
+.lan-ligne.lan-maintenant .lan-t { font-weight: 650; color: var(--encre-forte); }
+.lan-ligne.lan-passe { opacity: .55; }
+
+.lan-pause { display: flex; align-items: center; gap: .6rem;
+  padding: .2rem .6rem .2rem 2.9rem; font-size: .7273rem; color: var(--encre-tenue); }
+.lan-pause::after { content: ""; flex: 1; height: 1px; background: var(--lan-filet); }
+
+/* Les badges. Une largeur plancher commune : sans elle, « 0/7 » faisait
+   33 px et « 14/19 » 47, et les anneaux qui les précèdent se posaient à
+   cinq abscisses différentes. */
+.lan-cpt { flex: none; min-width: 3.25rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: .05rem .45rem; border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 9%, transparent);
+  color: var(--encre-douce); font-size: .6667rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; }
+.lan-cpt.lan-urgent { background: color-mix(in srgb, var(--rouge) 16%, transparent); color: var(--rouge); }
+.lan-cpt.lan-calme  { background: color-mix(in srgb, var(--ambre) 20%, transparent); color: var(--ambre-sombre); }
+.lan-cpt.lan-vif    { background: color-mix(in srgb, var(--mat) 20%, transparent); color: var(--mat-t); }
+
+.lan-anneau { position: relative; flex: none; width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(var(--mat) calc(var(--p,0) * 1%),
+              color-mix(in srgb, var(--mat) 20%, transparent) 0); }
+.lan-anneau::after { content: ""; position: absolute; inset: 2.5px;
+  border-radius: 50%; background: var(--carte); }
+.lan-entree { flex: none; opacity: 0; font-family: var(--mono); font-size: .7273rem;
+  color: var(--encre-tenue); transition: opacity .12s; }
+
+/* ── Les pastilles d'outils ───────────────────────────────────────────
+   Mesuré en OKLab : un lavis à 13 % ne laisse que 2 à 3 de chroma sur
+   ~30, et deux matières tombent à ΔE 2 l'une de l'autre — sous le seuil
+   du perceptible. Diluer une couleur, c'est la tuer. Elle vit donc sur
+   le LIBELLÉ et le FILET, à pleine force : ΔE 13,5. */
+.lan-outils { display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .3rem; padding: .15rem .6rem .3rem; }
+.lan-oc { display: flex; align-items: center; gap: .33rem; min-width: 0;
+  padding: .3rem .5rem; border-radius: 9px;
+  background: color-mix(in srgb, var(--mat) 16%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat) 34%, transparent);
+  color: var(--mat-t); font-size: .7576rem; font-weight: 650;
+  text-decoration: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  transition: background .14s, border-color .14s; }
+.lan-oc:hover { background: color-mix(in srgb, var(--mat) 28%, var(--carte));
+  border-color: color-mix(in srgb, var(--mat) 62%, transparent); }
+.lan-oc .ico { flex: none; width: 15px; height: 15px; opacity: .92; }
+
+.lan-rien { display: none; padding: 1.6rem .6rem; text-align: center;
+  color: var(--encre-tenue); font-size: .8788rem; }
+.lan-rien b { display: block; color: var(--encre); font-size: .9697rem; margin-bottom: .2rem; }
+
+/* ── La barre d'actions ───────────────────────────────────────────── */
+.lan-actions { display: flex; align-items: center; gap: .9rem;
+  padding: .45rem .75rem; border-top: 1px solid var(--lan-filet);
+  background: var(--lan-creux); }
+.lan-comptes { display: flex; gap: .9rem; flex: 1; min-width: 0;
+  font-size: .7576rem; color: var(--encre-tenue); }
+.lan-comptes b { color: var(--encre); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lan-act { display: inline-flex; align-items: center; gap: .4rem; flex: none;
+  font-size: .7576rem; font-weight: 600; color: var(--encre-douce); }
+.lan-k { display: grid; place-items: center; min-width: 20px; height: 20px;
+  padding: 0 5px; border-radius: 6px;
+  background: color-mix(in srgb, var(--encre) 11%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--encre) 10%, transparent);
+  font-family: var(--mono); font-size: .7273rem; font-weight: 700;
+  color: var(--encre-douce); }
+
+/* ── Tenir dans l'écran ───────────────────────────────────────────────
+   La place se prend sur le décor, jamais sur le contenu ni sur la
+   taille des cibles. */
+@media (max-height: 880px) and (min-width: 1000px) {
+  .lan-scene { padding-block: .8rem .6rem; }
+  .lan-ligne { padding: .3rem .6rem; }
+}
+@media (max-height: 760px) and (min-width: 1000px) {
+  .lan-scene { padding-block: .5rem .4rem; }
+  .lan-tete h1 { font-size: clamp(1.3rem, 2.1vw, 1.6rem); }
+  .lan-ligne { padding: .26rem .6rem; }
+  .lan-gtitre { padding: .3rem .6rem .2rem; }
+  /* Le planning se remet sur UNE ligne : heure, nom, fin et numéro de
+     salle restent ; seul « salle de droite » part, parce que le code
+     suffit à trouver la porte. On perd du confort, pas une information
+     dont on a besoin sur place. */
+  .lan-bloc { flex-direction: row; align-items: baseline; gap: .5rem; }
+  .lan-l2 { flex: none; }
+  .lan-ou { display: none; }
+  .lan-pause { display: none; }
+}
+@media (max-width: 920px) {
+  .lan-corps { grid-template-columns: 1fr; }
+  .lan-col + .lan-col { border-left: 0; border-top: 1px solid var(--lan-filet); }
+}
+@media (max-width: 760px) { .lan-outils { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 520px) {
+  .lan-actions { flex-wrap: wrap; }
+  .lan-comptes { flex-basis: 100%; }
+  .lan-nom > i { display: none; }
+}
+/* Mesuré au doigt : 9 lignes sur 12 faisaient moins de 44 px. La bonne
+   condition n'est pas la largeur de l'écran mais le genre de pointeur. */
+@media (pointer: coarse) {
+  .lan-ligne { min-height: 44px; }
+  .lan-oc { min-height: 44px; }
+}
+/* « hidden » vaut display:none, mais c'est une règle du navigateur, de
+   spécificité (0,0,1) : « .lan-oc{display:flex} » la bat. Mesuré : les
+   huit pastilles restaient affichées quoi qu'on tape. */
+.lan-oc[hidden], .lan-outils[hidden], .lan-liste[hidden],
+.lan-gtitre[hidden], .lan-groupe[hidden], .lan-liste li[hidden] { display: none; }
+
+/* La scène ne doit pas gonfler la page : sa hauteur plancher servait à
+   centrer la fenêtre quand elle est petite, mais elle ajoutait 88 px de
+   vide quand elle ne l'est pas. Et le pied de page coûtait 235 px avec
+   sa marge — de quoi faire défiler une page qu'on venait de faire tenir.
+   Sur l'accueil seulement, il se resserre : il dit la même chose, plus
+   bas. */
+.lan-scene { min-height: calc(100svh - 300px); }
+body:has(.lan-scene) .app-pied {
+  margin-top: 1.1rem; padding: .9rem 1rem 1.1rem; font-size: .7879rem;
+}
+body:has(.lan-scene) .app-pied p { margin: .2rem 0; }
+body:has(.lan-scene) .app-pied .liens { margin-top: .5rem; }
+
+/* =====================================================================
+   SUR L'ACCUEIL, LA FENÊTRE FLOTTE SEULE
+   Demandé : « c'était trop bien sans menu, sans footer, sans nav ».
+   C'est faisable sans rien perdre, parce que le menu disait déjà ce que
+   la fenêtre dit : Planning, Devoirs et Outils sont dedans, et
+   « Accueil » est la page elle-même. Ne restent que les trois boutons
+   qu'on ne trouve nulle part ailleurs — le thème, les réglages et le
+   village — posés en haut à droite, sans barre autour.
+
+   Le pied : la phrase « aucun document original n'est redistribué »
+   reste sur les 263 autres pages et sur « À propos ». Ici il ne demeure
+   que les trois liens, en tout petit. Une page d'accueil n'a pas à se
+   justifier deux fois.
+   ===================================================================== */
+body:has(.lan-scene) .app-tete {
+  background: none; border: 0; box-shadow: none; backdrop-filter: none;
+}
+/* Le bouton du village est un <a>, pas un <button> : une règle qui
+   visait « nav > a » l'emportait avec les quatre liens. Mesuré sur la
+   page, pas deviné — il avait disparu. On nomme donc ce qu'on retire,
+   pas ce qui lui ressemble. */
+body:has(.lan-scene) .app-marque,
+body:has(.lan-scene) .app-tete nav > a:not([href*="monde/"]) { display: none; }
+body:has(.lan-scene) .app-tete nav { margin-left: auto; }
+
+body:has(.lan-scene) .app-pied {
+  margin-top: .4rem; padding: 0 1rem 1rem; border: 0; background: none;
+}
+body:has(.lan-scene) .app-pied p:not(.liens) { display: none; }
+body:has(.lan-scene) .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
+body:has(.lan-scene) .app-pied .liens a { color: var(--encre-tenue); }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en

@@ -1469,7 +1469,42 @@
     var r = (S.recents || []).filter(function (x) { return x && x.u !== url; });
     r.unshift({ t: titre, u: url, m: document.body.dataset.matiere || "" });
     S.recents = r.slice(0, 6);
+
+    /* « Ouvert », pour l'anneau d'avancement de l'accueil, veut dire : on a
+       ouvert une des pages de ce chapitre. C'est la définition la plus
+       honnête — c'est ce que le navigateur sait vraiment. Mesurer si la
+       fiche a été LUE jusqu'au bout demanderait de pister le défilement,
+       ce qui ment dès qu'on imprime ou qu'on survole.
+       La pile « recents » ne peut pas servir : elle s'arrête à six. */
+    S.vus = S.vus || {};
+    S.vus[url.replace(/\/[^\/]+$/, "")] = 1;
     enregistrer();
+  }
+
+  /* L'anneau par matière : combien de ses chapitres ont été ouverts.
+     C'est la seule chose qu'un accueil de logiciel ne peut pas nous
+     apprendre — il ne sait rien de celui qui le lit. Le nôtre, si. */
+  var FLECHE_REPRISE =
+    '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 18.5V13h5.5"/></svg>';
+
+  function anneaux() {
+    var lignes = document.querySelectorAll(".lan-ligne[data-pole]");
+    if (!lignes.length) return;
+    var vus = Object.keys(S.vus || {});
+    for (var i = 0; i < lignes.length; i++) {
+      var l = lignes[i], pole = l.dataset.pole, total = +l.dataset.ch || 0;
+      var n = 0;
+      for (var k = 0; k < vus.length; k++) {
+        if (vus[k].indexOf("/" + pole + "/") > -1) n++;
+      }
+      if (n > total) n = total;
+      var a = l.querySelector(".lan-anneau"), c = l.querySelector(".lan-cpt");
+      if (a) a.style.setProperty("--p", total ? Math.round(n / total * 100) : 0);
+      if (c) c.textContent = n ? n + "/" + total : total + " ch.";
+      if (n) l.title = n + " chapitre" + (n > 1 ? "s" : "") + " sur " + total + " ouvert" + (n > 1 ? "s" : "");
+    }
   }
 
   function proposerReprise() {
@@ -1484,18 +1519,26 @@
     }
     if (!r.length) return;
 
-    var prem = r[0], autres = r.slice(1);
-    var html = '<a class="carte-matiere reprise" href="' + prem.u +
-      '"><span class="ic">↩</span><h2>Reprendre</h2><p>' + echapper(prem.t) + "</p></a>";
-
-    if (autres.length) {
-      html += '<div class="recents"><h3>Vu récemment</h3><ul>' +
-        autres.map(function (x) {
-          return '<li' + (x.m ? ' data-matiere="' + x.m + '"' : "") + '>' +
-                 '<a href="' + x.u + '">' + echapper(x.t) + "</a></li>";
-        }).join("") + "</ul></div>";
+    /* Trois au plus : l'accueil doit tenir dans l'écran, et au-delà de
+       trois on ne « reprend » plus, on cherche. */
+    var liste = zone.querySelector(".lan-liste");
+    if (!liste) {                       /* l'ancienne mise en page, au cas où */
+      zone.innerHTML = '<a class="carte-matiere reprise" href="' + r[0].u +
+        '"><span class="ic">↩</span><h2>Reprendre</h2><p>' +
+        echapper(r[0].t) + "</p></a>";
+      return;
     }
-    zone.innerHTML = html;
+    liste.innerHTML = r.slice(0, 3).map(function (x, i) {
+      return '<li><a class="lan-ligne" href="' + x.u + '"' +
+        (x.m ? ' data-mat="' + x.m + '"' : "") + '>' +
+        '<span class="lan-ic">' + FLECHE_REPRISE + "</span>" +
+        '<span class="lan-bloc"><span class="lan-l1"><span class="lan-nom">' +
+        '<span class="lan-t">' + echapper(x.t) + "</span>" +
+        (i ? '<i>— vu récemment</i>' : "") +
+        "</span></span></span>" +
+        '<span class="lan-entree">&#9166;</span></a></li>';
+    }).join("");
+    zone.hidden = false;
   }
 
   /* ────────────────────────────────────────────────── fiche au hasard */
@@ -1574,6 +1617,7 @@
     reponses();
     memoriser();
     proposerReprise();
+    anneaux();
     brancherHasard();
     raccourcis();
     apparitions();
