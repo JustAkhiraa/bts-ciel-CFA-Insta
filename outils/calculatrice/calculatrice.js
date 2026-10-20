@@ -94,6 +94,19 @@
       n: "60", tauxN: "5", pv: "10000", pmt: "", fv: "0",
       parAn: "12", composition: "12", quand: "fin",
     },
+    /* Inférence. Deux familles, comme sur la machine : estimer (intervalle
+       de confiance) et décider (test d'hypothèse). Et deux grandeurs : une
+       moyenne, une proportion — ce sont celles des sujets de BTS. */
+    inference: {
+      famille: "intervalle", grandeur: "moyenne",
+      /* moyenne */
+      xbar: "12.4", sigma: "2.1", sEch: "2.3", nEch: "40", sigmaConnu: false,
+      mu0: "12", 
+      /* proportion */
+      f: "0.42", nProp: "250", p0: "0.5",
+      /* commun */
+      niveau: "0.95", cote: "bilateral", alpha: "0.05",
+    },
     /* La vue graphique des Suites, avec la MÊME barre que le Grapheur et les
        Régressions : « Auto », « Axes », « Naviguer », et un quatrième bouton
        propre à l'application. Le contrôleur partagé d'Epsilon n'en déclare
@@ -2889,6 +2902,206 @@
      qu'on peut utiliser en attendant. Une application annoncée qui
      n'explique rien ferait perdre deux minutes à chaque fois qu'on
      l'ouvre par curiosité. */
+
+  /* ═══════════════ 12. Inférence ═════════════════════════════════════
+     Deux familles, et c'est la division de la machine : ESTIMER — donner
+     un intervalle de confiance — et DÉCIDER — conduire un test. Deux
+     grandeurs : une moyenne, une proportion.
+
+     Trois choix de fond, et chacun évite une faute de cours :
+
+     · σ CONNU ou non. Avec σ, c'est la loi normale ; sans lui, on estime
+       par s et c'est Student à n−1 degrés. Les deux donnent presque la
+       même chose à n = 200 et pas du tout à n = 8 — c'est précisément ce
+       qu'un sujet veut faire remarquer.
+     · Les CONDITIONS sont vérifiées et affichées. Un intervalle de
+       proportion n'a de sens que si n ⩾ 30, nf ⩾ 5 et n(1−f) ⩾ 5 ; le
+       dire après coup serait laisser lire un chiffre qui ne vaut rien.
+     · La conclusion est écrite EN TOUTES LETTRES, avec le risque. « On
+       rejette H₀ au seuil de 5 % » est la phrase attendue sur la copie ;
+       un p plus petit que α ne l'est pas. */
+  APPS.inference = {
+    nom: "Inférence", icone: "x̄±",
+    chapitre: ["10-loi-normale", "Loi normale"],
+    html() {
+      const I = ETAT.inference;
+      const seg = (cle, valeurs) => valeurs.map(([v, t]) =>
+        '<button type="button" class="nw-bouton" data-inf="' + cle + ':' + v + '"'
+        + (String(I[cle]) === String(v) ? ' aria-pressed="true"' : '') + '>'
+        + ech(t) + '</button>').join("");
+      const champ = (cle, lib) => '<label for="nw-i-' + cle + '">' + lib
+        + '</label><input type="text" class="nw-petit nw-court" id="nw-i-' + cle
+        + '" data-ival="' + cle + '" value="' + ech(I[cle]) + '">';
+      const nb = (cle) => { const v = nombreSaisi(I[cle]); return v === null ? NaN : v; };
+
+      const tetes = '<div class="nw-onglets">'
+        + [["intervalle", "Intervalle de confiance"], ["test", "Test d’hypothèse"]]
+          .map(([v, t]) => '<button type="button" class="nw-onglet" data-inf="famille:' + v
+            + '" aria-selected="' + (I.famille === v) + '">' + t + '</button>').join("")
+        + '</div>'
+        + '<div class="nw-rangee"><label>grandeur</label>'
+        + seg("grandeur", [["moyenne", "une moyenne"], ["proportion", "une proportion"]])
+        + '</div>';
+
+      const n = I.grandeur === "moyenne" ? nb("nEch") : nb("nProp");
+      let saisie = "", bloc = "", conditions = "";
+
+      if (I.grandeur === "moyenne") {
+        saisie = '<div class="nw-rangee">' + champ("xbar", "x̄") + champ("nEch", "n")
+          + '</div><div class="nw-rangee"><label>écart type</label>'
+          + seg("sigmaConnu", [[false, "s de l’échantillon"], [true, "σ connu"]])
+          + (I.sigmaConnu ? champ("sigma", "σ") : champ("sEch", "s")) + '</div>';
+      } else {
+        saisie = '<div class="nw-rangee">' + champ("f", "fréquence f")
+          + champ("nProp", "n") + '</div>';
+        const f = nb("f");
+        if (Number.isFinite(f) && Number.isFinite(n)) {
+          const c1 = n >= 30, c2 = n * f >= 5, c3 = n * (1 - f) >= 5;
+          conditions = '<dl class="nw-valeurs">'
+            + '<dt>n ⩾ 30</dt><dd>' + (c1 ? "oui — " : "NON — ") + ech(fmt(n)) + '</dd>'
+            + '<dt>n·f ⩾ 5</dt><dd>' + (c2 ? "oui — " : "NON — ") + ech(fmt(n * f)) + '</dd>'
+            + '<dt>n(1−f) ⩾ 5</dt><dd>' + (c3 ? "oui — " : "NON — ")
+            + ech(fmt(n * (1 - f))) + '</dd></dl>'
+            + (c1 && c2 && c3 ? ""
+               : '<p class="nw-sous"><b>Une condition n’est pas remplie.</b> '
+                 + 'L’approximation normale ne tient plus : le résultat ci-dessous est '
+                 + 'affiché, mais il ne vaut pas comme réponse. Un sujet attend qu’on le '
+                 + 'dise.</p>');
+        }
+      }
+
+      if (I.famille === "intervalle") {
+        const niv = nb("niveau");
+        saisie += '<div class="nw-rangee">' + champ("niveau", "niveau de confiance")
+          + '</div>';
+        if (!(niv > 0 && niv < 1)) {
+          bloc = '<p class="nw-erreur">Le niveau de confiance est entre 0 et 1 — 0,95 pour 95 %.</p>';
+        } else if (!Number.isFinite(n) || n < 2) {
+          bloc = '<p class="nw-erreur">Il faut un effectif n d’au moins 2.</p>';
+        } else if (I.grandeur === "moyenne") {
+          const xbar = nb("xbar");
+          const ec = I.sigmaConnu ? nb("sigma") : nb("sEch");
+          if (!Number.isFinite(xbar) || !(ec > 0)) {
+            bloc = '<p class="nw-erreur">x̄ et l’écart type doivent être des nombres, '
+                 + 'l’écart type strictement positif.</p>';
+          } else {
+            const q = (1 + niv) / 2;
+            const t = I.sigmaConnu
+              ? CALC.LOIS.invNormale(q, 0, 1)
+              : dicho((x) => CALC.LOIS.studentCdf(x, n - 1), q, -200, 200);
+            const marge = t * ec / Math.sqrt(n);
+            bloc = '<dl class="nw-valeurs">'
+              + '<dt>' + (I.sigmaConnu ? "quantile z" : "quantile t à " + fmt(n - 1) + " degrés")
+              + '</dt><dd>' + ech(fmt(t)) + '</dd>'
+              + '<dt>erreur type</dt><dd>' + ech(fmt(ec / Math.sqrt(n))) + '</dd>'
+              + '<dt>marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
+              + '<dt>intervalle</dt><dd>[ ' + ech(fmt(xbar - marge)) + ' ; '
+              + ech(fmt(xbar + marge)) + ' ]</dd></dl>'
+              + '<p class="nw-sous">À retenir pour la copie : « au niveau de confiance '
+              + ech(fmt(niv * 100)) + ' %, la moyenne de la population appartient à cet '
+              + 'intervalle ». Ce n’est pas « il y a ' + ech(fmt(niv * 100)) + ' % de '
+              + 'chances que μ y soit » : μ est fixe, c’est l’intervalle qui varie '
+              + 'd’un échantillon à l’autre.</p>';
+          }
+        } else {
+          const f = nb("f");
+          if (!(f >= 0 && f <= 1)) {
+            bloc = '<p class="nw-erreur">La fréquence f est entre 0 et 1.</p>';
+          } else {
+            const z = CALC.LOIS.invNormale((1 + niv) / 2, 0, 1);
+            const marge = z * Math.sqrt(f * (1 - f) / n);
+            const simple = 1 / Math.sqrt(n);
+            bloc = '<dl class="nw-valeurs">'
+              + '<dt>quantile z</dt><dd>' + ech(fmt(z)) + '</dd>'
+              + '<dt>marge d’erreur</dt><dd>± ' + ech(fmt(marge)) + '</dd>'
+              + '<dt>intervalle</dt><dd>[ ' + ech(fmt(Math.max(0, f - marge))) + ' ; '
+              + ech(fmt(Math.min(1, f + marge))) + ' ]</dd>'
+              + '<dt>intervalle simplifié f ± 1/√n</dt><dd>[ '
+              + ech(fmt(Math.max(0, f - simple))) + ' ; '
+              + ech(fmt(Math.min(1, f + simple))) + ' ]</dd></dl>'
+              + '<p class="nw-sous">Le second est celui du lycée : il ne dépend que de n, '
+              + 'il est toujours plus large, et il vaut pour un niveau d’au moins 95 %. '
+              + 'Les deux sont donnés parce que les deux sont demandés selon le sujet.</p>';
+          }
+        }
+      } else {
+        const alpha = nb("alpha");
+        saisie += '<div class="nw-rangee">'
+          + champ(I.grandeur === "moyenne" ? "mu0" : "p0",
+                  I.grandeur === "moyenne" ? "μ₀ de H₀" : "p₀ de H₀")
+          + champ("alpha", "risque α") + '</div>'
+          + '<div class="nw-rangee"><label>hypothèse H₁</label>'
+          + seg("cote", [["bilateral", "≠"], ["gauche", "<"], ["droite", ">"]]) + '</div>';
+        if (!(alpha > 0 && alpha < 1)) {
+          bloc = '<p class="nw-erreur">Le risque α est entre 0 et 1 — 0,05 pour 5 %.</p>';
+        } else if (!Number.isFinite(n) || n < 2) {
+          bloc = '<p class="nw-erreur">Il faut un effectif n d’au moins 2.</p>';
+        } else {
+          let stat = NaN, loiNom = "", cdf = null, h0 = "", obs = "";
+          if (I.grandeur === "moyenne") {
+            const xbar = nb("xbar"), mu0 = nb("mu0");
+            const ec = I.sigmaConnu ? nb("sigma") : nb("sEch");
+            if (Number.isFinite(xbar) && Number.isFinite(mu0) && ec > 0) {
+              stat = (xbar - mu0) / (ec / Math.sqrt(n));
+              if (I.sigmaConnu) { loiNom = "z"; cdf = (x) => CALC.LOIS.normaleCdf(x, 0, 1); }
+              else { loiNom = "t à " + fmt(n - 1) + " degrés";
+                     cdf = (x) => CALC.LOIS.studentCdf(x, n - 1); }
+              h0 = "μ = " + fmt(mu0); obs = "x̄ = " + fmt(xbar);
+            }
+          } else {
+            const f = nb("f"), p0 = nb("p0");
+            if (f >= 0 && f <= 1 && p0 > 0 && p0 < 1) {
+              stat = (f - p0) / Math.sqrt(p0 * (1 - p0) / n);
+              loiNom = "z"; cdf = (x) => CALC.LOIS.normaleCdf(x, 0, 1);
+              h0 = "p = " + fmt(p0); obs = "f = " + fmt(f);
+            }
+          }
+          if (!Number.isFinite(stat) || !cdf) {
+            bloc = '<p class="nw-erreur">Une des valeurs saisies n’est pas exploitable.</p>';
+          } else {
+            const pval = I.cote === "bilateral" ? 2 * (1 - cdf(Math.abs(stat)))
+                       : I.cote === "gauche" ? cdf(stat) : 1 - cdf(stat);
+            const rejette = pval < alpha;
+            const signe = I.cote === "bilateral" ? "≠" : I.cote === "gauche" ? "<" : ">";
+            bloc = '<dl class="nw-valeurs">'
+              + '<dt>H₀</dt><dd>' + ech(h0) + '</dd>'
+              + '<dt>H₁</dt><dd>' + ech(h0.replace("=", signe)) + '</dd>'
+              + '<dt>observé</dt><dd>' + ech(obs) + '</dd>'
+              + '<dt>statistique ' + ech(loiNom) + '</dt><dd>' + ech(fmt(stat)) + '</dd>'
+              + '<dt>p-valeur</dt><dd>' + ech(fmt(pval)) + '</dd>'
+              + '<dt>décision au seuil ' + ech(fmt(alpha * 100)) + ' %</dt><dd>'
+              + (rejette ? "on REJETTE H₀" : "on ne rejette pas H₀") + '</dd></dl>'
+              + '<p class="nw-resultat" style="text-align:left">'
+              + (rejette
+                 ? "p = " + ech(fmt(pval)) + " < α = " + ech(fmt(alpha))
+                   + " : on rejette H₀ au seuil de " + ech(fmt(alpha * 100)) + " %."
+                 : "p = " + ech(fmt(pval)) + " ⩾ α = " + ech(fmt(alpha))
+                   + " : on ne rejette pas H₀ au seuil de " + ech(fmt(alpha * 100)) + " %.")
+              + '</p>'
+              + '<p class="nw-sous"><b>« Ne pas rejeter » n’est pas « accepter ».</b> '
+              + 'Un test ne prouve jamais H₀ : il dit seulement que les données ne suffisent '
+              + 'pas à la mettre en doute. C’est la phrase que les correcteurs '
+              + 'attendent.</p>';
+          }
+        }
+      }
+      return tetes + saisie + conditions + bloc;
+    },
+    apres() {
+      $$("[data-inf]", page).forEach((b) => b.addEventListener("click", () => {
+        const i = b.dataset.inf.indexOf(":");
+        const cle = b.dataset.inf.slice(0, i), v = b.dataset.inf.slice(i + 1);
+        ETAT.inference[cle] = v === "true" ? true : v === "false" ? false : v;
+        garder(); redessiner();
+      }));
+      $$("[data-ival]", page).forEach((c) => {
+        const maj = () => { ETAT.inference[c.dataset.ival] = c.value; garder(); redessiner(); };
+        c.addEventListener("change", maj);
+        c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
+      });
+    },
+  };
+
   const A_VENIR = {
     python: {
       nom: "Python", icone: "py",
@@ -2911,17 +3124,6 @@
           + "qu'absente.",
       enAttendant: "Les quatorze constantes physiques sont déjà dans la boîte "
           + "à outils, avec le souligné : _c, _e, _Na, _h…",
-      lien: null,
-    },
-    inference: {
-      nom: "Inférence", icone: "x̄±",
-      quoi: "Intervalles de confiance et tests d'hypothèse : sur une moyenne, "
-          + "sur une proportion, et la comparaison de deux échantillons.",
-      pourquoi: "Les lois dont elle a besoin sont déjà là — normale, Student, "
-          + "khi-2, Fisher. Ce qui manque est l'application elle-même : "
-          + "choisir le test, saisir les données, lire la conclusion.",
-      enAttendant: "L'application Probabilités donne déjà les dix lois et leurs "
-          + "quantiles, dont invNormale et studentCdf.",
       lien: null,
     },
   };
