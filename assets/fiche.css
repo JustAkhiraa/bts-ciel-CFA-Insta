@@ -8004,6 +8004,81 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
   font-weight: 650;
 }
 
+/* =====================================================================
+   LE KIT « LANCEUR » — étape 1 : les jetons.
+   Rien ne change tant qu'aucune page ne s'en sert ; c'est voulu.
+
+   POURQUOI UN JETON À PART, ET PAS --accent
+   fiche.css porte déjà six teintes de matière sous [data-matiere], en
+   version claire et en version sombre. Mais DIX-SEPT thèmes sur
+   trente-neuf les écrasent exprès pour n'avoir qu'une encre — dont
+   « bloc-notes », le thème par défaut. Mesuré : les six matières
+   rendaient toutes le même #17509B. D'où : aucune couleur de matière
+   visible, jamais, sur l'écran de tous les jours.
+
+   Un thème a raison d'imposer son encre au TEXTE. Mais une pastille qui
+   dit « c'est du réseau » n'est pas de la prose : c'est un onglet de
+   couleur dans un classeur. --mat ne sert qu'à ça — pastilles, anneaux,
+   filets — et aucun thème ne vient l'éteindre.
+
+   LA RÈGLE QUI ÉVITE LA BOUILLIE
+   petit et saturé = une matière ; large et pâle = une catégorie.
+   Deux rôles, deux échelles, aucune confusion possible.
+
+   ET SURTOUT : NE PAS DILUER
+   Mesuré en OKLab — une teinte noyée à 13 % dans une carte claire ne
+   garde que 2 à 3 de chroma sur ~30 possibles, et deux matières
+   tombent à ΔE 2 l'une de l'autre, sous le seuil du perceptible.
+   Monter à 26 % n'amène qu'à ΔE 4. La couleur doit donc vivre sur le
+   TEXTE et le FILET, à pleine force : ΔE 13,5 au lieu de 2,1.
+   Diluer une couleur, c'est la tuer.
+   ===================================================================== */
+:root { --mat: var(--accent); --mat-t: var(--accent-sombre); }
+
+[data-mat="dev"]     { --mat:#2D5A27; --mat-t:#1E3D1A; }
+[data-mat="reseau"]  { --mat:#005B96; --mat-t:#00426C; }
+[data-mat="maths"]   { --mat:#8B0000; --mat-t:#630000; }
+/* L'anglais était orange (44° en OKLab) et les maths rouge (29°) :
+   quinze degrés d'écart, la pire paire des quinze. Quatre remplacements
+   mesurés ; la sarcelle porte la pire paire de 15° à 52° en clair et de
+   26° à 47° en sombre. ATTENTION : ce choix déborde de l'accueil — il
+   change la couleur de l'anglais sur tout le site. */
+[data-mat="anglais"] { --mat:#0E6E6E; --mat-t:#0A5252; }
+[data-mat="culture"] { --mat:#6A0DAD; --mat-t:#4C097C; }
+[data-mat="projets"] { --mat:#B8860B; --mat-t:#7A5807; }
+
+html[data-sombre="1"] [data-mat="dev"]     { --mat:#7FC77E; --mat-t:#A7DCA5; }
+html[data-sombre="1"] [data-mat="reseau"]  { --mat:#63B3ED; --mat-t:#9ECBF5; }
+html[data-sombre="1"] [data-mat="maths"]   { --mat:#F08A84; --mat-t:#F6B3AE; }
+html[data-sombre="1"] [data-mat="anglais"] { --mat:#6FC9C4; --mat-t:#9EDDD9; }
+html[data-sombre="1"] [data-mat="culture"] { --mat:#B392E8; --mat-t:#CDB6F1; }
+html[data-sombre="1"] [data-mat="projets"] { --mat:#E0B54A; --mat-t:#EDD08A; }
+
+/* Les cinq catégories. Teintes espacées d'environ 72°, peu chromatiques,
+   pour ne jamais se faire prendre pour une matière. */
+[data-cat="matieres"]  { --cat:#3B5BA8; }  /* bleu   — le socle    */
+[data-cat="outils"]    { --cat:#9A7B16; }  /* ambre  — fabriquer   */
+[data-cat="jour"]      { --cat:#7A4BA8; }  /* violet — le temps    */
+[data-cat="rendre"]    { --cat:#A83B3B; }  /* rouge  — l'échéance  */
+[data-cat="reprendre"] { --cat:#2E7D6B; }  /* vert   — continuer   */
+html[data-sombre="1"] [data-cat="matieres"]  { --cat:#8FA8E8; }
+html[data-sombre="1"] [data-cat="outils"]    { --cat:#D9BE6A; }
+html[data-sombre="1"] [data-cat="jour"]      { --cat:#C09BE8; }
+html[data-sombre="1"] [data-cat="rendre"]    { --cat:#E89B9B; }
+html[data-sombre="1"] [data-cat="reprendre"] { --cat:#7FCFBC; }
+
+/* Les deux filets du « matériau » sont écrits en blanc translucide chez
+   ceux qui l'ont inventé — ce qui n'a de sens que sur fond noir.
+   Mélangés à --encre, ils deviennent clairs sur un thème sombre et
+   sombres sur un thème clair, tout seuls. */
+:root {
+  --lan-filet:  color-mix(in srgb, var(--encre) 13%, transparent);
+  --lan-creux:  color-mix(in srgb, var(--encre)  6%, transparent);
+  --lan-choisi: color-mix(in srgb, var(--encre)  9%, transparent);
+  --lan-lavis: 6%;
+}
+html[data-sombre="1"] { --lan-lavis: 11%; }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en
