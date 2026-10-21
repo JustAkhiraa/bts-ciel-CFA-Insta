@@ -6993,6 +6993,7 @@ body.at-fige { overflow: hidden; }
   --nw-creuse: #F4F4F4;
   --nw-rouge: #C0392B;
   --nw-c1: #0B6CB8; --nw-c2: #C0392B; --nw-c3: #1E7B33; --nw-c4: #7A3FA8;
+  --nw-c5: #C4651A; --nw-c6: #0E7C86; --nw-c7: #B3268C; --nw-c8: #8A6D00;
   display: flex; flex-direction: column;
   min-height: 400px;
   /* Un cadre, pas une bordure : les cinq pixels de « carte creuse »
@@ -7014,6 +7015,7 @@ body.at-fige { overflow: hidden; }
   --nw-creuse: #1E2127;
   --nw-rouge: #FF8A80;
   --nw-c1: #5FB8F5; --nw-c2: #FF8A80; --nw-c3: #7FD08A; --nw-c4: #C9A3F0;
+  --nw-c5: #FFB26B; --nw-c6: #5FD6DE; --nw-c7: #F58AD0; --nw-c8: #D9C04A;
 }
 .nw-bandeau {
   display: flex; align-items: center; gap: .6rem;
@@ -7243,6 +7245,8 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-trace .courbe { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
 .nw-trace .c1 { stroke: var(--nw-c1); } .nw-trace .c2 { stroke: var(--nw-c2); }
 .nw-trace .c3 { stroke: var(--nw-c3); } .nw-trace .c4 { stroke: var(--nw-c4); }
+.nw-trace .c5 { stroke: var(--nw-c5); } .nw-trace .c6 { stroke: var(--nw-c6); }
+.nw-trace .c7 { stroke: var(--nw-c7); } .nw-trace .c8 { stroke: var(--nw-c8); }
 .nw-trace .aire { fill: var(--nw-c1); opacity: .18; stroke: none; }
 /* La tangente : un trait d'APPUI, pas une courbe de plus. Tirets fins et
    teinte sourde — elle doit se lire comme une construction, pas comme une
@@ -7258,11 +7262,15 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-trace .point.c2 { fill: var(--nw-c2); }
 .nw-trace .point.c3 { fill: var(--nw-c3); }
 .nw-trace .point.c4 { fill: var(--nw-c4); }
+.nw-trace .point.c5 { fill: var(--nw-c5); } .nw-trace .point.c6 { fill: var(--nw-c6); }
+.nw-trace .point.c7 { fill: var(--nw-c7); } .nw-trace .point.c8 { fill: var(--nw-c8); }
 /* Les en-têtes du tableau des régressions portent la même couleur : la
    colonne X2 et la courbe X2 se reconnaissent sans légende. */
 .nw-col-c2 { color: var(--nw-c2); }
 .nw-col-c3 { color: var(--nw-c3); }
 .nw-col-c4 { color: var(--nw-c4); }
+.nw-col-c5 { color: var(--nw-c5); } .nw-col-c6 { color: var(--nw-c6); }
+.nw-col-c7 { color: var(--nw-c7); } .nw-col-c8 { color: var(--nw-c8); }
 .nw-table-reg th[scope="row"] {
   text-align: left; font-weight: 500; color: var(--nw-encre-douce);
   white-space: nowrap;
@@ -7384,6 +7392,13 @@ select.nw-petit { width: auto; min-width: 7rem; }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
 }
 .nw-bloc { display: grid; gap: .3rem; }
+/* Un filet entre les blocs du clavier. Les touches sont déjà groupées —
+   navigation, fonctions, chiffres — mais seul un écart les séparait, et
+   un écart ne se lit pas comme une frontière : il se lit comme de la
+   place perdue. Le trait dit que le groupe est fini. */
+.nw-bloc + .nw-bloc, .nw-bloc-nav + .nw-bloc {
+  border-top: 1px solid var(--bord); padding-top: .5rem;
+}
 .nw-bloc-fn { grid-template-columns: repeat(6, 1fr); }
 .nw-bloc-num { grid-template-columns: repeat(5, 1fr); }
 .nw-vide-case { display: none; }
@@ -7535,10 +7550,26 @@ select.nw-petit { width: auto; min-width: 7rem; }
   background: var(--carte-creuse); color: var(--encre-douce);
 }
 .nw-boite-liste { max-height: 340px; overflow: auto; padding: .4rem; }
+/* ── les catégories se voient ─────────────────────────────────────────
+   Signalé : une fois revenu à la ligne, on ne sait plus dans quelle
+   catégorie on est. C'était vrai : le titre était un petit mot gris posé
+   au-dessus de ses entrées, sans rien qui marque la frontière, et une
+   liste qu'on fait défiler perd son titre dès la deuxième ligne.
+
+   Trois choses le règlent. Un FILET au-dessus, qui ferme la catégorie
+   précédente. Un fond, pour que le titre ne se lise pas comme une entrée.
+   Et « sticky » : le titre reste collé en haut pendant qu'on fait défiler,
+   donc la question « on est où ? » ne se pose plus jamais. */
 .nw-boite-cat {
-  margin: .5rem 0 .25rem; padding: 0 .4rem; font-size: .7576rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .04em; color: var(--encre-douce);
+  position: sticky; top: -.4rem; z-index: 2;
+  margin: .9rem -.4rem .3rem; padding: .35rem .8rem;
+  font-size: .7576rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--encre-douce);
+  background: color-mix(in srgb, var(--encre) 5%, var(--carte));
+  border-top: 1px solid var(--bord-fort);
+  border-bottom: 1px solid var(--bord);
 }
+.nw-boite-cat:first-child { margin-top: -.4rem; border-top: 0; }
 .nw-boite-item {
   display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
   min-height: 38px; padding: .35rem .5rem; border: 1px solid transparent;
@@ -7575,8 +7606,18 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-conventions li { margin-bottom: .45rem; line-height: 1.6; font-size: .8788rem; }
 .nw-cat-tete { margin: 1.6rem 0 .4rem; }
 .nw-cat-intro { margin: 0 0 .9rem; color: var(--encre-douce); font-size: .8788rem; line-height: 1.6; }
-.nw-cat-groupe { margin-bottom: 1.1rem; }
-.nw-cat-groupe h4 { margin: 0 0 .4rem; font-size: .9091rem; }
+/* Même raison dans le catalogue imprimable : un trait ferme la catégorie
+   qui finit, et le titre de la suivante s'appuie dessus. */
+.nw-cat-groupe { margin-bottom: 1.4rem; padding-top: .9rem; border-top: 1px solid var(--bord); }
+.nw-cat-groupe:first-of-type { padding-top: 0; border-top: 0; }
+.nw-cat-groupe h4 {
+  margin: 0 0 .5rem; font-size: .9091rem;
+  display: flex; align-items: baseline; gap: .5rem;
+}
+.nw-cat-groupe h4::after {
+  content: ""; flex: 1 1 auto; height: 1px;
+  background: linear-gradient(90deg, var(--bord-fort), transparent);
+}
 .nw-cat-table { width: 100%; border-collapse: collapse; font-size: .8182rem; }
 .nw-cat-table th, .nw-cat-table td {
   border: 1px solid var(--bord); padding: .3rem .5rem; text-align: left; vertical-align: top;
@@ -8423,14 +8464,23 @@ html[data-style="lanceur"] .app-pied { display: none; }
   background: color-mix(in srgb, var(--carte) 97%, transparent);
   backdrop-filter: blur(14px) saturate(1.3); box-shadow: var(--ombre-haut);
 }
-.lan-plus-menu a {
+.lan-plus-menu :is(a, button) {
   padding: .4rem .6rem; border-radius: 8px; text-decoration: none;
   color: var(--encre-douce); font-size: .7879rem; font-weight: 600;
+  /* Le bouton de bascule vit au milieu de trois liens : il doit leur
+     ressembler trait pour trait, sinon il se lit comme un intrus. */
+  border: 0; background: none; font-family: inherit; text-align: left;
+  cursor: pointer; width: 100%;
 }
-.lan-plus-menu a:hover { background: var(--lan-choisi); color: var(--encre-forte); }
+.lan-plus-menu :is(a, button):hover { background: var(--lan-choisi); color: var(--encre-forte); }
+/* Le seul qui AGIT sur la page est séparé des trois qui emmènent ailleurs. */
+.lan-plus-menu [data-bascule-style] {
+  border-bottom: 1px solid var(--bord); border-radius: 8px 8px 0 0;
+  margin-bottom: .2rem; padding-bottom: .5rem;
+}
 @media (pointer: coarse) {
   .lan-nav > :is(button, a), .lan-plus > summary { width: 40px; height: 40px; }
-  .lan-plus-menu a { padding: .6rem .7rem; }
+  .lan-plus-menu :is(a, button) { padding: .6rem .7rem; }
 }
 
 /* Au doigt, « Ouvrir ⏎ » ne sert à rien : il n'y a pas de touche Entrée.
@@ -8462,6 +8512,148 @@ html[data-style="lanceur"] .app-pied { display: none; }
 .accueil-classique { display: none; }
 html[data-style="classique"] .accueil-classique { display: block; }
 html[data-style="classique"] .lan-scene { display: none; }
+
+/* ── la ligne d'expression, comme sur la machine ──────────────────────
+   Un filet de couleur à gauche, l'expression écrite en maths, sa nature
+   en dessous, un « ⋯ » à droite. La ligne au repos n'est pas un champ :
+   c'est un objet qu'on regarde, et qu'on ouvre d'un clic. */
+.nw-expr-liste { display: flex; flex-direction: column; gap: .4rem; margin: .6rem 0; }
+.nw-expr {
+  display: flex; align-items: stretch; gap: .4rem;
+  border: 1px solid var(--bord); border-radius: .55rem;
+  border-left: 4px solid var(--filet, var(--nw-c1));
+  background: var(--carte); overflow: hidden;
+}
+.nw-expr-ouvert { border-color: var(--filet, var(--nw-c1)); }
+.nw-expr-corps {
+  flex: 1 1 auto; min-width: 0; text-align: left;
+  display: flex; flex-direction: column; gap: .12rem;
+  padding: .5rem .6rem; border: 0; background: none; cursor: pointer;
+  color: inherit; font: inherit;
+}
+.nw-expr-corps:hover { background: color-mix(in srgb, var(--filet, var(--nw-c1)) 8%, transparent); }
+.nw-expr-math {
+  font-family: var(--mono, ui-monospace, monospace); font-size: 1.08rem;
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+.nw-expr-math sup { font-size: .72em; }
+.nw-expr-type { font-size: .82rem; color: var(--encre-douce); }
+.nw-expr-menu {
+  flex: 0 0 auto; width: 2.6rem; border: 0; border-left: 1px solid var(--bord);
+  background: none; cursor: pointer; color: var(--encre-douce);
+  font-size: 1.15rem; line-height: 1;
+}
+.nw-expr-menu:hover { background: color-mix(in srgb, var(--encre) 7%, transparent); }
+.nw-expr-saisie { align-items: center; flex-wrap: wrap; padding: .45rem .55rem; gap: .45rem; }
+.nw-expr-saisie label { font-family: var(--mono, ui-monospace, monospace); }
+.nw-expr-saisie .nw-large { flex: 1 1 10rem; min-width: 0; }
+.nw-expr-ajout {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .55rem .7rem; width: 100%; text-align: left;
+  border: 1px dashed var(--bord); border-radius: .55rem;
+  background: none; cursor: pointer; color: var(--encre-douce); font: inherit;
+}
+.nw-expr-ajout:hover { color: var(--encre); border-color: var(--encre-douce); }
+.nw-expr-ajout span { font-size: 1.1rem; line-height: 1; }
+.nw-expr-bas { display: flex; flex-wrap: wrap; gap: .5rem; margin: .7rem 0 .4rem; }
+.nw-expr-bas .nw-bouton { flex: 1 1 11rem; justify-content: center; }
+
+.nw-expr-options {
+  border: 1px solid var(--bord); border-top: 0;
+  border-radius: 0 0 .55rem .55rem; padding: .6rem .7rem;
+  background: color-mix(in srgb, var(--encre) 3%, var(--carte));
+  display: flex; flex-direction: column; gap: .7rem;
+  margin-top: -.4rem;
+}
+.nw-opt-bloc h4 {
+  margin: 0 0 .3rem; font-size: .78rem; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--encre-douce);
+}
+.nw-opt-bloc .nw-valeurs { margin: 0; }
+.nw-coche { display: flex; align-items: baseline; gap: .4rem; padding: .18rem 0; }
+.nw-coche .nw-sous { margin: 0; }
+.nw-teintes { display: flex; flex-wrap: wrap; gap: .4rem; }
+.nw-teinte {
+  width: 1.7rem; height: 1.7rem; border-radius: 50%; cursor: pointer;
+  background: var(--t); border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--bord) inset;
+}
+.nw-teinte.nw-choisie { border-color: var(--encre); }
+.nw-teinte:focus-visible { outline: 2px solid var(--encre); outline-offset: 2px; }
+/* La dérivée : même couleur, trait pointillé. */
+.nw-trace .courbe.nw-deriv { stroke-dasharray: 5 4; opacity: .85; }
+.nw-legende i.nw-leg-deriv {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0 2px, var(--carte) 2px 4px);
+}
+/* Les cibles du doigt : rien en dessous de 44 px au toucher. */
+@media (pointer: coarse) {
+  .nw-expr-menu { width: 2.9rem; }
+  .nw-expr-corps, .nw-expr-ajout { min-height: 2.9rem; }
+  .nw-teinte { width: 2.1rem; height: 2.1rem; }
+}
+
+/* ── Probabilités : trois zones empilées ──────────────────────────────
+   La loi, puis ses paramètres, puis la question. Chacune prend toute la
+   largeur et ne passe jamais à la ligne au milieu d'elle-même : c'est ce
+   qui séparait « p » de son champ. */
+.nw-proba-tete { display: flex; align-items: center; gap: .5rem; margin: .5rem 0 .6rem; }
+.nw-proba-lib { flex: 0 0 auto; font-weight: 600; color: var(--encre-douce); }
+.nw-loi { flex: 1 1 auto; min-width: 0; }
+.nw-params {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--bord); border-radius: .55rem; overflow: hidden;
+}
+.nw-par {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .45rem .6rem; background: var(--carte);
+}
+.nw-par + .nw-par { border-top: 1px solid var(--bord); }
+.nw-par label { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.nw-par label b { font-family: var(--mono, ui-monospace, monospace); font-size: .95rem; }
+.nw-par label i { font-style: normal; font-size: .78rem; color: var(--encre-douce); }
+.nw-par input { flex: 0 0 7rem; text-align: right; }
+
+.nw-equation {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .45rem;
+  margin: .7rem 0; padding: .5rem .6rem;
+  border: 1px solid var(--bord); border-radius: .55rem; background: var(--carte);
+}
+.nw-formes { display: flex; gap: .25rem; flex: 0 0 auto; }
+.nw-forme {
+  width: 2.3rem; height: 1.9rem; padding: .15rem; cursor: pointer;
+  border: 1px solid var(--bord); border-radius: .4rem; background: var(--carte);
+  display: grid; place-items: center;
+}
+.nw-forme.nw-choisie { border-color: var(--accent); background: var(--accent-pale); }
+.nw-forme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nw-vq { width: 100%; height: 100%; }
+.vq-trait { fill: none; stroke: var(--encre-douce); stroke-width: 1.3; }
+.vq-plein { fill: var(--accent); opacity: .55; }
+.nw-forme.nw-choisie .vq-trait { stroke: var(--accent-sombre); }
+.nw-forme.nw-choisie .vq-plein { opacity: .9; }
+.nw-eq {
+  display: flex; align-items: center; gap: .3rem;
+  font-family: var(--mono, ui-monospace, monospace); font-size: 1rem;
+}
+.nw-eq input { flex: 0 0 4.2rem; text-align: center; }
+.nw-res { flex: 1 1 8rem; min-width: 0; font-family: var(--mono, ui-monospace, monospace); }
+.nw-res[readonly] { background: var(--carte-creuse); color: var(--encre-douce); cursor: default; }
+@media (pointer: coarse) {
+  .nw-forme { width: 2.8rem; height: 2.4rem; }
+  .nw-par { min-height: 2.9rem; }
+}
+@media (max-width: 420px) {
+  .nw-par { flex-wrap: wrap; }
+  .nw-par input { flex: 1 1 100%; text-align: left; }
+}
+
+/* Les graduations passent par-dessus le tracé, avec un liseré du fond :
+   un chiffre à demi caché derrière une barre se lit de travers. */
+.nw-trace .graduations text {
+  paint-order: stroke;
+  stroke: var(--carte); stroke-width: 3.2px; stroke-linejoin: round;
+}
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────

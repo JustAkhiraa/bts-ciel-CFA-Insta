@@ -738,6 +738,63 @@
       courant = "";
     }
 
+    /* ── les vrais enregistrements ────────────────────────────────────
+       Signalé : la synthèse fait mal aux oreilles. Elle avait la bonne
+       COULEUR — trois décibels d'écart moyen sur neuf octaves — et ça ne
+       suffit pas : un spectre juste n'est pas une oreille contente. Ce qui
+       fatigue, ce sont les aigus permanents, que la mesure par bandes ne
+       voit pas puisqu'elle moyenne.
+
+       Ses trois enregistrements durent 4 h, 8 h et 12 h — 2,0 Go. On en a
+       tiré trois boucles de soixante secondes, cousues : les trois
+       dernières secondes sont fondues sur les trois premières, si bien que
+       la fin rejoint le début sans couture. Mesuré à −26 LUFS, crête
+       −6 dBTP : le registre d'un fond sonore, pas d'une bande-annonce.
+
+       La boucle est décodée puis jouée par Web Audio, pas par une balise
+       <audio> : un <audio> en boucle laisse un silence au raccord, le
+       temps que le décodeur reparte. Un AudioBuffer bouclé est exact à
+       l'échantillon près.
+
+       Et si le fichier manque — hors ligne, dépôt incomplet —, la synthèse
+       reprend la main. On préfère un son moins beau à pas de son du tout. */
+    var ENREG = { espace: "espace.m4a", pluie: "pluie.m4a", feu: "feu.m4a" };
+    var boucles = {}, enCours = {};
+
+    function charger(id) {
+      if (boucles[id]) return Promise.resolve(boucles[id]);
+      if (enCours[id]) return enCours[id];
+      if (!ENREG[id] || !window.fetch) return Promise.reject();
+      enCours[id] = fetch(racine() + "assets/sons/" + ENREG[id])
+        .then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(function (b) {
+          return new Promise(function (ok, non) {
+            /* decodeAudioData existe en deux versions : celle qui rend une
+               promesse, et celle d'avant qui prend deux fonctions. Safari a
+               longtemps n'avoir que la seconde ; on écrit pour les deux. */
+            var p = ctx.decodeAudioData(b, ok, non);
+            if (p && p.then) p.then(ok, non);
+          });
+        })
+        .then(function (buf) { boucles[id] = buf; delete enCours[id]; return buf; })
+        .catch(function (e) { delete enCours[id]; throw e; });
+      return enCours[id];
+    }
+
+    function jouerBoucle(buf) {
+      var s = ctx.createBufferSource();
+      s.buffer = buf;
+      s.loop = true;
+      /* Un départ au hasard dans la boucle : rouvrir la page deux fois de
+         suite ne redonne pas la même goutte au même instant. */
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.2);
+      s.connect(g).connect(maitre);
+      s.start(0, Math.random() * buf.duration);
+      noeuds.push(s);
+    }
+
     function volumeVoulu() {
       /* Demandé : que l'espace, le feu et la pluie restent discrets.
          Le curseur va de
@@ -765,9 +822,16 @@
       arreter();
       maitre.gain.value = volumeVoulu();
       courant = id;
-      if (id === "espace") espace(maitre);
-      else if (id === "pluie") pluie(maitre);
-      else if (id === "feu") feu(maitre);
+      var synthetiser = function () {
+        if (courant !== id) return;      /* on a changé d'avis entre-temps */
+        if (id === "espace") espace(maitre);
+        else if (id === "pluie") pluie(maitre);
+        else if (id === "feu") feu(maitre);
+      };
+      charger(id).then(function (buf) {
+        if (courant !== id) return;
+        jouerBoucle(buf);
+      }, synthetiser);
       if (ctx.state === "suspended") ctx.resume();
     }
 
@@ -1160,6 +1224,27 @@
     tete.appendChild(btnJour);
     tete.appendChild(outil("bouton-rond", "Réglages", ICONE_REGLAGES, ouvrir));
     poserBouton3D(tete);
+    brancherBasculeStyle();
+  }
+
+  /* L'interrupteur d'accueil, doublé dans le menu « ⋯ ». Il écrit le style
+     comme le ferait le panneau de réglages, et recharge : l'accueil est
+     bâti par publier.py en deux versions dans la même page, et c'est une
+     classe sur <html> qui décide laquelle se voit — appliquer() suffit
+     donc, sans aller chercher la page au serveur. */
+  function brancherBasculeStyle() {
+    var b = document.querySelector("[data-bascule-style]");
+    if (!b) return;
+    var peindre = function () {
+      b.textContent = (S.style === "classique") ? "Nouvel accueil" : "Ancien accueil";
+    };
+    peindre();
+    b.addEventListener("click", function () {
+      S.style = (S.style === "classique") ? "lanceur" : "classique";
+      enregistrer(); appliquer(); peindre();
+      var d = b.closest("details");
+      if (d) d.open = false;
+    });
   }
 
   /* ── le bouton du monde 3D ────────────────────────────────────────────
