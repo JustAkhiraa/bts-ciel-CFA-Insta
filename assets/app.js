@@ -143,7 +143,13 @@
      tapé à la main nulle part — l'ancien ne peut donc plus mentir. */
   var STYLES = [
     { id: "lanceur",   nom: "Lanceur" },
-    { id: "classique", nom: "Classique" }
+    { id: "classique", nom: "Classique" },
+    /* Demandé : le village en fait partie, c'est un accueil lui aussi.
+       Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
+       3D : le choisir envoie là-bas. La redirection est posée dans le
+       script d'en-tête, avant le premier pixel, donc on ne voit pas
+       l'accueil clignoter avant de partir. */
+    { id: "monde",     nom: "3D" }
   ];
 
   var TAILLES = [
@@ -914,7 +920,8 @@
         '<div class="reglage"><h3>Accueil</h3>' +
         '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
         '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
-        'le classique garde les grandes cartes.</p></div>' +
+        'le classique garde les grandes cartes ; la 3D ouvre le village. ' +
+        'Depuis le village, « retour » ramène ici, et le choix se change.</p></div>' +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +

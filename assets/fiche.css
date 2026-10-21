@@ -8156,7 +8156,19 @@ html[data-sombre="1"] { --lan-lavis: 11%; }
 html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1; }
 [data-anim="0"] .lan-lueur { opacity: .4; }
 
-.lan-tete { position: relative; z-index: 1; text-align: center; margin-bottom: .9rem; }
+/* Demandé : retirer « Réviser le BTS CIEL » au-dessus de la fenêtre. Le
+   titre disait ce que la page montre déjà — six matières, huit outils et
+   un champ de recherche ne laissent aucun doute sur l'endroit où l'on est.
+   Il est retiré de l'AFFICHAGE, pas du document : il reste le <h1> de la
+   page, donc l'onglet du navigateur, les favoris, la lecture d'écran et
+   les moteurs continuent de la nommer. Une page sans titre n'est pas une
+   page épurée, c'est une page anonyme.
+
+   Et la fenêtre récupère la hauteur : c'est ce qu'on cherchait en la
+   retirant. */
+.lan-tete { position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lan-tete-visible { position: relative; z-index: 1; text-align: center; margin-bottom: .9rem; }
 .lan-tete h1 { margin: 0; font-size: clamp(1.5rem, 2.6vw, 2.05rem);
   line-height: 1.1; letter-spacing: -.018em; color: var(--encre-forte); }
 
@@ -8381,14 +8393,14 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
    cents pixels de vide dessous. « border-box » pour que le rembourrage
    soit COMPRIS dans les 100 % — sinon la page déborde de ce qu'il
    ajoute, et on refait défiler ce qu'on vient de faire tenir. */
-html[data-style="lanceur"] .lan-scene {
+html[data-style="lanceur"] body[data-accueil] .lan-scene {
   box-sizing: border-box; min-height: 100svh;
 }
-html[data-style="lanceur"] .app-pied {
+html[data-style="lanceur"] body[data-accueil] .app-pied {
   margin-top: 1.1rem; padding: .9rem 1rem 1.1rem; font-size: .7879rem;
 }
-html[data-style="lanceur"] .app-pied p { margin: .2rem 0; }
-html[data-style="lanceur"] .app-pied .liens { margin-top: .5rem; }
+html[data-style="lanceur"] body[data-accueil] .app-pied p { margin: .2rem 0; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens { margin-top: .5rem; }
 
 /* =====================================================================
    SUR L'ACCUEIL, LA FENÊTRE FLOTTE SEULE
@@ -8404,23 +8416,23 @@ html[data-style="lanceur"] .app-pied .liens { margin-top: .5rem; }
    que les trois liens, en tout petit. Une page d'accueil n'a pas à se
    justifier deux fois.
    ===================================================================== */
-html[data-style="lanceur"] .app-tete {
+html[data-style="lanceur"] body[data-accueil] .app-tete {
   background: none; border: 0; box-shadow: none; backdrop-filter: none;
 }
 /* Le bouton du village est un <a>, pas un <button> : une règle qui
    visait « nav > a » l'emportait avec les quatre liens. Mesuré sur la
    page, pas deviné — il avait disparu. On nomme donc ce qu'on retire,
    pas ce qui lui ressemble. */
-html[data-style="lanceur"] .app-marque,
-html[data-style="lanceur"] .app-tete nav > a:not([href*="monde/"]) { display: none; }
-html[data-style="lanceur"] .app-tete nav { margin-left: auto; }
+html[data-style="lanceur"] body[data-accueil] .app-marque,
+html[data-style="lanceur"] body[data-accueil] .app-tete nav > a:not([href*="monde/"]) { display: none; }
+html[data-style="lanceur"] body[data-accueil] .app-tete nav { margin-left: auto; }
 
-html[data-style="lanceur"] .app-pied {
+html[data-style="lanceur"] body[data-accueil] .app-pied {
   margin-top: .4rem; padding: 0 1rem 1rem; border: 0; background: none;
 }
-html[data-style="lanceur"] .app-pied p:not(.liens) { display: none; }
-html[data-style="lanceur"] .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
-html[data-style="lanceur"] .app-pied .liens a { color: var(--encre-tenue); }
+html[data-style="lanceur"] body[data-accueil] .app-pied p:not(.liens) { display: none; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens a { color: var(--encre-tenue); }
 
 /* =====================================================================
    TOUT RENTRE DANS LA BARRE
@@ -8431,8 +8443,8 @@ html[data-style="lanceur"] .app-pied .liens a { color: var(--encre-tenue); }
    qui s'ouvre au même endroit. C'est la place qu'ils ont dans un
    lanceur : la barre du bas porte les actions, pas le décor.
    ===================================================================== */
-html[data-style="lanceur"] .app-tete,
-html[data-style="lanceur"] .app-pied { display: none; }
+html[data-style="lanceur"] body[data-accueil] .app-tete,
+html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
 
 .lan-nav { display: flex; align-items: center; gap: .3rem; flex: none; }
 .lan-nav:empty { display: none; }
@@ -8701,6 +8713,121 @@ html[data-style="classique"] .lan-scene { display: none; }
   .an-ligne { flex-wrap: wrap; }
   .an-quoi { flex: 1 1 100%; order: 3; }
   .an-marques { order: 2; }
+}
+
+/* =====================================================================
+   LE LANCEUR DÉBORDE DE L'ACCUEIL
+   Demandé : « le mode lanceur, je veux que quand je suis dans ce mode ça
+   se répercute sur toutes les autres pages ». C'était une vraie moitié de
+   travail manquante — on changeait d'accueil, puis la première matière
+   ouverte ramenait les grandes cartes, et le choix ne voulait plus rien
+   dire.
+
+   Ce qui se transporte, c'est la GRAMMAIRE, pas le dessin : une fenêtre
+   avec son matériau, des lignes plutôt que des cartes, et les actions en
+   petites pastilles au bout de la ligne. Ce qui ne se transporte PAS,
+   c'est le corps d'une fiche : un cours est un texte qu'on lit, pas une
+   console. La fenêtre l'entoure, la typographie n'y touche pas.
+
+   Tout est accroché à « body:not([data-accueil]) » : l'accueil a déjà son
+   traitement, et il ne doit pas recevoir celui-ci par-dessus.
+   ===================================================================== */
+html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps) {
+  position: relative; isolation: isolate;
+  border-radius: 22px; padding: .9rem 1rem 1.2rem; margin-top: .9rem;
+  background: linear-gradient(
+      color-mix(in srgb, var(--carte) 96%, transparent),
+      color-mix(in srgb, var(--carte) 99%, transparent));
+  box-shadow:
+    0 16px 48px 8px color-mix(in srgb, var(--encre) 13%, transparent),
+    0 4px 10px      color-mix(in srgb, var(--encre) 8%, transparent);
+}
+/* Le filet d'un demi-pixel en haut : c'est lui qui fait qu'une boîte
+   devient un objet. Posé en « ::after » pour ne rien coûter au contenu. */
+html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps)::after {
+  content: ""; position: absolute; inset: 0; z-index: 10;
+  border-radius: inherit; pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px var(--lan-filet),
+    inset 0 .5px 0 color-mix(in srgb, #fff 26%, transparent);
+}
+
+/* ── l'en-tête de la page, resserré ──────────────────────────────── */
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere {
+  padding: .1rem .2rem .7rem; border-bottom: 1px solid var(--lan-filet); margin-bottom: .2rem;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere h1 { margin-bottom: .15rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere p { font-size: .8485rem; }
+
+/* ── les chapitres deviennent des lignes ─────────────────────────────
+   Six cartes à quatre boutons chacune, c'est six fois la même mise en
+   page à relire. Une liste de lignes séparées d'un filet se balaie : le
+   numéro tient la colonne de gauche, le titre la colonne du milieu, les
+   quatre liens la colonne de droite, et l'œil descend tout droit. */
+html[data-style="lanceur"] body:not([data-accueil]) .liste-chapitres {
+  gap: 0; margin-top: .5rem;
+  border: 1px solid var(--lan-filet); border-radius: 14px; overflow: hidden;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre {
+  border: 0; border-radius: 0; background: var(--carte);
+  padding: .42rem .55rem; gap: .55rem;
+  grid-template-areas: "num txt liens coche";
+  grid-template-columns: 34px 1fr auto auto;
+  align-items: center;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre + .chapitre {
+  border-top: 1px solid var(--lan-filet);
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre:hover {
+  transform: none; background: color-mix(in srgb, var(--encre) 7%, var(--carte));
+}
+/* Le numéro reprend la pastille de matière du lanceur : même taille,
+   même rayon, même façon de tenir la couleur — sur le filet et le
+   libellé, pas en remplissage pâle. */
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .num {
+  width: 28px; height: 28px; min-width: 0; border-radius: 9px;
+  display: grid; place-items: center; font-size: .7273rem; font-weight: 700;
+  background: color-mix(in srgb, var(--mat, var(--accent)) 20%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat, var(--accent)) 42%, transparent);
+  color: var(--mat-t, var(--accent-sombre));
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .txt h3 { font-size: .8788rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .txt p {
+  font-size: .7576rem; margin-top: .05rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .liens a {
+  padding: .2rem .5rem; font-size: .7273rem; border-radius: 8px;
+}
+
+/* ── les outils, en pastilles comme sur l'accueil ─────────────────── */
+html[data-style="lanceur"] body:not([data-accueil]) .grille-matieres {
+  gap: .45rem;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere {
+  padding: .7rem .8rem; border-radius: 12px;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere h2 { font-size: .9394rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere p { font-size: .7879rem; }
+
+/* ── la fiche : la fenêtre, et rien d'autre ──────────────────────────
+   Le corps d'un cours garde sa largeur de lecture, sa taille de texte et
+   son interligne. Resserrer un texte qu'on lit pendant vingt minutes
+   pour gagner trois lignes à l'écran, c'est échanger du confort contre
+   du vide. */
+html[data-style="lanceur"] body:not([data-accueil]) .corps {
+  padding: 1.2rem 1.3rem 1.6rem;
+}
+
+@media (max-width: 620px) {
+  html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps) {
+    border-radius: 16px; padding: .7rem .7rem 1rem;
+  }
+  html[data-style="lanceur"] body:not([data-accueil]) .chapitre {
+    grid-template-areas: "num txt coche" "liens liens liens";
+    grid-template-columns: 34px 1fr auto;
+    row-gap: .35rem;
+  }
 }
 
 
