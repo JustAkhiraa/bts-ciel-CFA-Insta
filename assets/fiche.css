@@ -6993,6 +6993,7 @@ body.at-fige { overflow: hidden; }
   --nw-creuse: #F4F4F4;
   --nw-rouge: #C0392B;
   --nw-c1: #0B6CB8; --nw-c2: #C0392B; --nw-c3: #1E7B33; --nw-c4: #7A3FA8;
+  --nw-c5: #C4651A; --nw-c6: #0E7C86; --nw-c7: #B3268C; --nw-c8: #8A6D00;
   display: flex; flex-direction: column;
   min-height: 400px;
   /* Un cadre, pas une bordure : les cinq pixels de « carte creuse »
@@ -7014,6 +7015,7 @@ body.at-fige { overflow: hidden; }
   --nw-creuse: #1E2127;
   --nw-rouge: #FF8A80;
   --nw-c1: #5FB8F5; --nw-c2: #FF8A80; --nw-c3: #7FD08A; --nw-c4: #C9A3F0;
+  --nw-c5: #FFB26B; --nw-c6: #5FD6DE; --nw-c7: #F58AD0; --nw-c8: #D9C04A;
 }
 .nw-bandeau {
   display: flex; align-items: center; gap: .6rem;
@@ -7243,6 +7245,8 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-trace .courbe { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
 .nw-trace .c1 { stroke: var(--nw-c1); } .nw-trace .c2 { stroke: var(--nw-c2); }
 .nw-trace .c3 { stroke: var(--nw-c3); } .nw-trace .c4 { stroke: var(--nw-c4); }
+.nw-trace .c5 { stroke: var(--nw-c5); } .nw-trace .c6 { stroke: var(--nw-c6); }
+.nw-trace .c7 { stroke: var(--nw-c7); } .nw-trace .c8 { stroke: var(--nw-c8); }
 .nw-trace .aire { fill: var(--nw-c1); opacity: .18; stroke: none; }
 /* La tangente : un trait d'APPUI, pas une courbe de plus. Tirets fins et
    teinte sourde — elle doit se lire comme une construction, pas comme une
@@ -7258,11 +7262,15 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-trace .point.c2 { fill: var(--nw-c2); }
 .nw-trace .point.c3 { fill: var(--nw-c3); }
 .nw-trace .point.c4 { fill: var(--nw-c4); }
+.nw-trace .point.c5 { fill: var(--nw-c5); } .nw-trace .point.c6 { fill: var(--nw-c6); }
+.nw-trace .point.c7 { fill: var(--nw-c7); } .nw-trace .point.c8 { fill: var(--nw-c8); }
 /* Les en-têtes du tableau des régressions portent la même couleur : la
    colonne X2 et la courbe X2 se reconnaissent sans légende. */
 .nw-col-c2 { color: var(--nw-c2); }
 .nw-col-c3 { color: var(--nw-c3); }
 .nw-col-c4 { color: var(--nw-c4); }
+.nw-col-c5 { color: var(--nw-c5); } .nw-col-c6 { color: var(--nw-c6); }
+.nw-col-c7 { color: var(--nw-c7); } .nw-col-c8 { color: var(--nw-c8); }
 .nw-table-reg th[scope="row"] {
   text-align: left; font-weight: 500; color: var(--nw-encre-douce);
   white-space: nowrap;
@@ -7384,6 +7392,13 @@ select.nw-petit { width: auto; min-width: 7rem; }
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
 }
 .nw-bloc { display: grid; gap: .3rem; }
+/* Un filet entre les blocs du clavier. Les touches sont déjà groupées —
+   navigation, fonctions, chiffres — mais seul un écart les séparait, et
+   un écart ne se lit pas comme une frontière : il se lit comme de la
+   place perdue. Le trait dit que le groupe est fini. */
+.nw-bloc + .nw-bloc, .nw-bloc-nav + .nw-bloc {
+  border-top: 1px solid var(--bord); padding-top: .5rem;
+}
 .nw-bloc-fn { grid-template-columns: repeat(6, 1fr); }
 .nw-bloc-num { grid-template-columns: repeat(5, 1fr); }
 .nw-vide-case { display: none; }
@@ -7535,10 +7550,26 @@ select.nw-petit { width: auto; min-width: 7rem; }
   background: var(--carte-creuse); color: var(--encre-douce);
 }
 .nw-boite-liste { max-height: 340px; overflow: auto; padding: .4rem; }
+/* ── les catégories se voient ─────────────────────────────────────────
+   Signalé : une fois revenu à la ligne, on ne sait plus dans quelle
+   catégorie on est. C'était vrai : le titre était un petit mot gris posé
+   au-dessus de ses entrées, sans rien qui marque la frontière, et une
+   liste qu'on fait défiler perd son titre dès la deuxième ligne.
+
+   Trois choses le règlent. Un FILET au-dessus, qui ferme la catégorie
+   précédente. Un fond, pour que le titre ne se lise pas comme une entrée.
+   Et « sticky » : le titre reste collé en haut pendant qu'on fait défiler,
+   donc la question « on est où ? » ne se pose plus jamais. */
 .nw-boite-cat {
-  margin: .5rem 0 .25rem; padding: 0 .4rem; font-size: .7576rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .04em; color: var(--encre-douce);
+  position: sticky; top: -.4rem; z-index: 2;
+  margin: .9rem -.4rem .3rem; padding: .35rem .8rem;
+  font-size: .7576rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--encre-douce);
+  background: color-mix(in srgb, var(--encre) 5%, var(--carte));
+  border-top: 1px solid var(--bord-fort);
+  border-bottom: 1px solid var(--bord);
 }
+.nw-boite-cat:first-child { margin-top: -.4rem; border-top: 0; }
 .nw-boite-item {
   display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
   min-height: 38px; padding: .35rem .5rem; border: 1px solid transparent;
@@ -7575,8 +7606,18 @@ select.nw-petit { width: auto; min-width: 7rem; }
 .nw-conventions li { margin-bottom: .45rem; line-height: 1.6; font-size: .8788rem; }
 .nw-cat-tete { margin: 1.6rem 0 .4rem; }
 .nw-cat-intro { margin: 0 0 .9rem; color: var(--encre-douce); font-size: .8788rem; line-height: 1.6; }
-.nw-cat-groupe { margin-bottom: 1.1rem; }
-.nw-cat-groupe h4 { margin: 0 0 .4rem; font-size: .9091rem; }
+/* Même raison dans le catalogue imprimable : un trait ferme la catégorie
+   qui finit, et le titre de la suivante s'appuie dessus. */
+.nw-cat-groupe { margin-bottom: 1.4rem; padding-top: .9rem; border-top: 1px solid var(--bord); }
+.nw-cat-groupe:first-of-type { padding-top: 0; border-top: 0; }
+.nw-cat-groupe h4 {
+  margin: 0 0 .5rem; font-size: .9091rem;
+  display: flex; align-items: baseline; gap: .5rem;
+}
+.nw-cat-groupe h4::after {
+  content: ""; flex: 1 1 auto; height: 1px;
+  background: linear-gradient(90deg, var(--bord-fort), transparent);
+}
 .nw-cat-table { width: 100%; border-collapse: collapse; font-size: .8182rem; }
 .nw-cat-table th, .nw-cat-table td {
   border: 1px solid var(--bord); padding: .3rem .5rem; text-align: left; vertical-align: top;
@@ -8002,6 +8043,853 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 .nw-bouton-fort {
   background: var(--accent); color: var(--sur-accent); border-color: var(--accent);
   font-weight: 650;
+}
+
+/* =====================================================================
+   LE KIT « LANCEUR » — étape 1 : les jetons.
+   Rien ne change tant qu'aucune page ne s'en sert ; c'est voulu.
+
+   POURQUOI UN JETON À PART, ET PAS --accent
+   fiche.css porte déjà six teintes de matière sous [data-matiere], en
+   version claire et en version sombre. Mais DIX-SEPT thèmes sur
+   trente-neuf les écrasent exprès pour n'avoir qu'une encre — dont
+   « bloc-notes », le thème par défaut. Mesuré : les six matières
+   rendaient toutes le même #17509B. D'où : aucune couleur de matière
+   visible, jamais, sur l'écran de tous les jours.
+
+   Un thème a raison d'imposer son encre au TEXTE. Mais une pastille qui
+   dit « c'est du réseau » n'est pas de la prose : c'est un onglet de
+   couleur dans un classeur. --mat ne sert qu'à ça — pastilles, anneaux,
+   filets — et aucun thème ne vient l'éteindre.
+
+   LA RÈGLE QUI ÉVITE LA BOUILLIE
+   petit et saturé = une matière ; large et pâle = une catégorie.
+   Deux rôles, deux échelles, aucune confusion possible.
+
+   ET SURTOUT : NE PAS DILUER
+   Mesuré en OKLab — une teinte noyée à 13 % dans une carte claire ne
+   garde que 2 à 3 de chroma sur ~30 possibles, et deux matières
+   tombent à ΔE 2 l'une de l'autre, sous le seuil du perceptible.
+   Monter à 26 % n'amène qu'à ΔE 4. La couleur doit donc vivre sur le
+   TEXTE et le FILET, à pleine force : ΔE 13,5 au lieu de 2,1.
+   Diluer une couleur, c'est la tuer.
+   ===================================================================== */
+:root { --mat: var(--accent); --mat-t: var(--accent-sombre); }
+
+[data-mat="dev"]     { --mat:#2D5A27; --mat-t:#1E3D1A; }
+[data-mat="reseau"]  { --mat:#005B96; --mat-t:#00426C; }
+[data-mat="maths"]   { --mat:#8B0000; --mat-t:#630000; }
+/* L'anglais était orange (44° en OKLab) et les maths rouge (29°) :
+   quinze degrés d'écart, la pire paire des quinze. Quatre remplacements
+   mesurés ; la sarcelle porte la pire paire de 15° à 52° en clair et de
+   26° à 47° en sombre. ATTENTION : ce choix déborde de l'accueil — il
+   change la couleur de l'anglais sur tout le site. */
+[data-mat="anglais"] { --mat:#0E6E6E; --mat-t:#0A5252; }
+[data-mat="culture"] { --mat:#6A0DAD; --mat-t:#4C097C; }
+[data-mat="projets"] { --mat:#B8860B; --mat-t:#7A5807; }
+/* La physique est la septième matière. Sa teinte n'a pas été choisie à
+   l'œil : les six autres occupent 29°, 82°, 141°, 195°, 247° et 303° en
+   OKLab, et le seul trou qui restait allait de 303° à 389° — 86°. Le
+   milieu est à 346°, et ce rose foncé y tombe à un demi-degré près, avec
+   la clarté et le chroma des six autres. Elle est donc à 43° de ses deux
+   voisines, les maths et la culture, là où la pire paire d'avant était à
+   52° : c'est le mieux qu'on puisse faire à sept sur un cercle. */
+[data-mat="physique"] { --mat:#8A1563; --mat-t:#630F47; }
+
+html[data-sombre="1"] [data-mat="dev"]     { --mat:#7FC77E; --mat-t:#A7DCA5; }
+html[data-sombre="1"] [data-mat="reseau"]  { --mat:#63B3ED; --mat-t:#9ECBF5; }
+html[data-sombre="1"] [data-mat="maths"]   { --mat:#F08A84; --mat-t:#F6B3AE; }
+html[data-sombre="1"] [data-mat="anglais"] { --mat:#6FC9C4; --mat-t:#9EDDD9; }
+html[data-sombre="1"] [data-mat="culture"] { --mat:#B392E8; --mat-t:#CDB6F1; }
+html[data-sombre="1"] [data-mat="projets"] { --mat:#E0B54A; --mat-t:#EDD08A; }
+html[data-sombre="1"] [data-mat="physique"] { --mat:#E787BD; --mat-t:#F2B0D4; }
+
+/* Les cinq catégories. Teintes espacées d'environ 72°, peu chromatiques,
+   pour ne jamais se faire prendre pour une matière. */
+[data-cat="matieres"]  { --cat:#3B5BA8; }  /* bleu   — le socle    */
+[data-cat="outils"]    { --cat:#9A7B16; }  /* ambre  — fabriquer   */
+[data-cat="jour"]      { --cat:#7A4BA8; }  /* violet — le temps    */
+[data-cat="rendre"]    { --cat:#A83B3B; }  /* rouge  — l'échéance  */
+[data-cat="reprendre"] { --cat:#2E7D6B; }  /* vert   — continuer   */
+html[data-sombre="1"] [data-cat="matieres"]  { --cat:#8FA8E8; }
+html[data-sombre="1"] [data-cat="outils"]    { --cat:#D9BE6A; }
+html[data-sombre="1"] [data-cat="jour"]      { --cat:#C09BE8; }
+html[data-sombre="1"] [data-cat="rendre"]    { --cat:#E89B9B; }
+html[data-sombre="1"] [data-cat="reprendre"] { --cat:#7FCFBC; }
+
+/* Les deux filets du « matériau » sont écrits en blanc translucide chez
+   ceux qui l'ont inventé — ce qui n'a de sens que sur fond noir.
+   Mélangés à --encre, ils deviennent clairs sur un thème sombre et
+   sombres sur un thème clair, tout seuls. */
+:root {
+  --lan-filet:  color-mix(in srgb, var(--encre) 13%, transparent);
+  --lan-creux:  color-mix(in srgb, var(--encre)  6%, transparent);
+  --lan-choisi: color-mix(in srgb, var(--encre)  9%, transparent);
+  --lan-lavis: 6%;
+}
+html[data-sombre="1"] { --lan-lavis: 11%; }
+
+/* =====================================================================
+   LE KIT « LANCEUR » — étape 2 : les pièces.
+   UNE fenêtre, et tout vit dedans : la recherche en haut, les listes au
+   milieu, la barre d'actions en bas. Le planning n'est plus une boîte
+   posée À CÔTÉ du titre — c'est une colonne de la même fenêtre,
+   séparée par un filet d'un pixel. Toute la différence entre « posé à
+   côté » et « intégré » tient là.
+   ===================================================================== */
+
+/* La lumière vient de DERRIÈRE l'objet, pas d'à côté : floutée, dessous,
+   débordant un peu. C'est elle qui pose la fenêtre dans la page au lieu
+   de l'y coller. */
+.lan-scene { display: grid; align-content: center;
+  min-height: calc(100svh - 150px);
+  width: min(1120px, 100% - 2rem); margin-inline: auto;
+  padding: 1.2rem 0 1rem; }
+.lan-dedans { position: relative; }
+.lan-lueur { position: absolute; z-index: 0; pointer-events: none;
+  inset: 4% 6% 22%; filter: blur(44px); opacity: var(--lan-op, .75);
+  background:
+    radial-gradient(at 28% 42%, color-mix(in srgb, var(--accent) var(--lan-g1), transparent), transparent 72%),
+    radial-gradient(at 74% 30%, color-mix(in srgb, var(--violet) var(--lan-g2), transparent), transparent 70%),
+    radial-gradient(at 55% 86%, color-mix(in srgb, var(--ambre)  var(--lan-g3), transparent), transparent 74%); }
+:root { --lan-g1: 30%; --lan-g2: 20%; --lan-g3: 16%; --lan-op: .75; }
+html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1; }
+[data-anim="0"] .lan-lueur { opacity: .4; }
+
+/* Demandé : retirer « Réviser le BTS CIEL » au-dessus de la fenêtre. Le
+   titre disait ce que la page montre déjà — six matières, huit outils et
+   un champ de recherche ne laissent aucun doute sur l'endroit où l'on est.
+   Il est retiré de l'AFFICHAGE, pas du document : il reste le <h1> de la
+   page, donc l'onglet du navigateur, les favoris, la lecture d'écran et
+   les moteurs continuent de la nommer. Une page sans titre n'est pas une
+   page épurée, c'est une page anonyme.
+
+   Et la fenêtre récupère la hauteur : c'est ce qu'on cherchait en la
+   retirant. */
+.lan-tete { position: absolute; width: 1px; height: 1px; margin: -1px;
+  padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lan-tete-visible { position: relative; z-index: 1; text-align: center; margin-bottom: .9rem; }
+.lan-tete h1 { margin: 0; font-size: clamp(1.5rem, 2.6vw, 2.05rem);
+  line-height: 1.1; letter-spacing: -.018em; color: var(--encre-forte); }
+
+/* ── Le matériau ──────────────────────────────────────────────────────
+   Un fond presque opaque, un grand rayon, une ombre profonde — et un
+   ::after qui peint DEUX traits à l'intérieur : un filet sur tout le
+   tour, et un demi-pixel plus clair sur le bord HAUT. C'est ce
+   demi-pixel qui fait qu'une boîte devient un objet qui accroche la
+   lumière, et pas une zone de couleur. */
+.lan-fen { position: relative; z-index: 1; isolation: isolate;
+  border-radius: 22px; overflow: hidden;
+  background: linear-gradient(
+      color-mix(in srgb, var(--carte) 96%, transparent),
+      color-mix(in srgb, var(--carte) 99%, transparent));
+  backdrop-filter: blur(30px) saturate(1.2);
+  box-shadow:
+    0 16px 48px 8px color-mix(in srgb, var(--encre) 16%, transparent),
+    0 4px 10px      color-mix(in srgb, var(--encre) 10%, transparent); }
+.lan-fen::after { content: ""; position: absolute; inset: 0; z-index: 10;
+  border-radius: inherit; pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px var(--lan-filet),
+    inset 0 .5px 0 color-mix(in srgb, #fff 26%, transparent); }
+
+/* La recherche garde sa mécanique — c'est le vrai moteur du site, avec
+   son index et sa liste de résultats. Seule la robe change. */
+.lan-rech { max-width: none; margin: .6rem .6rem 0; }
+.lan-rech input { padding: .66rem 1rem .66rem 2.6rem; border: 0;
+  background: var(--lan-creux); box-shadow: none; border-radius: 16px; }
+.lan-rech input:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+.lan-rech svg { left: .9rem; }
+.lan-sep { height: 1px; margin-top: .6rem; background: var(--lan-filet); }
+
+.lan-corps { display: grid; grid-template-columns: minmax(0,1.22fr) minmax(300px,1fr); }
+.lan-col { padding: .6rem; min-width: 0; }
+.lan-col + .lan-col { border-left: 1px solid var(--lan-filet); }
+
+/* ── Le bloc de catégorie ─────────────────────────────────────────────
+   Un lavis très transparent par groupe : assez pour que l'œil voie une
+   BANDE, trop peu pour concurrencer les pastilles de matière.
+   La règle qui évite la bouillie : petit et saturé = une matière ;
+   large et pâle = une catégorie. Deux rôles, deux échelles. */
+.lan-groupe { border-radius: 14px; margin-bottom: .3rem; padding: .1rem .25rem .25rem;
+  background: color-mix(in srgb, var(--cat, var(--encre)) var(--lan-lavis), transparent); }
+.lan-gtitre { display: flex; align-items: baseline; gap: .5rem;
+  padding: .35rem .5rem .25rem; font-size: .6364rem; font-weight: 800;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--cat, var(--encre-tenue)) 70%, var(--encre-douce)); }
+.lan-gtitre b, .lan-gtitre a { margin-left: auto; font-weight: 600; letter-spacing: .02em;
+  text-transform: none; font-size: .7273rem; text-decoration: none;
+  color: color-mix(in srgb, var(--cat, var(--accent)) 78%, var(--encre)); }
+.lan-gtitre a:hover { text-decoration: underline; }
+
+/* ── La ligne ─────────────────────────────────────────────────────────
+   L'heure et le nom se lisent d'un coup ; la fin du cours et la salle
+   descendent sur une seconde ligne, en retrait. Le reste attend qu'on
+   le cherche. */
+.lan-liste { list-style: none; margin: 0; padding: 0; }
+.lan-ligne { position: relative; display: flex; align-items: center; gap: .6rem;
+  padding: .36rem .6rem; border-radius: 10px; text-decoration: none;
+  color: inherit; cursor: pointer; }
+.lan-ligne:hover { background: color-mix(in srgb, var(--encre) 7%, var(--carte)); }
+.lan-ligne[data-choisi] { background: color-mix(in srgb, var(--encre) 10%, var(--carte)); }
+.lan-ligne[data-choisi] .lan-entree { opacity: 1; }
+
+.lan-ic { flex: none; width: 28px; height: 28px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--mat) 20%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat) 42%, transparent);
+  color: var(--mat-t); }
+.lan-ic .ico { width: 16px; height: 16px; }
+
+.lan-bloc { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .05rem; }
+.lan-l1 { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.lan-h { flex: none; font-family: var(--mono); font-size: .8485rem; font-weight: 700;
+  color: var(--encre); font-variant-numeric: tabular-nums; }
+/* Le nom est intouchable, la glose est sacrifiable. Sur les six thèmes à
+   chasse fixe le texte est ~20 % plus large : sans cette règle, c'est le
+   NOM qui perdait des lettres. On choisit ce qu'on sacrifie. */
+.lan-nom { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: .35rem;
+  font-size: .8788rem; color: var(--encre); }
+.lan-nom > .lan-t { flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lan-nom > i { flex: 0 9999 auto; min-width: 0; font-style: normal;
+  color: var(--encre-tenue);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* --encre-tenue sur --carte mesure ~3,9:1 — sous le seuil pour du petit
+   texte. La seconde ligne est en --encre-douce (~6:1). */
+.lan-l2 { display: flex; align-items: center; gap: .4rem; min-width: 0;
+  font-size: .7576rem; color: var(--encre-douce);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lan-l2 .lan-fin { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.lan-l2 .lan-salle { color: var(--encre); font-weight: 700; }
+
+/* Le cours en cours : une barre d'avancement de 2 px au bas de la ligne.
+   Elle ne coûte pas une rangée de plus, et c'est la seule chose de la
+   colonne qui bouge — donc l'œil y va. */
+.lan-ligne.lan-maintenant { background: color-mix(in srgb, var(--mat) 10%, transparent); }
+.lan-ligne.lan-maintenant::after { content: ""; position: absolute;
+  left: .6rem; right: .6rem; bottom: 3px; height: 2px; border-radius: 2px;
+  background: linear-gradient(to right,
+      var(--mat) 0 var(--av, 0%),
+      color-mix(in srgb, var(--mat) 22%, transparent) var(--av, 0%) 100%); }
+.lan-ligne.lan-maintenant .lan-t { font-weight: 650; color: var(--encre-forte); }
+.lan-ligne.lan-passe { opacity: .55; }
+
+.lan-pause { display: flex; align-items: center; gap: .6rem;
+  padding: .2rem .6rem .2rem 2.9rem; font-size: .7273rem; color: var(--encre-tenue); }
+.lan-pause::after { content: ""; flex: 1; height: 1px; background: var(--lan-filet); }
+
+/* Les badges. Une largeur plancher commune : sans elle, « 0/7 » faisait
+   33 px et « 14/19 » 47, et les anneaux qui les précèdent se posaient à
+   cinq abscisses différentes. */
+.lan-cpt { flex: none; min-width: 3.25rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: .05rem .45rem; border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 9%, transparent);
+  color: var(--encre-douce); font-size: .6667rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; }
+.lan-cpt.lan-urgent { background: color-mix(in srgb, var(--rouge) 16%, transparent); color: var(--rouge); }
+.lan-cpt.lan-calme  { background: color-mix(in srgb, var(--ambre) 20%, transparent); color: var(--ambre-sombre); }
+.lan-cpt.lan-vif    { background: color-mix(in srgb, var(--mat) 20%, transparent); color: var(--mat-t); }
+
+.lan-anneau { position: relative; flex: none; width: 18px; height: 18px; border-radius: 50%;
+  background: conic-gradient(var(--mat) calc(var(--p,0) * 1%),
+              color-mix(in srgb, var(--mat) 20%, transparent) 0); }
+.lan-anneau::after { content: ""; position: absolute; inset: 2.5px;
+  border-radius: 50%; background: var(--carte); }
+.lan-entree { flex: none; opacity: 0; font-family: var(--mono); font-size: .7273rem;
+  color: var(--encre-tenue); transition: opacity .12s; }
+
+/* ── Les pastilles d'outils ───────────────────────────────────────────
+   Mesuré en OKLab : un lavis à 13 % ne laisse que 2 à 3 de chroma sur
+   ~30, et deux matières tombent à ΔE 2 l'une de l'autre — sous le seuil
+   du perceptible. Diluer une couleur, c'est la tuer. Elle vit donc sur
+   le LIBELLÉ et le FILET, à pleine force : ΔE 13,5. */
+.lan-outils { display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .3rem; padding: .15rem .6rem .3rem; }
+.lan-oc { display: flex; align-items: center; gap: .33rem; min-width: 0;
+  padding: .3rem .5rem; border-radius: 9px;
+  background: color-mix(in srgb, var(--mat) 16%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat) 34%, transparent);
+  color: var(--mat-t); font-size: .7576rem; font-weight: 650;
+  text-decoration: none; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  transition: background .14s, border-color .14s; }
+.lan-oc:hover { background: color-mix(in srgb, var(--mat) 28%, var(--carte));
+  border-color: color-mix(in srgb, var(--mat) 62%, transparent); }
+.lan-oc .ico { flex: none; width: 15px; height: 15px; opacity: .92; }
+
+.lan-rien { display: none; padding: 1.6rem .6rem; text-align: center;
+  color: var(--encre-tenue); font-size: .8788rem; }
+.lan-rien b { display: block; color: var(--encre); font-size: .9697rem; margin-bottom: .2rem; }
+
+/* ── La barre d'actions ───────────────────────────────────────────── */
+.lan-actions { display: flex; align-items: center; gap: .9rem;
+  padding: .45rem .75rem; border-top: 1px solid var(--lan-filet);
+  background: var(--lan-creux); }
+.lan-comptes { display: flex; gap: .9rem; flex: 1; min-width: 0;
+  font-size: .7576rem; color: var(--encre-tenue); }
+.lan-comptes b { color: var(--encre); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lan-act { display: inline-flex; align-items: center; gap: .4rem; flex: none;
+  font-size: .7576rem; font-weight: 600; color: var(--encre-douce); }
+.lan-k { display: grid; place-items: center; min-width: 20px; height: 20px;
+  padding: 0 5px; border-radius: 6px;
+  background: color-mix(in srgb, var(--encre) 11%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--encre) 10%, transparent);
+  font-family: var(--mono); font-size: .7273rem; font-weight: 700;
+  color: var(--encre-douce); }
+
+/* ── Tenir dans l'écran ───────────────────────────────────────────────
+   La place se prend sur le décor, jamais sur le contenu ni sur la
+   taille des cibles. */
+@media (max-height: 880px) and (min-width: 1000px) {
+  .lan-scene { padding-block: .8rem .6rem; }
+  .lan-ligne { padding: .3rem .6rem; }
+}
+@media (max-height: 760px) and (min-width: 1000px) {
+  .lan-scene { padding-block: .5rem .4rem; }
+  .lan-tete h1 { font-size: clamp(1.3rem, 2.1vw, 1.6rem); }
+  .lan-ligne { padding: .26rem .6rem; }
+  .lan-gtitre { padding: .3rem .6rem .2rem; }
+  /* Le planning se remet sur UNE ligne : heure, nom, fin et numéro de
+     salle restent ; seul « salle de droite » part, parce que le code
+     suffit à trouver la porte. On perd du confort, pas une information
+     dont on a besoin sur place. */
+  .lan-bloc { flex-direction: row; align-items: baseline; gap: .5rem; }
+  .lan-l2 { flex: none; }
+  .lan-ou { display: none; }
+  .lan-pause { display: none; }
+}
+@media (max-width: 920px) {
+  .lan-corps { grid-template-columns: 1fr; }
+  .lan-col + .lan-col { border-left: 0; border-top: 1px solid var(--lan-filet); }
+}
+@media (max-width: 760px) { .lan-outils { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 520px) {
+  .lan-actions { flex-wrap: wrap; }
+  .lan-comptes { flex-basis: 100%; }
+  .lan-nom > i { display: none; }
+}
+/* Mesuré au doigt : 9 lignes sur 12 faisaient moins de 44 px. La bonne
+   condition n'est pas la largeur de l'écran mais le genre de pointeur. */
+@media (pointer: coarse) {
+  .lan-ligne { min-height: 44px; }
+  .lan-oc { min-height: 44px; }
+}
+/* « hidden » vaut display:none, mais c'est une règle du navigateur, de
+   spécificité (0,0,1) : « .lan-oc{display:flex} » la bat. Mesuré : les
+   huit pastilles restaient affichées quoi qu'on tape. */
+.lan-oc[hidden], .lan-outils[hidden], .lan-liste[hidden],
+.lan-gtitre[hidden], .lan-groupe[hidden], .lan-liste li[hidden] { display: none; }
+
+/* La scène ne doit pas gonfler la page : sa hauteur plancher servait à
+   centrer la fenêtre quand elle est petite, mais elle ajoutait 88 px de
+   vide quand elle ne l'est pas. Et le pied de page coûtait 235 px avec
+   sa marge — de quoi faire défiler une page qu'on venait de faire tenir.
+   Sur l'accueil seulement, il se resserre : il dit la même chose, plus
+   bas. */
+/* L'en-tête et le pied partis, la scène peut enfin prendre toute la
+   hauteur : la fenêtre se centre au lieu de coller en haut avec deux
+   cents pixels de vide dessous. « border-box » pour que le rembourrage
+   soit COMPRIS dans les 100 % — sinon la page déborde de ce qu'il
+   ajoute, et on refait défiler ce qu'on vient de faire tenir. */
+html[data-style="lanceur"] body[data-accueil] .lan-scene {
+  box-sizing: border-box; min-height: 100svh;
+}
+html[data-style="lanceur"] body[data-accueil] .app-pied {
+  margin-top: 1.1rem; padding: .9rem 1rem 1.1rem; font-size: .7879rem;
+}
+html[data-style="lanceur"] body[data-accueil] .app-pied p { margin: .2rem 0; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens { margin-top: .5rem; }
+
+/* =====================================================================
+   SUR L'ACCUEIL, LA FENÊTRE FLOTTE SEULE
+   Demandé : « c'était trop bien sans menu, sans footer, sans nav ».
+   C'est faisable sans rien perdre, parce que le menu disait déjà ce que
+   la fenêtre dit : Planning, Devoirs et Outils sont dedans, et
+   « Accueil » est la page elle-même. Ne restent que les trois boutons
+   qu'on ne trouve nulle part ailleurs — le thème, les réglages et le
+   village — posés en haut à droite, sans barre autour.
+
+   Le pied : la phrase « aucun document original n'est redistribué »
+   reste sur les 263 autres pages et sur « À propos ». Ici il ne demeure
+   que les trois liens, en tout petit. Une page d'accueil n'a pas à se
+   justifier deux fois.
+   ===================================================================== */
+html[data-style="lanceur"] body[data-accueil] .app-tete {
+  background: none; border: 0; box-shadow: none; backdrop-filter: none;
+}
+/* Le bouton du village est un <a>, pas un <button> : une règle qui
+   visait « nav > a » l'emportait avec les quatre liens. Mesuré sur la
+   page, pas deviné — il avait disparu. On nomme donc ce qu'on retire,
+   pas ce qui lui ressemble. */
+html[data-style="lanceur"] body[data-accueil] .app-marque,
+html[data-style="lanceur"] body[data-accueil] .app-tete nav > a:not([href*="monde/"]) { display: none; }
+html[data-style="lanceur"] body[data-accueil] .app-tete nav { margin-left: auto; }
+
+html[data-style="lanceur"] body[data-accueil] .app-pied {
+  margin-top: .4rem; padding: 0 1rem 1rem; border: 0; background: none;
+}
+html[data-style="lanceur"] body[data-accueil] .app-pied p:not(.liens) { display: none; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens { margin: 0; font-size: .7273rem; opacity: .75; }
+html[data-style="lanceur"] body[data-accueil] .app-pied .liens a { color: var(--encre-tenue); }
+
+/* =====================================================================
+   TOUT RENTRE DANS LA BARRE
+   Demandé : ne plus voir flotter les trois boutons en haut à droite ni
+   les trois liens en bas. Ils ne sont pas supprimés — ils sont RANGÉS :
+   le thème, les réglages et le village dans la barre d'actions de la
+   fenêtre ; le kit, « à propos » et le code source derrière un « ⋯ »
+   qui s'ouvre au même endroit. C'est la place qu'ils ont dans un
+   lanceur : la barre du bas porte les actions, pas le décor.
+   ===================================================================== */
+html[data-style="lanceur"] body[data-accueil] .app-tete,
+html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
+
+.lan-nav { display: flex; align-items: center; gap: .3rem; flex: none; }
+.lan-nav:empty { display: none; }
+/* Les boutons arrivent de l'en-tête, où ils étaient habillés par
+   « .app-tete nav … » ; ce sélecteur ne les suit pas. On les rhabille
+   ici, à la taille de la barre. */
+.lan-nav > :is(button, a) {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  border: 1px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre-douce); cursor: pointer;
+  transition: border-color .14s, color .14s, background .14s;
+}
+.lan-nav > :is(button, a):hover {
+  border-color: var(--accent); color: var(--accent-sombre);
+}
+.lan-nav .ico { width: 15px; height: 15px; }
+/* Le bouton du village garde son relief : c'est le seul de la barre qui
+   mène ailleurs, et il le dit. */
+.lan-nav .bouton-3d { width: auto; min-width: 34px; padding: 0 .4rem;
+  font-size: .6667rem; font-weight: 800; letter-spacing: .04em; }
+
+.lan-plus { position: relative; flex: none; }
+.lan-plus > summary {
+  list-style: none; cursor: pointer;
+  display: grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre-douce);
+  font-size: .9091rem; line-height: 1;
+}
+.lan-plus > summary::-webkit-details-marker { display: none; }
+.lan-plus > summary:hover { border-color: var(--accent); color: var(--accent-sombre); }
+.lan-plus > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lan-plus[open] > summary { border-color: var(--accent); color: var(--accent-sombre); }
+.lan-plus-menu {
+  position: absolute; bottom: calc(100% + .45rem); right: 0; z-index: 40;
+  display: flex; flex-direction: column; min-width: 10rem; padding: .25rem;
+  border: 1px solid var(--bord-fort); border-radius: 12px;
+  background: color-mix(in srgb, var(--carte) 97%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3); box-shadow: var(--ombre-haut);
+}
+.lan-plus-menu :is(a, button) {
+  padding: .4rem .6rem; border-radius: 8px; text-decoration: none;
+  color: var(--encre-douce); font-size: .7879rem; font-weight: 600;
+  /* Le bouton de bascule vit au milieu de trois liens : il doit leur
+     ressembler trait pour trait, sinon il se lit comme un intrus. */
+  border: 0; background: none; font-family: inherit; text-align: left;
+  cursor: pointer; width: 100%;
+}
+.lan-plus-menu :is(a, button):hover { background: var(--lan-choisi); color: var(--encre-forte); }
+/* Le seul qui AGIT sur la page est séparé des trois qui emmènent ailleurs. */
+.lan-plus-menu [data-bascule-style] {
+  border-bottom: 1px solid var(--bord); border-radius: 8px 8px 0 0;
+  margin-bottom: .2rem; padding-bottom: .5rem;
+}
+@media (pointer: coarse) {
+  .lan-nav > :is(button, a), .lan-plus > summary { width: 40px; height: 40px; }
+  .lan-plus-menu :is(a, button) { padding: .6rem .7rem; }
+}
+
+/* Au doigt, « Ouvrir ⏎ » ne sert à rien : il n'y a pas de touche Entrée.
+   Le retirer là — et seulement là — remet la rangée d'actions sur UNE
+   ligne ; sans ça la barre montait à 147 px, le « ⋯ » se retrouvait au
+   bord gauche de sa rangée, et son menu sortait de la fenêtre, qui le
+   coupait. Mesuré, pas supposé. */
+@media (pointer: coarse) {
+  .lan-act:not(.lan-de) { display: none; }
+}
+@media (max-width: 560px) {
+  .lan-comptes { flex-basis: 100%; order: 2; font-size: .6970rem; gap: .7rem; }
+  .lan-de { font-size: .7273rem; }
+}
+.lan-plus-menu { max-width: min(14rem, 75vw); }
+
+/* =====================================================================
+   L'INTERRUPTEUR DE L'ACCUEIL
+   Demandé : pouvoir revenir à l'ancien dessin. Les deux mises en page
+   sont dans la page, et le réglage en montre une. Le choix est posé par
+   l'amorce anti-éclair, AVANT le premier rendu : sans ça l'accueil
+   s'afficherait dans l'un puis sauterait dans l'autre.
+
+   Je préférais n'en garder qu'une — deux mises en page, c'est deux
+   vérités à tenir, et celle qu'on ne regarde pas pourrit. La garantie
+   qu'on se donne : les deux sont fabriquées des mêmes compteurs, à la
+   publication. Aucun nombre n'est tapé à la main nulle part.
+   ===================================================================== */
+.accueil-classique { display: none; }
+html[data-style="classique"] .accueil-classique { display: block; }
+html[data-style="classique"] .lan-scene { display: none; }
+
+/* ── la ligne d'expression, comme sur la machine ──────────────────────
+   Un filet de couleur à gauche, l'expression écrite en maths, sa nature
+   en dessous, un « ⋯ » à droite. La ligne au repos n'est pas un champ :
+   c'est un objet qu'on regarde, et qu'on ouvre d'un clic. */
+.nw-expr-liste { display: flex; flex-direction: column; gap: .4rem; margin: .6rem 0; }
+.nw-expr {
+  display: flex; align-items: stretch; gap: .4rem;
+  border: 1px solid var(--bord); border-radius: .55rem;
+  border-left: 4px solid var(--filet, var(--nw-c1));
+  background: var(--carte); overflow: hidden;
+}
+.nw-expr-ouvert { border-color: var(--filet, var(--nw-c1)); }
+.nw-expr-corps {
+  flex: 1 1 auto; min-width: 0; text-align: left;
+  display: flex; flex-direction: column; gap: .12rem;
+  padding: .5rem .6rem; border: 0; background: none; cursor: pointer;
+  color: inherit; font: inherit;
+}
+.nw-expr-corps:hover { background: color-mix(in srgb, var(--filet, var(--nw-c1)) 8%, transparent); }
+.nw-expr-math {
+  font-family: var(--mono, ui-monospace, monospace); font-size: 1.08rem;
+  line-height: 1.5; overflow-wrap: anywhere;
+}
+.nw-expr-math sup { font-size: .72em; }
+.nw-expr-type { font-size: .82rem; color: var(--encre-douce); }
+.nw-expr-menu {
+  flex: 0 0 auto; width: 2.6rem; border: 0; border-left: 1px solid var(--bord);
+  background: none; cursor: pointer; color: var(--encre-douce);
+  font-size: 1.15rem; line-height: 1;
+}
+.nw-expr-menu:hover { background: color-mix(in srgb, var(--encre) 7%, transparent); }
+.nw-expr-saisie { align-items: center; flex-wrap: wrap; padding: .45rem .55rem; gap: .45rem; }
+.nw-expr-saisie label { font-family: var(--mono, ui-monospace, monospace); }
+.nw-expr-saisie .nw-large { flex: 1 1 10rem; min-width: 0; }
+.nw-expr-ajout {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .55rem .7rem; width: 100%; text-align: left;
+  border: 1px dashed var(--bord); border-radius: .55rem;
+  background: none; cursor: pointer; color: var(--encre-douce); font: inherit;
+}
+.nw-expr-ajout:hover { color: var(--encre); border-color: var(--encre-douce); }
+.nw-expr-ajout span { font-size: 1.1rem; line-height: 1; }
+.nw-expr-bas { display: flex; flex-wrap: wrap; gap: .5rem; margin: .7rem 0 .4rem; }
+.nw-expr-bas .nw-bouton { flex: 1 1 11rem; justify-content: center; }
+
+.nw-expr-options {
+  border: 1px solid var(--bord); border-top: 0;
+  border-radius: 0 0 .55rem .55rem; padding: .6rem .7rem;
+  background: color-mix(in srgb, var(--encre) 3%, var(--carte));
+  display: flex; flex-direction: column; gap: .7rem;
+  margin-top: -.4rem;
+}
+.nw-opt-bloc h4 {
+  margin: 0 0 .3rem; font-size: .78rem; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--encre-douce);
+}
+.nw-opt-bloc .nw-valeurs { margin: 0; }
+.nw-coche { display: flex; align-items: baseline; gap: .4rem; padding: .18rem 0; }
+.nw-coche .nw-sous { margin: 0; }
+.nw-teintes { display: flex; flex-wrap: wrap; gap: .4rem; }
+.nw-teinte {
+  width: 1.7rem; height: 1.7rem; border-radius: 50%; cursor: pointer;
+  background: var(--t); border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--bord) inset;
+}
+.nw-teinte.nw-choisie { border-color: var(--encre); }
+.nw-teinte:focus-visible { outline: 2px solid var(--encre); outline-offset: 2px; }
+/* La dérivée : même couleur, trait pointillé. */
+.nw-trace .courbe.nw-deriv { stroke-dasharray: 5 4; opacity: .85; }
+.nw-legende i.nw-leg-deriv {
+  background-image: repeating-linear-gradient(90deg,
+    transparent 0 2px, var(--carte) 2px 4px);
+}
+/* Les cibles du doigt : rien en dessous de 44 px au toucher. */
+@media (pointer: coarse) {
+  .nw-expr-menu { width: 2.9rem; }
+  .nw-expr-corps, .nw-expr-ajout { min-height: 2.9rem; }
+  .nw-teinte { width: 2.1rem; height: 2.1rem; }
+}
+
+/* ── Probabilités : trois zones empilées ──────────────────────────────
+   La loi, puis ses paramètres, puis la question. Chacune prend toute la
+   largeur et ne passe jamais à la ligne au milieu d'elle-même : c'est ce
+   qui séparait « p » de son champ. */
+.nw-proba-tete { display: flex; align-items: center; gap: .5rem; margin: .5rem 0 .6rem; }
+.nw-proba-lib { flex: 0 0 auto; font-weight: 600; color: var(--encre-douce); }
+.nw-loi { flex: 1 1 auto; min-width: 0; }
+.nw-params {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--bord); border-radius: .55rem; overflow: hidden;
+}
+.nw-par {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .45rem .6rem; background: var(--carte);
+}
+.nw-par + .nw-par { border-top: 1px solid var(--bord); }
+.nw-par label { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.nw-par label b { font-family: var(--mono, ui-monospace, monospace); font-size: .95rem; }
+.nw-par label i { font-style: normal; font-size: .78rem; color: var(--encre-douce); }
+.nw-par input { flex: 0 0 7rem; text-align: right; }
+
+.nw-equation {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .45rem;
+  margin: .7rem 0; padding: .5rem .6rem;
+  border: 1px solid var(--bord); border-radius: .55rem; background: var(--carte);
+}
+.nw-formes { display: flex; gap: .25rem; flex: 0 0 auto; }
+.nw-forme {
+  width: 2.3rem; height: 1.9rem; padding: .15rem; cursor: pointer;
+  border: 1px solid var(--bord); border-radius: .4rem; background: var(--carte);
+  display: grid; place-items: center;
+}
+.nw-forme.nw-choisie { border-color: var(--accent); background: var(--accent-pale); }
+.nw-forme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nw-vq { width: 100%; height: 100%; }
+.vq-trait { fill: none; stroke: var(--encre-douce); stroke-width: 1.3; }
+.vq-plein { fill: var(--accent); opacity: .55; }
+.nw-forme.nw-choisie .vq-trait { stroke: var(--accent-sombre); }
+.nw-forme.nw-choisie .vq-plein { opacity: .9; }
+.nw-eq {
+  display: flex; align-items: center; gap: .3rem;
+  font-family: var(--mono, ui-monospace, monospace); font-size: 1rem;
+}
+.nw-eq input { flex: 0 0 4.2rem; text-align: center; }
+.nw-res { flex: 1 1 8rem; min-width: 0; font-family: var(--mono, ui-monospace, monospace); }
+.nw-res[readonly] { background: var(--carte-creuse); color: var(--encre-douce); cursor: default; }
+@media (pointer: coarse) {
+  .nw-forme { width: 2.8rem; height: 2.4rem; }
+  .nw-par { min-height: 2.9rem; }
+}
+@media (max-width: 420px) {
+  .nw-par { flex-wrap: wrap; }
+  .nw-par input { flex: 1 1 100%; text-align: left; }
+}
+
+/* Les graduations passent par-dessus le tracé, avec un liseré du fond :
+   un chiffre à demi caché derrière une barre se lit de travers. */
+.nw-trace .graduations text {
+  paint-order: stroke;
+  stroke: var(--carte); stroke-width: 3.2px; stroke-linejoin: round;
+}
+
+/* ── Annales ──────────────────────────────────────────────────────────
+   Une ligne par sujet : l'année à gauche, ce dont il parle au milieu, les
+   étiquettes à droite. L'année est en chiffres fixes et alignée, parce
+   qu'on cherche une ANNÉE dans cette liste, pas un titre — et une colonne
+   qui ne bouge pas se balaie des yeux sans lire. */
+.annales { margin: 2rem 0 0; }
+.annales h2 { margin: 0 0 .3rem; }
+.an-epreuve { margin: 1.6rem 0; }
+.an-epreuve h2, .an-epreuve h3 { margin: 0 0 .3rem; }
+.an-note { margin: 0 0 .8rem; color: var(--encre-douce); line-height: 1.6; font-size: .8788rem; }
+.an-liste { list-style: none; margin: 0; padding: 0;
+  border: 1px solid var(--bord); border-radius: var(--r); overflow: hidden; }
+.an-liste li + li { border-top: 1px solid var(--bord); }
+.an-ligne {
+  display: flex; align-items: baseline; gap: .7rem;
+  padding: .6rem .8rem; min-height: 44px; text-decoration: none; color: var(--encre);
+  background: var(--carte);
+}
+.an-ligne:hover { background: var(--accent-pale); }
+.an-an {
+  flex: 0 0 3.2rem; font-family: var(--mono); font-size: .9rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--accent-sombre);
+}
+.an-quoi { flex: 1 1 auto; min-width: 0; line-height: 1.5; }
+.an-marques { flex: 0 0 auto; display: flex; gap: .3rem; flex-wrap: wrap; }
+.an-marques span {
+  font-size: .6818rem; font-weight: 700; letter-spacing: .03em;
+  padding: .1rem .4rem; border-radius: 999px;
+  border: 1px solid var(--bord-fort); color: var(--encre-douce);
+}
+.an-cor { border-color: var(--accent) !important; color: var(--accent-sombre) !important; }
+.an-fleche { flex: 0 0 auto; color: var(--encre-douce); font-size: .9rem; }
+.an-source { margin: .45rem 0 0; font-size: .7576rem; color: var(--encre-douce); }
+@media (max-width: 520px) {
+  .an-ligne { flex-wrap: wrap; }
+  .an-quoi { flex: 1 1 100%; order: 3; }
+  .an-marques { order: 2; }
+}
+
+/* =====================================================================
+   LE LANCEUR DÉBORDE DE L'ACCUEIL
+   Demandé : « le mode lanceur, je veux que quand je suis dans ce mode ça
+   se répercute sur toutes les autres pages ». C'était une vraie moitié de
+   travail manquante — on changeait d'accueil, puis la première matière
+   ouverte ramenait les grandes cartes, et le choix ne voulait plus rien
+   dire.
+
+   Ce qui se transporte, c'est la GRAMMAIRE, pas le dessin : une fenêtre
+   avec son matériau, des lignes plutôt que des cartes, et les actions en
+   petites pastilles au bout de la ligne. Ce qui ne se transporte PAS,
+   c'est le corps d'une fiche : un cours est un texte qu'on lit, pas une
+   console. La fenêtre l'entoure, la typographie n'y touche pas.
+
+   Tout est accroché à « body:not([data-accueil]) » : l'accueil a déjà son
+   traitement, et il ne doit pas recevoir celui-ci par-dessus.
+   ===================================================================== */
+html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps) {
+  position: relative; isolation: isolate;
+  border-radius: 22px; padding: .9rem 1rem 1.2rem; margin-top: .9rem;
+  background: linear-gradient(
+      color-mix(in srgb, var(--carte) 96%, transparent),
+      color-mix(in srgb, var(--carte) 99%, transparent));
+  box-shadow:
+    0 16px 48px 8px color-mix(in srgb, var(--encre) 13%, transparent),
+    0 4px 10px      color-mix(in srgb, var(--encre) 8%, transparent);
+}
+/* Le filet d'un demi-pixel en haut : c'est lui qui fait qu'une boîte
+   devient un objet. Posé en « ::after » pour ne rien coûter au contenu. */
+html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps)::after {
+  content: ""; position: absolute; inset: 0; z-index: 10;
+  border-radius: inherit; pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px var(--lan-filet),
+    inset 0 .5px 0 color-mix(in srgb, #fff 26%, transparent);
+}
+
+/* ── l'en-tête de la page, resserré ──────────────────────────────── */
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere {
+  padding: .1rem .2rem .7rem; border-bottom: 1px solid var(--lan-filet); margin-bottom: .2rem;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere h1 { margin-bottom: .15rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere p { font-size: .8485rem; }
+
+/* ── les chapitres deviennent des lignes ─────────────────────────────
+   Six cartes à quatre boutons chacune, c'est six fois la même mise en
+   page à relire. Une liste de lignes séparées d'un filet se balaie : le
+   numéro tient la colonne de gauche, le titre la colonne du milieu, les
+   quatre liens la colonne de droite, et l'œil descend tout droit. */
+html[data-style="lanceur"] body:not([data-accueil]) .liste-chapitres {
+  gap: 0; margin-top: .5rem;
+  border: 1px solid var(--lan-filet); border-radius: 14px; overflow: hidden;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre {
+  border: 0; border-radius: 0; background: var(--carte);
+  padding: .42rem .55rem; gap: .55rem;
+  grid-template-areas: "num txt liens coche";
+  grid-template-columns: 34px 1fr auto auto;
+  align-items: center;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre + .chapitre {
+  border-top: 1px solid var(--lan-filet);
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre:hover {
+  transform: none; background: color-mix(in srgb, var(--encre) 7%, var(--carte));
+}
+/* Le numéro reprend la pastille de matière du lanceur : même taille,
+   même rayon, même façon de tenir la couleur — sur le filet et le
+   libellé, pas en remplissage pâle. */
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .num {
+  width: 28px; height: 28px; min-width: 0; border-radius: 9px;
+  display: grid; place-items: center; font-size: .7273rem; font-weight: 700;
+  background: color-mix(in srgb, var(--mat, var(--accent)) 20%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--mat, var(--accent)) 42%, transparent);
+  color: var(--mat-t, var(--accent-sombre));
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .txt h3 { font-size: .8788rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .txt p {
+  font-size: .7576rem; margin-top: .05rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .chapitre .liens a {
+  padding: .2rem .5rem; font-size: .7273rem; border-radius: 8px;
+}
+
+/* ── les outils, en pastilles comme sur l'accueil ─────────────────── */
+html[data-style="lanceur"] body:not([data-accueil]) .grille-matieres {
+  gap: .45rem;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere {
+  padding: .7rem .8rem; border-radius: 12px;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere h2 { font-size: .9394rem; }
+html[data-style="lanceur"] body:not([data-accueil]) .carte-matiere p { font-size: .7879rem; }
+
+/* ── la fiche : la fenêtre, et rien d'autre ──────────────────────────
+   Le corps d'un cours garde sa largeur de lecture, sa taille de texte et
+   son interligne. Resserrer un texte qu'on lit pendant vingt minutes
+   pour gagner trois lignes à l'écran, c'est échanger du confort contre
+   du vide. */
+html[data-style="lanceur"] body:not([data-accueil]) .corps {
+  padding: 1.2rem 1.3rem 1.6rem;
+}
+
+@media (max-width: 620px) {
+  html[data-style="lanceur"] body:not([data-accueil]) :is(.contenu, .corps) {
+    border-radius: 16px; padding: .7rem .7rem 1rem;
+  }
+  html[data-style="lanceur"] body:not([data-accueil]) .chapitre {
+    grid-template-areas: "num txt coche" "liens liens liens";
+    grid-template-columns: 34px 1fr auto;
+    row-gap: .35rem;
+  }
+}
+
+/* ── en lanceur, l'ancien mobilier s'efface partout ───────────────────
+   Signalé : l'en-tête à quatre onglets encadrés est le mobilier de
+   l'ancien site, et le poser au-dessus d'une fenêtre de lanceur colle
+   deux interfaces l'une sur l'autre. Il s'efface donc sur toutes les
+   pages — mais seulement parce que app.js lui donne un remplaçant au bas
+   de la fenêtre. Masquer sans remplacer, c'était la faute d'avant. */
+html[data-style="lanceur"] .app-tete,
+html[data-style="lanceur"] .app-pied { display: none; }
+
+/* La barre, en bas de la fenêtre, pleine largeur : on annule le
+   rembourrage de la fenêtre pour qu'elle touche les trois bords et
+   reprenne l'arrondi du bas. */
+/* En tête de fenêtre : elle remplit la bande qui ne servait à rien, et
+   reprend l'arrondi du haut. */
+html[data-style="lanceur"] .lan-actions-page {
+  margin: -.9rem -1rem .7rem; border-radius: 22px 22px 0 0;
+  border-top: 0; border-bottom: 1px solid var(--lan-filet);
+  flex-wrap: wrap;
+}
+/* Le rappel du bas : les destinations seules, et un peu plus discret —
+   c'est un rappel, pas une seconde commande. */
+html[data-style="lanceur"] .lan-actions-bas {
+  margin: 1rem -1rem -1.2rem; border-radius: 0 0 22px 22px;
+  border-top: 1px solid var(--lan-filet); border-bottom: 0;
+  justify-content: center; opacity: .9;
+}
+.lan-dest { display: flex; align-items: center; gap: .25rem; flex: 1 1 auto;
+  min-width: 0; flex-wrap: wrap; }
+/* Les quatre destinations reprennent le dessin des pastilles d'outils du
+   lanceur : le libellé porte la couleur, pas un cadre autour. */
+.lan-dest > a {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .3rem .55rem; border-radius: 9px;
+  border: 1px solid transparent; background: none;
+  color: var(--encre-douce); font-size: .7576rem; font-weight: 650;
+  text-decoration: none; white-space: nowrap;
+}
+.lan-dest > a:hover {
+  background: color-mix(in srgb, var(--encre) 8%, transparent); color: var(--encre);
+}
+.lan-dest > a[aria-current] {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent-sombre);
+}
+.lan-dest > a svg, .lan-dest > a .ico { width: 15px; height: 15px; flex: none; }
+
+/* ── le fil d'Ariane ne paie plus l'en-tête qui n'est plus là ─────────
+   Mesuré : 30 px de rembourrage haut sur le fil, plus 15 px de fenêtre,
+   soit 45 px de blanc avant le premier mot. Ce rembourrage servait à
+   dégager la barre fixe de l'ancien site. Elle n'est plus là. */
+html[data-style="lanceur"] body:not([data-accueil]) .fil-app {
+  padding-top: 0; margin-bottom: .2rem;
+}
+html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top: 0; }
+
+@media (max-width: 620px) {
+  html[data-style="lanceur"] .lan-actions-page {
+    margin: .7rem -.7rem -1rem; border-radius: 0 0 16px 16px;
+  }
 }
 
 

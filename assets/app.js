@@ -20,7 +20,10 @@
     theme: "bloc-notes", variante: "", taille: "normal", largeur: "normal", police: "systeme",
     interligne: "normal", anim: 1, curseur: 1, reponses: 0, faits: [],
     son: "", sonVolume: 30,
-    derniere: null, recents: []
+    derniere: null, recents: [],
+    /* La présentation de l'accueil. « lanceur » par défaut ; « classique »
+       ramène les grandes cartes, pour qui les préfère. */
+    style: "lanceur"
   };
   var S = (function () {
     try { return Object.assign({}, DEFAUTS, JSON.parse(localStorage.getItem(CLE) || "{}")); }
@@ -129,6 +132,25 @@
   }
   S.memoClair  = memoValide(S.memoClair);
   S.memoSombre = memoValide(S.memoSombre);
+
+  /* Deux présentations de l'accueil, et un interrupteur pour revenir.
+     Je préférais n'en garder qu'une : deux mises en page, c'est deux
+     vérités à tenir, et celle qu'on ne regarde pas pourrit — la carte
+     « Outils » a annoncé « 2 outils » pendant des mois alors qu'il y en
+     avait huit. Demandé quand même, et c'est son site.
+     La garantie qu'on se donne : les DEUX accueils sont fabriqués à
+     partir des mêmes compteurs, à la publication. Aucun nombre n'est
+     tapé à la main nulle part — l'ancien ne peut donc plus mentir. */
+  var STYLES = [
+    { id: "lanceur",   nom: "Lanceur" },
+    { id: "classique", nom: "Classique" },
+    /* Demandé : le village en fait partie, c'est un accueil lui aussi.
+       Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
+       3D : le choisir envoie là-bas. La redirection est posée dans le
+       script d'en-tête, avant le premier pixel, donc on ne voit pas
+       l'accueil clignoter avant de partir. */
+    { id: "monde",     nom: "3D" }
+  ];
 
   var TAILLES = [
     { id: "petit", nom: "Petit" }, { id: "normal", nom: "Normal" },
@@ -430,6 +452,7 @@
     d.dataset.largeur    = S.largeur || "normal";
     d.dataset.police     = S.police || "systeme";
     d.dataset.interligne = S.interligne || "normal";
+    d.dataset.style      = S.style || "lanceur";
     d.dataset.anim       = S.anim ? "1" : "0";
     /* Six univers portent leur propre curseur. Un curseur imposé est le genre
        de fantaisie dont on se lasse, et il gêne qui a du mal à viser : il se
@@ -721,6 +744,63 @@
       courant = "";
     }
 
+    /* ── les vrais enregistrements ────────────────────────────────────
+       Signalé : la synthèse fait mal aux oreilles. Elle avait la bonne
+       COULEUR — trois décibels d'écart moyen sur neuf octaves — et ça ne
+       suffit pas : un spectre juste n'est pas une oreille contente. Ce qui
+       fatigue, ce sont les aigus permanents, que la mesure par bandes ne
+       voit pas puisqu'elle moyenne.
+
+       Ses trois enregistrements durent 4 h, 8 h et 12 h — 2,0 Go. On en a
+       tiré trois boucles de soixante secondes, cousues : les trois
+       dernières secondes sont fondues sur les trois premières, si bien que
+       la fin rejoint le début sans couture. Mesuré à −26 LUFS, crête
+       −6 dBTP : le registre d'un fond sonore, pas d'une bande-annonce.
+
+       La boucle est décodée puis jouée par Web Audio, pas par une balise
+       <audio> : un <audio> en boucle laisse un silence au raccord, le
+       temps que le décodeur reparte. Un AudioBuffer bouclé est exact à
+       l'échantillon près.
+
+       Et si le fichier manque — hors ligne, dépôt incomplet —, la synthèse
+       reprend la main. On préfère un son moins beau à pas de son du tout. */
+    var ENREG = { espace: "espace.m4a", pluie: "pluie.m4a", feu: "feu.m4a" };
+    var boucles = {}, enCours = {};
+
+    function charger(id) {
+      if (boucles[id]) return Promise.resolve(boucles[id]);
+      if (enCours[id]) return enCours[id];
+      if (!ENREG[id] || !window.fetch) return Promise.reject();
+      enCours[id] = fetch(racine() + "assets/sons/" + ENREG[id])
+        .then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(function (b) {
+          return new Promise(function (ok, non) {
+            /* decodeAudioData existe en deux versions : celle qui rend une
+               promesse, et celle d'avant qui prend deux fonctions. Safari a
+               longtemps n'avoir que la seconde ; on écrit pour les deux. */
+            var p = ctx.decodeAudioData(b, ok, non);
+            if (p && p.then) p.then(ok, non);
+          });
+        })
+        .then(function (buf) { boucles[id] = buf; delete enCours[id]; return buf; })
+        .catch(function (e) { delete enCours[id]; throw e; });
+      return enCours[id];
+    }
+
+    function jouerBoucle(buf) {
+      var s = ctx.createBufferSource();
+      s.buffer = buf;
+      s.loop = true;
+      /* Un départ au hasard dans la boucle : rouvrir la page deux fois de
+         suite ne redonne pas la même goutte au même instant. */
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(1, ctx.currentTime + 1.2);
+      s.connect(g).connect(maitre);
+      s.start(0, Math.random() * buf.duration);
+      noeuds.push(s);
+    }
+
     function volumeVoulu() {
       /* Demandé : que l'espace, le feu et la pluie restent discrets.
          Le curseur va de
@@ -748,9 +828,16 @@
       arreter();
       maitre.gain.value = volumeVoulu();
       courant = id;
-      if (id === "espace") espace(maitre);
-      else if (id === "pluie") pluie(maitre);
-      else if (id === "feu") feu(maitre);
+      var synthetiser = function () {
+        if (courant !== id) return;      /* on a changé d'avis entre-temps */
+        if (id === "espace") espace(maitre);
+        else if (id === "pluie") pluie(maitre);
+        else if (id === "feu") feu(maitre);
+      };
+      charger(id).then(function (buf) {
+        if (courant !== id) return;
+        jouerBoucle(buf);
+      }, synthetiser);
       if (ctx.state === "suspended") ctx.resume();
     }
 
@@ -829,6 +916,12 @@
         '<div class="apercu-theme" aria-hidden="true">' +
           '<span class="ap-carte"><i></i><b></b></span>' +
           '<span class="ap-txt">Aperçu du thème</span></div></div>' +
+
+        '<div class="reglage"><h3>Accueil</h3>' +
+        '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
+        '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
+        'le classique garde les grandes cartes ; la 3D ouvre le village. ' +
+        'Depuis le village, « retour » ramène ici, et le choix se change.</p></div>' +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
@@ -1120,8 +1213,107 @@
     }, { passive: true });
   }
 
+  /* ── la barre du lanceur, sur les pages intérieures ───────────────────
+     Signalé, et c'est juste : « le mode lanceur c'est pas la même
+     interface, arrête de récupérer des trucs de l'ancien et de les mettre
+     dans le nouveau ». L'en-tête à quatre onglets encadrés est le mobilier
+     de l'ancien site. Le remettre en haut d'une fenêtre de lanceur, c'est
+     coller deux interfaces l'une sur l'autre.
+
+     Alors la page intérieure reçoit la MÊME barre que l'accueil : en bas
+     de la fenêtre, les quatre destinations à gauche, les boutons à droite,
+     le « ⋯ » au bout. Les liens ne sont pas recréés mais DÉPLACÉS depuis
+     l'en-tête : ils gardent leur adresse, leur icône et la marque de la
+     page courante, et rien de ce qui y était branché ne se débranche.
+
+     Les fiches n'en reçoivent pas : elles ont déjà leur barre du bas, avec
+     le chapitre précédent et le suivant. Deux barres l'une sous l'autre ne
+     serviraient qu'à se faire concurrence. */
+  function barrePage() {
+    if (document.documentElement.dataset.style !== "lanceur") return null;
+    if (document.body.dataset.accueil) return null;
+    var fen = document.querySelector("main.contenu");
+    if (!fen || document.querySelector(".lan-actions")) return null;
+    var navAncien = document.querySelector(".app-tete nav");
+    if (!navAncien) return null;
+
+    var barre = document.createElement("div");
+    barre.className = "lan-actions lan-actions-page";
+
+    var dest = document.createElement("div");
+    dest.className = "lan-dest";
+    /* Le village a son propre bouton, posé plus tard par poserBouton3D :
+       on ne déplace que les liens de navigation. */
+    var liens = navAncien.querySelectorAll('a:not([href*="monde/"])');
+    for (var i = 0; i < liens.length; i++) dest.appendChild(liens[i]);
+    barre.appendChild(dest);
+
+    var nav = document.createElement("div");
+    nav.className = "lan-nav";
+    barre.appendChild(nav);
+
+    /* Le « ⋯ » : les trois liens qui vivaient dans le pied. Le pied est
+       masqué en mode lanceur ; ses liens ne doivent pas disparaître avec
+       lui. On les reprend du document plutôt que de les réécrire, pour
+       que leur adresse reste celle que publier.py a calculée. */
+    var pied = document.querySelector(".app-pied .liens");
+    if (pied) {
+      var plus = document.createElement("details");
+      plus.className = "lan-plus";
+      var tete = document.createElement("summary");
+      tete.setAttribute("aria-label", "Le reste");
+      tete.title = "Le reste";
+      tete.innerHTML = "&#8943;";
+      plus.appendChild(tete);
+      var menu = document.createElement("div");
+      menu.className = "lan-plus-menu";
+      var aPied = pied.querySelectorAll("a");
+      for (var j = 0; j < aPied.length; j++) menu.appendChild(aPied[j].cloneNode(true));
+      plus.appendChild(menu);
+      barre.appendChild(plus);
+    }
+    /* Demandé : « il y a de la place en haut, tu le mets en bas ; au pire
+       mets-le en haut ET en bas ». La barre monte donc en tête de la
+       fenêtre, là où la bande était vide. Elle s'y comporte comme la barre
+       de titre d'une fenêtre : on sait où l'on est, et où aller.
+
+       Et en bas, un RAPPEL — les quatre destinations seules, sans les
+       boutons. Il n'apparaît que si la page dépasse l'écran : sur une page
+       courte, deux barres identiques à trente centimètres l'une de l'autre
+       ne sont pas une commodité, c'est du bruit. Seules les destinations
+       sont recopiées parce que ce sont de simples liens : les boutons,
+       eux, ont des écouteurs, et un clone n'en hérite pas. */
+    fen.insertBefore(barre, fen.firstChild);
+    requestAnimationFrame(function () {
+      if (fen.scrollHeight <= window.innerHeight * 1.35) return;
+      var bas = document.createElement("div");
+      bas.className = "lan-actions lan-actions-page lan-actions-bas";
+      bas.appendChild(dest.cloneNode(true));
+      fen.appendChild(bas);
+    });
+    return nav;
+  }
+
   function poserBoutons() {
-    var tete = document.querySelector(".app-tete nav");
+    /* Sur l'accueil, les boutons utilitaires n'ont pas à flotter seuls
+       au-dessus du papier : ils se rangent dans la barre d'actions de la
+       fenêtre, avec le reste des actions. Ailleurs, ils restent dans
+       l'en-tête. On DÉPLACE la cible, on ne recrée rien : tout ce qui
+       était branché le reste. */
+    /* Signalé : sur l'accueil classique, la recherche, le thème, les
+       réglages et le village avaient disparu. Ils n'avaient pas disparu —
+       ils étaient posés DANS la barre du lanceur, qui est bien présente
+       dans la page mais masquée par la feuille de style quand on a choisi
+       l'ancien accueil. Quatre boutons rangés dans un tiroir fermé.
+
+       Chercher la cible par sa PRÉSENCE ne suffit donc pas : les deux
+       accueils coexistent dans le même fichier, et c'est « data-style »
+       qui dit lequel est à l'écran. On le lit. */
+    var lanceur = document.documentElement.dataset.style !== "classique";
+    /* En lanceur, la barre de la page est bâtie d'abord : c'est elle qui
+       devient la cible. Sinon on continue de garnir l'en-tête. */
+    var tete = (lanceur && (barrePage() || document.querySelector(".lan-actions .lan-nav")))
+            || document.querySelector(".app-tete nav");
     if (!tete) return barreOutils();
 
     if (!document.getElementById("q")) {
@@ -1132,6 +1324,27 @@
     tete.appendChild(btnJour);
     tete.appendChild(outil("bouton-rond", "Réglages", ICONE_REGLAGES, ouvrir));
     poserBouton3D(tete);
+    brancherBasculeStyle();
+  }
+
+  /* L'interrupteur d'accueil, doublé dans le menu « ⋯ ». Il écrit le style
+     comme le ferait le panneau de réglages, et recharge : l'accueil est
+     bâti par publier.py en deux versions dans la même page, et c'est une
+     classe sur <html> qui décide laquelle se voit — appliquer() suffit
+     donc, sans aller chercher la page au serveur. */
+  function brancherBasculeStyle() {
+    var b = document.querySelector("[data-bascule-style]");
+    if (!b) return;
+    var peindre = function () {
+      b.textContent = (S.style === "classique") ? "Nouvel accueil" : "Ancien accueil";
+    };
+    peindre();
+    b.addEventListener("click", function () {
+      S.style = (S.style === "classique") ? "lanceur" : "classique";
+      enregistrer(); appliquer(); peindre();
+      var d = b.closest("details");
+      if (d) d.open = false;
+    });
   }
 
   /* ── le bouton du monde 3D ────────────────────────────────────────────
@@ -1148,7 +1361,12 @@
      animations ou si son système en demande moins — un objet qui bouge sous
      la souris est exactement ce qui gêne alors. */
   function poserBouton3D(tete) {
-    var url = tete.dataset.monde;
+    /* L'adresse du village est écrite par publier.py sur le <nav> de
+       l'en-tête — une seule source. Quand les boutons déménagent dans la
+       barre d'actions, elle n'est plus sur leur parent : on va la
+       chercher là où elle est écrite, plutôt que de l'écrire deux fois. */
+    var url = tete.dataset.monde ||
+              (document.querySelector("[data-monde]") || { dataset: {} }).dataset.monde;
     if (!url) return;
     var a = document.createElement("a");
     a.className = "bouton-3d";
@@ -1469,7 +1687,42 @@
     var r = (S.recents || []).filter(function (x) { return x && x.u !== url; });
     r.unshift({ t: titre, u: url, m: document.body.dataset.matiere || "" });
     S.recents = r.slice(0, 6);
+
+    /* « Ouvert », pour l'anneau d'avancement de l'accueil, veut dire : on a
+       ouvert une des pages de ce chapitre. C'est la définition la plus
+       honnête — c'est ce que le navigateur sait vraiment. Mesurer si la
+       fiche a été LUE jusqu'au bout demanderait de pister le défilement,
+       ce qui ment dès qu'on imprime ou qu'on survole.
+       La pile « recents » ne peut pas servir : elle s'arrête à six. */
+    S.vus = S.vus || {};
+    S.vus[url.replace(/\/[^\/]+$/, "")] = 1;
     enregistrer();
+  }
+
+  /* L'anneau par matière : combien de ses chapitres ont été ouverts.
+     C'est la seule chose qu'un accueil de logiciel ne peut pas nous
+     apprendre — il ne sait rien de celui qui le lit. Le nôtre, si. */
+  var FLECHE_REPRISE =
+    '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 18.5V13h5.5"/></svg>';
+
+  function anneaux() {
+    var lignes = document.querySelectorAll(".lan-ligne[data-pole]");
+    if (!lignes.length) return;
+    var vus = Object.keys(S.vus || {});
+    for (var i = 0; i < lignes.length; i++) {
+      var l = lignes[i], pole = l.dataset.pole, total = +l.dataset.ch || 0;
+      var n = 0;
+      for (var k = 0; k < vus.length; k++) {
+        if (vus[k].indexOf("/" + pole + "/") > -1) n++;
+      }
+      if (n > total) n = total;
+      var a = l.querySelector(".lan-anneau"), c = l.querySelector(".lan-cpt");
+      if (a) a.style.setProperty("--p", total ? Math.round(n / total * 100) : 0);
+      if (c) c.textContent = n ? n + "/" + total : total + " ch.";
+      if (n) l.title = n + " chapitre" + (n > 1 ? "s" : "") + " sur " + total + " ouvert" + (n > 1 ? "s" : "");
+    }
   }
 
   function proposerReprise() {
@@ -1484,18 +1737,26 @@
     }
     if (!r.length) return;
 
-    var prem = r[0], autres = r.slice(1);
-    var html = '<a class="carte-matiere reprise" href="' + prem.u +
-      '"><span class="ic">↩</span><h2>Reprendre</h2><p>' + echapper(prem.t) + "</p></a>";
-
-    if (autres.length) {
-      html += '<div class="recents"><h3>Vu récemment</h3><ul>' +
-        autres.map(function (x) {
-          return '<li' + (x.m ? ' data-matiere="' + x.m + '"' : "") + '>' +
-                 '<a href="' + x.u + '">' + echapper(x.t) + "</a></li>";
-        }).join("") + "</ul></div>";
+    /* Trois au plus : l'accueil doit tenir dans l'écran, et au-delà de
+       trois on ne « reprend » plus, on cherche. */
+    var liste = zone.querySelector(".lan-liste");
+    if (!liste) {                       /* l'ancienne mise en page, au cas où */
+      zone.innerHTML = '<a class="carte-matiere reprise" href="' + r[0].u +
+        '"><span class="ic">↩</span><h2>Reprendre</h2><p>' +
+        echapper(r[0].t) + "</p></a>";
+      return;
     }
-    zone.innerHTML = html;
+    liste.innerHTML = r.slice(0, 3).map(function (x, i) {
+      return '<li><a class="lan-ligne" href="' + x.u + '"' +
+        (x.m ? ' data-mat="' + x.m + '"' : "") + '>' +
+        '<span class="lan-ic">' + FLECHE_REPRISE + "</span>" +
+        '<span class="lan-bloc"><span class="lan-l1"><span class="lan-nom">' +
+        '<span class="lan-t">' + echapper(x.t) + "</span>" +
+        (i ? '<i>— vu récemment</i>' : "") +
+        "</span></span></span>" +
+        '<span class="lan-entree">&#9166;</span></a></li>';
+    }).join("");
+    zone.hidden = false;
   }
 
   /* ────────────────────────────────────────────────── fiche au hasard */
@@ -1574,6 +1835,7 @@
     reponses();
     memoriser();
     proposerReprise();
+    anneaux();
     brancherHasard();
     raccourcis();
     apparitions();

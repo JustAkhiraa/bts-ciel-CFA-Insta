@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier C et C++ — BTS CIEL</title>
-<meta name="description" content="Écrire, compiler et exécuter du C et du C++ directement dans le navigateur, avec les erreurs expliquées en français et les fautes d'exécution signalées à la ligne près.">
+<title>Le compilateur — BTS CIEL</title>
+<meta name="description" content="Écrire et exécuter du C, du C++, du Python, du HTML, du CSS et du JavaScript directement dans le navigateur, avec les erreurs expliquées en français et signalées à la ligne près.">
 <meta name="theme-color" content="#FDF5E6">
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../assets/logo-classe.jpg">
 <link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../assets/fiche.css?v=e29efdb8">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=9893c67d">
 </head>
 <body data-matiere="dev">
 
@@ -29,15 +29,15 @@
   <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
     <a href="index.html">Outils</a> <span>/</span>
     <a href="index.html#dev">Informatique &amp; développement</a> <span>/</span>
-    <span>Atelier C et C++</span></div>
+    <span>Le compilateur</span></div>
 
   <div class="tete-matiere">
-    <h1>Atelier C et C++</h1>
-    <p>clang compile <b>dans votre navigateur</b> — rien n'est envoyé nulle part. Et il est réglé pour dire ce qu'aucun TP ne dit : <b>case hors du tableau</b>, <b>variable non initialisée</b>, <b>division par zéro</b>, avec le numéro de ligne.</p>
+    <h1>Le compilateur</h1>
+    <p>clang compile <b>dans votre navigateur</b>, l'interprète Python et l'aperçu HTML tournent <b>sans rien télécharger</b>. Et le C est réglé pour dire ce qu'aucun TP ne dit : <b>case hors du tableau</b>, <b>variable non initialisée</b>, <b>division par zéro</b>, avec le numéro de ligne.</p>
   </div>
 
   <section class="outil outil-plein" id="atelier">
-    <div class="at-barre" role="toolbar" aria-label="Commandes de l'atelier">
+    <div class="at-barre" role="toolbar" aria-label="Commandes du compilateur">
       <button type="button" id="at-executer" class="at-lancer">
         <span class="at-triangle" aria-hidden="true">▶</span>
         <span class="lib">Exécuter</span>
@@ -50,6 +50,7 @@
       <div class="at-segments" id="at-langue" role="group" aria-label="Langage">
         <button type="button" data-langue="c" aria-pressed="true">C</button>
         <button type="button" data-langue="c++" aria-pressed="false">C++</button>
+        <button type="button" data-langue="python" aria-pressed="false">Python</button>
       </div>
 
       <div class="at-surligneur" role="group" aria-label="Surligner la sélection">
@@ -68,7 +69,7 @@
       <div class="at-reglages-boite">
         <button type="button" id="at-reglages" class="at-creux" aria-expanded="false"
                 aria-haspopup="true" aria-controls="at-menu"
-                title="Réglages de l'atelier">
+                title="Réglages du compilateur">
           <span class="at-ic-reglages" aria-hidden="true"></span> Réglages
         </button>
         <div class="at-menu" id="at-menu" hidden>
@@ -102,7 +103,7 @@
           <hr class="at-menu-sep">
           <button type="button" id="at-notice-btn" class="at-menu-item"
                   aria-expanded="false" aria-controls="at-notice"
-                  title="Les six fautes que l'atelier sait nommer, et ce qu'un gcc ordinaire en dit">Ce que l'atelier sait nommer</button>
+                  title="Les six fautes que le compilateur sait nommer, et ce qu'un gcc ordinaire en dit">Ce que le compilateur sait nommer</button>
         </div>
       </div>
       <button type="button" id="at-plein" class="at-creux at-icone" aria-pressed="false"
@@ -184,14 +185,14 @@
       <div class="at-notice-corps">
         <p>Un programme qui compile sans un mot et qui affiche n'importe quoi : c'est la
            situation la plus coûteuse du premier semestre, parce qu'il n'y a rien à lire
-           pour comprendre. Cet atelier compile avec <b>clang</b> — le même compilateur que
+           pour comprendre. Ce compilateur tourne sur <b>clang</b> — le même compilateur que
            sous macOS et dans beaucoup d'entreprises — mais il ajoute une instrumentation
            que personne n'active en cours. Résultat : la faute est nommée, avec sa ligne.</p>
 
         <div class="tableau-conteneur">
           <table class="at-tableau">
             <thead>
-              <tr><th>La faute</th><th>Un gcc ordinaire</th><th>Cet atelier</th></tr>
+              <tr><th>La faute</th><th>Un gcc ordinaire</th><th>Ici</th></tr>
             </thead>
             <tbody>
               <tr><td><b>Case hors du tableau</b><br><code>t[7]</code> sur <code>int t[5]</code></td>
@@ -200,7 +201,7 @@
               <tr><td><b>Variable jamais initialisée</b></td>
                   <td>Une valeur différente à chaque exécution.</td>
                   <td>Avertissement à la compilation, et à l'exécution un nombre
-                      <b>reproductible</b> que l'atelier reconnaît et explique.</td></tr>
+                      <b>reproductible</b> que le compilateur reconnaît et explique.</td></tr>
               <tr><td><b>Le <code>&amp;</code> oublié dans <code>scanf</code></b></td>
                   <td>Rien, sans <code>-Wall</code>.</td>
                   <td>« Le &amp; est oublié dans scanf », avec la règle et son exception.</td></tr>
@@ -244,11 +245,14 @@
 /* L'atelier est trop gros pour vivre dans la page : il est en deux fichiers,
    chargés juste après, et le moteur lui-même est dans « c/ ». */
 </script>
+<!-- Le MÊME interprète que la calculatrice, pas une copie : deux copies
+     finissent toujours par diverger, et ce dépôt s'est déjà fait prendre. -->
+<script src="calculatrice/python-mini.js?v=e38c7d1e"></script>
 <script src="c/traductions.js?v=8ec3cf8a"></script>
 <script src="c/indenter.js?v=d559f8e7"></script>
-<script src="c/atelier.js?v=5d61d836"></script>
+<script src="c/atelier.js?v=f8721ad5"></script>
 
-<script src="../assets/fiche.js?v=e29efdb8"></script>
+<script src="../assets/fiche.js?v=9893c67d"></script>
 
 <footer class="app-pied">
   <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
@@ -260,7 +264,7 @@
   </p>
 </footer>
 
-<script src="../assets/app.js?v=e29efdb8"></script>
+<script src="../assets/app.js?v=9893c67d"></script>
 <script>if("serviceWorker" in navigator){addEventListener("load",function(){
   navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
 </body>

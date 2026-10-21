@@ -454,17 +454,33 @@
     if (xmin <= 0 && xmax >= 0)
       bouts.push('<line class="axe" x1="' + X(0).toFixed(1) + '" y1="0" x2="' + X(0).toFixed(1)
         + '" y2="' + HAUT + '"/>');
-    /* Les graduations : une sur deux étiquetée, sinon elles se touchent. */
+    /* ── les graduations ──────────────────────────────────────────────
+       Une sur deux étiquetée, sinon elles se touchent. Et elles sont
+       mises de côté pour être dessinées EN DERNIER : signalé sur un
+       diagramme de loi, « 0.3 » apparaissait coupé — en réalité la barre
+       passait par-dessus, puisque les barres se dessinaient après. Un
+       chiffre à moitié caché derrière une barre se lit de travers, et sur
+       une probabilité, lire de travers coûte un exercice.
+
+       Posées par-dessus, elles portent un liseré de la couleur du fond
+       (« paint-order: stroke » dans la feuille de style) : lisibles sur la
+       grille comme sur une barre pleine, sans boîte opaque qui masquerait
+       le tracé. */
+    const graduations = [];
     let i = 0;
     for (let x = Math.ceil(xmin / px) * px; x <= xmax; x += px, i++) {
       if (i % 2 || Math.abs(X(x)) < 12 || X(x) > LARG - 12) continue;
-      bouts.push('<text x="' + X(x).toFixed(1) + '" y="' + Math.min(HAUT - 2, Y(0) + 9).toFixed(1)
+      graduations.push('<text x="' + X(x).toFixed(1) + '" y="'
+        + Math.min(HAUT - 2, Y(0) + 9).toFixed(1)
         + '" text-anchor="middle">' + ech(nombreCourt(x)) + '</text>');
     }
     i = 0;
     for (let y = Math.ceil(ymin / py) * py; y <= ymax; y += py, i++) {
       if (i % 2 || Math.abs(Y(y) - Y(0)) < 7) continue;
-      bouts.push('<text x="' + Math.max(2, X(0) + 3).toFixed(1) + '" y="' + (Y(y) - 2).toFixed(1)
+      /* L'étiquette la plus haute sortait aussi du cadre par le haut : on
+         la rabat dedans. */
+      graduations.push('<text x="' + Math.max(2, X(0) + 3).toFixed(1) + '" y="'
+        + Math.max(9, Y(y) - 2).toFixed(1)
         + '">' + ech(nombreCourt(y)) + '</text>');
     }
     (o.aires || []).forEach((a) => {
@@ -531,7 +547,8 @@
         + '" text-anchor="' + (e.ancre || "start") + '">' + ech(e.texte) + '</text>');
     });
     return '<svg class="nw-trace" viewBox="0 0 ' + LARG + ' ' + HAUT + '" role="img"'
-      + ' aria-label="' + ech(o.aide || "Tracé") + '">' + bouts.join("") + '</svg>';
+      + ' aria-label="' + ech(o.aide || "Tracé") + '">' + bouts.join("")
+      + '<g class="graduations">' + graduations.join("") + '</g></svg>';
   }
   function nombreCourt(x) {
     if (x === 0) return "0";
@@ -959,14 +976,238 @@
      l'intégrale, le nombre dérivé. */
   const COULEURS = ["c1", "c2", "c3", "c4"];
   const NOMS_F = ["f", "g", "h", "k"];
+
+  /* ──────────────────────────────────────────── écrire les maths en maths
+     Signalé, capture de l'émulateur à l'appui : « les puissances c'est des
+     accents ». C'était vrai — la machine affiche « f(x)=x²-2 » et nous
+     montrions « x^2-2 », le signe de la saisie, pas celui des maths.
+
+     On ne touche PAS à ce qu'on tape : « ^ », « * » et « sqrt » restent la
+     façon d'écrire au clavier. C'est l'AFFICHAGE qui change, et seulement
+     quand le champ n'a pas le curseur — sinon on verrait ses lettres se
+     transformer sous ses doigts, et on ne saurait plus quoi corriger. */
+  const EXPOSANTS = { "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵",
+                      "6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻","n":"ⁿ",
+                      "x":"ˣ","i":"ⁱ","+":"⁺","(":"⁽",")":"⁾" };
+  function joliMath(txt) {
+    let t = String(txt || "");
+    /* Les puissances d'abord, tant que la chaîne est encore brute :
+       « x^12 » prend ses DEUX chiffres, « x^(n+1) » prend sa parenthèse. */
+    t = t.replace(/\^\(([^()]{1,12})\)/g, (m, g) => montee(g, m));
+    t = t.replace(/\^(-?[0-9]+)/g, (m, g) => montee(g, m));
+    t = t.replace(/\^([a-zA-Z])/g, (m, g) => montee(g, m));
+    return ech(t)
+      .replace(/sqrt/g, "√").replace(/\bpi\b/g, "π")
+      .replace(/\*/g, "×").replace(/(^|[^-])-(?!-)/g, "$1−")
+      .replace(/&lt;=/g, "≤").replace(/&gt;=/g, "≥").replace(/!=/g, "≠")
+      .replace(/\u0001([^\u0001]*)\u0001/g, "<sup>$1</sup>");
+    /* Un exposant qu'on ne sait pas monter est laissé tel quel : mieux
+       vaut un accent circonflexe qu'un carré faux. */
+    function montee(g, entier) {
+      if (/^[0-9-]+$/.test(g) && g.length <= 3) {
+        return [...g].map((c) => EXPOSANTS[c] || c).join("");
+      }
+      return "\u0001" + g + "\u0001";
+    }
+  }
+
+  /* Le type de la fonction, comme la machine l'écrit sous l'expression.
+     Lu sur la forme écrite, pas sur la courbe : c'est ce que la machine
+     fait aussi, et ça reste vrai même quand l'expression ne compile pas.
+     Dans le doute on dit « Fonction » — une étiquette fausse serait pire
+     que pas d'étiquette. */
+  function typeFonction(expr) {
+    const t = String(expr || "").replace(/\s+/g, "").toLowerCase();
+    if (!t) return "";
+    if (/sin\(|cos\(|tan\(/.test(t)) return "Fonction trigonométrique";
+    if (/\bln\(|\blog\(/.test(t)) return "Fonction logarithmique";
+    if (/\bexp\(|\be\^/.test(t)) return "Fonction exponentielle";
+    if (/sqrt\(/.test(t)) return "Fonction racine";
+    if (/abs\(/.test(t)) return "Valeur absolue";
+    if (!/x/.test(t)) return "Fonction constante";
+    /* Une division PAR une expression qui contient x : c'est le propre
+       d'une rationnelle, et c'est ce qui la distingue d'un polynôme
+       divisé par un nombre. */
+    if (/\/[^/]*x/.test(t)) return "Fonction rationnelle";
+    const deg = degrePolynome(t);
+    if (deg === 1) return "Fonction affine";
+    if (deg === 2) return "Fonction du second degré";
+    if (deg !== null && deg >= 3) return "Fonction polynomiale de degré " + deg;
+    return "Fonction";
+  }
+  function degrePolynome(t) {
+    if (!/^[-+*/^().0-9x]*$/.test(t)) return null;   /* un nom inconnu : on se tait */
+    let deg = /x/.test(t) ? 1 : 0;
+    const m = t.match(/x\^\(?(-?[0-9]+)/g) || [];
+    for (const e of m) {
+      const n = Number(e.replace(/[^0-9-]/g, ""));
+      if (Number.isFinite(n)) deg = Math.max(deg, n);
+    }
+    return deg;
+  }
+  /* ── huit couleurs, comme la machine ──────────────────────────────────
+     Quatre fonctions, mais huit couleurs : on choisit la sienne. Le rouge
+     pour une parabole et le bleu pour sa dérivée, c'est le même geste que
+     surligner deux couleurs sur une copie. */
+  const TEINTES = [["c1", "Bleu"], ["c2", "Rouge"], ["c3", "Vert"], ["c4", "Violet"],
+                   ["c5", "Orange"], ["c6", "Turquoise"], ["c7", "Magenta"], ["c8", "Ocre"]];
+  function couleurDe(i) {
+    const d = ETAT.fonctions[i];
+    return (d && d.couleur) || COULEURS[i];
+  }
+  /* Quelle ligne est ouverte en saisie, quelle ligne a son menu déplié.
+     Deux nombres, et pas dans ETAT : ça ne se garde pas d'une visite à
+     l'autre. Retrouver un menu ouvert trois jours plus tard n'aide
+     personne. */
+  let editionF = -1, menuF = -1;
+
+  /* La dérivée POUR LE TRACÉ : une différence centrée toute simple.
+     CALC.num.derivee fait douze extrapolations de Richardson pour arracher
+     les dernières décimales — c'est ce qu'il faut pour afficher f′(3), ce
+     n'est pas ce qu'il faut six cent quarante fois par tracé. Ici une
+     erreur de 10⁻⁸ est invisible à l'écran ; une seconde d'attente, non.
+     Les trous restent des trous : si la fonction n'existe pas d'un côté,
+     la dérivée n'existe pas non plus, et le trait se rompt. */
+  function derivPourTrace(f) {
+    return (x) => {
+      const h = Math.max(1e-5, Math.abs(x) * 1e-5);
+      const a = f(x + h), b = f(x - h);
+      return Number.isFinite(a) && Number.isFinite(b) ? (a - b) / (2 * h) : NaN;
+    };
+  }
+
+  /* On RECONSTRUIT les coefficients depuis la fonction, jamais depuis le
+     texte : « (x−1)(x+3) », « x²+2x−3 » et « x*x+2*x-3 » sont la même
+     parabole et doivent donner les mêmes détails. Trois points suffisent
+     à déterminer un polynôme de degré 2 ; quatre de plus servent à
+     VÉRIFIER que c'en est un. Sans cette vérification, on afficherait un
+     discriminant pour sin(x) — un chiffre faux, présenté comme sûr. */
+  function coefficients(f) {
+    let y0, y1, ym;
+    try { y0 = f(0); y1 = f(1); ym = f(-1); } catch (e) { return null; }
+    if (![y0, y1, ym].every(Number.isFinite)) return null;
+    const a = (y1 + ym) / 2 - y0, b = (y1 - ym) / 2, c = y0;
+    const echelle = Math.max(1, Math.abs(a), Math.abs(b), Math.abs(c));
+    for (const x of [2, -2, 0.5, 3.7]) {
+      let v;
+      try { v = f(x); } catch (e) { return null; }
+      const attendu = a * x * x + b * x + c;
+      if (!Number.isFinite(v)) return null;
+      if (Math.abs(v - attendu) > 1e-7 * echelle * (1 + x * x)) return null;
+    }
+    const net = (v) => (Math.abs(v) < 1e-9 ? 0 : Math.round(v * 1e9) / 1e9);
+    const A = net(a), B = net(b), C = net(c);
+    return { a: A, b: B, c: C, deg: A !== 0 ? 2 : B !== 0 ? 1 : 0 };
+  }
+
+  /* Les détails que la machine donne sous « Détails ». Elle y met la
+     distance focale d'une parabole ; nous y mettons le discriminant, les
+     racines et le sommet — c'est ce que l'énoncé demande en BTS, et c'est
+     le même geste : nommer ce qu'on a sous les yeux. */
+  function detailsFonction(i, c) {
+    const d = ETAT.fonctions[i];
+    if (!c) return '<p class="nw-sous">Expression vide.</p>';
+    if (c.erreur) return '<p class="nw-erreur">' + ech(c.erreur) + '</p>';
+    const l = ['<dt>nature</dt><dd>' + ech(typeFonction(d.expr)) + '</dd>'];
+    const p = coefficients(c.brute || c.f);
+    if (p && p.deg === 1) {
+      l.push('<dt>coefficient directeur a</dt><dd>' + ech(fmt(p.a)) + '</dd>');
+      l.push('<dt>ordonnée à l\'origine b</dt><dd>' + ech(fmt(p.b)) + '</dd>');
+      l.push('<dt>racine</dt><dd>x = ' + ech(fmt(-p.b / p.a)) + '</dd>');
+      l.push('<dt>sens</dt><dd>' + (p.a > 0 ? "croissante" : "décroissante") + '</dd>');
+    } else if (p && p.deg === 2) {
+      const D = p.b * p.b - 4 * p.a * p.c;
+      const xs = -p.b / (2 * p.a);
+      l.push('<dt>discriminant Δ</dt><dd>' + ech(fmt(D)) + '</dd>');
+      if (D > 0) {
+        const r1 = (-p.b - Math.sqrt(D)) / (2 * p.a), r2 = (-p.b + Math.sqrt(D)) / (2 * p.a);
+        l.push('<dt>racines</dt><dd>' + ech(fmt(Math.min(r1, r2))) + '  et  '
+          + ech(fmt(Math.max(r1, r2))) + '</dd>');
+      } else if (D === 0) {
+        l.push('<dt>racine double</dt><dd>' + ech(fmt(xs)) + '</dd>');
+      } else {
+        l.push('<dt>racines</dt><dd>aucune racine réelle</dd>');
+      }
+      l.push('<dt>sommet S</dt><dd>(' + ech(fmt(xs)) + ' ; '
+        + ech(fmt(p.a * xs * xs + p.b * xs + p.c)) + ')</dd>');
+      /* « 1(x − 0)² − 2 » est juste et illisible. On écrit la forme
+         canonique comme on l'écrit au tableau : le 1 ne se note pas, le
+         « − 0 » non plus, et un terme nul disparaît. Ce qui reste est ce
+         qu'on recopie sur une copie. */
+      const beta = p.a * xs * xs + p.b * xs + p.c;
+      const tete = p.a === 1 ? "" : p.a === -1 ? "−" : ech(fmt(p.a));
+      const dedans = xs === 0 ? "x"
+        : "(x " + (xs > 0 ? "− " + ech(fmt(xs)) : "+ " + ech(fmt(-xs))) + ")";
+      const queue = beta === 0 ? ""
+        : beta > 0 ? " + " + ech(fmt(beta)) : " − " + ech(fmt(-beta));
+      l.push('<dt>forme canonique</dt><dd>' + tete + dedans + '<sup>2</sup>'
+        + queue + '</dd>');
+      l.push('<dt>allure</dt><dd>parabole tournée vers le '
+        + (p.a > 0 ? "haut" : "bas") + '</dd>');
+    }
+    const z = c.f(0);
+    if (Number.isFinite(z)) l.push('<dt>' + NOMS_F[i] + '(0)</dt><dd>' + ech(fmt(z)) + '</dd>');
+    return '<dl class="nw-valeurs">' + l.join("") + '</dl>'
+      + (p ? "" : '<p class="nw-sous">Cette fonction n\'est ni affine ni du second degré : '
+          + 'les zéros, les extremums et les intersections se cherchent dans l\'onglet '
+          + 'Graphique, bouton « Calculer ».</p>');
+  }
+
+  /* Le menu « ⋯ ». C'est celui de la machine, entrée pour entrée, à ceci
+     près que nous le dépions sous la ligne au lieu de recouvrir l'écran :
+     sur un téléphone, un menu qui cache ce qu'il modifie fait perdre le
+     fil. */
+  function optionsFonction(i, c) {
+    const d = ETAT.fonctions[i];
+    const dom = d.domaine || {};
+    const val = (v) => (v === undefined || v === null ? "" : String(v));
+    return '<div class="nw-expr-options">'
+      + '<div class="nw-opt-bloc"><h4>Détails</h4>' + detailsFonction(i, c) + '</div>'
+      + '<div class="nw-opt-bloc"><h4>Couleur</h4><div class="nw-teintes">'
+      + TEINTES.map(([k, n]) => '<button type="button" class="nw-teinte'
+          + (couleurDe(i) === k ? " nw-choisie" : "") + '" data-teinte="' + i + ':' + k
+          + '" style="--t:var(--nw-' + k + ')" title="' + n + '" aria-label="' + n
+          + '" aria-pressed="' + (couleurDe(i) === k) + '"></button>').join("")
+      + '</div></div>'
+      + '<div class="nw-opt-bloc"><h4>Tracés</h4>'
+      + '<label class="nw-coche"><input type="checkbox" data-voir="' + i + '"'
+      + (d.visible !== false ? " checked" : "") + '> tracer la courbe</label>'
+      + '<label class="nw-coche"><input type="checkbox" data-deriv="' + i + '"'
+      + (d.derivee ? " checked" : "") + '> tracer la dérivée ' + NOMS_F[i] + '′ '
+      + '<span class="nw-sous">(en pointillés)</span></label></div>'
+      + '<div class="nw-opt-bloc"><h4>Domaine de tracé</h4><div class="nw-rangee">'
+      + '<label for="nw-dmin' + i + '">de</label>'
+      + '<input type="text" class="nw-petit nw-court" id="nw-dmin' + i + '" data-dom="'
+      + i + ':min" value="' + ech(val(dom.min)) + '" placeholder="−∞" autocomplete="off">'
+      + '<label for="nw-dmax' + i + '">à</label>'
+      + '<input type="text" class="nw-petit nw-court" id="nw-dmax' + i + '" data-dom="'
+      + i + ':max" value="' + ech(val(dom.max)) + '" placeholder="+∞" autocomplete="off">'
+      + '</div><p class="nw-sous">Laissés vides, la courbe est tracée partout. '
+      + 'Le domaine ne change pas la fonction : il décide seulement où elle se dessine.</p>'
+      + '</div>'
+      + '<div class="nw-opt-bloc"><button type="button" class="nw-bouton" data-effacer="'
+      + i + '">Supprimer l\'expression</button></div>'
+      + '</div>';
+  }
+
   let curseur = { i: 0, x: 0 }, calculResultat = null;
 
   function fonctionsCompilees() {
     return ETAT.fonctions.map((d, i) => {
       if (!d.expr.trim()) return null;
       const c = CALC.fonction(d.expr, "x", contexte());
+      const dom = d.domaine || {};
+      const brute = c.f;
+      /* Le domaine ne modifie pas la fonction, il modifie son TRACÉ : hors
+         bornes on rend « n'existe pas », et tracer() rompt le trait tout
+         seul, exactement comme pour une division par zéro. « brute » reste
+         disponible pour les calculs, qui, eux, n'ont pas à être bornés. */
+      const f = (dom.min === undefined && dom.max === undefined) ? brute
+        : (x) => ((dom.min !== undefined && x < dom.min)
+               || (dom.max !== undefined && x > dom.max)) ? NaN : brute(x);
       return { i, nom: NOMS_F[i], expr: d.expr, visible: d.visible !== false,
-               f: c.f, erreur: c.erreur, avert: c.avert, classe: COULEURS[i] };
+               f, brute, derivee: !!d.derivee,
+               erreur: c.erreur, avert: c.avert, classe: couleurDe(i) };
     });
   }
   function fenetreAuto(liste) {
@@ -1003,19 +1244,80 @@
         + '</div>';
       const liste = fonctionsCompilees();
       if (vue === "expressions") {
-        return onglets + liste.map((c, i) => {
+        /* ── la liste s'allonge ────────────────────────────────────────
+           La machine n'affiche pas quatre cases vides : elle affiche ce
+           qui existe, et une seule ligne « Ajouter un élément » au bout.
+           Quatre cases vides disent « remplis-moi quatre fois » ; une
+           ligne d'ajout dit « il y en a autant qu'il en faut ». C'est la
+           même place à l'écran et ce n'est pas le même message.
+
+           Et la ligne au repos n'est PAS un champ : c'est l'expression
+           écrite en maths — « f(x) = x²−2 » —, sa nature en dessous, et
+           un « ⋯ » à droite. On ne retombe dans le champ qu'en cliquant
+           dessus. Signalé, capture à l'appui : « les puissances c'est des
+           accents ». Un accent circonflexe au milieu d'une formule, ce
+           n'est pas des mathématiques. */
+        const premierVide = ETAT.fonctions.findIndex((d) => !d.expr.trim());
+        const rangs = [];
+        for (let i = 0; i < NOMS_F.length; i++) {
           const d = ETAT.fonctions[i];
-          return '<div class="nw-rangee">'
-            + '<label for="nw-f' + i + '">' + NOMS_F[i] + '(x) =</label>'
-            + '<input type="text" class="nw-petit nw-large" id="nw-f' + i + '" data-cle="f' + i
-            + '" value="' + ech(d.expr) + '" autocomplete="off" spellcheck="false">'
-            + '<label><input type="checkbox" data-voir="' + i + '"'
-            + (d.visible !== false ? " checked" : "") + '> tracer</label>'
-            + (c && c.erreur ? '<span class="nw-erreur">' + ech(c.erreur) + '</span>' : "")
-            + (c && !c.erreur && c.avert ? '<span class="nw-erreur">' + ech(c.avert) + '</span>' : "")
-            + '</div>';
-        }).join("")
-          + '<p class="nw-sous">Écrivez la variable <code>x</code>. Les quatre fonctions '
+          const c = liste[i];
+          const vide = !d.expr.trim();
+          if (vide && i !== premierVide) continue;
+          const teinte = couleurDe(i);
+          if (editionF === i) {
+            rangs.push('<div class="nw-expr nw-expr-saisie" style="--filet:var(--nw-'
+              + teinte + ')">'
+              + '<label for="nw-f' + i + '">' + NOMS_F[i] + '(x) =</label>'
+              + '<input type="text" class="nw-petit nw-large" id="nw-f' + i
+              + '" data-cle="f' + i + '" value="' + ech(d.expr)
+              + '" autocomplete="off" spellcheck="false" enterkeyhint="done">'
+              + '<button type="button" class="nw-bouton nw-primaire" data-poser="' + i
+              + '">OK</button>'
+              + (c && c.erreur ? '<span class="nw-erreur">' + ech(c.erreur) + '</span>' : "")
+              + (c && !c.erreur && c.avert
+                 ? '<span class="nw-erreur">' + ech(c.avert) + '</span>' : "")
+              + '</div>');
+            continue;
+          }
+          if (vide) {
+            rangs.push('<button type="button" class="nw-expr-ajout" data-editer="' + i + '">'
+              + '<span aria-hidden="true">+</span> Ajouter un élément</button>');
+            continue;
+          }
+          const ouvert = menuF === i;
+          const etat = [];
+          if (d.visible === false) etat.push("non tracée");
+          if (d.derivee) etat.push("dérivée tracée");
+          if (d.domaine && (d.domaine.min !== undefined || d.domaine.max !== undefined))
+            etat.push("domaine restreint");
+          rangs.push('<div class="nw-expr' + (ouvert ? " nw-expr-ouvert" : "")
+            + '" style="--filet:var(--nw-' + teinte + ')">'
+            + '<button type="button" class="nw-expr-corps" data-editer="' + i + '">'
+            + '<span class="nw-expr-math">' + NOMS_F[i] + '(x) = ' + joliMath(d.expr)
+            + '</span>'
+            + '<span class="nw-expr-type">'
+            + (c && c.erreur ? ech(c.erreur)
+               : ech(typeFonction(d.expr) + (etat.length ? " · " + etat.join(" · ") : "")))
+            + '</span></button>'
+            + '<button type="button" class="nw-expr-menu" data-menu="' + i + '" aria-expanded="'
+            + ouvert + '" aria-label="Options de ' + NOMS_F[i] + '">'
+            + '<span aria-hidden="true">⋯</span></button>'
+            + '</div>'
+            + (ouvert ? optionsFonction(i, c) : ""));
+        }
+        return onglets + '<div class="nw-expr-liste">' + rangs.join("") + '</div>'
+          /* Les deux boutons de la machine, au même endroit : ils mènent
+             aux deux autres onglets. Une liste d'expressions sans porte
+             de sortie oblige à remonter chercher l'onglet ; la machine ne
+             le demande pas, nous non plus. */
+          + '<div class="nw-expr-bas">'
+          + '<button type="button" class="nw-bouton" data-onglet="fonctions:graphique">'
+          + 'Tracer le graphique</button>'
+          + '<button type="button" class="nw-bouton" data-onglet="fonctions:tableau">'
+          + 'Afficher les valeurs</button></div>'
+          + '<p class="nw-sous">Écrivez la variable <code>x</code>, et les puissances avec '
+          + '<code>^</code> : elles s\'affichent en petit. Les quatre fonctions '
           + 'sont utilisables dans Calculs : <code>f(2)</code>, <code>g(0)</code>. '
           + 'Les noms sont f, g, h et k, dans cet ordre.</p>'
           + lienChapitre(this.chapitre);
@@ -1033,6 +1335,12 @@
              pas. Elle disparaît dès qu'on change une expression — une
              tangente à une courbe qui n'existe plus mentirait. */
           courbes: courbes.map((c) => ({ f: c.f, classe: c.classe }))
+            /* La dérivée se trace dans la MÊME couleur que sa courbe, en
+               pointillés : deux couleurs pour un même objet obligeraient à
+               tenir une légende de plus en tête. Le pointillé dit « c'est
+               la pente de celle-là », la couleur dit laquelle. */
+            .concat(courbes.filter((c) => c.derivee)
+              .map((c) => ({ f: derivPourTrace(c.f), classe: c.classe + " nw-deriv" })))
             .concat(ETAT.fenetre.tangente
               && courbes.some((c) => c.i === ETAT.fenetre.tangente.i)
               ? [{ f: (x) => ETAT.fenetre.tangente.m * x + ETAT.fenetre.tangente.p,
@@ -1096,7 +1404,9 @@
                  : '<span>Aucune fonction à tracer.</span>')
           + '</p>'
           + '<div class="nw-legende">' + courbes.map((c) => '<span><i style="background:var(--nw-'
-            + c.classe + ')"></i>' + ech(c.nom) + '(x) = ' + ech(c.expr) + '</span>').join("")
+            + c.classe + ')"></i>' + ech(c.nom) + '(x) = ' + joliMath(c.expr) + '</span>'
+            + (c.derivee ? '<span><i class="nw-leg-deriv" style="background:var(--nw-'
+                + c.classe + ')"></i>' + ech(c.nom) + '\u2032(x)</span>' : "")).join("")
           + '</div>'
           + (pan === "calculer" ? blocCalculer(courbes, F) : "");
       }
@@ -1126,21 +1436,75 @@
     },
     apres() {
       brancherOnglets();
+      /* ── ouvrir une ligne ──────────────────────────────────────────
+         Un clic sur la ligne la rend saisissable et place le curseur à la
+         fin. Le champ apparaît déjà actif : demander un deuxième clic pour
+         écrire serait un clic de trop, et sur un téléphone le clavier ne
+         monterait qu'au second essai. */
+      $$("[data-editer]", page).forEach((b) => b.addEventListener("click", () => {
+        editionF = Number(b.dataset.editer); menuF = -1; redessiner();
+        const champ = $("#nw-f" + editionF);
+        if (champ) {
+          champ.focus();
+          try { champ.setSelectionRange(champ.value.length, champ.value.length); } catch (e) {}
+        }
+      }));
+      $$("[data-menu]", page).forEach((b) => b.addEventListener("click", () => {
+        const i = Number(b.dataset.menu);
+        menuF = menuF === i ? -1 : i; editionF = -1; redessiner();
+      }));
+      const poser = (i, c) => {
+        /* Une tangente calculée sur l'ancienne expression mentirait sur
+           la nouvelle : on l'oublie plutôt que de la laisser flotter. */
+        ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
+        editionF = -1; garder(); redessiner();
+      };
       $$("[data-cle^='f']", page).forEach((c) => {
         const i = Number(c.dataset.cle.slice(1));
-        c.addEventListener("change", () => {
-          /* Une tangente calculée sur l'ancienne expression mentirait sur
-             la nouvelle : on l'oublie plutôt que de la laisser flotter. */
-          ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
-          garder(); redessiner();
-        });
+        c.addEventListener("change", () => poser(i, c));
         c.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            ETAT.fonctions[i].expr = c.value; ETAT.fenetre.tangente = null;
-            garder(); redessiner();
-          }
+          if (e.key === "Enter") { e.preventDefault(); poser(i, c); }
+          /* Échap sort sans valider : c'est la sortie de secours d'un
+             champ qu'on a ouvert par erreur. */
+          else if (e.key === "Escape") { e.stopPropagation(); editionF = -1; redessiner(); }
         });
       });
+      $$("[data-poser]", page).forEach((b) => b.addEventListener("click", () => {
+        const i = Number(b.dataset.poser), c = $("#nw-f" + i);
+        if (c) poser(i, c);
+      }));
+      $$("[data-teinte]", page).forEach((b) => b.addEventListener("click", () => {
+        const [i, k] = b.dataset.teinte.split(":");
+        ETAT.fonctions[Number(i)].couleur = k; garder(); redessiner();
+      }));
+      $$("[data-deriv]", page).forEach((c) => c.addEventListener("change", () => {
+        ETAT.fonctions[Number(c.dataset.deriv)].derivee = c.checked; garder(); redessiner();
+      }));
+      $$("[data-dom]", page).forEach((c) => c.addEventListener("change", () => {
+        const [i, bout] = c.dataset.dom.split(":");
+        const d = ETAT.fonctions[Number(i)];
+        d.domaine = d.domaine || {};
+        if (!c.value.trim()) { delete d.domaine[bout]; dire(""); garder(); redessiner(); return; }
+        const v = nombreSaisi(c.value);
+        if (v === null) { dire("« " + c.value + " » n'est pas un nombre.", "e-erreur"); return; }
+        d.domaine[bout] = v;
+        /* Des bornes à l'envers ne dessinent rien du tout, et l'écran vide
+           ne dit pas pourquoi. On le dit, et on ne pose pas la borne. */
+        if (d.domaine.min !== undefined && d.domaine.max !== undefined
+            && d.domaine.min >= d.domaine.max) {
+          delete d.domaine[bout];
+          dire("La borne de gauche doit être plus petite que celle de droite.", "e-erreur");
+          redessiner(); return;
+        }
+        dire(""); garder(); redessiner();
+      }));
+      $$("[data-effacer]", page).forEach((b) => b.addEventListener("click", () => {
+        const i = Number(b.dataset.effacer);
+        ETAT.fonctions[i] = { expr: "", visible: true };
+        ETAT.fenetre.tangente = null; menuF = -1; editionF = -1;
+        garder(); redessiner();
+        dire(NOMS_F[i] + " est effacée.", "e-ok");
+      }));
       $$("[data-voir]", page).forEach((c) => c.addEventListener("change", () => {
         ETAT.fonctions[Number(c.dataset.voir)].visible = c.checked; garder(); redessiner();
       }));
@@ -2416,6 +2780,52 @@
   const LIB_PARAM = { n: "n", p: "p", mu: "µ", sigma: "σ", lambda: "λ", a: "a", b: "b",
                       N: "N", K: "K", nu: "ν", d1: "d₁", d2: "d₂" };
 
+  /* ── les quatre vignettes ─────────────────────────────────────────────
+     Signalé, capture de l'émulateur à l'appui : « comment ça question ?
+     dans l'émulateur on a des graphs qui montrent ce qu'on veut ». C'est
+     exact. La machine ne demande pas « quelle question » dans un menu
+     déroulant : elle montre quatre petits dessins de la même courbe, avec
+     une zone noircie différente, et on choisit le dessin qui ressemble à
+     ce qu'on cherche. Le dessin EST la question.
+
+     Un menu déroulant oblige à traduire « P(X ⩽ k) » en français, puis le
+     français en image mentale. Les deux traductions sautent. */
+  const COURBE_VQ = "M1 16.4C7 16.4 8 3.2 14 3.2C20 3.2 21 16.4 27 16.4";
+  const AIRE_VQ = COURBE_VQ + "L27 16.4L1 16.4Z";
+  const ZONES_VQ = { inf: [0, 11], entre: [9, 10], sup: [17, 11] };
+  function vignetteQuestion(forme) {
+    let dedans;
+    if (forme === "egal") {
+      dedans = '<rect class="vq-plein" x="13.1" y="3.4" width="1.8" height="13"/>';
+    } else {
+      const z = ZONES_VQ[forme], id = "vq-" + forme;
+      dedans = '<clipPath id="' + id + '"><rect x="' + z[0] + '" y="0" width="' + z[1]
+        + '" height="18"/></clipPath><path class="vq-plein" d="' + AIRE_VQ
+        + '" clip-path="url(#' + id + ')"/>';
+    }
+    return '<svg class="nw-vq" viewBox="0 0 28 18" aria-hidden="true">' + dedans
+      + '<path class="vq-trait" d="' + COURBE_VQ + '"/></svg>';
+  }
+
+  /* Le nom en toutes lettres de chaque paramètre. La machine écrit
+     « n — Nombre de répétitions » sous le champ, et c'est la moitié du
+     cours : un élève qui sait ce que n DÉSIGNE ne se trompe plus de
+     place. « n » tout seul ne désigne rien. */
+  const DESC_PARAM = {
+    binomiale: { n: "Nombre de répétitions", p: "Probabilité de succès" },
+    normale: { mu: "Moyenne", sigma: "Écart type" },
+    uniforme: { a: "Borne inférieure", b: "Borne supérieure" },
+    exponentielle: { lambda: "Taux — l'inverse de la durée moyenne" },
+    poisson: { lambda: "Nombre moyen d'événements sur la période" },
+    geometrique: { p: "Probabilité de succès à chaque essai" },
+    hypergeometrique: { N: "Taille de la population", K: "Nombre d'individus favorables",
+                        n: "Taille du tirage, sans remise" },
+    student: { nu: "Degrés de liberté" },
+    khi2: { nu: "Degrés de liberté" },
+    fisher: { d1: "Degrés de liberté du numérateur",
+              d2: "Degrés de liberté du dénominateur" },
+  };
+
   APPS.probas = {
     nom: "Probabilités", icone: "P(X)",
     html() {
@@ -2481,43 +2891,77 @@
                        courbes: [{ f: (x) => L.pdf(P, x) }], aires,
                        aide: "Densité de la loi et aire correspondant à la probabilité" });
       }
-      const champs = L.params.map((nom) => '<label for="nw-pp-' + nom + '">'
-        + ech(LIB_PARAM[nom] || nom) + '</label>'
-        + '<input type="text" class="nw-petit" id="nw-pp-' + nom + '" data-pp="' + nom
-        + '" value="' + ech(P[nom]) + '">').join("");
-      const kChamps = q === "inverse"
-        ? '<label for="nw-pseuil">seuil</label><input type="text" class="nw-petit" '
-          + 'id="nw-pseuil" data-pp="seuil" value="' + ech(P.seuil) + '">'
-        : '<label for="nw-pk">' + (q === "entre" ? "a" : discret ? "k" : "x") + '</label>'
-          + '<input type="text" class="nw-petit" id="nw-pk" data-pp="k" value="' + ech(P.k) + '">'
-          + (q === "entre" ? '<label for="nw-pk2">b</label><input type="text" class="nw-petit" '
-              + 'id="nw-pk2" data-pp="k2" value="' + ech(P.k2) + '">' : "");
+      /* ── trois zones, comme la machine ─────────────────────────────
+         Signalé : « mets loi en haut et puis juste en bas n p ». La loi
+         et ses paramètres tenaient sur une seule ligne, qui passait à la
+         ligne n'importe où : le « p » restait seul au bout d'un rang et
+         son champ tombait au rang suivant. Une étiquette séparée de son
+         champ ne désigne plus rien.
+
+         Donc trois zones empilées, et chacune occupe toute la largeur :
+         la LOI, puis les PARAMÈTRES — un par ligne, avec leur nom écrit
+         en toutes lettres —, puis la QUESTION, qui se choisit par un
+         dessin et s'écrit comme une équation. */
       const E = L.esperance ? L.esperance(P) : NaN, S = L.ecart ? L.ecart(P) : NaN;
-      return '<div class="nw-rangee">'
-        + '<label for="nw-loi">loi</label><select class="nw-petit" id="nw-loi">'
+      const champs = L.params.map((nom) => '<div class="nw-par">'
+        + '<label for="nw-pp-' + nom + '"><b>' + ech(LIB_PARAM[nom] || nom) + '</b>'
+        + '<i>' + ech((DESC_PARAM[P.loi] || {})[nom] || "") + '</i></label>'
+        + '<input type="text" class="nw-petit" id="nw-pp-' + nom + '" data-pp="' + nom
+        + '" value="' + ech(P[nom]) + '" inputmode="decimal" autocomplete="off">'
+        + '</div>').join("");
+
+      /* Les formes possibles. Pour une loi continue, P(X = x) vaut zéro :
+         la vignette « un seul bâton » n'est pas proposée, et on dit
+         pourquoi plutôt que de la laisser donner 0 sans un mot. */
+      const FORMES = [["inf", "P(X ⩽ …)"], ["entre", "P(… ⩽ X ⩽ …)"],
+                      ["sup", "P(X ⩾ …)"]].concat(discret ? [["egal", "P(X = …)"]] : []);
+      const choix = '<div class="nw-formes" role="group" aria-label="Ce qu\'on cherche">'
+        + FORMES.map(([f, t]) => '<button type="button" class="nw-forme'
+            + (q === f ? " nw-choisie" : "") + '" data-forme="' + f + '" title="' + t
+            + '" aria-label="' + t + '" aria-pressed="' + (q === f) + '">'
+            + vignetteQuestion(f) + '</button>').join("")
+        + '</div>';
+
+      const champK = (cle, val) => '<input type="text" class="nw-petit nw-court" data-pp="'
+        + cle + '" value="' + ech(val) + '" inputmode="decimal" autocomplete="off" '
+        + 'aria-label="' + (cle === "k2" ? "borne haute" : "borne") + '">';
+      /* Le résultat est un CHAMP, pas un texte : y écrire une probabilité
+         fait le calcul inverse — « quelle valeur de k donne 0,5 ? ». La
+         machine le fait, et c'est exactement la question d'un énoncé qui
+         demande un seuil. Il n'est saisissable que là où la réponse est
+         unique : sur « = » et sur un encadrement, deux bornes pour une
+         seule probabilité, il y aurait une infinité de réponses. */
+      const inversable = q === "inf" || q === "sup";
+      const champRes = '<input type="text" class="nw-petit nw-res" data-pres '
+        + (inversable ? "" : "readonly ") + 'value="'
+        + ech(Number.isFinite(valeur) ? fmt(valeur) : "—") + '" inputmode="decimal" '
+        + 'autocomplete="off" aria-label="probabilité">';
+      const V = discret ? "X" : "X";
+      const equation = '<div class="nw-equation">' + choix
+        + '<span class="nw-eq">P(' + (q === "entre" ? champK("k", P.k) + " ⩽ " + V + " ⩽ "
+              + champK("k2", P.k2)
+            : V + (q === "inf" ? " ⩽ " : q === "sup" ? " ⩾ " : " = ") + champK("k", P.k))
+        + ') =</span>' + champRes + '</div>';
+
+      return '<div class="nw-proba-tete">'
+        + '<label for="nw-loi" class="nw-proba-lib">loi</label>'
+        + '<select class="nw-petit nw-loi" id="nw-loi">'
         + Object.keys(LOIS_UI).map((c) => '<option value="' + c + '"'
           + (P.loi === c ? " selected" : "") + '>' + ech(LOIS_UI[c].nom) + '</option>').join("")
-        + '</select>' + champs + '</div>'
-        + '<div class="nw-rangee">'
-        + '<label for="nw-question">question</label><select class="nw-petit" id="nw-question">'
-        + [["egal", "P(X = k)"], ["inf", "P(X ⩽ k)"], ["sup", "P(X ⩾ k)"],
-           ["entre", "P(a ⩽ X ⩽ b)"], ["inverse", "k pour un seuil donné"]]
-          .map(([v, t]) => '<option value="' + v + '"' + (q === v ? " selected" : "")
-            + '>' + ech(t) + '</option>').join("")
-        + '</select>' + kChamps + '</div>'
+        + '</select></div>'
+        + '<div class="nw-params">' + champs + '</div>'
+        + equation
         + svg
-        + '<div class="nw-ligne" style="margin-top:.5rem">'
-        + '<span class="nw-saisie">' + ech(formule) + '</span>'
-        + '<span class="nw-resultat">' + ech(Number.isFinite(valeur) ? fmt(valeur) : "—")
-        + '</span></div>'
         + '<dl class="nw-valeurs">'
         + (Number.isFinite(E) ? '<dt>espérance E(X)</dt><dd>' + ech(fmt(E)) + '</dd>' : "")
         + (Number.isFinite(S) ? '<dt>écart type σ(X)</dt><dd>' + ech(fmt(S)) + '</dd>' : "")
         + '</dl>'
-        + (q === "egal" && !discret
-            ? '<p class="nw-sous">Pour une loi continue, la probabilité d\'une valeur '
-              + 'EXACTE est nulle : seules les probabilités d\'intervalles ont un sens. '
-              + 'C\'est la densité qu\'on lit sur la courbe, pas une probabilité.</p>' : "")
+        + '<p class="nw-sous">' + ech(formule)
+        + (inversable ? ' — et le champ du résultat se remplit aussi : '
+            + 'écrivez une probabilité, la borne se calcule.' : "")
+        + (!discret ? ' Pour une loi continue, la probabilité d\'une valeur EXACTE est '
+            + 'nulle : seules les probabilités d\'intervalles ont un sens.' : "")
+        + '</p>'
         + lienChapitre(L.chapitre);
     },
     apres() {
@@ -2529,10 +2973,42 @@
         if (L.premier === 1 && ETAT.probas.k < 1) ETAT.probas.k = 1;
         garder(); redessiner();
       });
-      const qu = $("#nw-question");
-      if (qu) qu.addEventListener("change", () => {
-        ETAT.probas.question = qu.value; garder(); redessiner();
-      });
+      $$("[data-forme]", page).forEach((b) => b.addEventListener("click", () => {
+        ETAT.probas.question = b.dataset.forme; garder(); redessiner();
+      }));
+      /* ── le calcul inverse, dans l'équation ────────────────────────
+         Écrire une probabilité dans le champ du résultat demande la
+         borne qui la donne. C'est ce que fait la machine, et c'est la
+         question des énoncés : « à partir de combien de pièces la
+         probabilité dépasse-t-elle 0,95 ? »
+
+         Sur une loi DISCRÈTE, la réponse exacte n'existe presque jamais :
+         P(X ⩽ 9) vaut 0,41 et P(X ⩽ 10) vaut 0,59, rien ne vaut 0,5. On
+         rend donc le plus petit k qui ATTEINT le seuil, et on réaffiche
+         aussitôt la probabilité vraie — sinon l'écran montrerait 0,5 là
+         où la machine calcule 0,588, et ce serait un mensonge d'un seul
+         chiffre, le pire genre. */
+      const res = $("[data-pres]");
+      if (res && !res.readOnly) {
+        const inverser = () => {
+          const P = ETAT.probas, L = LOIS_UI[P.loi];
+          const cible = nombreSaisi(res.value);
+          if (cible === null) { dire("« " + res.value + " » n'est pas un nombre.", "e-erreur"); return; }
+          if (cible < 0 || cible > 1) { dire("Une probabilité est entre 0 et 1.", "e-erreur"); return; }
+          let k;
+          try {
+            k = P.question === "inf" ? L.inv(P, cible)
+              : L.discrete ? L.inv(P, 1 - cible) + 1 : L.inv(P, 1 - cible);
+          } catch (e) { k = NaN; }
+          if (!Number.isFinite(k)) {
+            dire("Aucune borne ne donne cette probabilité.", "e-erreur"); return;
+          }
+          ETAT.probas.k = L.discrete ? Math.round(k) : k;
+          dire(""); garder(); redessiner();
+        };
+        res.addEventListener("change", inverser);
+        res.addEventListener("keydown", (e) => { if (e.key === "Enter") inverser(); });
+      }
       $$("[data-pp]", page).forEach((c) => {
         const maj = () => {
           const v = nombreSaisi(c.value);
