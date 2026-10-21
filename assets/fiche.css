@@ -5841,6 +5841,15 @@ td.etat.sur   { color: var(--vert); }
 }
 .at-tiroir-tete button:hover { border-color: var(--accent); color: var(--encre); }
 .at-liste-ex { margin-top: .8rem; display: grid; gap: 1rem; }
+/* Le tiroir n'a rien à montrer pour ce langage : on le dit, au lieu de
+   laisser un rectangle vide qui ressemble à une panne. */
+.at-ex-vide {
+  margin: .2rem 0 0; padding: .9rem 1rem;
+  border: 1px dashed var(--bord); border-radius: 12px;
+  background: var(--carte-creuse);
+  color: var(--encre-douce); font-size: .8rem; line-height: 1.5;
+}
+.at-ex-vide b { color: var(--encre); }
 .at-ex-groupe h4 {
   margin: 0 0 .45rem; font-size: .697rem; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--encre-tenue);
@@ -8848,6 +8857,26 @@ html[data-style="lanceur"] .lan-actions-page {
   margin: -.9rem -1rem .7rem; border-radius: 22px 22px 0 0;
   border-top: 0; border-bottom: 1px solid var(--lan-filet);
   flex-wrap: wrap;
+
+  /* Signalé : les réglages, le thème et le village étaient introuvables sur
+     les pages longues. Ils n'avaient pas été retirés — la barre les portait
+     bien, mais elle était posée en haut du DOCUMENT et partait au premier
+     défilement. L'en-tête qu'elle remplace, lui, ne partait jamais. Une
+     barre qui disparaît reprend d'une main ce qu'elle donne de l'autre :
+     elle se colle donc en haut de la fenêtre.
+
+     Le fond est composé en deux couches — le creux du lanceur PAR-DESSUS la
+     couleur de la carte — parce que « --lan-creux » est translucide : collée,
+     elle laisserait le texte défiler au travers. */
+  position: sticky; top: 0; z-index: 30;
+  background: linear-gradient(var(--lan-creux), var(--lan-creux)), var(--carte);
+}
+/* Collée en haut, la barre n'a plus de coins ronds à montrer : le papier
+   qu'elle couronnait est passé dessous. */
+.lan-sentinelle { height: 0; margin: 0; }
+html[data-style="lanceur"] .lan-actions-page.lan-collee {
+  border-radius: 0;
+  box-shadow: 0 1px 0 var(--lan-filet), 0 6px 18px -12px rgba(0,0,0,.45);
 }
 /* Le rappel du bas : les destinations seules, et un peu plus discret —
    c'est un rappel, pas une seconde commande. */
