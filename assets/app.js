@@ -1212,7 +1212,17 @@
        fenêtre, avec le reste des actions. Ailleurs, ils restent dans
        l'en-tête. On DÉPLACE la cible, on ne recrée rien : tout ce qui
        était branché le reste. */
-    var tete = document.querySelector(".lan-actions .lan-nav")
+    /* Signalé : sur l'accueil classique, la recherche, le thème, les
+       réglages et le village avaient disparu. Ils n'avaient pas disparu —
+       ils étaient posés DANS la barre du lanceur, qui est bien présente
+       dans la page mais masquée par la feuille de style quand on a choisi
+       l'ancien accueil. Quatre boutons rangés dans un tiroir fermé.
+
+       Chercher la cible par sa PRÉSENCE ne suffit donc pas : les deux
+       accueils coexistent dans le même fichier, et c'est « data-style »
+       qui dit lequel est à l'écran. On le lit. */
+    var lanceur = document.documentElement.dataset.style !== "classique";
+    var tete = (lanceur && document.querySelector(".lan-actions .lan-nav"))
             || document.querySelector(".app-tete nav");
     if (!tete) return barreOutils();
 
