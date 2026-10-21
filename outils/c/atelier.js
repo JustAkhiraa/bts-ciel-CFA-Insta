@@ -116,7 +116,38 @@
     ];
     return new RegExp(regles.map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
   }
-  const SCAN = { c: scanneur(false), "c++": scanneur(true) };
+  /* ── et le Python ────────────────────────────────────────────────
+     Signalé : l'interprète Python existait déjà, et il n'était QUE dans la
+     calculatrice. L'atelier est l'endroit où l'on écrit des programmes ;
+     c'est là qu'il manquait. Il n'est pas recopié — la page charge le même
+     fichier que la calculatrice, parce que deux copies finissent toujours
+     par diverger.
+
+     Le scanneur du C ne convient pas : le dièse y est une directive de
+     préprocesseur, en Python c'est un commentaire, et les deux se peignent
+     à l'opposé. Les mots-clés et les fonctions de base listés ici sont ceux
+     que l'interprète connaît réellement — en colorer d'autres promettrait
+     ce qu'il ne sait pas faire. */
+  const PY_MC = "\\b(?:and|as|assert|break|class|continue|def|del|elif|else|except|"
+    + "False|finally|for|from|global|if|import|in|is|lambda|None|nonlocal|not|or|pass|"
+    + "raise|return|True|try|while|with|yield)\\b";
+  const PY_FN = "\\b(?:abs|all|any|bool|chr|dict|enumerate|float|input|int|len|list|"
+    + "max|min|ord|print|range|reversed|round|set|sorted|str|sum|tuple|type|zip)\\b";
+  const PY_TRIPLE = '"{3}[\\s\\S]*?"{3}' + "|'{3}[\\s\\S]*?'{3}";
+  const SCAN = {
+    c: scanneur(false),
+    "c++": scanneur(true),
+    python: new RegExp([
+      ["com", "#[^\\n]*"],
+      ["txt", PY_TRIPLE + "|" + CHAINE],
+      ["mc", PY_MC],
+      ["typ", PY_FN],
+      ["fn", APPEL],
+      ["num", NOMBRE],
+      ["op", OPERATEUR],
+      ["var", IDENT],
+    ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm"),
+  };
 
   function peindre(code, langue) {
     const scan = SCAN[langue];
@@ -2174,8 +2205,54 @@
     }, differe);
 
     /* ── exécuter ─────────────────────────────────────────────────── */
+    /* ── exécuter du Python ───────────────────────────────────────────
+       Rien à compiler, rien à télécharger : l'interprète est déjà là, et il
+       rend tout d'un coup — la sortie complète, ou l'erreur avec sa ligne.
+       Il n'y a donc ni ouvrier, ni minuterie, ni saisie au clavier : c'est
+       un sous-ensemble assumé, pas un Python incomplet dont on espère que
+       ça passe, et la page le dit sous l'éditeur.
+
+       La borne d'opérations est DANS l'interprète : une boucle sans fin
+       s'arrête d'elle-même au lieu de figer l'onglet. C'est le seul endroit
+       où elle peut être posée — un setTimeout ne peut pas interrompre du
+       JavaScript synchrone. */
+    function executerPython() {
+      console2.vider();
+      diags.innerHTML = "";
+      editeur.marquesErreur = [];
+      zoneEntree.hidden = true;
+      if (!window.PYMINI) {
+        dirEtat("L'interprète Python n'a pas pu être chargé.", "erreur");
+        console2.note("Le fichier calculatrice/python-mini.js est absent.", "stop");
+        return;
+      }
+      const t0 = performance.now();
+      let r;
+      try { r = window.PYMINI.executer(editeur.valeur); }
+      catch (e) { r = { ok: false, sortie: [], erreur: { message: String(e && e.message || e), ligne: 0 } }; }
+      const ms = Math.round(performance.now() - t0);
+      const sortie = (r.sortie || []).join("\n");
+      if (sortie) console2.poser(sortie + "\n", false);
+      if (r.ok) {
+        dirEtat("Terminé en " + ms + " ms — " + (r.operations || 0) + " opérations", "ok");
+      } else {
+        const g = r.erreur || {};
+        if (g.ligne) {
+          editeur.marquesErreur = [{ ligne: g.ligne, niveau: "error" }];
+          afficherDiagnostics([{ ligne: g.ligne, colonne: 1, niveau: "error",
+                                 message: g.message, fr: g.message }]);
+        }
+        console2.note("⚑ " + (g.message || "erreur")
+          + (g.ligne ? " (ligne " + g.ligne + ")" : ""), "stop");
+        dirEtat("Le programme s'est arrêté sur une erreur", "erreur");
+      }
+    }
+
     async function executer(relance) {
       if (tourne && !relance) return;
+      /* Le Python ne passe pas par le compilateur : il part d'ici, avant
+         qu'on allume quoi que ce soit de la chaîne wasm. */
+      if (langue === "python") { executerPython(); return; }
       arreterExec();
       tourne = true;
       bEx.disabled = true;
@@ -2545,7 +2622,12 @@
     function poserLangue(l) {
       langue = l;
       editeur.langue = l;
-      $("#at-nom-fichier").textContent = l === "c++" ? "programme.cpp" : "programme.c";
+      $("#at-nom-fichier").textContent =
+        l === "c++" ? "programme.cpp" : l === "python" ? "programme.py" : "programme.c";
+      /* « Strict » règle les avertissements du compilateur : en Python il
+         n'y a pas de compilateur, et un bouton qui n'agit sur rien use la
+         confiance dans tous les autres. */
+      if (bStrict) bStrict.hidden = (l === "python");
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
       planifierSauvegarde();
     }
@@ -2703,6 +2785,15 @@
          'int main()\n{\n    std::vector<std::string> eleves = {"Aya", "Karim", "Lina"};\n\n' +
          '    for (const std::string& nom : eleves) {\n' +
          '        std::cout << "Bonjour " << nom << " !" << std::endl;\n    }\n\n    return 0;\n}\n',
+      /* Le même exercice qu'en C — parcourir des notes et en faire la
+         moyenne — pour qu'on VOIE la différence entre les deux langages
+         plutôt que de la lire. C'est le geste de l'épreuve : le même
+         problème, deux outils. */
+      python: 'notes = [12, 15, 9, 18, 14]\nsomme = 0\n\n'
+         + 'for i in range(len(notes)):\n'
+         + '    print("Note " + str(i + 1) + " : " + str(notes[i]))\n'
+         + '    somme = somme + notes[i]\n\n'
+         + 'print("Moyenne : " + str(somme / len(notes)))\n',
     };
 
     /* ── le raccourcisseur, chargé à la DEMANDE ───────────────────────
@@ -2871,7 +2962,10 @@
       editeur.valeur = DEPART.c;
       poserLangue("c");
     }
-    const devine = (s) => /#include\s*<(iostream|vector|string|fstream|algorithm|map)>|std::|using namespace std/.test(s) ? "c++" : "c";
+    const devine = (s) =>
+      /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
+      : /#include\s*<(iostream|vector|string|fstream|algorithm|map)>|std::|using namespace std/
+        .test(s) ? "c++" : "c";
 
     /* ── exemples ───────────────────────────────────────────────────── */
     const listeEx = $("#at-liste-exemples");
