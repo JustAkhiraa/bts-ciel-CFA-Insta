@@ -2619,6 +2619,11 @@
     });
 
     /* ── réglages, sauvegarde, exemples ─────────────────────────────── */
+    /* Le tiroir des TP se redessine quand le langage change. « var », et non
+       « let » : poserLangue peut être appelée pendant l'initialisation, avant
+       que la ligne du tiroir ne soit atteinte. */
+    var redessinerExemples = null;
+    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python" };
     function poserLangue(l) {
       langue = l;
       editeur.langue = l;
@@ -2629,6 +2634,7 @@
          confiance dans tous les autres. */
       if (bStrict) bStrict.hidden = (l === "python");
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
+      if (redessinerExemples) redessinerExemples(l);
       planifierSauvegarde();
     }
     choixLangue.forEach((b) => b.addEventListener("click", () => poserLangue(b.dataset.langue)));
@@ -2947,7 +2953,12 @@
           if (bRelecture)
             bRelecture.setAttribute("aria-pressed", String(relirePendantLaFrappe));
           bStrict.setAttribute("aria-pressed", String(strict));
-          poserLangue(s.langue === "c++" ? "c++" : "c");
+          /* Signalé : du code Python revenait sous le bouton « C », et le
+             compilateur répondait « expected ';' ». Le langage ÉTAIT bien
+             enregistré ; cette ligne, écrite avant que Python n'existe,
+             n'en connaissait que deux et renvoyait tout le reste sur C.
+             La liste est maintenant celle des boutons. */
+          poserLangue(["c", "c++", "python"].indexOf(s.langue) >= 0 ? s.langue : "c");
           /* Le jeu de couleurs et les surlignages reviennent avec le
              programme : un marqueur qu'on perd en fermant l'onglet ne sert
              à rien pour réviser. Les deux sont relus avec méfiance — une
@@ -2974,8 +2985,7 @@
        d'un lien « #n= » pour le retrouver. Trois usages, un seul
        téléchargement. */
     lesExemples().then((ex) => {
-      const groupes = {};
-      ex.forEach((e) => { (groupes[e.groupe] = groupes[e.groupe] || []).push(e); });
+      let groupes = {};
       /* ── Les TP deviennent des DOSSIERS ──────────────────────────────
          Demandé : nommer les groupes « TP 1 », « TP 2 », et les ouvrir
          comme un dossier d'applications sur téléphone — un clic, et une
@@ -3010,31 +3020,54 @@
         '<button type="button" class="at-ex" data-g="' + ech(g) + '" data-i="' + o.i + '">' +
         "<b>" + ech(titre) + "</b><span>" + ech(o.e.quoi || "") + "</span></button>";
 
-      listeEx.innerHTML = Object.keys(groupes).map((g) => {
-        const { fam, seuls } = enFamilles(groupes[g]);
-        let corps = seuls.map((o) => carte(g, o, o.e.titre)).join("");
-        if (fam.size) {
-          corps += '<div class="at-dossiers">' + [...fam.keys()].map((cle) => {
-            const liste = fam.get(cle);
-            /* Les vignettes du dossier : une par exercice, neuf au plus —
-               au-delà, une grille 3×3 ne montre plus rien et c'est le compte
-               écrit dessous qui renseigne. C'est exactement ce que fait un
-               téléphone, et pour la même raison. */
-            const vignettes = liste.slice(0, 9)
-              .map(() => '<span class="at-vignette"></span>').join("");
-            /* Le compte annoncé est celui du SUJET : le programme de contrôle
-               n'est pas un exercice de plus, il les refait tous. Annoncer huit
-               pour un TP qui en a sept, c'est la même erreur que le numéro. */
-            const nbExos = liste.filter((o) => !o.e.hors).length;
-            return '<button type="button" class="at-dossier" data-g="' + ech(g) +
-                   '" data-tp="' + ech(cle) + '">' +
-                   '<span class="at-dossier-grille">' + vignettes + "</span>" +
-                   "<b>" + ech(cle) + "</b><span>" + nbExos +
-                   (nbExos > 1 ? " exercices" : " exercice") + "</span></button>";
-          }).join("") + "</div>";
+      /* Demandé : « quand je clique sur C ça doit me mettre les TP en C,
+         et pareil quand je clique sur Python ». Le tiroir montrait TOUT, quel
+         que soit le bouton : des corrigés en C proposés sous Python, qui ne
+         peuvent pas s'exécuter là où on les ouvre. On ne garde donc que ce qui
+         tourne dans le langage choisi, et on redessine à chaque changement.
+
+         Le vide est dit, pas masqué : un tiroir qui s'ouvre sur rien sans un
+         mot laisse croire à une panne. */
+      function dessinerExemples(l) {
+        groupes = {};
+        ex.forEach((e) => {
+          if ((e.langue || "c") !== l) return;
+          (groupes[e.groupe] = groupes[e.groupe] || []).push(e);
+        });
+        if (!Object.keys(groupes).length) {
+          listeEx.innerHTML = '<p class="at-ex-vide">Aucun TP ni exemple en <b>' +
+            ech(NOM_LANGUE[l] || l) + "</b> pour l'instant. Les corrigés de C et " +
+            "de C++ sont sur leur propre bouton.</p>";
+          return;
         }
-        return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
-      }).join("");
+        listeEx.innerHTML = Object.keys(groupes).map((g) => {
+          const { fam, seuls } = enFamilles(groupes[g]);
+          let corps = seuls.map((o) => carte(g, o, o.e.titre)).join("");
+          if (fam.size) {
+            corps += '<div class="at-dossiers">' + [...fam.keys()].map((cle) => {
+              const liste = fam.get(cle);
+              /* Les vignettes du dossier : une par exercice, neuf au plus —
+                 au-delà, une grille 3×3 ne montre plus rien et c'est le compte
+                 écrit dessous qui renseigne. C'est exactement ce que fait un
+                 téléphone, et pour la même raison. */
+              const vignettes = liste.slice(0, 9)
+                .map(() => '<span class="at-vignette"></span>').join("");
+              /* Le compte annoncé est celui du SUJET : le programme de contrôle
+                 n'est pas un exercice de plus, il les refait tous. Annoncer huit
+                 pour un TP qui en a sept, c'est la même erreur que le numéro. */
+              const nbExos = liste.filter((o) => !o.e.hors).length;
+              return '<button type="button" class="at-dossier" data-g="' + ech(g) +
+                     '" data-tp="' + ech(cle) + '">' +
+                     '<span class="at-dossier-grille">' + vignettes + "</span>" +
+                     "<b>" + ech(cle) + "</b><span>" + nbExos +
+                     (nbExos > 1 ? " exercices" : " exercice") + "</span></button>";
+            }).join("") + "</div>";
+          }
+          return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
+        }).join("");
+      }
+      dessinerExemples(langue);
+      redessinerExemples = dessinerExemples;
 
       /* La « bulle carrée » : un seul panneau, rempli à la demande. En
          fabriquer un par dossier aurait mis quinze boutons cachés dans la

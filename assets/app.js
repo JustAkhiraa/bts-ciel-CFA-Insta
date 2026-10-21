@@ -1284,6 +1284,19 @@
        sont recopiées parce que ce sont de simples liens : les boutons,
        eux, ont des écouteurs, et un clone n'en hérite pas. */
     fen.insertBefore(barre, fen.firstChild);
+
+    /* La barre est collée en haut (voir app.css). Reste à savoir QUAND elle
+       l'est, pour lui retirer ses coins ronds : une sentinelle de hauteur
+       nulle posée juste au-dessus, et un observateur. Pas d'écoute du
+       défilement — ce serait un calcul à chaque pixel pour une classe. */
+    if (window.IntersectionObserver) {
+      var sentinelle = document.createElement("div");
+      sentinelle.className = "lan-sentinelle";
+      fen.insertBefore(sentinelle, barre);
+      new IntersectionObserver(function (e) {
+        barre.classList.toggle("lan-collee", !e[0].isIntersecting);
+      }, { threshold: 1 }).observe(sentinelle);
+    }
     requestAnimationFrame(function () {
       if (fen.scrollHeight <= window.innerHeight * 1.35) return;
       var bas = document.createElement("div");
