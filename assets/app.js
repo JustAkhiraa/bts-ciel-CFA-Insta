@@ -1272,7 +1272,25 @@
       plus.appendChild(menu);
       barre.appendChild(plus);
     }
-    fen.appendChild(barre);
+    /* Demandé : « il y a de la place en haut, tu le mets en bas ; au pire
+       mets-le en haut ET en bas ». La barre monte donc en tête de la
+       fenêtre, là où la bande était vide. Elle s'y comporte comme la barre
+       de titre d'une fenêtre : on sait où l'on est, et où aller.
+
+       Et en bas, un RAPPEL — les quatre destinations seules, sans les
+       boutons. Il n'apparaît que si la page dépasse l'écran : sur une page
+       courte, deux barres identiques à trente centimètres l'une de l'autre
+       ne sont pas une commodité, c'est du bruit. Seules les destinations
+       sont recopiées parce que ce sont de simples liens : les boutons,
+       eux, ont des écouteurs, et un clone n'en hérite pas. */
+    fen.insertBefore(barre, fen.firstChild);
+    requestAnimationFrame(function () {
+      if (fen.scrollHeight <= window.innerHeight * 1.35) return;
+      var bas = document.createElement("div");
+      bas.className = "lan-actions lan-actions-page lan-actions-bas";
+      bas.appendChild(dest.cloneNode(true));
+      fen.appendChild(bas);
+    });
     return nav;
   }
 
