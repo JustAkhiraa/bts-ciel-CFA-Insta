@@ -1213,6 +1213,69 @@
     }, { passive: true });
   }
 
+  /* ── la barre du lanceur, sur les pages intérieures ───────────────────
+     Signalé, et c'est juste : « le mode lanceur c'est pas la même
+     interface, arrête de récupérer des trucs de l'ancien et de les mettre
+     dans le nouveau ». L'en-tête à quatre onglets encadrés est le mobilier
+     de l'ancien site. Le remettre en haut d'une fenêtre de lanceur, c'est
+     coller deux interfaces l'une sur l'autre.
+
+     Alors la page intérieure reçoit la MÊME barre que l'accueil : en bas
+     de la fenêtre, les quatre destinations à gauche, les boutons à droite,
+     le « ⋯ » au bout. Les liens ne sont pas recréés mais DÉPLACÉS depuis
+     l'en-tête : ils gardent leur adresse, leur icône et la marque de la
+     page courante, et rien de ce qui y était branché ne se débranche.
+
+     Les fiches n'en reçoivent pas : elles ont déjà leur barre du bas, avec
+     le chapitre précédent et le suivant. Deux barres l'une sous l'autre ne
+     serviraient qu'à se faire concurrence. */
+  function barrePage() {
+    if (document.documentElement.dataset.style !== "lanceur") return null;
+    if (document.body.dataset.accueil) return null;
+    var fen = document.querySelector("main.contenu");
+    if (!fen || document.querySelector(".lan-actions")) return null;
+    var navAncien = document.querySelector(".app-tete nav");
+    if (!navAncien) return null;
+
+    var barre = document.createElement("div");
+    barre.className = "lan-actions lan-actions-page";
+
+    var dest = document.createElement("div");
+    dest.className = "lan-dest";
+    /* Le village a son propre bouton, posé plus tard par poserBouton3D :
+       on ne déplace que les liens de navigation. */
+    var liens = navAncien.querySelectorAll('a:not([href*="monde/"])');
+    for (var i = 0; i < liens.length; i++) dest.appendChild(liens[i]);
+    barre.appendChild(dest);
+
+    var nav = document.createElement("div");
+    nav.className = "lan-nav";
+    barre.appendChild(nav);
+
+    /* Le « ⋯ » : les trois liens qui vivaient dans le pied. Le pied est
+       masqué en mode lanceur ; ses liens ne doivent pas disparaître avec
+       lui. On les reprend du document plutôt que de les réécrire, pour
+       que leur adresse reste celle que publier.py a calculée. */
+    var pied = document.querySelector(".app-pied .liens");
+    if (pied) {
+      var plus = document.createElement("details");
+      plus.className = "lan-plus";
+      var tete = document.createElement("summary");
+      tete.setAttribute("aria-label", "Le reste");
+      tete.title = "Le reste";
+      tete.innerHTML = "&#8943;";
+      plus.appendChild(tete);
+      var menu = document.createElement("div");
+      menu.className = "lan-plus-menu";
+      var aPied = pied.querySelectorAll("a");
+      for (var j = 0; j < aPied.length; j++) menu.appendChild(aPied[j].cloneNode(true));
+      plus.appendChild(menu);
+      barre.appendChild(plus);
+    }
+    fen.appendChild(barre);
+    return nav;
+  }
+
   function poserBoutons() {
     /* Sur l'accueil, les boutons utilitaires n'ont pas à flotter seuls
        au-dessus du papier : ils se rangent dans la barre d'actions de la
@@ -1229,7 +1292,9 @@
        accueils coexistent dans le même fichier, et c'est « data-style »
        qui dit lequel est à l'écran. On le lit. */
     var lanceur = document.documentElement.dataset.style !== "classique";
-    var tete = (lanceur && document.querySelector(".lan-actions .lan-nav"))
+    /* En lanceur, la barre de la page est bâtie d'abord : c'est elle qui
+       devient la cible. Sinon on continue de garnir l'en-tête. */
+    var tete = (lanceur && (barrePage() || document.querySelector(".lan-actions .lan-nav")))
             || document.querySelector(".app-tete nav");
     if (!tete) return barreOutils();
 
