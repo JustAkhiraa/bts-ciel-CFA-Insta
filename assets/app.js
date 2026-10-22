@@ -1307,6 +1307,27 @@
     return nav;
   }
 
+  /* ── l'heure ──────────────────────────────────────────────────────────
+     Demandé le 22 octobre : voir l'heure quelque part dans le site. Elle est
+     posée au bout des compteurs de l'accueil, parce que c'est la ligne qu'on
+     a sous les yeux et qu'elle donne son sens au « 1 h 10 » du cours en
+     cours.
+
+     Le prochain rendez-vous est calé sur le changement de MINUTE, pas sur un
+     battement d'une seconde : un minuteur qui se réveille soixante fois par
+     minute pour redessiner le même texte vide la batterie d'un téléphone
+     pour rien. */
+  function poserHeure() {
+    var e = document.getElementById("lan-heure");
+    if (!e) return;
+    (function peindre() {
+      var d = new Date();
+      e.textContent = ("0" + d.getHours()).slice(-2) + ":" +
+                      ("0" + d.getMinutes()).slice(-2);
+      setTimeout(peindre, 60000 - (d.getSeconds() * 1000 + d.getMilliseconds()) + 50);
+    })();
+  }
+
   function poserBoutons() {
     /* Sur l'accueil, les boutons utilitaires n'ont pas à flotter seuls
        au-dessus du papier : ils se rangent dans la barre d'actions de la
@@ -1843,6 +1864,7 @@
   function init() {
     appliquer();
     poserBoutons();
+    poserHeure();
     brancherRecherche();
     progression();
     reponses();

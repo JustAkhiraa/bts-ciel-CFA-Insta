@@ -113,15 +113,19 @@ def main(semaines=SEMAINES, sec=True):
                                + m.group(3), page, count=1), sec, faits)
 
     # ── les données du bandeau d'accueil ────────────────────────────────
+    # Le bloc s'appelait « bp-donnees » du temps du bandeau ; il s'appelle
+    # « pj-donnees » depuis que l'accueil est le lanceur et que le panneau
+    # montre le prochain jour. Le script n'avait pas suivi : il échouait à
+    # chaque exécution, et le planning publié ne bougeait plus.
     accueil = lire("index.html")
     donnees = json.dumps([[c["debut"], c["fin"][11:], c["cours"], c["salle"],
                            noyau.matiere_du_cours(c["cours"])]
                           for c in plan["creneaux"]],
                          ensure_ascii=False, separators=(",", ":"))
-    m2 = re.compile(r'(<script type="application/json" id="bp-donnees">)(.*?)(</script>)',
+    m2 = re.compile(r'(<script type="application/json" id="pj-donnees">)(.*?)(</script>)',
                     re.S)
     if not m2.search(accueil):
-        print("  ⚠️  bloc « bp-donnees » introuvable dans index.html.")
+        print("  ⚠️  bloc « pj-donnees » introuvable dans index.html.")
         return 1
     change |= ecrire("index.html",
                      m2.sub(lambda m: m.group(1) + donnees + m.group(3),
