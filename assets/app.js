@@ -1267,10 +1267,37 @@
       plus.appendChild(tete);
       var menu = document.createElement("div");
       menu.className = "lan-plus-menu";
+      /* Le « ⋯ » de l'accueil offre cinq entrées, celui des pages n'en
+         offrait que trois : il ne recopiait que le pied. Deux manquaient —
+         la bascule d'accueil et les annales — et c'est exactement le
+         reproche déjà entendu : des options qui existent ici et pas là.
+
+         La bascule est RECRÉÉE, pas clonée : un clone n'emporte pas les
+         écouteurs, et c'est ainsi que des boutons muets étaient apparus. */
+      var bascule = document.createElement("button");
+      bascule.type = "button";
+      bascule.setAttribute("data-bascule-style", "");
+      menu.appendChild(bascule);
+
       var aPied = pied.querySelectorAll("a");
-      for (var j = 0; j < aPied.length; j++) menu.appendChild(aPied[j].cloneNode(true));
+      /* L'adresse des annales se déduit de celle d'« À propos » : les deux
+         pages vivent à la racine du site, et le pied porte déjà le bon
+         nombre de « ../ » pour la profondeur où l'on se trouve. */
+      var repere = null;
+      for (var j = 0; j < aPied.length; j++) {
+        var h = aPied[j].getAttribute("href") || "";
+        if (/a-propos\.html$/.test(h)) repere = h;
+        menu.appendChild(aPied[j].cloneNode(true));
+      }
+      if (repere) {
+        var an = document.createElement("a");
+        an.href = repere.replace(/a-propos\.html$/, "annales.html");
+        an.textContent = "Annales du BTS";
+        menu.insertBefore(an, menu.children[1] || null);
+      }
       plus.appendChild(menu);
       barre.appendChild(plus);
+      brancherBasculeStyle();
     }
     /* Demandé : « il y a de la place en haut, tu le mets en bas ; au pire
        mets-le en haut ET en bas ». La barre monte donc en tête de la
