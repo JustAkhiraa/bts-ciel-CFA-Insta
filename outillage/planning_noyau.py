@@ -75,7 +75,6 @@ def utc_vers_paris(iso):
 
 
 # ══════════════════════════════════════════════════════ la lecture
-# ══════════════════════════════════════════════════════════════ la lecture
 def verifier_champs(objet, attendus, ou, pbs):
     inconnus = sorted(set(objet) - attendus)
     if inconnus:
