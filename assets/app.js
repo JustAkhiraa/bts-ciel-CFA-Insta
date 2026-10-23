@@ -1521,7 +1521,9 @@
     if (!mots.length) return [];
     var out = [];
     for (var i = 0; i < data.length; i++) {
-      var e = data[i], k = " " + e.k, titre = " " + normaliser(e.t), ok = true, score = 3;
+      /* Les mots du titre comptent aussi : l'entrée « Labo réseau » n'a pas
+         « labo » dans sa liste, et « labo » ne la trouvait pas. */
+      var e = data[i], titre = " " + normaliser(e.t), k = " " + e.k + titre + " " + (e.g || ""), ok = true, score = 3;
       for (var j = 0; j < mots.length; j++) {
         if (k.indexOf(" " + mots[j]) === -1) { ok = false; break; }
       }

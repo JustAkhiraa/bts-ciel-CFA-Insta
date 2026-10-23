@@ -508,7 +508,8 @@ def main():
             entrees = json.loads(m.group(1))
             n_index = len(entrees)
             for e in entrees:
-                if not os.path.isfile(os.path.join(RACINE, e["u"])):
+                # « fichiers.html#fusionner » : l'ancre ouvre un outil de la page
+                if not os.path.isfile(os.path.join(RACINE, e["u"].split("#")[0])):
                     pbs.append(("assets/recherche.js", f"entrée vers une page absente : {e['u']}"))
     else:
         pbs.append(("assets/recherche.js", "absent"))

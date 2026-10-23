@@ -2449,6 +2449,17 @@ const BOUTIQUES = [
     tenancier: "Le crieur",
     bonjour: "Ici, pas de serveur et pas d'Internet : montrez votre QR à "
            + "votre voisin, et chacun porte les messages des autres." },
+  /* Le douzième, l'atelier fichiers : une imprimerie, à l'ouest, sous
+     l'Ardoise et la Taverne — le quartier des outils de toutes matières.
+     Mêmes règles : l'ancre donne la direction, les anneaux trouvent la
+     place, et le village est recompté. Six ancres essayées : au nord, elle
+     mangeait des champs (217 → 210 parcelles) ou des maisons (110 → 98) ;
+     ici, rien ne bouge : 51, 110, 217 parcelles, 401 arbres. */
+  { nom: "L'Imprimerie", enseigne: "PDF", couleur: 0xE8806A,
+    outil: "outils/fichiers.html", ancre: [-720, 260], cote: 1, z: 54,
+    tenancier: "Le relieur",
+    bonjour: "Assembler, couper, signer, alléger vos PDF et vos photos : "
+           + "tout se fait ici, sur votre comptoir — rien ne part ailleurs." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
