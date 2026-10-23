@@ -2072,41 +2072,47 @@
       const R = CALC.STATS.unVariable(S.valeurs, S.effectifs);
       if (!R) return onglets + '<p class="nw-vide">Aucune donnée exploitable.</p>';
       if (vue === "resultats") {
-        const l = (t, v) => '<dt>' + t + '</dt><dd>' + ech(fmt(v)) + '</dd>';
-        const bloc = (titre, lignes) => '<h3 class="nw-titre-bloc">' + titre + '</h3>'
-          + '<dl class="nw-valeurs">' + lignes + '</dl>';
-        /* Deux colonnes de lecture, comme la machine : la POPULATION
-           (μ, σ, σ² — on a tout le monde) et l'ÉCHANTILLON (x̄, s, s² — on
-           a une partie, et on estime). La moyenne est le même nombre dans
-           les deux cas ; c'est son nom qui change, et le nom est ce que le
-           sujet emploie pour dire laquelle des deux variances il attend. */
-        return onglets
-          + bloc("Effectifs", l("effectif total N", R.N) + l("somme Σxᵢnᵢ", R.somme)
-              + l("somme des carrés Σxᵢ²nᵢ", R.sommeCarres))
-          + bloc("Population", l("moyenne μ", R.moyenne)
-              + l("variance σ²", R.variance) + l("écart type σ", R.ecartType))
-          + bloc("Échantillon", l("moyenne x̄", R.moyenne)
-              + l("variance s²", R.varianceEch) + l("écart type s", R.ecartTypeEch))
-          + bloc("Position", l("minimum", R.min) + l("premier quartile Q1", R.q1)
-              + l("médiane Me", R.mediane) + l("troisième quartile Q3", R.q3)
-              + l("maximum", R.max)
-              + '<dt>mode</dt><dd>' + ech(R.modes.length === R.paires.length ? "aucun"
-                  : R.modes.map((m) => fmt(m)).join(" · ")) + '</dd>'
-              /* L'effectif du mode : « 4 » ne dit pas si la valeur revient deux
-                 fois ou trente. La machine l'affiche, et c'est lui qui dit si le
-                 mode veut dire quelque chose. */
-              + (R.modes.length === R.paires.length ? ""
-                 : '<dt>effectif du mode Nm</dt><dd>'
-                   + ech(fmt(Math.max(...R.paires.map((p) => p[1])))) + '</dd>'))
-          + bloc("Dispersion", l("étendue", R.etendue)
-              + l("écart interquartile", R.interquartile))
-          + '<p class="nw-sous"><b>σ divise par N, s divise par N−1.</b> Un énoncé qui parle '
+        /* Le tableau de la machine, ligne pour ligne et dans son ordre :
+           le nom en toutes lettres, le symbole en gris, la valeur. Elle ne
+           range pas en blocs ; elle NOMME — « Moyenne » et μ d'un côté,
+           « Moyenne échantillon » et x̄ de l'autre — et c'est le nom qui
+           sépare la population de l'échantillon, exactement là où les
+           élèves confondent. */
+        const lignes = [
+          ["Effectif total", "n", R.N], ["Minimum", "Min", R.min],
+          ["Premier quartile", "Q1", R.q1], ["Médiane", "Med", R.mediane],
+          ["Troisième quartile", "Q3", R.q3], ["Maximum", "Max", R.max],
+          ["Etendue", "E", R.etendue], ["Ecart interquartile", "EI", R.interquartile],
+          ["Moyenne", "μ", R.moyenne], ["Ecart type", "σ", R.ecartType],
+          ["Variance", "σ²", R.variance],
+          ["Moyenne échantillon", "x̄", R.moyenne],
+          ["Ecart type échantillon", "s", R.ecartTypeEch],
+          ["Variance échantillon", "s²", R.varianceEch],
+          ["Somme", "Σx", R.somme], ["Somme des carrés", "Σx²", R.sommeCarres],
+        ];
+        /* Le mode n'est pas dans le tableau de la machine ; un sujet de BTS
+           le demande pourtant. Il vient APRÈS, pour ne pas déranger l'ordre
+           qu'on retrouvera le jour de l'épreuve. */
+        const sansMode = R.modes.length === R.paires.length;
+        const ligne = (nom, sym, v) => '<tr><th scope="row">' + ech(nom) + '</th>'
+          + '<td class="nw-symbole">' + ech(sym) + '</td>'
+          + '<td>' + ech(typeof v === "string" ? v : fmt(v)) + '</td></tr>';
+        return onglets + '<table class="nw-table nw-table-reg nw-table-stats">'
+          + '<tbody>' + lignes.map((L) => ligne(L[0], L[1], L[2])).join("")
+          + ligne("Mode", "Mo", sansMode ? "aucun" : R.modes.map((m) => fmt(m)).join(" · "))
+          /* L'effectif du mode : « 4 » ne dit pas si la valeur revient deux
+             fois ou trente. C'est lui qui dit si le mode veut dire quelque
+             chose. */
+          + (sansMode ? "" : ligne("Effectif du mode", "Nm",
+                                   Math.max(...R.paires.map((pr) => pr[1]))))
+          + '</tbody></table>'
+          + '<p class="nw-sous"><b>σ divise par n, s divise par n−1.</b> Un énoncé qui parle '
           + 'de « la population » ou de « la série » attend σ ; un énoncé qui parle d\'un '
-          + '« échantillon » et d\'une estimation attend s. Avec un seul individu, s '
-          + 'n\'existe pas.</p>'
+          + '« échantillon » et d\'une estimation attend s. La moyenne est le même nombre ; '
+          + 'seul son nom change. Avec un seul individu, s n\'existe pas.</p>'
           + '<p class="nw-sous"><b>Convention française des quartiles</b> : Q1 est la plus '
           + 'petite valeur telle qu\'au moins un quart de l\'effectif lui est inférieur ou '
-          + 'égal — la valeur de rang ⌈N/4⌉. Un tableur interpole et ne donne donc pas '
+          + 'égal — la valeur de rang ⌈n/4⌉. Un tableur interpole et ne donne donc pas '
           + 'toujours le même Q1.</p>';
       }
       const mode = ETAT.stats.graphe || "histogramme";
@@ -2133,25 +2139,23 @@
            quand elle les a choisis seule. Les nôtres disaient « auto », ce
            qui ne dit rien : on ne peut pas corriger une valeur qu'on ne
            voit pas. Calculées, elles valent le plus petit écart entre deux
-           valeurs, et un demi-écart avant la première : une barre par
-           valeur, centrée sur elle, ce que donnait l'ancien « auto ». */
+           valeurs, et la première valeur : une barre par valeur, qui
+           COMMENCE à cette valeur — relevé sur l'émulateur, la valeur 1
+           tombe dans « [1,2[ », pas dans une barre centrée sur elle. */
         const H = S.histo || {};
         let ecartMin = Infinity;
         for (let k = 1; k < R.paires.length; k++)
           ecartMin = Math.min(ecartMin, R.paires[k][0] - R.paires[k - 1][0]);
         const largAuto = Number.isFinite(ecartMin) && ecartMin > 0 ? ecartMin : 1;
-        const debAuto = R.min - largAuto / 2;
         const saisieL = parseFloat(H.largeur), saisieD = parseFloat(H.debut);
         const manuel = saisieL > 0 || Number.isFinite(saisieD);
         const pasBarre = saisieL > 0 ? saisieL : largAuto;
-        /* Une largeur saisie sans début part de la première valeur, comme
-           avant : le demi-écart n'a de sens que pour la largeur calculée. */
-        const d0 = Number.isFinite(saisieD) ? saisieD : saisieL > 0 ? R.min : debAuto;
+        const d0 = Number.isFinite(saisieD) ? saisieD : R.min;
         reglages = '<div class="nw-panneau"><div class="nw-rangee">'
-          + '<label for="nw-h-larg">largeur</label>'
+          + '<label for="nw-h-larg">Largeur barre</label>'
           + '<input type="text" class="nw-petit nw-court" id="nw-h-larg" data-histo="largeur" '
           + 'value="' + ech(saisieL > 0 ? H.largeur : fmt(pasBarre)) + '">'
-          + '<label for="nw-h-deb">début</label>'
+          + '<label for="nw-h-deb">X début</label>'
           + '<input type="text" class="nw-petit nw-court" id="nw-h-deb" data-histo="debut" '
           + 'value="' + ech(Number.isFinite(saisieD) ? H.debut : fmt(d0)) + '">'
           + '<button type="button" class="nw-bouton" id="nw-h-auto"'
@@ -2160,7 +2164,7 @@
           + (manuel ? 'Réglages saisis : les valeurs sont groupées en classes [a ; b[ de cette '
               + 'largeur à partir de ce début. « Auto » revient au calcul.'
             : '« Auto » : une barre par valeur — la largeur est le plus petit écart entre '
-              + 'deux valeurs, le début un demi-écart avant la première. Changez l\'un des '
+              + 'deux valeurs, le début la première valeur. Changez l\'un des '
               + 'deux pour grouper en classes, comme le demande un énoncé.')
           + '</p></div>';
 
@@ -2174,9 +2178,9 @@
         const hmax = Math.max(...classes.values());
         cles.forEach((k) => {
           const a = d0 + k * pasBarre, b = a + pasBarre, n = classes.get(k);
-          lectures.push('<span>[' + ech(fmt(a)) + ' ; ' + ech(fmt(b)) + '[</span>'
-            + '<span>effectif ' + ech(fmt(n)) + '</span>'
-            + '<span>fréquence ' + ech(fmt(n / R.N)) + '</span>');
+          lectures.push('<span>Intervalle : [' + ech(fmt(a)) + ' ; ' + ech(fmt(b)) + '[</span>'
+            + '<span>Effectif : ' + ech(fmt(n)) + '</span>'
+            + '<span>Fréquence : ' + ech(fmt(n / R.N)) + '</span>');
         });
         svg = tracer({
           xmin: d0 + (cles[0] - 0.3) * pasBarre,
@@ -2189,11 +2193,11 @@
         });
       } else if (mode === "moustaches") {
         const dx = Math.max(1e-9, R.max - R.min);
-        const reperes = [["minimum", R.min], ["premier quartile Q1", R.q1],
-                         ["médiane Me", R.mediane], ["troisième quartile Q3", R.q3],
-                         ["maximum", R.max]];
+        const reperes = [["Minimum", R.min], ["Premier quartile", R.q1],
+                         ["Médiane", R.mediane], ["Troisième quartile", R.q3],
+                         ["Maximum", R.max]];
         choisi = viser(reperes.length);
-        reperes.forEach(([nom, v]) => lectures.push('<span>' + ech(nom) + ' = '
+        reperes.forEach(([nom, v]) => lectures.push('<span>' + ech(nom) + ' : '
           + ech(fmt(v)) + '</span>'));
         svg = tracer({
           xmin: R.min - dx * 0.12, xmax: R.max + dx * 0.12, ymin: 0, ymax: 1,
@@ -2218,8 +2222,8 @@
         c = 0;
         R.paires.forEach((p) => {
           c += p[1];
-          lectures.push('<span>x ≤ ' + ech(fmt(p[0])) + '</span>'
-            + '<span>' + ech(fmt(100 * c / R.N)) + ' %</span>'
+          lectures.push('<span>Valeur : ' + ech(fmt(p[0])) + '</span>'
+            + '<span>FCC : ' + ech(fmt(100 * c / R.N)) + ' %</span>'
             + '<span>(' + ech(fmt(c)) + ' sur ' + ech(fmt(R.N)) + ')</span>');
         });
         svg = tracer({
@@ -2236,7 +2240,9 @@
            réduite à la même place : z = Φ⁻¹((k − ½) / N). Si la série suit
            une loi normale, les points (x ; z) s'alignent sur la droite
            z = (x − μ) / σ, tracée à côté. Ce n'est pas un test : c'est une
-           lecture, et un point qui s'écarte se voit tout de suite. */
+           lecture, et un point qui s'écarte se voit tout de suite.
+           Recoupé sur l'émulateur : la valeur 1, première de six, y a la
+           « cote Z attendue » −1.382994127 = Φ⁻¹(0,5 / 6). */
         const individus = [];
         for (const [v, n] of R.paires) {
           for (let k = 0; k < n && individus.length < 2000; k++) individus.push(v);
@@ -2245,9 +2251,8 @@
         const pts = individus.map((v, k) => ({
           x: v, y: CALC.LOIS.invNormale((k + 0.5) / N2, 0, 1) }));
         choisi = viser(pts.length);
-        pts.forEach((p, k) => lectures.push('<span>individu ' + (k + 1) + ' sur ' + N2
-          + '</span><span>x = ' + ech(fmt(p.x)) + '</span><span>z = ' + ech(fmt(p.y))
-          + '</span>'));
+        pts.forEach((p) => lectures.push('<span>Valeur : ' + ech(fmt(p.x))
+          + '</span><span>Cote Z attendue : ' + ech(fmt(p.y)) + '</span>'));
         const zmax = Math.max(2, ...pts.map((p) => Math.abs(p.y))) * 1.15;
         const dx = R.etendue || 1;
         svg = tracer({
