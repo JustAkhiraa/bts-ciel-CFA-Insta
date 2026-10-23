@@ -419,7 +419,13 @@
     rail.innerHTML = '<span class="r-num"></span>'
                    + '<span class="r-titre"></span>'
                    + '<span class="r-tot"></span>';
-    corps.insertBefore(rail, corps.firstChild);
+    /* La piste a une hauteur nulle : c'est elle qui colle en haut, et le
+       rail flotte dedans. Montrer ou masquer le rail ne déplace donc plus
+       une seule ligne de la page — c'était la moitié du clignotement. */
+    const piste = document.createElement("div");
+    piste.className = "rail-piste";
+    piste.appendChild(rail);
+    corps.insertBefore(piste, corps.firstChild);
     const vNum = rail.querySelector(".r-num");
     const vTitre = rail.querySelector(".r-titre");
     const vTot = rail.querySelector(".r-tot");
@@ -442,13 +448,16 @@
       return { num: num, texte: h.textContent.trim() };
     });
 
-    let courante = -1, attend = false;
+    let courante = -1, attend = false, hRail = 0;
     function placer() {
       attend = false;
-      /* La DERNIÈRE section dont le haut est passé sous le rail. On mesure
-         la hauteur du rail au lieu de la supposer : elle change avec la
-         taille de police choisie dans les réglages. */
-      const seuil = rail.offsetHeight + 2;
+      /* La DERNIÈRE section dont le haut est passé sous le rail. La hauteur
+         se mesure — elle change avec la taille de police des réglages — mais
+         SEULEMENT quand le rail est visible : masqué, il mesure zéro, et un
+         seuil qui retombe à 2 px rallume aussitôt ce qu'il venait d'éteindre.
+         On garde donc la dernière hauteur connue. */
+      if (!rail.hidden && rail.offsetHeight) hRail = rail.offsetHeight;
+      const seuil = (hRail || 34) + 2;
       let i = -1;
       for (let k = 0; k < sections.length; k++) {
         if (sections[k].getBoundingClientRect().top <= seuil) i = k; else break;
