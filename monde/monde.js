@@ -2439,6 +2439,16 @@ const BOUTIQUES = [
     tenancier: "La commutatrice",
     bonjour: "Un routeur, deux switchs, quatre PC : câblez, tapez vos "
            + "commandes, et regardez chaque trame passer, pas à pas." },
+  /* Le onzième, le salon de la classe : une taverne, tout à l'ouest,
+     au-delà de l'Ardoise. Mêmes règles : l'ancre donne la direction, les
+     anneaux trouvent la place, et les maisons sont recomptées. Posée près
+     de l'Écritoire, elle en chassait douze de la campagne (110 → 98) ; ici,
+     le village reste tel quel : 51, 110, 217 parcelles, 401 arbres. */
+  { nom: "La Taverne des Pairs", enseigne: "⋈", couleur: 0xF0A868,
+    outil: "outils/salon.html", ancre: [-640, -80], cote: -1, z: 70,
+    tenancier: "Le crieur",
+    bonjour: "Ici, pas de serveur et pas d'Internet : montrez votre QR à "
+           + "votre voisin, et chacun porte les messages des autres." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
