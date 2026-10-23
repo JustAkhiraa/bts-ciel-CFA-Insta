@@ -2419,6 +2419,17 @@ const BOUTIQUES = [
     bonjour: "Calculs, fonctions, suites, statistiques, régressions, "
            + "probabilités, équations — et dix lois, de la binomiale "
            + "à Fisher." },
+  /* Le neuvième outil, le tableau blanc, a sa neuvième échoppe : la règle
+     posée plus haut — aucun outil que le village ignore — vaut pour lui
+     aussi. Son ancre est à l'ouest, du côté du Bureau des Masques : un
+     schéma de réseau se dessine près de l'endroit où on le calcule. Sa
+     place exacte est TROUVÉE par les anneaux, et le compte des maisons a
+     été relevé avant et après : il ne bouge pas. */
+  { nom: "L'Ardoise", enseigne: "✎", couleur: 0xA9C8F5,
+    outil: "outils/tableau.html", ancre: [-520, 60], cote: -1, z: 102,
+    tenancier: "Le dessinateur",
+    bonjour: "Un schéma à poser ? Prenez un stylo, une note, une flèche — "
+           + "le tableau est infini, et rien ne sort d'ici." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait

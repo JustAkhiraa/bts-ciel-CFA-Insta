@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau blanc — BTS CIEL</title>
+<meta name="description" content="Un tableau blanc infini dans le navigateur : formes au trait tremblé, flèches, crayon, texte, post-its, surligneur, gomme et pointeur laser. Enregistre au format Excalidraw, exporte en PNG et SVG.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=34f32eff">
+</head>
+<body data-matiere="projets">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav data-monde="../monde/index.html">
+    <a href="../index.html" aria-label="Accueil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Accueil</span></a>
+    <a href="../planning.html" aria-label="Planning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Planning</span></a>
+    <a href="../devoirs.html" aria-label="Devoirs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12l2 2 4-4"/></svg><span>Devoirs</span></a>
+    <a href="../outils/index.html" aria-current="page" aria-label="Outils"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.2 3.6a4.8 4.8 0 0 0-5.1 7.6L4.6 18.7a1.9 1.9 0 0 0 2.7 2.7l7.5-7.5a4.8 4.8 0 0 0 5.6-6.8l-2.9 2.9-2.6-.7-.7-2.6z"/><path d="M9.4 13.9 12 16.5"/></svg><span>Outils</span></a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#toutes">Toutes matières</a> <span>/</span>
+    <span>Tableau blanc</span></div>
+
+  <div class="tete-matiere">
+    <h1>Tableau blanc</h1>
+    <p>Un tableau <b>infini</b> à la manière de Whiteboard : trois stylos, surligneur, gomme,
+       post-its, formes et flèches. Il enregistre au <b>format d'Excalidraw</b> — ce qu'on dessine
+       ici s'ouvre sur excalidraw.com, et l'inverse. Tout reste dans ce navigateur.</p>
+  </div>
+
+  <section class="outil tb" id="tableau" aria-label="Tableau blanc">
+    <div class="tb-scene" id="tb-scene" tabindex="0"
+         aria-label="Zone de dessin. Raccourcis : 1 sélection, 7 stylo, 0 gomme, N post-it, 2 rectangle, 4 ellipse, 5 flèche. Point d'interrogation pour l'aide.">
+      <canvas id="tb-toile" class="tb-toile"></canvas>
+      <textarea id="tb-saisie" class="tb-saisie" hidden spellcheck="true" aria-label="Texte de l'élément"></textarea>
+
+      <!-- en-tête : titre et historique, comme Whiteboard -->
+      <div class="tb-coin tb-hg">
+        <input type="text" class="tb-titre" id="tb-titre" value="Tableau sans titre" maxlength="80"
+               aria-label="Titre du tableau" title="Cliquez pour renommer le tableau">
+        <div class="tb-groupe">
+          <button type="button" class="tb-b" id="tb-annuler" title="Annuler (Ctrl Z)" aria-label="Annuler">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 5L4 9l4 4"/><path d="M4 9h8a4 4 0 0 1 0 8H9"/></svg></button>
+          <button type="button" class="tb-b" id="tb-retablir" title="Rétablir (Ctrl Y)" aria-label="Rétablir">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 5l4 4-4 4"/><path d="M16 9H8a4 4 0 0 0 0 8h3"/></svg></button>
+        </div>
+        <span class="tb-sauve" id="tb-sauve" title="Le tableau est gardé dans ce navigateur, rien n'est envoyé">✓ Enregistré</span>
+      </div>
+
+      <div class="tb-coin tb-hd">
+        <button type="button" class="tb-b" id="tb-aide-b" title="Aide et raccourcis (?)" aria-label="Aide et raccourcis">?</button>
+        <button type="button" class="tb-b" id="tb-menu-b" aria-expanded="false" aria-controls="tb-menu"
+                title="Paramètres : arrière-plan, fichier, export" aria-label="Paramètres">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/></svg></button>
+        <button type="button" class="tb-b" id="tb-plein" aria-pressed="false" title="Agrandir le tableau" aria-label="Agrandir le tableau">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4"/></svg></button>
+        <div class="tb-pop tb-menu" id="tb-menu" hidden>
+          <p class="tb-menu-titre">Format de l'arrière-plan</p>
+          <div class="tb-pastilles" id="tb-fonds"></div>
+          <label class="tb-ligne"><span>Grille</span><select class="tb-select" id="tb-grilles"></select></label>
+          <label class="tb-ligne"><span>Thème</span><select class="tb-select" id="tb-theme">
+            <option value="site">Celui du site</option><option value="clair">Clair</option><option value="sombre">Sombre</option>
+          </select></label>
+          <label class="tb-ligne"><span>Barre d'outils</span><select class="tb-select" id="tb-cote">
+            <option value="gauche">À gauche</option><option value="droite">À droite</option>
+          </select></label>
+          <hr>
+          <button type="button" data-menu="ouvrir">Ouvrir un fichier… <kbd>Ctrl O</kbd></button>
+          <button type="button" data-menu="enregistrer">Enregistrer (.excalidraw) <kbd>Ctrl S</kbd></button>
+          <button type="button" data-menu="exporter">Exporter en image… <kbd>Ctrl Maj E</kbd></button>
+          <button type="button" data-menu="effacer">Effacer tout le tableau</button>
+          <hr>
+          <button type="button" data-menu="aide">Aide et raccourcis <kbd>?</kbd></button>
+        </div>
+      </div>
+
+      <!-- la barre de gauche : sélectionner, se déplacer, encrer, créer -->
+      <div class="tb-cote" role="toolbar" aria-label="Outils" aria-orientation="vertical">
+        <button type="button" class="tb-b" data-outil="selection" aria-pressed="true" title="Sélectionner (V ou 1)" aria-label="Sélectionner">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3l10 6.5-4.4 1L13 16l-2 1-2.4-5.3L5 14z"/></svg></button>
+        <button type="button" class="tb-b" data-outil="main" title="Déplacer le tableau (H)" aria-label="Déplacer le tableau">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 10V4.5a1.2 1.2 0 0 1 2.4 0V9M9.4 8.5V3.5a1.2 1.2 0 0 1 2.4 0V9M11.8 9V4.5a1.2 1.2 0 0 1 2.4 0V11M14.2 9a1.2 1.2 0 0 1 2.4 0v3.5a5 5 0 0 1-5 5H10a5 5 0 0 1-4-2l-2.6-3.6a1.2 1.2 0 0 1 1.9-1.5L7 12"/></svg></button>
+        <button type="button" class="tb-b" id="tb-encre-b" aria-pressed="true" title="Encrage : stylos, surligneur, gomme" aria-label="Barre d'encrage">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16l1-4L14 3l3 3-9 9z"/><path d="M12 5l3 3"/></svg></button>
+        <button type="button" class="tb-b tb-creer-b" id="tb-creer-b" aria-expanded="false" aria-controls="tb-creer" title="Créer : notes, texte, formes" aria-label="Créer">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12"/></svg></button>
+        <span class="tb-sep" aria-hidden="true"></span>
+        <button type="button" class="tb-b" data-outil="verrou" aria-pressed="false" title="Garder l'outil en main (Q)" aria-label="Garder l'outil en main">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg></button>
+      </div>
+
+      <!-- le panneau « Créer » -->
+      <div class="tb-creer" id="tb-creer" hidden>
+        <div class="tb-creer-tete"><b>Créer</b>
+          <button type="button" class="tb-b tb-petit" data-fermer-creer aria-label="Fermer le panneau">✕</button></div>
+        <p class="tb-creer-titre">Notes</p>
+        <div class="tb-pastilles tb-notes" id="tb-notes"></div>
+        <p class="tb-creer-titre">Texte</p>
+        <button type="button" class="tb-carte" data-creer="texte"><span class="tb-carte-ic">T</span>Zone de texte</button>
+        <p class="tb-creer-titre">Formes</p>
+        <div class="tb-formes" id="tb-formes"></div>
+        <p class="tb-creer-titre">Lignes et flèches</p>
+        <div class="tb-formes" id="tb-lignes"></div>
+        <p class="tb-creer-titre">Bientôt</p>
+        <ul class="tb-bientot">
+          <li>Réactions <span class="tb-badge">lot 2</span></li>
+          <li>Images <span class="tb-badge">lot 2</span></li>
+          <li>Modèles (Kanban, SWOT…) <span class="tb-badge">lot 3</span></li>
+        </ul>
+        <p class="tb-note">Un clic pose l'objet au centre de l'écran. Pour le tracer à la main :
+          <kbd>R</kbd> rectangle, <kbd>D</kbd> losange, <kbd>O</kbd> ellipse, <kbd>A</kbd> flèche.</p>
+      </div>
+
+      <!-- la barre d'encrage -->
+      <div class="tb-encrage" id="tb-encrage" role="toolbar" aria-label="Encrage">
+        <button type="button" class="tb-b tb-stylo" data-stylo="0" title="Stylo 1 (P ou 7) — recliquer pour le régler" aria-label="Stylo 1"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/></svg><i></i></button>
+        <button type="button" class="tb-b tb-stylo" data-stylo="1" title="Stylo 2 — recliquer pour le régler" aria-label="Stylo 2"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/></svg><i></i></button>
+        <button type="button" class="tb-b tb-stylo" data-stylo="2" title="Stylo 3 — recliquer pour le régler" aria-label="Stylo 3"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/></svg><i></i></button>
+        <button type="button" class="tb-b tb-stylo" data-outil="surligneur" title="Surligneur (M) — recliquer pour le régler" aria-label="Surligneur"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 13l6-9 4 3-6 9z"/><path d="M6 13l-1.5 3.5L8 16"/></svg><i></i></button>
+        <button type="button" class="tb-b" data-outil="gomme" title="Gomme (E ou 0)" aria-label="Gomme">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 16l-4-4 8-8 6 6-6 6z"/><path d="M8 16h9M6.5 9.5l5 5"/></svg></button>
+        <button type="button" class="tb-b" data-outil="laser" title="Pointeur laser (K)" aria-label="Pointeur laser">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="13" cy="7" r="2.5"/><path d="M4 16l6.5-6.5M13 2v1.5M18 7h-1.5M16.5 3.5l-1 1"/></svg></button>
+        <div class="tb-pop tb-reglage-stylo" id="tb-reglage" hidden></div>
+      </div>
+
+      <!-- la barre d'actions au-dessus de la sélection -->
+      <div class="tb-contexte" id="tb-contexte" role="toolbar" aria-label="Actions sur la sélection" hidden>
+        <button type="button" class="tb-b tb-petit" data-ctx="format" title="Format : couleurs, traits, texte" aria-label="Format">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><circle cx="7.5" cy="8" r="1" class="plein"/><circle cx="12" cy="7" r="1" class="plein"/><circle cx="13" cy="11" r="1" class="plein"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="copier" title="Copier (Ctrl C)" aria-label="Copier">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5"/><path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v6A1.5 1.5 0 0 0 5.5 13H7"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="dupliquer" title="Dupliquer (Ctrl D)" aria-label="Dupliquer">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="4" width="9" height="9" rx="1.5"/><path d="M7 16h7.5a1.5 1.5 0 0 0 1.5-1.5V7M10 8.5h0"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="devant" title="Mettre au premier plan (Ctrl Maj ])" aria-label="Mettre au premier plan">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5" class="plein"/><path d="M4 12V5.5A1.5 1.5 0 0 1 5.5 4H12"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="fond" title="Mettre à l'arrière-plan (Ctrl Maj [)" aria-label="Mettre à l'arrière-plan">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="4" width="9" height="9" rx="1.5" class="plein"/><path d="M16 8v6.5a1.5 1.5 0 0 1-1.5 1.5H8"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="supprimer" title="Supprimer (Suppr)" aria-label="Supprimer">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6h10M8 6V4.5h4V6M6.5 6l.8 10h5.4l.8-10"/></svg></button>
+      </div>
+
+      <div class="tb-props" id="tb-props" hidden></div>
+
+      <div class="tb-coin tb-bd">
+        <button type="button" class="tb-b" id="tb-ajuster" title="Ajuster à l'écran (Maj 1)" aria-label="Ajuster à l'écran">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4"/><rect x="7.5" y="7.5" width="5" height="5" rx="1"/></svg></button>
+        <div class="tb-groupe">
+          <button type="button" class="tb-b" data-zoom="-" title="Zoom arrière (Ctrl −)" aria-label="Zoom arrière">−</button>
+          <button type="button" class="tb-b tb-zoom" id="tb-zoom-val" title="Revenir à 100 % (Ctrl 0)">100 %</button>
+          <button type="button" class="tb-b" data-zoom="+" title="Zoom avant (Ctrl +)" aria-label="Zoom avant">+</button>
+        </div>
+      </div>
+
+      <p class="tb-accueil" id="tb-accueil">Prenez un stylo dans la barre d'encrage, ou ouvrez <b>+ Créer</b> pour poser une note.<br>
+        Molette : défiler · <kbd>Ctrl</kbd> + molette ou pincer : zoomer · <kbd>Espace</kbd> + glisser ou clic droit : se déplacer.</p>
+      <p class="tb-etat" id="tb-etat" role="status" aria-live="polite"></p>
+    </div>
+
+    <dialog class="tb-dialogue" id="tb-export" aria-labelledby="tb-export-t">
+      <h2 id="tb-export-t">Exporter</h2>
+      <label class="tb-ligne"><input type="checkbox" id="tb-ex-fond" checked> Avec le fond (sinon transparent)</label>
+      <label class="tb-ligne"><input type="checkbox" id="tb-ex-sel"> Seulement la sélection</label>
+      <label class="tb-ligne"><span>Échelle du PNG</span>
+        <select class="tb-select" id="tb-ex-echelle"><option value="1">×1</option><option value="2" selected>×2</option><option value="3">×3</option></select></label>
+      <p class="tb-note">Le mode sombre n'est pas exporté : une image se partage, et le papier est blanc.</p>
+      <div class="tb-actions">
+        <button type="button" class="tb-b tb-large" id="tb-ex-png">Image PNG</button>
+        <button type="button" class="tb-b tb-large" id="tb-ex-svg">Image SVG</button>
+        <button type="button" class="tb-b tb-large" id="tb-ex-json">Fichier .excalidraw</button>
+        <button type="button" class="tb-b tb-large" data-fermer>Fermer</button>
+      </div>
+    </dialog>
+
+    <dialog class="tb-dialogue tb-aide" id="tb-aide" aria-labelledby="tb-aide-t">
+      <h2 id="tb-aide-t">Aide et raccourcis</h2>
+      <p>Les raccourcis sont ceux d'<b>Excalidraw</b>. Ils ne marchent que quand le tableau a la main :
+         un clic dedans suffit.</p>
+      <div class="tb-aide-cols">
+        <table>
+          <caption>Outils</caption>
+          <tbody>
+            <tr><th scope="row">Sélection</th><td><kbd>V</kbd> ou <kbd>1</kbd></td></tr>
+            <tr><th scope="row">Rectangle</th><td><kbd>R</kbd> ou <kbd>2</kbd></td></tr>
+            <tr><th scope="row">Losange</th><td><kbd>D</kbd> ou <kbd>3</kbd></td></tr>
+            <tr><th scope="row">Ellipse</th><td><kbd>O</kbd> ou <kbd>4</kbd></td></tr>
+            <tr><th scope="row">Flèche</th><td><kbd>A</kbd> ou <kbd>5</kbd></td></tr>
+            <tr><th scope="row">Ligne</th><td><kbd>L</kbd> ou <kbd>6</kbd></td></tr>
+            <tr><th scope="row">Stylo (celui en main)</th><td><kbd>P</kbd> ou <kbd>7</kbd></td></tr>
+            <tr><th scope="row">Texte</th><td><kbd>T</kbd> ou <kbd>8</kbd></td></tr>
+            <tr><th scope="row">Gomme</th><td><kbd>E</kbd> ou <kbd>0</kbd></td></tr>
+            <tr><th scope="row">Post-it</th><td><kbd>N</kbd></td></tr>
+            <tr><th scope="row">Surligneur</th><td><kbd>M</kbd></td></tr>
+            <tr><th scope="row">Main</th><td><kbd>H</kbd></td></tr>
+            <tr><th scope="row">Pointeur laser</th><td><kbd>K</kbd></td></tr>
+            <tr><th scope="row">Garder l'outil</th><td><kbd>Q</kbd></td></tr>
+          </tbody>
+        </table>
+        <table>
+          <caption>En dessinant</caption>
+          <tbody>
+            <tr><th scope="row">Carré, cercle, angle par 15°</th><td><kbd>Maj</kbd></td></tr>
+            <tr><th scope="row">Depuis le centre</th><td><kbd>Alt</kbd></td></tr>
+            <tr><th scope="row">Écrire dans une forme</th><td>double-clic ou <kbd>Entrée</kbd></td></tr>
+            <tr><th scope="row">Finir le texte</th><td><kbd>Échap</kbd> ou <kbd>Ctrl Entrée</kbd></td></tr>
+            <tr><th scope="row">Gomme : tout rendre</th><td><kbd>Échap</kbd> avant de lâcher</td></tr>
+            <tr><th scope="row">Régler un stylo</th><td>recliquer dessus</td></tr>
+            <tr><th scope="row">Poser une note, une forme</th><td><b>+</b> Créer, puis un clic</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <caption>Édition et vue</caption>
+          <tbody>
+            <tr><th scope="row">Annuler / rétablir</th><td><kbd>Ctrl Z</kbd> / <kbd>Ctrl Y</kbd></td></tr>
+            <tr><th scope="row">Copier, couper, coller</th><td><kbd>Ctrl C</kbd> <kbd>Ctrl X</kbd> <kbd>Ctrl V</kbd></td></tr>
+            <tr><th scope="row">Dupliquer</th><td><kbd>Ctrl D</kbd></td></tr>
+            <tr><th scope="row">Tout sélectionner</th><td><kbd>Ctrl A</kbd></td></tr>
+            <tr><th scope="row">Supprimer</th><td><kbd>Suppr</kbd></td></tr>
+            <tr><th scope="row">Déplacer</th><td>flèches (<kbd>Maj</kbd> : par 20)</td></tr>
+            <tr><th scope="row">Avancer / reculer</th><td><kbd>Ctrl ]</kbd> / <kbd>Ctrl [</kbd></td></tr>
+            <tr><th scope="row">Tout devant / au fond</th><td><kbd>Ctrl Maj ]</kbd> / <kbd>Ctrl Maj [</kbd></td></tr>
+            <tr><th scope="row">Se déplacer</th><td><kbd>Espace</kbd> + glisser, molette, deux doigts</td></tr>
+            <tr><th scope="row">Zoomer</th><td><kbd>Ctrl</kbd> + molette, pincer, <kbd>Ctrl +</kbd> <kbd>Ctrl −</kbd></td></tr>
+            <tr><th scope="row">Zoom 100 % / tout voir</th><td><kbd>Ctrl 0</kbd> / <kbd>Maj 1</kbd></td></tr>
+            <tr><th scope="row">Enregistrer / ouvrir</th><td><kbd>Ctrl S</kbd> / <kbd>Ctrl O</kbd></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tb-note">Le tableau est gardé dans <b>ce navigateur</b>, rien n'est envoyé. Pour le garder
+         ailleurs ou le donner, <b>Enregistrer</b> produit un fichier <code>.excalidraw</code>.</p>
+      <div class="tb-actions"><button type="button" class="tb-b tb-large" data-fermer>Fermer</button></div>
+    </dialog>
+
+    <input type="file" id="tb-fichier" accept=".excalidraw,.json,application/json" hidden>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="compte-rendu.html"><span>Outil précédent</span><b>Compteur de mots</b></a>
+    <span class="vide"></span>
+  </nav>
+</main>
+
+<script src="tableau/rendu.js?v=1"></script>
+<script src="tableau/tableau.js?v=1"></script>
+
+<script src="../assets/fiche.js?v=34f32eff"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../kit.html">Kit de survie</a>
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/app.js?v=34f32eff"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>
