@@ -34,7 +34,7 @@ export class PacketAnimator {
 
   /* Préparer le prochain lot : exécuter les minuteries qui le précèdent,
      rassembler les livraisons du même instant. */
-  lancerLot() {
+  lancerLot(sautes = 0) {
     if (this.vol.length) return true;
     let ev = this.horloge.prochain();
     let garde = 0;
@@ -45,6 +45,16 @@ export class PacketAnimator {
     if (!ev) { this.lecture = false; this.notifier(); return false; }
     const t = ev.t;
     this.vol = this.horloge.file.filter((e) => !e.annule && e.t === t && e.meta.type === "livraison").map((e) => ({ saut: e.meta.saut, ev: e }));
+    // un lot fait uniquement de protocoles masqués (CDP, par défaut) passe
+    // sans animation : le pas suivant montre ce qu'on regarde
+    if (this.filtres && this.vol.every((v) => !this.filtres.has(v.saut.protocole)) && sautes < 200) {
+      const evs = new Set(this.vol.map((v) => v.ev));
+      this.vol = [];
+      let g = 0;
+      while ([...evs].some((e) => this.horloge.file.includes(e)) && g++ < 1000) this.horloge.pas();
+      this.reseau.emit("etat");
+      return this.lancerLot(sautes + 1);
+    }
     this.debut = performance.now();
     this.duree = DUREE / this.vitesse;
     this.demarrer();

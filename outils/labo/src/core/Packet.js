@@ -8,7 +8,7 @@
 
 export const PROTO = { ICMP: 1, TCP: 6, UDP: 17 };
 export const ICMP = { ECHO_REPLY: 0, UNREACHABLE: 3, ECHO_REQUEST: 8, TIME_EXCEEDED: 11 };
-export const UNREACH = { NET: 0, HOST: 1, PORT: 3 };
+export const UNREACH = { NET: 0, HOST: 1, PORT: 3, ADMIN: 13 };
 export const PORTS = { DNS: 53, DHCP_SERVEUR: 67, DHCP_CLIENT: 68, HTTP: 80, TRACE: 33434 };
 
 /* ── ARP ───────────────────────────────────────────────────────────── */
@@ -42,7 +42,7 @@ export class IcmpMessage {
     if (this.type === ICMP.ECHO_REPLY) return "Echo Reply";
     if (this.type === ICMP.TIME_EXCEEDED) return "Time Exceeded";
     if (this.type === ICMP.UNREACHABLE) {
-      return "Destination Unreachable (" + ({ 0: "réseau", 1: "hôte", 3: "port" }[this.code] || "code " + this.code) + ")";
+      return "Destination Unreachable (" + ({ 0: "réseau", 1: "hôte", 3: "port", 13: "interdit par une ACL" }[this.code] || "code " + this.code) + ")";
     }
     return "type " + this.type;
   }
@@ -103,6 +103,7 @@ export class IPv4Packet {
     const p = this.payload;
     if (this.protocol === PROTO.ICMP) return "ICMP";
     if (this.protocol === PROTO.UDP) {
+      if (p.data && p.data.protocoleHaut) return p.data.protocoleHaut();
       if (p.data instanceof DhcpMessage) return "DHCP";
       if (p.data instanceof DnsMessage) return "DNS";
       return "UDP";
@@ -114,6 +115,7 @@ export class IPv4Packet {
   resume() {
     const p = this.payload;
     if (this.protocol === PROTO.ICMP) return "ICMP " + p.nom() + (p.type === 8 || p.type === 0 ? " #" + p.seq : "");
+    if (this.protocol === PROTO.UDP && p.data && p.data.resume) return p.data.resume();
     if (this.protocol === PROTO.UDP && p.data instanceof DhcpMessage) return "DHCP " + p.data.op;
     if (this.protocol === PROTO.UDP && p.data instanceof DnsMessage) {
       return "DNS " + (p.data.reponses ? "réponse" : "question") + " « " + p.data.question + " »";

@@ -19,6 +19,7 @@ const PAS_GRILLE = 20;
 export function portAuto(a, b, type) {
   const libres = a.ports.filter((p) => !p.cable);
   if (type === "console") return libres.find((p) => p.type === "console" || p.type === "rs232") || null;
+  if (type === "serie") return libres.find((p) => p.type === "se") || null;
   const donnees = libres.filter((p) => p.type === "fa" || p.type === "gi");
   if (type === "fibre") return donnees.find((p) => p.fibre) || null;
   if (a.type === "switch") {
@@ -235,7 +236,13 @@ export class InteractionManager {
   ouvrirChoix(app, type) {
     return new Promise((resolve) => {
       const el = this.choixPort;
-      const ports = app.ports.filter((p) => (type === "console" ? p.type === "console" || p.type === "rs232" : p.type === "fa" || p.type === "gi"));
+      const ports = app.ports.filter((p) => (type === "console" ? p.type === "console" || p.type === "rs232"
+        : type === "serie" ? p.type === "se" : p.type === "fa" || p.type === "gi"));
+      if (!ports.length) {
+        resolve(null);
+        this.rappels.toast(app.nom + " n'a aucun port pour ce câble" + (type === "serie" ? " : seuls les routeurs ont des ports série." : "."), true);
+        return;
+      }
       el.innerHTML = "<p>" + app.nom + " — choisir un port</p>" + ports.map((p, i) => {
         const occ = p.cable ? "→ " + p.cable.autre(p).appareil.nom : type === "fibre" && !p.fibre ? "pas de fibre" : "libre";
         return '<button type="button" data-i="' + i + '"' + (p.cable || (type === "fibre" && !p.fibre) ? " disabled" : "") + ">"

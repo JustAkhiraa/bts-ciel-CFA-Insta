@@ -55,8 +55,12 @@ outils/labo/src/
     IpStack.js                  pile IPv4 d'un équipement : ARP, ICMP, UDP
     HostPC.js                   PC : config IP statique / DHCP, ping, tracert
     Server.js                   PC + services DHCP, DNS, HTTP
-    SwitchL2.js                 commutateur 2960 : CAM, VLAN, trunk, SVI
-    RouterL3.js                 routeur 2911 : routage, sous-interfaces, DHCP
+    SwitchL2.js                 commutateur 2960 : CAM, VLAN, trunk, SVI, sécurité de port
+    RouterL3.js                 routeur 2911 + HWIC-2T : routage, sous-interfaces, série, DHCP
+    Cdp.js                      CDP : annonces de voisinage, VLAN natif différent
+    Acl.js                      listes d'accès standard (1-99), masques génériques
+    Nat.js                      NAT statique, dynamique (pool), PAT (overload)
+    Rip.js                      RIP v1 / v2 : horizon partagé, résumé, route par défaut
   cli/
     CommandTree.js              l'arbre des commandes, les abréviations
     IOSParser.js                les modes IOS, Tab, ?, historique, sorties
@@ -72,8 +76,9 @@ outils/labo/src/
     TerminalTabs.js             terminaux en onglets, en bas
     PDUInspector.js             les en-têtes d'une trame, couche par couche
     CommandPalette.js           Ctrl K
-    Presets.js                  les trois labs
-outils/labo/tests/              bancs node (aucun DOM)
+    Presets.js                  les cinq labs
+outils/labo/tests/              bancs node (aucun DOM) ; blocs.test.mjs rejoue
+                                chaque bloc de outils/packet-tracer.html
 ```
 
 ---
@@ -184,6 +189,40 @@ Chaque saut d'une trame et chaque décision d'un équipement :
 
 L'inspecteur de PDU et la liste des événements ne lisent QUE le journal.
 
+### 3.8 Ce qui s'ajoute au routeur et au commutateur
+
+```js
+Port   { clockRate, encapsulation: "hdlc"|"ppp",          // série : Serial0/0/0, 0/0/1
+         natRole: null|"inside"|"outside", aclIn, aclOut,  // routeur
+         secu: { actif, max, violation, sticky, adresses, violations }, errDisabled }  // commutateur
+Cable  { dce: Port }                     // câble « serie » : son premier bout donne l'horloge
+Frame  { l2: "ethernet"|"hdlc"|"ppp" }   // série : ni MAC ni ARP, un seul voisin
+RouterL3.acl  Map<numéro, ListeAcces>    RouterL3.nat  ServiceNat   RouterL3.rip  ServiceRip
+RouterL3.cdp / SwitchL2.cdp  ServiceCdp  // voisins : Map<port local, annonce>
+```
+
+Une route se choisit au préfixe le plus long ; pour un même réseau, seule
+la source la plus crédible entre dans la table : connecté (0), statique
+(1), RIP (120).
+
+### 3.9 Ce qui diffère du vrai matériel — exprès, et dit
+
+- **RIP n'envoie pas de mise à jour toutes les 30 s.** Elles feraient
+  tourner l'horloge sans fin en temps réel et noieraient la simulation. Un
+  routeur annonce sa table quand elle CHANGE (mise à jour déclenchée, que le
+  vrai RIP fait aussi) et demande celle de ses voisins quand une interface
+  monte ou qu'une route tombe. Pas de minuteur « invalid / flush » : une
+  route s'en va par empoisonnement (16) ou quand son interface tombe.
+- **CDP n'annonce pas toutes les 60 s** : quand un lien monte, et quand ce
+  qu'il annonce change (nom, adresse, mode ou VLAN d'un port). Le temps de
+  rétention affiché suit le cycle de 60 s du vrai protocole.
+- Au chargement d'une topologie, `Network.demarrer()` laisse ce trafic
+  d'installation (CDP, RIP) s'écouler, puis vide le journal.
+- Listes d'accès : **standard seulement** (1 à 99). Une liste étendue est
+  refusée par un message en français, pas imitée.
+- Pas de STP, d'OSPF, d'EIGRP, d'IPv6, de VTP, de DTP, de SSH réel (la
+  configuration SSH est acceptée et gardée, sans client pour s'y connecter).
+
 ---
 
 ## 4. Le chemin d'une trame
@@ -211,9 +250,19 @@ c'est ce qui se passerait sur du vrai matériel, en pire).
   typés (`ip`, `masque`, `nombre`, `interface`, `liste-vlan`, `mot`, `texte`).
   Un mot-clé s'abrège tant qu'il reste **unique** à sa position (`sh ip int br`).
 - `IOSParser` tient le mode (`>` `#` `(config)#` `(config-if)#`
-  `(config-subif)#` `(config-vlan)#` `(dhcp-config)#` `(config-line)#`), l'historique, `Tab`,
+  `(config-subif)#` `(config-vlan)#` `(dhcp-config)#` `(config-line)#`
+  `(config-router)#`), l'historique, `Tab`,
   `?`, et rend les messages exacts d'IOS : `% Invalid input detected at '^'
   marker.`, `% Incomplete command.`, `% Ambiguous command: "…"`.
+- Ce que la CLI sait faire au-delà du socle : liaisons série (`clock rate`,
+  `encapsulation ppp`, `show controllers`), `router rip` (`version`,
+  `network`, `passive-interface`, `no auto-summary`,
+  `default-information originate`, `show ip protocols`, `debug ip rip`),
+  NAT (`ip nat inside|outside`, `ip nat inside source static|list … pool|interface … overload`,
+  `ip nat pool`, `show ip nat translations|statistics`), `access-list`,
+  `ip access-group`, `switchport port-security …`, `show port-security`,
+  `show cdp neighbors [detail]`, `reload`, `erase startup-config`,
+  `delete vlan.dat`.
 - `HostShell` : `ipconfig [/all|/release|/renew]`, `ping [-n N|-c N]`,
   `tracert`/`traceroute`, `arp -a`/`-d`, `nslookup`, `curl`, `dhcp`,
   `ifconfig`/`ip addr`.

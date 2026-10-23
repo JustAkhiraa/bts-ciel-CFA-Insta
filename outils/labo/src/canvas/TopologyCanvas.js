@@ -45,7 +45,8 @@ export class TopologyCanvas {
      de 100 % — trois équipements ne doivent pas remplir l'écran. */
   ajuster(boite) {
     if (!boite) { this.cam = { x: -this.largeur / 2, y: -this.hauteur / 2, z: 1 }; this.demander(); return; }
-    const m = 90;
+    // la marge suit l'écran : 90 px sur un ordinateur, beaucoup moins sur un téléphone
+    const m = Math.min(90, Math.min(this.largeur, this.hauteur) * 0.08);
     const z = Math.max(ZMIN, Math.min(1, (this.largeur - 2 * m) / (boite.w || 1), (this.hauteur - 2 * m) / (boite.h || 1)));
     this.cam.z = z;
     this.cam.x = boite.x + boite.w / 2 - this.largeur / 2 / z;

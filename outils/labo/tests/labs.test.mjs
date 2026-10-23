@@ -63,7 +63,42 @@ test("lab 3 : DHCP, inter-VLAN (TTL 127), tracert, DNS, HTTP, show ip route", ()
   ok(taper(R1, "show ip dhcp binding").some((l) => /^192\.168\.10\.10\s/.test(l)), "bail DHCP visible sur R1");
 });
 
+test("lab 4 : série et RIP — R2 se tait, puis parle, et le ping passe", () => {
+  const net = new Network(); chargerLab(net, "lab4");
+  const pc1 = new HostShell(net.parNom("PC1"));
+  ok(taper(pc1, "ping -n 1 192.168.2.10").includes("Reply from 192.168.1.1: Destination net unreachable."), "étape 1 : R1 n'a pas de route");
+  const R1 = new IOSConsole(net.parNom("R1")), R2 = new IOSConsole(net.parNom("R2"));
+  taper(R1, "en");
+  ok(taper(R1, "show ip interface brief").some((l) => /^Serial0\/0\/0\s+10\.0\.0\.1\s+YES manual up\s+up/.test(l)), "étape 2 : série up / up");
+  ok(taper(R1, "show controllers serial 0/0/0").includes("DCE V.35, clock rate 64000"), "étape 2 : R1 est le DCE");
+  ["en", "conf t", "router rip", "version 2", "no auto-summary", "network 192.168.2.0", "network 10.0.0.0", "end"].forEach((c) => taper(R2, c));
+  net.executer();
+  ok(taper(R1, "show ip route").some((l) => /^R\s+192\.168\.2\.0\/24 \[120\/1\] via 10\.0\.0\.2, \d\d:\d\d:\d\d, Serial0\/0\/0$/.test(l)), "étape 4 : la route R apparaît");
+  const p = taper(pc1, "ping 192.168.2.10");
+  ok(p.filter((l) => /^Reply from 192\.168\.2\.10: .*TTL=126$/.test(l)).length >= 3, "étape 5 : ping, TTL 126 → " + p.join("\n"));
+  ["conf t", "int s0/0/0", "shutdown", "end"].forEach((c) => taper(R2, c));
+  net.executer();
+  ok(!taper(R1, "show ip route").some((l) => /192\.168\.2\.0/.test(l)), "bonus : la route disparaît");
+});
+
+test("lab 5 : le PAT — sans règle rien ne revient, avec la règle deux PC sortent", () => {
+  const net = new Network(); chargerLab(net, "lab5");
+  const pc1 = new HostShell(net.parNom("PC1")), pc2 = new HostShell(net.parNom("PC2"));
+  ok(!taper(pc1, "ping -n 2 8.8.8.8").some((l) => /^Reply from 8\.8\.8\.8/.test(l)), "étape 1 : pas de réponse");
+  const R1 = new IOSConsole(net.parNom("R1"));
+  taper(R1, "en");
+  const run = taper(R1, "show run");
+  ok(run.includes(" ip nat inside") && run.includes(" ip nat outside"), "étape 2 : inside / outside posés");
+  ["conf t", "access-list 1 permit 192.168.1.0 0.0.0.255", "ip nat inside source list 1 interface s0/0/0 overload", "end"].forEach((c) => taper(R1, c));
+  ok(taper(pc1, "ping -n 2 8.8.8.8").filter((l) => /^Reply from 8\.8\.8\.8/.test(l)).length === 2, "étape 4 : PC1 passe");
+  ok(taper(pc2, "ping -n 2 8.8.8.8").filter((l) => /^Reply from 8\.8\.8\.8/.test(l)).length === 2, "étape 4 : PC2 passe");
+  const t = taper(R1, "show ip nat translations");
+  ok(t.filter((l) => /^icmp 209\.165\.200\.225:\d+/.test(l)).length >= 2, "étape 4 : une adresse publique, plusieurs flux → " + t.join("\n"));
+  ok(taper(pc1, "curl http://8.8.8.8").some((l) => /Bienvenue sur Internet/.test(l)), "étape 5 : curl à travers le PAT");
+  ok(taper(R1, "show ip nat statistics").some((l) => /^Hits: \d+  Misses: \d+$/.test(l)), "étape 5 : statistiques");
+});
+
 test("chaque lab a un titre, un résumé et des étapes", () => {
-  ok(LABS.length === 3, "trois labs");
+  ok(LABS.length === 5, "cinq labs");
   LABS.forEach((l) => ok(l.titre && l.resume && l.etapes.length >= 4, "lab incomplet : " + l.id));
 });

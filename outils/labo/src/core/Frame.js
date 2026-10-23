@@ -11,8 +11,11 @@ export const ETHERTYPE = { ARP: 0x0806, IPV4: 0x0800 };
 let suivant = 1;
 
 export class Frame {
-  constructor({ src, dst, etherType, payload, vlan = null, id = null }) {
+  /* « l2 » : "ethernet", ou "hdlc" / "ppp" sur une liaison série — sans
+     adresse MAC (src et dst à null), puisqu'il n'y a qu'un voisin. */
+  constructor({ src, dst, etherType, payload, vlan = null, id = null, l2 = "ethernet" }) {
     this.id = id || suivant++;
+    this.l2 = l2;
     this.src = src;
     this.dst = dst;
     this.vlan = vlan;               // null : trame non étiquetée
@@ -22,7 +25,7 @@ export class Frame {
 
   clone() {
     return new Frame({
-      id: this.id, src: this.src, dst: this.dst, vlan: this.vlan, etherType: this.etherType,
+      id: this.id, l2: this.l2, src: this.src, dst: this.dst, vlan: this.vlan, etherType: this.etherType,
       payload: this.payload && this.payload.clone ? this.payload.clone() : this.payload,
     });
   }

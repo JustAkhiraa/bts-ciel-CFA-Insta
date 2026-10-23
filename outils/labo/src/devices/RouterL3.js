@@ -1,6 +1,7 @@
-/* Un routeur, façon ISR 2911 : trois ports Gigabit, éteints d'office (« no
-   shutdown » est le premier geste de tout TP), des sous-interfaces pour le
-   « router-on-a-stick », une table de routage, un serveur DHCP.
+/* Un routeur, façon ISR 2911 : trois ports Gigabit et une carte HWIC-2T
+   (deux ports série), éteints d'office (« no shutdown » est le premier
+   geste de tout TP), des sous-interfaces pour le « router-on-a-stick », une
+   table de routage, un serveur DHCP.
 
    Pour chaque paquet qui n'est pas pour lui :
    1. TTL : à 1, le paquet meurt ici, et l'émetteur reçoit « Time Exceeded » ;
@@ -20,6 +21,10 @@ import { IPv4Address } from "../core/IPv4Address.js";
 import { ETHERTYPE } from "../core/Frame.js";
 import { IPv4Packet, UdpDatagram, DhcpMessage, PROTO, PORTS, ICMP, UNREACH } from "../core/Packet.js";
 import { Frame } from "../core/Frame.js";
+import { ServiceCdp, ETHERTYPE_CDP } from "./Cdp.js";
+import { ServiceNat } from "./Nat.js";
+import { ListeAcces } from "./Acl.js";
+import { ServiceRip, PORT_RIP } from "./Rip.js";
 
 export class RouterL3 extends Device {
   constructor(opts) {
@@ -30,6 +35,8 @@ export class RouterL3 extends Device {
     for (let i = 0; i <= 2; i++) {
       this.ports.push(new Port(this, "GigabitEthernet0/" + i, { type: "gi", mac: MACAddress.generer(0x0001c9), adminUp: false }));
     }
+    // la carte HWIC-2T qu'on ajoute en TP pour les liaisons WAN
+    for (let i = 0; i <= 1; i++) this.ports.push(new Port(this, "Serial0/0/" + i, { type: "se", adminUp: false }));
     this.ports.push(new Port(this, "Console", { type: "console" }));
     this.sous = [];
     this.boucles = [];            // interfaces Loopback
@@ -38,7 +45,12 @@ export class RouterL3 extends Device {
     this.dhcp = new ServiceDhcp(this);
     this.extra = {};
     this.startup = null;
+    this.cdp = new ServiceCdp(this);
+    this.acl = new Map();             // numéro → ListeAcces
+    this.nat = new ServiceNat(this);
+    this.rip = new ServiceRip(this);
     this.ip.udp.set(PORTS.DHCP_SERVEUR, (iface, paquet) => this.dhcpEntrant(iface, paquet));
+    this.ip.udp.set(PORT_RIP, (iface, paquet) => this.rip.recevoir(iface, paquet));
   }
 
   tousLesPorts() { return this.ports.concat(this.sous, this.boucles); }
@@ -70,12 +82,21 @@ export class RouterL3 extends Device {
      ensuite la startup-config. Le nom affiché reste celui du canevas tant
      que la startup-config n'en donne pas un autre. */
   reinitialiser() {
-    for (const p of this.ports) { if (p.type === "console") continue; p.adminUp = false; p.ip = null; p.masque = null; p.helper = null; p.description = ""; }
+    for (const p of this.ports) {
+      if (p.type === "console") continue;
+      p.adminUp = false; p.ip = null; p.masque = null; p.helper = null; p.description = "";
+      p.clockRate = null; p.encapsulation = "hdlc";
+      p.natRole = null; p.aclIn = null; p.aclOut = null;
+    }
+    this.acl = new Map();
+    this.nat = new ServiceNat(this);
+    this.rip = new ServiceRip(this);
     this.nom = this.nomUsine;
     this.sous = []; this.boucles = []; this.statiques = [];
     this.dhcp = new ServiceDhcp(this);
     this.ip.viderArp();
     this.extra = {};
+    this.cdp = new ServiceCdp(this);
   }
 
   /* ── la table de routage, recalculée à chaque lecture ── */
@@ -93,8 +114,14 @@ export class RouterL3 extends Device {
       const utile = sortie ? sortie.estUp() : !!this.connectee(s.via);
       if (utile) out.push({ code: "S", reseau: s.reseau, masque: s.masque, prefixe: s.masque.prefixe(), via: s.via, interface: sortie, distance: s.distance || 1 });
     }
-    return out;
+    for (const e of this.rip.routes()) {
+      out.push({ code: "R", reseau: e.reseau, masque: e.masque, prefixe: e.masque.prefixe(), via: e.via, interface: e.iface, distance: 120, metrique: e.metrique, vu: e.vu });
+    }
+    // pour un même réseau, seule la source la plus crédible entre dans la
+    // table : connecté (0), statique (1), puis RIP (120)
+    return out.filter((r) => !out.some((x) => x !== r && x.prefixe === r.prefixe && x.reseau.egale(r.reseau) && x.distance < r.distance));
   }
+  ecouteGroupe(iface, groupe) { return groupe.toString() === "224.0.0.9" && this.rip.actif && this.rip.couvre(iface); }
   connectee(ip) {
     return this.interfacesL3().find((i) => ip.dansReseau(i.ip, i.masque)) || null;
   }
@@ -121,8 +148,13 @@ export class RouterL3 extends Device {
   /* ── une trame arrive sur un port physique ── */
   recevoirTrame(port, trame) {
     if (port.type === "console") return;
+    if (trame.etherType === ETHERTYPE_CDP) { this.cdp.recevoir(port, trame.payload); return; }
     let iface = port;
-    if (trame.vlan !== null) {
+    if (port.type === "se") {
+      // une liaison série relie deux routeurs, et eux seuls : pas d'adresse
+      // MAC à vérifier, ce qui arrive est pour l'autre bout
+      this.noter("Trame " + port.encapsulation.toUpperCase() + " reçue sur la liaison série " + port.court + ".");
+    } else if (trame.vlan !== null) {
       iface = this.sous.find((s) => s.parent === port && s.dot1q === trame.vlan && !s.dot1qNatif);
       if (!iface) {
         this.noter("Trame étiquetée VLAN " + trame.vlan + " sur " + port.court + ", mais aucune sous-interface « encapsulation dot1Q "
@@ -135,7 +167,7 @@ export class RouterL3 extends Device {
       const natif = this.sous.find((s) => s.parent === port && s.dot1qNatif);
       if (natif) iface = natif;
     }
-    if (!trame.dst.egale(port.mac) && !trame.dst.estDiffusion()) {
+    if (port.type !== "se" && !trame.dst.egale(port.mac) && !trame.dst.estDiffusion() && !trame.dst.estGroupe()) {
       this.noter("La trame est pour " + trame.dst.cisco() + ", pas pour " + this.nom + " : ignorée.");
       this.reseau.issue("ignoree");
       return;
@@ -147,14 +179,35 @@ export class RouterL3 extends Device {
     }
     if (trame.etherType === ETHERTYPE.ARP) { this.ip.recevoirArp(iface, trame.payload); return; }
     const p = trame.payload;
+    if (iface.aclIn && !this.filtrer(iface, iface.aclIn, "in", p)) return;
+    // de l'extérieur : traduire d'abord (la destination redevient privée), router ensuite
+    if (iface.natRole === "outside" && this.nat.configure() && this.nat.entree(p) === "jeter") { this.reseau.issue("jetee"); return; }
     if (this.ip.estPourMoi(iface, p)) { this.ip.livrer(iface, p); return; }
     this.acheminer(iface, p);
   }
 
+  /* « ip access-group N in|out » : la liste décide, le refus est signalé
+     à l'émetteur par un ICMP « administrativement interdit ». */
+  filtrer(iface, numero, sens, p) {
+    const acl = this.acl.get(numero);
+    if (!acl) return true;                 // une liste qui n'existe pas laisse tout passer, comme IOS
+    const v = acl.evaluer(p.src);
+    const ligne = v.ligne ? "« " + ListeAcces.texte(v.ligne) + " »" : "le « deny any » implicite de la fin";
+    if (v.action === "permit") {
+      this.noter("Liste d'accès " + numero + " (" + sens + ") sur " + iface.court + " : " + p.src + " correspond à " + ligne + " → autorisé.");
+      return true;
+    }
+    this.noter("Liste d'accès " + numero + " (" + sens + ") sur " + iface.court + " : " + p.src + " correspond à " + ligne + " → paquet REFUSÉ.");
+    this.reseau.issue("jetee");
+    this.ip.erreurIcmp(p, ICMP.UNREACHABLE, UNREACH.ADMIN, iface);
+    return false;
+  }
+
   acheminer(entree, paquet) {
     const pfx = (r) => r.reseau + "/" + r.prefixe;
-    if (paquet.dst.estDiffusionLimitee()) {
-      this.noter("Un routeur ne transmet jamais une diffusion : elle s'arrête ici.");
+    if (paquet.dst.estDiffusionLimitee() || paquet.dst.estMulticast()) {
+      this.noter(paquet.dst.estMulticast() ? "Un paquet de groupe (" + paquet.dst + ") que " + this.nom + " n'écoute pas : il ne le route pas."
+        : "Un routeur ne transmet jamais une diffusion : elle s'arrête ici.");
       this.reseau.issue("jetee");
       return;
     }
@@ -175,6 +228,12 @@ export class RouterL3 extends Device {
     copie.ttl = paquet.ttl - 1;
     this.noter("Route choisie : " + r.r.code + " " + pfx(r.r) + (r.r.via ? " via " + r.r.via : ", directement connectée")
       + " (préfixe le plus long). Sortie par " + r.iface.court + ". TTL " + paquet.ttl + " → " + copie.ttl + ".");
+    if (r.iface.aclOut && !this.filtrer(r.iface, r.iface.aclOut, "out", copie)) return;
+    // vers l'extérieur : routé d'abord, traduit ensuite (la source devient publique)
+    if (entree.natRole === "inside" && r.iface.natRole === "outside" && this.nat.configure() && !this.nat.sortie(copie, r.iface)) {
+      this.reseau.issue("jetee");
+      return;
+    }
     this.ip.envoyerVia(copie, r.iface, r.saut);
   }
 
@@ -205,9 +264,13 @@ export class RouterL3 extends Device {
     this.noter("DHCP " + m.op + " reçu sur " + iface.court + " : aucun pool, aucun relais. La diffusion s'arrête au routeur.");
   }
 
+  demarrer() { this.cdp.annoncerPartout(); this.rip.demarrer(); }
+
   lienChange(port, up) {
     if (port.type === "console") return;
     this.annoncerLien(port, up);
+    if (up) this.cdp.annoncer(port); else this.cdp.oublier(port);
+    this.rip.lienChange(port, up);
   }
 
   toJSON() {
@@ -217,8 +280,12 @@ export class RouterL3 extends Device {
     j.boucles = this.boucles.map((p) => p.toJSON());
     j.statiques = this.statiques.map((r) => ({ reseau: s(r.reseau), masque: s(r.masque), via: s(r.via), sortie: r.sortie || null, distance: r.distance || 1 }));
     j.dhcp = this.dhcp.toJSON();
+    j.acl = [...this.acl.values()].map((a) => ({ n: a.numero, lignes: a.lignes.map((l) => (l.remarque ? { remarque: l.remarque } : { action: l.action, reseau: l.reseau.toString(), wildcard: l.wildcard.toString() })) }));
+    j.nat = this.nat.toJSON();
+    j.rip = this.rip.toJSON();
     j.extra = this.extra;
     j.startup = this.startup;
+    if (!this.cdp.actif) j.cdp = false;
     return j;
   }
   appliquerJSON(j) {
@@ -230,6 +297,7 @@ export class RouterL3 extends Device {
       p.dot1q = sj.dot1q ?? null; p.dot1qNatif = !!sj.dot1qNatif;
       p.ip = P(sj.ip); p.masque = P(sj.masque); p.helper = P(sj.helper);
       if (sj.description) p.description = sj.description;
+      p.natRole = sj.natRole || null; p.aclIn = sj.aclIn || null; p.aclOut = sj.aclOut || null;
     });
     (j.boucles || []).forEach((bj) => {
       const b = this.creerBoucle(bj.nom);
@@ -238,7 +306,15 @@ export class RouterL3 extends Device {
     });
     this.statiques = (j.statiques || []).map((r) => ({ reseau: P(r.reseau), masque: P(r.masque), via: P(r.via), sortie: r.sortie, distance: r.distance || 1 }));
     this.dhcp.appliquerJSON(j.dhcp);
+    this.acl = new Map((j.acl || []).map((a) => {
+      const l = new ListeAcces(a.n);
+      a.lignes.forEach((x) => (x.remarque ? l.remarque(x.remarque) : l.ajouter(x.action, P(x.reseau), P(x.wildcard))));
+      return [a.n, l];
+    }));
+    this.nat.appliquerJSON(j.nat);
+    this.rip.appliquerJSON(j.rip);
     this.extra = j.extra || {};
     this.startup = j.startup || null;
+    this.cdp.actif = j.cdp !== false;
   }
 }

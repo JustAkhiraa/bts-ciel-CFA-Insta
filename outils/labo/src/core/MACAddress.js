@@ -37,6 +37,9 @@ export class MACAddress {
     return m;
   }
   static reserver(m) { utilisees.add(m.cle()); }
+  /* L'adresse MAC d'un groupe IPv4 : 01-00-5E, puis les 23 derniers bits
+     de l'adresse (224.0.0.9 → 0100.5e00.0009). */
+  static multicast(ip) { return new MACAddress(0x01005e, ip.n & 0x7fffff); }
 
   cle() { return this.haut.toString(16).padStart(6, "0") + this.bas.toString(16).padStart(6, "0"); }
   egale(autre) { return !!autre && autre.haut === this.haut && autre.bas === this.bas; }

@@ -80,6 +80,7 @@ const terminaux = new TerminalTabs({
     deplier: () => { if (disposition.taille.sansTerminal) disposition.basculer("sansTerminal", false); },
   },
 });
+animateur.filtres = terminaux.filtres;       // les protocoles décochés ne s'animent pas
 const interactions = new InteractionManager({
   scene: $("#lb-scene"), tc, reseau, ui, animateur, choixPort: $("#lb-choix-port"), indice: $("#lb-indice"),
   rappels: {
@@ -316,7 +317,7 @@ for (const [type, T] of Object.entries(TYPES)) {
   });
   $("#lb-equipements").appendChild(b);
 }
-const CABLES = [["auto", "Automatique", "C"], ["droit", "Droit"], ["croise", "Croisé"], ["fibre", "Fibre"], ["console", "Console"]];
+const CABLES = [["auto", "Automatique", "C"], ["droit", "Droit"], ["croise", "Croisé"], ["fibre", "Fibre"], ["console", "Console"], ["serie", "Série DCE"]];
 $("#lb-cables").innerHTML = CABLES.map(([k, t, r]) => '<button type="button" class="lb-cable" role="radio" data-cable="' + k + '" aria-checked="false">'
   + (k === "auto" ? '<svg viewBox="0 0 20 20"><path d="M4 16c4 0 4-12 12-12"/><circle cx="4" cy="16" r="1.6" class="plein"/><circle cx="16" cy="4" r="1.6" class="plein"/></svg>' : '<i class="' + k + '"></i>')
   + "<span>" + t + "</span>" + (r ? "<kbd>" + r + "</kbd>" : "") + "</button>").join("");

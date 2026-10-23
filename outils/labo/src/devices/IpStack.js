@@ -79,6 +79,18 @@ export class IpStack {
       this.noter(iface.court + " est hors service : le paquet pour " + paquet.dst + " ne peut pas partir.");
       return { erreur: "interface hors service" };
     }
+    if (iface.type === "se") {
+      // point à point : un seul voisin possible, donc ni ARP ni adresse MAC
+      this.noter("Liaison série " + iface.court + " : point à point, pas d'ARP. Le paquet part dans une trame "
+        + iface.encapsulation.toUpperCase() + ".");
+      iface.envoyer(new Frame({ src: null, dst: null, etherType: ETHERTYPE.IPV4, payload: paquet, l2: iface.encapsulation }));
+      return { ok: true };
+    }
+    if (paquet.dst.estMulticast()) {
+      this.noter("Destination de groupe " + paquet.dst + " : la trame part vers l'adresse MAC de groupe " + MACAddress.multicast(paquet.dst).cisco() + ".");
+      this.trame(iface, MACAddress.multicast(paquet.dst), ETHERTYPE.IPV4, paquet);
+      return { ok: true };
+    }
     const diffusion = paquet.dst.estDiffusionLimitee()
       || (iface.ip && iface.masque && paquet.dst.egale(iface.ip.diffusion(iface.masque)));
     if (diffusion) {
@@ -136,7 +148,9 @@ export class IpStack {
 
   /* ── recevoir de l'ARP ── */
   recevoirArp(iface, msg) {
-    const pourMoi = iface.ip && msg.targetIp.egale(iface.ip);
+    // un routeur qui traduit répond aussi pour ses adresses publiques (NAT)
+    const parNat = !!(this.app.nat && this.app.nat.configure() && this.app.nat.repondArp(iface, msg.targetIp));
+    const pourMoi = iface.ip && (msg.targetIp.egale(iface.ip) || parNat);
     if (!pourMoi) {
       if (this.arp.has(msg.senderIp.toString())) this.apprendre(msg.senderIp, msg.senderMac, iface);
       this.noter("La requête ARP demande " + msg.targetIp + ", qui n'est pas à " + this.app.nom + " : ignorée.");
@@ -145,8 +159,9 @@ export class IpStack {
     }
     this.apprendre(msg.senderIp, msg.senderMac, iface);
     if (msg.op === 1) {
-      this.noter(this.app.nom + " a l'adresse " + iface.ip + " : il répond en unicast à " + msg.senderMac.cisco() + ".");
-      const rep = new ArpMessage({ op: 2, senderMac: iface.mac, senderIp: iface.ip, targetMac: msg.senderMac, targetIp: msg.senderIp });
+      this.noter(parNat ? this.app.nom + " répond pour " + msg.targetIp + ", adresse publique de son NAT : elle est chez lui."
+        : this.app.nom + " a l'adresse " + iface.ip + " : il répond en unicast à " + msg.senderMac.cisco() + ".");
+      const rep = new ArpMessage({ op: 2, senderMac: iface.mac, senderIp: msg.targetIp, targetMac: msg.senderMac, targetIp: msg.senderIp });
       this.trame(iface, msg.senderMac, ETHERTYPE.ARP, rep);
     } else {
       this.noter("Réponse ARP reçue : " + msg.senderIp + " est à " + msg.senderMac.cisco() + ".");
@@ -165,6 +180,8 @@ export class IpStack {
     if (this.monInterface(paquet.dst)) return true;
     if (paquet.dst.estDiffusionLimitee()) return true;
     if (iface.ip && iface.masque && paquet.dst.egale(iface.ip.diffusion(iface.masque))) return true;
+    // un groupe multicast n'est « pour moi » que si j'y suis abonné (RIPv2 : 224.0.0.9)
+    if (paquet.dst.estMulticast()) return !!(this.app.ecouteGroupe && this.app.ecouteGroupe(iface, paquet.dst));
     return false;
   }
 
@@ -173,7 +190,11 @@ export class IpStack {
     if (paquet.protocol === PROTO.UDP) {
       const h = this.udp.get(paquet.payload.dstPort);
       if (h) return h(iface, paquet);
-      if (paquet.dst.estDiffusionLimitee()) { this.noter("Personne n'écoute le port UDP " + paquet.payload.dstPort + " ici : ignoré."); return; }
+      if (paquet.dst.estDiffusionLimitee() || paquet.dst.estMulticast()
+        || (iface.ip && iface.masque && paquet.dst.egale(iface.ip.diffusion(iface.masque)))) {
+        this.noter("Personne n'écoute le port UDP " + paquet.payload.dstPort + " ici : ignoré.");
+        return;
+      }
       this.noter("Aucun service sur le port UDP " + paquet.payload.dstPort + " : « port injoignable » renvoyé à " + paquet.src + ".");
       this.erreurIcmp(paquet, ICMP.UNREACHABLE, UNREACH.PORT, iface);
       return;
@@ -204,7 +225,7 @@ export class IpStack {
      réponse à une erreur ICMP ni à une diffusion : la RFC 1122 l'interdit,
      et c'est ce qui empêche deux équipements de s'en renvoyer à l'infini. */
   erreurIcmp(paquet, type, code, iface) {
-    if (paquet.dst.estDiffusionLimitee() || paquet.src.estZero()) return;
+    if (paquet.dst.estDiffusionLimitee() || paquet.dst.estMulticast() || paquet.src.estZero()) return;
     if (paquet.protocol === PROTO.ICMP && paquet.payload.type !== ICMP.ECHO_REQUEST && paquet.payload.type !== ICMP.ECHO_REPLY) return;
     const src = (iface && iface.ip) || (this.app.interfacesL3()[0] || {}).ip;
     if (!src) return;
@@ -217,9 +238,11 @@ export class IpStack {
      Une session : « n » Echo Request espacés d'« intervalle », chacun avec
      son délai d'attente. Chaque réponse — ou son absence — remonte à
      l'appelant par « sur(evenement) », au fil de l'horloge. */
-  /* « sequentiel » : IOS n'envoie l'écho suivant qu'une fois le précédent
-     conclu (réponse ou délai) — d'où le « .!!!! » quand le premier se perd
-     pendant l'ARP. Windows, lui, en envoie un par seconde. */
+  /* « sequentiel » : l'écho suivant ne part qu'une fois le précédent conclu
+     (réponse ou délai) — d'où le « .!!!! » d'IOS quand le premier se perd
+     pendant l'ARP, et le « Request timed out. » de Windows qui s'affiche
+     AVANT les réponses suivantes. Windows garde en plus une seconde entre
+     deux envois (« intervalle ») ; IOS enchaîne aussitôt (intervalle 0). */
   ping(dst, { n = 4, intervalle = 1000, delai = 4000, ttl = null, taille = 32, sequentiel = false, sur = () => {} } = {}) {
     const id = icmpIdent++;
     const stats = { envoyes: 0, recus: 0, temps: [] };
@@ -230,7 +253,10 @@ export class IpStack {
       e.fini = true;
       this.horloge.annuler(e.minuterie);
       sur(evt);
-      if (sequentiel && stats.envoyes < n) this.horloge.programmer(0, () => envoyerUn(stats.envoyes + 1), { type: "minuterie", quoi: "ping" });
+      if (sequentiel && stats.envoyes < n) {
+        const attente = Math.max(0, e.t0 + intervalle - this.horloge.t);
+        this.horloge.programmer(attente, () => envoyerUn(stats.envoyes + 1), { type: "minuterie", quoi: "ping" });
+      }
       fin();
     };
     const ecouteIcmp = (paquet) => {

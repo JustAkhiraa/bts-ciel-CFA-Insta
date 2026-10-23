@@ -62,7 +62,7 @@ export function charger(reseau, json) {
     const pa = a && a.port(c.a[1]), pb = b && b.port(c.b[1]);
     if (pa && pb && !pa.cable && !pb.cable) reseau.connecter(pa, pb, c.type);
   }
-  reseau.evaluerLiens();
+  reseau.demarrer();
   reseau.emit("topologie");
   return reseau;
 }

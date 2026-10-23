@@ -18,7 +18,9 @@ export class TerminalTabs {
     this.terms = [];               // { app, console, el, sortie, occupe }
     this.actif = null;             // un terminal, ou "evts"
     this.enAttente = new Map();    // messages console reçus avant l'ouverture
-    this.filtres = new Set(["ARP", "ICMP", "DHCP", "DNS", "HTTP", "TCP", "UDP"]);
+    // CDP est décoché d'office : ses annonces n'apprennent rien sur un ping
+    this.protocoles = ["ARP", "ICMP", "DHCP", "DNS", "HTTP", "TCP", "UDP", "RIP", "CDP"];
+    this.filtres = new Set(this.protocoles.filter((p) => p !== "CDP"));
     this.evts = this.creerEvenements();
     reseau.on("console", ({ app, texte }) => {
       const t = this.terms.find((x) => x.app === app);
@@ -135,7 +137,7 @@ export class TerminalTabs {
         defiler();
       },
       occupe: () => { t.occupe = true; this.majSaisie(t); },
-      fin: () => { t.occupe = false; this.majSaisie(t); this.rappels.apresCommande(); },
+      fin: () => { t.occupe = false; this.majSaisie(t); this.rappels.apresCommande(); this.vider(t); },
       effacer: () => { lignes().innerHTML = ""; },
     };
   }
@@ -150,8 +152,42 @@ export class TerminalTabs {
     t.el.scrollTop = t.el.scrollHeight;
   }
 
+  /* Une ligne validée, comme si on avait tapé Entrée. */
+  soumettre(t, ligne) {
+    const c = t.console;
+    t.sortie.ligne(c.invite() + (c.masque ? "" : ligne));
+    t.histo = -1;
+    c.executer(ligne, t.sortie);
+    // ce que la commande a mis en route (annonces CDP, mises à jour RIP…)
+    // part tout de suite en temps réel, attend le lecteur en simulation
+    this.reseau.executer();
+    this.majSaisie(t);
+    this.rappels.apresCommande();
+  }
+
+  /* Un bloc collé (depuis la page « Commandes Packet Tracer », par
+     exemple) : chaque ligne est jouée à son tour, comme sur une vraie
+     console — une commande longue (ping) finit avant la suivante. La
+     dernière ligne, si rien ne la termine, reste dans la saisie. */
+  coller(t, texte) {
+    const input = t.el.querySelector("input");
+    const lignes = (input.value + texte).replace(/\r/g, "").split("\n");
+    input.value = lignes.pop();
+    t.file = (t.file || []).concat(lignes);
+    this.vider(t);
+  }
+  vider(t) {
+    while (t.file && t.file.length && !t.occupe) this.soumettre(t, t.file.shift());
+  }
+
   brancher(t) {
     const input = t.el.querySelector("input");
+    input.addEventListener("paste", (e) => {
+      const texte = (e.clipboardData || window.clipboardData).getData("text");
+      if (!/\n/.test(texte)) return;              // une seule ligne : collage ordinaire
+      e.preventDefault();
+      this.coller(t, texte);
+    });
     this.majSaisie(t);
     t.el.addEventListener("mousedown", (e) => { if (e.target === t.el || e.target.closest(".lignes")) setTimeout(() => { if (!window.getSelection().toString()) input.focus(); }, 0); });
     input.addEventListener("keydown", (e) => {
@@ -161,11 +197,7 @@ export class TerminalTabs {
         e.preventDefault();
         const ligne = input.value;
         input.value = "";
-        t.sortie.ligne(c.invite() + (c.masque ? "" : ligne));
-        t.histo = -1;
-        c.executer(ligne, t.sortie);
-        this.majSaisie(t);
-        this.rappels.apresCommande();
+        this.soumettre(t, ligne);
       } else if (e.key === "Tab") {
         e.preventDefault();
         input.value = c.completer(input.value);
@@ -193,6 +225,7 @@ export class TerminalTabs {
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && !window.getSelection().toString()) {
         t.sortie.ligne(c.invite() + input.value + "^C");
         input.value = "";
+        t.file = [];                                 // un collage en cours s'arrête là
       }
     });
   }
@@ -206,7 +239,7 @@ export class TerminalTabs {
       + '<div class="lb-evts-table"><table><thead><tr><th>#</th><th>Temps</th><th>De</th><th>Vers</th><th>Type</th><th>Issue</th><th>Ce qui se passe</th></tr></thead><tbody></tbody></table></div>';
     this.conteneur.appendChild(el);
     const f = el.querySelector(".lb-evts-filtres");
-    f.innerHTML = [...this.filtres].map((p) => '<label class="lb-filtre"><input type="checkbox" data-proto="' + p + '" checked>'
+    f.innerHTML = this.protocoles.map((p) => '<label class="lb-filtre"><input type="checkbox" data-proto="' + p + '"' + (this.filtres.has(p) ? " checked" : "") + ">"
       + '<span class="lb-proto" style="background:' + (COULEURS_PROTO[p] || "#999") + '">' + p + "</span></label>").join("")
       + '<button type="button" class="lb-b" data-vider style="margin-left:auto">Vider le journal</button>';
     f.addEventListener("change", (e) => {

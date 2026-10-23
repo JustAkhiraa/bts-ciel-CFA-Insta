@@ -49,6 +49,8 @@ export class IPv4Address {
   egale(autre) { return !!autre && autre.n === this.n; }
   estZero() { return this.n === 0; }
   estDiffusionLimitee() { return this.n === 0xffffffff; }
+  /* 224.0.0.0 à 239.255.255.255 : une adresse de groupe (multicast). */
+  estMulticast() { return (this.n >>> 28) === 14; }
 
   octets() { return [this.n >>> 24, (this.n >>> 16) & 255, (this.n >>> 8) & 255, this.n & 255]; }
   toString() { return this.octets().join("."); }

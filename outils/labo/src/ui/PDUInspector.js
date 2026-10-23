@@ -7,6 +7,7 @@
    notées par les équipements. */
 
 import { ETHERTYPE } from "../core/Frame.js";
+import { ETHERTYPE_CDP } from "../devices/Cdp.js";
 import { PROTO, ICMP, DhcpMessage, DnsMessage } from "../core/Packet.js";
 import { COULEURS_PROTO } from "../canvas/Renderer.js";
 
@@ -14,7 +15,7 @@ const ech = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const ligne = (k, v) => "<dt>" + k + "</dt><dd>" + ech(v) + "</dd>";
 const couche = (titre, sous, corps) => '<section class="lb-pdu-couche"><h4>' + titre + "<small>" + sous + "</small></h4>" + corps + "</section>";
 
-const TYPES_CABLE = { droit: "câble droit", croise: "câble croisé", fibre: "fibre", console: "console" };
+const TYPES_CABLE = { droit: "câble droit", croise: "câble croisé", fibre: "fibre", console: "console", serie: "liaison série" };
 
 export function rendrePDU(s) {
   const f = s.trame;
@@ -35,14 +36,31 @@ export function rendrePDU(s) {
     + ligne("Support", TYPES_CABLE[s.cable.type] || s.cable.type) + "</dl>");
 
   // Couche 2
-  h += couche("Couche 2 — Ethernet II", f.vlan !== null ? "trame étiquetée 802.1Q" : "trame non étiquetée", "<dl>"
-    + ligne("MAC destination", f.dst.cisco() + (f.dst.estDiffusion() ? "  (diffusion)" : ""))
-    + ligne("MAC source", f.src.cisco())
-    + ligne("Étiquette 802.1Q", f.vlan !== null ? "VLAN " + f.vlan + " (TPID 0x8100)" : "aucune")
-    + ligne("EtherType", "0x" + f.etherType.toString(16).padStart(4, "0").toUpperCase() + (f.etherType === ETHERTYPE.ARP ? " (ARP)" : " (IPv4)"))
-    + "</dl>");
+  if (f.l2 === "hdlc" || f.l2 === "ppp") {
+    const ppp = f.l2 === "ppp";
+    h += couche("Couche 2 — " + (ppp ? "PPP" : "HDLC Cisco"), "liaison série point à point", "<dl>"
+      + ligne("Adresse", ppp ? "0xFF (toutes les stations : il n'y en a qu'une)" : "0x0F (unicast)")
+      + ligne("Contrôle", ppp ? "0x03" : "0x00")
+      + ligne("Protocole", f.etherType === ETHERTYPE_CDP ? (ppp ? "0x0207 (CDP)" : "0x2000 (CDP)") : ppp ? "0x0021 (IPv4)" : "0x0800 (IPv4)")
+      + ligne("Adresses MAC", "aucune : un seul voisin au bout du câble, pas d'ARP")
+      + "</dl>");
+  } else {
+    h += couche("Couche 2 — Ethernet II", f.vlan !== null ? "trame étiquetée 802.1Q" : "trame non étiquetée", "<dl>"
+      + ligne("MAC destination", f.dst.cisco() + (f.dst.estDiffusion() ? "  (diffusion)" : ""))
+      + ligne("MAC source", f.src.cisco())
+      + ligne("Étiquette 802.1Q", f.vlan !== null ? "VLAN " + f.vlan + " (TPID 0x8100)" : "aucune")
+      + ligne(f.etherType === ETHERTYPE_CDP ? "LLC / SNAP" : "EtherType", "0x" + f.etherType.toString(16).padStart(4, "0").toUpperCase()
+        + (f.etherType === ETHERTYPE.ARP ? " (ARP)" : f.etherType === ETHERTYPE_CDP ? " (CDP, trame 802.3 avec en-tête SNAP)" : " (IPv4)"))
+      + "</dl>");
+  }
 
-  if (f.etherType === ETHERTYPE.ARP) {
+  if (f.etherType === ETHERTYPE_CDP) {
+    const m = f.payload;
+    h += couche("CDP", "annonce de voisinage Cisco", "<dl>" + ligne("Device ID", m.nom) + ligne("Port ID", m.port)
+      + ligne("Adresse", m.adresse || "aucune") + ligne("Plate-forme", m.plateforme)
+      + ligne("Capacités", m.capacites === "R" ? "Router" : "Switch") + (m.vlanNatif !== null ? ligne("VLAN natif", m.vlanNatif) : "")
+      + ligne("Rétention", "180 s") + "</dl>");
+  } else if (f.etherType === ETHERTYPE.ARP) {
     const a = f.payload;
     h += couche("ARP", a.op === 1 ? "requête (op 1)" : "réponse (op 2)", "<dl>"
       + ligne("Opération", a.op === 1 ? "1 — requête : « qui a " + a.targetIp + " ? »" : "2 — réponse")

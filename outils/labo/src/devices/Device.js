@@ -39,11 +39,23 @@ export class Device {
      défiler quand il tape « no shutdown ». */
   annoncerLien(port, up) {
     const etat = up ? "up" : "down";
+    if (port.type === "se") {
+      this.console("%LINEPROTO-5-UPDOWN: Line protocol on Interface " + port.nom + ", changed state to " + etat);
+      return;
+    }
     if (port.adminUp || !up) {
       this.console("%LINK-" + (up ? 5 : 3) + "-" + (up ? "CHANGED" : "UPDOWN") + ": Interface " + port.nom
         + ", changed state to " + (port.adminUp ? etat : "administratively down"));
     }
     this.console("%LINEPROTO-5-UPDOWN: Line protocol on Interface " + port.nom + ", changed state to " + etat);
+  }
+  /* Liaison série : la ligne monte (le câble et l'autre bout sont là)
+     avant le protocole (l'horloge est donnée). Deux messages, deux moments. */
+  lignePhysique(port, up) {
+    if (port.adminUp || !up) {
+      this.console("%LINK-" + (up ? 5 : 3) + "-" + (up ? "CHANGED" : "UPDOWN") + ": Interface " + port.nom
+        + ", changed state to " + (port.adminUp ? (up ? "up" : "down") : "administratively down"));
+    }
   }
 
   toJSON() {
@@ -67,9 +79,15 @@ export function appliquerPort(p, j) {
   p.adminUp = j.adminUp !== false;
   if (j.description) p.description = j.description;
   if (j.mode) p.mode = j.mode;
+  if (j.modeExplicite) p._modeExplicite = true;
   if (j.accessVlan) p.accessVlan = j.accessVlan;
   if (j.native) p.native = j.native;
   if (j.allowed) p.allowed = new Set(j.allowed);
   if (j.dot1q !== undefined) { p.dot1q = j.dot1q; p.dot1qNatif = !!j.dot1qNatif; }
+  if (j.clockRate) p.clockRate = j.clockRate;
+  if (j.encapsulation) p.encapsulation = j.encapsulation;
+  if (j.natRole) p.natRole = j.natRole;
+  if (j.aclIn) p.aclIn = j.aclIn;
+  if (j.aclOut) p.aclOut = j.aclOut;
   p._json = j;            // ip, masque, helper, mac : relus par l'équipement
 }

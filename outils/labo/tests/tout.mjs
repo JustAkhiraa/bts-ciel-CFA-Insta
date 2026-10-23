@@ -1,5 +1,5 @@
 /* Lance tous les bancs : node outils/labo/tests/tout.mjs */
-const fichiers = ["./moteur.test.mjs", "./cli.test.mjs", "./labs.test.mjs"];
+const fichiers = ["./moteur.test.mjs", "./cli.test.mjs", "./labs.test.mjs", "./blocs.test.mjs"];
 let echecs = 0, total = 0;
 for (const f of fichiers) {
   let mod;

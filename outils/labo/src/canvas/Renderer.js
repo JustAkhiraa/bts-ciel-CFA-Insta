@@ -8,8 +8,10 @@
 
 export const DEMI = 30;                  // demi-côté de la carte d'un équipement
 export const COULEURS_TYPE = { routeur: "#7c8cff", switch: "#2bb3a0", pc: "#e3a03a", portable: "#e3a03a", serveur: "#c06cf0" };
-export const COULEURS_PROTO = { ARP: "#f5c542", ICMP: "#7c8cff", DHCP: "#3fb950", DNS: "#2bb3a0", HTTP: "#c06cf0", TCP: "#c06cf0", UDP: "#9aa3b2", IPv4: "#9aa3b2" };
-const STYLE_CABLE = { droit: { tirets: [] }, croise: { tirets: [7, 5] }, fibre: { tirets: [], couleur: "#e3a03a" }, console: { tirets: [2, 4], couleur: "#5ab0ff" } };
+export const COULEURS_PROTO = { ARP: "#f5c542", ICMP: "#7c8cff", DHCP: "#3fb950", DNS: "#2bb3a0", HTTP: "#c06cf0", TCP: "#c06cf0", UDP: "#9aa3b2", IPv4: "#9aa3b2",
+  CDP: "#6e7681", RIP: "#f0883e" };
+const STYLE_CABLE = { droit: { tirets: [] }, croise: { tirets: [7, 5] }, fibre: { tirets: [], couleur: "#e3a03a" }, console: { tirets: [2, 4], couleur: "#5ab0ff" },
+  serie: { tirets: [], couleur: "#e5534b", eclair: true } };
 
 /* ── les icônes, tracées au pinceau (aucune image) ── */
 export function icone(c, type, x, y, t, couleur) {
@@ -91,7 +93,17 @@ export function dessinerCables(c, tc, reseau, ui) {
     c.setLineDash(verdict.ok ? st.tirets : [4, 4]);
     c.strokeStyle = !verdict.ok ? col.rouge : st.couleur || col["texte-faible"];
     if (choisi) { c.shadowColor = col.accent; c.shadowBlur = 8; }
-    c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
+    c.beginPath(); c.moveTo(pa.x, pa.y);
+    if (st.eclair) {
+      // l'éclair de la liaison série : un Z au milieu du câble, comme dans Packet Tracer
+      const dx = pb.x - pa.x, dy = pb.y - pa.y, L = Math.hypot(dx, dy) || 1;
+      const ux = dx / L, uy = dy / L, nx = -uy, ny = ux, mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+      c.lineTo(mx - ux * 9, my - uy * 9);
+      c.lineTo(mx + nx * 8 + ux * 2, my + ny * 8 + uy * 2);
+      c.lineTo(mx - nx * 8 - ux * 2, my - ny * 8 - uy * 2);
+      c.lineTo(mx + ux * 9, my + uy * 9);
+    }
+    c.lineTo(pb.x, pb.y); c.stroke();
     c.restore();
     if (!verdict.ok) {
       const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
@@ -112,7 +124,8 @@ export function dessinerCables(c, tc, reseau, ui) {
       const actif = maintenant - (port.activite || 0) < 450 && Math.floor(maintenant / 90) % 2 === 0;
       if (z >= 0.55) {
         c.font = "600 9.5px " + col.mono;
-        const txt = port.court;
+        // le bout DCE d'une liaison série porte une horloge : c'est lui qui la donne
+        const txt = port.court + (port.estDce() ? " ◷" : "");
         const w = c.measureText(txt).width + 18;
         c.fillStyle = col.panneau;
         c.strokeStyle = col["bord-fort"];

@@ -17,6 +17,7 @@ import { IpStack } from "./IpStack.js";
 import { MACAddress } from "../core/MACAddress.js";
 import { IPv4Address } from "../core/IPv4Address.js";
 import { ETHERTYPE } from "../core/Frame.js";
+import { ServiceCdp, CDP_MAC } from "./Cdp.js";
 
 export const VIEILLISSEMENT = 300000;      // 300 s, comme IOS
 
@@ -62,6 +63,7 @@ export class SwitchL2 extends Device {
     this.passerelle = null;          // ip default-gateway
     this.extra = {};                 // enable secret, lignes, bannière : pour « show run »
     this.startup = null;
+    this.cdp = new ServiceCdp(this);
   }
 
   tousLesPorts() { return this.ports.concat(this.svis); }
@@ -108,7 +110,8 @@ export class SwitchL2 extends Device {
     const t = this.reseau.horloge.t;
     if (!e) this.noter(this.nom + " apprend " + mac.cisco() + " sur " + port.court + " (VLAN " + vlan + ").");
     else if (e.port !== port) this.noter(mac.cisco() + " a changé de port : " + e.port.court + " → " + port.court + ". La table CAM est mise à jour.");
-    this.cam.set(cle, { vlan, mac, port, type: "DYNAMIC", vu: t });
+    // une adresse retenue par la sécurité de port est STATIC dans la table
+    this.cam.set(cle, { vlan, mac, port, type: port.secu && port.secu.actif ? "STATIC" : "DYNAMIC", vu: t });
   }
   chercher(vlan, mac) {
     const cle = this.cleCam(vlan, mac);
@@ -124,10 +127,54 @@ export class SwitchL2 extends Device {
   }
   viderCam() { this.cam.clear(); }
 
+  /* ── la sécurité de port ──────────────────────────────────────────
+     Un port sécurisé n'accepte qu'un nombre fixé d'adresses MAC source.
+     Les premières vues sont retenues (et écrites dans la configuration si
+     « sticky ») ; au-delà, c'est une VIOLATION, et le mode décide :
+     protect jette sans rien dire, restrict jette et compte, shutdown met le
+     port en « err-disabled » — il ne revient qu'après shutdown / no shutdown. */
+  securite(port) {
+    if (!port.secu) port.secu = { actif: false, max: 1, violation: "shutdown", sticky: false, adresses: [], violations: 0, derniere: null };
+    return port.secu;
+  }
+  controlerSecurite(port, trame) {
+    const s = port.secu;
+    const mac = trame.src;
+    const vlan = port.mode === "access" ? port.accessVlan : (trame.vlan ?? port.native);
+    s.derniere = { mac, vlan };
+    if (s.adresses.some((a) => a.mac.egale(mac))) return true;
+    if (s.adresses.length < s.max) {
+      s.adresses.push({ mac, vlan, type: s.sticky ? "sticky" : "dynamic" });
+      this.noter("Sécurité de port sur " + port.court + " : " + mac.cisco() + " est retenue (" + s.adresses.length + "/" + s.max
+        + (s.sticky ? ", sticky : elle entre dans la running-config" : "") + ").");
+      if (s.sticky) this.reseau.emit("config", this);
+      return true;
+    }
+    s.violations++;
+    const alerte = "%PORT_SECURITY-2-PSECURE_VIOLATION: Security violation occurred, caused by MAC address " + mac.cisco() + " on port " + port.nom + ".";
+    if (s.violation === "protect") {
+      this.noter("VIOLATION sur " + port.court + " : " + mac.cisco() + " dépasse les " + s.max + " adresse(s) autorisée(s). Mode protect : trame jetée, sans alerte.");
+    } else if (s.violation === "restrict") {
+      this.noter("VIOLATION sur " + port.court + " : " + mac.cisco() + " dépasse les " + s.max + " adresse(s) autorisée(s). Mode restrict : trame jetée, violation comptée (" + s.violations + ").");
+      this.console(alerte);
+    } else {
+      this.noter("VIOLATION sur " + port.court + " : " + mac.cisco() + " dépasse les " + s.max + " adresse(s) autorisée(s). Mode shutdown : le port passe en err-disabled.");
+      this.console("%PM-4-ERR_DISABLE: psecure-violation error detected on " + port.court + ", putting " + port.court + " in err-disable state");
+      this.console(alerte);
+      port.errDisabled = true;
+      this.reseau.evaluerLiens();
+    }
+    this.reseau.issue("jetee");
+    return false;
+  }
+
   /* ── une trame arrive ── */
   recevoirTrame(port, trame) {
     if (port.type === "console") return;
     if (!port.estUp()) { this.noter(port.court + " est hors service : trame perdue."); this.reseau.issue("jetee"); return; }
+    if (port.secu && port.secu.actif && !this.controlerSecurite(port, trame)) return;
+    // une annonce CDP est pour le commutateur lui-même : il la lit et ne la relaie jamais
+    if (trame.dst.egale(CDP_MAC)) { this.cdp.recevoir(port, trame.payload); return; }
     let vlan;
     if (port.mode === "access") {
       if (this.raisonBlocage(port)) { this.noter(port.court + " : " + this.raisonBlocage(port) + ". La trame est jetée."); this.reseau.issue("jetee"); return; }
@@ -218,11 +265,18 @@ export class SwitchL2 extends Device {
     return true;
   }
 
+  demarrer() { this.cdp.annoncerPartout(); }
+
   lienChange(port, up) {
     if (port.type === "console" || port.estVirtuel()) return;
     this.annoncerLien(port, up);
+    if (up) this.cdp.annoncer(port);
     if (!up) {
+      this.cdp.oublier(port);
       for (const [k, e] of this.cam) if (e.port === port) this.cam.delete(k);
+      // les adresses sécurisées dynamiques s'effacent quand le port tombe ;
+      // les sticky restent, elles sont dans la configuration
+      if (port.secu) port.secu.adresses = port.secu.adresses.filter((a) => a.type !== "dynamic");
     }
   }
 
@@ -233,6 +287,7 @@ export class SwitchL2 extends Device {
     for (const p of this.ports) {
       if (p.type === "console") continue;
       p.adminUp = true; p.mode = "access"; p.accessVlan = 1; p.native = 1; p.allowed = "all"; p.description = ""; p._modeExplicite = false;
+      p.secu = null; p.errDisabled = false;
     }
     this.svis = [new Port(this, "Vlan1", { type: "vlan", mac: this.base, adminUp: false })];
     this.nom = this.nomUsine;
@@ -240,6 +295,7 @@ export class SwitchL2 extends Device {
     this.extra = {};
     this.viderCam();
     this.ip.viderArp();
+    this.cdp = new ServiceCdp(this);
   }
 
   creerSvi(vlan) {
@@ -255,9 +311,13 @@ export class SwitchL2 extends Device {
     const j = super.toJSON();
     j.vlans = [...this.vlans].map(([n, v]) => ({ n, nom: v.nom }));
     j.svis = this.svis.map((s) => s.toJSON());
+    j.securite = this.ports.filter((p) => p.secu).map((p) => ({ port: p.nom, actif: p.secu.actif, max: p.secu.max, violation: p.secu.violation,
+      sticky: p.secu.sticky, adresses: p.secu.adresses.filter((a) => a.type !== "dynamic").map((a) => ({ mac: a.mac.cisco(), vlan: a.vlan, type: a.type })),
+      errDisabled: p.errDisabled || undefined }));
     j.passerelle = this.passerelle ? this.passerelle.toString() : null;
     j.extra = this.extra;
     j.startup = this.startup;
+    if (!this.cdp.actif) j.cdp = false;
     return j;
   }
   appliquerJSON(j) {
@@ -268,7 +328,15 @@ export class SwitchL2 extends Device {
       s.ip = IPv4Address.parse(sj.ip); s.masque = IPv4Address.parse(sj.masque);
     });
     this.passerelle = IPv4Address.parse(j.passerelle);
+    (j.securite || []).forEach((sj) => {
+      const p = this.port(sj.port);
+      if (!p) return;
+      p.secu = { actif: !!sj.actif, max: sj.max || 1, violation: sj.violation || "shutdown", sticky: !!sj.sticky, violations: 0, derniere: null,
+        adresses: (sj.adresses || []).map((a) => ({ mac: MACAddress.parse(a.mac), vlan: a.vlan, type: a.type })).filter((a) => a.mac) };
+      p.errDisabled = !!sj.errDisabled;
+    });
     this.extra = j.extra || {};
     this.startup = j.startup || null;
+    this.cdp.actif = j.cdp !== false;
   }
 }

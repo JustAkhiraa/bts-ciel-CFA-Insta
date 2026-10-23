@@ -83,6 +83,13 @@ export class Network {
   evaluerLiens() {
     for (const app of this.appareils) {
       for (const p of app.ports) {
+        // une liaison série a deux états qui changent séparément : la ligne
+        // (le signal) et le protocole (l'horloge, l'encapsulation)
+        if (p.type === "se") {
+          const phys = p.physiqueUp();
+          if (p._physConnu !== undefined && p._physConnu !== phys) app.lignePhysique(p, phys);
+          p._physConnu = phys;
+        }
         const up = p.estUp();
         if (p._etatConnu !== undefined && p._etatConnu !== up) app.lienChange(p, up);
         p._etatConnu = up;
@@ -141,4 +148,16 @@ export class Network {
   }
 
   viderJournal() { this.sauts = []; this.emit("journal"); }
+
+  /* Une topologie vient d'être chargée : chaque équipement annonce qui il
+     est (CDP) et ce qu'il sait joindre (RIP), et tout ce trafic
+     d'installation s'écoule AVANT qu'on prenne la main — le journal repart
+     vide, la première trame qu'on y verra sera la nôtre. */
+  demarrer() {
+    this.evaluerLiens();
+    for (const a of this.appareils) if (a.demarrer) a.demarrer();
+    this.horloge.vider();
+    this.viderJournal();
+    this.emit("etat");
+  }
 }

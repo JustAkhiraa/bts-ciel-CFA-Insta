@@ -7,6 +7,7 @@
 
 import { IPv4Address } from "../core/IPv4Address.js";
 import { ecrireListeVlan } from "../devices/SwitchL2.js";
+import { ListeAcces } from "../devices/Acl.js";
 
 const pad = (s, n) => String(s).padEnd(n);
 const estSwitch = (a) => a.type === "switch";
@@ -18,6 +19,8 @@ export function etatInterface(app, p) {
   else if (p.type === "vlan") statut = app.vlans.has(app.vlanDeSvi(p)) ? "up" : "down";
   else if (p.type === "loop") statut = "up";
   else if (p.parent) statut = p.parent.adminUp ? (p.parent.estUp() ? "up" : "down") : "administratively down";
+  else if (p.type === "se") statut = p.physiqueUp() ? "up" : "down";
+  else if (p.errDisabled) statut = "down";
   else statut = p.cable && p.cable.valide() && p.cable.autre(p).adminUp && p.cable.autre(p).appareil.allume ? "up" : "down";
   return { statut, protocole: p.estUp() ? "up" : "down" };
 }
@@ -39,6 +42,8 @@ export function ipIntBrief(app) {
 }
 
 const classePrefixe = (ip) => { const o = ip.n >>> 24; return o < 128 ? 8 : o < 192 ? 16 : 24; };
+/* « 00:00:12 » : depuis quand, en temps simulé. */
+const duree = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map((v) => String(v).padStart(2, "0")).join(":"); };
 
 export function ipRoute(app) {
   const out = [
@@ -66,6 +71,9 @@ export function ipRoute(app) {
   }
   const ligne = (r) => {
     const tete = pad(r.code + (r.prefixe === 0 ? "*" : ""), 8);
+    if (r.code === "R") {
+      return tete + r.reseau + "/" + r.prefixe + " [120/" + r.metrique + "] via " + r.via + ", " + duree(app.reseau.horloge.t - r.vu) + ", " + r.interface.nom;
+    }
     const via = r.via ? " [" + r.distance + "/0] via " + r.via : " is directly connected, " + r.interface.nom;
     return tete + r.reseau + "/" + r.prefixe + via;
   };
@@ -198,16 +206,34 @@ export function runningConfig(app) {
     if (p.parent) {
       if (p.dot1q !== null) L.push(" encapsulation dot1Q " + p.dot1q + (p.dot1qNatif ? " native" : ""));
     }
-    if (sw && p.type !== "vlan") {
+    if (p.type === "se") {
+      if (p.ip) L.push(" ip address " + p.ip + " " + p.masque); else L.push(" no ip address");
+      if (p.aclIn) L.push(" ip access-group " + p.aclIn + " in");
+      if (p.aclOut) L.push(" ip access-group " + p.aclOut + " out");
+      if (p.natRole) L.push(" ip nat " + p.natRole);
+      if (p.encapsulation === "ppp") L.push(" encapsulation ppp");
+      if (p.clockRate) L.push(" clock rate " + p.clockRate);
+    } else if (sw && p.type !== "vlan") {
       if (p.mode === "access" && p.accessVlan !== 1) L.push(" switchport access vlan " + p.accessVlan);
       if (p.mode === "trunk") {
         if (p.native !== 1) L.push(" switchport trunk native vlan " + p.native);
         if (p.allowed !== "all") L.push(" switchport trunk allowed vlan " + (ecrireListeVlan(p.allowed) || "none"));
         L.push(" switchport mode trunk");
       } else if (p._modeExplicite) L.push(" switchport mode access");
+      const s = p.secu;
+      if (s) {
+        if (s.actif) L.push(" switchport port-security");
+        if (s.max !== 1) L.push(" switchport port-security maximum " + s.max);
+        if (s.violation !== "shutdown") L.push(" switchport port-security violation " + s.violation);
+        if (s.sticky) L.push(" switchport port-security mac-address sticky ");
+        s.adresses.filter((a) => a.type !== "dynamic").forEach((a) => L.push(" switchport port-security mac-address " + (a.type === "sticky" ? "sticky " : "") + a.mac.cisco().toUpperCase()));
+      }
     } else {
       if (p.ip) L.push(" ip address " + p.ip + " " + p.masque); else if (!sw || p.type === "vlan") L.push(" no ip address");
       if (p.helper) L.push(" ip helper-address " + p.helper);
+      if (p.aclIn) L.push(" ip access-group " + p.aclIn + " in");
+      if (p.aclOut) L.push(" ip access-group " + p.aclOut + " out");
+      if (p.natRole) L.push(" ip nat " + p.natRole);
       if (!p.parent && p.type !== "vlan") L.push(" duplex auto", " speed auto");
     }
     if (!p.adminUp) L.push(" shutdown");
@@ -215,9 +241,26 @@ export function runningConfig(app) {
   }
   if (sw && app.passerelle) L.push("ip default-gateway " + app.passerelle, "!");
   if (!sw) {
+    const n = app.nat;
+    [...n.pools].forEach(([nom, p]) => L.push("ip nat pool " + nom + " " + p.debut + " " + p.fin + " netmask " + p.masque));
+    n.dynamiques.forEach((d) => L.push("ip nat inside source list " + d.acl + (d.iface ? " interface " + d.iface : " pool " + d.pool) + (d.overload ? " overload" : "")));
+    n.statiques.forEach((s) => L.push("ip nat inside source static " + (s.proto ? s.proto + " " + s.local + " " + s.portLocal + " " + s.global + " " + s.portGlobal : s.local + " " + s.global)));
+    if (x.natTimeout) L.push("ip nat translation timeout " + x.natTimeout);
+    if (app.rip.actif) {
+      const rip = app.rip;
+      L.push("router rip");
+      if (rip.version) L.push(" version " + rip.version);
+      [...rip.passives].forEach((p) => L.push(" passive-interface " + p));
+      rip.reseaux.forEach((n) => L.push(" network " + n));
+      if (rip.defaut) L.push(" default-information originate");
+      if (!rip.resume) L.push(" no auto-summary");
+      L.push("!");
+    }
     L.push("ip classless");
     app.statiques.forEach((r) => L.push("ip route " + r.reseau + " " + r.masque + " " + (r.via || r.sortie) + (r.distance > 1 ? " " + r.distance : "")));
     L.push("!", "ip flow-export version 9", "!");
+    [...app.acl.values()].sort((a, b) => a.numero - b.numero).forEach((acl) => acl.lignes.forEach((l) => L.push("access-list " + acl.numero + " " + ListeAcces.texte(l))));
+    if (app.acl.size) L.push("!");
   }
   if (x.banniere) L.push("banner motd ^C" + x.banniere + "^C", "!");
   L.push("!", "!", "line con 0");
@@ -262,12 +305,195 @@ export function version(app) {
     "",
     "Cisco CISCO2911/K9 (revision 1.0) with 491520K/32768K bytes of memory.",
     "3 Gigabit Ethernet interfaces",
+    "2 Low-speed serial(sync/async) network interface(s)",
     "Configuration register is 0x2102",
   ];
 }
 
+/* ── RIP ─────────────────────────────────────────────────────────── */
+export function ipProtocols(r) {
+  const rip = r.rip;
+  if (!rip.actif) return [];
+  const t = r.reseau.horloge.t;
+  const env = rip.version || 1, rec = rip.version ? String(rip.version) : "1 2";
+  const out = ['Routing Protocol is "rip"',
+    "Sending updates every 30 seconds, next due in " + (30 - Math.floor(t / 1000) % 30) + " seconds",
+    "Invalid after 180 seconds, hold down 180, flushed after 240",
+    "Outgoing update filter list for all interfaces is not set",
+    "Incoming update filter list for all interfaces is not set",
+    "Redistributing: rip",
+    "Default version control: send version " + env + ", receive " + (rip.version ? "version " + rip.version : "any version"),
+    "  Interface             Send  Recv  Triggered RIP  Key-chain"];
+  rip.interfaces().filter((i) => !rip.passives.has(i.nom)).forEach((i) => out.push("  " + pad(i.nom, 22) + pad(env, 6) + pad(rec, 6)));
+  out.push("Automatic network summarization is " + (rip.resume ? "" : "not ") + "in effect", "Maximum path: 4", "Routing for Networks:");
+  rip.reseaux.forEach((n) => out.push("\t" + n));
+  if (rip.passives.size) { out.push("Passive Interface(s):"); [...rip.passives].forEach((p) => out.push("\t" + p)); }
+  out.push("Routing Information Sources:", "\tGateway         Distance      Last Update");
+  [...rip.sources].forEach(([g, vu]) => out.push("\t" + pad(g, 16) + pad("120", 14) + duree(t - vu)));
+  out.push("Distance: (default is 120)");
+  return out;
+}
+export function ripBase(r) {
+  const rip = r.rip;
+  if (!rip.actif) return [];
+  const out = [];
+  const t = r.reseau.horloge.t;
+  const vus = new Set();
+  rip.interfaces().forEach((i) => {
+    const cl = IPv4Address.depuisPrefixe(classePrefixe(i.ip));
+    const maj = i.ip.reseau(cl) + "/" + cl.prefixe();
+    if (rip.resume && !vus.has(maj)) { vus.add(maj); out.push(maj + "    auto-summary"); }
+    out.push(i.ip.reseau(i.masque) + "/" + i.masque.prefixe() + "    directly connected, " + i.nom);
+  });
+  rip.routes().forEach((e) => out.push(e.reseau + "/" + e.masque.prefixe(), "    [" + e.metrique + "] via " + e.via + ", " + duree(t - e.vu) + ", " + e.iface.nom));
+  return out;
+}
+
+/* ── NAT et listes d'accès ────────────────────────────────────────── */
+const adrPort = (a) => (a ? a.ip + (a.port != null ? ":" + a.port : "") : "---");
+export function natTraductions(r, verbeux) {
+  const out = ["Pro  Inside global      Inside local       Outside local      Outside global"];
+  const t = r.reseau.horloge.t;
+  r.nat.entrees().slice().sort((a, b) => (a.proto ? 1 : 0) - (b.proto ? 1 : 0)).forEach((e) => {
+    out.push(pad(e.proto || "---", 4) + " " + pad(adrPort(e.ig), 18) + " " + pad(adrPort(e.il), 18) + " " + pad(adrPort(e.ol), 18) + " " + adrPort(e.og));
+    if (verbeux) out.push("  create " + duree(t - (e.cree || 0)) + ", use " + duree(t - (e.vu || 0)) + (e.permanente ? ", timeout:0" : "") + ", flags: " + (e.permanente ? "static" : e.proto ? "extended" : "none") + ", use_count: 0");
+  });
+  return out;
+}
+export function natStatistiques(r) {
+  const n = r.nat, E = n.entrees();
+  const statiques = E.filter((e) => e.permanente).length;
+  const out = ["Total translations: " + E.length + " (" + statiques + " static, " + (E.length - statiques) + " dynamic, " + E.filter((e) => e.proto).length + " extended)",
+    "Outside Interfaces: " + n.interfaces("outside").map((p) => p.nom).join(", "),
+    "Inside Interfaces: " + n.interfaces("inside").map((p) => p.nom).join(", "),
+    "Hits: " + n.hits + "  Misses: " + n.misses,
+    "Expired translations: " + n.expirees,
+    "Dynamic mappings:"];
+  if (n.dynamiques.length) out.push("-- Inside Source");
+  n.dynamiques.forEach((d, i) => {
+    const refs = E.filter((e) => !e.permanente && e.proto).length;
+    out.push("access-list " + d.acl + (d.iface ? " interface " + d.iface : " pool " + d.pool) + " refCount " + refs);
+    const p = d.pool && n.pools.get(d.pool);
+    if (p) {
+      const total = p.fin.n - p.debut.n + 1;
+      const pris = new Set(E.filter((e) => n.dansPool(p, e.ig.ip)).map((e) => e.ig.ip.n)).size;
+      out.push(" pool " + d.pool + ": netmask " + p.masque, "\tstart " + p.debut + " end " + p.fin,
+        "\ttype generic, total addresses " + total + " , allocated " + pris + " (" + Math.round(pris / total * 100) + "%), misses " + n.misses);
+    }
+  });
+  return out;
+}
+export function listesAcces(r) {
+  const out = [];
+  [...r.acl.values()].sort((a, b) => a.numero - b.numero).forEach((acl) => {
+    out.push("Standard IP access list " + acl.numero);
+    acl.lignes.filter((l) => !l.remarque).forEach((l) => out.push("    " + l.n + " " + ListeAcces.texte(l) + (l.correspondances ? " (" + l.correspondances + " match(es))" : "")));
+  });
+  return out;
+}
+
+/* ── CDP ─────────────────────────────────────────────────────────── */
+const courtCdp = (nom) => nom.replace(/^GigabitEthernet/, "Gig ").replace(/^FastEthernet/, "Fas ").replace(/^Serial/, "Ser ");
+export function cdpVoisins(app) {
+  if (!app.cdp.actif) return ["% CDP is not enabled"];
+  const out = ["Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge",
+    "                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone",
+    "Device ID    Local Intrfce   Holdtme    Capability   Platform    Port ID"];
+  app.cdp.liste().forEach((v) => out.push(pad(v.nom.slice(0, 12), 13) + pad(courtCdp(v.local.nom), 16) + pad(String(app.cdp.retention(v)).padStart(7), 15)
+    + pad(v.capacites, 13) + pad(v.plateforme.replace(/^cisco /, "").replace("CISCO2911/K9", "C2900"), 12) + courtCdp(v.port)));
+  return out;
+}
+export function cdpDetail(app) {
+  if (!app.cdp.actif) return ["% CDP is not enabled"];
+  const out = [];
+  app.cdp.liste().forEach((v) => {
+    out.push("", "Device ID: " + v.nom, "Entry address(es): ");
+    if (v.adresse) out.push("  IP address : " + v.adresse);
+    out.push("Platform: " + v.plateforme + ", Capabilities: " + (v.capacites === "R" ? "Router" : "Switch"),
+      "Interface: " + v.local.nom + ", Port ID (outgoing port): " + v.port,
+      "Holdtime: " + app.cdp.retention(v), "", "Version :", v.version, "", "advertisement version: 2");
+    if (v.vlanNatif !== null) out.push("Native VLAN: " + v.vlanNatif);
+    out.push("Duplex: " + v.duplex);
+  });
+  return out;
+}
+
+/* ── la sécurité de port ──────────────────────────────────────────── */
+const MODE_VIOL = { protect: "Protect", restrict: "Restrict", shutdown: "Shutdown" };
+export function portSecurity(sw) {
+  const out = ["Secure Port MaxSecureAddr CurrentAddr SecurityViolation Security Action",
+               "               (Count)       (Count)        (Count)",
+               "--------------------------------------------------------------------"];
+  sw.ports.filter((p) => p.secu && p.secu.actif).forEach((p) => out.push(p.court.padStart(13) + String(p.secu.max).padStart(9)
+    + String(p.secu.adresses.length).padStart(11) + String(p.secu.violations).padStart(19) + "         " + MODE_VIOL[p.secu.violation]));
+  out.push("----------------------------------------------------------------------");
+  return out;
+}
+export function portSecurityInterface(sw, p) {
+  const s = p.secu || { actif: false, max: 1, violation: "shutdown", adresses: [], violations: 0, derniere: null };
+  const statut = !s.actif ? "Secure-down" : p.errDisabled ? "Secure-shutdown" : p.estUp() ? "Secure-up" : "Secure-down";
+  const d = s.derniere;
+  return ["Port Security              : " + (s.actif ? "Enabled" : "Disabled"),
+    "Port Status                : " + statut,
+    "Violation Mode             : " + MODE_VIOL[s.violation],
+    "Aging Time                 : 0 mins",
+    "Aging Type                 : Absolute",
+    "SecureStatic Address Aging : Disabled",
+    "Maximum MAC Addresses      : " + s.max,
+    "Total MAC Addresses        : " + s.adresses.length,
+    "Configured MAC Addresses   : " + s.adresses.filter((a) => a.type === "static").length,
+    "Sticky MAC Addresses       : " + s.adresses.filter((a) => a.type === "sticky").length,
+    "Last Source Address:Vlan   : " + (d ? d.mac.cisco().toUpperCase() + ":" + d.vlan : "0000.0000.0000:0"),
+    "Security Violation Count   : " + s.violations];
+}
+export function portSecurityAdresses(sw) {
+  const T = { static: "SecureConfigured", sticky: "SecureSticky", dynamic: "SecureDynamic" };
+  const out = ["               Secure Mac Address Table",
+    "-----------------------------------------------------------------------------",
+    "Vlan    Mac Address       Type                          Ports   Remaining Age",
+    "                                                                   (mins)",
+    "----    -----------       ----                          -----   -------------"];
+  let n = 0;
+  sw.ports.filter((p) => p.secu && p.secu.actif).forEach((p) => p.secu.adresses.forEach((a) => {
+    n++;
+    out.push(pad(String(a.vlan).padStart(4), 8) + pad(a.mac.cisco().toUpperCase(), 18) + pad(T[a.type], 30) + pad(p.court, 8) + "     -");
+  }));
+  out.push("-----------------------------------------------------------------------------",
+    "Total Addresses in System (excluding one mac per port)     : " + Math.max(0, n - sw.ports.filter((p) => p.secu && p.secu.actif).length),
+    "Max Addresses limit in System (excluding one mac per port) : 1024");
+  return out;
+}
+export function interfacesStatus(sw) {
+  const out = ["Port      Name               Status       Vlan       Duplex  Speed Type"];
+  sw.ports.filter((p) => p.type === "fa" || p.type === "gi").forEach((p) => {
+    const statut = p.errDisabled ? "err-disabled" : !p.adminUp ? "disabled" : p.estUp() ? "connected" : "notconnect";
+    out.push(pad(p.court, 10) + pad((p.description || "").slice(0, 18), 19) + pad(statut, 13) + pad(p.mode === "trunk" ? "trunk" : p.accessVlan, 11)
+      + pad("auto", 8) + pad("auto", 6) + (p.type === "fa" ? "10/100BaseTX" : "10/100/1000BaseTX"));
+  });
+  return out;
+}
+
+/* « show controllers serial 0/0/0 » : de quel côté du câble on est. */
+export function controleurs(p) {
+  const out = ["Interface " + p.nom, "Hardware is PowerQUICC MPC860"];
+  if (!p.cable || p.cable.type !== "serie") out.push("No serial cable attached");
+  else if (p.estDce()) out.push(p.clockRate ? "DCE V.35, clock rate " + p.clockRate : "DCE V.35, no clock");
+  else out.push((p.cable.autre(p).clockRate ? "DTE V.35 TX and RX clocks detected." : "DTE V.35 clocks stopped."));
+  out.push("idb at 0x81081AC4, driver data structure at 0x81084AC0");
+  return out;
+}
+
 export function interfaceDetail(app, p) {
   const e = etatInterface(app, p);
+  if (p.type === "se") {
+    return [p.nom + " is " + e.statut + ", line protocol is " + e.protocole,
+      "  Hardware is HD64570",
+      ...(p.description ? ["  Description: " + p.description] : []),
+      ...(p.ip ? ["  Internet address is " + p.ip + "/" + p.masque.prefixe()] : []),
+      "  MTU 1500 bytes, BW 1544 Kbit, DLY 20000 usec,",
+      "     reliability 255/255, txload 1/255, rxload 1/255",
+      "  Encapsulation " + p.encapsulation.toUpperCase() + ", loopback not set, keepalive set (10 sec)"];
+  }
   const nom = p.type === "vlan" ? "Vlan" : p.type === "gi" || p.parent ? "Gigabit Ethernet" : "Fast Ethernet";
   const out = [p.nom + " is " + e.statut + ", line protocol is " + e.protocole,
     "  Hardware is " + (p.type === "vlan" ? "CPU Interface" : nom) + ", address is " + (p.mac ? p.mac.cisco() : "-") + " (bia " + (p.mac ? p.mac.cisco() : "-") + ")"];

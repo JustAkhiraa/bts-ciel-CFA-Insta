@@ -31,7 +31,7 @@ function deuxReseaux() {
   const g0 = r.port("Gi0/0"), g1 = r.port("Gi0/1");
   g0.ip = IP("192.168.1.1"); g0.masque = IP("255.255.255.0"); g0.adminUp = true;
   g1.ip = IP("192.168.2.1"); g1.masque = IP("255.255.255.0"); g1.adminUp = true;
-  net.evaluerLiens();
+  net.demarrer();
   return { net, pc0, pc1, s0, s1, r };
 }
 
@@ -105,7 +105,7 @@ test("VLAN : même VLAN passe, VLAN différent ne passe pas, le trunk étiquette
   s0.port("Fa0/1").accessVlan = 10; s1.port("Fa0/1").accessVlan = 10; s1.port("Fa0/2").accessVlan = 20;
   const m = IP("255.255.255.0");
   a.configurer({ ip: IP("10.0.0.1"), masque: m }); b.configurer({ ip: IP("10.0.0.2"), masque: m }); c.configurer({ ip: IP("10.0.0.3"), masque: m });
-  net.evaluerLiens();
+  net.demarrer();
   const e1 = pingSync(net, a, "10.0.0.2");
   ok(e1.filter((x) => x.type === "reponse").length === 4, "même VLAN 10 : 4 réponses");
   const tagues = net.sauts.filter((s) => s.cable.a.appareil.type === "switch" && s.cable.b.appareil.type === "switch");
@@ -130,7 +130,7 @@ test("router-on-a-stick : routage inter-VLAN par sous-interfaces dot1Q", () => {
   const s20 = r.creerSous("GigabitEthernet0/0.20"); s20.dot1q = 20; s20.ip = IP("192.168.20.1"); s20.masque = m;
   a.configurer({ ip: IP("192.168.10.2"), masque: m, passerelle: IP("192.168.10.1") });
   b.configurer({ ip: IP("192.168.20.2"), masque: m, passerelle: IP("192.168.20.1") });
-  net.evaluerLiens();
+  net.demarrer();
   pingSync(net, a, "192.168.20.2");
   const e = pingSync(net, a, "192.168.20.2");
   ok(e.filter((x) => x.type === "reponse").length === 4, "inter-VLAN : 4 réponses au second ping, obtenu " + JSON.stringify(e.map((x) => x.type)));
@@ -147,7 +147,7 @@ test("DHCP : DORA complet depuis un routeur, avec adresses exclues", () => {
   const g = r.port("Gi0/0"); g.adminUp = true; g.ip = IP("192.168.1.1"); g.masque = IP("255.255.255.0");
   r.dhcp.pools.push({ nom: "LAN", reseau: IP("192.168.1.0"), masque: IP("255.255.255.0"), routeur: IP("192.168.1.1"), dns: IP("8.8.8.8") });
   r.dhcp.exclues.push({ de: IP("192.168.1.1"), a: IP("192.168.1.10") });
-  net.evaluerLiens();
+  net.demarrer();
   let res = null;
   pc.demanderDhcp((x) => { res = x; });
   net.executer();
@@ -171,7 +171,7 @@ test("DHCP relayé (ip helper-address), DNS et HTTP sur un serveur", () => {
     dns: IP("192.168.2.100"), debut: IP("192.168.1.50"), max: 50 }];
   srv.dns.actif = true; srv.dns.enregistrements = [{ nom: "www.ciel.lan", ip: "192.168.2.100" }];
   r.port("Gi0/0").helper = IP("192.168.2.100");
-  net.evaluerLiens();
+  net.demarrer();
   let res = null;
   pc0.demanderDhcp((x) => { res = x; });
   net.executer();
@@ -194,7 +194,7 @@ test("tempête de diffusion : deux commutateurs bouclés sans STP", () => {
   net.connecter(s0.port("Fa0/24"), s1.port("Fa0/24"), "croise");
   net.connecter(a.port("Fa0"), s0.port("Fa0/1"), "droit");
   a.configurer({ ip: IP("10.0.0.1"), masque: IP("255.0.0.0") });
-  net.evaluerLiens();
+  net.demarrer();
   let tempete = false;
   net.on("tempete", () => { tempete = true; });
   a.ip.ping(IP("10.0.0.2"), { n: 1, sur: () => {} });

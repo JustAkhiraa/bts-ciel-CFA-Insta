@@ -21,8 +21,11 @@
 import { CommandTree } from "./CommandTree.js";
 import * as A from "./IOSAffichage.js";
 import { IPv4Address } from "../core/IPv4Address.js";
+import { MACAddress } from "../core/MACAddress.js";
 import { normaliserInterface } from "../devices/Port.js";
 import { lireListeVlan, ecrireListeVlan } from "../devices/SwitchL2.js";
+import { ListeAcces, lireCritere } from "../devices/Acl.js";
+import { classe } from "../devices/Rip.js";
 
 /* Les phrases d'aide du « ? », en anglais comme sur la machine. */
 const AIDES = {
@@ -50,12 +53,28 @@ const AIDES = {
   range: "interface range command", trunk_: "", binding: "DHCP address bindings", history: "Display the session command history",
   memory: "Write to NV memory", "arp-cache": "Clear the entire ARP cache", dynamic: "dynamic entry type", add: "add VLANs to the current list",
   remove: "remove VLANs from the current list", all: "all VLANs", none: "no VLANs", except: "all VLANs except the following",
-  speed: "Configure speed operation", duplex: "Configure duplex operation", clock: "Display the system clock",
+  speed: "Configure speed operation", duplex: "Configure duplex operation", clock: "Configure serial interface clock",
+  rate: "Configure serial interface clock speed", ppp: "Point-to-Point protocol", hdlc: "Serial HDLC synchronous",
+  controllers: "Interface controller status", bandwidth: "Set bandwidth informational parameter",
+  "port-security": "Security related command", maximum: "Max secure addresses", sticky: "Configure dynamic secure addresses as sticky",
+  violation: "Security violation mode", protect: "Security violation protect mode", restrict: "Security violation restrict mode",
+  "mac-address": "Secure mac address", status: "Show interface line status",
+  cdp: "CDP information", neighbors: "CDP neighbor entries", detail: "Show detailed information", run: "Enable CDP",
+  nat: "NAT configuration commands", inside: "Inside address translation", outside: "Outside address translation",
+  source: "Source address translation", static: "Static NAT mappings", list: "Specify access list describing local addresses",
+  overload: "Overload an address translation", translations: "Translation entries", statistics: "Translation statistics",
+  "access-list": "Add an access list entry", "access-lists": "List access lists", "access-group": "Specify access control for packets",
+  permit: "Specify packets to forward", deny: "Specify packets to reject", remark: "Access list entry comment",
+  translation: "NAT translation entry configuration", netmask: "Specify the network mask", "prefix-length": "Specify the prefix length",
+  router: "Enable a routing process", rip: "Routing Information Protocol (RIP)", "auto-summary": "Enable automatic network number summarization",
+  "passive-interface": "Suppress routing updates on an interface", "default-information": "Control distribution of default information",
+  originate: "Distribute a default route", protocols: "IP routing protocol process parameters and statistics", database: "IP RIP database",
+  debug: "Debugging functions (see also 'undebug')", undebug: "Disable debugging functions (see also 'debug')",
   "<cible>": "Ping destination address or hostname", "<nom>": "This system's network name",
 };
 
 const jetons = (s) => String(s).trim().split(/\s+/).filter(Boolean);
-const SOUS_MODES = new Set(["if", "subif", "range", "vlan", "dhcp", "line"]);
+const SOUS_MODES = new Set(["if", "subif", "range", "vlan", "dhcp", "line", "router"]);
 
 /* ═══════════════ Les arbres, un jeu par type d'équipement ═══════════ */
 const cache = new Map();
@@ -66,7 +85,7 @@ function arbresPour(type) {
 
 function construire(sw) {
   const T = () => new CommandTree(AIDES);
-  const user = T(), priv = T(), config = T(), iface = T(), vlan = T(), dhcp = T(), ligne = T();
+  const user = T(), priv = T(), config = T(), iface = T(), vlan = T(), dhcp = T(), ligne = T(), routeur = T();
 
   /* ── EXEC : ce qui marche aux deux niveaux ── */
   for (const t of [user, priv]) {
@@ -84,6 +103,10 @@ function construire(sw) {
     t.ajouter("show history", (c, a, o) => o.lignes(c.historique.slice(-10).map((h) => "  " + h)));
     t.ajouter("show clock", (c, a, o) => o.ligne("*" + new Date().toUTCString().replace(/^\w+, /, "").replace(" GMT", ".000 UTC")));
     t.ajouter("terminal length <n:nombre>", () => {});
+    t.ajouter("show cdp neighbors", (c, a, o) => o.lignes(A.cdpVoisins(c.app)));
+    t.ajouter("show cdp neighbors detail", (c, a, o) => o.lignes(A.cdpDetail(c.app)));
+    t.ajouter("show cdp", (c, a, o) => o.lignes(c.app.cdp.actif ? ["Global CDP information:", "    Sending CDP packets every 60 seconds",
+      "    Sending a holdtime value of 180 seconds", "    Sending CDPv2 advertisements is enabled"] : ["% CDP is not enabled"]));
     if (sw) {
       t.ajouter("show vlan brief", (c, a, o) => o.lignes(A.vlanBrief(c.app)));
       t.ajouter("show vlan", (c, a, o) => o.lignes(A.vlanBrief(c.app)));
@@ -96,6 +119,11 @@ function construire(sw) {
       t.ajouter("show ip route", (c, a, o) => o.lignes(A.ipRoute(c.app)));
       t.ajouter("show ip dhcp binding", (c, a, o) => o.lignes(A.dhcpBindings(c.app)));
       t.ajouter("show ip dhcp pool", (c, a, o) => o.lignes(A.dhcpPools(c.app)));
+      t.ajouter("show ip nat translations", (c, a, o) => o.lignes(A.natTraductions(c.app, false)));
+      t.ajouter("show ip nat translations verbose", (c, a, o) => o.lignes(A.natTraductions(c.app, true)));
+      t.ajouter("show ip nat statistics", (c, a, o) => o.lignes(A.natStatistiques(c.app)));
+      t.ajouter("show access-lists", (c, a, o) => o.lignes(A.listesAcces(c.app)));
+      t.ajouter("show ip access-lists", (c, a, o) => o.lignes(A.listesAcces(c.app)));
     }
   }
   user.ajouter("enable", (c, a, o) => {
@@ -167,10 +195,22 @@ function construire(sw) {
     priv.ajouter("clear mac-address-table dynamic", (c) => { c.app.viderCam(); c.app.reseau.emit("etat"); });
   } else {
     priv.ajouter("clear ip dhcp binding <tout:mot>", (c) => { c.app.dhcp.baux.clear(); });
+    priv.ajouter("clear ip nat translation <tout:mot>", (c, a, o) => {
+      if (a.tout !== "*") return c.refuser(o, 4);
+      c.app.nat.vider();
+    });
+    priv.ajouter("clear ip nat statistics", (c) => { c.app.nat.hits = 0; c.app.nat.misses = 0; });
+    priv.ajouter("clear access-list counters", (c) => { c.app.acl.forEach((l) => l.lignes.forEach((x) => { x.correspondances = 0; })); });
   }
 
   /* ── configuration globale ── */
-  config.ajouter("hostname <nom:mot>", (c, a) => { c.app.nom = a.nom; c.app.reseau.emit("topologie"); });
+  config.ajouter("hostname <nom:mot>", (c, a) => {
+    c.app.nom = a.nom;
+    c.app.cdp.annoncerPartout();       // ce que disent les annonces CDP vient de changer
+    c.app.reseau.emit("topologie");
+  });
+  config.ajouter("cdp run", (c) => { c.app.cdp.actif = true; c.app.cdp.annoncerPartout(); });
+  config.ajouter("no cdp run", (c) => { c.app.cdp.actif = false; c.app.cdp.vider(); });
   config.ajouter("interface <if:interface>", entrerInterface);
   config.ajouter("interface range <plage:texte>", entrerPlage);
   config.ajouter("exit", (c) => { c.mode = "priv"; c.ctx = {}; });
@@ -263,17 +303,75 @@ function construire(sw) {
     config.ajouter("no ip dhcp excluded-address <de:ip>", (c, a) => { c.app.dhcp.exclues = c.app.dhcp.exclues.filter((x) => !x.de.egale(a.de)); });
     config.ajouter("no ip dhcp excluded-address <de:ip> <a:ip>", (c, a) => { c.app.dhcp.exclues = c.app.dhcp.exclues.filter((x) => !x.de.egale(a.de)); });
     config.ajouter("ip routing", () => {});
+
+    /* ── listes d'accès standard ── */
+    const regle = (action) => (c, a, o) => {
+      if (a.n < 1 || a.n > 99) {
+        return o.ligne(a.n >= 100 && a.n <= 199 ? "% Le labo ne gère que les listes d'accès standard (1 à 99)." : "% Invalid access list number");
+      }
+      const k = lireCritere(jetons(a.critere));
+      if (!k) return c.refuser(o, 3);
+      if (!c.app.acl.has(a.n)) c.app.acl.set(a.n, new ListeAcces(a.n));
+      c.app.acl.get(a.n).ajouter(action, k.reseau, k.wildcard);
+    };
+    config.ajouter("access-list <n:nombre> permit <critere:texte>", regle("permit"));
+    config.ajouter("access-list <n:nombre> deny <critere:texte>", regle("deny"));
+    config.ajouter("access-list <n:nombre> remark <texte:texte>", (c, a) => {
+      if (!c.app.acl.has(a.n)) c.app.acl.set(a.n, new ListeAcces(a.n));
+      c.app.acl.get(a.n).remarque(a.texte);
+    });
+    config.ajouter("no access-list <n:nombre>", (c, a) => { c.app.acl.delete(a.n); });
+
+    /* ── NAT ── */
+    const statique = (c, a, o) => {
+      const s = { local: a.local, global: a.global, proto: a.proto || null, portLocal: a.pl ?? null, portGlobal: a.pg ?? null };
+      const conflit = c.app.nat.statiques.find((x) => x.global.egale(s.global) && !x.local.egale(s.local) && !s.proto && !x.proto);
+      if (conflit) return o.ligne("% similar static entry (" + conflit.local + " -> " + conflit.global + ") already exists");
+      c.app.nat.statiques = c.app.nat.statiques.filter((x) => !(x.local.egale(s.local) && x.global.egale(s.global) && x.proto === s.proto && x.portLocal === s.portLocal));
+      c.app.nat.statiques.push(s);
+      c.app.nat.synchroniserStatiques();
+    };
+    config.ajouter("ip nat inside source static <local:ip> <global:ip>", statique);
+    for (const proto of ["tcp", "udp"]) {
+      config.ajouter("ip nat inside source static " + proto + " <local:ip> <pl:nombre> <global:ip> <pg:nombre>", (c, a, o) => statique(c, { ...a, proto }, o));
+    }
+    config.ajouter("no ip nat inside source static <local:ip> <global:ip>", (c, a) => {
+      c.app.nat.statiques = c.app.nat.statiques.filter((x) => !(x.local.egale(a.local) && x.global.egale(a.global) && !x.proto));
+      c.app.nat.synchroniserStatiques();
+    });
+    const dynamique = (c, a, o) => {
+      if (a.if && !c.app.port(a.if)) return o.ligne("%Invalid interface type and number");
+      if (a.pool && !c.app.nat.pools.has(a.pool)) o.ligne("%Pool " + a.pool + " not found");
+      c.app.nat.dynamiques = c.app.nat.dynamiques.filter((d) => d.acl !== a.acl);
+      c.app.nat.dynamiques.push({ acl: a.acl, pool: a.pool || null, iface: a.if ? c.app.port(a.if).nom : null, overload: !!a.overload });
+    };
+    config.ajouter("ip nat inside source list <acl:nombre> interface <if:interface> overload", (c, a, o) => dynamique(c, { ...a, overload: true }, o));
+    config.ajouter("ip nat inside source list <acl:nombre> pool <pool:mot>", dynamique);
+    config.ajouter("ip nat inside source list <acl:nombre> pool <pool:mot> overload", (c, a, o) => dynamique(c, { ...a, overload: true }, o));
+    config.ajouter("no ip nat inside source list <acl:nombre> <reste:texte>", (c, a) => { c.app.nat.dynamiques = c.app.nat.dynamiques.filter((d) => d.acl !== a.acl); });
+    const pool = (c, a, o, masque) => {
+      if (a.fin.n < a.debut.n) return o.ligne("%End address less than starting address");
+      if (!masque || !a.debut.dansReseau(a.fin, masque)) return o.ligne("%Pool " + a.nom + " mask " + masque + " is inconsistent with addresses");
+      c.app.nat.pools.set(a.nom, { debut: a.debut, fin: a.fin, masque });
+    };
+    config.ajouter("ip nat pool <nom:mot> <debut:ip> <fin:ip> netmask <m:masque>", (c, a, o) => pool(c, a, o, a.m));
+    config.ajouter("ip nat pool <nom:mot> <debut:ip> <fin:ip> prefix-length <n:nombre>", (c, a, o) => pool(c, a, o, a.n <= 32 ? IPv4Address.depuisPrefixe(a.n) : null));
+    config.ajouter("no ip nat pool <nom:mot>", (c, a) => { c.app.nat.pools.delete(a.nom); });
+    config.ajouter("ip nat translation timeout <s:nombre>", (c, a) => { c.app.extra.natTimeout = a.s; });
   }
 
   /* ── interface (et sous-interface, et plage) ── */
   iface.ajouter("exit", (c) => { c.mode = "config"; c.ctx = {}; });
   iface.ajouter("end", finConfig);
-  iface.ajouter("shutdown", (c) => surInterfaces(c, (p) => { p.adminUp = false; }));
+  // « shutdown » est aussi la moitié du remède à un port err-disabled
+  iface.ajouter("shutdown", (c) => surInterfaces(c, (p) => { p.adminUp = false; p.errDisabled = false; }));
   iface.ajouter("no shutdown", (c) => surInterfaces(c, (p) => { p.adminUp = true; }));
   iface.ajouter("description <texte:texte>", (c, a) => surInterfaces(c, (p) => { p.description = a.texte; }));
   iface.ajouter("no description", (c) => surInterfaces(c, (p) => { p.description = ""; }));
   iface.ajouter("ip address <ip:ip> <masque:masque>", adresseIp);
   iface.ajouter("no ip address", (c) => surInterfaces(c, (p) => { p.ip = null; p.masque = null; }));
+  iface.ajouter("cdp enable", (c) => surInterfaces(c, (p) => { p.cdpCoupe = false; c.app.cdp.annoncer(p); }));
+  iface.ajouter("no cdp enable", (c) => surInterfaces(c, (p) => { p.cdpCoupe = true; c.app.cdp.oublier(p); }));
   iface.ajouter("speed <v:mot>", () => {});
   iface.ajouter("duplex <v:mot>", () => {});
   if (sw) {
@@ -302,13 +400,80 @@ function construire(sw) {
     iface.ajouter("switchport trunk allowed vlan none", autoriser(() => new Set()));
     iface.ajouter("no switchport trunk allowed vlan", autoriser(() => "all"));
     iface.ajouter("switchport nonegotiate", () => {});
+    // la sécurité de port
+    const secu = (fn) => (c, a, o) => {
+      for (const p of (c.ctx.ifaces || [])) {
+        if (p.type !== "fa" && p.type !== "gi") return c.refuser(o, 0);
+        if (p.mode === "trunk") return o.ligne("Command rejected: " + p.nom + " is a trunk port.");
+        if (!p._modeExplicite) return o.ligne("Command rejected: " + p.nom + " is a dynamic port.");
+      }
+      (c.ctx.ifaces || []).forEach((p) => fn(c.app.securite(p), p, a));
+      c.app.reseau.evaluerLiens();
+    };
+    iface.ajouter("switchport port-security", secu((s) => { s.actif = true; }));
+    iface.ajouter("no switchport port-security", secu((s, p) => { s.actif = false; s.adresses = s.adresses.filter((x) => x.type !== "dynamic"); }));
+    iface.ajouter("switchport port-security maximum <n:nombre>", (c, a, o) => {
+      if (a.n < 1 || a.n > 132) return c.refuser(o, 3);
+      secu((s) => { s.max = a.n; })(c, a, o);
+    });
+    iface.ajouter("switchport port-security mac-address sticky", secu((s) => {
+      s.sticky = true;
+      s.adresses.forEach((x) => { if (x.type === "dynamic") x.type = "sticky"; });
+    }));
+    iface.ajouter("no switchport port-security mac-address sticky", secu((s) => {
+      s.sticky = false;
+      s.adresses.forEach((x) => { if (x.type === "sticky") x.type = "dynamic"; });
+    }));
+    const adresseSure = (type) => (c, a, o) => {
+      const mac = MACAddress.parse(a.mac);
+      if (!mac || !/^[0-9a-f]{1,4}\.[0-9a-f]{1,4}\.[0-9a-f]{1,4}$/i.test(a.mac)) return c.refuser(o, type === "sticky" ? 4 : 3);
+      secu((s, p) => {
+        if (s.adresses.some((x) => x.mac.egale(mac))) return;
+        s.adresses.push({ mac, vlan: p.accessVlan, type });
+      })(c, a, o);
+    };
+    iface.ajouter("switchport port-security mac-address <mac:mot>", adresseSure("static"));
+    iface.ajouter("switchport port-security mac-address sticky <mac:mot>", adresseSure("sticky"));
+    for (const v of ["protect", "restrict", "shutdown"]) {
+      iface.ajouter("switchport port-security violation " + v, secu((s) => { s.violation = v; }));
+    }
+    for (const t of [priv, user]) {
+      t.ajouter("show port-security", (c, a, o) => o.lignes(A.portSecurity(c.app)));
+      t.ajouter("show port-security interface <if:interface>", (c, a, o) => {
+        const p = c.app.port(a.if);
+        if (!p || (p.type !== "fa" && p.type !== "gi")) return o.ligne("% Invalid input detected at '^' marker.");
+        o.lignes(A.portSecurityInterface(c.app, p));
+      });
+      t.ajouter("show port-security address", (c, a, o) => o.lignes(A.portSecurityAdresses(c.app)));
+      t.ajouter("show interfaces status", (c, a, o) => o.lignes(A.interfacesStatus(c.app)));
+    }
     iface.ajouter("spanning-tree portfast", (c, a, o) => o.ligne("%Warning: portfast should only be enabled on ports connected to a single host."));
   } else {
     iface.ajouter("encapsulation dot1q <id:vlan>", (c, a, o) => dot1q(c, a, o, false));
     iface.ajouter("encapsulation dot1q <id:vlan> native", (c, a, o) => dot1q(c, a, o, true));
     iface.ajouter("ip helper-address <ip:ip>", (c, a) => surInterfaces(c, (p) => { p.helper = a.ip; }));
     iface.ajouter("no ip helper-address", (c) => surInterfaces(c, (p) => { p.helper = null; }));
+    // les liaisons série
+    iface.ajouter("ip nat inside", (c) => surInterfaces(c, (p) => { p.natRole = "inside"; }));
+    iface.ajouter("ip nat outside", (c) => surInterfaces(c, (p) => { p.natRole = "outside"; }));
+    iface.ajouter("no ip nat inside", (c) => surInterfaces(c, (p) => { if (p.natRole === "inside") p.natRole = null; }));
+    iface.ajouter("no ip nat outside", (c) => surInterfaces(c, (p) => { if (p.natRole === "outside") p.natRole = null; }));
+    iface.ajouter("ip access-group <n:nombre> in", (c, a) => surInterfaces(c, (p) => { p.aclIn = a.n; }));
+    iface.ajouter("ip access-group <n:nombre> out", (c, a) => surInterfaces(c, (p) => { p.aclOut = a.n; }));
+    iface.ajouter("no ip access-group <n:nombre> in", (c) => surInterfaces(c, (p) => { p.aclIn = null; }));
+    iface.ajouter("no ip access-group <n:nombre> out", (c) => surInterfaces(c, (p) => { p.aclOut = null; }));
+    iface.ajouter("clock rate <v:nombre>", horloge);
+    iface.ajouter("no clock rate", (c, a, o) => surSerie(c, o, (p) => { p.clockRate = null; }));
+    iface.ajouter("encapsulation ppp", (c, a, o) => surSerie(c, o, (p) => { p.encapsulation = "ppp"; }));
+    iface.ajouter("encapsulation hdlc", (c, a, o) => surSerie(c, o, (p) => { p.encapsulation = "hdlc"; }));
+    for (const t of [priv, user]) t.ajouter("show controllers <if:interface>", (c, a, o) => {
+      const p = c.app.port(a.if);
+      if (!p || p.type !== "se") return o.ligne("% Invalid input detected at '^' marker.");
+      o.lignes(A.controleurs(p));
+    });
   }
+  iface.ajouter("bandwidth <v:nombre>", () => {});
+  iface.ajouter("no bandwidth", () => {});
 
   vlan.ajouter("name <nom:mot>", (c, a) => { c.app.vlans.get(c.ctx.vlan).nom = a.nom; });
   vlan.ajouter("exit", (c) => { c.mode = "config"; c.ctx = {}; });
@@ -332,7 +497,54 @@ function construire(sw) {
   ligne.ajouter("exit", (c) => { c.mode = "config"; c.ctx = {}; });
   ligne.ajouter("end", finConfig);
 
-  return { user, priv, config, if: iface, subif: iface, range: iface, vlan, dhcp, line: ligne };
+  /* ── router rip ── */
+  if (!sw) {
+    const rip = (c) => c.app.rip;
+    const apres = (c) => { rip(c).reconfigurer(); c.app.reseau.emit("etat"); };
+    config.ajouter("router rip", (c) => { c.mode = "router"; c.ctx = {}; if (!rip(c).actif) { rip(c).actif = true; apres(c); } });
+    config.ajouter("no router rip", (c) => {
+      const r = rip(c);
+      r.appris.clear(); r.annonce.clear(); r.actif = false; r.reseaux = []; r.passives = new Set(); r.version = null; r.resume = true; r.defaut = false;
+      c.app.reseau.emit("etat");
+    });
+    routeur.ajouter("version <v:nombre>", (c, a, o) => {
+      if (a.v !== 1 && a.v !== 2) return c.refuser(o, 1);
+      rip(c).version = a.v; apres(c);
+    });
+    routeur.ajouter("no version", (c) => { rip(c).version = null; apres(c); });
+    routeur.ajouter("network <reseau:ip>", (c, a) => {
+      // IOS ramène toujours l'adresse à son réseau de classe
+      const n = classe(a.reseau).reseau;
+      if (!rip(c).reseaux.some((x) => x.egale(n))) rip(c).reseaux.push(n);
+      apres(c);
+    });
+    routeur.ajouter("no network <reseau:ip>", (c, a) => { const n = classe(a.reseau).reseau; rip(c).reseaux = rip(c).reseaux.filter((x) => !x.egale(n)); apres(c); });
+    routeur.ajouter("auto-summary", (c) => { rip(c).resume = true; apres(c); });
+    routeur.ajouter("no auto-summary", (c) => { rip(c).resume = false; apres(c); });
+    routeur.ajouter("passive-interface <if:interface>", (c, a, o) => {
+      const p = c.app.port(a.if);
+      if (!p) return o.ligne("%Invalid interface type and number");
+      rip(c).passives.add(p.nom); apres(c);
+    });
+    routeur.ajouter("no passive-interface <if:interface>", (c, a) => { const p = c.app.port(a.if); if (p) rip(c).passives.delete(p.nom); apres(c); });
+    routeur.ajouter("default-information originate", (c) => { rip(c).defaut = true; apres(c); });
+    routeur.ajouter("no default-information originate", (c) => { rip(c).defaut = false; apres(c); });
+    routeur.ajouter("exit", (c) => { c.mode = "config"; c.ctx = {}; });
+    routeur.ajouter("end", finConfig);
+    for (const t of [priv, user]) {
+      t.ajouter("show ip protocols", (c, a, o) => o.lignes(A.ipProtocols(c.app)));
+      t.ajouter("show ip rip database", (c, a, o) => o.lignes(A.ripBase(c.app)));
+    }
+    priv.ajouter("debug ip rip", (c, a, o) => { rip(c).debug = true; o.ligne("RIP protocol debugging is on"); });
+    priv.ajouter("no debug ip rip", (c, a, o) => { rip(c).debug = false; o.ligne("RIP protocol debugging is off"); });
+    priv.ajouter("undebug all", (c, a, o) => { rip(c).debug = false; o.ligne("All possible debugging has been turned off"); });
+    priv.ajouter("clear ip route <tout:mot>", (c, a, o) => {
+      if (a.tout !== "*") return c.refuser(o, 3);
+      rip(c).appris.clear(); rip(c).demander(); c.app.reseau.executer();
+    });
+  }
+
+  return { user, priv, config, if: iface, subif: iface, range: iface, vlan, dhcp, line: ligne, router: routeur };
 }
 
 /* ═══════════════ Les actions ═══════════════════════════════════════ */
@@ -373,12 +585,16 @@ function finConfig(c, a, o) { c.mode = "priv"; c.ctx = {}; o.ligne("%SYS-5-CONFI
 function surInterfaces(c, fn) {
   (c.ctx.ifaces || []).forEach(fn);
   c.app.reseau.evaluerLiens();
+  // une sous-interface allumée ou éteinte ne passe pas par evaluerLiens : RIP doit le savoir
+  if (c.app.rip && c.app.rip.actif) c.app.rip.reconfigurer();
 }
 function surPortsL2(c, o, fn) {
   const ports = (c.ctx.ifaces || []).filter((p) => p.type === "fa" || p.type === "gi");
   if (!ports.length) { c.refuser(o, 0); return; }
   ports.forEach(fn);
   c.app.reseau.evaluerLiens();
+  // le mode et le VLAN d'un port font partie de ce que CDP annonce
+  ports.forEach((p) => c.app.cdp.annoncer(p));
 }
 
 function entrerInterface(c, a, o) {
@@ -437,6 +653,26 @@ function adresseIp(c, a, o) {
   }
   p.ip = a.ip; p.masque = a.masque;
   app.reseau.evaluerLiens();
+  if (app.rip && app.rip.actif) app.rip.reconfigurer();
+  // l'adresse annoncée par CDP vient de changer
+  if (p.type === "vlan") app.cdp.annoncerPartout(); else if (!p.parent) app.cdp.annoncer(p);
+}
+
+/* « clock rate » : seulement des débits que la carte sait produire, et
+   seulement côté DCE — un DTE reçoit l'horloge, il ne la donne pas. */
+const DEBITS = [1200, 2400, 4800, 9600, 19200, 38400, 56000, 64000, 72000, 125000, 128000, 148000, 250000, 500000, 800000, 1000000, 1300000, 2000000, 4000000];
+function horloge(c, a, o) {
+  if (!DEBITS.includes(a.v)) return c.refuser(o, 2);
+  surSerie(c, o, (p) => {
+    if (p.cable && !p.estDce()) { o.ligne("This command applies only to DCE interfaces"); return; }
+    p.clockRate = a.v;
+  });
+}
+function surSerie(c, o, fn) {
+  const ports = (c.ctx.ifaces || []).filter((p) => p.type === "se");
+  if (!ports.length) return c.refuser(o, 0);
+  ports.forEach(fn);
+  c.app.reseau.evaluerLiens();
 }
 
 function dot1q(c, a, o, natif) {
@@ -471,7 +707,7 @@ function pingIOS(c, a, o) {
   if (!ip) return o.ligne("% Unrecognized host or address, or protocol not running.");
   o.lignes(["Type escape sequence to abort.", "Sending 5, 100-byte ICMP Echos to " + ip + ", timeout is 2 seconds:", ""]);
   o.occupe();
-  c.app.ip.ping(ip, { n: 5, delai: 2000, taille: 100, sequentiel: true, sur: (e) => {
+  c.app.ip.ping(ip, { n: 5, delai: 2000, taille: 100, sequentiel: true, intervalle: 0, sur: (e) => {
     if (e.type === "reponse") o.ajouter("!");
     else if (e.type === "injoignable") o.ajouter("U");
     else if (e.type === "delai" || e.type === "expire" || e.type === "echec") o.ajouter(".");
@@ -517,7 +753,7 @@ export class IOSConsole {
     if (this.attente) return this.attente.invite;
     const h = this.app.nom;
     return h + ({ user: ">", priv: "#", config: "(config)#", if: "(config-if)#", subif: "(config-subif)#",
-      range: "(config-if-range)#", vlan: "(config-vlan)#", dhcp: "(dhcp-config)#", line: "(config-line)#" }[this.mode] || "#");
+      range: "(config-if-range)#", vlan: "(config-vlan)#", dhcp: "(dhcp-config)#", line: "(config-line)#", router: "(config-router)#" }[this.mode] || "#");
   }
 
   demander(invite, masque, suite) {

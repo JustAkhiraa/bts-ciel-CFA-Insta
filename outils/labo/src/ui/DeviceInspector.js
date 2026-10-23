@@ -195,9 +195,22 @@ export class DeviceInspector {
           + a.ports.filter((p) => p.mode === "access" && p.accessVlan === n && p.type !== "console").map((p) => p.court).join(", ") + "</td></tr>").join("") + "</tbody></table></section>";
     }
     if (a.type === "routeur") {
-      const rt = a.routes().map((r) => "<tr><td>" + r.code + "</td><td>" + r.reseau + "/" + r.prefixe + "</td><td>" + (r.via || "connecté") + "</td><td>" + (r.interface ? r.interface.court : "") + "</td></tr>").join("");
+      const rt = a.routes().map((r) => "<tr><td>" + r.code + (r.prefixe === 0 ? "*" : "") + "</td><td>" + r.reseau + "/" + r.prefixe + "</td><td>" + (r.via || "connecté")
+        + (r.code === "R" ? " <small>[120/" + r.metrique + "]</small>" : "") + "</td><td>" + (r.interface ? r.interface.court : "") + "</td></tr>").join("");
       h += '<section class="lb-section"><h3>Table de routage</h3>' + (rt ? '<table class="lb-tableau"><thead><tr><th></th><th>Réseau</th><th>Via</th><th>Sortie</th></tr></thead><tbody>' + rt + "</tbody></table>"
         : '<p class="lb-vide">Vide : aucune interface active n\'a d\'adresse. <code>no shutdown</code> ?</p>') + "</section>";
+      const nat = a.nat.entrees();
+      if (a.nat.configure() || nat.length) {
+        const ap = (x) => (x ? x.ip + (x.port != null ? ":" + x.port : "") : "—");
+        h += '<section class="lb-section"><h3>Traductions NAT</h3>' + (nat.length ? '<table class="lb-tableau"><thead><tr><th>Proto</th><th>Inside global</th><th>Inside local</th><th>Outside</th></tr></thead><tbody>'
+          + nat.map((e) => "<tr><td>" + (e.proto || "—") + "</td><td>" + ap(e.ig) + "</td><td>" + ap(e.il) + "</td><td>" + ap(e.og) + "</td></tr>").join("") + "</tbody></table>"
+          : '<p class="lb-vide">Aucune traduction : rien n\'est encore sorti par l\'interface « ip nat outside ».</p>') + "</section>";
+      }
+    }
+    if (a.cdp) {
+      const v = a.cdp.liste().map((x) => "<tr><td>" + ech(x.nom) + "</td><td>" + x.local.court + "</td><td>" + ech(x.port.replace(/^GigabitEthernet/, "Gi").replace(/^FastEthernet/, "Fa")) + "</td><td>" + (x.adresse || "—") + "</td></tr>").join("");
+      h += '<section class="lb-section"><h3>Voisins CDP</h3>' + (v ? '<table class="lb-tableau"><thead><tr><th>Voisin</th><th>Ici</th><th>Chez lui</th><th>Adresse</th></tr></thead><tbody>' + v + "</tbody></table>"
+        : '<p class="lb-vide">' + (a.cdp.actif ? "Aucun voisin Cisco annoncé (les PC ne parlent pas CDP)." : "CDP est désactivé (no cdp run).") + "</p>") + "</section>";
     }
     return h || '<p class="lb-vide">Pas de table pour cet équipement.</p>';
   }
@@ -211,7 +224,10 @@ export class DeviceInspector {
       + '<svg viewBox="0 0 20 20"><path d="M5 6h10M8 6V4.5h4V6M6.5 6l.8 10h5.4l.8-10"/></svg></button></div><div class="lb-insp-corps">'
       + '<p class="lb-texte">' + (v.ok ? pastille("vert") + "<b>Le câble convient.</b>" : pastille("rouge") + "<b>Ce câble ne peut pas marcher.</b> " + ech(v.raison)) + "</p>"
       + '<div class="lb-champ"><label>Type</label><select data-champ="type-cable">' + Object.entries(TYPES_CABLE).map(([k, t]) => '<option value="' + k + '"' + (k === c.type ? " selected" : "") + ">" + t.nom + "</option>").join("") + "</select></div>"
-      + [c.a, c.b].map((p) => '<p class="lb-texte">' + pastille(p.etat().couleur) + "<b>" + ech(p.appareil.nom) + " " + p.nom + "</b> — " + ech(p.etat().texte) + "</p>").join("")
+      + [c.a, c.b].map((p) => '<p class="lb-texte">' + pastille(p.etat().couleur) + "<b>" + ech(p.appareil.nom) + " " + p.nom + "</b>"
+        + (c.type === "serie" ? (p.estDce() ? " (DCE ◷)" : " (DTE)") : "") + " — " + ech(p.etat().texte) + "</p>").join("")
+      + (c.type === "serie" ? '<p class="lb-texte">Le bout <b>DCE</b> donne l\'horloge : c\'est sur lui qu\'on tape <code>clock rate 64000</code>. Sans elle, la ligne est « up » mais le protocole reste « down ».</p>'
+        + '<div class="lb-rangee"><button type="button" class="lb-b" data-act="inverser-dce">Inverser DCE et DTE</button></div>' : "")
       + "</div>";
   }
 
@@ -266,6 +282,12 @@ export class DeviceInspector {
     else if (act === "vider-arp" && a) { a.ip.viderArp(); this.rendre(true); }
     else if (act === "vider-cam" && a) { a.viderCam(); this.rendre(true); }
     else if (act === "recharger-lab") this.rappels.rechargerLab();
+    else if (act === "inverser-dce") {
+      const c = this.cible().cable;
+      // le premier bout d'un câble série est son DCE : on échange les deux
+      [c.a, c.b] = [c.b, c.a]; c.dce = c.a;
+      this.reseau.evaluerLiens(); this.reseau.executer(); this.rappels.modifie(); this.rendre(true);
+    }
     else if (act === "pool" && a) this.enregistrerPool(a);
     else if (act === "dns-ajout" && a) {
       const nom = this.el.querySelector('[data-dns="nom"]').value.trim(), ip = this.el.querySelector('[data-dns="ip"]').value.trim();
@@ -305,7 +327,13 @@ export class DeviceInspector {
       a.nom = a.nomUsine = nom; this.rappels.modifie(); this.reseau.emit("topologie");
       return;
     }
-    if (t.dataset.champ === "type-cable") { const c = this.cible().cable; c.type = t.value; this.reseau.evaluerLiens(); this.rappels.modifie(); this.rendre(true); return; }
+    if (t.dataset.champ === "type-cable") {
+      const c = this.cible().cable;
+      c.type = t.value;
+      c.dce = c.type === "serie" ? c.dce || c.a : null;
+      this.reseau.evaluerLiens(); this.reseau.executer(); this.rappels.modifie(); this.rendre(true);
+      return;
+    }
     if (t.dataset.ip && a) this.appliquerIp(a);
     if (t.matches("[data-web]") && a) { a.web.page = t.value; this.rappels.modifie(); }
   }

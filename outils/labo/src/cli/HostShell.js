@@ -114,10 +114,10 @@ export class HostShell {
       }
       const ip = r.ip;
       o.lignes(["", "Pinging " + ip + " with 32 bytes of data:", ""]);
-      app.ip.ping(ip, { n, sur: (e) => {
+      app.ip.ping(ip, { n, sequentiel: true, sur: (e) => {
         if (e.type === "reponse") o.ligne("Reply from " + e.de + ": bytes=" + e.octets + " time" + (e.temps < 1 ? "<1ms" : "=" + e.temps + "ms") + " TTL=" + e.ttl);
         else if (e.type === "delai") o.ligne("Request timed out.");
-        else if (e.type === "injoignable") o.ligne("Reply from " + e.de + ": Destination host unreachable.");
+        else if (e.type === "injoignable") o.ligne("Reply from " + e.de + ": Destination " + ({ 0: "net", 3: "port" }[e.code] || "host") + " unreachable.");
         else if (e.type === "expire") o.ligne("Reply from " + e.de + ": TTL expired in transit.");
         else if (e.type === "echec") o.ligne(/IP/.test(e.raison) ? "PING: transmit failed. General failure." : "Request timed out.");
         else if (e.type === "fin") {
