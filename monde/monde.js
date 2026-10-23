@@ -2430,6 +2430,15 @@ const BOUTIQUES = [
     tenancier: "Le dessinateur",
     bonjour: "Un schéma à poser ? Prenez un stylo, une note, une flèche — "
            + "le tableau est infini, et rien ne sort d'ici." },
+  /* Le dixième, le labo réseau, s'installe près de la Halle aux Câbles :
+     on y prend ses blocs de commandes, on va les essayer à côté. Même règle
+     que les autres : l'ancre donne la direction, les anneaux trouvent la
+     place, et le compte des maisons est relevé avant et après. */
+  { nom: "Le Labo des Trames", enseigne: "⌬", couleur: 0x8FE36B,
+    outil: "outils/labo.html", ancre: [600, 320], cote: 1, z: 86,
+    tenancier: "La commutatrice",
+    bonjour: "Un routeur, deux switchs, quatre PC : câblez, tapez vos "
+           + "commandes, et regardez chaque trame passer, pas à pas." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
