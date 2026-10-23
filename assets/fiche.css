@@ -7923,10 +7923,21 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    Le fond reprend la recette de « .app-tete » : elle est déjà éprouvée sur
    les quarante thèmes, y compris ceux qui posent une image de fond, où un
    aplat opaque ferait une bande. */
+/* Signalé : le bandeau de section clignote au passage d'un titre.
+
+   Deux causes, mesurées, et chacune renvoie dans la décision qui l'a
+   provoquée. Le seuil se calculait sur « rail.offsetHeight », or un élément
+   masqué mesure ZÉRO : il valait 2 px caché et 18 px visible. Et le rail
+   était dans le FLUX — l'afficher poussait toutes les sections de 34 px,
+   donc changeait laquelle est « courante », donc le masquait de nouveau.
+
+   On le sort du flux : une piste de hauteur nulle le porte, et c'est elle
+   qui colle en haut. Montrer ou masquer le rail ne déplace plus rien, et
+   sa hauteur ne dépend plus de son propre état. */
+.rail-piste { position: sticky; top: 0; z-index: 30; height: 0; }
 .rail {
-  position: sticky; top: 0; z-index: 30;
   display: flex; align-items: baseline; gap: .6rem;
-  margin: 0 0 1.1rem; padding: .45rem .7rem;
+  margin: 0; padding: .45rem .7rem;
   background: color-mix(in srgb, var(--papier) 88%, transparent);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
