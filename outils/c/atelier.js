@@ -149,8 +149,121 @@
     ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm"),
   };
 
+  /* ── et le Web : JavaScript, CSS, HTML ─────────────────────────────
+     Les classes sont celles des blocs du cours (coloration.py) : j-bal
+     pour les balises et les sélecteurs, j-att pour les attributs et les
+     propriétés, j-txt pour les valeurs et les chaînes, j-num pour les
+     nombres et les couleurs. Le JavaScript prend celles du C. */
+  const JS_MC = MOTS("break", "case", "catch", "class", "const", "continue", "debugger",
+    "default", "delete", "do", "else", "export", "extends", "finally", "for", "function",
+    "if", "import", "in", "instanceof", "let", "new", "of", "return", "static", "super",
+    "switch", "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield",
+    "async", "await", "true", "false", "null", "undefined", "NaN", "Infinity");
+  const JS_TYP = MOTS("console", "document", "window", "Math", "JSON", "Array", "Object",
+    "String", "Number", "Boolean", "Date", "Promise", "Map", "Set", "RegExp", "Error",
+    "localStorage", "sessionStorage", "navigator", "alert", "prompt", "confirm",
+    "parseInt", "parseFloat", "isNaN", "setTimeout", "setInterval", "clearTimeout",
+    "clearInterval", "fetch", "event");
+  SCAN.js = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|//[^\\n]*"],
+    ["txt", "`(?:\\\\[\\s\\S]|[^`\\\\])*`|" + CHAINE],
+    ["mc", JS_MC],
+    ["typ", JS_TYP],
+    ["fn", "(?<![\\w$])[A-Za-z_$][\\w$]*(?=\\s*\\()"],
+    ["num", NOMBRE],
+    ["op", "=>|[-+*/%=<>!&|^~?:]+"],
+    ["var", "(?<![\\w$])[A-Za-z_$][\\w$]*"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
+  const enveloppe = (classe, t) => '<span class="j-' + classe + '">' + ech(t) + "</span>";
+
+  /* Le CSS dépend du CONTEXTE : « a:hover » est un sélecteur, « color: red »
+     une déclaration. On suit donc les accolades, et ce qu'elles ouvrent —
+     un @media contient des règles, une règle contient des déclarations. */
+  const CSS_JETON = /(\/\*[\s\S]*?(?:\*\/|$))|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(@[\w-]+)|([{}])|(;)|(:)|(!important\b)|(#[0-9a-fA-F]{3,8}\b)|(-?(?:\d+\.?\d*|\.\d+)(?:%|[a-zA-Z]+)?)|([\w-]+(?=\())|([^\s{};:"'\/]+|\/)|(\s+)/g;
+  function peindreCss(code) {
+    let out = "", m, pile = [], prelude = "", enValeur = false, pos = 0;
+    CSS_JETON.lastIndex = 0;
+    while ((m = CSS_JETON.exec(code))) {
+      const t = m[0];
+      // un caractère qu'aucune règle ne prend (un guillemet orphelin) reste tel quel
+      if (m.index > pos) out += ech(code.slice(pos, m.index));
+      pos = m.index + t.length;
+      const decl = pile.length && pile[pile.length - 1] === "regle";
+      if (m[1]) { out += enveloppe("com", t); continue; }
+      if (m[12]) { out += t; continue; }
+      if (m[4] === "{") {
+        pile.push(/^\s*@(media|supports|container|layer|document|keyframes|-webkit-keyframes)\b/i.test(prelude) ? "groupe" : "regle");
+        prelude = ""; enValeur = false; out += t; continue;
+      }
+      if (m[4] === "}") { pile.pop(); prelude = ""; enValeur = false; out += t; continue; }
+      if (m[5]) { prelude = ""; enValeur = false; out += t; continue; }
+      prelude += t;
+      if (m[2]) { out += enveloppe("txt", t); continue; }
+      if (m[3]) { out += enveloppe("pre", t); continue; }
+      if (!decl) { out += m[6] || m[11] || m[8] || m[9] || m[10] ? enveloppe("bal", t) : ech(t); continue; }
+      if (m[6]) { enValeur = true; out += t; continue; }
+      if (!enValeur) { out += m[11] ? enveloppe("att", t) : ech(t); continue; }
+      if (m[7]) out += enveloppe("mc", t);
+      else if (m[8] || m[9]) out += enveloppe("num", t);
+      else if (m[10]) out += enveloppe("fn", t);
+      else out += ech(t);
+    }
+    return out + ech(code.slice(pos));
+  }
+  /* Le HTML : balises, attributs, valeurs, entités — et l'intérieur des
+     <style> et <script> peint dans SON langage. */
+  function peindreHtml(code) {
+    let out = "", i = 0;
+    const n = code.length;
+    while (i < n) {
+      if (code.startsWith("<!--", i)) {
+        const f = code.indexOf("-->", i + 4);
+        const j = f < 0 ? n : f + 3;
+        out += enveloppe("com", code.slice(i, j)); i = j; continue;
+      }
+      const ouvre = /^<(\/?)([A-Za-z][\w:-]*|!doctype\b)/i.exec(code.slice(i, i + 40));
+      if (ouvre) {
+        const fermante = ouvre[1] === "/", nom = ouvre[2].toLowerCase();
+        out += enveloppe("bal", ouvre[0]);
+        i += ouvre[0].length;
+        // les attributs, jusqu'au « > » (les guillemets protègent)
+        const re = /\s+|([^\s=>"'\/]+)|(=)|("[^"]*"?|'[^']*'?)|(\/?>)|([\s\S])/y;
+        let fini = false;
+        while (i < n && !fini) {
+          re.lastIndex = i;
+          const a = re.exec(code);
+          if (!a) break;
+          const t = a[0];
+          if (a[1]) out += enveloppe(nom === "!doctype" ? "bal" : "att", t);
+          else if (a[3]) out += enveloppe("txt", t);
+          else if (a[4]) { out += enveloppe("bal", t); fini = true; }
+          else if (a[5] && t === "<") { break; }
+          else out += ech(t);
+          i += t.length;
+        }
+        if (fini && !fermante && (nom === "script" || nom === "style")) {
+          const fin = code.toLowerCase().indexOf("</" + nom, i);
+          const j = fin < 0 ? n : fin;
+          const dedans = code.slice(i, j);
+          out += nom === "style" ? peindreCss(dedans) : peindre(dedans, "js");
+          i = j;
+        }
+        continue;
+      }
+      const ent = /^&(?:#\d+|#x[0-9a-f]+|[a-z]\w*);/i.exec(code.slice(i, i + 12));
+      if (ent) { out += enveloppe("num", ent[0]); i += ent[0].length; continue; }
+      let j = i + 1;
+      while (j < n && code[j] !== "<" && code[j] !== "&") j++;
+      out += ech(code.slice(i, j));
+      i = j;
+    }
+    return out;
+  }
+  const PEINTRES = { html: peindreHtml, css: peindreCss };
+
   function peindre(code, langue) {
-    const scan = SCAN[langue];
+    if (PEINTRES[langue]) return PEINTRES[langue](code);
+    const scan = SCAN[langue] || SCAN.c;
     scan.lastIndex = 0;
     let out = "", pos = 0, m;
     while ((m = scan.exec(code))) {
@@ -160,6 +273,70 @@
       pos = m.index + m[0].length;
     }
     return out + ech(code.slice(pos));
+  }
+
+  /* L'alinéa d'une page HTML : un cran par balise ouverte et non encore
+     fermée. Comme INDENTER pour le C, il ne touche QUE l'espace de début de
+     ligne — et il laisse tel quel l'intérieur des <pre> et <textarea>, où
+     l'espace se voit. Le contenu d'un <script> ou d'un <style> est réaligné
+     par INDENTER (des accolades), décalé du niveau de sa balise. */
+  const VIDES = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
+  function indenterHtml(texte) {
+    const lignes = texte.split("\n");
+    const out = [];
+    let niveau = 0, brut = null, bloc = null, blocNiveau = 0, blocLignes = [];
+    const balises = (l) => {
+      const L = [];
+      const re = /<!--[\s\S]*?-->|<(\/?)([A-Za-z][\w:-]*)([^>]*?)(\/?)>/g;
+      let m;
+      while ((m = re.exec(l))) if (m[2]) L.push({ fermante: !!m[1], nom: m[2].toLowerCase(), auto: !!m[4] || VIDES.test(m[2]) });
+      return L;
+    };
+    const poserBloc = () => {
+      const corps = blocLignes.join("\n");
+      const r = typeof INDENTER !== "undefined" ? INDENTER.reindenter(corps) : { ok: false };
+      const lignesB = (r.ok ? r.texte : corps).split("\n");
+      for (const lb of lignesB) out.push(lb.trim() ? ALINEA.repeat(blocNiveau) + (r.ok ? lb : lb.trim()) : "");
+      blocLignes = [];
+    };
+    for (const ligne of lignes) {
+      const nu = ligne.trim();
+      if (brut) {
+        out.push(ligne);
+        if (new RegExp("</" + brut + "\\s*>", "i").test(ligne)) { brut = null; niveau = Math.max(0, niveau - 1); }
+        continue;
+      }
+      if (bloc) {
+        if (new RegExp("^</" + bloc + "\\s*>", "i").test(nu)) {
+          poserBloc();
+          bloc = null;
+          niveau = Math.max(0, niveau - 1);
+          out.push(ALINEA.repeat(niveau) + nu);
+        } else blocLignes.push(ligne);
+        continue;
+      }
+      if (!nu) { out.push(""); continue; }
+      const L = balises(nu);
+      // une ligne qui COMMENCE par des fermantes se place au niveau d'après
+      let debut = niveau;
+      for (const b of L) { if (b.fermante) debut--; else break; }
+      out.push(ALINEA.repeat(Math.max(0, debut)) + nu);
+      for (const b of L) {
+        if (b.auto) continue;
+        if (b.fermante) niveau = Math.max(0, niveau - 1); else niveau++;
+      }
+      const derniere = L[L.length - 1];
+      if (derniere && !derniere.fermante && /^(pre|textarea)$/.test(derniere.nom) && !new RegExp("</" + derniere.nom, "i").test(nu)) brut = derniere.nom;
+      else if (derniere && !derniere.fermante && /^(script|style)$/.test(derniere.nom) && !new RegExp("</" + derniere.nom, "i").test(nu)) {
+        bloc = derniere.nom; blocNiveau = niveau;
+      }
+    }
+    if (bloc) poserBloc();
+    const r = out.join("\n");
+    // la promesse : rien d'autre que l'alinéa n'a bougé
+    const sansAlinea = (x) => x.split("\n").map((l) => l.trim()).join("\n");
+    if (sansAlinea(r) !== sansAlinea(texte)) return { ok: false };
+    return { ok: true, texte: r, change: r !== texte };
   }
 
   /* ══════════════════════════════════════════════════════ 2. L'ÉDITEUR
@@ -1490,10 +1667,17 @@
         e.preventDefault();
         const [dl, fl] = bornesLignes();
         const lignes = t.slice(dl, fl).split("\n");
-        const toutes = lignes.every((l) => !l.trim() || /^\s*\/\//.test(l));
+        /* Le commentaire de LA langue : « # » en Python, « /* … *\/ » en CSS,
+           « <!-- … --> » en HTML. Le « // » partout faisait, en Python, une
+           ligne invalide au lieu d'une ligne neutralisée. */
+        const [ouv, ferm] = langue === "python" ? ["#", ""] : langue === "css" ? ["/*", "*/"]
+          : langue === "html" ? ["<!--", "-->"] : ["//", ""];
+        const eo = echapperRegex(ouv), ef = echapperRegex(ferm);
+        const deja = new RegExp("^(\\s*)" + eo + " ?(.*?)" + (ferm ? " ?" + ef + "\\s*$" : "$"));
+        const toutes = lignes.every((l) => !l.trim() || deja.test(l));
         const neuf = lignes.map((l) => !l.trim() ? l
-          : toutes ? l.replace(/^(\s*)\/\/ ?/, "$1")
-                   : l.replace(/^(\s*)/, "$1// ")).join("\n");
+          : toutes ? l.replace(deja, "$1$2")
+                   : l.replace(/^(\s*)(.*)$/, "$1" + ouv + " $2" + (ferm ? " " + ferm : ""))).join("\n");
         remplacer(dl, fl, neuf, dl, dl + neuf.length);
         return;
       }
@@ -1812,10 +1996,10 @@
        — mais sur la même ligne et à la même place dans cette ligne.
        C'est ce qu'on suit des yeux, et c'est ce qu'on s'attend à
        retrouver. */
-    function realigner() {
-      if (typeof INDENTER === "undefined") return { ok: false };
+    function realigner(calcul) {
+      if (!calcul && typeof INDENTER === "undefined") return { ok: false };
       const t = saisie.value;
-      const r = INDENTER.reindenter(t);
+      const r = calcul ? calcul(t) : INDENTER.reindenter(t);
       if (!r.ok) return { ok: false };
       if (!r.change) return { ok: true, change: false };
       const d = saisie.selectionStart;
@@ -2164,6 +2348,339 @@
     let entreeCumul = "", attendEntree = false, wasmCourant = null, fichiers = {};
     let finSaisie = false;
     let tourne = false;
+    /* Ce que « Envoyer » rejoue quand le programme attend une saisie : le C
+       compilé, ou le JavaScript. */
+    let relancer = null;
+    let avisWeb = [];          // les cartes « fichier absent / non relié » du mode Web
+
+    /* ══ le mode Web : un petit site en plusieurs fichiers ═══════════════ */
+    const PROJET_DEPART = () => ({
+      "index.html": '<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n'
+        + '    <title>Ma page</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
+        + '    <h1>Bonjour !</h1>\n    <p>Modifiez <b>index.html</b>, <b>style.css</b> et '
+        + '<b>script.js</b>, puis appuyez sur Exécuter.</p>\n'
+        + '    <button id="bouton">Cliquez-moi</button>\n    <p id="compteur">0 clic</p>\n\n'
+        + '    <script src="script.js"></script>\n</body>\n</html>\n',
+      "style.css": 'body {\n    font-family: system-ui, sans-serif;\n    margin: 2rem;\n'
+        + '    background: #fdf5e6;\n    color: #2d2a26;\n}\n\nh1 {\n    color: #1b4965;\n}\n\n'
+        + 'button {\n    padding: .6rem 1.2rem;\n    border: 0;\n    border-radius: 8px;\n'
+        + '    background: #1b4965;\n    color: white;\n    cursor: pointer;\n}\n',
+      "script.js": 'let clics = 0;\nconst bouton = document.querySelector("#bouton");\n'
+        + 'const compteur = document.querySelector("#compteur");\n\n'
+        + 'bouton.addEventListener("click", () => {\n    clics++;\n'
+        + '    compteur.textContent = clics + (clics > 1 ? " clics" : " clic");\n'
+        + '    console.log("Clic numéro", clics);\n});\n',
+    });
+    let projet = null, fichierActif = "index.html", pageApercu = "index.html";
+    let texteClassique = null, surlignagesParFichier = {};
+    let jetonApercu = null, sortieWeb = "", erreursWeb = [];
+    const langueFichier = (n) => /\.css$/i.test(n) ? "css" : /\.js$/i.test(n) ? "js" : "html";
+    const estTexte = (n) => projet && typeof projet[n] === "string";
+    const barreFichiers = $("#at-fichiers");
+    const nomFichier = $("#at-nom-fichier");
+    const apercu = $("#at-apercu");
+    const boiteApercu = $("#at-apercu-boite");
+    const ongletsSortie = $("#at-sorties");
+    const conBoite = $(".con", racine);
+    const badge = $("#at-compte-console");
+
+    function dessinerFichiers() {
+      if (!projet || !barreFichiers) return;
+      const noms = Object.keys(projet);
+      const textes = noms.filter(estTexte), images = noms.filter((n) => !estTexte(n));
+      barreFichiers.innerHTML = textes.map((n) =>
+        '<span class="at-fic' + (n === fichierActif ? " actif" : "") + '">' +
+        '<button type="button" role="tab" data-fic="' + ech(n) + '" aria-selected="' + (n === fichierActif) + '">'
+        + ech(n) + "</button>" +
+        (n !== "index.html" ? '<button type="button" class="at-fic-x" data-suppr="' + ech(n) +
+          '" aria-label="Supprimer ' + ech(n) + '" title="Supprimer ' + ech(n) + '">×</button>' : "") + "</span>").join("") +
+        images.map((n) => '<span class="at-fic at-fic-image" title="Image du projet : écrivez src=&quot;' + ech(n) + '&quot;">'
+          + '<span class="at-fic-nom">▣ ' + ech(n) + '</span><button type="button" class="at-fic-x" data-suppr="' + ech(n)
+          + '" aria-label="Supprimer ' + ech(n) + '">×</button></span>').join("") +
+        '<button type="button" class="at-fic-plus" data-ajout="1" aria-label="Ajouter un fichier ou une image" '
+        + 'title="Ajouter une page, une feuille de style, un script ou une image">+</button>' +
+        '<form class="at-fic-form" hidden><input type="text" spellcheck="false" autocomplete="off" '
+        + 'aria-label="Nom du nouveau fichier" placeholder="contact.html, menu.css, jeu.js"><button type="submit">Créer</button>'
+        + '<label class="at-fic-import">Image…<input type="file" accept="image/*" hidden></label>'
+        + '<button type="button" data-annuler="1">Annuler</button></form>';
+    }
+    function ouvrirFichier(n) {
+      if (!estTexte(n)) return;
+      if (estTexte(fichierActif)) {
+        projet[fichierActif] = editeur.valeur;
+        surlignagesParFichier[fichierActif] = editeur.surlignages;
+      }
+      fichierActif = n;
+      editeur.valeur = projet[n];
+      editeur.langue = langueFichier(n);
+      editeur.surlignages = surlignagesParFichier[n] || [];
+      afficherDiagnostics(erreursWeb);
+      dessinerFichiers();
+      planifierSauvegarde();
+    }
+    if (barreFichiers) {
+      barreFichiers.addEventListener("click", (e) => {
+        const f = barreFichiers.querySelector(".at-fic-form");
+        const b = e.target.closest("button, label");
+        if (!b) return;
+        if (b.dataset.fic) { ouvrirFichier(b.dataset.fic); editeur.focus(); return; }
+        if (b.dataset.suppr) {
+          const n = b.dataset.suppr;
+          if (!confirm("Supprimer « " + n + " » du projet ?")) return;
+          delete projet[n];
+          if (n === fichierActif) { fichierActif = "index.html"; editeur.valeur = projet["index.html"]; editeur.langue = "html"; }
+          dessinerFichiers();
+          sauver();
+          return;
+        }
+        if (b.dataset.ajout) { f.hidden = false; f.querySelector("input[type=text]").focus(); return; }
+        if (b.dataset.annuler) { f.hidden = true; }
+      });
+      barreFichiers.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const champ = e.target.querySelector("input[type=text]");
+        const n = champ.value.trim().toLowerCase().replace(/\s+/g, "-");
+        if (!/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.(html|css|js)$/.test(n)) {
+          dirEtat("Nom refusé : lettres, chiffres, - ou _, et l'extension .html, .css ou .js", "erreur");
+          return;
+        }
+        if (projet[n] !== undefined) { dirEtat("« " + n + " » existe déjà", "erreur"); return; }
+        projet[n] = /\.html$/.test(n)
+          ? '<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>' + n.replace(/\.html$/, "")
+            + '</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <p><a href="index.html">Retour à l\'accueil</a></p>\n</body>\n</html>\n'
+          : "";
+        ouvrirFichier(n);
+        editeur.focus();
+      });
+      barreFichiers.addEventListener("change", async (e) => {
+        const fic = e.target.files && e.target.files[0];
+        if (!fic) return;
+        if (fic.size > 600000) { dirEtat("Image trop lourde pour être gardée dans le projet (600 Ko au plus) : réduisez-la d'abord", "erreur"); return; }
+        const n = fic.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+        const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(fic); });
+        projet[n] = { data };
+        dessinerFichiers();
+        sauver();
+        dirEtat("Image ajoutée : écrivez <img src=\"" + n + "\" alt=\"…\"> dans une page", "ok");
+      });
+      barreFichiers.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { const f = barreFichiers.querySelector(".at-fic-form"); if (f && !f.hidden) { f.hidden = true; e.stopPropagation(); } }
+      });
+    }
+
+    /* Les deux faces de la sortie en mode Web : l'aperçu, et la console. */
+    let nonLus = 0;
+    function montrerSortie(quoi) {
+      if (!ongletsSortie) return;
+      const web = langue === "web";
+      ongletsSortie.hidden = !web;
+      $("#at-onglet-console").hidden = web;
+      const voirApercu = web && quoi === "apercu";
+      boiteApercu.hidden = !voirApercu;
+      conBoite.hidden = voirApercu;
+      ongletsSortie.querySelectorAll("[data-sortie]").forEach((b) =>
+        b.setAttribute("aria-selected", String(b.dataset.sortie === (voirApercu ? "apercu" : "console"))));
+      if (!voirApercu) { nonLus = 0; badge.hidden = true; }
+    }
+    if (ongletsSortie) ongletsSortie.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-sortie]");
+      if (b) montrerSortie(b.dataset.sortie);
+    });
+    function signalerConsole(grave) {
+      if (!boiteApercu || boiteApercu.hidden) return;
+      nonLus++;
+      badge.hidden = false;
+      badge.textContent = String(nonLus);
+      badge.classList.toggle("grave", grave || badge.classList.contains("grave"));
+    }
+    function ecrireSortie(texte, erreur) {
+      sortieWeb += texte + "\n";
+      console2.poser(sortieWeb, erreur);
+    }
+
+    function executerWeb() {
+      if (!projet) projet = PROJET_DEPART();
+      projet[fichierActif] = editeur.valeur;
+      sauver();
+      console2.vider();
+      sortieWeb = "";
+      erreursWeb = [];
+      avisWeb = [];
+      afficherDiagnostics([]);
+      zoneEntree.hidden = true;
+      if (/\.html?$/i.test(fichierActif)) pageApercu = fichierActif;
+      if (!estTexte(pageApercu)) pageApercu = "index.html";
+      afficherPage(pageApercu);
+      badge.classList.remove("grave");
+      montrerSortie("apercu");
+      // ce qu'aucune page ne relie : dit, avec la ligne à écrire
+      for (const r of ATELIER_WEB.nonRelies(projet)) carteNonRelie(r);
+      dirEtat("Aperçu de " + pageApercu + " — la page tourne isolée, sans accès au reste du site", "ok");
+    }
+    function afficherPage(page) {
+      jetonApercu = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const r = ATELIER_WEB.assembler(projet, page, jetonApercu, fabriqueConsole.toString());
+      manquants = new Set(r.manque);
+      for (const n of r.manque) carteManquant(n, page);
+      pageApercu = page;
+      const titre = $("#at-page-apercu");
+      if (titre) { titre.textContent = page; titre.hidden = Object.keys(projet).filter((x) => /\.html?$/i.test(x)).length < 2; }
+      apercu.srcdoc = r.html;
+    }
+    /* Une page qui appelle un fichier absent du projet : on le dit, et on
+       propose de le créer — le cas de tout exemple du cours qui relie un
+       « style.css » qu'il ne montre pas. */
+    let manquants = new Set();
+    function carteManquant(n, page) {
+      if (avisWeb.some((x) => x.dataset.manque === n)) return;
+      const c = document.createElement("div");
+      c.className = "at-diag d-avert";
+      c.dataset.manque = n;
+      const creable = /^[\w-]+(\/[\w-]+)*\.(css|js|html)$/i.test(n);
+      c.innerHTML = '<div class="at-diag-tete"><span class="at-puce">!</span><h4>« ' + ech(n) +
+        " » est demandé par " + ech(page) + ", mais n'existe pas</h4></div>" +
+        '<p class="at-pourquoi">Le navigateur ne le trouvera pas : ce qu\'il devait apporter (style, script, image) manquera.</p>' +
+        (creable ? '<p class="at-remede"><button type="button" class="at-aller at-creer">Créer ' + ech(n) + "</button></p>" : "");
+      const b = c.querySelector(".at-creer");
+      if (b) b.addEventListener("click", () => {
+        projet[n] = /\.css$/i.test(n) ? "/* " + n + " */\n" : /\.js$/i.test(n) ? "// " + n + "\n" : "";
+        c.remove();
+        avisWeb = avisWeb.filter((x) => x !== c);
+        ouvrirFichier(n);
+        editeur.focus();
+      });
+      avisWeb.push(c);
+      afficherDiagnostics(erreursWeb);
+    }
+    function carteNonRelie(r) {
+      const c = document.createElement("div");
+      c.className = "at-diag d-avert";
+      c.innerHTML = '<div class="at-diag-tete"><span class="at-puce">!</span><h4>« ' + ech(r.fichier) +
+        " » n'est relié à aucune page</h4></div>" +
+        '<p class="at-pourquoi">Le navigateur ne lit un fichier ' + (r.ou === "head" ? "CSS" : "JavaScript") +
+        " que si une page l'appelle. L'aperçu fait comme lui : il ne l'applique pas.</p>" +
+        '<p class="at-remede"><b>À faire :</b> écrire <code>' + ech(r.ligne) + "</code> " +
+        (r.ou === "head" ? "dans le &lt;head&gt; de la page" : "juste avant &lt;/body&gt;") +
+        '. <button type="button" class="at-aller at-relier">Ajouter la ligne dans ' + ech(pageApercu) + "</button></p>";
+      c.querySelector(".at-relier").addEventListener("click", () => {
+        if (estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
+        projet[pageApercu] = ATELIER_WEB.relier(projet[pageApercu], r.ligne, r.ou);
+        if (fichierActif === pageApercu) editeur.valeur = projet[pageApercu];
+        else ouvrirFichier(pageApercu);
+        c.remove();
+        executerWeb();
+      });
+      avisWeb.push(c);
+      afficherDiagnostics(erreursWeb);
+    }
+    window.addEventListener("message", (e) => {
+      if (!apercu || e.source !== apercu.contentWindow) return;
+      const m = e.data;
+      if (!m || m.jeton !== jetonApercu) return;
+      if (m.t === "console") {
+        const err = m.niveau === "error" || m.niveau === "warn";
+        ecrireSortie(m.texte, err);
+        signalerConsole(m.niveau === "error");
+      } else if (m.t === "effacer") { console2.vider(); sortieWeb = ""; }
+      else if (m.t === "erreur") {
+        const fichier = m.fichier === "page" || !m.fichier ? pageApercu : m.fichier;
+        const d = { ligne: m.ligne, colonne: m.colonne || 1, niveau: "error", fichier,
+                    message: (m.nom && m.nom !== "Error" ? m.nom + ": " : "") + m.message };
+        erreursWeb.push(d);
+        afficherDiagnostics(erreursWeb);
+        console2.note("⚑ " + d.message + (m.ligne ? " (" + fichier + ", ligne " + m.ligne + ")" : ""), "stop");
+        signalerConsole(true);
+        dirEtat("Erreur JavaScript dans " + fichier + (m.ligne ? ", ligne " + m.ligne : ""), "erreur");
+      } else if (m.t === "aller") {
+        afficherPage(m.page);
+        console2.note("→ lien suivi : " + m.page, "info");
+      } else if (m.t === "formulaire") {
+        const lignes = m.champs.length ? m.champs.map(([k, v]) => "    " + k + " = " + JSON.stringify(v)).join("\n") : "    (aucun champ nommé : il manque les attributs name)";
+        console2.note("Formulaire envoyé (" + m.methode + ") vers « " + (m.action || "la même page") + " » :\n" + lignes
+          + (/\.php$/i.test(m.action) ? "\n  C'est un serveur PHP qui le recevrait : l'aperçu montre ce qui serait parti." : ""), "info");
+        signalerConsole(false);
+        montrerSortie("console");
+      } else if (m.t === "lien") {
+        console2.note("Lien vers " + m.url + " : non ouvert — l'aperçu reste isolé, hors ligne.", "info");
+        signalerConsole(false);
+      } else if (m.t === "introuvable") {
+        console2.note("⚠ Lien vers « " + m.url + " » : ce fichier n'est pas dans le projet.", "garde");
+        signalerConsole(false);
+      } else if (m.t === "ressource") {
+        if (manquants.has(String(m.url).replace(/^\.\//, "").replace(/[?#].*$/, ""))) return;
+        console2.note("⚠ Introuvable : <" + m.balise + "> demande « " + m.url + " ».", "garde");
+        signalerConsole(false);
+      }
+    });
+
+    /* ══ le mode JavaScript : la console seule, comme Node ═══════════════ */
+    let entreesJs = [], graineJs = 1, sortieJs = "";
+    function executerJS(reprise) {
+      tourne = true;
+      bEx.disabled = true;
+      bEx.querySelector(".lib").textContent = "Exécution…";
+      bArret.hidden = false;
+      if (!reprise) {
+        console2.vider();
+        afficherDiagnostics([]);
+        entreesJs = [];
+        entreeCumul = "";
+        finSaisie = false;
+        zoneEntree.hidden = true;
+        graineJs = (Math.random() * 4294967296) >>> 0;
+      }
+      /* À la reprise, on ne vide PAS la console : le programme rejoué réécrit
+         exactement la même chose, et la console n'affiche que ce qui dépasse
+         (Console.poser) — comme pour le C. */
+      sortieJs = "";
+      /* Ce qui est déjà à l'écran : la reprise le réécrit d'abord, en
+         silence, et la console ne reçoit que ce qui vient APRÈS. Sans ce
+         seuil, une sortie envoyée ligne à ligne se répétait. */
+      const dejaVu = reprise ? console2.sortie.length : 0;
+      attendEntree = false;
+      relancer = () => executerJS(true);
+      const t0 = performance.now();
+      ouvrierExec = new Worker(base + "ouvrier-js.js");
+      ouvrierExec.onmessage = (e) => {
+        const m = e.data;
+        if (m.t === "console") {
+          const prefixe = m.niveau === "alerte" ? "[alert] " : m.niveau === "warn" ? "⚠ " : "";
+          sortieJs += prefixe + m.texte + "\n";
+          if (sortieJs.length > dejaVu) console2.poser(sortieJs, m.niveau === "error" || m.niveau === "warn");
+        } else if (m.t === "effacer") { /* console.clear : on garde la trace, comme Node */ }
+        else if (m.t === "attente") { attendEntree = true; demanderEntree(); }
+        else if (m.t === "erreur") {
+          const d = { ligne: m.ligne, colonne: m.colonne || 1, niveau: "error", message: m.nom + ": " + m.message };
+          afficherDiagnostics([d]);
+          console2.note("⚑ " + d.message + (m.ligne ? " (ligne " + m.ligne + ")" : ""), "stop");
+        } else if (m.t === "fini") {
+          clearTimeout(minuteur);
+          if (ouvrierExec) { ouvrierExec.terminate(); ouvrierExec = null; }
+          tourne = false;
+          bEx.disabled = false;
+          bEx.querySelector(".lib").textContent = "Exécuter";
+          bArret.hidden = true;
+          if (m.attente) { dirEtat("Le programme attend une saisie (prompt)", "avert"); return; }
+          zoneEntree.hidden = true;
+          const ms = Math.round(performance.now() - t0);
+          dirEtat(diags.querySelector(".d-erreur") ? "Le programme s'est arrêté sur une erreur" : "Terminé en " + ms + " ms",
+                  diags.querySelector(".d-erreur") ? "erreur" : "ok");
+        }
+      };
+      ouvrierExec.onerror = (e) => {
+        e.preventDefault();
+        console2.note("L'exécution s'est interrompue : " + (e.message || "erreur inconnue"), "stop");
+        clearTimeout(minuteur);
+        tourne = false; bEx.disabled = false; bEx.querySelector(".lib").textContent = "Exécuter"; bArret.hidden = true;
+      };
+      minuteur = setTimeout(() => {
+        arreterExec();
+        console2.note("⏱ Arrêté au bout de " + (budget / 1000) + " s : le programme ne s'arrêtait pas (boucle sans fin, ou setInterval jamais arrêté).", "stop");
+        tourne = false; bEx.disabled = false; bEx.querySelector(".lib").textContent = "Exécuter"; bArret.hidden = true;
+        dirEtat("Interrompu", "erreur");
+      }, budget);
+      ouvrierExec.postMessage({ code: editeur.valeur, entrees: entreeCumul ? entreeCumul.split("\n").slice(0, -1) : [], finEntree: finSaisie, graine: graineJs });
+    }
 
     /* ── état affiché ─────────────────────────────────────────────── */
     const mo = (n) => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace(".", ",");
@@ -2178,6 +2695,19 @@
     const enCadre = window.top !== window.self;
     const economie = !!(navigator.connection && navigator.connection.saveData);
     const differe = enCadre || economie;
+
+    /* Le compilateur C — soixante mégaoctets — n'a rien à faire pour du
+       Python, du JavaScript ou une page web. On ne le télécharge d'office
+       que si l'atelier s'ouvre sur C ou C++ ; sinon, au premier passage sur
+       l'un des deux. */
+    const langueOuverte = (function () {
+      const l = /[#&]l=([a-z+]+)/.exec(location.hash);
+      if (l) return decodeURIComponent(l[1]);
+      if (/[#&](n|p|c|z|y)=/.test(location.hash)) return "c";
+      try { const s = JSON.parse(localStorage.getItem(CLE) || "null"); return (s && s.langue) || "c"; }
+      catch (e) { return "c"; }
+    })();
+    const sansCompilateur = ["c", "c++"].indexOf(langueOuverte) < 0;
 
     const moteur = Moteur(base, (m) => {
       if (m.t === "progres") {
@@ -2202,7 +2732,7 @@
         jauge.hidden = true;
         dirEtat("Le compilateur n'a pas pu se charger : " + m.message, "erreur");
       }
-    }, differe);
+    }, differe || sansCompilateur);
 
     /* ── exécuter ─────────────────────────────────────────────────── */
     /* ── exécuter du Python ───────────────────────────────────────────
@@ -2253,6 +2783,8 @@
       /* Le Python ne passe pas par le compilateur : il part d'ici, avant
          qu'on allume quoi que ce soit de la chaîne wasm. */
       if (langue === "python") { executerPython(); return; }
+      if (langue === "web") { executerWeb(); return; }
+      if (langue === "js") { arreterExec(); executerJS(); return; }
       arreterExec();
       tourne = true;
       bEx.disabled = true;
@@ -2294,6 +2826,7 @@
         return;
       }
       wasmCourant = r.wasm;
+      relancer = () => lancerProgramme(wasmCourant, 0);
       dirEtat("Exécution…", "charge");
       bEx.querySelector(".lib").textContent = "Exécution…";
       lancerProgramme(r.wasm, msC);
@@ -2387,7 +2920,7 @@
       champEntree.focus();
     }
     function envoyerEntree() {
-      if (!attendEntree || !wasmCourant) return;
+      if (!attendEntree || !relancer) return;
       const v = champEntree.value;
       champEntree.value = "";
       console2.echo(v);
@@ -2395,15 +2928,15 @@
       zoneEntree.hidden = true;
       attendEntree = false;
       arreterExec();
-      if (wasmCourant) { dirEtat("Reprise…", "charge"); tourne = true; bEx.disabled = true;
-                         bArret.hidden = false; lancerProgramme(wasmCourant, 0); }
+      if (relancer) { dirEtat("Reprise…", "charge"); tourne = true; bEx.disabled = true;
+                      bArret.hidden = false; relancer(); }
     }
     $("#at-envoyer").addEventListener("click", envoyerEntree);
     /* L'équivalent du Ctrl+D d'un terminal. Sans lui, un programme bâti sur
        « while (scanf(…) == 1) » — la boucle de lecture la plus courante —
        redemanderait indéfiniment : on ne peut jamais lui dire que c'est fini. */
     $("#at-fin-saisie").addEventListener("click", () => {
-      if (!attendEntree || !wasmCourant) return;
+      if (!attendEntree || !relancer) return;
       finSaisie = true;
       attendEntree = false;
       zoneEntree.hidden = true;
@@ -2411,7 +2944,7 @@
       tourne = true; bEx.disabled = true; bArret.hidden = false;
       arreterExec();
       dirEtat("Reprise…", "charge");
-      lancerProgramme(wasmCourant, 0);
+      relancer();
     });
     champEntree.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); envoyerEntree(); }
@@ -2448,6 +2981,7 @@
          lent. » On peut donc l'éteindre — et c'est à lui d'en décider,
          pas à moi de supposer que sa machine suit. */
       if (!relirePendantLaFrappe) return;
+      if (langue !== "c" && langue !== "c++") return;
       if (!moteur.pret) return;
       clearTimeout(minuterieRelire);
       minuterieRelire = setTimeout(relireMaintenant, DELAI_RELIRE);
@@ -2485,10 +3019,19 @@
       const vrais = liste.filter((d) => d.niveau !== "note");
       for (const d of vrais) {
         const niveau = d.niveau.indexOf("error") >= 0 ? "erreur" : "avert";
-        if (d.ligne) marques.push({ ligne: d.ligne, niveau, titre: d.message });
+        if (d.ligne && (!d.fichier || langue !== "web" || d.fichier === fichierActif))
+          marques.push({ ligne: d.ligne, niveau, titre: d.message });
         diags.appendChild(carteDiagnostic(d, niveau));
       }
       editeur.marquesErreur = marques;
+      /* En mode Web, les avis sur le projet (fichier absent, non relié)
+         restent sous les erreurs : une erreur JavaScript qui arrive ne doit
+         pas les effacer. */
+      if (langue === "web" && avisWeb.length) {
+        for (const c of avisWeb) diags.appendChild(c);
+        $("#at-diag-tete").hidden = false;
+        if (!vrais.length) { $("#at-diag-tete").textContent = "À vérifier"; return; }
+      }
       if (!vrais.length) return;
       const n = vrais.filter((d) => d.niveau.indexOf("error") >= 0).length;
       const a = vrais.length - n;
@@ -2504,7 +3047,8 @@
       c.className = "at-diag d-" + niveau;
       const lieu = d.ligne
         ? '<button type="button" class="at-aller" data-ligne="' + d.ligne + '" data-colonne="'
-          + d.colonne + '">ligne ' + d.ligne + "</button>"
+          + d.colonne + '"' + (d.fichier ? ' data-fichier="' + ech(d.fichier) + '"' : "") + ">"
+          + (d.fichier ? ech(d.fichier) + ", " : "") + "ligne " + d.ligne + "</button>"
         : "";
       const extrait = d.ligne ? extraitSource(d) : "";
       c.innerHTML =
@@ -2527,7 +3071,10 @@
     }
 
     function extraitSource(d) {
-      const ligne = editeur.valeur.split("\n")[d.ligne - 1];
+      const texte = d.fichier && langue === "web" && projet && typeof projet[d.fichier] === "string"
+        ? (d.fichier === fichierActif ? editeur.valeur : projet[d.fichier]) : editeur.valeur;
+      const lg = d.fichier && langue === "web" ? langueFichier(d.fichier) : langue;
+      const ligne = texte.split("\n")[d.ligne - 1];
       if (ligne === undefined) return "";
       const e = (d.etendues || []).filter((x) => x.l1 === d.ligne && x.l2 === d.ligne);
       let deb = d.colonne - 1, fin = d.colonne;
@@ -2537,9 +3084,9 @@
       }
       deb = Math.max(0, Math.min(deb, ligne.length));
       fin = Math.max(deb + 1, Math.min(fin, ligne.length));
-      return '<pre class="at-extrait"><code>' + peindre(ligne.slice(0, deb), langue)
+      return '<pre class="at-extrait"><code>' + peindre(ligne.slice(0, deb), lg)
         + '<mark>' + ech(ligne.slice(deb, fin) || " ") + "</mark>"
-        + peindre(ligne.slice(fin), langue) + "</code></pre>";
+        + peindre(ligne.slice(fin), lg) + "</code></pre>";
     }
 
     function ajouterGarde(g) {
@@ -2615,7 +3162,9 @@
 
     diags.addEventListener("click", (e) => {
       const b = e.target.closest(".at-aller");
-      if (b) editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
+      if (!b) return;
+      if (b.dataset.fichier && langue === "web" && b.dataset.fichier !== fichierActif) ouvrirFichier(b.dataset.fichier);
+      editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
     });
 
     /* ── réglages, sauvegarde, exemples ─────────────────────────────── */
@@ -2623,16 +3172,52 @@
        « let » : poserLangue peut être appelée pendant l'initialisation, avant
        que la ligne du tiroir ne soit atteinte. */
     var redessinerExemples = null;
-    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python" };
+    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS" };
+    const LANGUES = Object.keys(NOM_LANGUE);
+    /* Un programme de départ jamais modifié : on peut le remplacer par celui
+       du langage choisi sans rien faire perdre. */
+    const estDepart = (t) => Object.keys(DEPART).some((k) => DEPART[k] === t);
+    const FICHIER = { "c": "programme.c", "c++": "programme.cpp", "python": "programme.py", "js": "programme.js" };
     function poserLangue(l) {
+      if (LANGUES.indexOf(l) < 0) l = "c";
+      const avant = langue;
+      /* Le mode Web a SES fichiers ; les autres langages partagent le texte
+         de l'éditeur (on colle du Python, on clique Python). Entrer dans le
+         Web met ce texte de côté, en sortir le rend. Un programme de
+         départ jamais touché est remplacé par celui du nouveau langage. */
+      if (avant === "web" && l !== "web") {
+        if (projet && estTexte(fichierActif)) {
+          projet[fichierActif] = editeur.valeur;
+          surlignagesParFichier[fichierActif] = editeur.surlignages;
+        }
+        const t = texteClassique;
+        editeur.valeur = t == null || !t.trim() || estDepart(t) ? (DEPART[l] || "") : t;
+        editeur.surlignages = [];
+        texteClassique = null;
+      } else if (avant !== "web" && l === "web") {
+        texteClassique = editeur.valeur;
+        if (!projet) {
+          projet = PROJET_DEPART();
+          if (devine(texteClassique) === "web") projet["index.html"] = texteClassique;
+        }
+        if (!estTexte(fichierActif)) fichierActif = "index.html";
+        editeur.valeur = projet[fichierActif];
+        editeur.surlignages = surlignagesParFichier[fichierActif] || [];
+        afficherDiagnostics(erreursWeb);
+      } else if (avant !== l && l !== "web" && (estDepart(editeur.valeur) || !editeur.valeur.trim())) {
+        editeur.valeur = DEPART[l] || "";
+      }
       langue = l;
-      editeur.langue = l;
-      $("#at-nom-fichier").textContent =
-        l === "c++" ? "programme.cpp" : l === "python" ? "programme.py" : "programme.c";
+      if (avant === "web" && l !== "web") afficherDiagnostics([]);
+      editeur.langue = l === "web" ? langueFichier(fichierActif) : l;
+      if (nomFichier) { nomFichier.textContent = FICHIER[l] || ""; nomFichier.hidden = l === "web"; }
+      if (barreFichiers) { barreFichiers.hidden = l !== "web"; if (l === "web") dessinerFichiers(); }
+      montrerSortie(l === "web" && apercu && apercu.srcdoc ? "apercu" : "console");
       /* « Strict » règle les avertissements du compilateur : en Python il
          n'y a pas de compilateur, et un bouton qui n'agit sur rien use la
          confiance dans tous les autres. */
-      if (bStrict) bStrict.hidden = (l === "python");
+      if (bStrict) bStrict.hidden = (l !== "c" && l !== "c++");
+      if ((l === "c" || l === "c++") && !differe) moteur.lancer();
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
       if (redessinerExemples) redessinerExemples(l);
       planifierSauvegarde();
@@ -2773,12 +3358,18 @@
 
     function sauver() {
       try {
+        if (langue === "web" && projet && estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
         localStorage.setItem(CLE, JSON.stringify({
-          source: editeur.valeur, langue, strict, relirePendantLaFrappe,
+          source: langue === "web" ? (texteClassique || "") : editeur.valeur, langue, strict, relirePendantLaFrappe,
           quand: Date.now(), part: partVolets,
-          theme: ediTheme, surlignages: editeur.surlignages,
+          theme: ediTheme, surlignages: langue === "web" ? [] : editeur.surlignages,
+          projet, fichierActif,
         }));
-      } catch (e) {}
+      } catch (e) {
+        /* Le stockage du navigateur est plein — en mode Web, ce sont les
+           images. Mieux vaut le dire que de perdre le travail en silence. */
+        if (e && e.name === "QuotaExceededError") dirEtat("Stockage du navigateur plein : retirez une image du projet, sinon il ne sera plus enregistré", "erreur");
+      }
       modifie = false;
     }
 
@@ -2800,6 +3391,15 @@
          + '    print("Note " + str(i + 1) + " : " + str(notes[i]))\n'
          + '    somme = somme + notes[i]\n\n'
          + 'print("Moyenne : " + str(somme / len(notes)))\n',
+      /* Toujours le même exercice : le JavaScript, c'est la console du
+         navigateur (F12). prompt() y pose sa question sous la sortie. */
+      js: 'const notes = [12, 15, 9, 18, 14];\nlet somme = 0;\n\n'
+         + 'for (let i = 0; i < notes.length; i++) {\n'
+         + '    console.log("Note " + (i + 1) + " : " + notes[i]);\n'
+         + '    somme += notes[i];\n}\n\n'
+         + 'console.log("Moyenne : " + (somme / notes.length).toFixed(2));\n\n'
+         + 'const prenom = prompt("Votre prénom ?");\n'
+         + 'console.log("Bonjour " + prenom + " !");\n',
     };
 
     /* ── le raccourcisseur, chargé à la DEMANDE ───────────────────────
@@ -2886,8 +3486,7 @@
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
-          editeur.valeur = e.code;
-          poserLangue(e.langue === "c++" ? "c++" : "c");
+          ouvrirExemple(e);
           dirEtat("Programme du site : " + e.titre, "ok");
         }).catch(() => {
           dirEtat("La liste des programmes n'a pas pu être chargée", "ko");
@@ -2910,8 +3509,7 @@
             return;
           }
           editeur.valeur = txt;
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(txt));
+          ouvrirTexte(txt);
         });
         return;
       }
@@ -2923,9 +3521,7 @@
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
-          editeur.valeur = txt;
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(txt));
+          ouvrirTexte(txt);
         });
         return;
       }
@@ -2938,9 +3534,7 @@
           while (b64.length % 4) b64 += "=";
           const bin = atob(b64);
           const oct = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-          editeur.valeur = new TextDecoder().decode(oct);
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(editeur.valeur));
+          ouvrirTexte(new TextDecoder().decode(oct));
           return;
         } catch (e) {}
       }
@@ -2958,7 +3552,11 @@
              enregistré ; cette ligne, écrite avant que Python n'existe,
              n'en connaissait que deux et renvoyait tout le reste sur C.
              La liste est maintenant celle des boutons. */
-          poserLangue(["c", "c++", "python"].indexOf(s.langue) >= 0 ? s.langue : "c");
+          if (s.projet && typeof s.projet === "object" && typeof s.projet["index.html"] === "string") {
+            projet = s.projet;
+            fichierActif = estTexte(s.fichierActif) ? s.fichierActif : "index.html";
+          }
+          poserLangue(LANGUES.indexOf(s.langue) >= 0 ? s.langue : "c");
           /* Le jeu de couleurs et les surlignages reviennent avec le
              programme : un marqueur qu'on perd en fermant l'onglet ne sert
              à rien pour réviser. Les deux sont relus avec méfiance — une
@@ -2973,8 +3571,51 @@
       editeur.valeur = DEPART.c;
       poserLangue("c");
     }
+    /* Un programme du site (le tiroir, ou « #n= ») : un texte, ou un projet
+       Web entier ({ langue: "web", fichiers }). */
+    function ouvrirExemple(x) {
+      if (x.langue === "web" && x.fichiers) {
+        if (langue === "web") poserLangue("c");
+        projet = JSON.parse(JSON.stringify(x.fichiers));
+        fichierActif = estTexte(x.actif) ? x.actif : "index.html";
+        surlignagesParFichier = {};
+        poserLangue("web");
+        return;
+      }
+      if (langue === "web") poserLangue("c");
+      editeur.valeur = x.code;
+      poserLangue(x.langue || devine(x.code));
+    }
+    /* Un texte venu d'un lien (« Essayer » d'une fiche, partage) : son
+       langage est dans l'adresse (« l= »), sinon deviné. Un projet Web
+       voyage en JSON : { web: 1, fichiers, actif }. */
+    function ouvrirTexte(txt) {
+      const m = /[#&]l=([a-z+]+)/.exec(location.hash);
+      const l = m && LANGUES.indexOf(m[1]) >= 0 ? m[1] : devine(txt);
+      if (l === "web") {
+        let p = null;
+        try { p = JSON.parse(txt); } catch (e) { p = null; }
+        if (langue === "web") poserLangue("c");
+        if (p && p.web && p.fichiers && typeof p.fichiers["index.html"] === "string") {
+          projet = p.fichiers;
+          fichierActif = estTexte(p.actif) ? p.actif : "index.html";
+        } else {
+          projet = PROJET_DEPART();
+          projet["index.html"] = txt;
+          fichierActif = "index.html";
+        }
+        editeur.valeur = DEPART.c;
+        poserLangue("web");
+        return;
+      }
+      editeur.valeur = txt;
+      poserLangue(l);
+    }
     const devine = (s) =>
-      /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
+      /^\s*(?:<!--[\s\S]*?-->\s*)*<(?:!doctype|html|head|body|div|p|h[1-6]|ul|section|main|header|form|table|style|script)\b/i.test(s) ? "web"
+      : /\b(?:console\.log|document\.|addEventListener|=>)|(?:^|\n)\s*(?:let|const|function)\s/.test(s)
+        && !/#include|\bprintf\s*\(|\bint\s+main\s*\(/.test(s) ? "js"
+      : /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
       : /#include\s*<(iostream|vector|string|fstream|algorithm|map)>|std::|using namespace std/
         .test(s) ? "c++" : "c";
 
@@ -3138,8 +3779,7 @@
         const x = groupes[b.dataset.g][+b.dataset.i];
         if (!x) return;
         fermerDossier();
-        editeur.valeur = x.code;
-        poserLangue(x.langue || devine(x.code));
+        ouvrirExemple(x);
         if (x.entree) { entreeCumul = ""; champEntree.value = ""; }
         fermerTiroir();
         sauver();
@@ -3224,8 +3864,17 @@
       return { longue, courte };
     }
 
+    /* Ce qui voyage dans un lien : le texte, ou pour un projet Web ses
+       fichiers TEXTE en JSON — les images resteraient trop lourdes. */
+    function texteAPartager() {
+      if (langue !== "web" || !projet) return editeur.valeur;
+      if (estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
+      const fichiers = {};
+      for (const n of Object.keys(projet)) if (estTexte(n)) fichiers[n] = projet[n];
+      return JSON.stringify({ web: 1, fichiers, actif: fichierActif });
+    }
     $("#at-partager").addEventListener("click", async () => {
-      const texte = editeur.valeur;
+      const texte = texteAPartager();
       dirEtat("Compression du lien…", "");
       /* Avant toute compression : est-ce un programme QUE LE SITE A DÉJÀ ?
          Si oui, il n'y a rien à transmettre — son numéro suffit, et
@@ -3538,7 +4187,15 @@
     });
     const bIndent = $("#at-indenter");
     if (bIndent) bIndent.addEventListener("click", () => {
-      const r = editeur.realigner();
+      /* Le Python : l'alinéa EST sa syntaxe, le refaire d'après des
+         accolades qu'il n'a pas casserait ses blocs. Le HTML : il a son
+         propre calcul (balises ouvrantes et fermantes). */
+      if (langue === "python") {
+        dirEtat("En Python, l'alinéa fait partie du programme : il n'est pas refait automatiquement", "avert");
+        return;
+      }
+      const r = langue === "web" && langueFichier(fichierActif) === "html"
+        ? editeur.realigner(indenterHtml) : editeur.realigner();
       dirEtat(!r.ok
         ? "Alinéa : rien n'a été changé, le contrôle de sûreté n'est pas passé"
         : (r.change ? "Alinéa refait" : "L'alinéa était déjà en place"),
