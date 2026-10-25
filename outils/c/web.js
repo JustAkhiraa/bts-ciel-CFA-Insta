@@ -87,7 +87,7 @@ var ATELIER_WEB = (function () {
       if (!a || ev.defaultPrevented) return;
       var href = a.getAttribute("href");
       var p = versPage(href);
-      if (p) { ev.preventDefault(); envoyer({ t: "aller", page: p, ancre: (href.split("#")[1] || "") }); return; }
+      if (p) { ev.preventDefault(); var req = (href.split("#")[0].split("?")[1] || ""); envoyer({ t: "aller", page: p, requete: req, ancre: (href.split("#")[1] || "") }); return; }
       if (/^(https?:)?\/\//i.test(href)) { ev.preventDefault(); envoyer({ t: "lien", url: href }); }
       else if (!/^(#|javascript:)/i.test(href)) { ev.preventDefault(); envoyer({ t: "introuvable", url: href }); }
     });
@@ -104,7 +104,7 @@ var ATELIER_WEB = (function () {
   /* Le document de l'aperçu, pour la page « page » du projet. */
   function assembler(projet, page, jeton, fabriqueSource) {
     var html = String(projet[page] || "");
-    var pages = Object.keys(projet).filter(function (n) { return /\.html?$/i.test(n); });
+    var pages = Object.keys(projet).filter(function (n) { return /\.(html?|php)$/i.test(n); });
     var manque = [];
     var relie = { css: {}, js: {} };
     // les feuilles de style et les scripts du projet, en data:
@@ -140,7 +140,7 @@ var ATELIER_WEB = (function () {
   /* Les fichiers CSS et JS du projet qu'aucune page ne relie, et la ligne
      qu'il faudrait écrire. */
   function nonRelies(projet) {
-    var pages = Object.keys(projet).filter(function (n) { return /\.html?$/i.test(n); });
+    var pages = Object.keys(projet).filter(function (n) { return /\.(html?|php)$/i.test(n); });
     var tout = pages.map(function (p) { return String(projet[p]); }).join("\n");
     var out = [];
     Object.keys(projet).forEach(function (n) {

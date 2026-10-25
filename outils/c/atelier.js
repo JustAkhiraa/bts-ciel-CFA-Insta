@@ -196,6 +196,62 @@
     ["num", NOMBRE],
     ["op", "[-+*/%=<>!&|^~]+"],
   ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gmi");
+  /* ── et le PHP : le HTML autour, le code entre <?php … ?> ──
+     Les mots-clés, les types et les fonctions de base du cours. Les
+     variables ($x) prennent la classe « var », les appels « fn ». */
+  const PHP_MC = MOTS("abstract", "and", "array", "as", "break", "callable", "case", "catch",
+    "class", "clone", "const", "continue", "declare", "default", "do", "echo", "else", "elseif",
+    "empty", "enddeclare", "endfor", "endforeach", "endif", "endswitch", "endwhile", "enum", "extends",
+    "final", "finally", "fn", "for", "foreach", "function", "global", "goto", "if", "implements",
+    "include", "include_once", "instanceof", "insteadof", "interface", "isset", "list", "match",
+    "namespace", "new", "or", "print", "private", "protected", "public", "readonly", "require",
+    "require_once", "return", "static", "switch", "throw", "trait", "try", "unset", "use", "var",
+    "while", "xor", "yield", "true", "false", "null", "parent", "self");
+  const PHP_TYP = MOTS("int", "integer", "float", "double", "string", "bool", "boolean", "void",
+    "object", "mixed", "iterable", "never", "PDO", "PDOStatement", "PDOException", "Exception",
+    "Error", "Throwable", "stdClass", "Closure", "__construct", "__toString", "__get", "__set");
+  SCAN.phpcode = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|//[^\\n?]*|#(?!\\[)[^\\n]*"],
+    ["txt", "<<<'?[A-Za-z_]\\w*[\\s\\S]*?^\\s*[A-Za-z_]\\w*|\"(?:\\\\[\\s\\S]|[^\"\\\\])*\"|'(?:\\\\[\\s\\S]|[^'\\\\])*'"],
+    ["bal", "<\\?php|<\\?=|\\?>"],
+    ["var", "\\$[A-Za-z_\\u0080-\\uffff][\\w\\u0080-\\uffff]*"],
+    ["mc", PHP_MC],
+    ["typ", PHP_TYP],
+    ["fn", "(?<![\\w$])[A-Za-z_]\\w*(?=\\s*\\()"],
+    ["num", NOMBRE],
+    ["op", "=>|->|::|\\?\\?|[-+*/%=<>!&|^~.?:@]+"],
+    ["var", "(?<![\\w$])[A-Za-z_]\\w*"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
+  /* Une page PHP : le HTML est peint comme du HTML, le code entre balises
+     dans la syntaxe PHP. */
+  function peindrePhp(code) {
+    let out = "", i = 0;
+    const re = /<\?php\b|<\?=|<\?/g;
+    while (i < code.length) {
+      re.lastIndex = i;
+      const m = re.exec(code);
+      const deb = m ? m.index : code.length;
+      if (deb > i) out += peindreHtml(code.slice(i, deb));
+      if (!m) break;
+      let fin = code.indexOf("?>", m.index);
+      if (fin < 0) fin = code.length; else fin += 2;
+      out += peindrePhpCode(code.slice(m.index, fin));
+      i = fin;
+    }
+    return out;
+  }
+  function peindrePhpCode(code) {
+    const scan = SCAN.phpcode;
+    scan.lastIndex = 0;
+    let out = "", pos = 0, m;
+    while ((m = scan.exec(code))) {
+      if (m.index > pos) out += ech(code.slice(pos, m.index));
+      const classe = Object.keys(m.groups).find((k) => m.groups[k] !== undefined);
+      out += '<span class="j-' + classe + '">' + ech(m[0]) + "</span>";
+      pos = m.index + m[0].length;
+    }
+    return out + ech(code.slice(pos));
+  }
   const enveloppe = (classe, t) => '<span class="j-' + classe + '">' + ech(t) + "</span>";
 
   /* Le CSS dépend du CONTEXTE : « a:hover » est un sélecteur, « color: red »
@@ -281,7 +337,7 @@
     }
     return out;
   }
-  const PEINTRES = { html: peindreHtml, css: peindreCss };
+  const PEINTRES = { html: peindreHtml, css: peindreCss, php: peindrePhp };
 
   function peindre(code, langue) {
     if (PEINTRES[langue]) return PEINTRES[langue](code);
@@ -1692,8 +1748,9 @@
         /* Le commentaire de LA langue : « # » en Python, « /* … *\/ » en CSS,
            « <!-- … --> » en HTML. Le « // » partout faisait, en Python, une
            ligne invalide au lieu d'une ligne neutralisée. */
-        const [ouv, ferm] = langue === "python" ? ["#", ""] : langue === "css" ? ["/*", "*/"]
-          : langue === "html" ? ["<!--", "-->"] : langue === "sql" ? ["--", ""] : ["//", ""];
+        const langCo = estWeb(langue) ? langueFichier(fichierActif) : langue;
+        const [ouv, ferm] = langCo === "python" ? ["#", ""] : langCo === "css" ? ["/*", "*/"]
+          : langCo === "html" ? ["<!--", "-->"] : langue === "sql" ? ["--", ""] : ["//", ""];
         const eo = echapperRegex(ouv), ef = echapperRegex(ferm);
         const deja = new RegExp("^(\\s*)" + eo + " ?(.*?)" + (ferm ? " ?" + ef + "\\s*$" : "$"));
         const toutes = lignes.every((l) => !l.trim() || deja.test(l));
@@ -2393,10 +2450,22 @@
         + '    compteur.textContent = clics + (clics > 1 ? " clics" : " clic");\n'
         + '    console.log("Clic numéro", clics);\n});\n',
     });
+    /* Le projet de départ du mode PHP : la connexion d'espace membre du
+       chapitre 6 et du chapitre 9 — un login qui vérifie un mot de passe
+       haché (PDO sur la base du cours), une page privée gardée par la
+       session, une déconnexion. De quoi voir tourner tout de suite ce que
+       le cours décrit, sans installer XAMPP. */
+    const PROJET_PHP_DEPART = () => ({
+      "index.php": '<?php\nsession_start();\n\n// Déjà connecté ? on va directement à l\'espace membre.\nif (isset($_SESSION["admin"])) {\n    header("Location: accueil.php");\n    exit();\n}\n\nrequire "db.php";\n$erreur = "";\n\nif ($_SERVER["REQUEST_METHOD"] === "POST") {\n    $login = trim($_POST["login"] ?? "");\n    $mdp   = $_POST["mot_de_passe"] ?? "";\n\n    $req = $pdo->prepare("SELECT * FROM administrateurs WHERE login = :login");\n    $req->execute([":login" => $login]);\n    $admin = $req->fetch();\n\n    if ($admin && password_verify($mdp, $admin["mot_de_passe"])) {\n        $_SESSION["admin"] = $admin["login"];\n        header("Location: accueil.php");\n        exit();\n    }\n    $erreur = "Identifiants incorrects.";\n}\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Connexion</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Connexion</h1>\n    <p class="aide">Essayez <b>admin</b> / <b>admin</b> — le mot de passe est haché dans la base.</p>\n\n    <?php if ($erreur !== ""): ?>\n        <p class="erreur"><?php echo htmlspecialchars($erreur); ?></p>\n    <?php endif; ?>\n\n    <form method="post" action="index.php">\n        <label>Identifiant : <input type="text" name="login" required></label>\n        <label>Mot de passe : <input type="password" name="mot_de_passe" required></label>\n        <button type="submit">Se connecter</button>\n    </form>\n</body>\n</html>\n',
+      "accueil.php": '<?php\nsession_start();\n\n// Le garde : pas de session, pas d\'accès.\nif (!isset($_SESSION["admin"])) {\n    header("Location: index.php");\n    exit();\n}\n\nrequire "db.php";\n$_SESSION["visites"] = ($_SESSION["visites"] ?? 0) + 1;\n\n$nb = $pdo->query("SELECT COUNT(*) FROM etudiants")->fetchColumn();\n$absences = $pdo->query("SELECT COUNT(*) FROM presences WHERE statut = \'absent\'")->fetchColumn();\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Espace membre</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Bonjour <?php echo htmlspecialchars($_SESSION["admin"]); ?> !</h1>\n    <p>Vous avez vu cette page <?php echo $_SESSION["visites"]; ?> fois.</p>\n\n    <h2>Tableau de bord</h2>\n    <ul>\n        <li><?php echo $nb; ?> étudiants</li>\n        <li><?php echo $absences; ?> absences enregistrées</li>\n    </ul>\n\n    <h2>Les étudiants</h2>\n    <table border="1" cellpadding="4">\n        <tr><th>Nom</th><th>Prénom</th><th>Classe</th></tr>\n        <?php\n        $req = $pdo->query("SELECT nom, prenom, classe FROM etudiants ORDER BY nom LIMIT 10");\n        foreach ($req as $e) {\n            echo "<tr>";\n            echo "<td>" . htmlspecialchars($e["nom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["prenom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["classe"]) . "</td>";\n            echo "</tr>";\n        }\n        ?>\n    </table>\n\n    <p><a href="logout.php">Déconnexion</a></p>\n</body>\n</html>\n',
+      "logout.php": '<?php\nsession_start();\n$_SESSION = [];\nsession_destroy();\nheader("Location: index.php");\nexit();\n',
+      "db.php": '<?php\n// La connexion à MariaDB. Dans l\'atelier, la base « gestion_presence »\n// du cours est déjà chargée — pas besoin de XAMPP.\n$pdo = new PDO(\n    "mysql:host=localhost;dbname=gestion_presence;charset=utf8mb4",\n    "root",\n    "root"\n);\n$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n',
+      "style.css": 'body { font-family: system-ui, sans-serif; margin: 2rem; background: #fdf5e6; color: #2d2a26; }\nh1 { color: #1b4965; }\nlabel { display: block; margin: .6rem 0; }\ninput { padding: .3rem; }\nbutton { padding: .5rem 1rem; border: 0; border-radius: 6px; background: #1b4965; color: white; cursor: pointer; }\n.erreur { color: #b00020; font-weight: bold; }\n.aide { color: #666; font-size: .9rem; }\ntable { border-collapse: collapse; }\n',
+    });
     let projet = null, fichierActif = "index.html", pageApercu = "index.html";
     let texteClassique = null, surlignagesParFichier = {};
     let jetonApercu = null, sortieWeb = "", erreursWeb = [];
-    const langueFichier = (n) => /\.css$/i.test(n) ? "css" : /\.js$/i.test(n) ? "js" : "html";
+    const langueFichier = (n) => /\.css$/i.test(n) ? "css" : /\.js$/i.test(n) ? "js" : /\.php$/i.test(n) ? "php" : "html";
     const estTexte = (n) => projet && typeof projet[n] === "string";
     const barreFichiers = $("#at-fichiers");
     const nomFichier = $("#at-nom-fichier");
@@ -2494,7 +2563,7 @@
     let nonLus = 0;
     function montrerSortie(quoi) {
       if (!ongletsSortie) return;
-      const web = langue === "web", sql = langue === "sql";
+      const web = estWeb(langue), sql = langue === "sql";
       ongletsSortie.hidden = !web;
       $("#at-onglet-console").hidden = web;
       $("#at-onglet-console").textContent = sql ? "Résultats" : "Console";
@@ -2532,24 +2601,115 @@
       avisWeb = [];
       afficherDiagnostics([]);
       zoneEntree.hidden = true;
-      if (/\.html?$/i.test(fichierActif)) pageApercu = fichierActif;
-      if (!estTexte(pageApercu)) pageApercu = "index.html";
+      etatPhp = null;   // chaque « Exécuter » redémarre le serveur (session, base, disque neufs)
+      if (/\.(html?|php)$/i.test(fichierActif)) pageApercu = fichierActif;
+      if (!estTexte(pageApercu)) pageApercu = estTexte("index.php") ? "index.php" : "index.html";
       afficherPage(pageApercu);
       badge.classList.remove("grave");
       montrerSortie("apercu");
       // ce qu'aucune page ne relie : dit, avec la ligne à écrire
       for (const r of ATELIER_WEB.nonRelies(projet)) carteNonRelie(r);
-      dirEtat("Aperçu de " + pageApercu + " — la page tourne isolée, sans accès au reste du site", "ok");
+      const quoi = projetContientPhp() ? "Page servie par PHP — session, base du cours et fichiers, comme sur XAMPP" : "la page tourne isolée, sans accès au reste du site";
+      dirEtat("Aperçu de " + pageApercu + " — " + quoi, "ok");
     }
-    function afficherPage(page) {
+    const estPhp = (n) => /\.php$/i.test(n);
+    const projetContientPhp = () => projet && Object.keys(projet).some((n) => estPhp(n) && typeof projet[n] === "string");
+    /* ══ le mode PHP : chaque requête tourne dans le moteur écrit ici
+       (php.js). L'état — $_SESSION, la base du cours, le disque virtuel —
+       est gardé d'une page à l'autre comme sur un vrai serveur, et remis à
+       neuf à chaque « Exécuter ». */
+    let etatPhp = null;
+    function neufEtatPhp() {
+      let serveur = null;
+      if (typeof MOTEUR_SQL !== "undefined") {
+        serveur = new MOTEUR_SQL.Serveur();
+        if (typeof BASE_COURS_SQL === "string") { try { serveur.executer(BASE_COURS_SQL); } catch (e) { /* la base de départ */ } }
+      }
+      return { serveur: serveur, session: null, sessionDemarree: false, fs: Object.create(null), cookies: Object.create(null) };
+    }
+    function sourcesPhp() {
+      const out = {};
+      for (const n in projet) if (typeof projet[n] === "string" && /\.(php|html?|inc)$/i.test(n)) out[n] = projet[n];
+      return out;
+    }
+    const tableauPhp = (obj) => { const a = new PHP.PhpArray(); for (const k in obj) a.set(k, obj[k]); return a; };
+    /* Une requête : exécuter « page » (GET ou POST), suivre les
+       redirections header("Location: …") jusqu'à une vraie page, et rendre
+       la sortie HTML. Rien ne quitte le navigateur. */
+    function requetePhp(page, methode, donnees) {
+      if (typeof PHP === "undefined") return { page, sortie: "Le moteur PHP (c/php.js) n'a pas pu être chargé.", avis: [], erreurFatale: null };
+      if (!etatPhp) etatPhp = neufEtatPhp();
+      let get = new PHP.PhpArray(), post = new PHP.PhpArray();
+      const q = page.indexOf("?");
+      let chemin = page;
+      if (q >= 0) { chemin = page.slice(0, q); new URLSearchParams(page.slice(q + 1)).forEach((v, k) => get.set(k, v)); }
+      if (methode === "POST" && donnees) post = tableauPhp(donnees);
+      else if (methode === "GET" && donnees) get = tableauPhp(donnees);
+      const chaine = [];
+      for (let hop = 0; hop < 15; hop++) {
+        if (typeof projet[chemin] !== "string") return { page: chemin, sortie: "", avis: [], erreurFatale: { message: "Page « " + chemin + " » introuvable", ligne: 0, classe: "Introuvable" }, chaine };
+        const serveur = new PHP.Moteur({
+          serveur: etatPhp.serveur, session: etatPhp.session, fs: etatPhp.fs, cookies: etatPhp.cookies,
+          get: get, post: post, methode: methode, page: chemin,
+        });
+        serveur.fichiers = sourcesPhp();
+        const r = serveur.lancerProgramme(chemin, projet[chemin]);
+        etatPhp.session = r.session; etatPhp.fs = r.fs; etatPhp.cookies = r.cookies;
+        if (r.redirection) {
+          chaine.push({ page: chemin, vers: r.redirection });
+          const cible = String(r.redirection).replace(/^\.\//, "").replace(/^https?:\/\/[^/]+\//i, "").replace(/^\//, "");
+          const cibleChemin = cible.split("?")[0];
+          if (typeof projet[cibleChemin] === "string" && chaine.length < 15) {
+            chemin = cibleChemin; methode = "GET"; post = new PHP.PhpArray(); get = new PHP.PhpArray();
+            if (cible.indexOf("?") >= 0) new URLSearchParams(cible.slice(cible.indexOf("?") + 1)).forEach((v, k) => get.set(k, v));
+            continue;
+          }
+          return { page: chemin, sortie: r.sortie, avis: r.avis, erreurFatale: r.erreurFatale, redirectionExterne: r.redirection, chaine };
+        }
+        return { page: chemin, sortie: r.sortie, avis: r.avis, erreurFatale: r.erreurFatale, chaine };
+      }
+      return { page: chemin, sortie: "", avis: [], erreurFatale: { message: "Trop de redirections (boucle entre pages)", ligne: 0, classe: "Boucle" }, chaine };
+    }
+    function signalerPhp(res) {
+      // les avertissements et l'erreur fatale → la console et les diagnostics
+      (res.chaine || []).forEach((h) => console2.note("→ redirection : " + h.page + " envoie vers " + h.vers, "info"));
+      const diags = [];
+      (res.avis || []).forEach((a) => {
+        diags.push({ ligne: a.ligne, colonne: 1, niveau: a.niveau === "Deprecated" || a.niveau === "Notice" ? "warning" : "warn", fichier: res.page,
+                     message: a.niveau + ": " + a.message, php: true });
+        console2.note((a.niveau === "Deprecated" ? "Déprécié" : a.niveau === "Notice" ? "Note" : "Avertissement") + " : " + a.message + " (" + res.page + ", ligne " + a.ligne + ")", a.niveau === "Deprecated" ? "info" : "garde");
+      });
+      if (res.erreurFatale) {
+        const e = res.erreurFatale;
+        diags.push({ ligne: e.ligne, colonne: 1, niveau: "error", fichier: res.page, message: (e.classe || "Fatal error") + ": " + e.message, php: true });
+        console2.note("⚑ " + (e.classe || "Erreur") + " : " + e.message + (e.ligne ? " (" + res.page + ", ligne " + e.ligne + ")" : ""), "stop");
+      }
+      erreursWeb = diags;
+      afficherDiagnostics(erreursWeb);
+      if (res.redirectionExterne) console2.note("La redirection « " + res.redirectionExterne + " » sort du projet : sur un vrai serveur, le navigateur irait là. L'aperçu s'arrête ici.", "info");
+    }
+    function afficherPage(page, methode, donnees) {
       jetonApercu = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      const r = ATELIER_WEB.assembler(projet, page, jetonApercu, fabriqueConsole.toString());
-      manquants = new Set(r.manque);
-      for (const n of r.manque) carteManquant(n, page);
-      pageApercu = page;
+      let html, pageVue = page, rendus = null;
+      if (estPhp(page) || (projetContientPhp() && methode)) {
+        const res = requetePhp(page, methode || "GET", donnees);
+        pageVue = res.page;
+        signalerPhp(res);
+        // la sortie PHP EST le HTML de la page : on la met en place de la page
+        rendus = {}; rendus[pageVue] = res.sortie || "";
+        const r = ATELIER_WEB.assembler(Object.assign({}, projet, rendus), pageVue, jetonApercu, fabriqueConsole.toString());
+        manquants = new Set(r.manque);
+        for (const n of r.manque) carteManquant(n, pageVue);
+        apercu.srcdoc = r.html;
+      } else {
+        const r = ATELIER_WEB.assembler(projet, page, jetonApercu, fabriqueConsole.toString());
+        manquants = new Set(r.manque);
+        for (const n of r.manque) carteManquant(n, page);
+        apercu.srcdoc = r.html;
+      }
+      pageApercu = pageVue;
       const titre = $("#at-page-apercu");
-      if (titre) { titre.textContent = page; titre.hidden = Object.keys(projet).filter((x) => /\.html?$/i.test(x)).length < 2; }
-      apercu.srcdoc = r.html;
+      if (titre) { titre.textContent = pageVue; titre.hidden = Object.keys(projet).filter((x) => /\.(html?|php)$/i.test(x)).length < 2; }
     }
     /* Une page qui appelle un fichier absent du projet : on le dit, et on
        propose de le créer — le cas de tout exemple du cours qui relie un
@@ -2616,14 +2776,24 @@
         signalerConsole(true);
         dirEtat("Erreur JavaScript dans " + fichier + (m.ligne ? ", ligne " + m.ligne : ""), "erreur");
       } else if (m.t === "aller") {
-        afficherPage(m.page);
-        console2.note("→ lien suivi : " + m.page, "info");
+        const cible = m.ancre ? m.page : m.page;
+        if (estPhp(m.page) || projetContientPhp()) { afficherPage(m.page + (m.requete ? "?" + m.requete : ""), "GET"); console2.note("→ lien suivi : " + m.page, "info"); }
+        else { afficherPage(m.page); console2.note("→ lien suivi : " + m.page, "info"); }
       } else if (m.t === "formulaire") {
-        const lignes = m.champs.length ? m.champs.map(([k, v]) => "    " + k + " = " + JSON.stringify(v)).join("\n") : "    (aucun champ nommé : il manque les attributs name)";
-        console2.note("Formulaire envoyé (" + m.methode + ") vers « " + (m.action || "la même page") + " » :\n" + lignes
-          + (/\.php$/i.test(m.action) ? "\n  C'est un serveur PHP qui le recevrait : l'aperçu montre ce qui serait parti." : ""), "info");
-        signalerConsole(false);
-        montrerSortie("console");
+        const action = (m.action || pageApercu).replace(/^\.\//, "");
+        const cible = action.split("?")[0] || pageApercu;
+        if (estPhp(cible) && typeof projet[cible] === "string") {
+          const donnees = {};
+          m.champs.forEach(([k, v]) => { donnees[k] = typeof v === "string" ? v : String(v); });
+          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + cible + " » — reçu par PHP.", "info");
+          afficherPage(cible, m.methode === "POST" ? "POST" : "GET", donnees);
+        } else {
+          const lignes = m.champs.length ? m.champs.map(([k, v]) => "    " + k + " = " + JSON.stringify(v)).join("\n") : "    (aucun champ nommé : il manque les attributs name)";
+          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + (m.action || "la même page") + " » :\n" + lignes
+            + (/\.php$/i.test(action) ? "\n  Un serveur PHP le recevrait ; aucune page « " + cible + " » n'est dans le projet." : ""), "info");
+          signalerConsole(false);
+          montrerSortie("console");
+        }
       } else if (m.t === "lien") {
         console2.note("Lien vers " + m.url + " : non ouvert — l'aperçu reste isolé, hors ligne.", "info");
         signalerConsole(false);
@@ -2988,13 +3158,29 @@
       afficherDiagnostics([{ ligne: faute.ligne || 0, colonne: faute.colonne || 1, niveau: "error",
         message: "ERROR " + faute.code + " (" + faute.etat + ") at line " + faute.ligne + ": " + faute.message }]);
     }
+    /* La relecture d'une page PHP pendant la frappe : l'analyseur seul
+       (php-analyse.js) dit la faute de syntaxe avant d'appuyer sur Exécuter. */
+    function relirePhp() {
+      if (langue !== "php" || typeof PHP_ANALYSE === "undefined" || !estPhp(fichierActif)) return;
+      const source = editeur.valeur;
+      if (source === texteRelu) return;
+      texteRelu = source;
+      let faute = null;
+      try { PHP_ANALYSE.analyser(source, fichierActif); }
+      catch (e) { if (e && e.syntaxe) faute = e; }
+      erreursWeb = (erreursWeb || []).filter((d) => !d.phpSyntaxe);
+      if (!faute) { afficherDiagnostics(erreursWeb); return; }
+      erreursWeb.push({ ligne: faute.ligne || 0, colonne: 1, niveau: "error", fichier: fichierActif, phpSyntaxe: true,
+        message: "Parse error: " + faute.message });
+      afficherDiagnostics(erreursWeb);
+    }
 
     async function executer(relance) {
       if (tourne && !relance) return;
       /* Le Python ne passe pas par le compilateur : il part d'ici, avant
          qu'on allume quoi que ce soit de la chaîne wasm. */
       if (langue === "python") { executerPython(); return; }
-      if (langue === "web") { executerWeb(); return; }
+      if (estWeb(langue)) { executerWeb(); return; }
       if (langue === "sql") { executerSql(); return; }
       if (langue === "js") { arreterExec(); executerJS(); return; }
       arreterExec();
@@ -3194,6 +3380,7 @@
          pas à moi de supposer que sa machine suit. */
       if (!relirePendantLaFrappe) return;
       if (langue === "sql") { clearTimeout(minuterieRelire); minuterieRelire = setTimeout(relireSql, DELAI_RELIRE); return; }
+      if (langue === "php") { clearTimeout(minuterieRelire); minuterieRelire = setTimeout(relirePhp, DELAI_RELIRE); return; }
       if (langue !== "c" && langue !== "c++") return;
       if (!moteur.pret) return;
       clearTimeout(minuterieRelire);
@@ -3232,7 +3419,7 @@
       const vrais = liste.filter((d) => d.niveau !== "note");
       for (const d of vrais) {
         const niveau = d.niveau.indexOf("error") >= 0 ? "erreur" : "avert";
-        if (d.ligne && (!d.fichier || langue !== "web" || d.fichier === fichierActif))
+        if (d.ligne && (!d.fichier || !estWeb(langue) || d.fichier === fichierActif))
           marques.push({ ligne: d.ligne, niveau, titre: d.message });
         diags.appendChild(carteDiagnostic(d, niveau));
       }
@@ -3240,7 +3427,7 @@
       /* En mode Web, les avis sur le projet (fichier absent, non relié)
          restent sous les erreurs : une erreur JavaScript qui arrive ne doit
          pas les effacer. */
-      if (langue === "web" && avisWeb.length) {
+      if (estWeb(langue) && avisWeb.length) {
         for (const c of avisWeb) diags.appendChild(c);
         $("#at-diag-tete").hidden = false;
         if (!vrais.length) { $("#at-diag-tete").textContent = "À vérifier"; return; }
@@ -3284,9 +3471,9 @@
     }
 
     function extraitSource(d) {
-      const texte = d.fichier && langue === "web" && projet && typeof projet[d.fichier] === "string"
+      const texte = d.fichier && estWeb(langue) && projet && typeof projet[d.fichier] === "string"
         ? (d.fichier === fichierActif ? editeur.valeur : projet[d.fichier]) : editeur.valeur;
-      const lg = d.fichier && langue === "web" ? langueFichier(d.fichier) : langue;
+      const lg = d.fichier && estWeb(langue) ? langueFichier(d.fichier) : langue;
       const ligne = texte.split("\n")[d.ligne - 1];
       if (ligne === undefined) return "";
       const e = (d.etendues || []).filter((x) => x.l1 === d.ligne && x.l2 === d.ligne);
@@ -3376,7 +3563,7 @@
     diags.addEventListener("click", (e) => {
       const b = e.target.closest(".at-aller");
       if (!b) return;
-      if (b.dataset.fichier && langue === "web" && b.dataset.fichier !== fichierActif) ouvrirFichier(b.dataset.fichier);
+      if (b.dataset.fichier && estWeb(langue) && b.dataset.fichier !== fichierActif) ouvrirFichier(b.dataset.fichier);
       editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
     });
 
@@ -3385,8 +3572,12 @@
        « let » : poserLangue peut être appelée pendant l'initialisation, avant
        que la ligne du tiroir ne soit atteinte. */
     var redessinerExemples = null;
-    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS", "sql": "SQL" };
+    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS", "php": "PHP", "sql": "SQL" };
     const LANGUES = Object.keys(NOM_LANGUE);
+    /* Le mode PHP partage toute la machinerie du mode Web (projet en
+       onglets, aperçu) ; seule la page de départ et le fait que les pages
+       .php passent par le moteur PHP les distinguent. */
+    const estWeb = (x) => x === "web" || x === "php";
     /* Un programme de départ jamais modifié : on peut le remplacer par celui
        du langage choisi sans rien faire perdre. */
     const estDepart = (t) => Object.keys(DEPART).some((k) => DEPART[k] === t);
@@ -3398,7 +3589,7 @@
          de l'éditeur (on colle du Python, on clique Python). Entrer dans le
          Web met ce texte de côté, en sortir le rend. Un programme de
          départ jamais touché est remplacé par celui du nouveau langage. */
-      if (avant === "web" && l !== "web") {
+      if (estWeb(avant) && !estWeb(l)) {
         if (projet && estTexte(fichierActif)) {
           projet[fichierActif] = editeur.valeur;
           surlignagesParFichier[fichierActif] = editeur.surlignages;
@@ -3407,25 +3598,30 @@
         editeur.valeur = t == null || !t.trim() || estDepart(t) ? (DEPART[l] || "") : t;
         editeur.surlignages = [];
         texteClassique = null;
-      } else if (avant !== "web" && l === "web") {
+      } else if (!estWeb(avant) && estWeb(l)) {
         texteClassique = editeur.valeur;
-        if (!projet) {
-          projet = PROJET_DEPART();
-          if (devine(texteClassique) === "web") projet["index.html"] = texteClassique;
+        if (!projet || (l === "php" && !projetContientPhp())) {
+          projet = l === "php" ? PROJET_PHP_DEPART() : PROJET_DEPART();
+          if (l === "web" && devine(texteClassique) === "web") projet["index.html"] = texteClassique;
         }
-        if (!estTexte(fichierActif)) fichierActif = "index.html";
+        const entree = l === "php" ? "index.php" : "index.html";
+        if (!estTexte(fichierActif) || (l === "php" && !estPhp(fichierActif) && !projet[fichierActif])) fichierActif = estTexte(entree) ? entree : Object.keys(projet).filter(estTexte)[0];
         editeur.valeur = projet[fichierActif];
         editeur.surlignages = surlignagesParFichier[fichierActif] || [];
         afficherDiagnostics(erreursWeb);
-      } else if (avant !== l && l !== "web" && (estDepart(editeur.valeur) || !editeur.valeur.trim())) {
+      } else if (estWeb(avant) && estWeb(l) && avant !== l) {
+        // bascule Web ↔ PHP : garder le projet, mais charger la page de
+        // départ PHP si le projet n'a aucune page .php
+        if (l === "php" && !projetContientPhp()) { projet = PROJET_PHP_DEPART(); fichierActif = "index.php"; editeur.valeur = projet[fichierActif]; editeur.surlignages = []; }
+      } else if (avant !== l && !estWeb(l) && (estDepart(editeur.valeur) || !editeur.valeur.trim())) {
         editeur.valeur = DEPART[l] || "";
       }
       langue = l;
-      if (avant === "web" && l !== "web") afficherDiagnostics([]);
-      editeur.langue = l === "web" ? langueFichier(fichierActif) : l;
-      if (nomFichier) { nomFichier.textContent = FICHIER[l] || ""; nomFichier.hidden = l === "web"; }
-      if (barreFichiers) { barreFichiers.hidden = l !== "web"; if (l === "web") dessinerFichiers(); }
-      montrerSortie(l === "web" && apercu && apercu.srcdoc ? "apercu" : "console");
+      if (estWeb(avant) && !estWeb(l)) afficherDiagnostics([]);
+      editeur.langue = estWeb(l) ? langueFichier(fichierActif) : l;
+      if (nomFichier) { nomFichier.textContent = FICHIER[l] || ""; nomFichier.hidden = estWeb(l); }
+      if (barreFichiers) { barreFichiers.hidden = !estWeb(l); if (estWeb(l)) dessinerFichiers(); }
+      montrerSortie(estWeb(l) && apercu && apercu.srcdoc ? "apercu" : "console");
       /* « Strict » règle les avertissements du compilateur : en Python il
          n'y a pas de compilateur, et un bouton qui n'agit sur rien use la
          confiance dans tous les autres. */
@@ -3571,11 +3767,11 @@
 
     function sauver() {
       try {
-        if (langue === "web" && projet && estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
+        if (estWeb(langue) && projet && estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
         localStorage.setItem(CLE, JSON.stringify({
-          source: langue === "web" ? (texteClassique || "") : editeur.valeur, langue, strict, relirePendantLaFrappe,
+          source: estWeb(langue) ? (texteClassique || "") : editeur.valeur, langue, strict, relirePendantLaFrappe,
           quand: Date.now(), part: partVolets,
-          theme: ediTheme, surlignages: langue === "web" ? [] : editeur.surlignages,
+          theme: ediTheme, surlignages: estWeb(langue) ? [] : editeur.surlignages,
           projet, fichierActif,
         }));
       } catch (e) {
@@ -3798,15 +3994,16 @@
     /* Un programme du site (le tiroir, ou « #n= ») : un texte, ou un projet
        Web entier ({ langue: "web", fichiers }). */
     function ouvrirExemple(x) {
-      if (x.langue === "web" && x.fichiers) {
-        if (langue === "web") poserLangue("c");
+      if ((x.langue === "web" || x.langue === "php") && x.fichiers) {
+        if (estWeb(langue)) poserLangue("c");
         projet = JSON.parse(JSON.stringify(x.fichiers));
-        fichierActif = estTexte(x.actif) ? x.actif : "index.html";
+        const aPhp = Object.keys(projet).some((n) => /\.php$/i.test(n) && typeof projet[n] === "string");
+        fichierActif = estTexte(x.actif) ? x.actif : (aPhp && estTexte("index.php") ? "index.php" : "index.html");
         surlignagesParFichier = {};
-        poserLangue("web");
+        poserLangue(x.langue === "php" || aPhp ? "php" : "web");
         return;
       }
-      if (langue === "web") poserLangue("c");
+      if (estWeb(langue)) poserLangue("c");
       editeur.valeur = x.code;
       poserLangue(x.langue || devine(x.code));
     }
@@ -3816,20 +4013,22 @@
     function ouvrirTexte(txt) {
       const m = /[#&]l=([a-z+]+)/.exec(location.hash);
       const l = m && LANGUES.indexOf(m[1]) >= 0 ? m[1] : devine(txt);
-      if (l === "web") {
+      if (estWeb(l)) {
         let p = null;
         try { p = JSON.parse(txt); } catch (e) { p = null; }
-        if (langue === "web") poserLangue("c");
-        if (p && p.web && p.fichiers && typeof p.fichiers["index.html"] === "string") {
+        if (estWeb(langue)) poserLangue("c");
+        if (p && (p.web || p.php) && p.fichiers && (typeof p.fichiers["index.html"] === "string" || typeof p.fichiers["index.php"] === "string")) {
           projet = p.fichiers;
-          fichierActif = estTexte(p.actif) ? p.actif : "index.html";
-        } else {
-          projet = PROJET_DEPART();
-          projet["index.html"] = txt;
-          fichierActif = "index.html";
+          const aPhp = Object.keys(projet).some((n) => /\.php$/i.test(n) && typeof projet[n] === "string");
+          fichierActif = estTexte(p.actif) ? p.actif : (aPhp ? "index.php" : "index.html");
+          editeur.valeur = DEPART.c;
+          poserLangue(l === "php" || p.php || aPhp ? "php" : "web");
+          return;
         }
+        if (l === "php") { projet = PROJET_PHP_DEPART(); projet["index.php"] = txt; fichierActif = "index.php"; }
+        else { projet = PROJET_DEPART(); projet["index.html"] = txt; fichierActif = "index.html"; }
         editeur.valeur = DEPART.c;
-        poserLangue("web");
+        poserLangue(l);
         return;
       }
       editeur.valeur = txt;
@@ -3838,6 +4037,7 @@
     const devine = (s) =>
       /^\s*(?:(?:--[ \t][^\n]*|#[^\n]*)\n\s*)*(?:select|insert\s+into|update|delete\s+from|create\s+(?:table|database)|drop|alter\s+table|show|use|describe)\b/i.test(s)
         && !/#include|\bprintf\s*\(/.test(s) ? "sql"
+      : /<\?php|<\?=|\$_(POST|GET|SESSION|SERVER)\b|->(prepare|query|fetch|execute)\b|\becho\s+["'$]/.test(s) ? "php"
       : /^\s*(?:<!--[\s\S]*?-->\s*)*<(?:!doctype|html|head|body|div|p|h[1-6]|ul|section|main|header|form|table|style|script)\b/i.test(s) ? "web"
       : /\b(?:console\.log|document\.|addEventListener|=>)|(?:^|\n)\s*(?:let|const|function)\s/.test(s)
         && !/#include|\bprintf\s*\(|\bint\s+main\s*\(/.test(s) ? "js"
@@ -4093,7 +4293,7 @@
     /* Ce qui voyage dans un lien : le texte, ou pour un projet Web ses
        fichiers TEXTE en JSON — les images resteraient trop lourdes. */
     function texteAPartager() {
-      if (langue !== "web" || !projet) return editeur.valeur;
+      if (!estWeb(langue) || !projet) return editeur.valeur;
       if (estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
       const fichiers = {};
       for (const n of Object.keys(projet)) if (estTexte(n)) fichiers[n] = projet[n];
@@ -4420,7 +4620,7 @@
         dirEtat("En Python, l'alinéa fait partie du programme : il n'est pas refait automatiquement", "avert");
         return;
       }
-      const r = langue === "web" && langueFichier(fichierActif) === "html"
+      const r = estWeb(langue) && langueFichier(fichierActif) === "html"
         ? editeur.realigner(indenterHtml) : editeur.realigner();
       dirEtat(!r.ok
         ? "Alinéa : rien n'a été changé, le contrôle de sûreté n'est pas passé"

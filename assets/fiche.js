@@ -147,6 +147,14 @@
         return /^(select|insert|update|delete|create|alter|drop|show|use|describe|desc|truncate|rename|replace)\b/i.test(m);
       }) ? "sql" : null;
     }
+    /* Le PHP : seulement un fichier .php COMPLET, qui ouvre par « <?php ».
+       Un fragment (quelques lignes de corps, sans balise d'ouverture) ne
+       s'exécute pas tel quel — on ne propose pas de l'essayer. Les « … » le
+       trahissent aussi. */
+    if (langue === "php") {
+      if (/…|\.\.\.\s*$/m.test(code)) return null;
+      return /^\s*<\?php\b|^\s*<\?=/.test(code) || /^\s*<!DOCTYPE/i.test(code) ? "php" : null;
+    }
     return null;
   }
   var TAGS = /^(h[1-6]|p|a|ul|ol|li|button|nav|header|footer|main|section|article|aside|table|tr|td|th|img|input|label|form|span|div|strong|em|blockquote|figure|figcaption)$/;

@@ -1,5 +1,5 @@
 /* Lance tous les bancs de l'atelier : node outils/c/tests/tout.mjs */
-const fichiers = ["./sql.test.mjs"];
+const fichiers = ["./sql.test.mjs", "./php.test.mjs"];
 let echecs = 0, total = 0;
 for (const f of fichiers) {
   const mod = await import(f);
