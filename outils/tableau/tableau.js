@@ -4,9 +4,9 @@
    reste : la caméra, les outils, la sélection, le texte, l'historique, la
    mémoire, les fichiers. Il ne contient aucune géométrie de trait.
 
-   Le modèle est celui d'Excalidraw, champ pour champ, et c'est un choix,
-   pas une commodité : un tableau enregistré ici s'ouvre sur excalidraw.com,
-   et un fichier « .excalidraw » trouvé ailleurs s'ouvre ici. */
+   Le modèle est un format de tableau blanc ouvert, champ pour champ, et
+   c'est un choix, pas une commodité : un tableau enregistré ici s'ouvre
+   dans les éditeurs qui le partagent, et l'inverse. */
 (function () {
   "use strict";
   const R = window.TB_RENDU;
@@ -23,7 +23,7 @@
   const etatLigne = $("#tb-etat");
 
   /* ═══════════════ 1. Les constantes ══════════════════════════════════
-     La palette est celle d'Excalidraw (Open Color) : elle est faite pour
+     La palette est Open Color : elle est faite pour
      rester lisible une fois inversée en mode sombre. */
   const OC = {
     gray: ["#f8f9fa", "#e9ecef", "#ced4da", "#868e96", "#343a40"],
@@ -42,7 +42,7 @@
   const NOIR = "#1e1e1e";
   const TRAITS = [NOIR, OC.red[4], OC.green[4], OC.blue[4], OC.yellow[4]];
   const FONDS = ["transparent", OC.red[1], OC.green[1], OC.blue[1], OC.yellow[1]];
-  /* Les douze couleurs de post-it de Whiteboard, prises dans la même
+  /* Les douze couleurs de post-it, prises dans la même
      palette pour qu'elles s'inversent proprement. */
   const POSTITS = [OC.yellow[1], OC.pink[1], OC.green[1], OC.blue[1], OC.orange[1], OC.violet[1],
                    OC.cyan[1], OC.teal[1], OC.grape[1], OC.red[1], OC.gray[1], OC.bronze[1]];
@@ -58,9 +58,9 @@
     try { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || sinon; }
     catch (e) { return sinon; }
   };
-  /* Les familles d'Excalidraw, par leur numéro, ramenées à TROIS polices
+  /* Les familles du format, par leur numéro, ramenées à TROIS polices
      déjà présentes sur la machine : on ne télécharge aucune fonte. Un
-     fichier venu d'Excalidraw garde son numéro — il retrouvera sa vraie
+     fichier venu d'ailleurs garde son numéro — il retrouvera sa vraie
      police là-bas. */
   const SANS = LIRE_CSS("--sans", "system-ui, sans-serif");
   const MONO = LIRE_CSS("--mono", "ui-monospace, monospace");
@@ -87,7 +87,7 @@
   const PAS_GRILLE = 20;
   const ZMIN = 0.05, ZMAX = 10;
   const BLEU_SEL = "#4c6ef5";
-  const PAD = 5;               // BOUND_TEXT_PADDING d'Excalidraw
+  const PAD = 5;               // le rembourrage du texte lié, dans le format
   const PAD_POSTIT = 14;
 
   /* ═══════════════ 2. L'état ═════════════════════════════════════════ */
@@ -97,8 +97,8 @@
     scrollX: 0, scrollY: 0, zoom: 1,
     fond: "#ffffff", grille: "points", theme: "site",
     titre: "Tableau sans titre", cote: "gauche", encre: true, format: false,
-    /* Le style par défaut est celui de Whiteboard : trait NET, fond plein,
-       police ordinaire. Le trait tremblé d'Excalidraw reste à un clic, dans
+    /* Le style par défaut : trait NET, fond plein,
+       police ordinaire. Le trait tremblé reste à un clic, dans
        « Format ». */
     courant: {
       strokeColor: NOIR, backgroundColor: "transparent", fillStyle: "solid",
@@ -107,11 +107,11 @@
       startArrowhead: null, endArrowhead: "arrow",
       postit: POSTITS[0], surligneur: SURLIGNEURS[0], surligneurW: 6,
     },
-    /* Les trois stylos de Whiteboard, réglés chacun pour soi. */
+    /* Les trois stylos, réglés chacun pour soi. */
     stylos: [{ c: NOIR, w: 1.6 }, { c: OC.red[4], w: 1.6 }, { c: OC.blue[4], w: 1.6 }],
     stylo: 0,
   };
-  /* Les douze encres de Whiteboard, et ses six calibres. */
+  /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
                   [OC.orange[3], "Orange"], [OC.yellow[3], "Jaune"], [OC.green[4], "Vert"],
                   [OC.blue[2], "Bleu clair"], [OC.blue[4], "Bleu foncé"], [OC.violet[4], "Violet"],
@@ -251,7 +251,7 @@
   }
 
   /* Un fichier venu d'ailleurs peut manquer de champs (une ancienne
-     version d'Excalidraw, un fichier écrit à la main) : on complète, sans
+     version du format, un fichier écrit à la main) : on complète, sans
      rien inventer de ce qui est présent. */
   function normaliser(el) {
     if (!el || typeof el !== "object" || el.isDeleted || !el.type) return null;
@@ -324,8 +324,8 @@
   }
   /* Le texte lié suit son conteneur : retour à la ligne à sa largeur,
      centré dedans ; et si le texte est plus haut que la forme, c'est la
-     forme qui grandit — comme Excalidraw. Un post-it, lui, RÉDUIT d'abord
-     sa police, comme Whiteboard, et ne grandit qu'en dernier recours. */
+     forme qui grandit. Un post-it, lui, RÉDUIT d'abord
+     sa police, et ne grandit qu'en dernier recours. */
   function placerLie(t) {
     const c = parId(t.containerId);
     if (!c) return;
@@ -363,7 +363,7 @@
   }
 
   /* ═══════════════ 5. La caméra ═══════════════════════════════════════
-     Écran = (scène + défilement) × zoom : la convention d'Excalidraw, qui
+     Écran = (scène + défilement) × zoom : la convention du format, qui
      garde ses valeurs de scrollX / scrollY / zoom compatibles. */
   const versScene = (sx, sy) => ({ x: sx / etat.zoom - etat.scrollX, y: sy / etat.zoom - etat.scrollY });
   const versEcran = (x, y) => ({ x: (x + etat.scrollX) * etat.zoom, y: (y + etat.scrollY) * etat.zoom });
@@ -522,7 +522,7 @@
      Tracée en coordonnées d'écran, au pas de la scène. Quand le zoom
      l'écrase, son pas se multiplie par cinq ; quand elle s'éclaircit
      encore, elle s'efface en fondu — une grille saturée devient un gris
-     uniforme et ne sert plus à rien (Whiteboard fait de même). */
+     uniforme et ne sert plus à rien. */
   function dessinerGrille(W, H) {
     const g = etat.grille;
     if (g === "aucune") return;
@@ -864,7 +864,7 @@
   function debutDessin(e, p) {
     const surl = etat.outil === "surligneur";
     /* Une souris rend une pression de 0,5 tout le temps : c'est le signe
-       qu'il faut la simuler par la vitesse (la règle d'Excalidraw). */
+       qu'il faut la simuler par la vitesse. */
     const simuler = !(e.pointerType === "pen" && e.pressure && e.pressure !== 0.5);
     const el = nouvelElement("freedraw", p.x, p.y, {
       points: [[0, 0]], pressures: [simuler ? 0.5 : e.pressure], simulatePressure: simuler,
@@ -1005,7 +1005,7 @@
   }
 
   /* Le bout « i » d'une ligne suit le pointeur ; Maj l'aimante par crans
-     de 15°, comme Excalidraw. Le point 0 reste l'origine de l'élément. */
+     de 15°. Le point 0 reste l'origine de l'élément. */
   function tracerLigne(el, i, p, e) {
     const autre = el.points[1 - i];
     const ax = el.x + autre[0], ay = el.y + autre[1];
@@ -1070,7 +1070,7 @@
   }
 
   /* ── la gomme ──────────────────────────────────────────────────────
-     Comme Excalidraw : ce que la gomme touche passe en fantôme (20 %),
+     Ce que la gomme touche passe en fantôme (20 %),
      et n'est détruit qu'au relâchement. Échap avant de lâcher, et rien
      n'est effacé. Le segment parcouru est échantillonné : un geste rapide
      ne saute pas par-dessus un trait fin. */
@@ -1366,8 +1366,8 @@
     sel.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
     const liste = elements.filter((e) => ids.has(e.id));
     pressePapiers = JSON.parse(JSON.stringify(liste));
-    /* Le format du presse-papiers d'Excalidraw : ce qu'on copie ici se
-       colle sur excalidraw.com, et l'inverse. */
+    /* Le format de presse-papiers partagé : ce qu'on copie ici se colle
+       dans les éditeurs qui le lisent, et l'inverse. */
     const texte = JSON.stringify({ type: "excalidraw/clipboard", elements: liste, files: {} });
     try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).catch(() => {}); }
     catch (e) { /* le presse-papiers interne suffit */ }
@@ -1501,10 +1501,10 @@
   function majPanneau() {
     const T = cibles();
     if (!selection.size) etat.format = false;
-    /* Comme Whiteboard : le format d'une sélection s'ouvre par le bouton
+    /* Le format d'une sélection s'ouvre par le bouton
        de sa barre d'actions, il ne s'impose pas. Un outil de forme pris au
        clavier (R, D, O, A, L, T) montre, lui, les réglages du prochain
-       élément — c'est le geste d'Excalidraw, et il reste disponible. */
+       élément — le geste reste disponible. */
     const outilAReglages = /^(rectangle|diamond|ellipse|arrow|line|texte|postit)$/.test(etat.outil);
     if (!T.length || geste || (selection.size && !etat.format) || (!selection.size && !outilAReglages)) {
       panneau.hidden = true; return;
@@ -1582,7 +1582,7 @@
   }
 
   /* Un réglage s'applique à la sélection ET devient le réglage courant :
-     le prochain élément naîtra avec, comme dans Excalidraw. */
+     le prochain élément naîtra avec. */
   function appliquer(prop, v) {
     const c = etat.courant;
     if (prop === "arrondi") c.arrondi = v;
@@ -1635,7 +1635,7 @@
   });
 
   /* ═══════════════ 12. Le clavier ═════════════════════════════════════
-     Les raccourcis d'Excalidraw, touche pour touche. Ils ne vivent que
+     Les raccourcis du format, touche pour touche. Ils ne vivent que
      dans le tableau (quand il a le focus) : sur le reste de la page, « R »
      reste une lettre. */
   const TOUCHES = { v: "selection", 1: "selection", r: "rectangle", 2: "rectangle", d: "diamond", 3: "diamond",
@@ -1738,7 +1738,7 @@
     .replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "tableau";
   function enregistrer() {
     telecharger(nomFichier() + ".excalidraw", JSON.stringify(sceneJSON(), null, 2), "application/json");
-    dire("Enregistré au format Excalidraw : il s'ouvre ici, et sur excalidraw.com.");
+    dire("Enregistré : le fichier s'ouvre ici, et dans les éditeurs qui partagent ce format.");
   }
   function ouvrirTexte(t, nom) {
     let j;
@@ -1908,7 +1908,7 @@
 
   /* ── le thème : celui du site par défaut ──
      En sombre, le canevas est INVERSÉ par un filtre (invert 93 %, puis la
-     teinte remise à l'endroit) : c'est le procédé d'Excalidraw. Le noir
+     teinte remise à l'endroit) : c'est le procédé usuel. Le noir
      enregistré reste noir dans le fichier ; seul l'écran s'inverse. */
   function sombre() {
     if (etat.theme === "sombre") return true;
@@ -1958,7 +1958,7 @@
   bPlein.addEventListener("click", () => basculerPlein());
   $("#tb-aide-b").addEventListener("click", () => ouvrirDialogue("#tb-aide"));
 
-  /* ═══════════════ 14 bis. La disposition de Whiteboard ═══════════════
+  /* ═══════════════ 14 bis. La disposition de la barre ═══════════════
      La barre de gauche (sélectionner, se déplacer, encrer, créer), la
      barre d'encrage (trois stylos, surligneur, gomme, laser), le panneau
      « Créer » qui POSE un objet au centre de l'écran d'un clic, et la
@@ -1968,7 +1968,7 @@
      Rectangle, losange et ellipse sont les formes du format ; toutes les
      autres sont des POLYGONES fermés (une « ligne » dont le dernier point
      rejoint le premier). C'est ainsi que le format les connaît : un
-     triangle posé ici reste un triangle sur excalidraw.com. Les points sont
+     triangle posé ici reste un triangle ailleurs. Les points sont
      donnés dans un carré de côté 1. */
   const regulier = (k, depart) => Array.from({ length: k }, (_, i) => {
     const a = (depart || -Math.PI / 2) + i * Math.PI * 2 / k;
@@ -2120,7 +2120,7 @@
 
   /* ── la barre d'encrage ──
      Un clic prend le stylo ; un second clic sur le stylo déjà en main
-     ouvre son réglage — couleur et calibre —, comme dans Whiteboard. */
+     ouvre son réglage — couleur et calibre. */
   const reglage = $("#tb-reglage");
   function majStylos() {
     $$("[data-stylo]").forEach((b) => {

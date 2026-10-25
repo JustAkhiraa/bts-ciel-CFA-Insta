@@ -5,15 +5,14 @@
    recopie tels quels dans un fichier SVG. Un seul calcul, deux sorties :
    ce qu'on exporte est exactement ce qu'on voit.
 
-   Les éléments suivent le FORMAT de fichier d'Excalidraw — les noms de
-   champs, rien de plus — pour qu'un tableau enregistré ici s'ouvre sur
-   excalidraw.com, et l'inverse. Le code, lui, est écrit ici de bout en
-   bout. Celui d'Excalidraw (et de rough.js, et de perfect-freehand) a été
-   LU pour comprendre les idées — un trait tremblé, c'est une droite
-   légèrement courbée et doublée ; un trait de plume, c'est un contour dont
-   la largeur suit la pression — et aucune ligne n'en est recopiée. Le
-   rendu n'est donc pas identique au leur au pixel près, et ce n'est pas
-   le but : le même fichier s'y dessine avec leur trait, ici avec le nôtre. */
+   Les éléments suivent un FORMAT de tableau blanc OUVERT — des noms de
+   champs, rien de plus — pour qu'un tableau enregistré ici s'ouvre dans
+   les éditeurs qui le partagent, et l'inverse. Le code, lui, est écrit
+   ici de bout en bout : un trait tremblé, c'est une droite légèrement
+   courbée et doublée ; un trait de plume, c'est un contour dont la
+   largeur suit la pression. Le rendu n'est donc identique à celui de
+   personne, et ce n'est pas le but : le même fichier se dessine ailleurs
+   avec leur trait, ici avec le nôtre. */
 (function (racine) {
   "use strict";
 
@@ -257,7 +256,7 @@
      largeur suit la pression. Avec un stylet, c'est la vraie pression ;
      avec une souris, on la déduit de la VITESSE — vite, le trait s'affine ;
      lentement, il s'épaissit, comme l'encre qui a le temps de couler.
-     L'idée vient de perfect-freehand ; la manière de la calculer est la
+     L'idée est connue ; la manière de la calculer est la
      nôtre. */
   function contourLibre(points, pressions, simuler, epaisseur) {
     if (!points.length) return [];
@@ -481,7 +480,7 @@
   }
 
   /* Le point (en coordonnées de la scène) touche-t-il l'élément ? Comme
-     Excalidraw : une forme SANS fond ne se prend que par son trait — sinon
+     Convention partagée : une forme SANS fond ne se prend que par son trait — sinon
      un grand cadre vide avalerait tous les clics posés dedans. */
   function touche(el, x, y, tol) {
     // ramener le point dans le repère de l'élément, rotation comprise
