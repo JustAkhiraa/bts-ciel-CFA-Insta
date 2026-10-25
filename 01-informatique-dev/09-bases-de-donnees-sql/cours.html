@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : SGBD, modèle relationnel, clés primaires et étrangères, MCD/MLD, CREATE, INSERT/UPDATE/DELETE, SELECT, jointures, agrégats, PDO et injections SQL.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=68165e68">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d0656319">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -762,17 +762,25 @@ USE gestion_presence;
 }</code></pre></div>
 
   <p>Maintenant, un visiteur saisit ceci dans le champ <em>identifiant</em> :</p>
-<div class="bloc-code"><span class="langue">ce qu'il tape</span><pre><code>' OR '1'='1</code></pre></div>
+<div class="bloc-code"><span class="langue">ce qu'il tape</span><pre><code>' OR '1'='1' #</code></pre></div>
 
   <p>La requête réellement envoyée à la base devient :</p>
 <div class="bloc-code" data-fam="sql"><span class="langue">sql — ce que voit MariaDB</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> administrateurs
-<span class="j-mc">WHERE</span> login = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span> <span class="j-mc">AND</span> mot_de_passe = <span class="j-txt">''</span>
-                  └──────┘
-             toujours vrai</code></pre></div>
+<span class="j-mc">WHERE</span> login = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span> <span class="j-com">#' AND mot_de_passe = ''</span>
+                    └─────┘ └──────────────────────┘
+                 toujours vrai      un commentaire : ignoré</code></pre></div>
 
   <p>La condition est satisfaite, une ligne est renvoyée, et <strong>l'attaquant est connecté en
      administrateur sans mot de passe</strong>. Il n'a eu besoin d'aucun outil : un clavier a
      suffi.</p>
+
+  <p>Le <code>#</code> compte : il ouvre un commentaire, et MariaDB ignore tout ce qui suit — la
+     vérification du mot de passe avec. Sans lui, l'attaque échouerait, parce que <code>AND</code>
+     passe avant <code>OR</code> (comme × avant +) : <code>login = '' OR '1'='1' AND mot_de_passe = ''</code>
+     se lit <code>login = '' OR ('1'='1' AND mot_de_passe = '')</code>, et il faudrait encore le bon
+     mot de passe. L'attaquant le sait : il ajoute le commentaire, ou tape la même chaîne dans les
+     <em>deux</em> champs. Le compilateur de l'atelier, en mode SQL, permet de le vérifier sur la
+     base du cours.</p>
 
   <div class="encart savoir">
     <div class="titre">🌍 Pourquoi ça marche</div>
@@ -799,8 +807,8 @@ USE gestion_presence;
     <span class="j-var">$_SESSION</span>[<span class="j-txt">'admin_connecte'</span>] = <span class="j-mc">true</span>;
 }</code></pre></div>
 
-  <p>Avec <code>' OR '1'='1</code> saisi dans le champ, la base cherche désormais un administrateur
-     dont le login est <strong>littéralement</strong> la chaîne <code>' OR '1'='1</code>. Elle n'en
+  <p>Avec <code>' OR '1'='1' #</code> saisi dans le champ, la base cherche désormais un administrateur
+     dont le login est <strong>littéralement</strong> la chaîne <code>' OR '1'='1' #</code>. Elle n'en
      trouve aucun. L'attaque est neutralisée.</p>
 
   <div class="encart outils">
@@ -1154,11 +1162,10 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
   </div>
 </footer>
 
-
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/cours.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/cours.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=68165e68"></script>
-<script src="../../assets/app.js?v=68165e68"></script>
+<script src="../../assets/fiche.js?v=d0656319"></script>
+<script src="../../assets/app.js?v=d0656319"></script>
 </body>
 </html>

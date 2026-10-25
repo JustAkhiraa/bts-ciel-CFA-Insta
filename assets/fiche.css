@@ -8973,9 +8973,259 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   }
 }
 
+/* Les règles ci-dessous ont été RÉCUPÉRÉES : une republication les avait
+   effacées, parce qu'elles n'existaient que dans la feuille PRODUITE. Le
+   diagnostic qui a suivi était faux de bout en bout — j'ai conclu que le
+   tableau blanc n'avait jamais eu de style, alors que je venais de le
+   supprimer moi-même. Mesurer l'état actuel ne dit rien de l'état voulu. */
+
+/* Le symbole d'un indicateur, en gris entre son nom et sa valeur — le
+   tableau des Stats de la machine. */
+.nw-table .nw-symbole { text-align: left; color: var(--nw-encre-douce); }
+/* Le nom s'y lit comme un mot, pas comme un en-tête de colonne : ni
+   capitales ni chasse fixe. Et le tableau n'est pas mis dans un cadre
+   défilant — seize lignes coupées à dix cachaient l'échantillon. */
+.nw-table-stats th[scope="row"] {
+  font-family: inherit; text-transform: none; letter-spacing: normal;
+  background: none; color: var(--nw-encre);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Le tableau blanc (outils/tableau.html)
+   La disposition de Microsoft Whiteboard : le titre et l'historique en
+   haut à gauche, les réglages en haut à droite, la barre d'outils sur le
+   côté, la barre d'encrage en haut au centre, le zoom en bas à droite.
+   Tout flotte AU-DESSUS du canevas, qui occupe toute la surface : le
+   tableau est infini, les commandes ne doivent pas lui prendre de place.
+   ══════════════════════════════════════════════════════════════════════ */
+.outil.tb { padding: 0; overflow: hidden; }
+/* « hidden » doit gagner sur les « display: flex » des îlots ci-dessous */
+.tb [hidden] { display: none !important; }
+.tb-scene {
+  --tb-carte: var(--carte); --tb-bord: var(--bord); --tb-encre: var(--encre);
+  --tb-ombre: 0 2px 10px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.04);
+  position: relative; height: min(78vh, 880px); min-height: 480px;
+  overflow: hidden; outline: none; touch-action: none; user-select: none;
+  -webkit-user-select: none; background: #fff;
+}
+.tb-scene:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.tb-toile { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* En sombre, le canevas est inversé : invert 93 % puis la teinte remise
+   à l'endroit. Le blanc devient un gris très sombre, le noir un blanc
+   cassé, et un bleu reste un bleu. */
+.tb-scene.tb-sombre .tb-toile,
+.tb-scene.tb-sombre .tb-saisie { filter: invert(93%) hue-rotate(180deg); }
+.tb-scene.tb-sombre { background: #111; }
+
+.tb-b {
+  display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+  min-width: 38px; height: 38px; padding: 0 .45rem; border: 0; border-radius: 8px;
+  background: transparent; color: var(--tb-encre); font: inherit; font-size: .9rem;
+  cursor: pointer; position: relative;
+}
+.tb-b:hover { background: var(--carte-creuse); }
+.tb-b[aria-pressed="true"] { background: var(--accent-pale); color: var(--accent-sombre); }
+.tb-b:disabled { opacity: .35; cursor: default; background: transparent; }
+.tb-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tb-b svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6;
+            stroke-linecap: round; stroke-linejoin: round; }
+.tb-b svg .plein { fill: currentColor; }
+.tb-petit { min-width: 32px; height: 32px; padding: 0 .3rem; font-size: .82rem; }
+.tb-large { height: 40px; padding: 0 1rem; border: 1px solid var(--tb-bord); background: var(--tb-carte); }
+
+/* les îlots flottants */
+.tb-coin, .tb-cote, .tb-encrage, .tb-contexte, .tb-props, .tb-creer, .tb-pop {
+  position: absolute; z-index: 3; background: var(--tb-carte); border-radius: 12px;
+  box-shadow: var(--tb-ombre);
+}
+.tb-coin { display: flex; align-items: center; gap: .25rem; padding: .25rem; }
+.tb-hg { top: 10px; left: 10px; max-width: calc(100% - 20px); }
+.tb-hd { top: 10px; right: 10px; }
+.tb-bd { bottom: 10px; right: 10px; }
+.tb-groupe { display: flex; align-items: center; }
+.tb-zoom { min-width: 58px; font-variant-numeric: tabular-nums; font-size: .82rem; }
+.tb-titre {
+  width: 13rem; max-width: 40vw; height: 34px; padding: 0 .5rem; border: 1px solid transparent;
+  border-radius: 7px; background: transparent; color: var(--tb-encre); font: inherit;
+  font-weight: 650; font-size: .92rem; text-overflow: ellipsis;
+}
+.tb-titre:hover { border-color: var(--tb-bord); }
+.tb-titre:focus { outline: none; border-color: var(--accent); background: var(--papier); }
+.tb-sauve { font-size: .72rem; color: var(--encre-douce); padding: 0 .4rem; white-space: nowrap; }
+
+.tb-cote {
+  top: 50%; left: 10px; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: .2rem; padding: .3rem;
+}
+.tb-creer-b[aria-expanded="true"] { background: var(--accent); color: var(--sur-accent); }
+.tb-creer-b { background: var(--accent-pale); color: var(--accent-sombre); }
+.tb-sep { width: 22px; height: 1px; background: var(--tb-bord); margin: .2rem auto; }
+.tb-encrage .tb-sep, .tb-outils .tb-sep { width: 1px; height: 22px; margin: 0 .2rem; }
+
+.tb-encrage {
+  top: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: .15rem; padding: .25rem;
+}
+/* la pastille sous chaque stylo dit sa couleur et son calibre */
+.tb-stylo i {
+  position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%);
+  width: 18px; height: var(--w, 3px); max-height: 6px; border-radius: 3px; background: var(--c, #1e1e1e);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+}
+.tb-stylo svg { margin-bottom: 5px; }
+.tb-reglage-stylo { top: calc(100% + 8px); left: 0; width: 16.5rem; padding: .6rem .7rem; }
+.tb-calibres { display: flex; gap: .2rem; }
+.tb-calibre i { display: block; width: var(--w); height: var(--w); border-radius: 50%; background: var(--c); }
+
+.tb-creer {
+  top: 56px; bottom: 60px; left: 66px; width: 17rem; overflow-y: auto; padding: .7rem .8rem 1rem;
+}
+.tb-creer-tete, .tb-props-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: .2rem; }
+.tb-creer-titre, .tb-menu-titre {
+  margin: .7rem 0 .35rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-creer-tete + .tb-creer-titre { margin-top: .3rem; }
+.tb-formes { display: grid; grid-template-columns: repeat(6, 1fr); gap: .15rem; }
+.tb-forme { min-width: 0; width: 100%; height: 36px; }
+.tb-forme svg { width: 22px; height: 22px; }
+.tb-carte {
+  display: flex; align-items: center; gap: .55rem; width: 100%; padding: .45rem .55rem;
+  border: 1px solid var(--tb-bord); border-radius: 8px; background: var(--papier);
+  color: var(--tb-encre); font: inherit; font-size: .88rem; cursor: pointer; text-align: left;
+}
+.tb-carte:hover { border-color: var(--accent); }
+.tb-carte-ic { font-weight: 800; font-size: 1.1rem; width: 1.4rem; text-align: center; }
+.tb-bientot { list-style: none; margin: 0; padding: 0; font-size: .82rem; color: var(--encre-douce); }
+.tb-bientot li { display: flex; justify-content: space-between; padding: .2rem 0; }
+.tb-badge {
+  font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  padding: .05rem .4rem; border-radius: 999px; background: var(--carte-creuse); border: 1px solid var(--tb-bord);
+}
+.tb-note { font-size: .76rem; color: var(--encre-douce); margin: .6rem 0 0; line-height: 1.45; }
+
+/* les pastilles de couleur */
+.tb-pastilles { display: flex; flex-wrap: wrap; gap: .3rem; }
+.tb-pastille {
+  width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(0,0,0,.15);
+  background: var(--c); cursor: pointer; padding: 0;
+}
+.tb-pastille[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--tb-carte), 0 0 0 4px var(--accent); }
+.tb-pastille.tb-transp {
+  background: linear-gradient(135deg, transparent 45%, #e03131 45%, #e03131 55%, transparent 55%), #fff;
+}
+.tb-notes .tb-note { width: 34px; height: 34px; border-radius: 3px; box-shadow: 0 2px 4px rgba(0,0,0,.15); }
+.tb-palette { display: grid; grid-template-columns: repeat(5, 22px); gap: .2rem; margin-top: .4rem; }
+.tb-palette .tb-pastille { width: 22px; height: 22px; }
+.tb-plus summary { font-size: .74rem; color: var(--encre-douce); cursor: pointer; margin-top: .3rem; }
+.tb-hex { display: flex; align-items: center; gap: .4rem; font-size: .76rem; margin-top: .4rem; }
+.tb-hex input { width: 34px; height: 24px; padding: 0; border: 0; background: none; }
+
+/* la barre d'actions au-dessus de la sélection */
+.tb-contexte { top: 0; left: 0; display: flex; gap: .1rem; padding: .2rem; z-index: 4; }
+
+/* le panneau « Format » */
+.tb-props {
+  top: 56px; right: 10px; width: 14.5rem; max-height: calc(100% - 122px); overflow-y: auto;
+  padding: .6rem .7rem .8rem;
+}
+.tb-bloc { border: 0; margin: 0 0 .55rem; padding: 0; min-width: 0; }
+.tb-bloc legend {
+  padding: 0; margin-bottom: .3rem; font-size: .7rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-choix { display: flex; flex-wrap: wrap; gap: .2rem; }
+.tb-choix .tb-b { background: var(--carte-creuse); }
+.tb-choix .tb-b[aria-pressed="true"] { background: var(--accent-pale); box-shadow: inset 0 0 0 1px var(--accent); }
+.tb-choix svg { width: 18px; height: 18px; }
+.tb-ligne { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .3rem 0; font-size: .84rem; }
+.tb-select {
+  height: 30px; padding: 0 .4rem; border: 1px solid var(--tb-bord); border-radius: 6px;
+  background: var(--papier); color: var(--tb-encre); font: inherit; font-size: .82rem;
+}
+.tb-props input[type="range"] { width: 100%; }
+
+/* le menu des réglages */
+.tb-menu { top: calc(100% + 8px); right: 0; width: 17rem; padding: .5rem; display: flex; flex-direction: column; }
+.tb-menu > button {
+  display: flex; justify-content: space-between; align-items: center; gap: .6rem;
+  padding: .5rem .55rem; border: 0; border-radius: 6px; background: none;
+  color: var(--tb-encre); font: inherit; font-size: .86rem; text-align: left; cursor: pointer;
+}
+.tb-menu > button:hover { background: var(--carte-creuse); }
+.tb-menu kbd, .tb-scene kbd, .tb-dialogue kbd {
+  font-family: var(--mono); font-size: .72rem; padding: .05rem .3rem; border-radius: 4px;
+  border: 1px solid var(--tb-bord, var(--bord)); background: var(--carte-creuse); color: var(--encre-douce);
+}
+.tb-menu hr { border: 0; border-top: 1px solid var(--tb-bord); margin: .35rem 0; width: 100%; }
+.tb-menu .tb-menu-titre { margin: .3rem .55rem .35rem; }
+.tb-menu .tb-pastilles, .tb-menu .tb-ligne { padding: 0 .55rem; }
+
+/* la zone de frappe posée sur le canevas */
+.tb-saisie {
+  position: absolute; z-index: 2; margin: 0; padding: 0; border: 0; outline: none; resize: none;
+  overflow: hidden; background: transparent; min-width: 4px; caret-color: currentColor;
+  transform-origin: 0 0;
+}
+
+.tb-accueil {
+  position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); z-index: 1;
+  margin: 0; width: min(30rem, 80%); text-align: center; font-size: .9rem; line-height: 1.6;
+  color: #868e96; pointer-events: none;
+}
+.tb-etat {
+  position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 8px); z-index: 5;
+  margin: 0; max-width: min(34rem, 70%); padding: .45rem .8rem; border-radius: 8px;
+  background: var(--encre); color: var(--papier); font-size: .82rem; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.tb-etat.tb-vu { opacity: .94; transform: translate(-50%, 0); }
+.tb-etat.tb-faute { background: var(--rouge); color: #fff; }
+
+/* la barre d'outils à droite, pour les gauchers et les grands écrans */
+.tb-a-droite .tb-cote { left: auto; right: 10px; }
+.tb-a-droite .tb-creer { left: auto; right: 66px; }
+.tb-a-droite .tb-props { right: auto; left: 10px; }
+
+/* les dialogues */
+.tb-dialogue {
+  width: min(44rem, calc(100vw - 2rem)); max-height: calc(100vh - 3rem); padding: 1.2rem 1.4rem;
+  border: 1px solid var(--bord); border-radius: var(--r-l); background: var(--carte); color: var(--encre);
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+.tb-dialogue::backdrop { background: rgba(0,0,0,.35); }
+.tb-dialogue h2 { margin: 0 0 .7rem; font-size: 1.15rem; }
+.tb-dialogue .tb-ligne { justify-content: flex-start; }
+.tb-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; justify-content: flex-end; }
+.tb-aide-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr)); gap: .4rem 1.2rem; }
+.tb-aide table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.tb-aide caption { text-align: left; font-weight: 700; padding: .5rem 0 .3rem; }
+.tb-aide th { text-align: left; font-weight: 500; color: var(--encre-douce); padding: .18rem .4rem .18rem 0; }
+.tb-aide td { text-align: right; white-space: nowrap; padding: .18rem 0; }
+
+/* agrandi : tout l'écran au tableau, Échap pour sortir */
+.outil.tb.tb-grand {
+  position: fixed; inset: 0; z-index: 90; margin: 0; border: 0; border-radius: 0; box-shadow: none;
+}
+.tb-grand .tb-scene { height: 100vh; height: 100dvh; min-height: 0; }
+
+/* téléphone : les îlots se resserrent, le titre se tait */
+@media (max-width: 640px) {
+  .tb-scene { height: 72vh; min-height: 420px; }
+  .tb-sauve { display: none; }
+  .tb-titre { width: 7.5rem; }
+  .tb-encrage { top: auto; bottom: 10px; left: 10px; transform: none; }
+  .tb-reglage-stylo { top: auto; bottom: calc(100% + 8px); }
+  .tb-bd { bottom: 62px; }
+  .tb-cote { top: 60px; transform: none; }
+  .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: 116px; z-index: 6; }
+  .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: 62px; max-height: 45%; }
+  .tb-a-droite .tb-props { left: 10px; }
+}
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
-   Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en
+   Source : les jeux déposés dans _depots-bruts/Curseur/_zips/, convertis en
    PNG 32 px par _pilotage/scripts/curseurs.py. Un « .ani » ne peut
    pas servir de curseur en CSS et Safari ne lit pas les « .cur » :
    tout est ramené au PNG, seul format que tous les navigateurs

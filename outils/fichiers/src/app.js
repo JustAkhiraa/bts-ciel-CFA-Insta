@@ -22,7 +22,7 @@ import { esc, taille, typeDe, IMAGES as TYPES_IMAGE, decoderImage, octetsDe } fr
 
 const FAMILLES = [
   { id: "pdf", titre: "PDF", outils: PDF,
-    resume: "Assembler, découper, réordonner, signer, protéger — le travail de lovepdf, sans envoyer le fichier nulle part." },
+    resume: "Assembler, découper, réordonner, signer, protéger — le travail des services en ligne, sans envoyer le fichier nulle part." },
   { id: "images", titre: "Images et photos", outils: IMAGES,
     resume: "Convertir, alléger, redimensionner, recadrer, et effacer ce qu'une photo dit de vous (GPS, téléphone)." },
   { id: "divers", titre: "Utilitaires", outils: DIVERS,

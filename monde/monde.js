@@ -2419,6 +2419,47 @@ const BOUTIQUES = [
     bonjour: "Calculs, fonctions, suites, statistiques, régressions, "
            + "probabilités, équations — et dix lois, de la binomiale "
            + "à Fisher." },
+  /* Le neuvième outil, le tableau blanc, a sa neuvième échoppe : la règle
+     posée plus haut — aucun outil que le village ignore — vaut pour lui
+     aussi. Son ancre est à l'ouest, du côté du Bureau des Masques : un
+     schéma de réseau se dessine près de l'endroit où on le calcule. Sa
+     place exacte est TROUVÉE par les anneaux, et le compte des maisons a
+     été relevé avant et après : il ne bouge pas. */
+  { nom: "L'Ardoise", enseigne: "✎", couleur: 0xA9C8F5,
+    outil: "outils/tableau.html", ancre: [-520, 60], cote: -1, z: 102,
+    tenancier: "Le dessinateur",
+    bonjour: "Un schéma à poser ? Prenez un stylo, une note, une flèche — "
+           + "le tableau est infini, et rien ne sort d'ici." },
+  /* Le dixième, le labo réseau, s'installe près de la Halle aux Câbles :
+     on y prend ses blocs de commandes, on va les essayer à côté. Même règle
+     que les autres : l'ancre donne la direction, les anneaux trouvent la
+     place, et le compte des maisons est relevé avant et après. */
+  { nom: "Le Labo des Trames", enseigne: "⌬", couleur: 0x8FE36B,
+    outil: "outils/labo.html", ancre: [600, 320], cote: 1, z: 86,
+    tenancier: "La commutatrice",
+    bonjour: "Un routeur, deux switchs, quatre PC : câblez, tapez vos "
+           + "commandes, et regardez chaque trame passer, pas à pas." },
+  /* Le onzième, le salon de la classe : une taverne, tout à l'ouest,
+     au-delà de l'Ardoise. Mêmes règles : l'ancre donne la direction, les
+     anneaux trouvent la place, et les maisons sont recomptées. Posée près
+     de l'Écritoire, elle en chassait douze de la campagne (110 → 98) ; ici,
+     le village reste tel quel : 51, 110, 217 parcelles, 401 arbres. */
+  { nom: "La Taverne des Pairs", enseigne: "⋈", couleur: 0xF0A868,
+    outil: "outils/salon.html", ancre: [-640, -80], cote: -1, z: 70,
+    tenancier: "Le crieur",
+    bonjour: "Ici, pas de serveur et pas d'Internet : montrez votre QR à "
+           + "votre voisin, et chacun porte les messages des autres." },
+  /* Le douzième, l'atelier fichiers : une imprimerie, à l'ouest, sous
+     l'Ardoise et la Taverne — le quartier des outils de toutes matières.
+     Mêmes règles : l'ancre donne la direction, les anneaux trouvent la
+     place, et le village est recompté. Six ancres essayées : au nord, elle
+     mangeait des champs (217 → 210 parcelles) ou des maisons (110 → 98) ;
+     ici, rien ne bouge : 51, 110, 217 parcelles, 401 arbres. */
+  { nom: "L'Imprimerie", enseigne: "PDF", couleur: 0xE8806A,
+    outil: "outils/fichiers.html", ancre: [-720, 260], cote: 1, z: 54,
+    tenancier: "Le relieur",
+    bonjour: "Assembler, couper, signer, alléger vos PDF et vos photos : "
+           + "tout se fait ici, sur votre comptoir — rien ne part ailleurs." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
