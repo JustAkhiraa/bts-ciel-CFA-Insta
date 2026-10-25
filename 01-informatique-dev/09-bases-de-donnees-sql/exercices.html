@@ -7,7 +7,7 @@
 <meta name="description" content="Exercices corrigés : concevoir un MLD, créer les tables, requêtes SELECT et jointures, tableau de bord avec agrégats, et sécurisation d'un projet PHP/MySQL.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=a68f97e5">
+<link rel="stylesheet" href="../../assets/fiche.css?v=68165e68">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -176,7 +176,7 @@ USE gestion_presence;
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
         <p><code>salaire</code> est déclaré <strong><code>VARCHAR</code></strong> : un nombre stocké
-           comme du <strong>texte</strong>. Quatre conséquences, toutes silencieuses.</p>
+           comme du <strong>texte</strong>. Trois conséquences, toutes silencieuses.</p>
         <div class="tableau">
         <table>
           <thead><tr><th>Problème</th><th>Ce qui se passe</th></tr></thead>
@@ -185,17 +185,11 @@ USE gestion_presence;
                 <td><code>ORDER BY salaire</code> trie <em>alphabétiquement</em> :
                     <code>"10000"</code> arrive <strong>avant</strong> <code>"9000"</code>, car
                     « 1 » précède « 9 »</td></tr>
-            <tr><td><strong>N'importe quoi entre</strong></td>
-                <td>la colonne accepte <code>'beaucoup'</code> ou <code>'1 800 €'</code> : rien
-                    ne garantit que c'est un nombre</td></tr>
-            <tr><td><strong>Les calculs se trompent en silence</strong></td>
-                <td><code>SUM()</code> et <code>AVG()</code> convertissent chaque texte au passage :
-                    <code>'1 800 €'</code> compte pour 1, <code>'2000,50'</code> pour 2000,
-                    <code>'beaucoup'</code> pour 0 — sans la moindre erreur</td></tr>
-            <tr><td><strong>Les comparaisons dépendent de l'écriture</strong></td>
-                <td><code>WHERE salaire &gt; 2000</code> convertit en nombre et marche ; mais
-                    <code>WHERE salaire &gt; '2000'</code> compare du texte, et
-                    <code>'900' &gt; '2000'</code> y est vrai</td></tr>
+            <tr><td><strong>Les calculs échouent</strong></td>
+                <td><code>SUM()</code> et <code>AVG()</code> donnent des résultats aberrants ou
+                    nuls</td></tr>
+            <tr><td><strong>Les comparaisons mentent</strong></td>
+                <td><code>WHERE salaire &gt; 2000</code> compare du texte, pas des nombres</td></tr>
           </tbody>
         </table>
         </div>
@@ -473,13 +467,10 @@ a foreign key constraint fails (`presences`, CONSTRAINT ... FOREIGN KEY (`id_etu
       <div class="reponse">
 
         <h4>A — Injection SQL : contournement total de l'authentification</h4>
-        <p>En saisissant <code>' OR '1'='1' #</code> comme identifiant, la requête devient :</p>
-<div class="bloc-code" data-fam="sql"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> administrateurs <span class="j-mc">WHERE</span> login = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span> <span class="j-com">#' AND mot_de_passe = ''</span></code></pre></div>
-        <p>Le <code>#</code> met la vérification du mot de passe en commentaire ; il reste
-           <code>login = '' OR '1'='1'</code>, toujours vrai : une ligne revient, <strong>l'attaquant
-           est administrateur</strong> — sans connaître le moindre mot de passe. (Sans le
-           <code>#</code>, <code>AND</code> passant avant <code>OR</code>, le mot de passe serait
-           encore exigé : c'est pour ça que l'attaque l'ajoute.)</p>
+        <p>En saisissant <code>' OR '1'='1</code> comme identifiant, la requête devient :</p>
+<div class="bloc-code" data-fam="sql"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> administrateurs <span class="j-mc">WHERE</span> login = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span> <span class="j-mc">AND</span> mot_de_passe = <span class="j-txt">''</span></code></pre></div>
+        <p>La condition est vraie, une ligne revient, <strong>l'attaquant est administrateur</strong>
+           — sans connaître le moindre mot de passe.</p>
 <div class="bloc-code" data-fam="php"><span class="langue">php — corrigé</span><pre><code><span class="j-var">$req</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">prepare</span>(<span class="j-txt">"SELECT * FROM administrateurs WHERE login = :login"</span>);
 <span class="j-var">$req</span>-&gt;<span class="j-fn">execute</span>([<span class="j-txt">':login'</span> =&gt; <span class="j-var">$_POST</span>[<span class="j-txt">'login'</span>]]);
 <span class="j-var">$admin</span> = <span class="j-var">$req</span>-&gt;<span class="j-fn">fetch</span>();
@@ -531,7 +522,7 @@ a foreign key constraint fails (`presences`, CONSTRAINT ... FOREIGN KEY (`id_etu
 
         <div class="encart savoir">
           <div class="titre">🌍 Ce que ces trois corrections valent à l'examen E6</div>
-          <p>Un projet fonctionnel qui laisse passer <code>' OR '1'='1' #</code> perd beaucoup plus de
+          <p>Un projet fonctionnel qui laisse passer <code>' OR '1'='1</code> perd beaucoup plus de
              points qu'un projet un peu moins complet mais sécurisé. La sécurité fait partie des
              critères d'évaluation — et l'injection SQL est le premier test que fait un
              correcteur.</p>
@@ -587,7 +578,7 @@ a foreign key constraint fails (`presences`, CONSTRAINT ... FOREIGN KEY (`id_etu
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/exercices.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/exercices.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=a68f97e5"></script>
-<script src="../../assets/app.js?v=a68f97e5"></script>
+<script src="../../assets/fiche.js?v=68165e68"></script>
+<script src="../../assets/app.js?v=68165e68"></script>
 </body>
 </html>
