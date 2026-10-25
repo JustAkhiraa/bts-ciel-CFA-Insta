@@ -8973,6 +8973,70 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   }
 }
 
+/* ══════════════════ Le tableau blanc : la fenêtre d'aide ══════════════════
+   Signalé : « c'est moche et pas digne d'un pro de l'UI/UX ». La capture
+   montrait trois colonnes qui se chevauchaient, des touches qui passaient
+   par-dessus le texte voisin.
+
+   Ce n'était pas une règle à retoucher : l'outil n'avait AUCUNE feuille pour
+   ses propres classes — zéro règle « tb- » dans tout le dépôt. Les trois
+   tableaux s'empilaient donc à la largeur du navigateur, dans une boîte de
+   dialogue à sa taille par défaut. Ce qui s'affichait était du HTML nu.
+
+   C'est la famille du « .rap employé 420 fois sans règle » (§ 7) : une classe
+   sans règle est une intention perdue en silence, et rien ne la signale. */
+
+.tb-dialogue {
+  width: min(66rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  padding: 1.4rem 1.5rem 1.2rem;
+  border: 1px solid var(--bord-fort); border-radius: 18px;
+  background: var(--carte); color: var(--encre);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .45);
+  overflow: auto;
+}
+.tb-dialogue::backdrop { background: rgba(0, 0, 0, .42); backdrop-filter: blur(3px); }
+.tb-dialogue h2 { margin: 0 0 .4rem; font-size: 1.15rem; }
+.tb-dialogue > p { margin: 0 0 1.1rem; color: var(--encre-douce); font-size: .88rem; }
+
+/* Trois colonnes quand la place existe, une seule sur un téléphone. Chaque
+   colonne est une PISTE de grille : un libellé long allonge sa ligne, il ne
+   pousse plus la colonne voisine. C'était tout le défaut. */
+.tb-aide-cols {
+  display: grid; gap: 1.1rem 1.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  align-items: start;
+}
+.tb-aide-cols table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.tb-aide-cols caption {
+  caption-side: top; text-align: left;
+  padding: 0 0 .45rem; margin-bottom: .3rem;
+  border-bottom: 1px solid var(--bord);
+  font-size: .72rem; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-aide-cols tr + tr th, .tb-aide-cols tr + tr td { border-top: 1px solid var(--bord); }
+.tb-aide-cols th {
+  width: 60%;
+  padding: .42rem .6rem .42rem 0; text-align: left; vertical-align: middle;
+  font-size: .82rem; font-weight: 500; color: var(--encre);
+  /* Un libellé qui ne tient pas se coupe au lieu d'élargir sa colonne. */
+  overflow-wrap: anywhere; hyphens: auto;
+}
+.tb-aide-cols td {
+  padding: .42rem 0; text-align: right; vertical-align: middle;
+  font-size: .78rem; color: var(--encre-douce);
+  white-space: normal;   /* « Ctrl Entrée » a le droit de passer à la ligne */
+}
+.tb-aide-cols kbd {
+  display: inline-block; margin: .1rem 0 .1rem .18rem;
+  padding: .12rem .42rem; min-width: 1.5rem; text-align: center;
+  border: 1px solid var(--bord-fort); border-bottom-width: 2px; border-radius: 6px;
+  background: var(--carte-creuse); color: var(--encre);
+  font-family: var(--mono); font-size: .72rem; line-height: 1.5;
+}
+.tb-dialogue .tb-fermer-l { display: flex; justify-content: flex-end; margin-top: 1.2rem; }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans Truc /Curseur/_zips/, convertis en
