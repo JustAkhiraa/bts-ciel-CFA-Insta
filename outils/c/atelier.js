@@ -149,8 +149,99 @@
     ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm"),
   };
 
-  function peindre(code, langue) {
-    const scan = SCAN[langue];
+  /* ── et le Web : JavaScript, CSS, HTML ─────────────────────────────
+     Les classes sont celles des blocs du cours (coloration.py) : j-bal
+     pour les balises et les sélecteurs, j-att pour les attributs et les
+     propriétés, j-txt pour les valeurs et les chaînes, j-num pour les
+     nombres et les couleurs. Le JavaScript prend celles du C. */
+  const JS_MC = MOTS("break", "case", "catch", "class", "const", "continue", "debugger",
+    "default", "delete", "do", "else", "export", "extends", "finally", "for", "function",
+    "if", "import", "in", "instanceof", "let", "new", "of", "return", "static", "super",
+    "switch", "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield",
+    "async", "await", "true", "false", "null", "undefined", "NaN", "Infinity");
+  const JS_TYP = MOTS("console", "document", "window", "Math", "JSON", "Array", "Object",
+    "String", "Number", "Boolean", "Date", "Promise", "Map", "Set", "RegExp", "Error",
+    "localStorage", "sessionStorage", "navigator", "alert", "prompt", "confirm",
+    "parseInt", "parseFloat", "isNaN", "setTimeout", "setInterval", "clearTimeout",
+    "clearInterval", "fetch", "event");
+  SCAN.js = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|//[^\\n]*"],
+    ["txt", "`(?:\\\\[\\s\\S]|[^`\\\\])*`|" + CHAINE],
+    ["mc", JS_MC],
+    ["typ", JS_TYP],
+    ["fn", "(?<![\\w$])[A-Za-z_$][\\w$]*(?=\\s*\\()"],
+    ["num", NOMBRE],
+    ["op", "=>|[-+*/%=<>!&|^~?:]+"],
+    ["var", "(?<![\\w$])[A-Za-z_$][\\w$]*"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
+  /* ── et le SQL (dialecte MariaDB) : les mots-clés ignorent la casse,
+     « -- » et « # » ouvrent un commentaire, l'accent grave entoure un nom. */
+  const SQL_MC = "\\b(?:select|from|where|and|or|not|xor|insert|into|values?|update|set|delete|create|"
+    + "table|database|schema|drop|alter|add|modify|change|column|rename|to|as|on|join|inner|left|right|"
+    + "outer|cross|natural|using|group|by|having|order|asc|desc|limit|offset|distinct|all|union|null|is|"
+    + "in|between|like|escape|exists|case|when|then|else|end|primary|key|foreign|references|unique|"
+    + "default|auto_increment|constraint|index|if|use|show|tables|databases|columns|describe|explain|"
+    + "truncate|cascade|restrict|check|replace|ignore|duplicate|true|false|count|sum|avg|min|max|regexp|"
+    + "interval|begin|commit|rollback|start|transaction|div|mod|no|action|after|first|engine|charset|collate)\\b";
+  const SQL_TYP = "\\b(?:int|integer|tinyint|smallint|mediumint|bigint|decimal|numeric|float|double|real|"
+    + "boolean|bool|bit|char|varchar|text|tinytext|mediumtext|longtext|blob|date|datetime|timestamp|time|"
+    + "year|enum|unsigned|signed|serial|json)\\b";
+  SCAN.sql = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|--(?=[ \\t]|$)[^\\n]*|#[^\\n]*"],
+    ["txt", "'(?:''|\\\\.|[^'\\\\])*'|\"(?:\"\"|\\\\.|[^\"\\\\])*\""],
+    ["var", "`[^`]*`"],
+    ["mc", SQL_MC],
+    ["typ", SQL_TYP],
+    ["fn", APPEL],
+    ["num", NOMBRE],
+    ["op", "[-+*/%=<>!&|^~]+"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gmi");
+  /* ── et le PHP : le HTML autour, le code entre <?php … ?> ──
+     Les mots-clés, les types et les fonctions de base du cours. Les
+     variables ($x) prennent la classe « var », les appels « fn ». */
+  const PHP_MC = MOTS("abstract", "and", "array", "as", "break", "callable", "case", "catch",
+    "class", "clone", "const", "continue", "declare", "default", "do", "echo", "else", "elseif",
+    "empty", "enddeclare", "endfor", "endforeach", "endif", "endswitch", "endwhile", "enum", "extends",
+    "final", "finally", "fn", "for", "foreach", "function", "global", "goto", "if", "implements",
+    "include", "include_once", "instanceof", "insteadof", "interface", "isset", "list", "match",
+    "namespace", "new", "or", "print", "private", "protected", "public", "readonly", "require",
+    "require_once", "return", "static", "switch", "throw", "trait", "try", "unset", "use", "var",
+    "while", "xor", "yield", "true", "false", "null", "parent", "self");
+  const PHP_TYP = MOTS("int", "integer", "float", "double", "string", "bool", "boolean", "void",
+    "object", "mixed", "iterable", "never", "PDO", "PDOStatement", "PDOException", "Exception",
+    "Error", "Throwable", "stdClass", "Closure", "__construct", "__toString", "__get", "__set");
+  SCAN.phpcode = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|//[^\\n?]*|#(?!\\[)[^\\n]*"],
+    ["txt", "<<<'?[A-Za-z_]\\w*[\\s\\S]*?^\\s*[A-Za-z_]\\w*|\"(?:\\\\[\\s\\S]|[^\"\\\\])*\"|'(?:\\\\[\\s\\S]|[^'\\\\])*'"],
+    ["bal", "<\\?php|<\\?=|\\?>"],
+    ["var", "\\$[A-Za-z_\\u0080-\\uffff][\\w\\u0080-\\uffff]*"],
+    ["mc", PHP_MC],
+    ["typ", PHP_TYP],
+    ["fn", "(?<![\\w$])[A-Za-z_]\\w*(?=\\s*\\()"],
+    ["num", NOMBRE],
+    ["op", "=>|->|::|\\?\\?|[-+*/%=<>!&|^~.?:@]+"],
+    ["var", "(?<![\\w$])[A-Za-z_]\\w*"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
+  /* Une page PHP : le HTML est peint comme du HTML, le code entre balises
+     dans la syntaxe PHP. */
+  function peindrePhp(code) {
+    let out = "", i = 0;
+    const re = /<\?php\b|<\?=|<\?/g;
+    while (i < code.length) {
+      re.lastIndex = i;
+      const m = re.exec(code);
+      const deb = m ? m.index : code.length;
+      if (deb > i) out += peindreHtml(code.slice(i, deb));
+      if (!m) break;
+      let fin = code.indexOf("?>", m.index);
+      if (fin < 0) fin = code.length; else fin += 2;
+      out += peindrePhpCode(code.slice(m.index, fin));
+      i = fin;
+    }
+    return out;
+  }
+  function peindrePhpCode(code) {
+    const scan = SCAN.phpcode;
     scan.lastIndex = 0;
     let out = "", pos = 0, m;
     while ((m = scan.exec(code))) {
@@ -160,6 +251,170 @@
       pos = m.index + m[0].length;
     }
     return out + ech(code.slice(pos));
+  }
+  const enveloppe = (classe, t) => '<span class="j-' + classe + '">' + ech(t) + "</span>";
+
+  /* Le CSS dépend du CONTEXTE : « a:hover » est un sélecteur, « color: red »
+     une déclaration. On suit donc les accolades, et ce qu'elles ouvrent —
+     un @media contient des règles, une règle contient des déclarations. */
+  const CSS_JETON = /(\/\*[\s\S]*?(?:\*\/|$))|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(@[\w-]+)|([{}])|(;)|(:)|(!important\b)|(#[0-9a-fA-F]{3,8}\b)|(-?(?:\d+\.?\d*|\.\d+)(?:%|[a-zA-Z]+)?)|([\w-]+(?=\())|([^\s{};:"'\/]+|\/)|(\s+)/g;
+  function peindreCss(code) {
+    let out = "", m, pile = [], prelude = "", enValeur = false, pos = 0;
+    CSS_JETON.lastIndex = 0;
+    while ((m = CSS_JETON.exec(code))) {
+      const t = m[0];
+      // un caractère qu'aucune règle ne prend (un guillemet orphelin) reste tel quel
+      if (m.index > pos) out += ech(code.slice(pos, m.index));
+      pos = m.index + t.length;
+      const decl = pile.length && pile[pile.length - 1] === "regle";
+      if (m[1]) { out += enveloppe("com", t); continue; }
+      if (m[12]) { out += t; continue; }
+      if (m[4] === "{") {
+        pile.push(/^\s*@(media|supports|container|layer|document|keyframes|-webkit-keyframes)\b/i.test(prelude) ? "groupe" : "regle");
+        prelude = ""; enValeur = false; out += t; continue;
+      }
+      if (m[4] === "}") { pile.pop(); prelude = ""; enValeur = false; out += t; continue; }
+      if (m[5]) { prelude = ""; enValeur = false; out += t; continue; }
+      prelude += t;
+      if (m[2]) { out += enveloppe("txt", t); continue; }
+      if (m[3]) { out += enveloppe("pre", t); continue; }
+      if (!decl) { out += m[6] || m[11] || m[8] || m[9] || m[10] ? enveloppe("bal", t) : ech(t); continue; }
+      if (m[6]) { enValeur = true; out += t; continue; }
+      if (!enValeur) { out += m[11] ? enveloppe("att", t) : ech(t); continue; }
+      if (m[7]) out += enveloppe("mc", t);
+      else if (m[8] || m[9]) out += enveloppe("num", t);
+      else if (m[10]) out += enveloppe("fn", t);
+      else out += ech(t);
+    }
+    return out + ech(code.slice(pos));
+  }
+  /* Le HTML : balises, attributs, valeurs, entités — et l'intérieur des
+     <style> et <script> peint dans SON langage. */
+  function peindreHtml(code) {
+    let out = "", i = 0;
+    const n = code.length;
+    while (i < n) {
+      if (code.startsWith("<!--", i)) {
+        const f = code.indexOf("-->", i + 4);
+        const j = f < 0 ? n : f + 3;
+        out += enveloppe("com", code.slice(i, j)); i = j; continue;
+      }
+      const ouvre = /^<(\/?)([A-Za-z][\w:-]*|!doctype\b)/i.exec(code.slice(i, i + 40));
+      if (ouvre) {
+        const fermante = ouvre[1] === "/", nom = ouvre[2].toLowerCase();
+        out += enveloppe("bal", ouvre[0]);
+        i += ouvre[0].length;
+        // les attributs, jusqu'au « > » (les guillemets protègent)
+        const re = /\s+|([^\s=>"'\/]+)|(=)|("[^"]*"?|'[^']*'?)|(\/?>)|([\s\S])/y;
+        let fini = false;
+        while (i < n && !fini) {
+          re.lastIndex = i;
+          const a = re.exec(code);
+          if (!a) break;
+          const t = a[0];
+          if (a[1]) out += enveloppe(nom === "!doctype" ? "bal" : "att", t);
+          else if (a[3]) out += enveloppe("txt", t);
+          else if (a[4]) { out += enveloppe("bal", t); fini = true; }
+          else if (a[5] && t === "<") { break; }
+          else out += ech(t);
+          i += t.length;
+        }
+        if (fini && !fermante && (nom === "script" || nom === "style")) {
+          const fin = code.toLowerCase().indexOf("</" + nom, i);
+          const j = fin < 0 ? n : fin;
+          const dedans = code.slice(i, j);
+          out += nom === "style" ? peindreCss(dedans) : peindre(dedans, "js");
+          i = j;
+        }
+        continue;
+      }
+      const ent = /^&(?:#\d+|#x[0-9a-f]+|[a-z]\w*);/i.exec(code.slice(i, i + 12));
+      if (ent) { out += enveloppe("num", ent[0]); i += ent[0].length; continue; }
+      let j = i + 1;
+      while (j < n && code[j] !== "<" && code[j] !== "&") j++;
+      out += ech(code.slice(i, j));
+      i = j;
+    }
+    return out;
+  }
+  const PEINTRES = { html: peindreHtml, css: peindreCss, php: peindrePhp };
+
+  function peindre(code, langue) {
+    if (PEINTRES[langue]) return PEINTRES[langue](code);
+    const scan = SCAN[langue] || SCAN.c;
+    scan.lastIndex = 0;
+    let out = "", pos = 0, m;
+    while ((m = scan.exec(code))) {
+      if (m.index > pos) out += ech(code.slice(pos, m.index));
+      const classe = Object.keys(m.groups).find((k) => m.groups[k] !== undefined);
+      out += '<span class="j-' + classe + '">' + ech(m[0]) + "</span>";
+      pos = m.index + m[0].length;
+    }
+    return out + ech(code.slice(pos));
+  }
+
+  /* L'alinéa d'une page HTML : un cran par balise ouverte et non encore
+     fermée. Comme INDENTER pour le C, il ne touche QUE l'espace de début de
+     ligne — et il laisse tel quel l'intérieur des <pre> et <textarea>, où
+     l'espace se voit. Le contenu d'un <script> ou d'un <style> est réaligné
+     par INDENTER (des accolades), décalé du niveau de sa balise. */
+  const VIDES = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
+  function indenterHtml(texte) {
+    const lignes = texte.split("\n");
+    const out = [];
+    let niveau = 0, brut = null, bloc = null, blocNiveau = 0, blocLignes = [];
+    const balises = (l) => {
+      const L = [];
+      const re = /<!--[\s\S]*?-->|<(\/?)([A-Za-z][\w:-]*)([^>]*?)(\/?)>/g;
+      let m;
+      while ((m = re.exec(l))) if (m[2]) L.push({ fermante: !!m[1], nom: m[2].toLowerCase(), auto: !!m[4] || VIDES.test(m[2]) });
+      return L;
+    };
+    const poserBloc = () => {
+      const corps = blocLignes.join("\n");
+      const r = typeof INDENTER !== "undefined" ? INDENTER.reindenter(corps) : { ok: false };
+      const lignesB = (r.ok ? r.texte : corps).split("\n");
+      for (const lb of lignesB) out.push(lb.trim() ? ALINEA.repeat(blocNiveau) + (r.ok ? lb : lb.trim()) : "");
+      blocLignes = [];
+    };
+    for (const ligne of lignes) {
+      const nu = ligne.trim();
+      if (brut) {
+        out.push(ligne);
+        if (new RegExp("</" + brut + "\\s*>", "i").test(ligne)) { brut = null; niveau = Math.max(0, niveau - 1); }
+        continue;
+      }
+      if (bloc) {
+        if (new RegExp("^</" + bloc + "\\s*>", "i").test(nu)) {
+          poserBloc();
+          bloc = null;
+          niveau = Math.max(0, niveau - 1);
+          out.push(ALINEA.repeat(niveau) + nu);
+        } else blocLignes.push(ligne);
+        continue;
+      }
+      if (!nu) { out.push(""); continue; }
+      const L = balises(nu);
+      // une ligne qui COMMENCE par des fermantes se place au niveau d'après
+      let debut = niveau;
+      for (const b of L) { if (b.fermante) debut--; else break; }
+      out.push(ALINEA.repeat(Math.max(0, debut)) + nu);
+      for (const b of L) {
+        if (b.auto) continue;
+        if (b.fermante) niveau = Math.max(0, niveau - 1); else niveau++;
+      }
+      const derniere = L[L.length - 1];
+      if (derniere && !derniere.fermante && /^(pre|textarea)$/.test(derniere.nom) && !new RegExp("</" + derniere.nom, "i").test(nu)) brut = derniere.nom;
+      else if (derniere && !derniere.fermante && /^(script|style)$/.test(derniere.nom) && !new RegExp("</" + derniere.nom, "i").test(nu)) {
+        bloc = derniere.nom; blocNiveau = niveau;
+      }
+    }
+    if (bloc) poserBloc();
+    const r = out.join("\n");
+    // la promesse : rien d'autre que l'alinéa n'a bougé
+    const sansAlinea = (x) => x.split("\n").map((l) => l.trim()).join("\n");
+    if (sansAlinea(r) !== sansAlinea(texte)) return { ok: false };
+    return { ok: true, texte: r, change: r !== texte };
   }
 
   /* ══════════════════════════════════════════════════════ 2. L'ÉDITEUR
@@ -1490,10 +1745,18 @@
         e.preventDefault();
         const [dl, fl] = bornesLignes();
         const lignes = t.slice(dl, fl).split("\n");
-        const toutes = lignes.every((l) => !l.trim() || /^\s*\/\//.test(l));
+        /* Le commentaire de LA langue : « # » en Python, « /* … *\/ » en CSS,
+           « <!-- … --> » en HTML. Le « // » partout faisait, en Python, une
+           ligne invalide au lieu d'une ligne neutralisée. */
+        const langCo = estWeb(langue) ? langueFichier(fichierActif) : langue;
+        const [ouv, ferm] = langCo === "python" ? ["#", ""] : langCo === "css" ? ["/*", "*/"]
+          : langCo === "html" ? ["<!--", "-->"] : langue === "sql" ? ["--", ""] : ["//", ""];
+        const eo = echapperRegex(ouv), ef = echapperRegex(ferm);
+        const deja = new RegExp("^(\\s*)" + eo + " ?(.*?)" + (ferm ? " ?" + ef + "\\s*$" : "$"));
+        const toutes = lignes.every((l) => !l.trim() || deja.test(l));
         const neuf = lignes.map((l) => !l.trim() ? l
-          : toutes ? l.replace(/^(\s*)\/\/ ?/, "$1")
-                   : l.replace(/^(\s*)/, "$1// ")).join("\n");
+          : toutes ? l.replace(deja, "$1$2")
+                   : l.replace(/^(\s*)(.*)$/, "$1" + ouv + " $2" + (ferm ? " " + ferm : ""))).join("\n");
         remplacer(dl, fl, neuf, dl, dl + neuf.length);
         return;
       }
@@ -1812,10 +2075,10 @@
        — mais sur la même ligne et à la même place dans cette ligne.
        C'est ce qu'on suit des yeux, et c'est ce qu'on s'attend à
        retrouver. */
-    function realigner() {
-      if (typeof INDENTER === "undefined") return { ok: false };
+    function realigner(calcul) {
+      if (!calcul && typeof INDENTER === "undefined") return { ok: false };
       const t = saisie.value;
-      const r = INDENTER.reindenter(t);
+      const r = calcul ? calcul(t) : INDENTER.reindenter(t);
       if (!r.ok) return { ok: false };
       if (!r.change) return { ok: true, change: false };
       const d = saisie.selectionStart;
@@ -2164,6 +2427,454 @@
     let entreeCumul = "", attendEntree = false, wasmCourant = null, fichiers = {};
     let finSaisie = false;
     let tourne = false;
+    /* Ce que « Envoyer » rejoue quand le programme attend une saisie : le C
+       compilé, ou le JavaScript. */
+    let relancer = null;
+    let avisWeb = [];          // les cartes « fichier absent / non relié » du mode Web
+
+    /* ══ le mode Web : un petit site en plusieurs fichiers ═══════════════ */
+    const PROJET_DEPART = () => ({
+      "index.html": '<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n'
+        + '    <title>Ma page</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n'
+        + '    <h1>Bonjour !</h1>\n    <p>Modifiez <b>index.html</b>, <b>style.css</b> et '
+        + '<b>script.js</b>, puis appuyez sur Exécuter.</p>\n'
+        + '    <button id="bouton">Cliquez-moi</button>\n    <p id="compteur">0 clic</p>\n\n'
+        + '    <script src="script.js"></script>\n</body>\n</html>\n',
+      "style.css": 'body {\n    font-family: system-ui, sans-serif;\n    margin: 2rem;\n'
+        + '    background: #fdf5e6;\n    color: #2d2a26;\n}\n\nh1 {\n    color: #1b4965;\n}\n\n'
+        + 'button {\n    padding: .6rem 1.2rem;\n    border: 0;\n    border-radius: 8px;\n'
+        + '    background: #1b4965;\n    color: white;\n    cursor: pointer;\n}\n',
+      "script.js": 'let clics = 0;\nconst bouton = document.querySelector("#bouton");\n'
+        + 'const compteur = document.querySelector("#compteur");\n\n'
+        + 'bouton.addEventListener("click", () => {\n    clics++;\n'
+        + '    compteur.textContent = clics + (clics > 1 ? " clics" : " clic");\n'
+        + '    console.log("Clic numéro", clics);\n});\n',
+    });
+    /* Le projet de départ du mode PHP : la connexion d'espace membre du
+       chapitre 6 et du chapitre 9 — un login qui vérifie un mot de passe
+       haché (PDO sur la base du cours), une page privée gardée par la
+       session, une déconnexion. De quoi voir tourner tout de suite ce que
+       le cours décrit, sans installer XAMPP. */
+    const PROJET_PHP_DEPART = () => ({
+      "index.php": '<?php\nsession_start();\n\n// Déjà connecté ? on va directement à l\'espace membre.\nif (isset($_SESSION["admin"])) {\n    header("Location: accueil.php");\n    exit();\n}\n\nrequire "db.php";\n$erreur = "";\n\nif ($_SERVER["REQUEST_METHOD"] === "POST") {\n    $login = trim($_POST["login"] ?? "");\n    $mdp   = $_POST["mot_de_passe"] ?? "";\n\n    $req = $pdo->prepare("SELECT * FROM administrateurs WHERE login = :login");\n    $req->execute([":login" => $login]);\n    $admin = $req->fetch();\n\n    if ($admin && password_verify($mdp, $admin["mot_de_passe"])) {\n        $_SESSION["admin"] = $admin["login"];\n        header("Location: accueil.php");\n        exit();\n    }\n    $erreur = "Identifiants incorrects.";\n}\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Connexion</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Connexion</h1>\n    <p class="aide">Essayez <b>admin</b> / <b>admin</b> — le mot de passe est haché dans la base.</p>\n\n    <?php if ($erreur !== ""): ?>\n        <p class="erreur"><?php echo htmlspecialchars($erreur); ?></p>\n    <?php endif; ?>\n\n    <form method="post" action="index.php">\n        <label>Identifiant : <input type="text" name="login" required></label>\n        <label>Mot de passe : <input type="password" name="mot_de_passe" required></label>\n        <button type="submit">Se connecter</button>\n    </form>\n</body>\n</html>\n',
+      "accueil.php": '<?php\nsession_start();\n\n// Le garde : pas de session, pas d\'accès.\nif (!isset($_SESSION["admin"])) {\n    header("Location: index.php");\n    exit();\n}\n\nrequire "db.php";\n$_SESSION["visites"] = ($_SESSION["visites"] ?? 0) + 1;\n\n$nb = $pdo->query("SELECT COUNT(*) FROM etudiants")->fetchColumn();\n$absences = $pdo->query("SELECT COUNT(*) FROM presences WHERE statut = \'absent\'")->fetchColumn();\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Espace membre</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Bonjour <?php echo htmlspecialchars($_SESSION["admin"]); ?> !</h1>\n    <p>Vous avez vu cette page <?php echo $_SESSION["visites"]; ?> fois.</p>\n\n    <h2>Tableau de bord</h2>\n    <ul>\n        <li><?php echo $nb; ?> étudiants</li>\n        <li><?php echo $absences; ?> absences enregistrées</li>\n    </ul>\n\n    <h2>Les étudiants</h2>\n    <table border="1" cellpadding="4">\n        <tr><th>Nom</th><th>Prénom</th><th>Classe</th></tr>\n        <?php\n        $req = $pdo->query("SELECT nom, prenom, classe FROM etudiants ORDER BY nom LIMIT 10");\n        foreach ($req as $e) {\n            echo "<tr>";\n            echo "<td>" . htmlspecialchars($e["nom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["prenom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["classe"]) . "</td>";\n            echo "</tr>";\n        }\n        ?>\n    </table>\n\n    <p><a href="logout.php">Déconnexion</a></p>\n</body>\n</html>\n',
+      "logout.php": '<?php\nsession_start();\n$_SESSION = [];\nsession_destroy();\nheader("Location: index.php");\nexit();\n',
+      "db.php": '<?php\n// La connexion à MariaDB. Dans l\'atelier, la base « gestion_presence »\n// du cours est déjà chargée — pas besoin de XAMPP.\n$pdo = new PDO(\n    "mysql:host=localhost;dbname=gestion_presence;charset=utf8mb4",\n    "root",\n    "root"\n);\n$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n',
+      "style.css": 'body { font-family: system-ui, sans-serif; margin: 2rem; background: #fdf5e6; color: #2d2a26; }\nh1 { color: #1b4965; }\nlabel { display: block; margin: .6rem 0; }\ninput { padding: .3rem; }\nbutton { padding: .5rem 1rem; border: 0; border-radius: 6px; background: #1b4965; color: white; cursor: pointer; }\n.erreur { color: #b00020; font-weight: bold; }\n.aide { color: #666; font-size: .9rem; }\ntable { border-collapse: collapse; }\n',
+    });
+    let projet = null, fichierActif = "index.html", pageApercu = "index.html";
+    let texteClassique = null, surlignagesParFichier = {};
+    let jetonApercu = null, sortieWeb = "", erreursWeb = [];
+    const langueFichier = (n) => /\.css$/i.test(n) ? "css" : /\.js$/i.test(n) ? "js" : /\.php$/i.test(n) ? "php" : "html";
+    const estTexte = (n) => projet && typeof projet[n] === "string";
+    const barreFichiers = $("#at-fichiers");
+    const nomFichier = $("#at-nom-fichier");
+    const apercu = $("#at-apercu");
+    const boiteApercu = $("#at-apercu-boite");
+    const ongletsSortie = $("#at-sorties");
+    const conBoite = $(".con", racine);
+    const badge = $("#at-compte-console");
+
+    function dessinerFichiers() {
+      if (!projet || !barreFichiers) return;
+      const noms = Object.keys(projet);
+      const textes = noms.filter(estTexte), images = noms.filter((n) => !estTexte(n));
+      barreFichiers.innerHTML = textes.map((n) =>
+        '<span class="at-fic' + (n === fichierActif ? " actif" : "") + '">' +
+        '<button type="button" role="tab" data-fic="' + ech(n) + '" aria-selected="' + (n === fichierActif) + '">'
+        + ech(n) + "</button>" +
+        (n !== "index.html" ? '<button type="button" class="at-fic-x" data-suppr="' + ech(n) +
+          '" aria-label="Supprimer ' + ech(n) + '" title="Supprimer ' + ech(n) + '">×</button>' : "") + "</span>").join("") +
+        images.map((n) => '<span class="at-fic at-fic-image" title="Image du projet : écrivez src=&quot;' + ech(n) + '&quot;">'
+          + '<span class="at-fic-nom">▣ ' + ech(n) + '</span><button type="button" class="at-fic-x" data-suppr="' + ech(n)
+          + '" aria-label="Supprimer ' + ech(n) + '">×</button></span>').join("") +
+        '<button type="button" class="at-fic-plus" data-ajout="1" aria-label="Ajouter un fichier ou une image" '
+        + 'title="Ajouter une page, une feuille de style, un script ou une image">+</button>' +
+        '<form class="at-fic-form" hidden><input type="text" spellcheck="false" autocomplete="off" '
+        + 'aria-label="Nom du nouveau fichier" placeholder="contact.html, menu.css, jeu.js"><button type="submit">Créer</button>'
+        + '<label class="at-fic-import">Image…<input type="file" accept="image/*" hidden></label>'
+        + '<button type="button" data-annuler="1">Annuler</button></form>';
+    }
+    function ouvrirFichier(n) {
+      if (!estTexte(n)) return;
+      if (estTexte(fichierActif)) {
+        projet[fichierActif] = editeur.valeur;
+        surlignagesParFichier[fichierActif] = editeur.surlignages;
+      }
+      fichierActif = n;
+      editeur.valeur = projet[n];
+      editeur.langue = langueFichier(n);
+      editeur.surlignages = surlignagesParFichier[n] || [];
+      afficherDiagnostics(erreursWeb);
+      dessinerFichiers();
+      planifierSauvegarde();
+    }
+    if (barreFichiers) {
+      barreFichiers.addEventListener("click", (e) => {
+        const f = barreFichiers.querySelector(".at-fic-form");
+        const b = e.target.closest("button, label");
+        if (!b) return;
+        if (b.dataset.fic) { ouvrirFichier(b.dataset.fic); editeur.focus(); return; }
+        if (b.dataset.suppr) {
+          const n = b.dataset.suppr;
+          if (!confirm("Supprimer « " + n + " » du projet ?")) return;
+          delete projet[n];
+          if (n === fichierActif) { fichierActif = "index.html"; editeur.valeur = projet["index.html"]; editeur.langue = "html"; }
+          dessinerFichiers();
+          sauver();
+          return;
+        }
+        if (b.dataset.ajout) { f.hidden = false; f.querySelector("input[type=text]").focus(); return; }
+        if (b.dataset.annuler) { f.hidden = true; }
+      });
+      barreFichiers.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const champ = e.target.querySelector("input[type=text]");
+        const n = champ.value.trim().toLowerCase().replace(/\s+/g, "-");
+        if (!/^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.(html|css|js)$/.test(n)) {
+          dirEtat("Nom refusé : lettres, chiffres, - ou _, et l'extension .html, .css ou .js", "erreur");
+          return;
+        }
+        if (projet[n] !== undefined) { dirEtat("« " + n + " » existe déjà", "erreur"); return; }
+        projet[n] = /\.html$/.test(n)
+          ? '<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>' + n.replace(/\.html$/, "")
+            + '</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <p><a href="index.html">Retour à l\'accueil</a></p>\n</body>\n</html>\n'
+          : "";
+        ouvrirFichier(n);
+        editeur.focus();
+      });
+      barreFichiers.addEventListener("change", async (e) => {
+        const fic = e.target.files && e.target.files[0];
+        if (!fic) return;
+        if (fic.size > 600000) { dirEtat("Image trop lourde pour être gardée dans le projet (600 Ko au plus) : réduisez-la d'abord", "erreur"); return; }
+        const n = fic.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+        const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(fic); });
+        projet[n] = { data };
+        dessinerFichiers();
+        sauver();
+        dirEtat("Image ajoutée : écrivez <img src=\"" + n + "\" alt=\"…\"> dans une page", "ok");
+      });
+      barreFichiers.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") { const f = barreFichiers.querySelector(".at-fic-form"); if (f && !f.hidden) { f.hidden = true; e.stopPropagation(); } }
+      });
+    }
+
+    /* Les deux faces de la sortie en mode Web : l'aperçu, et la console. */
+    let nonLus = 0;
+    function montrerSortie(quoi) {
+      if (!ongletsSortie) return;
+      const web = estWeb(langue), sql = langue === "sql";
+      ongletsSortie.hidden = !web;
+      $("#at-onglet-console").hidden = web;
+      $("#at-onglet-console").textContent = sql ? "Résultats" : "Console";
+      const voirApercu = web && quoi === "apercu";
+      boiteApercu.hidden = !voirApercu;
+      if (boiteSql) boiteSql.hidden = !sql;
+      conBoite.hidden = voirApercu || sql;
+      ongletsSortie.querySelectorAll("[data-sortie]").forEach((b) =>
+        b.setAttribute("aria-selected", String(b.dataset.sortie === (voirApercu ? "apercu" : "console"))));
+      if (!voirApercu) { nonLus = 0; badge.hidden = true; }
+    }
+    if (ongletsSortie) ongletsSortie.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-sortie]");
+      if (b) montrerSortie(b.dataset.sortie);
+    });
+    function signalerConsole(grave) {
+      if (!boiteApercu || boiteApercu.hidden) return;
+      nonLus++;
+      badge.hidden = false;
+      badge.textContent = String(nonLus);
+      badge.classList.toggle("grave", grave || badge.classList.contains("grave"));
+    }
+    function ecrireSortie(texte, erreur) {
+      sortieWeb += texte + "\n";
+      console2.poser(sortieWeb, erreur);
+    }
+
+    function executerWeb() {
+      if (!projet) projet = PROJET_DEPART();
+      projet[fichierActif] = editeur.valeur;
+      sauver();
+      console2.vider();
+      sortieWeb = "";
+      erreursWeb = [];
+      avisWeb = [];
+      afficherDiagnostics([]);
+      zoneEntree.hidden = true;
+      etatPhp = null;   // chaque « Exécuter » redémarre le serveur (session, base, disque neufs)
+      if (/\.(html?|php)$/i.test(fichierActif)) pageApercu = fichierActif;
+      if (!estTexte(pageApercu)) pageApercu = estTexte("index.php") ? "index.php" : "index.html";
+      afficherPage(pageApercu);
+      badge.classList.remove("grave");
+      montrerSortie("apercu");
+      // ce qu'aucune page ne relie : dit, avec la ligne à écrire
+      for (const r of ATELIER_WEB.nonRelies(projet)) carteNonRelie(r);
+      const quoi = projetContientPhp() ? "Page servie par PHP — session, base du cours et fichiers, comme sur XAMPP" : "la page tourne isolée, sans accès au reste du site";
+      dirEtat("Aperçu de " + pageApercu + " — " + quoi, "ok");
+    }
+    const estPhp = (n) => /\.php$/i.test(n);
+    const projetContientPhp = () => projet && Object.keys(projet).some((n) => estPhp(n) && typeof projet[n] === "string");
+    /* ══ le mode PHP : chaque requête tourne dans le moteur écrit ici
+       (php.js). L'état — $_SESSION, la base du cours, le disque virtuel —
+       est gardé d'une page à l'autre comme sur un vrai serveur, et remis à
+       neuf à chaque « Exécuter ». */
+    let etatPhp = null;
+    function neufEtatPhp() {
+      let serveur = null;
+      if (typeof MOTEUR_SQL !== "undefined") {
+        serveur = new MOTEUR_SQL.Serveur();
+        if (typeof BASE_COURS_SQL === "string") { try { serveur.executer(BASE_COURS_SQL); } catch (e) { /* la base de départ */ } }
+      }
+      return { serveur: serveur, session: null, sessionDemarree: false, fs: Object.create(null), cookies: Object.create(null) };
+    }
+    function sourcesPhp() {
+      const out = {};
+      for (const n in projet) if (typeof projet[n] === "string" && /\.(php|html?|inc)$/i.test(n)) out[n] = projet[n];
+      return out;
+    }
+    const tableauPhp = (obj) => { const a = new PHP.PhpArray(); for (const k in obj) a.set(k, obj[k]); return a; };
+    /* Une requête : exécuter « page » (GET ou POST), suivre les
+       redirections header("Location: …") jusqu'à une vraie page, et rendre
+       la sortie HTML. Rien ne quitte le navigateur. */
+    function requetePhp(page, methode, donnees) {
+      if (typeof PHP === "undefined") return { page, sortie: "Le moteur PHP (c/php.js) n'a pas pu être chargé.", avis: [], erreurFatale: null };
+      if (!etatPhp) etatPhp = neufEtatPhp();
+      let get = new PHP.PhpArray(), post = new PHP.PhpArray();
+      const q = page.indexOf("?");
+      let chemin = page;
+      if (q >= 0) { chemin = page.slice(0, q); new URLSearchParams(page.slice(q + 1)).forEach((v, k) => get.set(k, v)); }
+      if (methode === "POST" && donnees) post = tableauPhp(donnees);
+      else if (methode === "GET" && donnees) get = tableauPhp(donnees);
+      const chaine = [];
+      for (let hop = 0; hop < 15; hop++) {
+        if (typeof projet[chemin] !== "string") return { page: chemin, sortie: "", avis: [], erreurFatale: { message: "Page « " + chemin + " » introuvable", ligne: 0, classe: "Introuvable" }, chaine };
+        const serveur = new PHP.Moteur({
+          serveur: etatPhp.serveur, session: etatPhp.session, fs: etatPhp.fs, cookies: etatPhp.cookies,
+          get: get, post: post, methode: methode, page: chemin,
+        });
+        serveur.fichiers = sourcesPhp();
+        const r = serveur.lancerProgramme(chemin, projet[chemin]);
+        etatPhp.session = r.session; etatPhp.fs = r.fs; etatPhp.cookies = r.cookies;
+        if (r.redirection) {
+          chaine.push({ page: chemin, vers: r.redirection });
+          const cible = String(r.redirection).replace(/^\.\//, "").replace(/^https?:\/\/[^/]+\//i, "").replace(/^\//, "");
+          const cibleChemin = cible.split("?")[0];
+          if (typeof projet[cibleChemin] === "string" && chaine.length < 15) {
+            chemin = cibleChemin; methode = "GET"; post = new PHP.PhpArray(); get = new PHP.PhpArray();
+            if (cible.indexOf("?") >= 0) new URLSearchParams(cible.slice(cible.indexOf("?") + 1)).forEach((v, k) => get.set(k, v));
+            continue;
+          }
+          return { page: chemin, sortie: r.sortie, avis: r.avis, erreurFatale: r.erreurFatale, redirectionExterne: r.redirection, chaine };
+        }
+        return { page: chemin, sortie: r.sortie, avis: r.avis, erreurFatale: r.erreurFatale, chaine };
+      }
+      return { page: chemin, sortie: "", avis: [], erreurFatale: { message: "Trop de redirections (boucle entre pages)", ligne: 0, classe: "Boucle" }, chaine };
+    }
+    function signalerPhp(res) {
+      // les avertissements et l'erreur fatale → la console et les diagnostics
+      (res.chaine || []).forEach((h) => console2.note("→ redirection : " + h.page + " envoie vers " + h.vers, "info"));
+      const diags = [];
+      (res.avis || []).forEach((a) => {
+        diags.push({ ligne: a.ligne, colonne: 1, niveau: a.niveau === "Deprecated" || a.niveau === "Notice" ? "warning" : "warn", fichier: res.page,
+                     message: a.niveau + ": " + a.message, php: true });
+        console2.note((a.niveau === "Deprecated" ? "Déprécié" : a.niveau === "Notice" ? "Note" : "Avertissement") + " : " + a.message + " (" + res.page + ", ligne " + a.ligne + ")", a.niveau === "Deprecated" ? "info" : "garde");
+      });
+      if (res.erreurFatale) {
+        const e = res.erreurFatale;
+        diags.push({ ligne: e.ligne, colonne: 1, niveau: "error", fichier: res.page, message: (e.classe || "Fatal error") + ": " + e.message, php: true });
+        console2.note("⚑ " + (e.classe || "Erreur") + " : " + e.message + (e.ligne ? " (" + res.page + ", ligne " + e.ligne + ")" : ""), "stop");
+      }
+      erreursWeb = diags;
+      afficherDiagnostics(erreursWeb);
+      if (res.redirectionExterne) console2.note("La redirection « " + res.redirectionExterne + " » sort du projet : sur un vrai serveur, le navigateur irait là. L'aperçu s'arrête ici.", "info");
+    }
+    function afficherPage(page, methode, donnees) {
+      jetonApercu = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      let html, pageVue = page, rendus = null;
+      if (estPhp(page) || (projetContientPhp() && methode)) {
+        const res = requetePhp(page, methode || "GET", donnees);
+        pageVue = res.page;
+        signalerPhp(res);
+        // la sortie PHP EST le HTML de la page : on la met en place de la page
+        rendus = {}; rendus[pageVue] = res.sortie || "";
+        const r = ATELIER_WEB.assembler(Object.assign({}, projet, rendus), pageVue, jetonApercu, fabriqueConsole.toString());
+        manquants = new Set(r.manque);
+        for (const n of r.manque) carteManquant(n, pageVue);
+        apercu.srcdoc = r.html;
+      } else {
+        const r = ATELIER_WEB.assembler(projet, page, jetonApercu, fabriqueConsole.toString());
+        manquants = new Set(r.manque);
+        for (const n of r.manque) carteManquant(n, page);
+        apercu.srcdoc = r.html;
+      }
+      pageApercu = pageVue;
+      const titre = $("#at-page-apercu");
+      if (titre) { titre.textContent = pageVue; titre.hidden = Object.keys(projet).filter((x) => /\.(html?|php)$/i.test(x)).length < 2; }
+    }
+    /* Une page qui appelle un fichier absent du projet : on le dit, et on
+       propose de le créer — le cas de tout exemple du cours qui relie un
+       « style.css » qu'il ne montre pas. */
+    let manquants = new Set();
+    function carteManquant(n, page) {
+      if (avisWeb.some((x) => x.dataset.manque === n)) return;
+      const c = document.createElement("div");
+      c.className = "at-diag d-avert";
+      c.dataset.manque = n;
+      const creable = /^[\w-]+(\/[\w-]+)*\.(css|js|html)$/i.test(n);
+      c.innerHTML = '<div class="at-diag-tete"><span class="at-puce">!</span><h4>« ' + ech(n) +
+        " » est demandé par " + ech(page) + ", mais n'existe pas</h4></div>" +
+        '<p class="at-pourquoi">Le navigateur ne le trouvera pas : ce qu\'il devait apporter (style, script, image) manquera.</p>' +
+        (creable ? '<p class="at-remede"><button type="button" class="at-aller at-creer">Créer ' + ech(n) + "</button></p>" : "");
+      const b = c.querySelector(".at-creer");
+      if (b) b.addEventListener("click", () => {
+        projet[n] = /\.css$/i.test(n) ? "/* " + n + " */\n" : /\.js$/i.test(n) ? "// " + n + "\n" : "";
+        c.remove();
+        avisWeb = avisWeb.filter((x) => x !== c);
+        ouvrirFichier(n);
+        editeur.focus();
+      });
+      avisWeb.push(c);
+      afficherDiagnostics(erreursWeb);
+    }
+    function carteNonRelie(r) {
+      const c = document.createElement("div");
+      c.className = "at-diag d-avert";
+      c.innerHTML = '<div class="at-diag-tete"><span class="at-puce">!</span><h4>« ' + ech(r.fichier) +
+        " » n'est relié à aucune page</h4></div>" +
+        '<p class="at-pourquoi">Le navigateur ne lit un fichier ' + (r.ou === "head" ? "CSS" : "JavaScript") +
+        " que si une page l'appelle. L'aperçu fait comme lui : il ne l'applique pas.</p>" +
+        '<p class="at-remede"><b>À faire :</b> écrire <code>' + ech(r.ligne) + "</code> " +
+        (r.ou === "head" ? "dans le &lt;head&gt; de la page" : "juste avant &lt;/body&gt;") +
+        '. <button type="button" class="at-aller at-relier">Ajouter la ligne dans ' + ech(pageApercu) + "</button></p>";
+      c.querySelector(".at-relier").addEventListener("click", () => {
+        if (estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
+        projet[pageApercu] = ATELIER_WEB.relier(projet[pageApercu], r.ligne, r.ou);
+        if (fichierActif === pageApercu) editeur.valeur = projet[pageApercu];
+        else ouvrirFichier(pageApercu);
+        c.remove();
+        executerWeb();
+      });
+      avisWeb.push(c);
+      afficherDiagnostics(erreursWeb);
+    }
+    window.addEventListener("message", (e) => {
+      if (!apercu || e.source !== apercu.contentWindow) return;
+      const m = e.data;
+      if (!m || m.jeton !== jetonApercu) return;
+      if (m.t === "console") {
+        const err = m.niveau === "error" || m.niveau === "warn";
+        ecrireSortie(m.texte, err);
+        signalerConsole(m.niveau === "error");
+      } else if (m.t === "effacer") { console2.vider(); sortieWeb = ""; }
+      else if (m.t === "erreur") {
+        const fichier = m.fichier === "page" || !m.fichier ? pageApercu : m.fichier;
+        const d = { ligne: m.ligne, colonne: m.colonne || 1, niveau: "error", fichier,
+                    message: (m.nom && m.nom !== "Error" ? m.nom + ": " : "") + m.message };
+        erreursWeb.push(d);
+        afficherDiagnostics(erreursWeb);
+        console2.note("⚑ " + d.message + (m.ligne ? " (" + fichier + ", ligne " + m.ligne + ")" : ""), "stop");
+        signalerConsole(true);
+        dirEtat("Erreur JavaScript dans " + fichier + (m.ligne ? ", ligne " + m.ligne : ""), "erreur");
+      } else if (m.t === "aller") {
+        const cible = m.ancre ? m.page : m.page;
+        if (estPhp(m.page) || projetContientPhp()) { afficherPage(m.page + (m.requete ? "?" + m.requete : ""), "GET"); console2.note("→ lien suivi : " + m.page, "info"); }
+        else { afficherPage(m.page); console2.note("→ lien suivi : " + m.page, "info"); }
+      } else if (m.t === "formulaire") {
+        const action = (m.action || pageApercu).replace(/^\.\//, "");
+        const cible = action.split("?")[0] || pageApercu;
+        if (estPhp(cible) && typeof projet[cible] === "string") {
+          const donnees = {};
+          m.champs.forEach(([k, v]) => { donnees[k] = typeof v === "string" ? v : String(v); });
+          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + cible + " » — reçu par PHP.", "info");
+          afficherPage(cible, m.methode === "POST" ? "POST" : "GET", donnees);
+        } else {
+          const lignes = m.champs.length ? m.champs.map(([k, v]) => "    " + k + " = " + JSON.stringify(v)).join("\n") : "    (aucun champ nommé : il manque les attributs name)";
+          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + (m.action || "la même page") + " » :\n" + lignes
+            + (/\.php$/i.test(action) ? "\n  Un serveur PHP le recevrait ; aucune page « " + cible + " » n'est dans le projet." : ""), "info");
+          signalerConsole(false);
+          montrerSortie("console");
+        }
+      } else if (m.t === "lien") {
+        console2.note("Lien vers " + m.url + " : non ouvert — l'aperçu reste isolé, hors ligne.", "info");
+        signalerConsole(false);
+      } else if (m.t === "introuvable") {
+        console2.note("⚠ Lien vers « " + m.url + " » : ce fichier n'est pas dans le projet.", "garde");
+        signalerConsole(false);
+      } else if (m.t === "ressource") {
+        if (manquants.has(String(m.url).replace(/^\.\//, "").replace(/[?#].*$/, ""))) return;
+        console2.note("⚠ Introuvable : <" + m.balise + "> demande « " + m.url + " ».", "garde");
+        signalerConsole(false);
+      }
+    });
+
+    /* ══ le mode JavaScript : la console seule, comme Node ═══════════════ */
+    let entreesJs = [], graineJs = 1, sortieJs = "";
+    function executerJS(reprise) {
+      tourne = true;
+      bEx.disabled = true;
+      bEx.querySelector(".lib").textContent = "Exécution…";
+      bArret.hidden = false;
+      if (!reprise) {
+        console2.vider();
+        afficherDiagnostics([]);
+        entreesJs = [];
+        entreeCumul = "";
+        finSaisie = false;
+        zoneEntree.hidden = true;
+        graineJs = (Math.random() * 4294967296) >>> 0;
+      }
+      /* À la reprise, on ne vide PAS la console : le programme rejoué réécrit
+         exactement la même chose, et la console n'affiche que ce qui dépasse
+         (Console.poser) — comme pour le C. */
+      sortieJs = "";
+      /* Ce qui est déjà à l'écran : la reprise le réécrit d'abord, en
+         silence, et la console ne reçoit que ce qui vient APRÈS. Sans ce
+         seuil, une sortie envoyée ligne à ligne se répétait. */
+      const dejaVu = reprise ? console2.sortie.length : 0;
+      attendEntree = false;
+      relancer = () => executerJS(true);
+      const t0 = performance.now();
+      ouvrierExec = new Worker(base + "ouvrier-js.js");
+      ouvrierExec.onmessage = (e) => {
+        const m = e.data;
+        if (m.t === "console") {
+          const prefixe = m.niveau === "alerte" ? "[alert] " : m.niveau === "warn" ? "⚠ " : "";
+          sortieJs += prefixe + m.texte + "\n";
+          if (sortieJs.length > dejaVu) console2.poser(sortieJs, m.niveau === "error" || m.niveau === "warn");
+        } else if (m.t === "effacer") { /* console.clear : on garde la trace, comme Node */ }
+        else if (m.t === "attente") { attendEntree = true; demanderEntree(); }
+        else if (m.t === "erreur") {
+          const d = { ligne: m.ligne, colonne: m.colonne || 1, niveau: "error", message: m.nom + ": " + m.message };
+          afficherDiagnostics([d]);
+          console2.note("⚑ " + d.message + (m.ligne ? " (ligne " + m.ligne + ")" : ""), "stop");
+        } else if (m.t === "fini") {
+          clearTimeout(minuteur);
+          if (ouvrierExec) { ouvrierExec.terminate(); ouvrierExec = null; }
+          tourne = false;
+          bEx.disabled = false;
+          bEx.querySelector(".lib").textContent = "Exécuter";
+          bArret.hidden = true;
+          if (m.attente) { dirEtat("Le programme attend une saisie (prompt)", "avert"); return; }
+          zoneEntree.hidden = true;
+          const ms = Math.round(performance.now() - t0);
+          dirEtat(diags.querySelector(".d-erreur") ? "Le programme s'est arrêté sur une erreur" : "Terminé en " + ms + " ms",
+                  diags.querySelector(".d-erreur") ? "erreur" : "ok");
+        }
+      };
+      ouvrierExec.onerror = (e) => {
+        e.preventDefault();
+        console2.note("L'exécution s'est interrompue : " + (e.message || "erreur inconnue"), "stop");
+        clearTimeout(minuteur);
+        tourne = false; bEx.disabled = false; bEx.querySelector(".lib").textContent = "Exécuter"; bArret.hidden = true;
+      };
+      minuteur = setTimeout(() => {
+        arreterExec();
+        console2.note("⏱ Arrêté au bout de " + (budget / 1000) + " s : le programme ne s'arrêtait pas (boucle sans fin, ou setInterval jamais arrêté).", "stop");
+        tourne = false; bEx.disabled = false; bEx.querySelector(".lib").textContent = "Exécuter"; bArret.hidden = true;
+        dirEtat("Interrompu", "erreur");
+      }, budget);
+      ouvrierExec.postMessage({ code: editeur.valeur, entrees: entreeCumul ? entreeCumul.split("\n").slice(0, -1) : [], finEntree: finSaisie, graine: graineJs });
+    }
 
     /* ── état affiché ─────────────────────────────────────────────── */
     const mo = (n) => (n / 1048576).toFixed(n < 10485760 ? 1 : 0).replace(".", ",");
@@ -2178,6 +2889,19 @@
     const enCadre = window.top !== window.self;
     const economie = !!(navigator.connection && navigator.connection.saveData);
     const differe = enCadre || economie;
+
+    /* Le compilateur C — soixante mégaoctets — n'a rien à faire pour du
+       Python, du JavaScript ou une page web. On ne le télécharge d'office
+       que si l'atelier s'ouvre sur C ou C++ ; sinon, au premier passage sur
+       l'un des deux. */
+    const langueOuverte = (function () {
+      const l = /[#&]l=([a-z+]+)/.exec(location.hash);
+      if (l) return decodeURIComponent(l[1]);
+      if (/[#&](n|p|c|z|y)=/.test(location.hash)) return "c";
+      try { const s = JSON.parse(localStorage.getItem(CLE) || "null"); return (s && s.langue) || "c"; }
+      catch (e) { return "c"; }
+    })();
+    const sansCompilateur = ["c", "c++"].indexOf(langueOuverte) < 0;
 
     const moteur = Moteur(base, (m) => {
       if (m.t === "progres") {
@@ -2202,7 +2926,7 @@
         jauge.hidden = true;
         dirEtat("Le compilateur n'a pas pu se charger : " + m.message, "erreur");
       }
-    }, differe);
+    }, differe || sansCompilateur);
 
     /* ── exécuter ─────────────────────────────────────────────────── */
     /* ── exécuter du Python ───────────────────────────────────────────
@@ -2248,11 +2972,217 @@
       }
     }
 
+    /* ══ le mode SQL : MariaDB, écrit ici (sql.js) ════════════════════════
+       Chaque exécution part d'une base NEUVE, comme un script importé dans
+       phpMyAdmin sur un serveur remis à zéro : le résultat ne dépend que du
+       texte de l'éditeur, et un lien partagé donne le même résultat chez
+       celui qui l'ouvre. La base de départ :
+         · celle du cours (gestion_presence, remplie) quand le script ne crée
+           rien — « SELECT * FROM etudiants » marche tout de suite ;
+         · aucune quand il crée ses tables ou sa base — sinon son CREATE
+           TABLE heurterait celles du cours (« Table already exists »).
+       On peut forcer l'un ou l'autre ; la page dit toujours lequel a servi. */
+    const boiteSql = $("#at-sql");
+    let departSql = "auto";
+    let etatCours = null;
+    function serveurDeDepart(depart) {
+      if (depart !== "cours") return new MOTEUR_SQL.Serveur();
+      if (!etatCours) {
+        const s = new MOTEUR_SQL.Serveur();
+        const r = s.executer(BASE_COURS_SQL);
+        if (r.erreur) throw r.erreur;
+        etatCours = JSON.stringify(s.exporter());
+      }
+      return new MOTEUR_SQL.Serveur(JSON.parse(etatCours));
+    }
+    const sansCommentairesSql = (t) => t.replace(/\/\*[\s\S]*?\*\/|--(?=[ \t]|$)[^\n]*|#[^\n]*|'(?:''|\\.|[^'\\])*'|"(?:""|\\.|[^"\\])*"/g, " ");
+    const creeSaBase = (t) => /\bcreate\s+(?:temporary\s+)?(?:table|database|schema)\b/i.test(sansCommentairesSql(t));
+    const pluriel = (n, un, plusieurs) => n + " " + (n > 1 ? plusieurs : un);
+
+    /* Ce qu'une instruction a fait, en une phrase — celle du client mariadb
+       (« Query OK, 2 rows affected »), dite en français. */
+    function bilanSql(r) {
+      const verbe = (/^\s*(\w+)(?:\s+(\w+))?/.exec(r.texte || "") || []).slice(1).join(" ").toUpperCase();
+      const n = r.affectees || 0;
+      if (/^(INSERT|REPLACE)/.test(verbe))
+        return pluriel(n, "ligne insérée", "lignes insérées")
+          + (r.insertId ? (n > 1 ? " — ids générés à partir de " : " — id généré : ") + r.insertId : "")
+          + (r.avertissements ? " (" + pluriel(r.avertissements, "doublon ignoré", "doublons ignorés") + ")" : "");
+      if (/^UPDATE/.test(verbe))
+        return pluriel(n, "ligne modifiée", "lignes modifiées")
+          + (r.trouvees !== undefined && r.trouvees !== n ? " sur " + pluriel(r.trouvees, "trouvée", "trouvées") + " — les autres avaient déjà cette valeur" : "");
+      if (/^DELETE/.test(verbe)) return pluriel(n, "ligne supprimée", "lignes supprimées");
+      if (/^CREATE (DATABASE|SCHEMA)/.test(verbe)) return r.avertissements ? "La base existait déjà : rien n'a changé (IF NOT EXISTS)" : "Base créée";
+      if (/^CREATE/.test(verbe)) return r.avertissements ? "La table existait déjà : rien n'a changé (IF NOT EXISTS)" : verbe === "CREATE INDEX" ? "Index créé (il ne change rien aux résultats)" : "Table créée";
+      if (/^DROP (DATABASE|SCHEMA)/.test(verbe)) return "Base supprimée, avec " + pluriel(n, "table", "tables");
+      if (/^DROP/.test(verbe)) return "Supprimé";
+      if (/^ALTER/.test(verbe)) return "Table modifiée";
+      if (/^TRUNCATE/.test(verbe)) return "Table vidée";
+      if (/^RENAME/.test(verbe)) return "Table renommée";
+      return "Requête OK" + (n ? ", " + pluriel(n, "ligne affectée", "lignes affectées") : "");
+    }
+    function abregerSql(t) {
+      const u = String(t || "").replace(/\s+/g, " ").trim();
+      return u.length > 160 ? u.slice(0, 157) + "…" : u;
+    }
+    const MAX_LIGNES_SQL = 500;
+    function tableauSql(r) {
+      const lignes = r.lignes.slice(0, MAX_LIGNES_SQL);
+      const cellule = (v, type) => {
+        if (v === null || v === undefined) return '<td class="nul">NULL</td>';
+        const t = MOTEUR_SQL.afficher(v, type);
+        return "<td" + (typeof v === "number" ? ' class="nb"' : "") + ">" + ech(t) + "</td>";
+      };
+      return '<div class="at-sql-defile"><table class="at-sql-table"><thead><tr>'
+        + r.colonnes.map((c) => "<th>" + ech(String(c)) + "</th>").join("") + "</tr></thead><tbody>"
+        + lignes.map((l) => "<tr>" + l.map((v, i) => cellule(v, r.types && r.types[i])).join("") + "</tr>").join("")
+        + "</tbody></table></div>";
+    }
+    function carteSql(r) {
+      let corps;
+      if (r.type === "select") {
+        const n = r.lignes.length;
+        corps = (n ? tableauSql(r) : "") + '<p class="at-sql-bilan">'
+          + (n ? pluriel(n, "ligne", "lignes") + (n > MAX_LIGNES_SQL ? " — les " + MAX_LIGNES_SQL + " premières sont affichées" : "")
+               : "Aucune ligne (<i>Empty set</i>)") + "</p>";
+      } else corps = '<p class="at-sql-bilan ok">✓ ' + ech(r.type === "modif" ? bilanSql(r) : (r.message || "OK")) + "</p>";
+      return '<section class="at-sql-carte"><div class="at-sql-req"><button type="button" class="at-aller" data-ligne="'
+        + r.ligne + '" data-colonne="' + (r.colonne || 1) + '">ligne ' + r.ligne + "</button><code>"
+        + peindre(abregerSql(r.texte), "sql") + "</code></div>" + corps + "</section>";
+    }
+    /* Ce que contient la base à la fin : de quoi écrire la requête suivante
+       sans lancer DESCRIBE à chaque fois. */
+    function schemaSql(serveur) {
+      if (!serveur.courante) {
+        const n = serveur.bases.size;
+        return '<p class="at-sql-schema-vide">Aucune base sélectionnée'
+          + (n ? " — " + pluriel(n, "base existe", "bases existent") + " : écrivez <code>USE nom_de_la_base;</code>" : "") + ".</p>";
+      }
+      let tables;
+      try { tables = serveur.requete("SHOW TABLES").lignes.map((l) => l[0]); }
+      catch (e) { return ""; }
+      const lignes = tables.map((t) => {
+        let cols = [], nb = "?";
+        try {
+          cols = serveur.requete("DESCRIBE `" + t + "`").lignes;
+          nb = serveur.requete("SELECT COUNT(*) FROM `" + t + "`").lignes[0][0];
+        } catch (e) { /* une table illisible n'empêche pas les autres */ }
+        return '<li><b>' + ech(t) + "</b> <span class=\"at-sql-nb\">" + pluriel(nb, "ligne", "lignes") + "</span><br>"
+          + cols.map((c) => '<span class="at-sql-col' + (c[3] === "PRI" ? " cle" : c[3] === "MUL" ? " etr" : "") + '" title="'
+            + ech(c[1] + (c[2] === "NO" ? ", NOT NULL" : "") + (c[5] ? ", " + c[5] : "")) + '">' + ech(c[0])
+            + " <i>" + ech(c[1]) + "</i></span>").join(" ") + "</li>";
+      });
+      return '<details class="at-sql-schema" open><summary>Base <b>' + ech(serveur.courante) + "</b> à la fin du script — "
+        + pluriel(tables.length, "table", "tables") + '</summary><ul>' + lignes.join("") + "</ul>"
+        + '<p class="at-sql-legende"><span class="at-sql-col cle">clé primaire</span> <span class="at-sql-col etr">clé étrangère</span></p></details>';
+    }
+    function executerSql() {
+      console2.vider();
+      zoneEntree.hidden = true;
+      const texte = editeur.valeur;
+      sauver();
+      if (typeof MOTEUR_SQL === "undefined") {
+        dirEtat("Le moteur SQL (c/sql.js) n'a pas pu être chargé.", "erreur");
+        return;
+      }
+      const depart = departSql !== "auto" ? departSql : creeSaBase(texte) ? "vide" : "cours";
+      const t0 = performance.now();
+      let serveur, r;
+      try {
+        serveur = serveurDeDepart(depart);
+        r = serveur.executer(texte);
+      } catch (e) {
+        // une panne du moteur lui-même, pas une erreur SQL : on le dit tel quel
+        boiteSql.innerHTML = '<section class="at-sql-carte at-sql-erreur"><p><b>Panne de l\'atelier</b> : '
+          + ech(String(e && e.message || e)) + "</p><p class=\"at-sql-bilan\">Ce n'est pas votre requête : le moteur SQL "
+          + "de l'atelier ne sait pas encore la traiter.</p></section>";
+        afficherDiagnostics([]);
+        dirEtat("Le moteur SQL de l'atelier est tombé en panne", "erreur");
+        return;
+      }
+      const ms = Math.max(1, Math.round(performance.now() - t0));
+      const choix = '<div class="at-sql-depart"><label>Base de départ <select id="at-sql-choix">'
+        + '<option value="auto"' + (departSql === "auto" ? " selected" : "") + ">automatique</option>"
+        + '<option value="cours"' + (departSql === "cours" ? " selected" : "") + ">la base du cours</option>"
+        + '<option value="vide"' + (departSql === "vide" ? " selected" : "") + ">aucune (serveur vide)</option>"
+        + "</select></label><span>" + (depart === "cours"
+          ? "<b>gestion_presence</b>, la base du cours : 33 étudiants, leurs présences"
+            + (departSql === "auto" ? " — votre script ne crée rien, il interroge" : "")
+          : "un serveur vide" + (departSql === "auto" ? " — votre script crée ses tables" : "")) + "</span></div>";
+      let html = choix + r.resultats.map(carteSql).join("");
+      const diag = [];
+      if (r.erreur) {
+        const e = r.erreur;
+        const brut = "ERROR " + e.code + " (" + e.etat + ")" + (e.ligne ? " at line " + e.ligne : "") + ": " + e.message;
+        html += '<section class="at-sql-carte at-sql-erreur"><div class="at-sql-req">'
+          + (e.ligne ? '<button type="button" class="at-aller" data-ligne="' + e.ligne + '" data-colonne="' + (e.colonne || 1) + '">ligne ' + e.ligne + "</button>" : "")
+          + (e.texte ? "<code>" + peindre(abregerSql(e.texte), "sql") + "</code>" : "") + "</div>"
+          + '<p class="at-sql-message"><b>ERROR ' + e.code + "</b> (" + ech(e.etat) + ") : " + ech(e.message) + "</p>"
+          + '<p class="at-sql-bilan">' + (e.lecture ? "MariaDB n'a pas pu lire cette instruction : elle et la suite du script n'ont pas été exécutées."
+            : r.restantes ? "MariaDB s'arrête à la première erreur : " + pluriel(r.restantes, "instruction suivante n'a", "instructions suivantes n'ont") + " pas été exécutée" + (r.restantes > 1 ? "s." : ".")
+            : "C'était la dernière instruction du script.") + " L'explication est sous l'éditeur.</p></section>";
+        diag.push({ ligne: e.ligne || 0, colonne: e.colonne || 1, niveau: "error", message: brut });
+      }
+      if (!r.resultats.length && !r.erreur)
+        html += '<p class="at-sql-schema-vide">Le script ne contient aucune instruction. Écrivez par exemple <code>SHOW TABLES;</code></p>';
+      html += schemaSql(serveur);
+      boiteSql.innerHTML = html;
+      boiteSql.scrollTop = 0;
+      afficherDiagnostics(diag);
+      const n = r.resultats.length;
+      if (r.erreur) dirEtat("Erreur " + r.erreur.code + (r.erreur.ligne ? " à la ligne " + r.erreur.ligne : "") + (n ? " — " + pluriel(n, "instruction exécutée", "instructions exécutées") + " avant" : ""), "erreur");
+      else dirEtat(pluriel(n, "instruction exécutée", "instructions exécutées") + " en " + ms + " ms", "ok");
+    }
+    if (boiteSql) {
+      boiteSql.addEventListener("change", (e) => {
+        if (e.target.id !== "at-sql-choix") return;
+        departSql = e.target.value;
+        executerSql();
+      });
+      boiteSql.addEventListener("click", (e) => {
+        const b = e.target.closest(".at-aller");
+        if (b) editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
+      });
+    }
+    /* La relecture pendant la frappe : l'analyseur seul, sans rien exécuter
+       — il dit la faute de syntaxe avant qu'on appuie sur Exécuter. */
+    function relireSql() {
+      if (langue !== "sql" || typeof MOTEUR_SQL === "undefined") return;
+      const source = editeur.valeur;
+      if (source === texteRelu) return;
+      texteRelu = source;
+      let faute = null;
+      try { new MOTEUR_SQL.Analyseur(source).script(); }
+      catch (e) { if (e && e.sql) faute = e; }
+      if (!faute) { if (diags.querySelector(".d-erreur")) afficherDiagnostics([]); return; }
+      afficherDiagnostics([{ ligne: faute.ligne || 0, colonne: faute.colonne || 1, niveau: "error",
+        message: "ERROR " + faute.code + " (" + faute.etat + ") at line " + faute.ligne + ": " + faute.message }]);
+    }
+    /* La relecture d'une page PHP pendant la frappe : l'analyseur seul
+       (php-analyse.js) dit la faute de syntaxe avant d'appuyer sur Exécuter. */
+    function relirePhp() {
+      if (langue !== "php" || typeof PHP_ANALYSE === "undefined" || !estPhp(fichierActif)) return;
+      const source = editeur.valeur;
+      if (source === texteRelu) return;
+      texteRelu = source;
+      let faute = null;
+      try { PHP_ANALYSE.analyser(source, fichierActif); }
+      catch (e) { if (e && e.syntaxe) faute = e; }
+      erreursWeb = (erreursWeb || []).filter((d) => !d.phpSyntaxe);
+      if (!faute) { afficherDiagnostics(erreursWeb); return; }
+      erreursWeb.push({ ligne: faute.ligne || 0, colonne: 1, niveau: "error", fichier: fichierActif, phpSyntaxe: true,
+        message: "Parse error: " + faute.message });
+      afficherDiagnostics(erreursWeb);
+    }
+
     async function executer(relance) {
       if (tourne && !relance) return;
       /* Le Python ne passe pas par le compilateur : il part d'ici, avant
          qu'on allume quoi que ce soit de la chaîne wasm. */
       if (langue === "python") { executerPython(); return; }
+      if (estWeb(langue)) { executerWeb(); return; }
+      if (langue === "sql") { executerSql(); return; }
+      if (langue === "js") { arreterExec(); executerJS(); return; }
       arreterExec();
       tourne = true;
       bEx.disabled = true;
@@ -2294,6 +3224,7 @@
         return;
       }
       wasmCourant = r.wasm;
+      relancer = () => lancerProgramme(wasmCourant, 0);
       dirEtat("Exécution…", "charge");
       bEx.querySelector(".lib").textContent = "Exécution…";
       lancerProgramme(r.wasm, msC);
@@ -2387,7 +3318,7 @@
       champEntree.focus();
     }
     function envoyerEntree() {
-      if (!attendEntree || !wasmCourant) return;
+      if (!attendEntree || !relancer) return;
       const v = champEntree.value;
       champEntree.value = "";
       console2.echo(v);
@@ -2395,15 +3326,15 @@
       zoneEntree.hidden = true;
       attendEntree = false;
       arreterExec();
-      if (wasmCourant) { dirEtat("Reprise…", "charge"); tourne = true; bEx.disabled = true;
-                         bArret.hidden = false; lancerProgramme(wasmCourant, 0); }
+      if (relancer) { dirEtat("Reprise…", "charge"); tourne = true; bEx.disabled = true;
+                      bArret.hidden = false; relancer(); }
     }
     $("#at-envoyer").addEventListener("click", envoyerEntree);
     /* L'équivalent du Ctrl+D d'un terminal. Sans lui, un programme bâti sur
        « while (scanf(…) == 1) » — la boucle de lecture la plus courante —
        redemanderait indéfiniment : on ne peut jamais lui dire que c'est fini. */
     $("#at-fin-saisie").addEventListener("click", () => {
-      if (!attendEntree || !wasmCourant) return;
+      if (!attendEntree || !relancer) return;
       finSaisie = true;
       attendEntree = false;
       zoneEntree.hidden = true;
@@ -2411,7 +3342,7 @@
       tourne = true; bEx.disabled = true; bArret.hidden = false;
       arreterExec();
       dirEtat("Reprise…", "charge");
-      lancerProgramme(wasmCourant, 0);
+      relancer();
     });
     champEntree.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); envoyerEntree(); }
@@ -2448,6 +3379,9 @@
          lent. » On peut donc l'éteindre — et c'est à lui d'en décider,
          pas à moi de supposer que sa machine suit. */
       if (!relirePendantLaFrappe) return;
+      if (langue === "sql") { clearTimeout(minuterieRelire); minuterieRelire = setTimeout(relireSql, DELAI_RELIRE); return; }
+      if (langue === "php") { clearTimeout(minuterieRelire); minuterieRelire = setTimeout(relirePhp, DELAI_RELIRE); return; }
+      if (langue !== "c" && langue !== "c++") return;
       if (!moteur.pret) return;
       clearTimeout(minuterieRelire);
       minuterieRelire = setTimeout(relireMaintenant, DELAI_RELIRE);
@@ -2485,10 +3419,19 @@
       const vrais = liste.filter((d) => d.niveau !== "note");
       for (const d of vrais) {
         const niveau = d.niveau.indexOf("error") >= 0 ? "erreur" : "avert";
-        if (d.ligne) marques.push({ ligne: d.ligne, niveau, titre: d.message });
+        if (d.ligne && (!d.fichier || !estWeb(langue) || d.fichier === fichierActif))
+          marques.push({ ligne: d.ligne, niveau, titre: d.message });
         diags.appendChild(carteDiagnostic(d, niveau));
       }
       editeur.marquesErreur = marques;
+      /* En mode Web, les avis sur le projet (fichier absent, non relié)
+         restent sous les erreurs : une erreur JavaScript qui arrive ne doit
+         pas les effacer. */
+      if (estWeb(langue) && avisWeb.length) {
+        for (const c of avisWeb) diags.appendChild(c);
+        $("#at-diag-tete").hidden = false;
+        if (!vrais.length) { $("#at-diag-tete").textContent = "À vérifier"; return; }
+      }
       if (!vrais.length) return;
       const n = vrais.filter((d) => d.niveau.indexOf("error") >= 0).length;
       const a = vrais.length - n;
@@ -2504,7 +3447,8 @@
       c.className = "at-diag d-" + niveau;
       const lieu = d.ligne
         ? '<button type="button" class="at-aller" data-ligne="' + d.ligne + '" data-colonne="'
-          + d.colonne + '">ligne ' + d.ligne + "</button>"
+          + d.colonne + '"' + (d.fichier ? ' data-fichier="' + ech(d.fichier) + '"' : "") + ">"
+          + (d.fichier ? ech(d.fichier) + ", " : "") + "ligne " + d.ligne + "</button>"
         : "";
       const extrait = d.ligne ? extraitSource(d) : "";
       c.innerHTML =
@@ -2527,7 +3471,10 @@
     }
 
     function extraitSource(d) {
-      const ligne = editeur.valeur.split("\n")[d.ligne - 1];
+      const texte = d.fichier && estWeb(langue) && projet && typeof projet[d.fichier] === "string"
+        ? (d.fichier === fichierActif ? editeur.valeur : projet[d.fichier]) : editeur.valeur;
+      const lg = d.fichier && estWeb(langue) ? langueFichier(d.fichier) : langue;
+      const ligne = texte.split("\n")[d.ligne - 1];
       if (ligne === undefined) return "";
       const e = (d.etendues || []).filter((x) => x.l1 === d.ligne && x.l2 === d.ligne);
       let deb = d.colonne - 1, fin = d.colonne;
@@ -2537,9 +3484,9 @@
       }
       deb = Math.max(0, Math.min(deb, ligne.length));
       fin = Math.max(deb + 1, Math.min(fin, ligne.length));
-      return '<pre class="at-extrait"><code>' + peindre(ligne.slice(0, deb), langue)
+      return '<pre class="at-extrait"><code>' + peindre(ligne.slice(0, deb), lg)
         + '<mark>' + ech(ligne.slice(deb, fin) || " ") + "</mark>"
-        + peindre(ligne.slice(fin), langue) + "</code></pre>";
+        + peindre(ligne.slice(fin), lg) + "</code></pre>";
     }
 
     function ajouterGarde(g) {
@@ -2615,7 +3562,9 @@
 
     diags.addEventListener("click", (e) => {
       const b = e.target.closest(".at-aller");
-      if (b) editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
+      if (!b) return;
+      if (b.dataset.fichier && estWeb(langue) && b.dataset.fichier !== fichierActif) ouvrirFichier(b.dataset.fichier);
+      editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
     });
 
     /* ── réglages, sauvegarde, exemples ─────────────────────────────── */
@@ -2623,16 +3572,61 @@
        « let » : poserLangue peut être appelée pendant l'initialisation, avant
        que la ligne du tiroir ne soit atteinte. */
     var redessinerExemples = null;
-    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python" };
+    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS", "php": "PHP", "sql": "SQL" };
+    const LANGUES = Object.keys(NOM_LANGUE);
+    /* Le mode PHP partage toute la machinerie du mode Web (projet en
+       onglets, aperçu) ; seule la page de départ et le fait que les pages
+       .php passent par le moteur PHP les distinguent. */
+    const estWeb = (x) => x === "web" || x === "php";
+    /* Un programme de départ jamais modifié : on peut le remplacer par celui
+       du langage choisi sans rien faire perdre. */
+    const estDepart = (t) => Object.keys(DEPART).some((k) => DEPART[k] === t);
+    const FICHIER = { "c": "programme.c", "c++": "programme.cpp", "python": "programme.py", "js": "programme.js", "sql": "requetes.sql" };
     function poserLangue(l) {
+      if (LANGUES.indexOf(l) < 0) l = "c";
+      const avant = langue;
+      /* Le mode Web a SES fichiers ; les autres langages partagent le texte
+         de l'éditeur (on colle du Python, on clique Python). Entrer dans le
+         Web met ce texte de côté, en sortir le rend. Un programme de
+         départ jamais touché est remplacé par celui du nouveau langage. */
+      if (estWeb(avant) && !estWeb(l)) {
+        if (projet && estTexte(fichierActif)) {
+          projet[fichierActif] = editeur.valeur;
+          surlignagesParFichier[fichierActif] = editeur.surlignages;
+        }
+        const t = texteClassique;
+        editeur.valeur = t == null || !t.trim() || estDepart(t) ? (DEPART[l] || "") : t;
+        editeur.surlignages = [];
+        texteClassique = null;
+      } else if (!estWeb(avant) && estWeb(l)) {
+        texteClassique = editeur.valeur;
+        if (!projet || (l === "php" && !projetContientPhp())) {
+          projet = l === "php" ? PROJET_PHP_DEPART() : PROJET_DEPART();
+          if (l === "web" && devine(texteClassique) === "web") projet["index.html"] = texteClassique;
+        }
+        const entree = l === "php" ? "index.php" : "index.html";
+        if (!estTexte(fichierActif) || (l === "php" && !estPhp(fichierActif) && !projet[fichierActif])) fichierActif = estTexte(entree) ? entree : Object.keys(projet).filter(estTexte)[0];
+        editeur.valeur = projet[fichierActif];
+        editeur.surlignages = surlignagesParFichier[fichierActif] || [];
+        afficherDiagnostics(erreursWeb);
+      } else if (estWeb(avant) && estWeb(l) && avant !== l) {
+        // bascule Web ↔ PHP : garder le projet, mais charger la page de
+        // départ PHP si le projet n'a aucune page .php
+        if (l === "php" && !projetContientPhp()) { projet = PROJET_PHP_DEPART(); fichierActif = "index.php"; editeur.valeur = projet[fichierActif]; editeur.surlignages = []; }
+      } else if (avant !== l && !estWeb(l) && (estDepart(editeur.valeur) || !editeur.valeur.trim())) {
+        editeur.valeur = DEPART[l] || "";
+      }
       langue = l;
-      editeur.langue = l;
-      $("#at-nom-fichier").textContent =
-        l === "c++" ? "programme.cpp" : l === "python" ? "programme.py" : "programme.c";
+      if (estWeb(avant) && !estWeb(l)) afficherDiagnostics([]);
+      editeur.langue = estWeb(l) ? langueFichier(fichierActif) : l;
+      if (nomFichier) { nomFichier.textContent = FICHIER[l] || ""; nomFichier.hidden = estWeb(l); }
+      if (barreFichiers) { barreFichiers.hidden = !estWeb(l); if (estWeb(l)) dessinerFichiers(); }
+      montrerSortie(estWeb(l) && apercu && apercu.srcdoc ? "apercu" : "console");
       /* « Strict » règle les avertissements du compilateur : en Python il
          n'y a pas de compilateur, et un bouton qui n'agit sur rien use la
          confiance dans tous les autres. */
-      if (bStrict) bStrict.hidden = (l === "python");
+      if (bStrict) bStrict.hidden = (l !== "c" && l !== "c++");
+      if ((l === "c" || l === "c++") && !differe) moteur.lancer();
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
       if (redessinerExemples) redessinerExemples(l);
       planifierSauvegarde();
@@ -2773,12 +3767,18 @@
 
     function sauver() {
       try {
+        if (estWeb(langue) && projet && estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
         localStorage.setItem(CLE, JSON.stringify({
-          source: editeur.valeur, langue, strict, relirePendantLaFrappe,
+          source: estWeb(langue) ? (texteClassique || "") : editeur.valeur, langue, strict, relirePendantLaFrappe,
           quand: Date.now(), part: partVolets,
-          theme: ediTheme, surlignages: editeur.surlignages,
+          theme: ediTheme, surlignages: estWeb(langue) ? [] : editeur.surlignages,
+          projet, fichierActif,
         }));
-      } catch (e) {}
+      } catch (e) {
+        /* Le stockage du navigateur est plein — en mode Web, ce sont les
+           images. Mieux vaut le dire que de perdre le travail en silence. */
+        if (e && e.name === "QuotaExceededError") dirEtat("Stockage du navigateur plein : retirez une image du projet, sinon il ne sera plus enregistré", "erreur");
+      }
       modifie = false;
     }
 
@@ -2800,6 +3800,26 @@
          + '    print("Note " + str(i + 1) + " : " + str(notes[i]))\n'
          + '    somme = somme + notes[i]\n\n'
          + 'print("Moyenne : " + str(somme / len(notes)))\n',
+      /* Toujours le même exercice : le JavaScript, c'est la console du
+         navigateur (F12). prompt() y pose sa question sous la sortie. */
+      js: 'const notes = [12, 15, 9, 18, 14];\nlet somme = 0;\n\n'
+         + 'for (let i = 0; i < notes.length; i++) {\n'
+         + '    console.log("Note " + (i + 1) + " : " + notes[i]);\n'
+         + '    somme += notes[i];\n}\n\n'
+         + 'console.log("Moyenne : " + (somme / notes.length).toFixed(2));\n\n'
+         + 'const prenom = prompt("Votre prénom ?");\n'
+         + 'console.log("Bonjour " + prenom + " !");\n',
+      /* Le SQL interroge la base du cours, déjà là : le geste du TP, sans
+         installer XAMPP ni importer bdd.sql. */
+      sql: '-- La base du cours, gestion_presence, est déjà chargée :\n'
+         + '-- 33 étudiants et une semaine de présences.\n\n'
+         + 'SHOW TABLES;\n\n'
+         + '-- combien d\'étudiants par classe ?\n'
+         + 'SELECT classe, COUNT(*) AS nombre\nFROM etudiants\nGROUP BY classe;\n\n'
+         + '-- les absences de chacun, des plus absents aux autres\n'
+         + 'SELECT e.nom, e.prenom, COUNT(p.id) AS nb_absences\n'
+         + 'FROM etudiants e\nLEFT JOIN presences p\n       ON p.id_etudiant = e.id AND p.statut = \'absent\'\n'
+         + 'GROUP BY e.id, e.nom, e.prenom\nORDER BY nb_absences DESC\nLIMIT 5;\n',
     };
 
     /* ── le raccourcisseur, chargé à la DEMANDE ───────────────────────
@@ -2886,8 +3906,7 @@
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
-          editeur.valeur = e.code;
-          poserLangue(e.langue === "c++" ? "c++" : "c");
+          ouvrirExemple(e);
           dirEtat("Programme du site : " + e.titre, "ok");
         }).catch(() => {
           dirEtat("La liste des programmes n'a pas pu être chargée", "ko");
@@ -2910,8 +3929,7 @@
             return;
           }
           editeur.valeur = txt;
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(txt));
+          ouvrirTexte(txt);
         });
         return;
       }
@@ -2923,9 +3941,7 @@
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
-          editeur.valeur = txt;
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(txt));
+          ouvrirTexte(txt);
         });
         return;
       }
@@ -2938,9 +3954,7 @@
           while (b64.length % 4) b64 += "=";
           const bin = atob(b64);
           const oct = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-          editeur.valeur = new TextDecoder().decode(oct);
-          const l = /[#&]l=(c\+\+|c)/.exec(location.hash);
-          poserLangue(l ? l[1] : devine(editeur.valeur));
+          ouvrirTexte(new TextDecoder().decode(oct));
           return;
         } catch (e) {}
       }
@@ -2958,7 +3972,11 @@
              enregistré ; cette ligne, écrite avant que Python n'existe,
              n'en connaissait que deux et renvoyait tout le reste sur C.
              La liste est maintenant celle des boutons. */
-          poserLangue(["c", "c++", "python"].indexOf(s.langue) >= 0 ? s.langue : "c");
+          if (s.projet && typeof s.projet === "object" && typeof s.projet["index.html"] === "string") {
+            projet = s.projet;
+            fichierActif = estTexte(s.fichierActif) ? s.fichierActif : "index.html";
+          }
+          poserLangue(LANGUES.indexOf(s.langue) >= 0 ? s.langue : "c");
           /* Le jeu de couleurs et les surlignages reviennent avec le
              programme : un marqueur qu'on perd en fermant l'onglet ne sert
              à rien pour réviser. Les deux sont relus avec méfiance — une
@@ -2973,8 +3991,57 @@
       editeur.valeur = DEPART.c;
       poserLangue("c");
     }
+    /* Un programme du site (le tiroir, ou « #n= ») : un texte, ou un projet
+       Web entier ({ langue: "web", fichiers }). */
+    function ouvrirExemple(x) {
+      if ((x.langue === "web" || x.langue === "php") && x.fichiers) {
+        if (estWeb(langue)) poserLangue("c");
+        projet = JSON.parse(JSON.stringify(x.fichiers));
+        const aPhp = Object.keys(projet).some((n) => /\.php$/i.test(n) && typeof projet[n] === "string");
+        fichierActif = estTexte(x.actif) ? x.actif : (aPhp && estTexte("index.php") ? "index.php" : "index.html");
+        surlignagesParFichier = {};
+        poserLangue(x.langue === "php" || aPhp ? "php" : "web");
+        return;
+      }
+      if (estWeb(langue)) poserLangue("c");
+      editeur.valeur = x.code;
+      poserLangue(x.langue || devine(x.code));
+    }
+    /* Un texte venu d'un lien (« Essayer » d'une fiche, partage) : son
+       langage est dans l'adresse (« l= »), sinon deviné. Un projet Web
+       voyage en JSON : { web: 1, fichiers, actif }. */
+    function ouvrirTexte(txt) {
+      const m = /[#&]l=([a-z+]+)/.exec(location.hash);
+      const l = m && LANGUES.indexOf(m[1]) >= 0 ? m[1] : devine(txt);
+      if (estWeb(l)) {
+        let p = null;
+        try { p = JSON.parse(txt); } catch (e) { p = null; }
+        if (estWeb(langue)) poserLangue("c");
+        if (p && (p.web || p.php) && p.fichiers && (typeof p.fichiers["index.html"] === "string" || typeof p.fichiers["index.php"] === "string")) {
+          projet = p.fichiers;
+          const aPhp = Object.keys(projet).some((n) => /\.php$/i.test(n) && typeof projet[n] === "string");
+          fichierActif = estTexte(p.actif) ? p.actif : (aPhp ? "index.php" : "index.html");
+          editeur.valeur = DEPART.c;
+          poserLangue(l === "php" || p.php || aPhp ? "php" : "web");
+          return;
+        }
+        if (l === "php") { projet = PROJET_PHP_DEPART(); projet["index.php"] = txt; fichierActif = "index.php"; }
+        else { projet = PROJET_DEPART(); projet["index.html"] = txt; fichierActif = "index.html"; }
+        editeur.valeur = DEPART.c;
+        poserLangue(l);
+        return;
+      }
+      editeur.valeur = txt;
+      poserLangue(l);
+    }
     const devine = (s) =>
-      /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
+      /^\s*(?:(?:--[ \t][^\n]*|#[^\n]*)\n\s*)*(?:select|insert\s+into|update|delete\s+from|create\s+(?:table|database)|drop|alter\s+table|show|use|describe)\b/i.test(s)
+        && !/#include|\bprintf\s*\(/.test(s) ? "sql"
+      : /<\?php|<\?=|\$_(POST|GET|SESSION|SERVER)\b|->(prepare|query|fetch|execute)\b|\becho\s+["'$]/.test(s) ? "php"
+      : /^\s*(?:<!--[\s\S]*?-->\s*)*<(?:!doctype|html|head|body|div|p|h[1-6]|ul|section|main|header|form|table|style|script)\b/i.test(s) ? "web"
+      : /\b(?:console\.log|document\.|addEventListener|=>)|(?:^|\n)\s*(?:let|const|function)\s/.test(s)
+        && !/#include|\bprintf\s*\(|\bint\s+main\s*\(/.test(s) ? "js"
+      : /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
       : /#include\s*<(iostream|vector|string|fstream|algorithm|map)>|std::|using namespace std/
         .test(s) ? "c++" : "c";
 
@@ -3138,8 +4205,7 @@
         const x = groupes[b.dataset.g][+b.dataset.i];
         if (!x) return;
         fermerDossier();
-        editeur.valeur = x.code;
-        poserLangue(x.langue || devine(x.code));
+        ouvrirExemple(x);
         if (x.entree) { entreeCumul = ""; champEntree.value = ""; }
         fermerTiroir();
         sauver();
@@ -3224,8 +4290,17 @@
       return { longue, courte };
     }
 
+    /* Ce qui voyage dans un lien : le texte, ou pour un projet Web ses
+       fichiers TEXTE en JSON — les images resteraient trop lourdes. */
+    function texteAPartager() {
+      if (!estWeb(langue) || !projet) return editeur.valeur;
+      if (estTexte(fichierActif)) projet[fichierActif] = editeur.valeur;
+      const fichiers = {};
+      for (const n of Object.keys(projet)) if (estTexte(n)) fichiers[n] = projet[n];
+      return JSON.stringify({ web: 1, fichiers, actif: fichierActif });
+    }
     $("#at-partager").addEventListener("click", async () => {
-      const texte = editeur.valeur;
+      const texte = texteAPartager();
       dirEtat("Compression du lien…", "");
       /* Avant toute compression : est-ce un programme QUE LE SITE A DÉJÀ ?
          Si oui, il n'y a rien à transmettre — son numéro suffit, et
@@ -3538,7 +4613,15 @@
     });
     const bIndent = $("#at-indenter");
     if (bIndent) bIndent.addEventListener("click", () => {
-      const r = editeur.realigner();
+      /* Le Python : l'alinéa EST sa syntaxe, le refaire d'après des
+         accolades qu'il n'a pas casserait ses blocs. Le HTML : il a son
+         propre calcul (balises ouvrantes et fermantes). */
+      if (langue === "python") {
+        dirEtat("En Python, l'alinéa fait partie du programme : il n'est pas refait automatiquement", "avert");
+        return;
+      }
+      const r = estWeb(langue) && langueFichier(fichierActif) === "html"
+        ? editeur.realigner(indenterHtml) : editeur.realigner();
       dirEtat(!r.ok
         ? "Alinéa : rien n'a été changé, le contrôle de sûreté n'est pas passé"
         : (r.change ? "Alinéa refait" : "L'alinéa était déjà en place"),

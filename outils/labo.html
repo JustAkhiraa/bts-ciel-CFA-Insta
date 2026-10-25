@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="sombre">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Labo réseau — BTS CIEL</title>
+<meta name="description" content="Un labo réseau dans le navigateur, à la manière de Packet Tracer : routeurs, commutateurs, PC et serveurs, CLI Cisco IOS, VLAN, trunk, routage, DHCP, DNS, et un mode simulation qui montre chaque trame, couche par couche.">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
+<script>try{var t=localStorage.getItem("ciel-labo-theme");if(t==="clair")document.documentElement.dataset.theme="clair"}catch(e){}</script>
+<link rel="stylesheet" href="labo/labo.css">
+</head>
+<body>
+<div class="lb" id="labo">
+
+  <!-- ── la barre du haut ── -->
+  <header class="lb-barre">
+    <a class="lb-marque" href="../index.html" title="Retour à l'accueil du site" aria-label="Accueil du site BTS CIEL">
+      <img src="../assets/logo-classe.jpg" alt="" width="22" height="22"><span>BTS CIEL</span></a>
+    <span class="lb-sep" aria-hidden="true">/</span>
+    <a class="lb-lien" href="index.html">Outils</a>
+    <span class="lb-sep" aria-hidden="true">/</span>
+    <b class="lb-titre">Labo réseau</b>
+    <span class="lb-fichier" id="lb-fichier" title="La topologie ouverte">—</span>
+
+    <div class="lb-mode" role="radiogroup" aria-label="Mode d'exécution">
+      <button type="button" role="radio" data-mode="reel" aria-checked="true" title="Les commandes s'exécutent instantanément">Temps réel</button>
+      <button type="button" role="radio" data-mode="simu" aria-checked="false" title="Les trames avancent pas à pas, et chaque saut s'inspecte">Simulation</button>
+    </div>
+
+    <div class="lb-actions">
+      <button type="button" class="lb-b lb-palette-b" id="lb-palette-b" title="Toutes les actions (Ctrl K)">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5"/><path d="M13 13l4 4"/></svg>
+        <span>Commandes</span><kbd>Ctrl K</kbd></button>
+      <button type="button" class="lb-b lb-icone" id="lb-ouvrir" title="Ouvrir une topologie (Ctrl O)" aria-label="Ouvrir">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h5l2 2h7v8H3z"/></svg></button>
+      <button type="button" class="lb-b lb-icone" id="lb-enregistrer" title="Enregistrer la topologie en JSON (Ctrl S)" aria-label="Enregistrer">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4h10l2 2v10H4z"/><path d="M7 4v4h6V4M7 16v-5h6v5"/></svg></button>
+      <button type="button" class="lb-b lb-icone" id="lb-theme" title="Thème clair ou sombre" aria-label="Changer de thème">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 12.5A6 6 0 0 1 7.5 5a6 6 0 1 0 7.5 7.5z"/></svg></button>
+      <button type="button" class="lb-b lb-icone" id="lb-aide-b" title="Raccourcis et prise en main" aria-label="Aide">?</button>
+    </div>
+  </header>
+
+  <!-- ── la bibliothèque, à gauche ── -->
+  <aside class="lb-biblio" aria-label="Équipements et câbles">
+    <p class="lb-titre-bloc">Équipements</p>
+    <div class="lb-equipements" id="lb-equipements"></div>
+    <p class="lb-titre-bloc">Câbles</p>
+    <div class="lb-cables" id="lb-cables" role="radiogroup" aria-label="Type de câble"></div>
+    <p class="lb-note">Choisissez un câble, puis cliquez sur deux équipements. <kbd>C</kbd> : câble automatique.</p>
+    <p class="lb-titre-bloc">Labs</p>
+    <div class="lb-labs" id="lb-labs"></div>
+  </aside>
+
+  <!-- ── le canevas ── -->
+  <main class="lb-centre" aria-label="Topologie">
+    <div class="lb-scene" id="lb-scene" tabindex="0" aria-label="Topologie du réseau. Ctrl K pour les commandes.">
+      <canvas id="lb-toile"></canvas>
+      <div class="lb-choix-port" id="lb-choix-port" hidden></div>
+      <div class="lb-indice" id="lb-indice" hidden></div>
+      <div class="lb-zoom">
+        <button type="button" class="lb-b lb-icone" data-zoom="-" title="Zoom arrière" aria-label="Zoom arrière">−</button>
+        <button type="button" class="lb-b lb-zoom-val" id="lb-zoom-val" title="Tout voir (F)">100 %</button>
+        <button type="button" class="lb-b lb-icone" data-zoom="+" title="Zoom avant" aria-label="Zoom avant">+</button>
+        <button type="button" class="lb-b lb-icone" id="lb-grille" aria-pressed="true" title="Grille magnétique (G)" aria-label="Grille magnétique">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h12M4 13h12M7 4v12M13 4v12"/></svg></button>
+      </div>
+      <!-- le lecteur du mode simulation -->
+      <div class="lb-lecteur" id="lb-lecteur" hidden>
+        <button type="button" class="lb-b lb-icone" id="lb-sim-raz" title="Vider la file et le journal" aria-label="Réinitialiser">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 9a5 5 0 1 1 1.5 4M5 5v4h4"/></svg></button>
+        <button type="button" class="lb-b lb-icone lb-play" id="lb-sim-play" title="Lecture / pause (P)" aria-label="Lecture">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 5l8 5-8 5z" class="plein"/></svg></button>
+        <button type="button" class="lb-b lb-icone" id="lb-sim-pas" title="Un pas (→)" aria-label="Un pas en avant">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l7 5-7 5z" class="plein"/><path d="M15 5v10"/></svg></button>
+        <div class="lb-vitesses" role="radiogroup" aria-label="Vitesse">
+          <button type="button" role="radio" data-vitesse="0.5" aria-checked="false">×0,5</button>
+          <button type="button" role="radio" data-vitesse="1" aria-checked="true">×1</button>
+          <button type="button" role="radio" data-vitesse="2" aria-checked="false">×2</button>
+        </div>
+        <span class="lb-file" id="lb-file">file vide</span>
+      </div>
+    </div>
+    <div class="lb-poignee lb-poignee-h" id="lb-poignee-bas" role="separator" aria-orientation="horizontal" aria-label="Redimensionner le terminal" tabindex="0"></div>
+    <section class="lb-bas" aria-label="Terminaux et événements">
+      <div class="lb-onglets" id="lb-onglets" role="tablist"></div>
+      <div class="lb-terminaux" id="lb-terminaux"></div>
+    </section>
+  </main>
+
+  <div class="lb-poignee lb-poignee-v" id="lb-poignee-droite" role="separator" aria-orientation="vertical" aria-label="Redimensionner l'inspecteur" tabindex="0"></div>
+
+  <!-- ── l'inspecteur, à droite ── -->
+  <aside class="lb-inspecteur" id="lb-inspecteur" aria-label="Inspecteur"></aside>
+
+  <!-- la palette de commandes -->
+  <div class="lb-palette" id="lb-palette" hidden role="dialog" aria-modal="true" aria-label="Commandes">
+    <div class="lb-palette-boite">
+      <input type="text" id="lb-palette-q" placeholder="Taper une commande… (ajouter un routeur, lab 2, vider ARP, simulation…)" autocomplete="off" spellcheck="false" aria-label="Rechercher une commande">
+      <ul id="lb-palette-liste" role="listbox"></ul>
+    </div>
+  </div>
+
+  <div class="lb-toast" id="lb-toast" role="status" aria-live="polite"></div>
+  <input type="file" id="lb-fichier-in" accept=".json,application/json" hidden>
+</div>
+
+<noscript><p style="padding:2rem">Le labo réseau a besoin de JavaScript. <a href="../index.html">Retour à l'accueil</a>.</p></noscript>
+<script type="module" src="labo/src/main.js"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

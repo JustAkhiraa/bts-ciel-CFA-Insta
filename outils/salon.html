@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="sombre">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Salon — BTS CIEL</title>
+<meta name="description" content="Une messagerie de classe sans Internet ni serveur : les appareils du même Wi-Fi se relient par QR code et se relaient les messages, signés et chiffrés de bout en bout, dans l'esprit de BitChat.">
+<meta name="theme-color" content="#0d0f12">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
+<script>try{var t=localStorage.getItem("ciel-salon-theme");if(t==="clair")document.documentElement.dataset.theme="clair"}catch(e){}</script>
+<link rel="stylesheet" href="salon/salon.css">
+</head>
+<body>
+<div class="sl" id="salon">
+
+  <header class="sl-barre">
+    <button type="button" class="sl-logo" id="sl-logo" title="Salon — triple-clic : tout effacer (mode panique)" aria-label="Salon. Triple-clic : effacement d'urgence">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="19" cy="18" r="2.2"/><circle cx="12" cy="12" r="2.2"/><path d="M7 12h3M14 11l3-4M14 13l3 4"/></svg>
+    </button>
+    <a class="sl-site" href="../index.html" title="Retour à l'accueil du site">BTS CIEL</a>
+    <span class="sl-sep" aria-hidden="true">/</span>
+    <a class="sl-site sl-outils" href="index.html">Outils</a>
+    <span class="sl-sep sl-outils" aria-hidden="true">/</span>
+    <b class="sl-titre">Salon</b>
+    <span class="sl-etat" id="sl-etat" role="status">seul</span>
+    <span class="sl-espace"></span>
+    <button type="button" class="sl-b sl-plein" id="sl-relier-b" title="Relier un autre appareil par QR code"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h5v5H3zM12 3h5v5h-5zM3 12h5v5H3zM12 12h2v2h-2zM15 15h2v2h-2zM12 16h1M16 12h1"/></svg><span>Relier</span></button>
+    <button type="button" class="sl-b sl-icone" id="sl-pairs-b" title="Pairs et réseau" aria-label="Afficher les pairs et le réseau"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="7" r="3"/><path d="M2 17c0-3 2.2-5 5-5s5 2 5 5M13 4.5a3 3 0 0 1 0 5.5M15 12c1.8.6 3 2.4 3 5"/></svg></button>
+    <button type="button" class="sl-b sl-icone" id="sl-theme-b" title="Thème clair ou sombre" aria-label="Changer de thème"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 12.5A6 6 0 0 1 7.5 5a6 6 0 1 0 7.5 7.5z"/></svg></button>
+    <button type="button" class="sl-b sl-icone" id="sl-aide-b" title="Aide et commandes" aria-label="Aide">?</button>
+  </header>
+
+  <nav class="sl-fils" id="sl-fils" aria-label="Salons et conversations"></nav>
+
+  <main class="sl-centre">
+    <div class="sl-entete" id="sl-entete"></div>
+    <div class="sl-messages" id="sl-messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form class="sl-saisie" id="sl-saisie" autocomplete="off">
+      <label class="sl-invite" for="sl-champ" id="sl-invite">#general</label>
+      <input id="sl-champ" type="text" maxlength="1000" spellcheck="true" placeholder="Écrire un message, ou /help" aria-label="Message">
+      <button type="submit" class="sl-b sl-icone" aria-label="Envoyer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10l14-6-5 14-2-6z"/></svg></button>
+    </form>
+  </main>
+
+  <aside class="sl-droite" id="sl-droite" aria-label="Pairs et réseau"></aside>
+
+  <!-- relier un appareil : une feuille, pas une fenêtre flottante -->
+  <div class="sl-feuille" id="sl-relier" hidden role="dialog" aria-modal="true" aria-labelledby="sl-relier-titre">
+    <div class="sl-feuille-boite">
+      <div class="sl-feuille-tete"><h2 id="sl-relier-titre">Relier un appareil</h2>
+        <button type="button" class="sl-b sl-icone" data-fermer aria-label="Fermer">×</button></div>
+      <div class="sl-feuille-corps" id="sl-relier-corps"></div>
+    </div>
+  </div>
+
+  <!-- le premier passage : un pseudo -->
+  <div class="sl-feuille" id="sl-accueil" hidden role="dialog" aria-modal="true" aria-labelledby="sl-accueil-titre">
+    <div class="sl-feuille-boite sl-etroite">
+      <div class="sl-feuille-tete"><h2 id="sl-accueil-titre">Bienvenue dans le salon</h2></div>
+      <form class="sl-feuille-corps" id="sl-accueil-form">
+        <p>Une messagerie <b>sans Internet et sans serveur</b> : les appareils de la salle se relient entre eux et se relaient les messages. Chacun est signé ; les messages privés sont chiffrés de bout en bout.</p>
+        <label class="sl-champ">Votre pseudo <input id="sl-pseudo" maxlength="20" required autocomplete="nickname"></label>
+        <p class="sl-note">Pas d'espace, ni @ ni #. Il se change ensuite avec <code>/nick</code>.</p>
+        <p class="sl-note">Restez correct : ce n'est pas anonyme pour autant — chaque message porte la signature de votre appareil.</p>
+        <button type="submit" class="sl-b sl-plein">Entrer</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="sl-flash" id="sl-flash" hidden><span>Clés, messages et conversations effacés.</span></div>
+  <div class="sl-toast" id="sl-toast" role="status" aria-live="polite"></div>
+</div>
+
+<noscript><p style="padding:2rem">Le salon a besoin de JavaScript. <a href="../index.html">Retour à l'accueil</a>.</p></noscript>
+<script type="module" src="salon/src/app.js"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

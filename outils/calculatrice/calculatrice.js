@@ -59,7 +59,7 @@
     suites: [{ type: "recurrente", expr: "u+3", premier: "5", second: "1", rang0: 0 },
              { type: "explicite", expr: "2^n", premier: "1", second: "1", rang0: 0 }],
     stats: { valeurs: [2, 4, 4, 4, 5, 5, 7, 9], effectifs: [1, 1, 1, 1, 1, 1, 1, 1],
-             graphe: "histogramme", histo: { largeur: "", debut: "" } },
+             graphe: "histogramme", histo: { largeur: "", debut: "" }, lecture: 0 },
     /* La machine range les régressions en SÉRIES — X1/Y1, X2/Y2, X3/Y3 —
        et chacune a son modèle. Une seule paire de colonnes ne permettait
        pas de comparer deux jeux de mesures sur le même nuage, ce que les
@@ -2072,139 +2072,239 @@
       const R = CALC.STATS.unVariable(S.valeurs, S.effectifs);
       if (!R) return onglets + '<p class="nw-vide">Aucune donnée exploitable.</p>';
       if (vue === "resultats") {
-        const l = (t, v) => '<dt>' + t + '</dt><dd>' + ech(fmt(v)) + '</dd>';
-        return onglets + '<dl class="nw-valeurs">'
-          + l("effectif total N", R.N) + l("somme Σxᵢnᵢ", R.somme)
-          + l("Σxᵢ²nᵢ", R.sommeCarres) + l("moyenne x̄", R.moyenne)
-          + l("variance V", R.variance) + l("écart type σ", R.ecartType)
-          /* La machine donne la variance d'échantillon à côté de son écart
-             type ; nous calculions la première depuis toujours sans jamais
-             l'afficher. s² est ce qu'un sujet demande quand il parle d'un
-             ÉCHANTILLON et non d'une population. */
-          + l("variance s² (échantillon)", R.varianceEch)
-          + l("écart type s (échantillon)", R.ecartTypeEch)
-          + l("minimum", R.min) + l("maximum", R.max) + l("étendue", R.etendue)
-          + l("premier quartile Q1", R.q1) + l("médiane Me", R.mediane)
-          + l("troisième quartile Q3", R.q3) + l("écart interquartile", R.interquartile)
-          + '<dt>mode</dt><dd>' + ech(R.modes.length === R.paires.length ? "aucun"
-              : R.modes.map((m) => fmt(m)).join(" · ")) + '</dd>'
+        /* Le tableau de la machine, ligne pour ligne et dans son ordre :
+           le nom en toutes lettres, le symbole en gris, la valeur. Elle ne
+           range pas en blocs ; elle NOMME — « Moyenne » et μ d'un côté,
+           « Moyenne échantillon » et x̄ de l'autre — et c'est le nom qui
+           sépare la population de l'échantillon, exactement là où les
+           élèves confondent. */
+        const lignes = [
+          ["Effectif total", "n", R.N], ["Minimum", "Min", R.min],
+          ["Premier quartile", "Q1", R.q1], ["Médiane", "Med", R.mediane],
+          ["Troisième quartile", "Q3", R.q3], ["Maximum", "Max", R.max],
+          ["Etendue", "E", R.etendue], ["Ecart interquartile", "EI", R.interquartile],
+          ["Moyenne", "μ", R.moyenne], ["Ecart type", "σ", R.ecartType],
+          ["Variance", "σ²", R.variance],
+          ["Moyenne échantillon", "x̄", R.moyenne],
+          ["Ecart type échantillon", "s", R.ecartTypeEch],
+          ["Variance échantillon", "s²", R.varianceEch],
+          ["Somme", "Σx", R.somme], ["Somme des carrés", "Σx²", R.sommeCarres],
+        ];
+        /* Le mode n'est pas dans le tableau de la machine ; un sujet de BTS
+           le demande pourtant. Il vient APRÈS, pour ne pas déranger l'ordre
+           qu'on retrouvera le jour de l'épreuve. */
+        const sansMode = R.modes.length === R.paires.length;
+        const ligne = (nom, sym, v) => '<tr><th scope="row">' + ech(nom) + '</th>'
+          + '<td class="nw-symbole">' + ech(sym) + '</td>'
+          + '<td>' + ech(typeof v === "string" ? v : fmt(v)) + '</td></tr>';
+        return onglets + '<table class="nw-table nw-table-reg nw-table-stats">'
+          + '<tbody>' + lignes.map((L) => ligne(L[0], L[1], L[2])).join("")
+          + ligne("Mode", "Mo", sansMode ? "aucun" : R.modes.map((m) => fmt(m)).join(" · "))
           /* L'effectif du mode : « 4 » ne dit pas si la valeur revient deux
-             fois ou trente. La machine l'affiche, et c'est lui qui dit si le
-             mode veut dire quelque chose. */
-          + (R.modes.length === R.paires.length ? ""
-             : '<dt>effectif du mode Nm</dt><dd>'
-               + ech(fmt(Math.max(...R.paires.map((p) => p[1])))) + '</dd>')
-          + '</dl>'
+             fois ou trente. C'est lui qui dit si le mode veut dire quelque
+             chose. */
+          + (sansMode ? "" : ligne("Effectif du mode", "Nm",
+                                   Math.max(...R.paires.map((pr) => pr[1]))))
+          + '</tbody></table>'
+          + '<p class="nw-sous"><b>σ divise par n, s divise par n−1.</b> Un énoncé qui parle '
+          + 'de « la population » ou de « la série » attend σ ; un énoncé qui parle d\'un '
+          + '« échantillon » et d\'une estimation attend s. La moyenne est le même nombre ; '
+          + 'seul son nom change. Avec un seul individu, s n\'existe pas.</p>'
           + '<p class="nw-sous"><b>Convention française des quartiles</b> : Q1 est la plus '
           + 'petite valeur telle qu\'au moins un quart de l\'effectif lui est inférieur ou '
-          + 'égal — la valeur de rang ⌈N/4⌉. Un tableur interpole et ne donne donc pas '
-          + 'toujours le même Q1. σ divise par N ; s divise par N−1.</p>';
+          + 'égal — la valeur de rang ⌈n/4⌉. Un tableur interpole et ne donne donc pas '
+          + 'toujours le même Q1.</p>';
       }
       const mode = ETAT.stats.graphe || "histogramme";
       const choix = '<div class="nw-rangee">'
         + [["histogramme", "Histogramme"], ["moustaches", "Boîte à moustaches"],
-           ["cumul", "Effectifs cumulés"]].map(([v, t]) =>
+           ["cumul", "Fréquences cumulées"], ["normale", "Loi normale"]].map(([v, t]) =>
           '<button type="button" class="nw-bouton" data-sgraphe="' + v + '"'
           + (mode === v ? ' aria-pressed="true"' : '') + '>' + t + '</button>').join("")
         + '</div>';
+      /* ── La barre de lecture ────────────────────────────────────────
+         Chaque graphique a la sienne, sous le tracé, comme sur la
+         machine : ◀ ▶ promènent le curseur d'un élément au suivant — une
+         barre, un repère de la boîte, un point — et la ligne dit ce qu'il
+         vaut. Un graphique qu'on ne peut que regarder se lit à l'œil, et
+         l'œil se trompe d'une graduation. */
+      const lectures = [];
       let svg = "";
       let reglages = "";
+      let choisi = 0;
+      const viser = (n) => (n ? Math.max(0, Math.min(n - 1, ETAT.stats.lecture | 0)) : 0);
       if (mode === "histogramme") {
         /* La machine règle son histogramme par DEUX nombres — la largeur
-           d'une barre et le début de la première. Sans eux, un relevé de
-           notes sur 20 se rend en vingt bâtonnets d'un individu chacun,
-           alors que la question porte sur des classes. Laissés vides, on
-           garde une barre par valeur : c'est le comportement d'avant, et
-           c'est le bon quand les valeurs sont déjà des classes. */
+           d'une barre et le début de la première — et les AFFICHE même
+           quand elle les a choisis seule. Les nôtres disaient « auto », ce
+           qui ne dit rien : on ne peut pas corriger une valeur qu'on ne
+           voit pas. Calculées, elles valent le plus petit écart entre deux
+           valeurs, et la première valeur : une barre par valeur, qui
+           COMMENCE à cette valeur — relevé sur l'émulateur, la valeur 1
+           tombe dans « [1,2[ », pas dans une barre centrée sur elle. */
         const H = S.histo || {};
-        const pasBarre = parseFloat(H.largeur);
-        const debut = parseFloat(H.debut);
+        let ecartMin = Infinity;
+        for (let k = 1; k < R.paires.length; k++)
+          ecartMin = Math.min(ecartMin, R.paires[k][0] - R.paires[k - 1][0]);
+        const largAuto = Number.isFinite(ecartMin) && ecartMin > 0 ? ecartMin : 1;
+        const saisieL = parseFloat(H.largeur), saisieD = parseFloat(H.debut);
+        const manuel = saisieL > 0 || Number.isFinite(saisieD);
+        const pasBarre = saisieL > 0 ? saisieL : largAuto;
+        const d0 = Number.isFinite(saisieD) ? saisieD : R.min;
         reglages = '<div class="nw-panneau"><div class="nw-rangee">'
-          + '<label for="nw-h-larg">largeur</label>'
+          + '<label for="nw-h-larg">Largeur barre</label>'
           + '<input type="text" class="nw-petit nw-court" id="nw-h-larg" data-histo="largeur" '
-          + 'value="' + ech(H.largeur || "") + '" placeholder="auto">'
-          + '<label for="nw-h-deb">début</label>'
+          + 'value="' + ech(saisieL > 0 ? H.largeur : fmt(pasBarre)) + '">'
+          + '<label for="nw-h-deb">X début</label>'
           + '<input type="text" class="nw-petit nw-court" id="nw-h-deb" data-histo="debut" '
-          + 'value="' + ech(H.debut || "") + '" placeholder="auto">'
-          + '</div><p class="nw-sous">Vides, une barre par valeur. Remplis, les valeurs '
-          + 'sont groupées en classes de cette largeur à partir de ce début — c\'est ce que '
-          + 'fait la machine, et ce que demande un énoncé qui parle de classes.</p></div>';
+          + 'value="' + ech(Number.isFinite(saisieD) ? H.debut : fmt(d0)) + '">'
+          + '<button type="button" class="nw-bouton" id="nw-h-auto"'
+          + (manuel ? '' : ' aria-pressed="true"') + '>Auto</button>'
+          + '</div><p class="nw-sous">'
+          + (manuel ? 'Réglages saisis : les valeurs sont groupées en classes [a ; b[ de cette '
+              + 'largeur à partir de ce début. « Auto » revient au calcul.'
+            : '« Auto » : une barre par valeur — la largeur est le plus petit écart entre '
+              + 'deux valeurs, le début la première valeur. Changez l\'un des '
+              + 'deux pour grouper en classes, comme le demande un énoncé.')
+          + '</p></div>';
 
-        if (pasBarre > 0) {
-          const d0 = Number.isFinite(debut) ? debut : R.min;
-          const classes = new Map();
-          R.paires.forEach((pr) => {
-            const k = Math.floor((pr[0] - d0) / pasBarre);
-            classes.set(k, (classes.get(k) || 0) + pr[1]);
-          });
-          const cles = [...classes.keys()].sort((x, y) => x - y);
-          const hmax = Math.max(...classes.values());
-          svg = tracer({
-            xmin: d0 + (cles[0] - 0.3) * pasBarre,
-            xmax: d0 + (cles[cles.length - 1] + 1.3) * pasBarre,
-            ymin: 0, ymax: hmax * 1.15,
-            barres: cles.map((k) => ({ x0: d0 + k * pasBarre,
-                                       x1: d0 + (k + 1) * pasBarre,
-                                       h: classes.get(k) })),
-            aide: "Histogramme par classes",
-          });
-        } else {
-          const hmax = Math.max(...R.paires.map((p) => p[1]));
-          const larg = R.paires.length > 1
-            ? (R.paires[R.paires.length - 1][0] - R.paires[0][0]) / (R.paires.length - 1) : 1;
-          svg = tracer({
-            xmin: R.min - larg, xmax: R.max + larg, ymin: 0, ymax: hmax * 1.15,
-            barres: R.paires.map((p) => ({ x0: p[0] - larg * 0.4, x1: p[0] + larg * 0.4,
-                                           h: p[1] })),
-            aide: "Histogramme des effectifs",
-          });
-        }
+        const classes = new Map();
+        R.paires.forEach((pr) => {
+          const k = Math.floor((pr[0] - d0) / pasBarre + 1e-9);
+          classes.set(k, (classes.get(k) || 0) + pr[1]);
+        });
+        const cles = [...classes.keys()].sort((x, y) => x - y);
+        choisi = viser(cles.length);
+        const hmax = Math.max(...classes.values());
+        cles.forEach((k) => {
+          const a = d0 + k * pasBarre, b = a + pasBarre, n = classes.get(k);
+          lectures.push('<span>Intervalle : [' + ech(fmt(a)) + ' ; ' + ech(fmt(b)) + '[</span>'
+            + '<span>Effectif : ' + ech(fmt(n)) + '</span>'
+            + '<span>Fréquence : ' + ech(fmt(n / R.N)) + '</span>');
+        });
+        svg = tracer({
+          xmin: d0 + (cles[0] - 0.3) * pasBarre,
+          xmax: d0 + (cles[cles.length - 1] + 1.3) * pasBarre,
+          ymin: 0, ymax: hmax * 1.15,
+          barres: cles.map((k, i) => ({ x0: d0 + k * pasBarre, x1: d0 + (k + 1) * pasBarre,
+                                        h: classes.get(k),
+                                        classe: i === choisi ? "barre-choisie" : "" })),
+          aide: manuel ? "Histogramme par classes" : "Histogramme des effectifs",
+        });
       } else if (mode === "moustaches") {
         const dx = Math.max(1e-9, R.max - R.min);
+        const reperes = [["Minimum", R.min], ["Premier quartile", R.q1],
+                         ["Médiane", R.mediane], ["Troisième quartile", R.q3],
+                         ["Maximum", R.max]];
+        choisi = viser(reperes.length);
+        reperes.forEach(([nom, v]) => lectures.push('<span>' + ech(nom) + ' : '
+          + ech(fmt(v)) + '</span>'));
         svg = tracer({
           xmin: R.min - dx * 0.12, xmax: R.max + dx * 0.12, ymin: 0, ymax: 1,
           barres: [{ x0: R.q1, x1: R.q3, h: 0.72 }],
           segments: [{ x1: R.min, y1: 0.36, x2: R.q1, y2: 0.36, classe: "axe" },
                      { x1: R.q3, y1: 0.36, x2: R.max, y2: 0.36, classe: "axe" },
-                     { x1: R.mediane, y1: 0.02, x2: R.mediane, y2: 0.72, classe: "curseur" }],
+                     { x1: R.mediane, y1: 0.02, x2: R.mediane, y2: 0.72, classe: "axe" }],
           etiquettes: [{ x: R.min, y: 0.85, texte: "min " + fmt(R.min) },
                        { x: R.mediane, y: 0.93, texte: "Me " + fmt(R.mediane), ancre: "middle" },
                        { x: R.max, y: 0.85, texte: "max " + fmt(R.max), ancre: "end" }],
+          curseur: { x: reperes[choisi][1], y: 0.36 },
           aide: "Boîte à moustaches",
         });
-      } else {
+      } else if (mode === "cumul") {
+        /* En FRÉQUENCES, comme la machine : la courbe monte de 0 à 100 %
+           quel que soit l'effectif, et c'est ainsi qu'on y lit une médiane
+           (50 %) ou un quartile (25 %, 75 %) sans rien recalculer. Les
+           effectifs cumulés restent dans le tableau des Données. */
         let c = 0;
-        const pts = R.paires.map((p) => { c += p[1]; return { x: p[0], y: c }; });
+        const pts = R.paires.map((p) => { c += p[1]; return { x: p[0], y: 100 * c / R.N }; });
+        choisi = viser(pts.length);
+        c = 0;
+        R.paires.forEach((p) => {
+          c += p[1];
+          lectures.push('<span>Valeur : ' + ech(fmt(p[0])) + '</span>'
+            + '<span>FCC : ' + ech(fmt(100 * c / R.N)) + ' %</span>'
+            + '<span>(' + ech(fmt(c)) + ' sur ' + ech(fmt(R.N)) + ')</span>');
+        });
         svg = tracer({
           xmin: R.min - (R.etendue || 1) * 0.1, xmax: R.max + (R.etendue || 1) * 0.1,
-          ymin: 0, ymax: R.N * 1.1, points: pts,
+          ymin: 0, ymax: 110, points: pts,
           courbes: [{ f: (x) => { let s = 0; for (const p of R.paires) if (p[0] <= x) s += p[1];
-                                  return s; } }],
-          aide: "Effectifs cumulés croissants",
+                                  return 100 * s / R.N; } }],
+          curseur: pts[choisi],
+          aide: "Fréquences cumulées croissantes, en pourcentage",
+        });
+      } else {
+        /* La droite de Henry. Chaque individu, rangé par ordre croissant,
+           reçoit la valeur z qu'il aurait dans une loi normale centrée
+           réduite à la même place : z = Φ⁻¹((k − ½) / N). Si la série suit
+           une loi normale, les points (x ; z) s'alignent sur la droite
+           z = (x − μ) / σ, tracée à côté. Ce n'est pas un test : c'est une
+           lecture, et un point qui s'écarte se voit tout de suite.
+           Recoupé sur l'émulateur : la valeur 1, première de six, y a la
+           « cote Z attendue » −1.382994127 = Φ⁻¹(0,5 / 6). */
+        const individus = [];
+        for (const [v, n] of R.paires) {
+          for (let k = 0; k < n && individus.length < 2000; k++) individus.push(v);
+        }
+        const N2 = individus.length;
+        const pts = individus.map((v, k) => ({
+          x: v, y: CALC.LOIS.invNormale((k + 0.5) / N2, 0, 1) }));
+        choisi = viser(pts.length);
+        pts.forEach((p) => lectures.push('<span>Valeur : ' + ech(fmt(p.x))
+          + '</span><span>Cote Z attendue : ' + ech(fmt(p.y)) + '</span>'));
+        const zmax = Math.max(2, ...pts.map((p) => Math.abs(p.y))) * 1.15;
+        const dx = R.etendue || 1;
+        svg = tracer({
+          xmin: R.min - dx * 0.12, xmax: R.max + dx * 0.12, ymin: -zmax, ymax: zmax,
+          points: pts,
+          courbes: R.ecartType > 0
+            ? [{ f: (x) => (x - R.moyenne) / R.ecartType, classe: "appui" }] : undefined,
+          curseur: pts[choisi],
+          aide: "Droite de Henry : la série face à la loi normale",
         });
       }
+      const nav = lectures.length
+        ? '<div class="nw-rangee">'
+          + '<button type="button" class="nw-bouton" data-slire="' + (choisi - 1) + '"'
+          + (choisi === 0 ? ' disabled' : '') + '>◀ précédent</button>'
+          + '<button type="button" class="nw-bouton" data-slire="' + (choisi + 1) + '"'
+          + (choisi === lectures.length - 1 ? ' disabled' : '') + '>suivant ▶</button>'
+          + '</div>'
+          + '<p class="nw-curseur-info" aria-live="polite">' + lectures[choisi] + '</p>'
+        : "";
       /* Les valeurs ABERRANTES, au sens usuel : au-delà de 1,5 écart
          interquartile des quartiles. Les moustaches, elles, gardent la
          convention du lycée — elles vont aux extrêmes. On ne change donc
          pas le dessin, on NOMME ce qu'il contient : un sujet qui demande
          « y a-t-il des valeurs aberrantes ? » attend ce calcul-là. */
-      let aberrantes = "";
+      let apres = "";
       if (mode === "moustaches") {
         const bas = R.q1 - 1.5 * R.interquartile;
         const haut2 = R.q3 + 1.5 * R.interquartile;
         const hors = R.paires.filter((pr) => pr[0] < bas || pr[0] > haut2).map((pr) => pr[0]);
-        aberrantes = '<dl class="nw-valeurs">'
+        apres = '<p class="nw-sous">Les moustaches vont jusqu\'aux valeurs '
+          + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile. Le seuil '
+          + 'de 1,5 sert à NOMMER les valeurs aberrantes, pas à couper le dessin.</p>'
+          + '<dl class="nw-valeurs">'
           + '<dt>seuil bas — Q1 − 1,5 × EIQ</dt><dd>' + ech(fmt(bas)) + '</dd>'
           + '<dt>seuil haut — Q3 + 1,5 × EIQ</dt><dd>' + ech(fmt(haut2)) + '</dd>'
           + '<dt>valeurs aberrantes</dt><dd>'
           + (hors.length ? ech(hors.map((v) => fmt(v)).join(" · ")) : "aucune") + '</dd>'
           + '</dl>';
+      } else if (mode === "cumul") {
+        apres = '<p class="nw-sous">On lit la médiane là où la courbe passe 50 %, Q1 à '
+          + '25 %, Q3 à 75 %. Les effectifs cumulés (ECC) sont dans l\'onglet Données.</p>';
+      } else if (mode === "normale") {
+        apres = '<p class="nw-sous"><b>Droite de Henry.</b> Les points sont les individus '
+          + 'rangés : en abscisse leur valeur, en ordonnée la valeur z qu\'ils auraient à la '
+          + 'même place dans la loi normale centrée réduite, z = Φ⁻¹((k − ½) / N). '
+          + 'Le trait en tirets est z = (x − μ) / σ. Plus les points s\'alignent dessus, '
+          + 'plus la série ressemble à une loi normale — c\'est une lecture, pas un test.</p>'
+          + (R.N > 2000 ? '<p class="nw-sous">Seuls les 2 000 premiers individus sont '
+              + 'placés.</p>' : '');
       }
-      return onglets + choix + reglages + svg
-        + (mode === "moustaches" ? '<p class="nw-sous">Les moustaches vont jusqu\'aux valeurs '
-            + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile. Le seuil '
-            + 'de 1,5 sert à NOMMER les valeurs aberrantes, pas à couper le dessin.</p>'
-            + aberrantes : "");
+      return onglets + choix + reglages + svg + nav + apres;
     },
     apres() {
       brancherOnglets();
@@ -2236,13 +2336,23 @@
         ETAT.stats.valeurs = [0]; ETAT.stats.effectifs = [1]; garder(); redessiner();
       });
       $$("[data-sgraphe]", page).forEach((b) => b.addEventListener("click", () => {
-        ETAT.stats.graphe = b.dataset.sgraphe; garder(); redessiner();
+        ETAT.stats.graphe = b.dataset.sgraphe; ETAT.stats.lecture = 0;
+        garder(); redessiner();
       }));
+      $$("[data-slire]", page).forEach((b) => b.addEventListener("click", () => {
+        ETAT.stats.lecture = Math.max(0, Number(b.dataset.slire));
+        garder(); redessiner();
+      }));
+      const hAuto = $("#nw-h-auto", page);
+      if (hAuto) hAuto.addEventListener("click", () => {
+        ETAT.stats.histo = { largeur: "", debut: "" }; ETAT.stats.lecture = 0;
+        garder(); redessiner();
+      });
       $$("[data-histo]", page).forEach((c) => {
         const maj = () => {
           ETAT.stats.histo = ETAT.stats.histo || {};
           ETAT.stats.histo[c.dataset.histo] = c.value.trim();
-          garder(); redessiner();
+          ETAT.stats.lecture = 0; garder(); redessiner();
         };
         c.addEventListener("change", maj);
         c.addEventListener("keydown", (e) => { if (e.key === "Enter") maj(); });
