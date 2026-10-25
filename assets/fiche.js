@@ -98,8 +98,9 @@
 
   /* --- 4 bis. « Essayer » : du cours à l'atelier, d'un clic -------------
      Un programme lu n'apprend pas grand-chose ; un programme qu'on casse
-     et qu'on relance, si. Le bouton porte le code jusqu'à l'atelier C, qui
-     le compile et l'exécute dans le navigateur.
+     et qu'on relance, si. Le bouton porte le code jusqu'au compilateur, qui
+     l'exécute dans le navigateur : le C et le C++ compilés, le JavaScript
+     dans sa console, le HTML et le CSS en page web avec son aperçu.
 
      Le code n'est PAS recopié dans la page : il est lu au moment du clic.
      Encoder les quarante-huit programmes du site dans autant de liens
@@ -124,12 +125,85 @@
     return t.normalize ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : t;
   }
 
+  /* Le mode de l'atelier pour un bloc : le C et le C++ s'ils ont un main
+     (un fragment ne s'exécute pas) ; le HTML et le CSS deviennent une page
+     web ; le JavaScript aussi s'il touche à la page, sinon il tourne dans
+     la console, comme dans Node. */
+  function modeDuBloc(langue, code) {
+    if (langue === "c" || langue === "c++") return /\bint\s+main\s*\(/.test(code) ? langue : null;
+    if (langue === "html" || langue === "html + css" || langue === "css") return "web";
+    if (langue === "javascript" || langue === "js")
+      return /\b(document|window)\b|querySelector|getElementById|addEventListener|innerHTML/.test(code) ? "web" : "js";
+    /* Le SQL, s'il est fait d'instructions entières : « LEFT JOIN … » seul,
+       « COUNT(*) » seul ou une requête coupée par « … » sont des morceaux
+       de cours, pas des scripts. Les tables système (mysql.*) n'existent
+       que sur un vrai serveur. */
+    if (langue === "sql") {
+      var sans = code.replace(/\/\*[\s\S]*?\*\/|--(?=\s|$)[^\n]*|#[^\n]*/g, "");
+      if (/[…└┘│]|\bmysql\./.test(sans)) return null;
+      var morceaux = sans.split(";")
+        .map(function (m) { return m.trim(); }).filter(Boolean);
+      return morceaux.length && morceaux.every(function (m) {
+        return /^(select|insert|update|delete|create|alter|drop|show|use|describe|desc|truncate|rename|replace)\b/i.test(m);
+      }) ? "sql" : null;
+    }
+    /* Le PHP : seulement un fichier .php COMPLET, qui ouvre par « <?php ».
+       Un fragment (quelques lignes de corps, sans balise d'ouverture) ne
+       s'exécute pas tel quel — on ne propose pas de l'essayer. Les « … » le
+       trahissent aussi. */
+    if (langue === "php") {
+      if (/…|\.\.\.\s*$/m.test(code)) return null;
+      return /^\s*<\?php\b|^\s*<\?=/.test(code) || /^\s*<!DOCTYPE/i.test(code) ? "php" : null;
+    }
+    return null;
+  }
+  var TAGS = /^(h[1-6]|p|a|ul|ol|li|button|nav|header|footer|main|section|article|aside|table|tr|td|th|img|input|label|form|span|div|strong|em|blockquote|figure|figcaption)$/;
+  /* Une page autour d'un bloc : le HTML tel quel s'il est complet, sinon
+     posé dans un <body> ; le CSS avec le balisage de sa démonstration, ou,
+     faute de mieux, un élément par sélecteur — pour qu'il y ait quelque
+     chose à styler. */
+  function projetDuBloc(bloc, langue, code, titre) {
+    var demo = bloc.parentNode && bloc.parentNode.querySelector ? bloc.parentNode.querySelector("template.markup") : null;
+    var balisage = demo ? demo.innerHTML.trim() : "";
+    var page = function (corps, css, js) {
+      return '<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>' + titre.replace(/[<&]/g, "") + "</title>\n" +
+        (css ? '    <link rel="stylesheet" href="style.css">\n' : "") + "</head>\n<body>\n" +
+        corps.split("\n").map(function (l) { return l ? "    " + l : l; }).join("\n") + "\n" +
+        (js ? '    <script src="script.js"></script>\n' : "") + "</body>\n</html>\n";
+    };
+    if (langue === "css") {
+      if (!balisage) {
+        var vus = {}, el = [];
+        (code.replace(/\/\*[\s\S]*?\*\//g, "").match(/(^|})\s*([^{}@]+)\{/g) || []).forEach(function (m) {
+          m.replace(/^[}\s]+|\{$/g, "").split(",").forEach(function (sel) {
+            var t = sel.trim().split(/[\s>+~:]/)[0];
+            if (!t || vus[t] || el.length >= 12) return;
+            vus[t] = 1;
+            var mm = /^([a-z][a-z0-9]*)?((?:[.#][\w-]+)*)$/i.exec(t);
+            if (!mm) return;
+            var tag = mm[1] && TAGS.test(mm[1]) ? mm[1] : "div";
+            var cls = (mm[2].match(/\.[\w-]+/g) || []).map(function (c) { return c.slice(1); });
+            var id = (mm[2].match(/#[\w-]+/) || [""])[0].slice(1);
+            el.push("<" + tag + (id ? ' id="' + id + '"' : "") + (cls.length ? ' class="' + cls.join(" ") + '"' : "") +
+              (tag === "img" ? ' alt="" src="">' : ">" + (t === "*" ? "" : t) + "</" + tag + ">"));
+          });
+        });
+        balisage = el.length ? el.join("\n") : "<h1>Titre</h1>\n<p>Un paragraphe pour voir le style.</p>";
+      }
+      return { "index.html": page(balisage, true, false), "style.css": code };
+    }
+    if (langue === "javascript" || langue === "js")
+      return { "index.html": page(balisage || "<h1>Page de test</h1>", false, true), "script.js": code };
+    // le HTML : complet, ou un fragment à poser dans une page
+    if (/<(!doctype|html|body)\b/i.test(code)) return { "index.html": code };
+    return { "index.html": page(code, false, false) };
+  }
+
   function essayer(bloc, pre) {
     if (!BASE_ATELIER || bloc.querySelector(".essayer")) return;
     var langue = langueDuBloc(bloc);
-    if (langue !== "c" && langue !== "c++") return;
-    var code = pre.innerText;
-    if (!/\bint\s+main\s*\(/.test(code)) return;   // un fragment ne s'exécute pas
+    var mode = modeDuBloc(langue, pre.innerText);
+    if (!mode) return;
 
     var a = document.createElement("a");
     a.className = "essayer";
@@ -138,13 +212,18 @@
     a.href = BASE_ATELIER + "outils/langage-c.html";
     a.addEventListener("click", function (ev) {
       ev.preventDefault();
-      var octets = new TextEncoder().encode(pre.innerText);
+      var e = bloc.querySelector(".langue");
+      var titre = e ? e.textContent.trim() : "Le compilateur";
+      var code = pre.innerText;
+      var texte = mode === "web"
+        ? JSON.stringify({ web: 1, fichiers: projetDuBloc(bloc, langue, code, titre),
+                           actif: langue === "css" ? "style.css" : (langue === "javascript" || langue === "js") ? "script.js" : "index.html" })
+        : code;
+      var octets = new TextEncoder().encode(texte);
       var bin = "";
       for (var i = 0; i < octets.length; i++) bin += String.fromCharCode(octets[i]);
       var b64 = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_");
-      var url = a.href + "#p=" + b64 + "&l=" + langue;
-      var e = bloc.querySelector(".langue");
-      var titre = e ? e.textContent.trim() : "Atelier C";
+      var url = a.href + "#p=" + b64 + "&l=" + mode;
       /* Ctrl, Cmd ou Maj : l'habitude du navigateur est d'ouvrir ailleurs,
          et on ne la contrarie pas. */
       if (ev.metaKey || ev.ctrlKey || ev.shiftKey) {
@@ -184,7 +263,7 @@
     if (!modale) {
       modale = d;
       modale.className = "modale-atelier";
-      modale.setAttribute("aria-label", "Atelier C");
+      modale.setAttribute("aria-label", "Le compilateur");
 
       var barre = document.createElement("div");
       barre.className = "modale-barre";
@@ -209,7 +288,7 @@
 
       cadre = document.createElement("iframe");
       cadre.className = "modale-cadre";
-      cadre.setAttribute("title", "Atelier C");
+      cadre.setAttribute("title", "Le compilateur");
 
       modale.appendChild(barre);
       modale.appendChild(cadre);
