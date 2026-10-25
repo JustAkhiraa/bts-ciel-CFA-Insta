@@ -733,5 +733,115 @@
   "quoi": "sort avec une lambda, find, et map — la bibliothèque standard.",
   "code": "#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <map>\n\nstruct Mesure { std::string machine; int ping; };\n\nint main()\n{\n    std::vector<Mesure> m = {{\"srv-web\", 48}, {\"srv-bdd\", 12}, {\"poste-12\", 97}};\n\n    std::sort(m.begin(), m.end(),\n              [](const Mesure& a, const Mesure& b) { return a.ping < b.ping; });\n\n    for (const Mesure& x : m) {\n        std::cout << x.machine << \" -> \" << x.ping << \" ms\" << std::endl;\n    }\n\n    std::map<std::string, int> total;\n    for (const Mesure& x : m) total[x.ping < 50 ? \"rapide\" : \"lent\"]++;\n\n    for (const auto& paire : total) {\n        std::cout << paire.first << \" : \" << paire.second << std::endl;\n    }\n    return 0;\n}\n",
   "id": "1032d"
+ },
+ {
+  "groupe": "Pour commencer",
+  "titre": "Interroger la base du cours",
+  "quoi": "SELECT, WHERE, ORDER BY, LIMIT — sur gestion_presence, déjà chargée.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- La base du cours est déjà là : rien à créer, on interroge.\nDESCRIBE etudiants;\n\n-- les étudiants de BTS CIEL 2, par ordre alphabétique\nSELECT nom, prenom\nFROM etudiants\nWHERE classe = 'BTS CIEL 2'\nORDER BY nom ASC;\n\n-- les 5 dernières absences enregistrées\nSELECT id_etudiant, date_presence\nFROM presences\nWHERE statut = 'absent'\nORDER BY date_presence DESC\nLIMIT 5;\n",
+  "entree": "",
+  "source": "écrit pour l'atelier",
+  "id": "9d460"
+ },
+ {
+  "groupe": "Pour commencer",
+  "titre": "Créer sa propre base",
+  "quoi": "CREATE DATABASE, CREATE TABLE, INSERT : le script part d'un serveur vide.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- Un script qui CRÉE ses tables part d'un serveur vide :\n-- ici, une petite boutique.\nCREATE DATABASE IF NOT EXISTS boutique;\nUSE boutique;\n\nCREATE TABLE produits (\n    id    INT AUTO_INCREMENT PRIMARY KEY,\n    nom   VARCHAR(50)   NOT NULL,\n    prix  DECIMAL(6,2)  NOT NULL,\n    stock INT           NOT NULL DEFAULT 0\n);\n\nINSERT INTO produits (nom, prix, stock) VALUES\n    ('Clé USB 32 Go', 9.90, 12),\n    ('Souris sans fil', 15.00, 0),\n    ('Câble HDMI', 7.50, 30);\n\nSELECT nom, prix FROM produits WHERE stock > 0 ORDER BY prix;\nSELECT SUM(prix * stock) AS valeur_du_stock FROM produits;\n",
+  "entree": "",
+  "source": "écrit pour l'atelier",
+  "id": "8b743"
+ },
+ {
+  "groupe": "Pour commencer",
+  "titre": "Lire une erreur de MariaDB",
+  "quoi": "Une faute dans chaque requête : corrigez, relancez, la suivante apparaît.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- Trois fautes, une par requête. MariaDB s'arrête à la PREMIÈRE :\n-- lisez l'explication sous l'éditeur, corrigez, relancez.\n\nSELECT nom, prenom, FROM etudiants;\n\nSELECT * FROM etudiants WHERE classe = BTS CIEL 1;\n\nSELECT id, nom, date_presence\nFROM etudiants\nINNER JOIN presences ON presences.id_etudiant = etudiants.id;\n",
+  "entree": "",
+  "source": "écrit pour l'atelier",
+  "id": "ffae2"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 2 · Le script bdd.sql",
+  "quoi": "La base gestion_presence et ses trois tables, clé étrangère comprise.",
+  "hors": false,
+  "langue": "sql",
+  "code": "CREATE DATABASE IF NOT EXISTS gestion_presence;\nUSE gestion_presence;\n\nCREATE TABLE administrateurs (\n    id           INT AUTO_INCREMENT PRIMARY KEY,\n    login        VARCHAR(50)  NOT NULL UNIQUE,\n    mot_de_passe VARCHAR(255) NOT NULL\n);\n\nCREATE TABLE etudiants (\n    id     INT AUTO_INCREMENT PRIMARY KEY,\n    nom    VARCHAR(50) NOT NULL,\n    prenom VARCHAR(50) NOT NULL,\n    classe VARCHAR(50) NOT NULL\n);\n\nCREATE TABLE presences (\n    id            INT AUTO_INCREMENT PRIMARY KEY,\n    id_etudiant   INT NOT NULL,\n    date_presence DATE NOT NULL,\n    statut        VARCHAR(20) NOT NULL,\n    FOREIGN KEY (id_etudiant) REFERENCES etudiants(id)\n);\n\nSHOW TABLES;\nDESCRIBE presences;   -- MUL : la colonne porte une clé étrangère\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "b2bf2"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 2 · L'ordre de création",
+  "quoi": "presences avant etudiants : l'erreur errno 150 du cours, en vrai.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- Inversez l'ordre : presences référence etudiants,\n-- qui n'existe pas encore.\nCREATE DATABASE essai;\nUSE essai;\n\nCREATE TABLE presences (\n    id            INT AUTO_INCREMENT PRIMARY KEY,\n    id_etudiant   INT NOT NULL,\n    FOREIGN KEY (id_etudiant) REFERENCES etudiants(id)\n);\n\nCREATE TABLE etudiants (\n    id  INT AUTO_INCREMENT PRIMARY KEY,\n    nom VARCHAR(50) NOT NULL\n);\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "e15f6"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 3 · Le salaire en VARCHAR",
+  "quoi": "Un nombre stocké en texte : le tri faux, puis la correction en DECIMAL.",
+  "hors": false,
+  "langue": "sql",
+  "code": "CREATE DATABASE tp7;\nUSE tp7;\n\nCREATE TABLE employes (\n    id      INT PRIMARY KEY AUTO_INCREMENT,\n    nom     VARCHAR(50),\n    poste   VARCHAR(50),\n    salaire VARCHAR(50)          -- ✘ un nombre rangé comme du texte\n);\nINSERT INTO employes (nom, poste, salaire) VALUES\n    ('Aya',   'technicienne', '9000'),\n    ('Karim', 'chef de projet', '10000'),\n    ('Lina',  'stagiaire', '900');\n\n-- ✘ tri alphabétique : '10000' avant '900' avant '9000'\nSELECT nom, salaire FROM employes ORDER BY salaire;\n-- ✘ du texte comparé à du texte : '900' > '2000' est vrai\nSELECT nom FROM employes WHERE salaire > '2000';\n\n-- ✔ la correction : un vrai nombre, exact\nALTER TABLE employes MODIFY salaire DECIMAL(10,2) NOT NULL;\nSELECT nom, salaire FROM employes ORDER BY salaire;\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "67ac1"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 4 · Huit requêtes",
+  "quoi": "Lire, ajouter, modifier, supprimer — et la clé étrangère qui dit non.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- 1\nSELECT * FROM etudiants ORDER BY nom ASC;\n\n-- 2\nSELECT * FROM etudiants WHERE classe = 'BTS CIEL 1';\n\n-- 3  (la barre de recherche du projet)\nSELECT * FROM etudiants\nWHERE nom    LIKE '%dup%'\n   OR prenom LIKE '%dup%'\n   OR classe LIKE '%dup%';\n\n-- 4\nINSERT INTO etudiants (nom, prenom, classe)\nVALUES ('Dupont', 'Alice', 'BTS CIEL 1');\n\n-- 5\nUPDATE etudiants SET classe = 'BTS CIEL 2' WHERE id = 3;\n\n-- 7\nSELECT * FROM presences WHERE date_presence = '2026-09-13';\n\n-- 8\nSELECT * FROM presences ORDER BY date_presence DESC LIMIT 10;\n\n-- 6, gardée pour la fin : l'étudiant n° 5 a des présences,\n-- la clé étrangère refuse. Lisez l'explication, puis essayez\n-- la solution a. : DELETE FROM presences WHERE id_etudiant = 5;\nDELETE FROM etudiants WHERE id = 5;\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "1f39b"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 5 · L'historique et les absences",
+  "quoi": "INNER JOIN pour l'historique, LEFT JOIN … AND pour compter les absences.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- 1. l'historique complet, du plus récent au plus ancien\nSELECT e.nom, e.prenom, e.classe, p.date_presence, p.statut\nFROM presences p\nINNER JOIN etudiants e ON p.id_etudiant = e.id\nORDER BY p.date_presence DESC;\n\n-- 2. tous les étudiants avec leur nombre d'absences,\n--    y compris ceux qui n'en ont aucune (0)\nSELECT e.nom, e.prenom, COUNT(p.id) AS nb_absences\nFROM etudiants e\nLEFT JOIN presences p\n       ON p.id_etudiant = e.id AND p.statut = 'absent'\nGROUP BY e.id, e.nom, e.prenom\nORDER BY nb_absences DESC;\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "2fc61"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 6 · Le tableau de bord",
+  "quoi": "Trois compteurs, puis les deux derniers en une seule requête.",
+  "hors": false,
+  "langue": "sql",
+  "code": "SELECT COUNT(*) FROM etudiants;\nSELECT COUNT(*) FROM presences WHERE statut = 'present';\nSELECT COUNT(*) FROM presences WHERE statut = 'absent';\n\n-- ou les deux derniers en UNE seule requête :\nSELECT statut, COUNT(*) AS nombre\nFROM presences\nGROUP BY statut;\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "94ad6"
+ },
+ {
+  "groupe": "Chapitre 9, les exercices corrigés",
+  "titre": "Exercice 7 · L'injection SQL, vérifiée",
+  "quoi": "Ce que reçoit MariaDB quand on tape ' OR '1'='1' # dans le champ login.",
+  "hors": false,
+  "langue": "sql",
+  "code": "-- Le visiteur tape  ' OR '1'='1' #  dans le champ identifiant.\n-- La requête collée par le PHP vulnérable devient :\nSELECT * FROM administrateurs\nWHERE login = '' OR '1'='1' #' AND mot_de_passe = ''\n;\n-- ✘ une ligne revient : connecté sans mot de passe.\n\n-- Sans le # : AND passe avant OR, le mot de passe est encore exigé.\nSELECT * FROM administrateurs\nWHERE login = '' OR '1'='1' AND mot_de_passe = '';\n-- → aucune ligne\n",
+  "entree": "",
+  "source": "les exercices du chapitre Bases de données et SQL",
+  "id": "e3b88"
  }
 ]

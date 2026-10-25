@@ -134,6 +134,19 @@
     if (langue === "html" || langue === "html + css" || langue === "css") return "web";
     if (langue === "javascript" || langue === "js")
       return /\b(document|window)\b|querySelector|getElementById|addEventListener|innerHTML/.test(code) ? "web" : "js";
+    /* Le SQL, s'il est fait d'instructions entières : « LEFT JOIN … » seul,
+       « COUNT(*) » seul ou une requête coupée par « … » sont des morceaux
+       de cours, pas des scripts. Les tables système (mysql.*) n'existent
+       que sur un vrai serveur. */
+    if (langue === "sql") {
+      var sans = code.replace(/\/\*[\s\S]*?\*\/|--(?=\s|$)[^\n]*|#[^\n]*/g, "");
+      if (/[…└┘│]|\bmysql\./.test(sans)) return null;
+      var morceaux = sans.split(";")
+        .map(function (m) { return m.trim(); }).filter(Boolean);
+      return morceaux.length && morceaux.every(function (m) {
+        return /^(select|insert|update|delete|create|alter|drop|show|use|describe|desc|truncate|rename|replace)\b/i.test(m);
+      }) ? "sql" : null;
+    }
     return null;
   }
   var TAGS = /^(h[1-6]|p|a|ul|ol|li|button|nav|header|footer|main|section|article|aside|table|tr|td|th|img|input|label|form|span|div|strong|em|blockquote|figure|figcaption)$/;

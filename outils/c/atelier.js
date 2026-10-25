@@ -174,6 +174,28 @@
     ["op", "=>|[-+*/%=<>!&|^~?:]+"],
     ["var", "(?<![\\w$])[A-Za-z_$][\\w$]*"],
   ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gm");
+  /* ── et le SQL (dialecte MariaDB) : les mots-clés ignorent la casse,
+     « -- » et « # » ouvrent un commentaire, l'accent grave entoure un nom. */
+  const SQL_MC = "\\b(?:select|from|where|and|or|not|xor|insert|into|values?|update|set|delete|create|"
+    + "table|database|schema|drop|alter|add|modify|change|column|rename|to|as|on|join|inner|left|right|"
+    + "outer|cross|natural|using|group|by|having|order|asc|desc|limit|offset|distinct|all|union|null|is|"
+    + "in|between|like|escape|exists|case|when|then|else|end|primary|key|foreign|references|unique|"
+    + "default|auto_increment|constraint|index|if|use|show|tables|databases|columns|describe|explain|"
+    + "truncate|cascade|restrict|check|replace|ignore|duplicate|true|false|count|sum|avg|min|max|regexp|"
+    + "interval|begin|commit|rollback|start|transaction|div|mod|no|action|after|first|engine|charset|collate)\\b";
+  const SQL_TYP = "\\b(?:int|integer|tinyint|smallint|mediumint|bigint|decimal|numeric|float|double|real|"
+    + "boolean|bool|bit|char|varchar|text|tinytext|mediumtext|longtext|blob|date|datetime|timestamp|time|"
+    + "year|enum|unsigned|signed|serial|json)\\b";
+  SCAN.sql = new RegExp([
+    ["com", "/\\*[\\s\\S]*?\\*/|--(?=[ \\t]|$)[^\\n]*|#[^\\n]*"],
+    ["txt", "'(?:''|\\\\.|[^'\\\\])*'|\"(?:\"\"|\\\\.|[^\"\\\\])*\""],
+    ["var", "`[^`]*`"],
+    ["mc", SQL_MC],
+    ["typ", SQL_TYP],
+    ["fn", APPEL],
+    ["num", NOMBRE],
+    ["op", "[-+*/%=<>!&|^~]+"],
+  ].map(([c, r]) => "(?<" + c + ">" + r + ")").join("|"), "gmi");
   const enveloppe = (classe, t) => '<span class="j-' + classe + '">' + ech(t) + "</span>";
 
   /* Le CSS dépend du CONTEXTE : « a:hover » est un sélecteur, « color: red »
@@ -1671,7 +1693,7 @@
            « <!-- … --> » en HTML. Le « // » partout faisait, en Python, une
            ligne invalide au lieu d'une ligne neutralisée. */
         const [ouv, ferm] = langue === "python" ? ["#", ""] : langue === "css" ? ["/*", "*/"]
-          : langue === "html" ? ["<!--", "-->"] : ["//", ""];
+          : langue === "html" ? ["<!--", "-->"] : langue === "sql" ? ["--", ""] : ["//", ""];
         const eo = echapperRegex(ouv), ef = echapperRegex(ferm);
         const deja = new RegExp("^(\\s*)" + eo + " ?(.*?)" + (ferm ? " ?" + ef + "\\s*$" : "$"));
         const toutes = lignes.every((l) => !l.trim() || deja.test(l));
@@ -2472,12 +2494,14 @@
     let nonLus = 0;
     function montrerSortie(quoi) {
       if (!ongletsSortie) return;
-      const web = langue === "web";
+      const web = langue === "web", sql = langue === "sql";
       ongletsSortie.hidden = !web;
       $("#at-onglet-console").hidden = web;
+      $("#at-onglet-console").textContent = sql ? "Résultats" : "Console";
       const voirApercu = web && quoi === "apercu";
       boiteApercu.hidden = !voirApercu;
-      conBoite.hidden = voirApercu;
+      if (boiteSql) boiteSql.hidden = !sql;
+      conBoite.hidden = voirApercu || sql;
       ongletsSortie.querySelectorAll("[data-sortie]").forEach((b) =>
         b.setAttribute("aria-selected", String(b.dataset.sortie === (voirApercu ? "apercu" : "console"))));
       if (!voirApercu) { nonLus = 0; badge.hidden = true; }
@@ -2778,12 +2802,200 @@
       }
     }
 
+    /* ══ le mode SQL : MariaDB, écrit ici (sql.js) ════════════════════════
+       Chaque exécution part d'une base NEUVE, comme un script importé dans
+       phpMyAdmin sur un serveur remis à zéro : le résultat ne dépend que du
+       texte de l'éditeur, et un lien partagé donne le même résultat chez
+       celui qui l'ouvre. La base de départ :
+         · celle du cours (gestion_presence, remplie) quand le script ne crée
+           rien — « SELECT * FROM etudiants » marche tout de suite ;
+         · aucune quand il crée ses tables ou sa base — sinon son CREATE
+           TABLE heurterait celles du cours (« Table already exists »).
+       On peut forcer l'un ou l'autre ; la page dit toujours lequel a servi. */
+    const boiteSql = $("#at-sql");
+    let departSql = "auto";
+    let etatCours = null;
+    function serveurDeDepart(depart) {
+      if (depart !== "cours") return new MOTEUR_SQL.Serveur();
+      if (!etatCours) {
+        const s = new MOTEUR_SQL.Serveur();
+        const r = s.executer(BASE_COURS_SQL);
+        if (r.erreur) throw r.erreur;
+        etatCours = JSON.stringify(s.exporter());
+      }
+      return new MOTEUR_SQL.Serveur(JSON.parse(etatCours));
+    }
+    const sansCommentairesSql = (t) => t.replace(/\/\*[\s\S]*?\*\/|--(?=[ \t]|$)[^\n]*|#[^\n]*|'(?:''|\\.|[^'\\])*'|"(?:""|\\.|[^"\\])*"/g, " ");
+    const creeSaBase = (t) => /\bcreate\s+(?:temporary\s+)?(?:table|database|schema)\b/i.test(sansCommentairesSql(t));
+    const pluriel = (n, un, plusieurs) => n + " " + (n > 1 ? plusieurs : un);
+
+    /* Ce qu'une instruction a fait, en une phrase — celle du client mariadb
+       (« Query OK, 2 rows affected »), dite en français. */
+    function bilanSql(r) {
+      const verbe = (/^\s*(\w+)(?:\s+(\w+))?/.exec(r.texte || "") || []).slice(1).join(" ").toUpperCase();
+      const n = r.affectees || 0;
+      if (/^(INSERT|REPLACE)/.test(verbe))
+        return pluriel(n, "ligne insérée", "lignes insérées")
+          + (r.insertId ? (n > 1 ? " — ids générés à partir de " : " — id généré : ") + r.insertId : "")
+          + (r.avertissements ? " (" + pluriel(r.avertissements, "doublon ignoré", "doublons ignorés") + ")" : "");
+      if (/^UPDATE/.test(verbe))
+        return pluriel(n, "ligne modifiée", "lignes modifiées")
+          + (r.trouvees !== undefined && r.trouvees !== n ? " sur " + pluriel(r.trouvees, "trouvée", "trouvées") + " — les autres avaient déjà cette valeur" : "");
+      if (/^DELETE/.test(verbe)) return pluriel(n, "ligne supprimée", "lignes supprimées");
+      if (/^CREATE (DATABASE|SCHEMA)/.test(verbe)) return r.avertissements ? "La base existait déjà : rien n'a changé (IF NOT EXISTS)" : "Base créée";
+      if (/^CREATE/.test(verbe)) return r.avertissements ? "La table existait déjà : rien n'a changé (IF NOT EXISTS)" : verbe === "CREATE INDEX" ? "Index créé (il ne change rien aux résultats)" : "Table créée";
+      if (/^DROP (DATABASE|SCHEMA)/.test(verbe)) return "Base supprimée, avec " + pluriel(n, "table", "tables");
+      if (/^DROP/.test(verbe)) return "Supprimé";
+      if (/^ALTER/.test(verbe)) return "Table modifiée";
+      if (/^TRUNCATE/.test(verbe)) return "Table vidée";
+      if (/^RENAME/.test(verbe)) return "Table renommée";
+      return "Requête OK" + (n ? ", " + pluriel(n, "ligne affectée", "lignes affectées") : "");
+    }
+    function abregerSql(t) {
+      const u = String(t || "").replace(/\s+/g, " ").trim();
+      return u.length > 160 ? u.slice(0, 157) + "…" : u;
+    }
+    const MAX_LIGNES_SQL = 500;
+    function tableauSql(r) {
+      const lignes = r.lignes.slice(0, MAX_LIGNES_SQL);
+      const cellule = (v, type) => {
+        if (v === null || v === undefined) return '<td class="nul">NULL</td>';
+        const t = MOTEUR_SQL.afficher(v, type);
+        return "<td" + (typeof v === "number" ? ' class="nb"' : "") + ">" + ech(t) + "</td>";
+      };
+      return '<div class="at-sql-defile"><table class="at-sql-table"><thead><tr>'
+        + r.colonnes.map((c) => "<th>" + ech(String(c)) + "</th>").join("") + "</tr></thead><tbody>"
+        + lignes.map((l) => "<tr>" + l.map((v, i) => cellule(v, r.types && r.types[i])).join("") + "</tr>").join("")
+        + "</tbody></table></div>";
+    }
+    function carteSql(r) {
+      let corps;
+      if (r.type === "select") {
+        const n = r.lignes.length;
+        corps = (n ? tableauSql(r) : "") + '<p class="at-sql-bilan">'
+          + (n ? pluriel(n, "ligne", "lignes") + (n > MAX_LIGNES_SQL ? " — les " + MAX_LIGNES_SQL + " premières sont affichées" : "")
+               : "Aucune ligne (<i>Empty set</i>)") + "</p>";
+      } else corps = '<p class="at-sql-bilan ok">✓ ' + ech(r.type === "modif" ? bilanSql(r) : (r.message || "OK")) + "</p>";
+      return '<section class="at-sql-carte"><div class="at-sql-req"><button type="button" class="at-aller" data-ligne="'
+        + r.ligne + '" data-colonne="' + (r.colonne || 1) + '">ligne ' + r.ligne + "</button><code>"
+        + peindre(abregerSql(r.texte), "sql") + "</code></div>" + corps + "</section>";
+    }
+    /* Ce que contient la base à la fin : de quoi écrire la requête suivante
+       sans lancer DESCRIBE à chaque fois. */
+    function schemaSql(serveur) {
+      if (!serveur.courante) {
+        const n = serveur.bases.size;
+        return '<p class="at-sql-schema-vide">Aucune base sélectionnée'
+          + (n ? " — " + pluriel(n, "base existe", "bases existent") + " : écrivez <code>USE nom_de_la_base;</code>" : "") + ".</p>";
+      }
+      let tables;
+      try { tables = serveur.requete("SHOW TABLES").lignes.map((l) => l[0]); }
+      catch (e) { return ""; }
+      const lignes = tables.map((t) => {
+        let cols = [], nb = "?";
+        try {
+          cols = serveur.requete("DESCRIBE `" + t + "`").lignes;
+          nb = serveur.requete("SELECT COUNT(*) FROM `" + t + "`").lignes[0][0];
+        } catch (e) { /* une table illisible n'empêche pas les autres */ }
+        return '<li><b>' + ech(t) + "</b> <span class=\"at-sql-nb\">" + pluriel(nb, "ligne", "lignes") + "</span><br>"
+          + cols.map((c) => '<span class="at-sql-col' + (c[3] === "PRI" ? " cle" : c[3] === "MUL" ? " etr" : "") + '" title="'
+            + ech(c[1] + (c[2] === "NO" ? ", NOT NULL" : "") + (c[5] ? ", " + c[5] : "")) + '">' + ech(c[0])
+            + " <i>" + ech(c[1]) + "</i></span>").join(" ") + "</li>";
+      });
+      return '<details class="at-sql-schema" open><summary>Base <b>' + ech(serveur.courante) + "</b> à la fin du script — "
+        + pluriel(tables.length, "table", "tables") + '</summary><ul>' + lignes.join("") + "</ul>"
+        + '<p class="at-sql-legende"><span class="at-sql-col cle">clé primaire</span> <span class="at-sql-col etr">clé étrangère</span></p></details>';
+    }
+    function executerSql() {
+      console2.vider();
+      zoneEntree.hidden = true;
+      const texte = editeur.valeur;
+      sauver();
+      if (typeof MOTEUR_SQL === "undefined") {
+        dirEtat("Le moteur SQL (c/sql.js) n'a pas pu être chargé.", "erreur");
+        return;
+      }
+      const depart = departSql !== "auto" ? departSql : creeSaBase(texte) ? "vide" : "cours";
+      const t0 = performance.now();
+      let serveur, r;
+      try {
+        serveur = serveurDeDepart(depart);
+        r = serveur.executer(texte);
+      } catch (e) {
+        // une panne du moteur lui-même, pas une erreur SQL : on le dit tel quel
+        boiteSql.innerHTML = '<section class="at-sql-carte at-sql-erreur"><p><b>Panne de l\'atelier</b> : '
+          + ech(String(e && e.message || e)) + "</p><p class=\"at-sql-bilan\">Ce n'est pas votre requête : le moteur SQL "
+          + "de l'atelier ne sait pas encore la traiter.</p></section>";
+        afficherDiagnostics([]);
+        dirEtat("Le moteur SQL de l'atelier est tombé en panne", "erreur");
+        return;
+      }
+      const ms = Math.max(1, Math.round(performance.now() - t0));
+      const choix = '<div class="at-sql-depart"><label>Base de départ <select id="at-sql-choix">'
+        + '<option value="auto"' + (departSql === "auto" ? " selected" : "") + ">automatique</option>"
+        + '<option value="cours"' + (departSql === "cours" ? " selected" : "") + ">la base du cours</option>"
+        + '<option value="vide"' + (departSql === "vide" ? " selected" : "") + ">aucune (serveur vide)</option>"
+        + "</select></label><span>" + (depart === "cours"
+          ? "<b>gestion_presence</b>, la base du cours : 33 étudiants, leurs présences"
+            + (departSql === "auto" ? " — votre script ne crée rien, il interroge" : "")
+          : "un serveur vide" + (departSql === "auto" ? " — votre script crée ses tables" : "")) + "</span></div>";
+      let html = choix + r.resultats.map(carteSql).join("");
+      const diag = [];
+      if (r.erreur) {
+        const e = r.erreur;
+        const brut = "ERROR " + e.code + " (" + e.etat + ")" + (e.ligne ? " at line " + e.ligne : "") + ": " + e.message;
+        html += '<section class="at-sql-carte at-sql-erreur"><div class="at-sql-req">'
+          + (e.ligne ? '<button type="button" class="at-aller" data-ligne="' + e.ligne + '" data-colonne="' + (e.colonne || 1) + '">ligne ' + e.ligne + "</button>" : "")
+          + (e.texte ? "<code>" + peindre(abregerSql(e.texte), "sql") + "</code>" : "") + "</div>"
+          + '<p class="at-sql-message"><b>ERROR ' + e.code + "</b> (" + ech(e.etat) + ") : " + ech(e.message) + "</p>"
+          + '<p class="at-sql-bilan">' + (e.lecture ? "MariaDB n'a pas pu lire cette instruction : elle et la suite du script n'ont pas été exécutées."
+            : r.restantes ? "MariaDB s'arrête à la première erreur : " + pluriel(r.restantes, "instruction suivante n'a", "instructions suivantes n'ont") + " pas été exécutée" + (r.restantes > 1 ? "s." : ".")
+            : "C'était la dernière instruction du script.") + " L'explication est sous l'éditeur.</p></section>";
+        diag.push({ ligne: e.ligne || 0, colonne: e.colonne || 1, niveau: "error", message: brut });
+      }
+      if (!r.resultats.length && !r.erreur)
+        html += '<p class="at-sql-schema-vide">Le script ne contient aucune instruction. Écrivez par exemple <code>SHOW TABLES;</code></p>';
+      html += schemaSql(serveur);
+      boiteSql.innerHTML = html;
+      boiteSql.scrollTop = 0;
+      afficherDiagnostics(diag);
+      const n = r.resultats.length;
+      if (r.erreur) dirEtat("Erreur " + r.erreur.code + (r.erreur.ligne ? " à la ligne " + r.erreur.ligne : "") + (n ? " — " + pluriel(n, "instruction exécutée", "instructions exécutées") + " avant" : ""), "erreur");
+      else dirEtat(pluriel(n, "instruction exécutée", "instructions exécutées") + " en " + ms + " ms", "ok");
+    }
+    if (boiteSql) {
+      boiteSql.addEventListener("change", (e) => {
+        if (e.target.id !== "at-sql-choix") return;
+        departSql = e.target.value;
+        executerSql();
+      });
+      boiteSql.addEventListener("click", (e) => {
+        const b = e.target.closest(".at-aller");
+        if (b) editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
+      });
+    }
+    /* La relecture pendant la frappe : l'analyseur seul, sans rien exécuter
+       — il dit la faute de syntaxe avant qu'on appuie sur Exécuter. */
+    function relireSql() {
+      if (langue !== "sql" || typeof MOTEUR_SQL === "undefined") return;
+      const source = editeur.valeur;
+      if (source === texteRelu) return;
+      texteRelu = source;
+      let faute = null;
+      try { new MOTEUR_SQL.Analyseur(source).script(); }
+      catch (e) { if (e && e.sql) faute = e; }
+      if (!faute) { if (diags.querySelector(".d-erreur")) afficherDiagnostics([]); return; }
+      afficherDiagnostics([{ ligne: faute.ligne || 0, colonne: faute.colonne || 1, niveau: "error",
+        message: "ERROR " + faute.code + " (" + faute.etat + ") at line " + faute.ligne + ": " + faute.message }]);
+    }
+
     async function executer(relance) {
       if (tourne && !relance) return;
       /* Le Python ne passe pas par le compilateur : il part d'ici, avant
          qu'on allume quoi que ce soit de la chaîne wasm. */
       if (langue === "python") { executerPython(); return; }
       if (langue === "web") { executerWeb(); return; }
+      if (langue === "sql") { executerSql(); return; }
       if (langue === "js") { arreterExec(); executerJS(); return; }
       arreterExec();
       tourne = true;
@@ -2981,6 +3193,7 @@
          lent. » On peut donc l'éteindre — et c'est à lui d'en décider,
          pas à moi de supposer que sa machine suit. */
       if (!relirePendantLaFrappe) return;
+      if (langue === "sql") { clearTimeout(minuterieRelire); minuterieRelire = setTimeout(relireSql, DELAI_RELIRE); return; }
       if (langue !== "c" && langue !== "c++") return;
       if (!moteur.pret) return;
       clearTimeout(minuterieRelire);
@@ -3172,12 +3385,12 @@
        « let » : poserLangue peut être appelée pendant l'initialisation, avant
        que la ligne du tiroir ne soit atteinte. */
     var redessinerExemples = null;
-    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS" };
+    const NOM_LANGUE = { "c": "C", "c++": "C++", "python": "Python", "js": "JavaScript", "web": "HTML, CSS et JS", "sql": "SQL" };
     const LANGUES = Object.keys(NOM_LANGUE);
     /* Un programme de départ jamais modifié : on peut le remplacer par celui
        du langage choisi sans rien faire perdre. */
     const estDepart = (t) => Object.keys(DEPART).some((k) => DEPART[k] === t);
-    const FICHIER = { "c": "programme.c", "c++": "programme.cpp", "python": "programme.py", "js": "programme.js" };
+    const FICHIER = { "c": "programme.c", "c++": "programme.cpp", "python": "programme.py", "js": "programme.js", "sql": "requetes.sql" };
     function poserLangue(l) {
       if (LANGUES.indexOf(l) < 0) l = "c";
       const avant = langue;
@@ -3400,6 +3613,17 @@
          + 'console.log("Moyenne : " + (somme / notes.length).toFixed(2));\n\n'
          + 'const prenom = prompt("Votre prénom ?");\n'
          + 'console.log("Bonjour " + prenom + " !");\n',
+      /* Le SQL interroge la base du cours, déjà là : le geste du TP, sans
+         installer XAMPP ni importer bdd.sql. */
+      sql: '-- La base du cours, gestion_presence, est déjà chargée :\n'
+         + '-- 33 étudiants et une semaine de présences.\n\n'
+         + 'SHOW TABLES;\n\n'
+         + '-- combien d\'étudiants par classe ?\n'
+         + 'SELECT classe, COUNT(*) AS nombre\nFROM etudiants\nGROUP BY classe;\n\n'
+         + '-- les absences de chacun, des plus absents aux autres\n'
+         + 'SELECT e.nom, e.prenom, COUNT(p.id) AS nb_absences\n'
+         + 'FROM etudiants e\nLEFT JOIN presences p\n       ON p.id_etudiant = e.id AND p.statut = \'absent\'\n'
+         + 'GROUP BY e.id, e.nom, e.prenom\nORDER BY nb_absences DESC\nLIMIT 5;\n',
     };
 
     /* ── le raccourcisseur, chargé à la DEMANDE ───────────────────────
@@ -3612,7 +3836,9 @@
       poserLangue(l);
     }
     const devine = (s) =>
-      /^\s*(?:<!--[\s\S]*?-->\s*)*<(?:!doctype|html|head|body|div|p|h[1-6]|ul|section|main|header|form|table|style|script)\b/i.test(s) ? "web"
+      /^\s*(?:(?:--[ \t][^\n]*|#[^\n]*)\n\s*)*(?:select|insert\s+into|update|delete\s+from|create\s+(?:table|database)|drop|alter\s+table|show|use|describe)\b/i.test(s)
+        && !/#include|\bprintf\s*\(/.test(s) ? "sql"
+      : /^\s*(?:<!--[\s\S]*?-->\s*)*<(?:!doctype|html|head|body|div|p|h[1-6]|ul|section|main|header|form|table|style|script)\b/i.test(s) ? "web"
       : /\b(?:console\.log|document\.|addEventListener|=>)|(?:^|\n)\s*(?:let|const|function)\s/.test(s)
         && !/#include|\bprintf\s*\(|\bint\s+main\s*\(/.test(s) ? "js"
       : /^\s*(?:def |import |from |print\()/m.test(s) && !/[;{}]\s*$/m.test(s) ? "python"
