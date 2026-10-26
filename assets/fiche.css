@@ -7779,7 +7779,8 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    « jeton sans déclaration » : valide, silencieux, et sans effet.) */
 .at-menu {
   position: absolute; top: calc(100% + .35rem); right: 0; z-index: 40;
-  min-width: 15.5rem; padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
+  min-width: 15.5rem; max-width: calc(100vw - 1.5rem);
+  padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
   background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 12px;
   box-shadow: 0 14px 34px rgba(0,0,0,.22);
 }
@@ -7873,7 +7874,11 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 
 @media (max-width: 760px) {
   .at-surligneur { order: 9; }
-  .at-menu { right: auto; left: 0; }
+  /* Le basculement du menu vers la gauche a été RETIRÉ : il supposait que
+     sous 760 px le bouton est à droite de la barre. Il peut être partout,
+     puisque la barre passe à la ligne — et le menu sortait alors par la
+     droite. C'est « calerPanneau() », dans atelier.js, qui décide
+     maintenant, en mesurant. */
 }
 
 /* ── La barre serrée : une seule rangée, et le badge seul ────────────────
@@ -9377,18 +9382,34 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 
 .at-langue-menu .at-coche { margin-top: .15rem; flex: none; }
 
+/* La coche du langage courant. Elle ne s'allumait PAS : la règle qui la
+   remplit ne vise que « .at-bascule », et ces boutons-là sont des
+   « .at-menu-item ». Un carré vide en face des sept langages, y compris
+   celui qu'on utilise — le commentaire au-dessus affirmait le contraire,
+   et c'était faux. Vérifié dans la page : aria-pressed passait bien à
+   « true », c'est le dessin qui manquait. */
+.at-langue-menu .at-menu-item[aria-pressed="true"] .at-coche {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.at-langue-menu .at-menu-item[aria-pressed="true"] .at-coche::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--sur-accent); border-width: 0 2px 2px 0; transform: rotate(42deg);
+}
+
 @media (max-width: 760px) {
   .at-langue-etiquette { display: none; }
 }
 
 @media (max-width: 560px) {
-  /* Sur un petit écran, le bouton se retrouve à droite de « Exécuter » :
-     un panneau calé sur son bord GAUCHE partirait hors de l'écran. On
-     l'accroche donc à son bord droit, et il rentre toujours. Mesuré :
-     sans cette règle, le panneau affleurait le bord à 375 px de large. */
+  /* Sur un petit écran, le panneau prend presque toute la largeur : à
+     375 px, 17,5 rem de minimum le faisaient affleurer le bord.
+
+     L'ancrage à droite qui se trouvait ici a été RETIRÉ. Il corrigeait un
+     débordement par la gauche en en créant un par la droite dès que la
+     barre s'enroulait autrement — c'est ce que montrait la capture. Le
+     bord est désormais choisi par la mesure, dans atelier.js. */
   .at-langue-menu {
-    left: auto;
-    right: 0;
     min-width: 0;
     width: calc(100vw - 2.4rem);
     max-width: 20rem;
