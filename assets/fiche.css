@@ -8998,8 +8998,29 @@ html[data-style="lanceur"] body:not([data-accueil]) .fil-app {
 }
 html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top: 0; }
 
+/* Signalé, capture annotée à l'appui : sous 620 px la barre du haut
+   « flottait » — une bande de papier de 23 px au-dessus d'elle, des coins
+   arrondis en BAS, et le fil d'Ariane coupé en deux derrière son bord.
+
+   Une seule cause pour les trois : la règle ci-dessous donnait à la barre
+   du HAUT la géométrie de celle du BAS. Les deux portent « .lan-actions-page »
+   — app.js clone la première pour fabriquer la seconde — et à spécificité
+   égale c'est la dernière écrite qui gagne (§ 34). Comparez :
+
+       en haut, il faut   marge -.7rem  …  +.7rem   coins en HAUT
+       il était écrit     marge  .7rem  …  -1rem    coins en BAS
+
+   La marge haute positive s'AJOUTE au rembourrage du parent au lieu de
+   l'annuler : 11,55 + 11,55 = 23 px de papier visible, dans lesquels le
+   contenu défile. Et la marge basse négative remonte ce qui suit de 16,5 px,
+   c'est-à-dire sous la barre — le fil d'Ariane tranché.
+
+   Chaque barre reçoit donc sa propre géométrie, en miroir l'une de l'autre. */
 @media (max-width: 620px) {
-  html[data-style="lanceur"] .lan-actions-page {
+  html[data-style="lanceur"] .lan-actions-page:not(.lan-actions-bas) {
+    margin: -.7rem -.7rem .7rem; border-radius: 16px 16px 0 0;
+  }
+  html[data-style="lanceur"] .lan-actions-bas {
     margin: .7rem -.7rem -1rem; border-radius: 0 0 16px 16px;
   }
 }
