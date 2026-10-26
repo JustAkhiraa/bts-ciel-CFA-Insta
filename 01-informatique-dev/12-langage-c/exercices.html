@@ -7,7 +7,7 @@
 <meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=248f4156">
+<link rel="stylesheet" href="../../assets/fiche.css?v=3cb2cb90">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -32,6 +32,7 @@
     <li><a href="#tp5">14 · TP 5 · Les pointeurs</a></li>
     <li><a href="#tp6">15 · TP 6 · Les structures</a></li>
     <li><a href="#tp7">16 · TP 7 · Les chaînes de caractères</a></li>
+    <li><a href="#controle1">17 · Contrôle 1 · le sujet et son corrigé</a></li>
   </ol>
 </nav>
 
@@ -4312,6 +4313,283 @@ Longueur    : 11</code></pre></div><div class="encart piege">
   </article>
 </section>
 
+<section id="controle1">
+  <h2><span class="num">17</span>Contrôle 1 · le sujet et son corrigé</h2>
+  <p class="chapeau">Le sujet tel qu'il est tombé : deux exercices, et rien d'autre à
+     disposition qu'une feuille. Le premier réunit l'allocation dynamique, les pointeurs et
+     le décalage d'un tableau ; le second, les tableaux à deux dimensions.
+     <strong>Les deux programmes ci-dessous ont été compilés et exécutés</strong> — sans
+     avertissement, avec <code>-Wall -Wextra</code> — et leurs sorties sont celles que le
+     sujet annonce.</p>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Les temps de réponse d'un équipement <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Un technicien réseau souhaite analyser les temps de réponse d'un équipement. Le nombre
+         de mesures à enregistrer varie selon les besoins. Écrire un programme en langage C
+         permettant de :</p>
+      <ol>
+        <li>Demander le nombre de mesures <code>n</code>. Tant que la saisie est
+            <strong>inférieure ou égale à 0</strong>, redemander un nombre strictement positif.</li>
+        <li>Allouer <strong>dynamiquement</strong> un tableau de <code>n</code> entiers avec
+            <code>malloc</code>. <strong>Vérifier que l'allocation a réussi.</strong></li>
+        <li>Saisir les <code>n</code> temps de réponse et les stocker dans ce tableau.</li>
+        <li>Afficher les éléments <strong>dans l'ordre inverse</strong> de leur saisie.</li>
+        <li>Écrire <code>maximum()</code>, qui reçoit un <strong>pointeur</strong> vers le
+            tableau et sa taille et retourne la valeur maximale. Le parcours doit utiliser un
+            pointeur.</li>
+        <li>Écrire <code>compterSuperieurs()</code>, qui reçoit le tableau, sa taille et un
+            seuil <code>S</code>, et retourne le nombre de mesures strictement supérieures à
+            <code>S</code>.</li>
+        <li>Écrire <code>supprimerSuperieurs()</code>, qui supprime du tableau toutes les mesures
+            strictement supérieures à <code>S</code> <strong>en décalant les autres vers la
+            gauche</strong> pour conserver leur ordre, et met à jour le nombre de mesures.</li>
+      </ol>
+      <p>À la fin du programme, <strong>libérer la mémoire</strong> allouée dynamiquement.</p>
+      <p class="rap"><strong>Exemple du sujet</strong> — pour <code>12, 8, 15, 6, 10, 18</code>
+         et <code>S = 10</code>, le tableau doit contenir <code>8, 6, 10</code>, et le nombre de
+         mesures restantes vaut <strong>3</strong>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdlib.h&gt;</span>
+
+<span class="j-com">/* Exercice 1 : les temps de reponse d'un equipement reseau. */</span>
+
+<span class="j-typ">int</span> <span class="j-fn">maximum</span>(<span class="j-mc">const</span> <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">tab</span>, <span class="j-typ">int</span> <span class="j-var">taille</span>)
+{
+    <span class="j-mc">const</span> <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">tab</span>;              <span class="j-com">/* le parcours se fait AU POINTEUR */</span>
+    <span class="j-typ">int</span> <span class="j-var">max</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;
+    <span class="j-mc">for</span> (<span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">tab</span> <span class="j-op">+</span> <span class="j-num">1</span>; <span class="j-var">p</span> <span class="j-op">&lt;</span> <span class="j-var">tab</span> <span class="j-op">+</span> <span class="j-var">taille</span>; <span class="j-var">p</span><span class="j-op">++</span>)
+        <span class="j-mc">if</span> (<span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">&gt;</span> <span class="j-var">max</span>) <span class="j-var">max</span> <span class="j-op">=</span> <span class="j-op">*</span><span class="j-var">p</span>;
+    <span class="j-mc">return</span> <span class="j-var">max</span>;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">compterSuperieurs</span>(<span class="j-mc">const</span> <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">tab</span>, <span class="j-typ">int</span> <span class="j-var">taille</span>, <span class="j-typ">int</span> <span class="j-var">seuil</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-mc">const</span> <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">=</span> <span class="j-var">tab</span>; <span class="j-var">p</span> <span class="j-op">&lt;</span> <span class="j-var">tab</span> <span class="j-op">+</span> <span class="j-var">taille</span>; <span class="j-var">p</span><span class="j-op">++</span>)
+        <span class="j-mc">if</span> (<span class="j-op">*</span><span class="j-var">p</span> <span class="j-op">&gt;</span> <span class="j-var">seuil</span>) <span class="j-var">n</span><span class="j-op">++</span>;
+    <span class="j-mc">return</span> <span class="j-var">n</span>;
+}
+
+<span class="j-typ">void</span> <span class="j-fn">supprimerSuperieurs</span>(<span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">tab</span>, <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">taille</span>, <span class="j-typ">int</span> <span class="j-var">seuil</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">garde</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-op">*</span><span class="j-var">taille</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        <span class="j-mc">if</span> (<span class="j-var">tab</span>[<span class="j-var">i</span>] <span class="j-op">&lt;=</span> <span class="j-var">seuil</span>)
+            <span class="j-var">tab</span>[<span class="j-var">garde</span><span class="j-op">++</span>] <span class="j-op">=</span> <span class="j-var">tab</span>[<span class="j-var">i</span>];   <span class="j-com">/* on decale vers la gauche */</span>
+    <span class="j-op">*</span><span class="j-var">taille</span> <span class="j-op">=</span> <span class="j-var">garde</span>;                 <span class="j-com">/* et on met a jour le compte */</span>
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">n</span>;
+    <span class="j-mc">do</span> {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Nombre de mesures : "</span>);
+        <span class="j-mc">if</span> (<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>) <span class="j-op">!=</span> <span class="j-num">1</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+        <span class="j-mc">if</span> (<span class="j-var">n</span> <span class="j-op">&lt;=</span> <span class="j-num">0</span>) <span class="j-fn">printf</span>(<span class="j-txt">"Il faut un nombre strictement positif.\n"</span>);
+    } <span class="j-mc">while</span> (<span class="j-var">n</span> <span class="j-op">&lt;=</span> <span class="j-num">0</span>);
+
+    <span class="j-typ">int</span> <span class="j-op">*</span><span class="j-var">mesures</span> <span class="j-op">=</span> <span class="j-fn">malloc</span>(<span class="j-var">n</span> <span class="j-op">*</span> <span class="j-mc">sizeof</span> <span class="j-op">*</span><span class="j-var">mesures</span>);
+    <span class="j-mc">if</span> (<span class="j-var">mesures</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Allocation impossible.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Mesure %d : "</span>, <span class="j-var">i</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">mesures</span>[<span class="j-var">i</span>]);
+    }
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nDans l'ordre inverse :"</span>);
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-var">n</span> <span class="j-op">-</span> <span class="j-num">1</span>; <span class="j-var">i</span> <span class="j-op">&gt;=</span> <span class="j-num">0</span>; <span class="j-var">i</span><span class="j-op">--</span>) <span class="j-fn">printf</span>(<span class="j-txt">" %d"</span>, <span class="j-var">mesures</span>[<span class="j-var">i</span>]);
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Maximum : %d\n"</span>, <span class="j-fn">maximum</span>(<span class="j-var">mesures</span>, <span class="j-var">n</span>));
+
+    <span class="j-typ">int</span> <span class="j-var">seuil</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"Seuil S : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">seuil</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Mesures strictement superieures a %d : %d\n"</span>,
+           <span class="j-var">seuil</span>, <span class="j-fn">compterSuperieurs</span>(<span class="j-var">mesures</span>, <span class="j-var">n</span>, <span class="j-var">seuil</span>));
+
+    <span class="j-fn">supprimerSuperieurs</span>(<span class="j-var">mesures</span>, <span class="j-op">&amp;</span><span class="j-var">n</span>, <span class="j-var">seuil</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Apres suppression (%d mesures) :"</span>, <span class="j-var">n</span>);
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">n</span>; <span class="j-var">i</span><span class="j-op">++</span>) <span class="j-fn">printf</span>(<span class="j-txt">" %d"</span>, <span class="j-var">mesures</span>[<span class="j-var">i</span>]);
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
+
+    <span class="j-fn">free</span>(<span class="j-var">mesures</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}
+</code></pre></div>
+<p><strong>Ce qui se joue dans la question 7.</strong> « Supprimer » ne veut pas dire
+   réallouer : on garde le même tableau et on y <strong>réécrit</strong> ce qu'on conserve,
+   depuis le début. Un seul indice d'écriture — <code>garde</code> — avance moins vite que
+   l'indice de lecture, et l'ordre initial est préservé sans tableau auxiliaire.</p>
+<div class="encart piege">
+  <div class="titre">⚠️ Le compte, pas seulement le contenu</div>
+  <p>L'énoncé demande de <strong>mettre à jour le nombre de mesures</strong>. D'où le
+     <code>int *taille</code> : sans le passage par adresse, la fonction modifierait sa copie
+     et le programme continuerait à lire six cases dont trois sont périmées. C'est l'erreur qui
+     ne se voit pas à l'exécution — les trois valeurs résiduelles sont encore là, et elles
+     s'affichent.</p>
+</div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : 6, puis 12 8 15 6 10 18, puis 10</span><pre><code>Nombre de mesures : Mesure 1 : Mesure 2 : Mesure 3 : Mesure 4 : Mesure 5 : Mesure 6 : 
+Dans l'ordre inverse : 18 10 6 15 8 12
+Maximum : 18
+Seuil S : Mesures strictement superieures a 10 : 3
+Apres suppression (3 mesures) : 8 6 10</code></pre></div>
+<p class="rap"><strong>Exécuté</strong> avec les six mesures du sujet et <code>S = 10</code> :
+   l'ordre inverse donne <code>18 10 6 15 8 12</code>, le maximum <code>18</code>, le compte
+   <code>3</code>, et le tableau final <code>8 6 10</code> — ce que le sujet annonce.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>La consommation de cinq bâtiments <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Une entreprise suit la consommation énergétique de <strong>5 bâtiments</strong> pendant
+         <strong>3 mois</strong>. Un tableau à deux dimensions stocke la consommation de chaque
+         bâtiment pour chaque mois. Écrire un programme qui permet de :</p>
+      <ol>
+        <li>Déclarer un tableau à deux dimensions de 5 lignes et 3 colonnes.</li>
+        <li>Saisir les consommations des 5 bâtiments pendant les 3 mois.</li>
+        <li>Écrire <code>afficherConsommations()</code>, qui affiche toutes les valeurs.</li>
+        <li>Écrire <code>totalBatiment()</code>, qui reçoit le tableau et le numéro d'un
+            bâtiment et retourne sa consommation totale sur les 3 mois.</li>
+        <li>Écrire <code>compterConsommations()</code>, qui reçoit le tableau et une valeur
+            <code>S</code> et retourne le nombre de consommations strictement supérieures.</li>
+        <li>Afficher la consommation totale de chaque bâtiment.</li>
+        <li>Saisir une valeur <code>S</code>, puis afficher le nombre de consommations
+            strictement supérieures.</li>
+        <li>Déterminer et afficher le <strong>numéro du mois</strong> pendant lequel la
+            consommation totale des cinq bâtiments est la plus faible.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-pre">#define</span> <span class="j-var">BATIMENTS</span> <span class="j-num">5</span>
+<span class="j-pre">#define</span> <span class="j-var">MOIS</span>      <span class="j-num">3</span>
+
+<span class="j-typ">void</span> <span class="j-fn">afficherConsommations</span>(<span class="j-typ">int</span> <span class="j-var">t</span>[<span class="j-var">BATIMENTS</span>][<span class="j-var">MOIS</span>])
+{
+    <span class="j-fn">printf</span>(<span class="j-txt">"\n           mois 1  mois 2  mois 3\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"batiment %d"</span>, <span class="j-var">b</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">m</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">m</span> <span class="j-op">&lt;</span> <span class="j-var">MOIS</span>; <span class="j-var">m</span><span class="j-op">++</span>) <span class="j-fn">printf</span>(<span class="j-txt">"%8d"</span>, <span class="j-var">t</span>[<span class="j-var">b</span>][<span class="j-var">m</span>]);
+        <span class="j-fn">printf</span>(<span class="j-txt">"\n"</span>);
+    }
+}
+
+<span class="j-typ">int</span> <span class="j-fn">totalBatiment</span>(<span class="j-typ">int</span> <span class="j-var">t</span>[<span class="j-var">BATIMENTS</span>][<span class="j-var">MOIS</span>], <span class="j-typ">int</span> <span class="j-var">batiment</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">m</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">m</span> <span class="j-op">&lt;</span> <span class="j-var">MOIS</span>; <span class="j-var">m</span><span class="j-op">++</span>) <span class="j-var">somme</span> <span class="j-op">+=</span> <span class="j-var">t</span>[<span class="j-var">batiment</span>][<span class="j-var">m</span>];
+    <span class="j-mc">return</span> <span class="j-var">somme</span>;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">compterConsommations</span>(<span class="j-typ">int</span> <span class="j-var">t</span>[<span class="j-var">BATIMENTS</span>][<span class="j-var">MOIS</span>], <span class="j-typ">int</span> <span class="j-var">seuil</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">n</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>)
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">m</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">m</span> <span class="j-op">&lt;</span> <span class="j-var">MOIS</span>; <span class="j-var">m</span><span class="j-op">++</span>)
+            <span class="j-mc">if</span> (<span class="j-var">t</span>[<span class="j-var">b</span>][<span class="j-var">m</span>] <span class="j-op">&gt;</span> <span class="j-var">seuil</span>) <span class="j-var">n</span><span class="j-op">++</span>;
+    <span class="j-mc">return</span> <span class="j-var">n</span>;
+}
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">int</span> <span class="j-var">conso</span>[<span class="j-var">BATIMENTS</span>][<span class="j-var">MOIS</span>];
+
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>)
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">m</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">m</span> <span class="j-op">&lt;</span> <span class="j-var">MOIS</span>; <span class="j-var">m</span><span class="j-op">++</span>) {
+            <span class="j-fn">printf</span>(<span class="j-txt">"Batiment %d, mois %d : "</span>, <span class="j-var">b</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">m</span> <span class="j-op">+</span> <span class="j-num">1</span>);
+            <span class="j-mc">if</span> (<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">conso</span>[<span class="j-var">b</span>][<span class="j-var">m</span>]) <span class="j-op">!=</span> <span class="j-num">1</span>) <span class="j-mc">return</span> <span class="j-num">1</span>;
+        }
+
+    <span class="j-fn">afficherConsommations</span>(<span class="j-var">conso</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nTotal par batiment :\n"</span>);
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>)
+        <span class="j-fn">printf</span>(<span class="j-txt">"  batiment %d : %d\n"</span>, <span class="j-var">b</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-fn">totalBatiment</span>(<span class="j-var">conso</span>, <span class="j-var">b</span>));
+
+    <span class="j-typ">int</span> <span class="j-var">seuil</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"\nValeur S : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">seuil</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Consommations strictement superieures a %d : %d\n"</span>,
+           <span class="j-var">seuil</span>, <span class="j-fn">compterConsommations</span>(<span class="j-var">conso</span>, <span class="j-var">seuil</span>));
+
+    <span class="j-com">/* Le mois ou le total des cinq batiments est le plus faible. */</span>
+    <span class="j-typ">int</span> <span class="j-var">moisMin</span> <span class="j-op">=</span> <span class="j-num">0</span>, <span class="j-var">totalMin</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>) <span class="j-var">totalMin</span> <span class="j-op">+=</span> <span class="j-var">conso</span>[<span class="j-var">b</span>][<span class="j-num">0</span>];
+    <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">m</span> <span class="j-op">=</span> <span class="j-num">1</span>; <span class="j-var">m</span> <span class="j-op">&lt;</span> <span class="j-var">MOIS</span>; <span class="j-var">m</span><span class="j-op">++</span>) {
+        <span class="j-typ">int</span> <span class="j-var">total</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">b</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">b</span> <span class="j-op">&lt;</span> <span class="j-var">BATIMENTS</span>; <span class="j-var">b</span><span class="j-op">++</span>) <span class="j-var">total</span> <span class="j-op">+=</span> <span class="j-var">conso</span>[<span class="j-var">b</span>][<span class="j-var">m</span>];
+        <span class="j-mc">if</span> (<span class="j-var">total</span> <span class="j-op">&lt;</span> <span class="j-var">totalMin</span>) { <span class="j-var">totalMin</span> <span class="j-op">=</span> <span class="j-var">total</span>; <span class="j-var">moisMin</span> <span class="j-op">=</span> <span class="j-var">m</span>; }
+    }
+    <span class="j-fn">printf</span>(<span class="j-txt">"Mois le plus econome : mois %d (total %d)\n"</span>, <span class="j-var">moisMin</span> <span class="j-op">+</span> <span class="j-num">1</span>, <span class="j-var">totalMin</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}
+</code></pre></div>
+<div class="encart methode">
+  <div class="titre">🧭 La question 8 se lit à l'envers du tableau</div>
+  <p>Les sept premières questions parcourent le tableau <strong>par bâtiment</strong> — une
+     ligne, trois mois. La huitième le parcourt <strong>par mois</strong> : une colonne, cinq
+     bâtiments. C'est le même tableau, lu dans l'autre sens, et c'est pour cela que la boucle
+     des mois est <em>dehors</em> et celle des bâtiments <em>dedans</em>. Intervertir les deux
+     donne cinq totaux de bâtiments, pas trois totaux de mois.</p>
+</div>
+<div class="encart piege">
+  <div class="titre">⚠️ Initialiser le minimum avec une vraie valeur</div>
+  <p>Le minimum part du <strong>total du premier mois</strong>, pas de <code>0</code> : avec
+     <code>0</code>, aucun total ne serait jamais plus petit et la réponse serait toujours
+     « mois 1 ». Le piège est silencieux — le programme affiche une réponse plausible.</p>
+</div>
+<div class="bloc-code"><span class="langue">sortie réelle — saisies : les quinze consommations ci-dessous, puis 140</span><pre><code>Batiment 1, mois 1 : Batiment 1, mois 2 : Batiment 1, mois 3 : Batiment 2, mois 1 : Batiment 2, mois 2 : Batiment 2, mois 3 : Batiment 3, mois 1 : Batiment 3, mois 2 : Batiment 3, mois 3 : Batiment 4, mois 1 : Batiment 4, mois 2 : Batiment 4, mois 3 : Batiment 5, mois 1 : Batiment 5, mois 2 : Batiment 5, mois 3 : 
+           mois 1  mois 2  mois 3
+batiment 1     120     100     140
+batiment 2      90      95      80
+batiment 3     200     210     190
+batiment 4      60      55      70
+batiment 5     130     125     150
+
+Total par batiment :
+  batiment 1 : 360
+  batiment 2 : 265
+  batiment 3 : 600
+  batiment 4 : 185
+  batiment 5 : 405
+
+Valeur S : Consommations strictement superieures a 140 : 4
+Mois le plus econome : mois 2 (total 585)</code></pre></div>
+<p class="rap"><strong>Exécuté</strong> sur un jeu d'essai (360, 265, 600, 185 et 405 par
+   bâtiment) : 4 consommations dépassent 140, et le mois le plus économe est le
+   <strong>mois 2</strong>, à 585. Les mêmes nombres recalculés à part concordent.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="encart savoir">
+    <div class="titre">📐 Ce que le contrôle vérifiait, en une ligne</div>
+    <p><strong>Exercice 1</strong> — la boucle de validation d'une saisie, <code>malloc</code>
+       et son test, le parcours au pointeur, le décalage en place, et <code>free</code>.</p>
+    <p><strong>Exercice 2</strong> — le tableau à deux dimensions passé en paramètre, et sa
+       lecture dans les deux sens.</p>
+    <p class="rap">Tout cela est dans <a href="cours.html#pointeurs">le cours</a> et dans les
+       TP 4 et 5. Le contrôle ne demandait rien de neuf : il demandait de les combiner.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces trois TP font travailler</h2>
@@ -4409,7 +4687,7 @@ Longueur    : 11</code></pre></div><div class="encart piege">
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=248f4156"></script>
-<script src="../../assets/app.js?v=248f4156"></script>
+<script src="../../assets/fiche.js?v=3cb2cb90"></script>
+<script src="../../assets/app.js?v=3cb2cb90"></script>
 </body>
 </html>
