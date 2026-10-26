@@ -1873,7 +1873,7 @@
   function apparitions() {
     if (!S.anim || !("IntersectionObserver" in window)) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    var cibles = document.querySelectorAll(".carte-matiere, .chapitre, .chiffres div");
+    var cibles = document.querySelectorAll(".carte-matiere, .chapitre");
     if (!cibles.length || cibles.length > 120) return;
     var obs = new IntersectionObserver(function (entrees) {
       entrees.forEach(function (x) {
