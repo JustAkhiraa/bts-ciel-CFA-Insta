@@ -3961,6 +3961,212 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
   html[data-dispo] .liste-chapitres .chapitre { aspect-ratio: auto; }
 }
 
+/* ─────────────────────────────────────────────────── BRISTOL (néo-brutaliste)
+   Demandé : le style d'un site de classement d'IA, « exactement le même ».
+
+   Ce qui fait ce style n'est pas une couleur, c'est une GRAMMAIRE, et elle
+   tient en quatre règles. Relevées sur la page, pas devinées :
+
+     le rayon est ZÉRO           les angles sont vifs, sauf les onglets
+     l'ombre n'a pas de flou     4px 4px 0 — un carton posé sur la table
+     le trait est plein et noir  2px, la couleur de l'encre, jamais un gris
+     le titre est lourd          900, capitales, chasse resserrée
+
+   Le fond est un kraft piqué d'une trame de points — pas un aplat : c'est
+   ce grain qui fait « papier » plutôt que « écran ».
+
+   La police d'origine est Montserrat, servie par Google. Le dépôt n'a aucun
+   CDN (CLAUDE.md) et n'embarque aucune police : on garde donc la pile du
+   site et on va chercher le caractère dans le POIDS et la CASSE, qui font
+   l'essentiel du travail. Embarquer Montserrat — elle est libre — reste
+   possible : c'est un fichier dans le dépôt, pas une dépendance externe. */
+html[data-theme="bristol"], html[data-theme="bristol"] [data-matiere] {
+  --papier:#F3EADB; --carte:#FFF6E8; --carte-creuse:#F8EEDD;
+  --bord:#1A1026; --bord-fort:#1A1026;
+  --encre:#1A1026; --encre-douce:#4A3950; --encre-tenue:#6E5C78;
+  --accent:#D6246E; --accent-pale:#CFE9FF; --accent-sombre:#A8004E;
+  --sur-accent:#FFF6E8;
+  --ambiance-sombre: 0;
+
+  /* Les encadrés du site tirent leur fond d'un jeton « pâle ». Dans ce
+     style, un encadré n'est pas une teinte : c'est un APLAT, cerné du même
+     trait noir que tout le reste. On remplace donc les six teintes par les
+     couleurs franches de la palette — et les bords par l'encre.
+
+     Les fonds restent assez clairs pour porter du texte foncé : c'est la
+     condition pour passer le banc de contraste, qui mesure chaque texte
+     contre son fond réel sur les 42 thèmes. */
+  --vert:#0B5132;   --vert-pale:#C8F4DA;   --vert-bord:#1A1026;
+  --ambre:#7A4E00;  --ambre-pale:#FFEFB0;  --ambre-bord:#1A1026;
+  --ambre-sombre:#7A4E00;
+  --rouge:#A8004E;  --rouge-pale:#FFD9D9;  --rouge-bord:#1A1026;
+}
+html[data-theme="bristol"] {
+  /* Montserrat est une GÉOMÉTRIQUE : ses lettres sont construites sur le
+     cercle et le trait d'égale épaisseur. La police système d'un Mac est une
+     néo-grotesque — même graisse, dessin différent. On demande donc d'abord
+     les géométriques présentes sur les machines, et on retombe sur le
+     système si aucune n'est là. Aucun téléchargement, aucun CDN.
+
+     Pour l'avoir exactement : Montserrat est sous licence libre (SIL OFL),
+     donc on PEUT la poser dans « assets » et la servir soi-même. Ce n'est
+     pas une dépendance externe, c'est un fichier du dépôt — mais c'est un
+     fichier tiers qui part sur un dépôt public, alors je ne l'ajoute pas
+     sans que ce soit demandé. */
+  --r:0px; --r-l:0px;
+  --ombre:4px 4px 0 #1A1026;
+  --ombre-haut:6px 6px 0 #1A1026;
+}
+/* « data-police » vaut TOUJOURS quelque chose — « systeme » par défaut.
+   Poser « --sans » sur le thème seul écraserait donc le choix de police du
+   lecteur : serif et mono n'auraient plus aucun effet sous ce thème. On ne
+   remplace la pile que dans le cas par défaut ; dès qu'il a choisi, c'est
+   son choix qui parle. */
+html[data-theme="bristol"][data-police="systeme"] {
+  --sans: "Avenir Next", Avenir, "Century Gothic", Futura, "Trebuchet MS",
+          system-ui, -apple-system, sans-serif;
+  --titre-accent: var(--sans);
+}
+
+/* Le grain du papier. 18 px : assez serré pour se lire comme une texture,
+   assez lâche pour ne pas moirer sur un écran à forte densité. */
+html[data-theme="bristol"] body {
+  background-image: radial-gradient(#1A102614 1.2px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+/* Les CARTES — et elles seules — prennent le trait plein et l'ombre dure.
+
+   Signalé, capture à l'appui : « c'est très laid ». Ça l'était, et la faute
+   était de poser ce cadre partout. Un trait noir de 2 px est un geste FORT :
+   sur un objet détaché il dit « carte posée sur la table » ; sur une barre
+   pleine largeur, sur un sommaire repliable, sur un bloc de code déjà cerné,
+   il ne dit plus rien — les traits s'empilent et se touchent, et on obtient
+   des barres noires qui encadrent du vide.
+
+   La règle est donc : ce qui est une carte reçoit le cadre, ce qui est de la
+   CHARPENTE n'en reçoit pas. Le sommaire, les blocs de code et la feuille
+   gardent le dessin du site. */
+html[data-theme="bristol"] .carte-matiere,
+html[data-theme="bristol"] .chapitre,
+html[data-theme="bristol"] .encart,
+html[data-theme="bristol"] .devoir,
+html[data-theme="bristol"] .memo,
+html[data-theme="bristol"] .quiz {
+  border:2px solid var(--encre); box-shadow: var(--ombre);
+}
+/* Deux cadres qui se touchent font un trait de 4 px et un couloir mort :
+   une carte DANS une carte perd son ombre et s'allège. */
+html[data-theme="bristol"] .encart .encart,
+html[data-theme="bristol"] .quiz .encart,
+html[data-theme="bristol"] .devoir .encart,
+html[data-theme="bristol"] .chapitre .encart {
+  box-shadow: none; border-width: 1px;
+}
+/* Le sommaire n'est pas une carte : c'est une barre. Un filet dessous
+   suffit à le poser, et rien ne vient l'encadrer. */
+html[data-theme="bristol"] .sommaire {
+  border: 0; border-bottom: 2px solid var(--encre); box-shadow: none;
+}
+/* Les titres : lourds, en capitales, serrés. La chasse négative est ce qui
+   distingue un titre « brutaliste » d'un titre simplement gras. */
+html[data-theme="bristol"] h1,
+html[data-theme="bristol"] h2 {
+  font-weight:900; text-transform:uppercase; letter-spacing:-.025em;
+  line-height:1.05;
+}
+html[data-theme="bristol"] h3 { font-weight:800; letter-spacing:-.01em; }
+/* Les boutons : encre pleine, et leur ombre prend l'orange — le seul endroit
+   où la page s'autorise une deuxième couleur dans l'ombre. */
+html[data-theme="bristol"] .quiz button,
+html[data-theme="bristol"] .pastilles button,
+html[data-theme="bristol"] .bouton-hasard,
+html[data-theme="bristol"] .mini,
+html[data-theme="bristol"] .lan-dest > a,
+html[data-theme="bristol"] .lan-nav > :is(button, a),
+html[data-theme="bristol"] .lan-plus > summary,
+html[data-theme="bristol"] .chapitre .liens a {
+  border:2px solid var(--encre); box-shadow:3px 3px 0 #FF6A3D;
+  font-weight:800;
+}
+/* Au survol, la carte « s'enfonce » : l'ombre se réduit et l'objet avance.
+   C'est le seul mouvement du style, et il doit être net — pas un fondu. */
+html[data-theme="bristol"] .quiz button:hover,
+html[data-theme="bristol"] .chapitre .liens a:hover,
+html[data-theme="bristol"] .lan-dest > a:hover {
+  box-shadow:1px 1px 0 #FF6A3D; transform:translate(2px, 2px);
+}
+/* Les onglets gardent leurs deux coins du haut : c'est leur seule rondeur,
+   et elle dit « onglet » mieux qu'un soulignement. */
+html[data-theme="bristol"] .lan-dest > a[aria-current] {
+  border-radius:8px 8px 0 0; background:#FFD84A; color:var(--encre);
+}
+
+/* Le style « lanceur » — celui par défaut — aplatit volontairement la liste
+   des chapitres : « border: 0 » et un filet entre les lignes, pour tenir
+   douze chapitres sans scroller. Sa règle est plus spécifique que la mienne,
+   et elle gagnait.
+
+   Mais une carte posée avec son ombre EST le geste de ce style : sans elle,
+   il ne reste que des couleurs. On la reprend donc, en gardant le
+   rembourrage serré du lanceur — on veut des cartes, pas une liste deux
+   fois plus longue. */
+html[data-theme="bristol"][data-style="lanceur"] body:not([data-accueil]) .chapitre {
+  border: 2px solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  margin-bottom: .55rem;
+}
+html[data-theme="bristol"][data-style="lanceur"] body:not([data-accueil]) .chapitre + .chapitre {
+  border-top: 2px solid var(--encre);
+}
+html[data-theme="bristol"][data-style="lanceur"] .chapitre:hover {
+  box-shadow: 1px 1px 0 var(--encre); transform: translate(2px, 2px);
+}
+/* La barre du lanceur touche les bords de la fenêtre : l'encadrer de tous
+   les côtés dessine une boîte autour de rien. Un filet dessous, et c'est
+   tout — comme un onglet posé sur la page. */
+html[data-theme="bristol"] .lan-actions-page {
+  border: 0; border-bottom: 2px solid var(--encre); box-shadow: none;
+}
+
+/* ── L'accueil ────────────────────────────────────────────────────────
+   C'est la page qu'on voit le plus, et elle n'avait rien reçu : ses
+   rangées ne sont ni des « .chapitre » ni des « .encart », et la règle des
+   cartes l'écarte explicitement (« body:not([data-accueil]) »).
+
+   Les rangées deviennent donc des cartes, et les pastilles d'outils
+   prennent le trait et l'ombre comme les autres boutons. Le GROUPE qui les
+   contient, lui, n'est pas encadré : deux cadres emboîtés font le défaut
+   qu'on vient de corriger ailleurs. */
+html[data-theme="bristol"] body[data-accueil] .lan-ligne {
+  border: 2px solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  border-radius: 0;
+}
+html[data-theme="bristol"] body[data-accueil] .lan-ligne:hover {
+  box-shadow: 1px 1px 0 var(--encre); transform: translate(2px, 2px);
+}
+html[data-theme="bristol"] .lan-oc {
+  border: 2px solid var(--encre);
+  box-shadow: 2px 2px 0 var(--encre);
+  border-radius: 0;
+}
+html[data-theme="bristol"] .lan-oc:hover {
+  box-shadow: 0 0 0 var(--encre); transform: translate(2px, 2px);
+}
+/* Le champ de recherche : le trait franc, et le fond du papier. */
+html[data-theme="bristol"] .lan-entree,
+html[data-theme="bristol"] .recherche input,
+html[data-theme="bristol"] #q {
+  border: 2px solid var(--encre); border-radius: 0;
+  background: var(--carte); box-shadow: 3px 3px 0 var(--encre);
+}
+/* Le titre d'un groupe : petit, en capitales, souligné d'un filet franc —
+   c'est l'étiquette d'un classeur, pas un titre de section. */
+html[data-theme="bristol"] .lan-gtitre {
+  font-weight: 900; letter-spacing: .06em;
+  border-bottom: 2px solid var(--encre); padding-bottom: .25rem;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    COQUILLE — accueil, pages de matière, recherche
    Ne concerne que les pages de navigation. Les fiches gardent theme.css.
