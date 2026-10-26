@@ -4157,7 +4157,12 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
 }
 .chapitre .txt p { margin: .15rem 0 0; font-size: 0.8rem; color: var(--encre-douce); }
 .chapitre .liens { grid-area: liens; display: flex; gap: .35rem; flex-wrap: wrap; }
+/* Cours, Exercices, Fiche, QCM : quatre liens côte à côte sur chaque ligne
+   de chapitre, et les plus cliqués du site. Mesurés à 29 px de haut — sous
+   le plancher de 34. On ne touche pas au rembourrage, qui fixe la largeur :
+   une hauteur minimale suffit, et le texte reste centré. */
 .chapitre .liens a {
+  display: inline-flex; align-items: center; min-height: 36px;
   padding: .34rem .7rem; border-radius: 8px; text-decoration: none;
   border: 1px solid var(--bord); background: var(--carte-creuse);
   color: var(--encre-douce); font-size: 0.7576rem; font-weight: 650;
@@ -5358,7 +5363,22 @@ td.etat.sur   { color: var(--vert); }
    Seule l'imminence ajoute un signal, et elle est calculée dans le
    navigateur — une échéance écrite en dur vieillit mal.
    ═══════════════════════════════════════════════════════════════════════ */
-.dev-liste { display: grid; gap: 1.1rem; margin-top: 2rem; }
+/* Mesuré par le banc de rendu : dans le repli des devoirs PASSÉS, à 375 px
+   de large, la page partait à 779 px — elle se décalait au doigt. La grille
+   faisait 350 px de large et sa colonne en calculait 750.
+
+   La cause est le duo par défaut de la grille : une colonne implicite vaut
+   « auto », qui se dimensionne sur le contenu, et un élément de grille a
+   « min-width: auto », donc il refuse de se réduire. Rien ne ramenait la
+   colonne à la largeur disponible.
+
+   « minmax(0, 1fr) » dit les deux : minimum ZÉRO — la colonne a le droit de
+   rétrécir — et maximum une fraction de la place réelle. Vérifié : l'article
+   passe de 750 px à 317 px, et la page tient dans ses 375. */
+.dev-liste {
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: 1.1rem; margin-top: 2rem;
+}
 .devoir {
   position: relative; padding: 1.3rem 1.5rem 1.4rem;
   background: var(--carte); border: 1px solid var(--bord);
@@ -8367,7 +8387,10 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
    le LIBELLÉ et le FILET, à pleine force : ΔE 13,5. */
 .lan-outils { display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
   gap: .3rem; padding: .15rem .6rem .3rem; }
+/* Les douze pastilles d'outils de l'accueil : 33 px de haut, un pixel sous
+   le plancher. Même correction que pour les liens de chapitre. */
 .lan-oc { display: flex; align-items: center; gap: .33rem; min-width: 0;
+  min-height: 36px;
   padding: .3rem .5rem; border-radius: 9px;
   background: color-mix(in srgb, var(--mat) 16%, var(--carte));
   border: 1px solid color-mix(in srgb, var(--mat) 34%, transparent);
@@ -8518,8 +8541,14 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
 /* Les boutons arrivent de l'en-tête, où ils étaient habillés par
    « .app-tete nav … » ; ce sélecteur ne les suit pas. On les rhabille
    ici, à la taille de la barre. */
+/* Mesuré par le banc de rendu, sur 22 pages : Rechercher, Passer en sombre,
+   Réglages et 3D faisaient 28x28, six pixels sous le plancher de 34. La règle
+   « pointer: coarse » plus bas les passe bien à 40x40 — mais elle ne couvre
+   que les écrans qui se déclarent tactiles. Un portable à écran tactile se
+   déclare « fine », et visait donc 28 px. Le plancher vaut pour tout le
+   monde : on part de 36. */
 .lan-nav > :is(button, a) {
-  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
   border: 1px solid var(--bord); border-radius: 8px;
   background: var(--carte); color: var(--encre-douce); cursor: pointer;
   transition: border-color .14s, color .14s, background .14s;
@@ -8530,13 +8559,15 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
 .lan-nav .ico { width: 15px; height: 15px; }
 /* Le bouton du village garde son relief : c'est le seul de la barre qui
    mène ailleurs, et il le dit. */
-.lan-nav .bouton-3d { width: auto; min-width: 34px; padding: 0 .4rem;
+.lan-nav .bouton-3d { width: auto; min-width: 36px; padding: 0 .4rem;
   font-size: .6667rem; font-weight: 800; letter-spacing: .04em; }
 
 .lan-plus { position: relative; flex: none; }
+/* Le « ⋯ » est dans la même rangée que les quatre boutons d'icône : il suit
+   le même plancher de cible tactile, sans quoi il reste seul à 28 px. */
 .lan-plus > summary {
   list-style: none; cursor: pointer;
-  display: grid; place-items: center; width: 28px; height: 28px;
+  display: grid; place-items: center; width: 36px; height: 36px;
   border: 1px solid var(--bord); border-radius: 8px;
   background: var(--carte); color: var(--encre-douce);
   font-size: .9091rem; line-height: 1;
@@ -8553,6 +8584,7 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
   backdrop-filter: blur(14px) saturate(1.3); box-shadow: var(--ombre-haut);
 }
 .lan-plus-menu :is(a, button) {
+  display: flex; align-items: center; min-height: 36px;
   padding: .4rem .6rem; border-radius: 8px; text-decoration: none;
   color: var(--encre-douce); font-size: .7879rem; font-weight: 600;
   /* Le bouton de bascule vit au milieu de trois liens : il doit leur
@@ -8972,8 +9004,14 @@ html[data-style="lanceur"] .lan-actions-bas {
   min-width: 0; flex-wrap: wrap; }
 /* Les quatre destinations reprennent le dessin des pastilles d'outils du
    lanceur : le libellé porte la couleur, pas un cadre autour. */
+/* Mesuré sur 25 pages : 83x33, 89x33, 84x33, 76x33 — un pixel sous le
+   plancher de 34 px des cibles tactiles. Un seul pixel, mais c'est la barre
+   de navigation : elle est sur chaque page, et c'est elle qu'on vise au
+   pouce. On passe à 36 px, ce qui laisse de la marge au-dessus du plancher
+   sans changer la hauteur perçue de la barre. */
 .lan-dest > a {
   display: inline-flex; align-items: center; gap: .35rem;
+  min-height: 36px;
   padding: .3rem .55rem; border-radius: 9px;
   border: 1px solid transparent; background: none;
   color: var(--encre-douce); font-size: .7576rem; font-weight: 650;
