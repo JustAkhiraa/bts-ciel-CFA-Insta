@@ -31,17 +31,32 @@
     "return", "break", "continue", "and", "or", "not", "True", "False",
     "None", "pass", "import", "from", "class", "try", "except", "finally",
     "with", "lambda", "global", "nonlocal", "yield", "raise", "assert",
-    "del", "is"]);
+    "del", "is", "as"]);
 
+  /* « | & ^ » servent aux ensembles (union, intersection, différence
+     symétrique) ; « |= &= ^= -= » à leur version qui affecte. Ils étaient
+     absents, si bien qu'un « ports_actifs & ports_autorises » — la
+     question 7 du TP 4 de Python — ne se lisait même pas. */
   const OPS = ["**=", "//=", "...", "**", "//", "==", "!=", "<=", ">=",
-    "+=", "-=", "*=", "/=", "%=", "->", "(", ")", "[", "]", "{", "}", ",",
-    ":", ".", "+", "-", "*", "/", "%", "<", ">", "=", ";"];
+    "+=", "-=", "*=", "/=", "%=", "|=", "&=", "^=", "->",
+    "(", ")", "[", "]", "{", "}", ",",
+    ":", ".", "+", "-", "*", "/", "%", "<", ">", "=", ";", "|", "&", "^"];
 
-  function ErreurPy(message, ligne) {
+  /* La classe de l'erreur, en plus du message. Elle ne change rien à
+     l'affichage — mais elle est ce que « except ValueError » regarde,
+     et sans elle le TP 9 (gestion des erreurs) ne peut pas distinguer
+     deux pannes. Par défaut : « Exception ». */
+  function ErreurPy(message, ligne, classe) {
     this.message = message;
     this.ligne = ligne;
+    this.classe = classe || "Exception";
     this.estPy = true;
   }
+
+  /* Les deux marques de la chaîne à trois guillemets, nommées pour ne
+     pas avoir à les écrire dans une chaîne qui les contient. */
+  const TRIPLE_D = String.fromCharCode(34, 34, 34);
+  const TRIPLE_S = String.fromCharCode(39, 39, 39);
 
   function lire(src) {
     const jetons = [];
@@ -76,11 +91,62 @@
         }
       }
       let p = col;
-      const texte = brute;
+      let texte = brute;
       while (p < texte.length) {
         const c = texte[p];
         if (c === " " || c === "\t") { p++; continue; }
         if (c === "#") break;
+        /* La chaîne à TROIS guillemets. Elle peut courir sur plusieurs
+           lignes — une exception dans un lecteur qui travaille ligne par
+           ligne : on avance alors l'indice de la boucle extérieure
+           jusqu'à la ligne de fermeture, et l'on reprend la lecture
+           après elle.
+
+           C'est elle qui porte les « docstrings » — la phrase sous le
+           « def » qui dit ce que fait la fonction. Elles sont dans tous
+           les corrigés, et sans elles une fonction juste était refusée. */
+        if (texte.startsWith(TRIPLE_D, p) || texte.startsWith(TRIPLE_S, p)) {
+          const marque = texte.substr(p, 3);
+          let reste = texte.slice(p + 3);
+          let val = "";
+          let k = i;
+          let fin = reste.indexOf(marque);
+          while (fin < 0) {
+            val += reste + "\n";
+            k++;
+            if (k >= lignes.length) {
+              throw new ErreurPy("Chaîne à trois guillemets non refermée.", num);
+            }
+            reste = lignes[k];
+            fin = reste.indexOf(marque);
+          }
+          val += reste.slice(0, fin);
+          jetons.push({ t: "CHAINE", v: val, l: num });
+          /* On reprend juste après la fermeture : si elle était sur une
+             autre ligne, c'est cette ligne-là que l'on finit de lire, et
+             la boucle extérieure continuera en dessous. L'indentation,
+             elle, a déjà été calculée pour la ligne d'OUVERTURE — c'est
+             la bonne, puisqu'on est toujours dans la même instruction. */
+          i = k;
+          texte = reste.slice(fin + 3);
+          p = 0;
+          continue;
+        }
+        /* La f-chaîne. On repère le « f » collé au guillemet, et on
+           garde le texte BRUT : les accolades n'ont de sens qu'au moment
+           de l'analyse, et les échappements de l'expression intérieure
+           ne doivent pas être traités deux fois. */
+        if ((c === "f" || c === "F") && (texte[p + 1] === '"' || texte[p + 1] === "'")) {
+          const guil = texte[p + 1];
+          let q = p + 2, brut = "";
+          while (q < texte.length && texte[q] !== guil) {
+            if (texte[q] === "\\") { brut += texte[q] + (texte[q + 1] || ""); q += 2; }
+            else { brut += texte[q]; q++; }
+          }
+          if (q >= texte.length) throw new ErreurPy("Guillemet non refermé.", num);
+          jetons.push({ t: "FCHAINE", v: brut, l: num });
+          p = q + 1; continue;
+        }
         if (c === '"' || c === "'") {
           let q = p + 1, val = "";
           while (q < texte.length && texte[q] !== c) {
@@ -139,13 +205,11 @@
      leur nom : c'est le seul endroit où l'on sait encore ce que l'élève a
      écrit, et donc le seul où l'on peut le lui dire clairement. */
   const HORS_COURS = {
-    "class": "les classes", "try": "les exceptions (try/except)",
-    "except": "les exceptions", "finally": "les exceptions",
+    "class": "les classes",
     "with": "le bloc with", "lambda": "les fonctions lambda",
-    "yield": "les générateurs", "raise": "lever une exception",
+    "yield": "les générateurs",
     "global": "global", "nonlocal": "nonlocal", "import": "les modules (import)",
-    "from": "les modules (from … import)", "assert": "assert", "is": "l'opérateur is",
-    "del": "del",
+    "from": "les modules (from … import)", "assert": "assert",
   };
 
   function analyser(jetons) {
@@ -203,17 +267,44 @@
       return comparaison();
     }
     function comparaison() {
-      let g = somme();
+      let g = ouBinaire();
       while (true) {
         const j = voir();
         if (j.t === "OP" && ["==", "!=", "<", ">", "<=", ">="].indexOf(j.v) >= 0) {
-          i++; g = { k: "comp", op: j.v, g, d: somme(), l: j.l };
+          i++; g = { k: "comp", op: j.v, g, d: ouBinaire(), l: j.l };
         } else if (j.t === "MOT" && j.v === "in") {
-          i++; g = { k: "dans", g, d: somme(), l: j.l };
+          i++; g = { k: "dans", g, d: ouBinaire(), l: j.l };
         } else if (j.t === "MOT" && j.v === "not" && estMot("in", 1)) {
-          i += 2; g = { k: "non", e: { k: "dans", g, d: somme(), l: j.l }, l: j.l };
+          i += 2; g = { k: "non", e: { k: "dans", g, d: ouBinaire(), l: j.l }, l: j.l };
+        } else if (j.t === "MOT" && j.v === "is") {
+          /* « is » demande si c'est le MÊME objet, « == » s'ils ont la
+             même valeur. En pratique on ne l'écrit que pour None —
+             « x is None » — et c'est pour cela qu'il manquait. */
+          i++;
+          if (estMot("not")) { i++; g = { k: "non", e: { k: "memeque", g, d: ouBinaire(), l: j.l }, l: j.l }; }
+          else g = { k: "memeque", g, d: ouBinaire(), l: j.l };
         } else break;
       }
+      return g;
+    }
+    /* Les trois opérateurs d'ensembles, dans l'ordre de précédence de
+       Python : « | » plus faible que « ^ », lui-même plus faible que
+       « & ». Entre la comparaison et l'addition, comme dans le vrai
+       langage — « a | b == c » se lit donc « a | (b == c) »… non :
+       justement, la comparaison est AU-DESSUS, donc « (a|b) == c ». */
+    function ouBinaire() {
+      let g = ouExclusif();
+      while (estOp("|")) { const j = manger("OP"); g = { k: "bin", op: "|", g, d: ouExclusif(), l: j.l }; }
+      return g;
+    }
+    function ouExclusif() {
+      let g = etBinaire();
+      while (estOp("^")) { const j = manger("OP"); g = { k: "bin", op: "^", g, d: etBinaire(), l: j.l }; }
+      return g;
+    }
+    function etBinaire() {
+      let g = somme();
+      while (estOp("&")) { const j = manger("OP"); g = { k: "bin", op: "&", g, d: somme(), l: j.l }; }
       return g;
     }
     function somme() {
@@ -246,12 +337,27 @@
         if (estOp("(")) {
           const l = manger("OP").l;
           const args = [];
-          if (!estOp(")")) {
+          const nommes = {};
+          /* Les arguments NOMMÉS : « print(x, end=" ") », « round(v,
+             ndigits=2) », « sorted(l, reverse=True) ». Ils se
+             reconnaissent à « NOM = » — et pas « NOM == », d'où le
+             contrôle sur le jeton suivant. Sans eux, le « end=" " » qui
+             est dans tous les corrigés faisait tomber la ligne. */
+          const unArg = () => {
+            if (voir().t === "NOM" && estOp("=", 1)) {
+              const nom = manger("NOM").v;
+              manger("OP", "=");
+              nommes[nom] = expr();
+              return;
+            }
             args.push(expr());
-            while (estOp(",")) { manger("OP"); if (estOp(")")) break; args.push(expr()); }
+          };
+          if (!estOp(")")) {
+            unArg();
+            while (estOp(",")) { manger("OP"); if (estOp(")")) break; unArg(); }
           }
           manger("OP", ")");
-          e = { k: "appel", f: e, args, l };
+          e = { k: "appel", f: e, args, nommes, l };
         } else if (estOp("[")) {
           const l = manger("OP").l;
           let a = null, b = null, pasT = null, tranche = false;
@@ -276,19 +382,86 @@
       refusSiHorsCours(j);
       if (j.t === "NOMBRE") { i++; return { k: "nombre", v: j.v, entier: j.entier, l: j.l }; }
       if (j.t === "CHAINE") { i++; return { k: "chaine", v: j.v, l: j.l }; }
+      if (j.t === "FCHAINE") { i++; return decouperF(j.v, j.l); }
       if (j.t === "NOM") { i++; return { k: "nom", v: j.v, l: j.l }; }
       if (j.t === "MOT" && (j.v === "True" || j.v === "False")) {
         i++; return { k: "bool", v: j.v === "True", l: j.l };
       }
       if (j.t === "MOT" && j.v === "None") { i++; return { k: "rien", l: j.l }; }
       if (estOp("(")) {
-        manger("OP"); const e = expr(); manger("OP", ")"); return e;
+        const l = manger("OP").l;
+        /* Le tuple vide : « () ». */
+        if (estOp(")")) { manger("OP"); return { k: "tuple", el: [], l }; }
+        const premier = expr();
+        if (!estOp(",")) { manger("OP", ")"); return premier; }
+        /* Une virgule, et ce n'est plus un simple groupe : c'est un
+           TUPLE. Y compris « (1,) » — la virgule finale est ce qui
+           distingue le tuple à un élément du nombre entre parenthèses.
+           C'est une particularité de Python, et elle se voit ici. */
+        const el = [premier];
+        while (estOp(",")) {
+          manger("OP");
+          if (estOp(")")) break;
+          el.push(expr());
+        }
+        manger("OP", ")");
+        return { k: "tuple", el, l };
+      }
+      if (estOp("{")) {
+        const l = manger("OP").l;
+        /* « {} » est un DICTIONNAIRE vide, pas un ensemble vide. Python
+           a choisi ainsi parce que les dictionnaires sont arrivés en
+           premier ; l'ensemble vide s'écrit « set() ». */
+        if (estOp("}")) { manger("OP"); return { k: "dico", paires: [], l }; }
+        const premier = expr();
+        if (estOp(":")) {
+          manger("OP");
+          const paires = [{ cle: premier, val: expr() }];
+          while (estOp(",")) {
+            manger("OP");
+            if (estOp("}")) break;
+            const c = expr();
+            manger("OP", ":");
+            paires.push({ cle: c, val: expr() });
+          }
+          manger("OP", "}");
+          return { k: "dico", paires, l };
+        }
+        const el = [premier];
+        while (estOp(",")) {
+          manger("OP");
+          if (estOp("}")) break;
+          el.push(expr());
+        }
+        manger("OP", "}");
+        return { k: "ensemble", el, l };
       }
       if (estOp("[")) {
         const l = manger("OP").l;
         const el = [];
         if (!estOp("]")) {
           el.push(expr());
+          /* La compréhension : « [x * 2 for x in liste if x > 0] ».
+             Elle se reconnaît au « for » qui suit la première
+             expression. C'est une boucle écrite à l'envers — la valeur
+             d'abord, le parcours ensuite — et elle est partout dans les
+             corrigés. */
+          if (estMot("for")) {
+            manger("MOT");
+            const noms = [manger("NOM").v];
+            while (estOp(",")) { manger("OP"); noms.push(manger("NOM").v); }
+            manger("MOT", "in");
+            /* « ou() » et non « expr() » : expr() lit aussi le « a if c
+               else b », et il avalerait le « if » du filtre juste
+               derrière — « [x for x in r if x > 0] » devenait « x if
+               x > 0 » et réclamait un « else ». La source et le filtre
+               s'arrêtent donc avant le ternaire, comme en Python. */
+            const source = ou();
+            let filtre = null;
+            if (estMot("if")) { manger("MOT"); filtre = ou(); }
+            manger("OP", "]");
+            return { k: "comprehension", valeur: el[0], noms, source, filtre, l };
+          }
           while (estOp(",")) { manger("OP"); if (estOp("]")) break; el.push(expr()); }
         }
         manger("OP", "]");
@@ -298,9 +471,84 @@
         + " » ici.", j.l);
     }
 
+    /* Une f-chaîne devient une addition de morceaux : du texte, et des
+       expressions passées à str(). « f"x={x}" » est donc exactement
+       « "x=" + str(x) », et c'est ce que le message d'aide disait
+       d'écrire à la main avant que cette fonction n'existe.
+
+       Le format après « : » — « {prix:.2f} », « {nom:>10} » — est
+       traduit en « %…f » / « %…s », que l'opérateur « % » sait déjà
+       faire. Les deux fonctions se rendent service. */
+    function decouperF(brut, l) {
+      const morceaux = [];
+      let texte = "";
+      let p = 0;
+      while (p < brut.length) {
+        const c = brut[p];
+        if (c === "{" && brut[p + 1] === "{") { texte += "{"; p += 2; continue; }
+        if (c === "}" && brut[p + 1] === "}") { texte += "}"; p += 2; continue; }
+        if (c === "\\") {
+          const n = brut[p + 1];
+          texte += n === "n" ? "\n" : n === "t" ? "\t" : n === "\\" ? "\\"
+                 : n === '"' ? '"' : n === "'" ? "'" : "\\" + n;
+          p += 2; continue;
+        }
+        if (c === "{") {
+          /* On cherche l'accolade fermante, en comptant les
+             imbrications : « {d[\'a\']} » contient des crochets, et
+             « {f(g(x))} » des parenthèses. */
+          let q = p + 1, prof = 0, dedans = "";
+          while (q < brut.length) {
+            const d = brut[q];
+            if (d === "(" || d === "[" || d === "{") prof++;
+            if (d === ")" || d === "]") prof--;
+            if (d === "}" && prof === 0) break;
+            if (d === "}") prof--;
+            dedans += d; q++;
+          }
+          if (q >= brut.length) {
+            throw new ErreurPy("Accolade non refermée dans la f-chaîne.", l);
+          }
+          if (texte) { morceaux.push({ k: "chaine", v: texte, l }); texte = ""; }
+          /* Le format éventuel, après « : » — mais pas celui d'un
+             « d[\'a:b\'] », d'où le découpage au dernier « : » hors
+             crochets. */
+          let format = null, code = dedans;
+          const m = /^(.*?):([<>^]?\d*(?:\.\d+)?[dfsg]?)$/.exec(dedans);
+          if (m && m[1].indexOf("[") < 0) { code = m[1]; format = m[2]; }
+          if (!code.trim()) throw new ErreurPy("Accolade vide dans la f-chaîne.", l);
+          const sous = analyser(lire(code + "\n"));
+          if (sous.length !== 1 || sous[0].k !== "expression") {
+            throw new ErreurPy("« " + code + " » n'est pas une expression que je peux "
+              + "mettre dans une f-chaîne.", l);
+          }
+          morceaux.push({ k: "fmorceau", e: sous[0].e, format, l });
+          p = q + 1;
+          continue;
+        }
+        texte += c; p++;
+      }
+      if (texte || !morceaux.length) morceaux.push({ k: "chaine", v: texte, l });
+      return { k: "fchaine", morceaux, l };
+    }
+
     /* Les instructions. */
     function bloc() {
       manger("OP", ":");
+      /* Le bloc tient parfois sur la MÊME ligne : « if x > 2: break ».
+         Python l'autorise pour une ou plusieurs instructions simples
+         séparées par « ; ». C'est écrit partout dans les corrigés —
+         et c'était refusé ici, ce qui faisait tomber une ligne juste. */
+      if (voir().t !== "FIN") {
+        const corps = [instruction(true)];
+        while (estOp(";")) {
+          manger("OP");
+          if (voir().t === "FIN") break;
+          corps.push(instruction(true));
+        }
+        manger("FIN");
+        return corps;
+      }
       manger("FIN");
       manger("INDENT");
       const corps = [];
@@ -309,7 +557,12 @@
       if (!corps.length) throw new ErreurPy("Ce bloc est vide.", voir().l);
       return corps;
     }
-    function instruction() {
+    function instruction(surUneLigne) {
+      /* « surUneLigne » : l'instruction est le corps d'un « if x: … » et
+         le FIN appartient à l'appelant, qui doit encore lire les « ; ».
+         Sans ce drapeau, la première instruction avalerait la fin de
+         ligne et les suivantes seraient perdues. */
+      const finir = () => { if (!surUneLigne) manger("FIN"); };
       const j = voir();
       refusSiHorsCours(j);
       if (j.t === "MOT") {
@@ -330,10 +583,14 @@
         }
         if (j.v === "for") {
           i++;
-          const nom = manger("NOM").v;
+          /* « for cle, valeur in d.items() » : plusieurs noms, et chaque
+             élément parcouru est DÉPAQUETÉ dans ces noms. C'est ce qui
+             rend .items() et enumerate() utilisables. */
+          const noms = [manger("NOM").v];
+          while (estOp(",")) { manger("OP"); noms.push(manger("NOM").v); }
           manger("MOT", "in");
           const source = expr();
-          return { k: "pour", nom, source, corps: bloc(), l: j.l };
+          return { k: "pour", noms, source, corps: bloc(), l: j.l };
         }
         if (j.v === "def") {
           i++;
@@ -343,10 +600,15 @@
           if (!estOp(")")) {
             do {
               if (estOp(")")) break;
+              /* « *args » : tous les arguments restants dans un tuple.
+                 C'est l'exercice 3 du TP 5 — « total(*args) » — et il
+                 était impossible à écrire. */
+              let reste = false;
+              if (estOp("*")) { manger("OP"); reste = true; }
               const p = manger("NOM").v;
               let defaut = null;
               if (estOp("=")) { manger("OP"); defaut = expr(); }
-              params.push({ nom: p, defaut });
+              params.push({ nom: p, defaut, reste });
             } while (estOp(",") && manger("OP"));
           }
           manger("OP", ")");
@@ -354,30 +616,118 @@
         }
         if (j.v === "return") {
           i++;
-          const e = (voir().t === "FIN") ? null : expr();
-          manger("FIN");
+          /* « return a, b » rend un TUPLE sans parenthèses : c'est ainsi
+             qu'une fonction Python rend deux valeurs, et le TP 6 le
+             demande (« retourne (nom, prix) »). */
+          let e = null;
+          if (voir().t !== "FIN" && !estOp(";")) {
+            e = expr();
+            if (estOp(",")) {
+              const el = [e];
+              while (estOp(",")) {
+                manger("OP");
+                if (voir().t === "FIN" || estOp(";")) break;
+                el.push(expr());
+              }
+              e = { k: "tuple", el, l: j.l };
+            }
+          }
+          finir();
           return { k: "retour", e, l: j.l };
         }
         if (j.v === "break" || j.v === "continue" || j.v === "pass") {
-          i++; manger("FIN");
+          i++; finir();
           return { k: j.v === "pass" ? "rien-faire" : j.v === "break" ? "casser" : "suivant",
                    l: j.l };
         }
+        /* ── raise ── */
+        if (j.v === "raise") {
+          i++;
+          let e = null;
+          if (voir().t !== "FIN" && !estOp(";")) e = expr();
+          finir();
+          return { k: "lever", e, l: j.l };
+        }
+        /* ── try / except / else / finally ──
+           Le TP 9 entier repose dessus. « except » sans type attrape
+           tout ; « except ValueError as e » attrape une famille et
+           nomme l'erreur. */
+        if (j.v === "try") {
+          i++;
+          const essai = bloc();
+          const prises = [];
+          let sinon = null, enfin = null;
+          while (estMot("except")) {
+            i++;
+            let classe = null, alias = null;
+            if (!estOp(":")) {
+              classe = manger("NOM").v;
+              if (estMot("as")) { i++; alias = manger("NOM").v; }
+            }
+            prises.push({ classe, alias, corps: bloc() });
+          }
+          if (estMot("else")) { i++; sinon = bloc(); }
+          if (estMot("finally")) { i++; enfin = bloc(); }
+          if (!prises.length && !enfin) {
+            throw new ErreurPy("Un « try » veut au moins un « except » ou un "
+              + "« finally ».", j.l);
+          }
+          return { k: "essayer", essai, prises, sinon, enfin, l: j.l };
+        }
       }
       /* Affectation, ou simple expression. */
-      const cible = expr();
+      let cible = expr();
+      /* « a, b = b, a » : plusieurs cibles à gauche, un tuple à droite.
+         L'échange de deux variables en une ligne, et le dépaquetage
+         d'un tuple rendu par une fonction, passent tous les deux par
+         là. */
+      if (estOp(",")) {
+        const el = [cible];
+        while (estOp(",")) {
+          manger("OP");
+          if (voir().t === "FIN" || estOp("=") || estOp(";")) break;
+          el.push(expr());
+        }
+        cible = { k: "cibles", el, l: cible.l };
+      }
       const o = voir();
-      if (o.t === "OP" && ["=", "+=", "-=", "*=", "/=", "//=", "%=", "**="].indexOf(o.v) >= 0) {
+      if (o.t === "OP" && ["=", "+=", "-=", "*=", "/=", "//=", "%=", "**=",
+                           "|=", "&=", "^="].indexOf(o.v) >= 0) {
         i++;
-        const val = expr();
-        manger("FIN");
-        if (cible.k !== "nom" && cible.k !== "index") {
+        let val = expr();
+        if (estOp(",")) {
+          const el = [val];
+          while (estOp(",")) {
+            manger("OP");
+            if (voir().t === "FIN" || estOp(";")) break;
+            el.push(expr());
+          }
+          val = { k: "tuple", el, l: o.l };
+        }
+        finir();
+        const bonne = (c) => c.k === "nom" || c.k === "index";
+        if (cible.k === "cibles") {
+          if (o.v !== "=") {
+            throw new ErreurPy("« " + o.v + " » ne s'écrit pas avec plusieurs "
+              + "cibles.", o.l);
+          }
+          for (const c of cible.el) {
+            if (!bonne(c)) {
+              throw new ErreurPy("On ne peut affecter qu'à une variable ou à une case "
+                + "de liste ou de dictionnaire.", o.l);
+            }
+          }
+        } else if (!bonne(cible)) {
           throw new ErreurPy("On ne peut affecter qu'à une variable ou à une case de "
-            + "liste.", o.l);
+            + "liste ou de dictionnaire.", o.l);
         }
         return { k: "affecter", cible, op: o.v, val, l: o.l };
       }
-      manger("FIN");
+      if (cible.k === "cibles") {
+        throw new ErreurPy("Une suite d'expressions séparées par des virgules ne fait "
+          + "rien toute seule. Un tuple s'écrit entre parenthèses.", cible.l);
+      }
+      finir();
       return { k: "expression", e: cible, l: j.l };
     }
 
@@ -400,6 +750,37 @@
   const Bool = (v) => ({ t: "bool", v: !!v });
   const Nul = { t: "none", v: null };
   const Lst = (v) => ({ t: "list", v });
+  /* Le tuple porte la même forme que la liste — un tableau — et c'est
+     volontaire : tout ce qui LIT une séquence marche sur les deux. Seul
+     ce qui ÉCRIT les distingue, et c'est exactement la différence que
+     le TP 4 fait découvrir : un tuple ne se modifie pas. */
+  const Tup = (v) => ({ t: "tuple", v });
+
+  /* L'ensemble et le dictionnaire tiennent une Map de JavaScript, qui
+     garde l'ordre d'insertion — comme les dictionnaires de Python
+     depuis la version 3.7. La clé de la Map est une EMPREINTE de la
+     valeur, parce que deux objets {t:"int", v:1} distincts doivent
+     compter pour la même clé. L'entrée garde la valeur d'origine, pour
+     pouvoir la rendre telle quelle. */
+  const Ens = (m) => ({ t: "set", m: m || new Map() });
+  const Dic = (m) => ({ t: "dict", m: m || new Map() });
+
+  /* L'empreinte, et le refus qui va avec. Une liste change ; une clé
+     qui change casserait la table. Python dit « unhashable type » ;
+     ici on le dit en français, et on nomme le remplacement. */
+  function empreinte(x, l) {
+    switch (x.t) {
+      case "int": case "float": return "n:" + x.v;
+      case "bool": return "n:" + (x.v ? 1 : 0);   /* True == 1, comme en Python */
+      case "str": return "s:" + x.v;
+      case "none": return "none";
+      case "tuple": return "t:(" + x.v.map((e) => empreinte(e, l)).join("\u0001") + ")";
+      default:
+        throw new ErreurPy("Un " + typeNom(x) + " ne peut pas servir de clé de "
+          + "dictionnaire ni d'élément d'ensemble, parce qu'il peut changer. "
+          + "Un tuple, lui, convient.", l);
+    }
+  }
 
   function nombre(v, entier) { return entier ? Ent(v) : Flo(v); }
   function estNombre(x) { return x.t === "int" || x.t === "float" || x.t === "bool"; }
@@ -410,7 +791,8 @@
     if (x.t === "bool") return x.v;
     if (x.t === "int" || x.t === "float") return x.v !== 0;
     if (x.t === "str") return x.v.length > 0;
-    if (x.t === "list") return x.v.length > 0;
+    if (x.t === "list" || x.t === "tuple") return x.v.length > 0;
+    if (x.t === "set" || x.t === "dict") return x.m.size > 0;
     return true;
   }
 
@@ -432,7 +814,22 @@
       case "float": return ecrireFlottant(x.v);
       case "str": return x.v;
       case "list": return "[" + x.v.map(repr).join(", ") + "]";
+      /* « (1,) » : la virgule solitaire du tuple à un élément. Sans
+         elle, on lirait « (1) », qui est un nombre entre parenthèses —
+         et c'est bien pour cela que Python l'écrit ainsi. */
+      case "tuple": return x.v.length === 1
+        ? "(" + repr(x.v[0]) + ",)"
+        : "(" + x.v.map(repr).join(", ") + ")";
+      case "set": return x.m.size === 0 ? "set()"
+        : "{" + [...x.m.values()].map(repr).join(", ") + "}";
+      case "dict": return "{" + [...x.m.values()]
+        .map((e) => repr(e.cle) + ": " + repr(e.val)).join(", ") + "}";
       case "fonction": return "<function " + x.nom + ">";
+      /* « print(e) » dans un « except … as e » écrit le MESSAGE, pas la
+         classe : c'est ce que fait Python, et c'est ce qu'on veut
+         afficher à l'utilisateur. */
+      case "exception": return x.v;
+      case "fichier": return "<fichier " + x.nom + " mode '" + x.mode + "'>";
       default: return String(x.v);
     }
   }
@@ -440,7 +837,9 @@
 
   function typeNom(x) {
     return { int: "int", float: "float", str: "str", bool: "bool",
-             none: "NoneType", list: "list", fonction: "function" }[x.t] || x.t;
+             none: "NoneType", list: "list", tuple: "tuple", set: "set",
+             dict: "dict", fonction: "function", fichier: "TextIOWrapper",
+             exception: "Exception" }[x.t] || x.t;
   }
 
   /* ── 4. L'évaluateur ──────────────────────────────────────────────
@@ -459,6 +858,11 @@
     const PLAFOND = o.plafond || 2000000;
     let pas = 0;
 
+    /* Ce qu'un « print(..., end="") » a laissé en suspens : il sera
+       collé au début du prochain affichage, et versé tel quel à la fin
+       du programme s'il ne vient rien d'autre. */
+    let enAttente = "";
+
     function ecrireSortie(s) {
       sorties.push(s);
       if (o.sortie) o.sortie(s);
@@ -475,6 +879,16 @@
 
     const global = Object.create(null);
 
+    /* Le disque du programme : un dictionnaire { nom: contenu }. Il naît
+       vide à chaque exécution, et un programme qui veut relire un
+       fichier commence donc par l'écrire — ce que font les TP. Les
+       fichiers fournis par l'appelant (options.fichiers) sont là dès le
+       départ, pour le jour où l'outil en proposera. */
+    const disque = Object.assign(Object.create(null), o.fichiers || {});
+
+    const exc = (classe, args) => ({ t: "exception", classe,
+      v: args && args.length ? ecrire(args[0]) : classe });
+
     function chercher(env, nom) {
       let e = env;
       while (e) {
@@ -488,8 +902,26 @@
     /* Les fonctions natives. Chacune vérifie ses arguments et refuse par
        une phrase : « int('abc') » doit dire pourquoi, pas rendre NaN. */
     const NATIVES = {
-      print(args, l) {
-        ecrireSortie(args.map(ecrire).join(" "));
+      /* print() a deux réglages, et ils servent vraiment :
+           sep — ce qui sépare les valeurs (une espace par défaut)
+           end — ce qui termine la ligne (un saut de ligne)
+         « end="" » colle les affichages les uns aux autres, et c'est
+         l'écriture que les corrigés emploient pour aligner des nombres
+         sur une seule ligne. Ici les sorties sont des LIGNES : un
+         « end » sans saut de ligne continue donc la ligne précédente au
+         lieu d'en ouvrir une. */
+      print(args, l, nommes) {
+        const sep = nommes && nommes.sep !== undefined ? ecrire(nommes.sep) : " ";
+        const fin = nommes && nommes.end !== undefined ? ecrire(nommes.end) : "\n";
+        const corps = args.map(ecrire).join(sep);
+        const morceaux = (corps + fin).split("\n");
+        /* La dernière tranche n'est pas terminée par un saut : elle
+           reste « en attente », et le prochain print la complètera. */
+        for (let k = 0; k < morceaux.length - 1; k++) {
+          ecrireSortie(enAttente + morceaux[k]);
+          enAttente = "";
+        }
+        enAttente += morceaux[morceaux.length - 1];
         return Nul;
       },
       input(args, l) {
@@ -502,16 +934,18 @@
       len(args, l) {
         const x = args[0];
         if (x.t === "str") return Ent(x.v.length);
-        if (x.t === "list") return Ent(x.v.length);
-        throw new ErreurPy("len() veut une chaîne ou une liste, pas un "
-          + typeNom(x) + ".", l);
+        if (x.t === "list" || x.t === "tuple") return Ent(x.v.length);
+        if (x.t === "set" || x.t === "dict") return Ent(x.m.size);
+        throw new ErreurPy("len() veut une chaîne, une liste, un tuple, un ensemble "
+          + "ou un dictionnaire, pas un " + typeNom(x) + ".", l, "TypeError");
       },
       int(args, l) {
         const x = args[0];
         if (x.t === "str") {
           const t = x.v.trim();
           if (!/^[+-]?\d+$/.test(t)) {
-            throw new ErreurPy("int('" + x.v + "') : ce texte n'est pas un entier.", l);
+            throw new ErreurPy("int('" + x.v + "') : ce texte n'est pas un entier.", l,
+              "ValueError");
           }
           return Ent(parseInt(t, 10));
         }
@@ -523,7 +957,8 @@
         if (x.t === "str") {
           const v = parseFloat(x.v.trim());
           if (!isFinite(v)) {
-            throw new ErreurPy("float('" + x.v + "') : ce texte n'est pas un nombre.", l);
+            throw new ErreurPy("float('" + x.v + "') : ce texte n'est pas un nombre.", l,
+              "ValueError");
           }
           return Flo(v);
         }
@@ -588,9 +1023,9 @@
       max(args, l) { return extremum(args, l, "max"); },
       sum(args, l) {
         const x = args[0];
-        if (!x || x.t !== "list") throw new ErreurPy("sum() veut une liste.", l);
+        if (!x) throw new ErreurPy("sum() veut une suite de nombres.", l);
         let s = 0, flottant = false;
-        for (const e of x.v) {
+        for (const e of elements(x, l)) {
           if (!estNombre(e)) throw new ErreurPy("sum() : la liste contient un "
             + typeNom(e) + ".", l);
           if (e.t === "float") flottant = true;
@@ -622,22 +1057,144 @@
       list(args, l) {
         const x = args[0];
         if (!x) return Lst([]);
-        if (x.t === "list") return Lst(x.v.slice());
-        if (x.t === "str") return Lst(x.v.split("").map(Str));
-        throw new ErreurPy("list() veut une liste ou une chaîne.", l);
+        return Lst(elements(x, l).slice());
+      },
+      /* tuple(), set(), dict() : les trois convertisseurs. Ils prennent
+         tout ce qui se parcourt — c'est ainsi qu'on « enlève les
+         doublons d'une liste » en une ligne : list(set(ma_liste)). */
+      tuple(args, l) {
+        const x = args[0];
+        if (!x) return Tup([]);
+        return Tup(elements(x, l).slice());
+      },
+      set(args, l) {
+        const x = args[0];
+        if (!x) return Ens();
+        const m = new Map();
+        for (const e of elements(x, l)) m.set(empreinte(e, l), e);
+        return Ens(m);
+      },
+      dict(args, l) {
+        const x = args[0];
+        if (!x) return Dic();
+        if (x.t === "dict") {
+          return Dic(new Map([...x.m].map(([k, e]) => [k, { cle: e.cle, val: e.val }])));
+        }
+        /* dict() depuis une liste de paires : dict([(1,'a'), (2,'b')]).
+           C'est l'inverse de .items(), et le couple des deux sert tout
+           le temps dès qu'on transforme un dictionnaire. */
+        const m = new Map();
+        for (const e of elements(x, l)) {
+          if ((e.t !== "tuple" && e.t !== "list") || e.v.length !== 2) {
+            throw new ErreurPy("dict() veut une suite de paires (clé, valeur) ; "
+              + "ici j'ai trouvé " + repr(e) + ".", l, "ValueError");
+          }
+          m.set(empreinte(e.v[0], l), { cle: e.v[0], val: e.v[1] });
+        }
+        return Dic(m);
+      },
+      /* enumerate() rend des couples (rang, valeur). Sans lui, on écrit
+         « for i in range(len(liste)) » puis « liste[i] » — ce qui marche
+         et qui est l'écriture que tout le monde finit par abandonner. */
+      enumerate(args, l) {
+        const x = args[0];
+        const depart = args.length > 1 ? num(args[1]) : 0;
+        return Lst(elements(x, l).map((e, k) => Tup([Ent(k + depart), e])));
+      },
+      /* zip() assemble deux suites en couples, et s'arrête sur la plus
+         courte — c'est sa règle, et elle surprend quand on l'oublie. */
+      zip(args, l) {
+        if (args.length < 2) throw new ErreurPy("zip() veut au moins deux suites.", l);
+        const suites = args.map((a) => elements(a, l));
+        const n = Math.min.apply(null, suites.map((s) => s.length));
+        const out = [];
+        for (let k = 0; k < n; k++) out.push(Tup(suites.map((s) => s[k])));
+        return Lst(out);
       },
       sorted(args, l) {
         const x = args[0];
-        if (!x || x.t !== "list") throw new ErreurPy("sorted() veut une liste.", l);
-        return Lst(trier(x.v.slice(), l));
+        if (!x) throw new ErreurPy("sorted() veut une suite à trier.", l);
+        /* sorted() rend TOUJOURS une liste, même sur un ensemble ou un
+           dictionnaire : c'est la façon d'obtenir un ordre là où il n'y
+           en a pas. « sorted(mon_set) » est l'idiome. */
+        return Lst(trier(elements(x, l).slice(), l));
       },
       type(args) { return Str("<class '" + typeNom(args[0]) + "'>"); },
+
+      /* isinstance(x, int) — « est-ce bien un entier ? ». Le TP 9 s'en
+         sert pour vérifier une saisie avant de l'utiliser.
+
+         Le second argument est le NOM d'un type, qui est aussi le nom
+         d'une fonction de conversion : « int » s'évalue donc en native,
+         et c'est son nom qu'on lit. Un tuple de types est accepté, comme
+         en Python : isinstance(x, (int, float)). */
+      isinstance(args, l) {
+        if (args.length < 2) {
+          throw new ErreurPy("isinstance() veut une valeur et un type.", l, "TypeError");
+        }
+        const attendus = (args[1].t === "tuple" ? args[1].v : [args[1]]).map((a) => {
+          if (a.t !== "native") {
+            throw new ErreurPy("isinstance() : le second argument doit être un type "
+              + "(int, float, str, bool, list, tuple, set, dict).", l, "TypeError");
+          }
+          return a.nom;
+        });
+        const reel = typeNom(args[0]);
+        /* En Python, un booléen EST un entier : isinstance(True, int)
+           rend True. La bizarrerie est vraie, donc on la garde. */
+        return Bool(attendus.some((n) => n === reel
+          || (n === "int" && reel === "bool")
+          || (n === "float" && reel === "int" && false)));
+      },
+
+      /* ── Les exceptions, comme VALEURS ──
+         « raise ValueError("port invalide") » appelle ici : la native
+         fabrique l'objet, et « raise » le transforme en erreur. Les
+         mêmes noms servent après « except ». */
+      ValueError(args, l) { return exc("ValueError", args); },
+      TypeError(args, l) { return exc("TypeError", args); },
+      KeyError(args, l) { return exc("KeyError", args); },
+      IndexError(args, l) { return exc("IndexError", args); },
+      ZeroDivisionError(args, l) { return exc("ZeroDivisionError", args); },
+      NameError(args, l) { return exc("NameError", args); },
+      AttributeError(args, l) { return exc("AttributeError", args); },
+      FileNotFoundError(args, l) { return exc("FileNotFoundError", args); },
+      PermissionError(args, l) { return exc("PermissionError", args); },
+      OSError(args, l) { return exc("OSError", args); },
+      Exception(args, l) { return exc("Exception", args); },
+
+      /* ── open() ──
+         Le disque est en mémoire, et il ne survit pas au programme :
+         c'est exactement ce qu'il faut pour un TP, qui écrit son
+         fichier puis le relit. Les trois modes du cours : 'r', 'w', 'a'.
+
+         Un fichier absent en lecture lève FileNotFoundError — la vraie
+         classe, celle que le TP 9 attrape. */
+      open(args, l) {
+        const nom = args[0] && args[0].t === "str" ? args[0].v : null;
+        if (nom === null) throw new ErreurPy("open() veut un nom de fichier.", l,
+          "TypeError");
+        const mode = args.length > 1 && args[1].t === "str" ? args[1].v : "r";
+        if (["r", "w", "a", "r+", "rt", "wt", "at"].indexOf(mode) < 0) {
+          throw new ErreurPy("open() : le mode « " + mode + " » n'est pas géré. "
+            + "Les trois du cours sont 'r' (lire), 'w' (écrire en remplaçant) "
+            + "et 'a' (ajouter à la fin).", l, "ValueError");
+        }
+        const lecture = mode[0] === "r";
+        if (lecture && !(nom in disque)) {
+          throw new ErreurPy("[Errno 2] No such file or directory: '" + nom + "'", l,
+            "FileNotFoundError");
+        }
+        if (mode[0] === "w") disque[nom] = "";
+        if (mode[0] === "a" && !(nom in disque)) disque[nom] = "";
+        return { t: "fichier", nom, mode: mode[0], pos: 0, ouvert: true };
+      },
     };
 
     function extremum(args, l, quoi) {
       let el = args;
-      if (args.length === 1 && args[0].t === "list") el = args[0].v;
-      if (!el.length) throw new ErreurPy(quoi + "() sur une liste vide.", l);
+      if (args.length === 1) el = elements(args[0], l);
+      if (!el.length) throw new ErreurPy(quoi + "() sur une suite vide.", l);
       let best = el[0];
       for (const x of el) {
         if (!estNombre(x) && x.t !== "str") {
@@ -651,8 +1208,19 @@
     function trier(tab, l) {
       const tousTextes = tab.every((x) => x.t === "str");
       const tousNombres = tab.every(estNombre);
-      if (!tousTextes && !tousNombres) {
-        throw new ErreurPy("On ne trie pas une liste qui mélange les types.", l);
+      /* Les suites se trient entre elles, élément par élément : c'est ce
+         qui permet de trier une liste de tuples — « trier par note, puis
+         par nom » sans écrire de clé de tri. */
+      const toutesSuites = tab.length > 0
+        && tab.every((x) => x.t === "tuple" || x.t === "list");
+      if (!tousTextes && !tousNombres && !toutesSuites) {
+        throw new ErreurPy("On ne trie pas une suite qui mélange les types.", l,
+          "TypeError");
+      }
+      if (toutesSuites) {
+        tab.sort((a, b) => vrai(comparer("<", a, b, l)) ? -1
+                         : vrai(comparer("<", b, a, l)) ? 1 : 0);
+        return tab;
       }
       tab.sort((a, b) => tousTextes ? (a.v < b.v ? -1 : a.v > b.v ? 1 : 0)
                                     : num(a) - num(b));
@@ -701,13 +1269,15 @@
           case "pop": {
             if (!t.length) throw new ErreurPy("pop() sur une liste vide.", l);
             const k = args.length ? num(args[0]) : t.length - 1;
-            if (k < 0 || k >= t.length) throw new ErreurPy("pop(" + k + ") : hors de la liste.", l);
+            if (k < 0 || k >= t.length) throw new ErreurPy("pop(" + k + ") : hors de la "
+              + "liste.", l, "IndexError");
             return t.splice(k, 1)[0];
           }
           case "insert": t.splice(num(args[0]), 0, args[1]); return Nul;
           case "remove": {
             const k = t.findIndex((x) => egal(x, args[0]));
-            if (k < 0) throw new ErreurPy("remove() : cette valeur n'est pas dans la liste.", l);
+            if (k < 0) throw new ErreurPy("remove() : cette valeur n'est pas dans la "
+              + "liste.", l, "ValueError");
             t.splice(k, 1); return Nul;
           }
           case "index": {
@@ -721,27 +1291,311 @@
           case "clear": t.length = 0; return Nul;
           case "copy": return Lst(t.slice());
           case "extend": {
-            if (!args.length || args[0].t !== "list") {
-              throw new ErreurPy("extend() veut une liste.", l);
-            }
-            for (const e of args[0].v) t.push(e);
+            if (!args.length) throw new ErreurPy("extend() veut une suite.", l);
+            for (const e of elements(args[0], l)) t.push(e);
             return Nul;
           }
         }
       }
-      throw new ErreurPy("Un " + typeNom(cible) + " n'a pas de méthode « " + nom + " ».", l);
+      /* ── Le TUPLE ──
+         Deux méthodes seulement, et c'est tout le sujet du TP 4 : un
+         tuple ne se modifie pas. append, remove, sort n'existent PAS, et
+         le message le dit en nommant le remplacement — parce que la
+         question 3 du TP (« modifier l'OS du serveur ») n'a pas d'autre
+         réponse que celle-là. */
+      if (cible.t === "tuple") {
+        const t2 = cible.v;
+        switch (nom) {
+          case "count": return Ent(t2.filter((x) => egal(x, args[0])).length);
+          case "index": {
+            const k = t2.findIndex((x) => egal(x, args[0]));
+            if (k < 0) throw new ErreurPy("index() : cette valeur n'est pas dans le "
+              + "tuple.", l, "ValueError");
+            return Ent(k);
+          }
+          case "append": case "remove": case "insert": case "pop":
+          case "sort": case "clear": case "extend": case "reverse":
+            throw new ErreurPy("Un tuple ne se modifie pas : « " + nom + "() » "
+              + "n'existe pas sur un tuple. Pour le changer, on en fabrique un "
+              + "NOUVEAU — par exemple « t = t[:2] + (\"CentOS\",) + t[3:] » — ou "
+              + "l'on prend une liste à la place.", l, "AttributeError");
+        }
+      }
+      /* ── L'ENSEMBLE ── */
+      if (cible.t === "set") {
+        const m = cible.m;
+        const autre = (k) => {
+          if (!args.length) throw new ErreurPy(nom + "() veut un argument.", l);
+          if (args[k === undefined ? 0 : k].t !== "set") {
+            throw new ErreurPy(nom + "() veut un autre ensemble.", l, "TypeError");
+          }
+          return args[k === undefined ? 0 : k].m;
+        };
+        switch (nom) {
+          case "add": m.set(empreinte(args[0], l), args[0]); return Nul;
+          case "remove": {
+            const e = empreinte(args[0], l);
+            if (!m.has(e)) throw new ErreurPy("remove() : " + repr(args[0])
+              + " n'est pas dans l'ensemble. Pour ne pas lever d'erreur : "
+              + ".discard().", l, "KeyError");
+            m.delete(e); return Nul;
+          }
+          /* discard() est la question 11 du TP 4 : « supprime le port
+             9000 SANS PROVOQUER D'ERREUR ». C'est toute la différence
+             avec remove(). */
+          case "discard": m.delete(empreinte(args[0], l)); return Nul;
+          case "pop": {
+            if (!m.size) throw new ErreurPy("pop() sur un ensemble vide.", l, "KeyError");
+            const c = m.keys().next().value;
+            const v = m.get(c); m.delete(c); return v;
+          }
+          case "clear": m.clear(); return Nul;
+          case "copy": return Ens(new Map(m));
+          case "union": {
+            const r = new Map(m);
+            for (const [k, v] of autre()) r.set(k, v);
+            return Ens(r);
+          }
+          case "intersection": {
+            const o = autre(), r = new Map();
+            for (const [k, v] of m) if (o.has(k)) r.set(k, v);
+            return Ens(r);
+          }
+          case "difference": {
+            const o = autre(), r = new Map();
+            for (const [k, v] of m) if (!o.has(k)) r.set(k, v);
+            return Ens(r);
+          }
+          case "symmetric_difference": {
+            const o = autre(), r = new Map();
+            for (const [k, v] of m) if (!o.has(k)) r.set(k, v);
+            for (const [k, v] of o) if (!m.has(k)) r.set(k, v);
+            return Ens(r);
+          }
+          case "issubset": {
+            const o = autre();
+            for (const k of m.keys()) if (!o.has(k)) return Bool(false);
+            return Bool(true);
+          }
+          case "issuperset": {
+            const o = autre();
+            for (const k of o.keys()) if (!m.has(k)) return Bool(false);
+            return Bool(true);
+          }
+          case "isdisjoint": {
+            const o = autre();
+            for (const k of m.keys()) if (o.has(k)) return Bool(false);
+            return Bool(true);
+          }
+          case "update": {
+            for (const e of elements(args[0], l)) m.set(empreinte(e, l), e);
+            return Nul;
+          }
+        }
+      }
+      /* ── Le FICHIER ──
+         Attention au nom : « nom » est celui de la MÉTHODE appelée, et
+         « cible.nom » celui du fichier. Les confondre est la première
+         chose qui casse ici. */
+      if (cible.t === "fichier") {
+        const f = cible.nom;
+        const exige = () => {
+          if (!cible.ouvert) {
+            throw new ErreurPy("Ce fichier est fermé : « " + nom + "() » après "
+              + "close() n'est pas possible.", l, "ValueError");
+          }
+        };
+        const contenu = () => (disque[f] === undefined ? "" : disque[f]);
+        switch (nom) {
+          case "read": {
+            exige();
+            if (cible.mode !== "r") {
+              throw new ErreurPy("Ce fichier est ouvert en écriture : on n'y lit "
+                + "pas.", l, "OSError");
+            }
+            const s = contenu(), reste = s.slice(cible.pos);
+            cible.pos = s.length;
+            return Str(reste);
+          }
+          /* readlines() GARDE le « \n » de chaque ligne : c'est pour
+             cela que les TP écrivent .strip() derrière. */
+          case "readlines": {
+            exige();
+            const s = contenu();
+            cible.pos = s.length;
+            return Lst(s.length ? s.split(/(?<=\n)/).map(Str) : []);
+          }
+          /* readline() rend une chaîne VIDE à la fin du fichier — et
+             c'est ce qui arrête une boucle « while ligne: ». */
+          case "readline": {
+            exige();
+            const s = contenu();
+            if (cible.pos >= s.length) return Str("");
+            const k = s.indexOf("\n", cible.pos);
+            const bout = k < 0 ? s.length : k + 1;
+            const ligne = s.slice(cible.pos, bout);
+            cible.pos = bout;
+            return Str(ligne);
+          }
+          case "write": {
+            exige();
+            if (cible.mode === "r") {
+              throw new ErreurPy("Ce fichier est ouvert en lecture : on n'y écrit "
+                + "pas. Ouvrez-le en mode 'w' ou 'a'.", l, "OSError");
+            }
+            if (!args.length || args[0].t !== "str") {
+              throw new ErreurPy("write() veut du texte. Pour écrire un nombre : "
+                + "str(n).", l, "TypeError");
+            }
+            disque[f] = contenu() + args[0].v;
+            return Ent(args[0].v.length);
+          }
+          case "writelines": {
+            exige();
+            if (cible.mode === "r") {
+              throw new ErreurPy("Ce fichier est ouvert en lecture.", l, "OSError");
+            }
+            for (const e of elements(args[0], l)) {
+              if (e.t !== "str") {
+                throw new ErreurPy("writelines() veut des textes.", l, "TypeError");
+              }
+              disque[f] = contenu() + e.v;
+            }
+            return Nul;
+          }
+          case "close": cible.ouvert = false; return Nul;
+          case "seek": cible.pos = args.length ? num(args[0]) : 0; return Nul;
+          case "tell": return Ent(cible.pos);
+        }
+      }
+
+      /* ── Le DICTIONNAIRE ── */
+      if (cible.t === "dict") {
+        const m = cible.m;
+        switch (nom) {
+          /* .keys(), .values() et .items() rendent ici de vraies listes.
+             Python rend des « vues », qui suivent le dictionnaire s'il
+             change ; la différence ne se voit que si l'on modifie
+             pendant qu'on parcourt — ce qu'on ne doit pas faire. */
+          case "keys": return Lst([...m.values()].map((e) => e.cle));
+          case "values": return Lst([...m.values()].map((e) => e.val));
+          case "items": return Lst([...m.values()].map((e) => Tup([e.cle, e.val])));
+          /* .get() : la valeur, ou une valeur de secours au lieu d'une
+             erreur. C'est LA méthode qui évite le « KeyError » — et le
+             deuxième argument vaut None si on ne le donne pas. */
+          case "get": {
+            const e = m.get(empreinte(args[0], l));
+            return e === undefined ? (args.length > 1 ? args[1] : Nul) : e.val;
+          }
+          /* .setdefault() lit, et crée si c'est absent. Il remplace le
+             « if cle not in d: d[cle] = 0 » qu'on écrit sans cesse pour
+             compter. */
+          case "setdefault": {
+            const c = empreinte(args[0], l);
+            if (!m.has(c)) m.set(c, { cle: args[0], val: args.length > 1 ? args[1] : Nul });
+            return m.get(c).val;
+          }
+          case "pop": {
+            const c = empreinte(args[0], l);
+            if (!m.has(c)) {
+              if (args.length > 1) return args[1];
+              throw new ErreurPy("pop() : la clé " + repr(args[0])
+                + " n'est pas dans le dictionnaire.", l, "KeyError");
+            }
+            const v = m.get(c).val; m.delete(c); return v;
+          }
+          case "update": {
+            if (!args.length || args[0].t !== "dict") {
+              throw new ErreurPy("update() veut un autre dictionnaire.", l, "TypeError");
+            }
+            for (const [k, e] of args[0].m) m.set(k, { cle: e.cle, val: e.val });
+            return Nul;
+          }
+          case "clear": m.clear(); return Nul;
+          case "copy":
+            return Dic(new Map([...m].map(([k, e]) => [k, { cle: e.cle, val: e.val }])));
+        }
+      }
+      throw new ErreurPy("Un " + typeNom(cible) + " n'a pas de méthode « " + nom + " ».", l,
+        "AttributeError");
     }
 
     function egal(a, b) {
       if (estNombre(a) && estNombre(b)) return num(a) === num(b);
       if (a.t !== b.t) return false;
-      if (a.t === "list") {
+      if (a.t === "list" || a.t === "tuple") {
         return a.v.length === b.v.length && a.v.every((x, k) => egal(x, b.v[k]));
+      }
+      /* Deux ensembles sont égaux s'ils ont les mêmes éléments, quel
+         que soit l'ordre d'insertion : c'est la définition. */
+      if (a.t === "set") {
+        if (a.m.size !== b.m.size) return false;
+        for (const k of a.m.keys()) if (!b.m.has(k)) return false;
+        return true;
+      }
+      if (a.t === "dict") {
+        if (a.m.size !== b.m.size) return false;
+        for (const [k, e] of a.m) {
+          if (!b.m.has(k) || !egal(e.val, b.m.get(k).val)) return false;
+        }
+        return true;
       }
       return a.v === b.v;
     }
 
     function binaire(op, a, b, l) {
+      /* Les quatre opérations d'ensembles. Elles ne s'appliquent qu'à
+         deux ensembles : « {1,2} | [3] » est refusé en Python aussi, et
+         le message doit le dire plutôt que de convertir en silence. */
+      if ("|&^".indexOf(op) >= 0 || (op === "-" && (a.t === "set" || b.t === "set"))) {
+        if (a.t !== "set" || b.t !== "set") {
+          throw new ErreurPy("L'opérateur « " + op + " » veut deux ensembles ; ici un "
+            + typeNom(a) + " et un " + typeNom(b) + ".", l);
+        }
+        const m = new Map();
+        if (op === "|") { for (const [k, v] of a.m) m.set(k, v); for (const [k, v] of b.m) m.set(k, v); }
+        if (op === "&") { for (const [k, v] of a.m) if (b.m.has(k)) m.set(k, v); }
+        if (op === "-") { for (const [k, v] of a.m) if (!b.m.has(k)) m.set(k, v); }
+        if (op === "^") {
+          for (const [k, v] of a.m) if (!b.m.has(k)) m.set(k, v);
+          for (const [k, v] of b.m) if (!a.m.has(k)) m.set(k, v);
+        }
+        return Ens(m);
+      }
+      if (op === "+" && a.t === "tuple" && b.t === "tuple") return Tup(a.v.concat(b.v));
+      if (op === "*" && a.t === "tuple" && estNombre(b)) {
+        let out = [];
+        for (let k = 0; k < num(b); k++) out = out.concat(a.v);
+        return Tup(out);
+      }
+      /* Le formatage à l'ancienne : « "%.2f" %% x ». Il est partout dans
+         les corrigés, et sans lui une ligne juste était refusée. */
+      if (op === "%" && a.t === "str") {
+        const vals = b.t === "tuple" ? b.v : [b];
+        let k = 0;
+        const sortie = a.v.replace(/%(-?)(0?)(\d*)(?:\.(\d+))?([sdifg%])/g,
+          function (tout, gauche, zero, large, prec, genre) {
+            if (genre === "%") return "%";
+            if (k >= vals.length) {
+              throw new ErreurPy("Il manque une valeur pour « " + tout + " ».", l);
+            }
+            const x = vals[k++];
+            let s;
+            if (genre === "s") s = ecrire(x);
+            else if (genre === "d" || genre === "i") s = String(Math.trunc(num(x)));
+            else s = num(x).toFixed(prec === undefined ? 6 : +prec);
+            if (large) {
+              const n = +large;
+              if (s.length < n) s = gauche ? s.padEnd(n) : s.padStart(n, zero ? "0" : " ");
+            }
+            return s;
+          });
+        if (k < vals.length) {
+          throw new ErreurPy("« %% » reçoit " + vals.length + " valeur(s) pour " + k
+            + " emplacement(s) dans la chaîne.", l);
+        }
+        return Str(sortie);
+      }
       if (op === "+" && a.t === "str" && b.t === "str") return Str(a.v + b.v);
       if (op === "+" && a.t === "list" && b.t === "list") return Lst(a.v.concat(b.v));
       if (op === "*" && a.t === "str" && estNombre(b)) return Str(a.v.repeat(Math.max(0, num(b))));
@@ -753,11 +1607,11 @@
       }
       if (op === "+" && (a.t === "str") !== (b.t === "str")) {
         throw new ErreurPy("On n'additionne pas un " + typeNom(a) + " et un "
-          + typeNom(b) + ". Pour coller un nombre à du texte : str(n).", l);
+          + typeNom(b) + ". Pour coller un nombre à du texte : str(n).", l, "TypeError");
       }
       if (!estNombre(a) || !estNombre(b)) {
         throw new ErreurPy("L'opérateur « " + op + " » ne s'applique pas à un "
-          + typeNom(a) + " et un " + typeNom(b) + ".", l);
+          + typeNom(a) + " et un " + typeNom(b) + ".", l, "TypeError");
       }
       const x = num(a), y = num(b);
       const entier = (a.t !== "float") && (b.t !== "float");
@@ -766,13 +1620,14 @@
         case "-": return nombre(x - y, entier);
         case "*": return nombre(x * y, entier);
         case "/":
-          if (y === 0) throw new ErreurPy("Division par zéro.", l);
+          if (y === 0) throw new ErreurPy("Division par zéro.", l, "ZeroDivisionError");
           return Flo(x / y);                      /* « / » rend TOUJOURS un flottant */
         case "//":
-          if (y === 0) throw new ErreurPy("Division entière par zéro.", l);
+          if (y === 0) throw new ErreurPy("Division entière par zéro.", l,
+            "ZeroDivisionError");
           return nombre(Math.floor(x / y), entier);
         case "%":
-          if (y === 0) throw new ErreurPy("Modulo par zéro.", l);
+          if (y === 0) throw new ErreurPy("Modulo par zéro.", l, "ZeroDivisionError");
           /* Le modulo de Python suit le signe du DIVISEUR : −7 % 3 vaut 2,
              et non −1 comme en C ou en JavaScript. */
           return nombre(x - Math.floor(x / y) * y, entier);
@@ -791,29 +1646,127 @@
         const r = a.v < b.v ? -1 : a.v > b.v ? 1 : 0;
         return Bool(op === "<" ? r < 0 : op === ">" ? r > 0 : op === "<=" ? r <= 0 : r >= 0);
       }
+      /* Deux listes ou deux tuples se comparent élément par élément,
+         comme deux mots se comparent lettre par lettre : on s'arrête au
+         premier qui diffère. C'est ce qui permet de trier une liste de
+         tuples, et donc de trier « par nom, puis par prénom » sans rien
+         écrire de plus. */
+      if ((a.t === "list" || a.t === "tuple") && a.t === b.t) {
+        const n = Math.min(a.v.length, b.v.length);
+        for (let k = 0; k < n; k++) {
+          if (!egal(a.v[k], b.v[k])) {
+            return comparer(op, a.v[k], b.v[k], l);
+          }
+        }
+        const x = a.v.length, y = b.v.length;
+        return Bool(op === "<" ? x < y : op === ">" ? x > y : op === "<=" ? x <= y : x >= y);
+      }
       if (!estNombre(a) || !estNombre(b)) {
         throw new ErreurPy("On ne compare pas un " + typeNom(a) + " et un "
-          + typeNom(b) + " avec « " + op + " ».", l);
+          + typeNom(b) + " avec « " + op + " ».", l, "TypeError");
       }
       const x = num(a), y = num(b);
       return Bool(op === "<" ? x < y : op === ">" ? x > y : op === "<=" ? x <= y : x >= y);
     }
 
+    /* Ce qu'on peut parcourir, et ce que ça donne. Un dictionnaire rend
+       ses CLÉS — comme en Python, et c'est la source d'étonnement n° 1 :
+       « for x in d » ne donne pas les valeurs. */
+    function elements(x, l) {
+      if (x.t === "list" || x.t === "tuple") return x.v;
+      if (x.t === "str") return x.v.split("").map(Str);
+      if (x.t === "set") return [...x.m.values()];
+      if (x.t === "dict") return [...x.m.values()].map((e) => e.cle);
+      /* « for ligne in fichier » : c'est l'écriture que tous les TP
+         emploient, et elle rend les lignes une par une, « \n » compris
+         — comme readlines(). */
+      if (x.t === "fichier") {
+        const s = disque[x.nom] === undefined ? "" : disque[x.nom];
+        return s.length ? s.split(/(?<=\n)/).map(Str) : [];
+      }
+      throw new ErreurPy("On ne parcourt pas un " + typeNom(x)
+        + " : « for » veut une liste, un tuple, une chaîne, un ensemble, "
+        + "un dictionnaire ou un range().", l);
+    }
+
     function indexer(cible, idx, l) {
+      /* Le dictionnaire s'indexe par sa CLÉ, pas par un rang. Et une
+         clé absente lève une erreur — c'est là que .get() prend son
+         sens, puisqu'il rend None au lieu de s'arrêter. */
+      if (cible.t === "dict") {
+        const e = cible.m.get(empreinte(idx, l));
+        if (e === undefined) {
+          throw new ErreurPy("La clé " + repr(idx) + " n'est pas dans le dictionnaire. "
+            + "Pour une valeur par défaut au lieu d'une erreur : .get(" + repr(idx)
+            + ").", l, "KeyError");
+        }
+        return e.val;
+      }
+      if (cible.t === "set") {
+        throw new ErreurPy("Un ensemble ne s'indexe pas : ses éléments n'ont pas "
+          + "d'ordre. On le parcourt avec « for », ou on teste avec « in ».", l,
+          "TypeError");
+      }
       if (!estNombre(idx)) {
-        throw new ErreurPy("Un indice est un entier, pas un " + typeNom(idx) + ".", l);
+        throw new ErreurPy("Un indice est un entier, pas un " + typeNom(idx) + ".", l,
+          "TypeError");
       }
       let k = num(idx);
-      const n = cible.t === "str" ? cible.v.length : cible.t === "list" ? cible.v.length : -1;
-      if (n < 0) throw new ErreurPy("Un " + typeNom(cible) + " ne s'indexe pas.", l);
+      const n = cible.t === "str" || cible.t === "list" || cible.t === "tuple"
+              ? cible.v.length : -1;
+      if (n < 0) throw new ErreurPy("Un " + typeNom(cible) + " ne s'indexe pas.", l,
+        "TypeError");
       if (k < 0) k += n;
       if (k < 0 || k >= n) {
         throw new ErreurPy("Indice " + num(idx) + " hors de la "
-          + (cible.t === "str" ? "chaîne" : "liste") + " : elle a " + n
+          + (cible.t === "str" ? "chaîne" : cible.t === "tuple" ? "séquence" : "liste")
+          + " : elle a " + n
           + " élément" + (n > 1 ? "s" : "") + ", donc les indices vont de 0 à "
-          + (n - 1) + ".", l);
+          + (n - 1) + ".", l, "IndexError");
       }
       return cible.t === "str" ? Str(cible.v[k]) : cible.v[k];
+    }
+
+    /* Poser une valeur dans un ou plusieurs noms. Un seul nom : on pose.
+       Plusieurs : la valeur doit être une suite de la bonne longueur, et
+       le message le dit quand elle ne l'est pas — c'est l'erreur qu'on
+       fait en oubliant .items(). */
+    function depaqueter(noms, val, env, l) {
+      if (noms.length === 1) { poser(env, noms[0], val); return; }
+      if (val.t !== "tuple" && val.t !== "list") {
+        throw new ErreurPy("Il y a " + noms.length + " noms à gauche, et à droite un "
+          + typeNom(val) + " qui ne se découpe pas. Pour parcourir un dictionnaire par "
+          + "couples : « for cle, valeur in d.items() ».", l, "TypeError");
+      }
+      if (val.v.length !== noms.length) {
+        throw new ErreurPy("Il y a " + noms.length + " noms à gauche et "
+          + val.v.length + " valeur" + (val.v.length > 1 ? "s" : "") + " à droite.",
+          l, "ValueError");
+      }
+      noms.forEach((nom, k) => poser(env, nom, val.v[k]));
+    }
+
+    /* Une exception Python, telle qu'un « except » la voit. Les classes
+       sont rangées en familles : « except Exception » attrape tout, et
+       « except LookupError » attrape IndexError comme KeyError. */
+    const FAMILLES = {
+      ValueError: ["ValueError", "Exception", "BaseException"],
+      TypeError: ["TypeError", "Exception", "BaseException"],
+      KeyError: ["KeyError", "LookupError", "Exception", "BaseException"],
+      IndexError: ["IndexError", "LookupError", "Exception", "BaseException"],
+      ZeroDivisionError: ["ZeroDivisionError", "ArithmeticError", "Exception", "BaseException"],
+      NameError: ["NameError", "Exception", "BaseException"],
+      AttributeError: ["AttributeError", "Exception", "BaseException"],
+      FileNotFoundError: ["FileNotFoundError", "OSError", "IOError", "Exception", "BaseException"],
+      PermissionError: ["PermissionError", "OSError", "IOError", "Exception", "BaseException"],
+      OSError: ["OSError", "IOError", "Exception", "BaseException"],
+      StopIteration: ["StopIteration", "Exception", "BaseException"],
+      Exception: ["Exception", "BaseException"],
+    };
+    function attrape(classeLevee, classeEcrite) {
+      if (!classeEcrite) return true;        /* « except: » tout nu */
+      const fam = FAMILLES[classeLevee] || ["Exception", "BaseException"];
+      return fam.indexOf(classeEcrite) >= 0;
     }
 
     function evaluer(n, env) {
@@ -824,12 +1777,32 @@
         case "bool": return Bool(n.v);
         case "rien": return Nul;
         case "liste": return Lst(n.el.map((e) => evaluer(e, env)));
+        case "tuple": return Tup(n.el.map((e) => evaluer(e, env)));
+        case "ensemble": {
+          const m = new Map();
+          for (const e of n.el) {
+            const v = evaluer(e, env);
+            /* Le doublon disparaît sans un mot : c'est ce que la
+               question 1 du TP 4 fait observer avec « 21, 53, 110,
+               443, 21 ». La Map s'en charge toute seule. */
+            m.set(empreinte(v, n.l), v);
+          }
+          return Ens(m);
+        }
+        case "dico": {
+          const m = new Map();
+          for (const p of n.paires) {
+            const cle = evaluer(p.cle, env);
+            m.set(empreinte(cle, n.l), { cle, val: evaluer(p.val, env) });
+          }
+          return Dic(m);
+        }
         case "nom": {
           const v = chercher(env, n.v);
           if (v === undefined) {
             if (NATIVES[n.v]) return { t: "native", nom: n.v };
             throw new ErreurPy("La variable « " + n.v + " » n'existe pas encore. "
-              + "Elle doit être affectée avant d'être lue.", n.l);
+              + "Elle doit être affectée avant d'être lue.", n.l, "NameError");
           }
           return v;
         }
@@ -849,16 +1822,74 @@
             if (a.t !== "str") throw new ErreurPy("« in » dans une chaîne cherche du texte.", n.l);
             return Bool(b.v.indexOf(a.v) >= 0);
           }
-          if (b.t === "list") return Bool(b.v.some((x) => egal(x, a)));
-          throw new ErreurPy("« in » veut une chaîne ou une liste à droite.", n.l);
+          if (b.t === "list" || b.t === "tuple") return Bool(b.v.some((x) => egal(x, a)));
+          /* Sur un ensemble et un dictionnaire, « in » ne parcourt
+             rien : il calcule l'empreinte et regarde si la case est
+             prise. C'est pour cela qu'il reste instantané sur un
+             million d'éléments, là où une liste les visite tous. Et sur
+             un dictionnaire, « in » cherche une CLÉ — pas une valeur. */
+          if (b.t === "set") return Bool(b.m.has(empreinte(a, n.l)));
+          if (b.t === "dict") return Bool(b.m.has(empreinte(a, n.l)));
+          throw new ErreurPy("« in » veut une chaîne, une liste, un tuple, un "
+            + "ensemble ou un dictionnaire à droite.", n.l);
         }
         case "ternaire":
           return vrai(evaluer(n.cond, env)) ? evaluer(n.oui, env) : evaluer(n.non, env);
+        /* « is » : le MÊME objet. Pour les valeurs simples — nombres,
+           textes, None, booléens — on compare la valeur, ce qui donne la
+           même réponse que Python dans tous les cas qu'un TP rencontre.
+           Pour une liste, un dictionnaire ou un ensemble, on compare
+           l'identité JavaScript, qui EST l'identité Python. */
+        case "memeque": {
+          const a = evaluer(n.g, env), b = evaluer(n.d, env);
+          if (a.t === "none" || b.t === "none") return Bool(a.t === b.t);
+          if (a.t !== b.t) return Bool(false);
+          if (a.t === "list" || a.t === "dict" || a.t === "set" || a.t === "tuple") {
+            return Bool(a === b);
+          }
+          return Bool(a.v === b.v);
+        }
+        case "fchaine": {
+          let s = "";
+          for (const m of n.morceaux) {
+            if (m.k === "chaine") { s += m.v; continue; }
+            const v = evaluer(m.e, env);
+            if (!m.format) { s += ecrire(v); continue; }
+            /* Le format de la f-chaîne est rendu à l'opérateur « % »,
+               qui sait déjà aligner et arrondir. Un seul code pour les
+               deux écritures. */
+            const f = m.format;
+            const al = /^([<>^])/.exec(f);
+            const corps = al ? f.slice(1) : f;
+            const genre = /[dfsg]$/.test(corps) ? corps.slice(-1) : (corps.indexOf(".") >= 0 ? "f" : "s");
+            const chiffres = /[dfsg]$/.test(corps) ? corps.slice(0, -1) : corps;
+            const motif = "%" + (al && al[1] === "<" ? "-" : "") + chiffres + genre;
+            s += binaire("%", Str(motif), v, n.l).v;
+          }
+          return Str(s);
+        }
+        case "comprehension": {
+          const src = elements(evaluer(n.source, env), n.l);
+          const out = [];
+          /* La compréhension a sa propre portée en Python 3 : la
+             variable de boucle ne fuit pas. On lui donne donc un
+             environnement fils. */
+          const local = { vars: Object.create(null), parent: env };
+          for (const x of src) {
+            compter(n.l);
+            depaqueter(n.noms, x, local, n.l);
+            if (n.filtre && !vrai(evaluer(n.filtre, local))) continue;
+            out.push(evaluer(n.valeur, local));
+          }
+          return Lst(out);
+        }
         case "index": return indexer(evaluer(n.e, env), evaluer(n.i, env), n.l);
         case "tranche": {
           const c = evaluer(n.e, env);
-          const long = c.t === "str" ? c.v.length : c.t === "list" ? c.v.length : -1;
-          if (long < 0) throw new ErreurPy("Un " + typeNom(c) + " ne se tranche pas.", n.l);
+          const long = c.t === "str" || c.t === "list" || c.t === "tuple"
+                     ? c.v.length : -1;
+          if (long < 0) throw new ErreurPy("Un " + typeNom(c) + " ne se tranche pas.", n.l,
+            "TypeError");
           const pasV = n.pas ? num(evaluer(n.pas, env)) : 1;
           if (pasV === 0) throw new ErreurPy("Le pas d'une tranche ne peut pas être nul.", n.l);
           /* Un pas négatif parcourt à l'envers, et les bornes par défaut
@@ -879,31 +1910,40 @@
             a = Math.max(-1, Math.min(long - 1, a)); b = Math.max(-1, Math.min(long, b));
             for (let k = a; k > b; k += pasV) out.push(el[k]);
           }
-          return c.t === "str" ? Str(out.join("")) : Lst(out);
+          return c.t === "str" ? Str(out.join("")) : c.t === "tuple" ? Tup(out) : Lst(out);
         }
         case "attribut":
           return { t: "methode", cible: evaluer(n.e, env), nom: n.nom };
         case "appel": {
           const args = n.args.map((a) => evaluer(a, env));
+          const nommes = Object.create(null);
+          for (const cle in (n.nommes || {})) nommes[cle] = evaluer(n.nommes[cle], env);
           if (n.f.k === "attribut") {
             const cible = evaluer(n.f.e, env);
-            return methode(cible, n.f.nom, args, n.l);
+            return methode(cible, n.f.nom, args, n.l, nommes);
           }
           const f = evaluer(n.f, env);
-          if (f.t === "native") return NATIVES[f.nom](args, n.l);
+          if (f.t === "native") return NATIVES[f.nom](args, n.l, nommes);
           if (f.t !== "fonction") {
             throw new ErreurPy("« " + (n.f.v || "cette valeur") + " » n'est pas une "
               + "fonction.", n.l);
           }
-          if (args.length > f.params.length) {
+          const aReste = f.params.some((p) => p.reste);
+          if (args.length > f.params.length && !aReste) {
             throw new ErreurPy(f.nom + "() reçoit " + args.length + " argument(s) pour "
-              + f.params.length + " paramètre(s).", n.l);
+              + f.params.length + " paramètre(s).", n.l, "TypeError");
           }
           const local = { vars: Object.create(null), parent: { vars: global, parent: null } };
           f.params.forEach((p, k) => {
+            /* « *args » ramasse tout ce qui reste, dans un TUPLE — comme
+               en Python, et c'est pour cela que « total(*args) » peut
+               faire sum(args). */
+            if (p.reste) { local.vars[p.nom] = Tup(args.slice(k)); return; }
             if (k < args.length) local.vars[p.nom] = args[k];
+            else if (p.nom in nommes) local.vars[p.nom] = nommes[p.nom];
             else if (p.defaut) local.vars[p.nom] = evaluer(p.defaut, local);
-            else throw new ErreurPy(f.nom + "() : il manque l'argument « " + p.nom + " ».", n.l);
+            else throw new ErreurPy(f.nom + "() : il manque l'argument « " + p.nom + " ».",
+              n.l, "TypeError");
           });
           try {
             for (const st of f.corps) executerInstruction(st, local);
@@ -927,8 +1967,15 @@
           if (n.op !== "=") {
             const avant = n.cible.k === "nom"
               ? evaluer(n.cible, env)
+              : n.cible.k === "cibles"
+              ? (() => { throw new ErreurPy("« " + n.op + " » ne s'écrit pas avec "
+                  + "plusieurs cibles.", n.l); })()
               : indexer(evaluer(n.cible.e, env), evaluer(n.cible.i, env), n.l);
             val = binaire(n.op.slice(0, -1), avant, val, n.l);
+          }
+          if (n.cible.k === "cibles") {
+            depaqueter(n.cible.el.map((c) => c.v), val, env, n.l);
+            return;
           }
           if (n.cible.k === "nom") {
             /* Python affecte dans la portée COURANTE : une affectation dans
@@ -938,15 +1985,27 @@
           } else {
             const cible = evaluer(n.cible.e, env);
             const idx = evaluer(n.cible.i, env);
+            /* La case d'un dictionnaire : « d[cle] = valeur » CRÉE la
+               clé si elle n'existe pas. C'est ce qui le distingue d'une
+               liste, où l'indice doit déjà être là. */
+            if (cible.t === "dict") {
+              cible.m.set(empreinte(idx, n.l), { cle: idx, val });
+              return;
+            }
+            if (cible.t === "tuple") {
+              throw new ErreurPy("Un tuple ne se modifie pas : « t[" + ecrire(idx)
+                + "] = … » est impossible. C'est sa raison d'être — pour changer, "
+                + "prenez une liste.", n.l, "TypeError");
+            }
             if (cible.t !== "list") {
               throw new ErreurPy("On ne modifie pas une case d'un " + typeNom(cible)
-                + " — une chaîne ne se change pas sur place.", n.l);
+                + " — une chaîne ne se change pas sur place.", n.l, "TypeError");
             }
             let k = num(idx);
             if (k < 0) k += cible.v.length;
             if (k < 0 || k >= cible.v.length) {
               throw new ErreurPy("Indice " + num(idx) + " hors de la liste (0 à "
-                + (cible.v.length - 1) + ").", n.l);
+                + (cible.v.length - 1) + ").", n.l, "IndexError");
             }
             cible.v[k] = val;
           }
@@ -977,15 +2036,10 @@
         }
         case "pour": {
           const src = evaluer(n.source, env);
-          const el = src.t === "list" ? src.v
-                   : src.t === "str" ? src.v.split("").map(Str) : null;
-          if (!el) {
-            throw new ErreurPy("On ne parcourt pas un " + typeNom(src)
-              + " : « for » veut une liste, une chaîne ou un range().", n.l);
-          }
+          const el = elements(src, n.l);
           for (const x of el) {
             compter(n.l);
-            poser(env, n.nom, x);
+            depaqueter(n.noms, x, env, n.l);
             try { n.corps.forEach((s) => executerInstruction(s, env)); }
             catch (e) {
               if (e instanceof Casser) break;
@@ -998,6 +2052,58 @@
         case "def":
           poser(env, n.nom, { t: "fonction", nom: n.nom, params: n.params, corps: n.corps });
           return;
+        case "essayer": {
+          let leve = null;
+          try {
+            n.essai.forEach((s) => executerInstruction(s, env));
+          } catch (e) {
+            /* Les ruptures de flux — return, break, continue — ne sont
+               pas des erreurs : elles traversent le try sans être
+               attrapées, comme en Python. */
+            if (e instanceof Retour || e instanceof Casser || e instanceof Suivant) {
+              if (n.enfin) n.enfin.forEach((s) => executerInstruction(s, env));
+              throw e;
+            }
+            if (!e || !e.estPy) {
+              if (n.enfin) n.enfin.forEach((s) => executerInstruction(s, env));
+              throw e;
+            }
+            leve = e;
+          }
+          if (leve) {
+            let pris = false;
+            for (const p of n.prises) {
+              if (!attrape(leve.classe, p.classe)) continue;
+              pris = true;
+              if (p.alias) {
+                poser(env, p.alias, { t: "exception", classe: leve.classe,
+                                      v: leve.message });
+              }
+              try { p.corps.forEach((s) => executerInstruction(s, env)); }
+              finally { if (n.enfin) n.enfin.forEach((s) => executerInstruction(s, env)); }
+              return;
+            }
+            /* Aucun « except » ne correspond : l'erreur continue sa
+               route, après le « finally ». C'est le comportement de
+               Python, et c'est ce qui permet d'attraper plus haut. */
+            if (!pris) {
+              if (n.enfin) n.enfin.forEach((s) => executerInstruction(s, env));
+              throw leve;
+            }
+          }
+          if (n.sinon) n.sinon.forEach((s) => executerInstruction(s, env));
+          if (n.enfin) n.enfin.forEach((s) => executerInstruction(s, env));
+          return;
+        }
+        case "lever": {
+          if (!n.e) throw new ErreurPy("« raise » tout seul ne peut relancer une erreur "
+            + "que dans un « except ».", n.l);
+          const v = evaluer(n.e, env);
+          if (v.t === "exception") throw new ErreurPy(v.v, n.l, v.classe);
+          /* « raise ValueError("message") » : l'appel a été évalué
+             comme une fonction native portant le nom de la classe. */
+          throw new ErreurPy(ecrire(v), n.l, "Exception");
+        }
         case "retour": throw new Retour(n.e ? evaluer(n.e, env) : Nul);
         case "casser": throw new Casser();
         case "suivant": throw new Suivant();
@@ -1009,8 +2115,13 @@
       const arbre = analyser(lire(src));
       const env = { vars: global, parent: null };
       for (const st of arbre) executerInstruction(st, env);
+      /* Un « print(..., end="") » en dernière instruction laisse une
+         ligne commencée : elle doit sortir, sinon le programme perd son
+         affichage final. */
+      if (enAttente) { sorties.push(enAttente); if (o.sortie) o.sortie(enAttente); enAttente = ""; }
       return { ok: true, sortie: sorties, operations: pas };
     } catch (e) {
+      if (enAttente) { sorties.push(enAttente); enAttente = ""; }
       if (e instanceof Retour) {
         return { ok: false, sortie: sorties,
                  erreur: { message: "« return » hors d'une fonction.", ligne: 0 } };
@@ -1035,13 +2146,20 @@
   /* Ce que l'interprète NE fait pas. La liste est affichée dans la page :
      un outil doit savoir se décrire, et celui-ci est un sous-ensemble
      assumé — pas un Python incomplet dont on espère que ça passe. */
+  /* Cette liste est AFFICHÉE dans la page : elle doit rester exacte, et
+     elle a fondu. Les dictionnaires, les tuples, les ensembles, les
+     f-chaînes, les exceptions et les compréhensions sont désormais
+     couverts — c'est ce qu'il fallait pour que les TP de l'année
+     tournent. Ce qui reste absent l'est pour une raison, et la raison
+     est dite. */
   const MANQUES = [
-    ["les modules", "pas de « import math » : utilisez ** et les fonctions du cours"],
-    ["les classes", "l'objet est au programme de deuxième année, pas ici"],
-    ["les dictionnaires", "les listes couvrent les TP de première année"],
-    ["les f-chaînes", "f\"{x}\" n'est pas lu : écrivez \"valeur : \" + str(x)"],
-    ["les exceptions", "try / except / raise"],
-    ["les générateurs", "yield, et les expressions de liste [x for x in …]"],
+    ["les modules", "pas de « import math » ni de « from … import » : un seul "
+      + "fichier à la fois, donc rien à importer. Les fonctions du cours et « ** » "
+      + "remplacent math."],
+    ["les classes", "l'objet est au programme de deuxième année"],
+    ["les générateurs", "yield, et les expressions paresseuses"],
+    ["lambda et with", "deux écritures courtes dont aucun TP de l'année n'a besoin"],
+    ["les décorateurs", "@quelque_chose au-dessus d'une fonction"],
   ];
 
   racine.PYMINI = { executer, MANQUES, version: 1 };

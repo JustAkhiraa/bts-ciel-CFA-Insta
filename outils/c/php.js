@@ -989,6 +989,15 @@ var PHP = (function () {
       FILTER_SANITIZE_STRING: 513, FILTER_SANITIZE_NUMBER_INT: 519, FILTER_SANITIZE_EMAIL: 517, FILTER_SANITIZE_SPECIAL_CHARS: 515,
       FILTER_SANITIZE_FULL_SPECIAL_CHARS: 522, FILTER_DEFAULT: 516, FILTER_FLAG_IPV4: 1048576, FILTER_FLAG_IPV6: 2097152, FILTER_NULL_ON_FAILURE: 134217728,
       PASSWORD_DEFAULT: "2y", PASSWORD_BCRYPT: "2y", PASSWORD_BCRYPT_DEFAULT_COST: 12,
+      /* Les drapeaux de file() et de file_put_contents(). Les deux fonctions
+         les lisaient déjà — seuls les NOMS manquaient, si bien qu'un
+         « file($f, FILE_IGNORE_NEW_LINES) » écrit comme dans la documentation
+         tombait sur « Undefined constant ». Les valeurs sont celles de PHP. */
+      FILE_USE_INCLUDE_PATH: 1, FILE_IGNORE_NEW_LINES: 2, FILE_SKIP_EMPTY_LINES: 4,
+      FILE_APPEND: 8, FILE_NO_DEFAULT_CONTEXT: 16,
+      LOCK_SH: 1, LOCK_EX: 2, LOCK_UN: 3, LOCK_NB: 4,
+      SEEK_SET: 0, SEEK_CUR: 1, SEEK_END: 2,
+      PATHINFO_DIRNAME: 1, PATHINFO_BASENAME: 2, PATHINFO_EXTENSION: 4, PATHINFO_FILENAME: 8,
       true: true, TRUE: true, false: false, FALSE: false, null: null, NULL: null };
     if (k in base) return base[k];
     if (nom in base) return base[nom];

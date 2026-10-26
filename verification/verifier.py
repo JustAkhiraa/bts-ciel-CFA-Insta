@@ -434,7 +434,15 @@ def main():
         if rel != "index.html" and not rel.startswith("verification/"):
             profondeur = rel.count("/")
             attendu = "../" * profondeur + "index.html"
-            if f'href="{attendu}"' not in hl:
+            # La page 404 est servie à la place de n'importe quelle adresse
+            # manquante : elle ne SAIT pas à quelle profondeur elle sera
+            # lue, et ses liens sont donc absolus. Un lien vers
+            # « /<depot>/index.html » mène à l'accueil tout autant qu'un
+            # « ../index.html » — la règle demande une issue, et il y en a
+            # une. On accepte donc les deux écritures, et seulement
+            # celles-là.
+            racine_site = "/" + os.path.basename(os.path.abspath(RACINE)) + "/index.html"
+            if f'href="{attendu}"' not in hl and f'href="{racine_site}"' not in hl:
                 pbs.append((rel, f"aucun lien vers l'accueil ({attendu}) : "
                                  "page sans issue"))
 
@@ -459,7 +467,20 @@ def main():
             cible = unquote(urlparse(u).path)
             if not cible:
                 continue
-            chemin = os.path.normpath(os.path.join(os.path.dirname(p), cible))
+            # Un chemin ABSOLU part de la racine du SITE, pas du disque.
+            # La page 404 n'a pas le choix : GitHub Pages la sert à la
+            # place de n'importe quelle adresse manquante, donc depuis
+            # n'importe quelle profondeur, et « ../assets » n'y veut rien
+            # dire. Son préfixe est le nom du dossier publié — celui-là
+            # même où nous sommes.
+            if cible.startswith("/"):
+                prefixe = "/" + os.path.basename(os.path.abspath(RACINE)) + "/"
+                if not cible.startswith(prefixe):
+                    pbs.append((rel, f"lien absolu hors du site : {u}"))
+                    continue
+                chemin = os.path.normpath(os.path.join(RACINE, cible[len(prefixe):]))
+            else:
+                chemin = os.path.normpath(os.path.join(os.path.dirname(p), cible))
             if not os.path.exists(chemin):
                 pbs.append((rel, f"lien mort : {u}"))
 

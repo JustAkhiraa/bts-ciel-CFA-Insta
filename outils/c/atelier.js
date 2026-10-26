@@ -3628,10 +3628,72 @@
       if (bStrict) bStrict.hidden = (l !== "c" && l !== "c++");
       if ((l === "c" || l === "c++") && !differe) moteur.lancer();
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
+      /* Le bouton de la liste porte le nom du langage courant : c'est la
+         seule chose qui dit où l'on est, maintenant que les sept boutons
+         ont laissé la place à un seul.
+
+         On relit l'élément ici plutôt que de le garder dans une
+         constante : poserLangue() est appelée pendant la restauration,
+         AVANT que la ligne « const libLangue = … » plus bas ne soit
+         exécutée — et lire une constante avant sa déclaration lève une
+         erreur qui aurait arrêté tout l'atelier. */
+      const lib = $("#at-langue-courant", racine);
+      if (lib) lib.textContent = NOM_LANGUE[l] || l;
       if (redessinerExemples) redessinerExemples(l);
       planifierSauvegarde();
     }
-    choixLangue.forEach((b) => b.addEventListener("click", () => poserLangue(b.dataset.langue)));
+    /* La liste déroulante des langages. Même mécanique que le menu des
+       réglages juste à côté — un bouton, un panneau, Échap et le clic
+       dehors qui referment — pour qu'il n'y ait qu'un seul comportement à
+       apprendre dans cette barre. */
+    const btLangue = $("#at-langue-btn", racine);
+    const menuLangue = $("#at-langue-menu", racine);
+    function ouvrirLangues(ouvrir) {
+      if (!menuLangue || !btLangue) return;
+      menuLangue.hidden = !ouvrir;
+      btLangue.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+      if (ouvrir) {
+        /* Le focus part sur le langage ACTIF, pas sur le premier : au
+           clavier, on arrive là où l'on est. */
+        const actif = menuLangue.querySelector('[aria-pressed="true"]')
+                   || menuLangue.querySelector("[data-langue]");
+        if (actif) actif.focus();
+      }
+    }
+    if (btLangue && menuLangue) {
+      btLangue.addEventListener("click", () => ouvrirLangues(menuLangue.hidden));
+      document.addEventListener("click", (e) => {
+        if (menuLangue.hidden) return;
+        if (!menuLangue.contains(e.target) && e.target !== btLangue
+            && !btLangue.contains(e.target)) ouvrirLangues(false);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !menuLangue.hidden) {
+          /* Échap referme CETTE liste et s'arrête là : sans le
+             stopPropagation, il refermerait aussi le plein écran. */
+          e.stopPropagation();
+          ouvrirLangues(false);
+          btLangue.focus();
+        }
+      });
+      /* Les flèches parcourent la liste, comme dans n'importe quel menu. */
+      menuLangue.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        const items = [...menuLangue.querySelectorAll("[data-langue]")];
+        const k = items.indexOf(document.activeElement);
+        if (k < 0) return;
+        e.preventDefault();
+        const suivant = e.key === "ArrowDown"
+          ? items[(k + 1) % items.length]
+          : items[(k - 1 + items.length) % items.length];
+        suivant.focus();
+      });
+    }
+    choixLangue.forEach((b) => b.addEventListener("click", () => {
+      poserLangue(b.dataset.langue);
+      ouvrirLangues(false);
+      if (btLangue) btLangue.focus();
+    }));
 
     bStrict.addEventListener("click", () => {
       strict = !strict;
@@ -4003,9 +4065,27 @@
         poserLangue(x.langue === "php" || aPhp ? "php" : "web");
         return;
       }
+      /* Un exemple Web ou PHP qui n'apporte qu'un TEXTE, sans projet.
+         Le chemin d'en dessous ne marche pas pour lui : poserLangue("php")
+         remplace le contenu de l'éditeur par celui du projet, et comme le
+         projet n'existe pas encore il en fabrique un de départ — le texte
+         de l'exemple était perdu en route, et le tiroir ouvrait la page
+         d'exemple vide à sa place. On pose donc le texte DANS le projet
+         avant de changer de langage, puisque c'est là que l'éditeur ira le
+         chercher. */
+      const l0 = x.langue || devine(x.code);
+      if (estWeb(l0)) {
+        if (estWeb(langue)) poserLangue("c");
+        projet = l0 === "php" ? PROJET_PHP_DEPART() : PROJET_DEPART();
+        fichierActif = l0 === "php" ? "index.php" : "index.html";
+        projet[fichierActif] = x.code;
+        surlignagesParFichier = {};
+        poserLangue(l0);
+        return;
+      }
       if (estWeb(langue)) poserLangue("c");
       editeur.valeur = x.code;
-      poserLangue(x.langue || devine(x.code));
+      poserLangue(l0);
     }
     /* Un texte venu d'un lien (« Essayer » d'une fiche, partage) : son
        langage est dans l'adresse (« l= »), sinon deviné. Un projet Web
@@ -4109,7 +4189,13 @@
         }
         listeEx.innerHTML = Object.keys(groupes).map((g) => {
           const { fam, seuls } = enFamilles(groupes[g]);
-          let corps = seuls.map((o) => carte(g, o, o.e.titre)).join("");
+          /* Les DOSSIERS d'abord, les fiches isolées ensuite. L'inverse
+             mettait « Projet · le CV en ligne » et « Révision · les notes »
+             AU-DESSUS des TP 1 à 9 de leur groupe — or ce sont le projet de
+             fin d'année et la révision d'examen : ils viennent après ce
+             qu'ils révisent. Le tri des données les range déjà en dernier ;
+             l'affichage le défaisait. */
+          let corps = "";
           if (fam.size) {
             corps += '<div class="at-dossiers">' + [...fam.keys()].map((cle) => {
               const liste = fam.get(cle);
@@ -4130,6 +4216,7 @@
                      (nbExos > 1 ? " exercices" : " exercice") + "</span></button>";
             }).join("") + "</div>";
           }
+          corps += seuls.map((o) => carte(g, o, o.e.titre)).join("");
           return '<div class="at-ex-groupe"><h4>' + ech(g) + "</h4>" + corps + "</div>";
         }).join("");
       }

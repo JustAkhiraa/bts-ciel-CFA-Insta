@@ -7,7 +7,7 @@
 <meta name="description" content="Les deux TP Docker corrigés : initiation (images, conteneurs, ports, volumes), puis le réseau (bridge par défaut, réseau personnalisé, IP fixe, isolation, ports publiés) avec des sorties réellement obtenues.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d0656319">
+<link rel="stylesheet" href="../../assets/fiche.css?v=84366a9d">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -29,6 +29,7 @@
     <li><a href="#p11">11 · Isoler deux réseaux, et essayer de les relier</a></li>
     <li><a href="#p12">12 · Réseau interne et ports publiés</a></li>
     <li><a href="#p13">13 · Nettoyage — et l'ordre qui compte</a></li>
+    <li><a href="#p14">14 · Monter le laboratoire du TP <em>(Lab 1)</em></a></li>
   </ol>
 </nav>
 
@@ -992,6 +993,142 @@ b002c30b9b60   none      null      local</code></pre></div><p>Plus aucun contene
   </article>
 </section>
 
+<section id="p14">
+  <h2><span class="num">14</span>Monter le laboratoire du TP <em>(Lab 1)</em></h2>
+
+  <p class="chapeau">Les treize parties précédentes construisaient un réseau à la main.
+     Celle-ci en monte un tout fait — quatre machines, un script — et pose les questions
+     qu'on se posera vraiment devant la maquette. Le détail des adresses et des ports est
+     au <a href="cours.html#lab1">chapitre 10 du cours</a>.</p>
+
+  <article class="exo">
+    <h3><span class="no">23</span>Les quatre machines, et qui parle à qui
+        <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.</strong> Après <code>bash gestion_lab1.sh -c</code>, vérifier que les
+         quatre conteneurs tournent, puis que chacun répond depuis l'hôte.</p>
+      <p><strong>2.</strong> Le client est en <code>192.168.56.11</code>, sa passerelle est
+         <code>192.168.56.254</code>, son DNS est <code>192.168.56.10</code>. Expliquer
+         pourquoi ces trois adresses ne désignent pas la même machine, et ce que chacune
+         fait.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps <span class="j-att">--format</span> <span class="j-txt">"table {{.Names}}\t{{.Status}}\t{{.Ports}}"</span>
+<span class="j-fn">for</span> ip in <span class="j-num">10</span> <span class="j-num">11</span> <span class="j-num">12</span> <span class="j-num">254</span>; do ping <span class="j-att">-c</span> <span class="j-num">1</span> <span class="j-att">-W</span> <span class="j-num">1</span> <span class="j-num">192.168</span>.<span class="j-num">56</span>.<span class="j-var">$ip</span> &gt; /dev/null \
+    &amp;&amp; echo <span class="j-txt">"192.168.56.$ip repond"</span> || echo <span class="j-txt">"192.168.56.$ip MUET"</span>; done</code></pre></div>
+        <p>Les trois adresses du client jouent trois rôles différents, et c'est tout le
+           plan d'adressage d'un réseau :</p>
+        <ul>
+          <li><code>192.168.56.11</code> — <strong>la sienne</strong>. C'est à elle qu'on
+              s'adresse pour le joindre.</li>
+          <li><code>192.168.56.254</code> — <strong>sa passerelle</strong>, le routeur. Tout
+              paquet destiné à une adresse qui n'est PAS dans
+              <code>192.168.56.0/24</code> part chez lui. Sans elle, le client ne sort pas
+              de son réseau.</li>
+          <li><code>192.168.56.10</code> — <strong>son DNS</strong>, le serveur. C'est lui
+              qui traduit <code>srvssh.local.sio.fr</code> en adresse. Sans lui, les
+              adresses numériques marchent encore et les noms ne marchent plus — ce qui
+              est le symptôme le plus courant, et le plus mal diagnostiqué, de tout le
+              programme.</li>
+        </ul>
+        <div class="encart methode">
+          <div class="titre">🛠️ Le test qui sépare les trois</div>
+          <p><code>ping 192.168.56.10</code> réussit et <code>ping srvssh.local.sio.fr</code>
+             échoue : le réseau va bien, c'est le DNS qui ne répond pas. Les deux échouent :
+             c'est le réseau. Ce couple de commandes est le premier geste d'un diagnostic,
+             et il tient en dix secondes.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">24</span>Depuis l'hôte, ou depuis ailleurs
+        <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>3.</strong> Se connecter en SSH au serveur depuis la machine hôte, puis
+         depuis une autre machine du réseau de la salle. Les deux commandes ne se
+         ressemblent pas : dire pourquoi.</p>
+      <p><strong>4.</strong> Pourquoi <code>ssh etusio@192.168.56.10</code> ne marche-t-il
+         <em>pas</em> depuis le poste du voisin ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># depuis l'hote qui heberge les conteneurs</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.10</span>
+
+<span class="j-com"># depuis une autre machine : l'adresse de l'HOTE, et le port publie</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">1.42</span> <span class="j-att">-p</span> <span class="j-num">12222</span></code></pre></div>
+        <p>Parce que <code>192.168.56.0/24</code> <strong>n'existe pas en dehors de
+           l'hôte</strong>. C'est un réseau que Docker a créé sur cette machine-là ;
+           aucun routeur de la salle n'en a entendu parler, et un paquet envoyé à
+           <code>192.168.56.10</code> depuis le poste du voisin part chez sa propre
+           passerelle, qui ne sait qu'en faire.</p>
+        <p>D'où les ports publiés. <code>-p 12222:22</code> dit à l'hôte : « ce qui arrive
+           sur TON port 12222, passe-le au port 22 de ce conteneur ». Le voisin parle donc
+           à l'hôte, qu'il sait joindre, et c'est l'hôte qui fait suivre. C'est exactement
+           le mécanisme de la <a href="#p12">partie 12</a>, à l'échelle de quatre
+           machines.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Le port publié ouvre une porte sur le réseau</div>
+          <p>Un port publié est joignable par <strong>toute la salle</strong>, pas seulement
+             par vous. Quatre machines avec SSH et deux avec un bureau à distance, c'est six
+             portes — dont une sur un Kali Linux. Sur un réseau partagé, on vérifie ce qu'on
+             expose, et on arrête la maquette quand on a fini.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">25</span>Stopper, ou supprimer
+        <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>5.</strong> Créer un fichier dans <code>/home/etusio</code> du client.
+         Stopper le laboratoire, le relancer : le fichier est-il là ?</p>
+      <p><strong>6.</strong> Même question après un <code>bash gestion_lab1.sh -d</code>
+         suivi d'un <code>-c</code>. Expliquer la différence avec ce que montre
+         <code>docker volume ls</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.11</span> <span class="j-txt">"echo essai &gt; ~/preuve.txt"</span>
+
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-s</span>     <span class="j-com"># stoppe</span>
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-l</span>     <span class="j-com"># relance</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.11</span> <span class="j-txt">"cat ~/preuve.txt"</span></code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>essai</code></pre></div>
+        <p>Le fichier est là. Il n'était pas dans le conteneur : il était dans un
+           <strong>volume</strong>, monté sur <code>/home/etusio</code>. Un conteneur
+           stoppé, puis relancé, retrouve son volume.</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume ls</code></pre></div>
+<div class="bloc-code"><span class="langue">sortie</span><pre><code>DRIVER    VOLUME NAME
+local     home_client_lab1
+local     home_kali_lab1
+local     home_routeur_lab1
+local     home_serveur_lab1</code></pre></div>
+        <p>Après <code>-d</code>, cette liste est <strong>vide</strong> : le script
+           supprime les volumes en même temps que les conteneurs. Un <code>-c</code> qui
+           suit recrée tout à neuf, et <code>preuve.txt</code> n'existe plus nulle part.</p>
+        <div class="encart methode">
+          <div class="titre">🛠️ La règle, en une phrase</div>
+          <p>Entre deux séances : <code>-s</code>. En fin de TP, et seulement après avoir
+             récupéré ce qu'on veut garder : <code>-d</code>. C'est la distinction de la
+             <a href="#p5">partie 5</a> — et ici elle coûte une séance de travail si on se
+             trompe.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="sources">
     <h2>Sources exploitées</h2>
@@ -1021,7 +1158,7 @@ b002c30b9b60   none      null      local</code></pre></div><p>Plus aucun contene
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/exercices.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/exercices.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d0656319"></script>
-<script src="../../assets/app.js?v=d0656319"></script>
+<script src="../../assets/fiche.js?v=84366a9d"></script>
+<script src="../../assets/app.js?v=84366a9d"></script>
 </body>
 </html>

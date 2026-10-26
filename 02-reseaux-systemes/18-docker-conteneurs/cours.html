@@ -7,7 +7,7 @@
 <meta name="description" content="Installer Docker, puis manipuler les trois objets du conteneur : images, conteneurs et volumes. Ports, journaux, persistance, nettoyage — et le réseau : résolution par nom, adresse fixe, isolation de deux réseaux et ports publiés.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d0656319">
+<link rel="stylesheet" href="../../assets/fiche.css?v=84366a9d">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -25,7 +25,8 @@
     <li><a href="#volumes">7 · Faire survivre les données</a></li>
     <li><a href="#nettoyer">8 · Nettoyer</a></li>
     <li><a href="#reseau">9 · Le réseau : comment les conteneurs se parlent</a></li>
-    <li><a href="#memo">10 · L'aide-mémoire</a></li>
+    <li><a href="#lab1">10 · Le laboratoire du TP, conteneur par conteneur</a></li>
+    <li><a href="#memo">11 · L'aide-mémoire</a></li>
   </ol>
 </nav>
 
@@ -200,29 +201,133 @@
          le cas le plus rapide, et celui d'un serveur. On installe depuis le dépôt officiel de
          Docker, jamais depuis <code>apt install docker.io</code> — ce paquet-là est une
          version plus ancienne, maintenue par la distribution.</p>
-      <p>Les commandes ci-dessous sont celles de <strong>Debian</strong> ; pour Ubuntu,
-         remplacer les deux occurrences de <code>debian</code> par <code>ubuntu</code>.</p>
+      <p>Le TP de réseaux est écrit pour <strong>Debian</strong> : c'est la procédure de
+         référence, celle du document du cours, et c'est l'onglet ouvert par défaut. Les
+         trois autres sont là pour qui n'a pas Debian sous la main — chacun dit ce qu'il
+         vaut.</p>
+
+      <div class="choix-distro">
+        <input type="radio" name="distribution" id="distro-debian" value="debian" checked>
+        <input type="radio" name="distribution" id="distro-ubuntu" value="ubuntu">
+        <input type="radio" name="distribution" id="distro-fedora" value="fedora">
+        <input type="radio" name="distribution" id="distro-nixos" value="nixos">
+        <div class="choix-os-barre">
+          <label for="distro-debian">Debian</label>
+          <label for="distro-ubuntu">Ubuntu</label>
+          <label for="distro-fedora">Fedora</label>
+          <label for="distro-nixos">NixOS</label>
+        </div>
+
+        <div class="volet" data-distro="debian">
+          <p><strong>La procédure du TP.</strong> Quatre temps : on retire les paquets
+             concurrents, on installe la clé de signature, on déclare le dépôt, on installe.</p>
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. retirer d'eventuels paquets concurrents</span>
+<span class="j-fn">  for</span> p in docker.io docker-doc docker-compose podman-docker containerd runc; do
+<span class="j-fn">      sudo apt-get</span> remove <span class="j-att">-y</span> <span class="j-var">$p</span>
+<span class="j-fn">  done</span>
+
+  <span class="j-com"># 2. la cle de signature du depot Docker</span>
+<span class="j-fn">  sudo apt-get</span> update
+<span class="j-fn">  sudo apt-get</span> install <span class="j-att">-y</span> ca-certificates curl
+<span class="j-fn">  sudo install</span> <span class="j-att">-m</span> <span class="j-num">0755</span> <span class="j-att">-d</span> /etc/apt/keyrings
+<span class="j-fn">  sudo curl</span> <span class="j-att">-fsSL</span> https://download.docker.com/linux/debian/gpg <span class="j-att">-o</span> /etc/apt/keyrings/docker.asc
+<span class="j-fn">  sudo chmod</span> a+r /etc/apt/keyrings/docker.asc
+
+  <span class="j-com"># 3. le depot</span>
+<span class="j-fn">  echo</span> <span class="j-txt">"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/debian $(. /etc/os-release &amp;&amp; echo $VERSION_CODENAME) stable"</span> \
+  | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+
+  <span class="j-com"># 4. l'installation</span>
+<span class="j-fn">  sudo apt-get</span> update
+<span class="j-fn">  sudo apt-get</span> install <span class="j-att">-y</span> docker-ce docker-ce-cli containerd.io \
+<span class="j-fn">                          docker-buildx-plugin</span> docker-compose-plugin</code></pre></div>
+        </div>
+
+        <div class="volet" data-distro="ubuntu">
+          <p>Ubuntu dérive de Debian : <code>apt</code>, les mêmes paquets, les mêmes
+             commandes. Une seule chose change — le dépôt de Docker a une entrée par
+             distribution, et <code>debian</code> y devient <code>ubuntu</code>, aux
+             <strong>deux</strong> endroits où il apparaît.</p>
+  <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. retirer d'eventuels paquets concurrents</span>
+<span class="j-fn">  for</span> p in docker.io docker-doc docker-compose podman-docker containerd runc; do
+<span class="j-fn">      sudo apt-get</span> remove <span class="j-att">-y</span> <span class="j-var">$p</span>
+<span class="j-fn">  done</span>
+
+  <span class="j-com"># 2. la cle de signature du depot Docker</span>
+<span class="j-fn">  sudo apt-get</span> update
+<span class="j-fn">  sudo apt-get</span> install <span class="j-att">-y</span> ca-certificates curl
+<span class="j-fn">  sudo install</span> <span class="j-att">-m</span> <span class="j-num">0755</span> <span class="j-att">-d</span> /etc/apt/keyrings
+<span class="j-fn">  sudo curl</span> <span class="j-att">-fsSL</span> https://download.docker.com/linux/ubuntu/gpg <span class="j-att">-o</span> /etc/apt/keyrings/docker.asc
+<span class="j-fn">  sudo chmod</span> a+r /etc/apt/keyrings/docker.asc
+
+  <span class="j-com"># 3. le depot</span>
+<span class="j-fn">  echo</span> <span class="j-txt">"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo $VERSION_CODENAME) stable"</span> \
+  | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+
+  <span class="j-com"># 4. l'installation</span>
+<span class="j-fn">  sudo apt-get</span> update
+<span class="j-fn">  sudo apt-get</span> install <span class="j-att">-y</span> docker-ce docker-ce-cli containerd.io \
+<span class="j-fn">                          docker-buildx-plugin</span> docker-compose-plugin</code></pre></div>
+          <p class="rap">C'est la variante faite en cours sur une machine Ubuntu, et elle
+             fonctionne. Le TP, lui, reste écrit en Debian.</p>
+        </div>
+
+        <div class="volet" data-distro="fedora">
+          <p>Fedora n'a ni <code>apt</code> ni <code>.deb</code> : les paquets sont des
+             <code>.rpm</code> et le gestionnaire est <code>dnf</code>. La structure du
+             travail est pourtant la même — retirer les concurrents, ajouter le dépôt,
+             installer.</p>
 <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. retirer d'eventuels paquets concurrents</span>
-<span class="j-fn">for</span> p in docker.io docker-doc docker-compose podman-docker containerd runc; do
-<span class="j-fn">    sudo apt-get</span> remove <span class="j-att">-y</span> <span class="j-var">$p</span>
-<span class="j-fn">done</span>
+<span class="j-fn">sudo dnf</span> remove <span class="j-att">-y</span> docker docker-client docker-common docker-latest \
+<span class="j-fn">                   docker-logrotate</span> docker-engine podman runc
 
-<span class="j-com"># 2. la cle de signature du depot Docker</span>
-<span class="j-fn">sudo apt-get</span> update
-<span class="j-fn">sudo apt-get</span> install <span class="j-att">-y</span> ca-certificates curl
-<span class="j-fn">sudo install</span> <span class="j-att">-m</span> <span class="j-num">0755</span> <span class="j-att">-d</span> /etc/apt/keyrings
-<span class="j-fn">sudo curl</span> <span class="j-att">-fsSL</span> https://download.docker.com/linux/debian/gpg <span class="j-att">-o</span> /etc/apt/keyrings/docker.asc
-<span class="j-fn">sudo chmod</span> a+r /etc/apt/keyrings/docker.asc
+<span class="j-com"># 2. le depot Docker (dnf sait lire un fichier .repo distant)</span>
+<span class="j-fn">sudo dnf</span> <span class="j-att">-y</span> install dnf-plugins-core
+<span class="j-fn">sudo dnf</span> config-manager <span class="j-att">--add-repo</span> https://download.docker.com/linux/fedora/docker-ce.repo
 
-<span class="j-com"># 3. le depot</span>
-<span class="j-fn">echo</span> <span class="j-txt">"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-https://download.docker.com/linux/debian $(. /etc/os-release &amp;&amp; echo $VERSION_CODENAME) stable"</span> \
-| sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+<span class="j-com"># 3. l'installation</span>
+<span class="j-fn">sudo dnf</span> install <span class="j-att">-y</span> docker-ce docker-ce-cli containerd.io \
+<span class="j-fn">                    docker-buildx-plugin</span> docker-compose-plugin</code></pre></div>
+          <p>Sur Fedora, le service n&#x27;est <strong>pas</strong> démarré par l&#x27;installation :
+             il faut le dire.</p>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">sudo systemctl</span> enable <span class="j-att">--now</span> docker</code></pre></div>
+          <div class="encart piege">
+            <div class="titre">⚠️ Adaptation non exécutée</div>
+            <p>Ces commandes viennent de la documentation de Docker pour Fedora ; elles
+               n&#x27;ont pas été passées sur une machine Fedora pour ce cours. La procédure
+               <strong>vérifiée</strong> est celle de l&#x27;onglet Debian. Si une commande
+               diverge, c&#x27;est la documentation officielle qui tranche, pas cette page.</p>
+          </div>
+        </div>
 
-<span class="j-com"># 4. l'installation</span>
-<span class="j-fn">sudo apt-get</span> update
-<span class="j-fn">sudo apt-get</span> install <span class="j-att">-y</span> docker-ce docker-ce-cli containerd.io \
-<span class="j-fn">                        docker-buildx-plugin</span> docker-compose-plugin</code></pre></div>
+        <div class="volet" data-distro="nixos">
+          <p>NixOS ne s&#x27;installe pas, il se <strong>déclare</strong>. On n&#x27;ajoute pas un
+             dépôt et on ne lance pas de commande d&#x27;installation : on écrit l&#x27;état voulu
+             de la machine dans un fichier, et on demande au système de s&#x27;y conformer.</p>
+<div class="bloc-code"><span class="langue">nix</span><pre><code># /etc/nixos/configuration.nix
+{ config, pkgs, ... }:
+{
+  virtualisation.docker.enable = true;
+
+  # l&#x27;equivalent du groupe « docker » : remplacer « etudiant » par son nom
+  users.users.etudiant.extraGroups = [ &quot;docker&quot; ];
+}</code></pre></div>
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">sudo nixos-rebuild</span> switch</code></pre></div>
+          <p>La différence est de nature, et elle vaut d&#x27;être vue : les trois autres
+             onglets décrivent <em>des gestes à faire</em>, celui-ci décrit <em>un résultat
+             à obtenir</em>. C&#x27;est exactement ce que fait un <code>Dockerfile</code> pour
+             une image, et c&#x27;est tout l&#x27;objet de ce chapitre.</p>
+          <div class="encart piege">
+            <div class="titre">⚠️ Adaptation non exécutée</div>
+            <p>Comme pour Fedora : écrit d&#x27;après la documentation de NixOS, jamais passé
+               sur une machine NixOS pour ce cours. L&#x27;onglet Debian est celui qui a été
+               vérifié.</p>
+          </div>
+        </div>
+      </div>
+
       <p>Puis, pour ne plus écrire <code>sudo</code> devant chaque commande :</p>
 <div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">sudo usermod</span> <span class="j-att">-aG</span> docker <span class="j-var">$USER</span>
 <span class="j-com"># il faut FERMER puis rouvrir la session pour que le groupe soit pris en compte</span>
@@ -734,8 +839,163 @@ $ curl http://localhost:8080                          ->  Connection refused</co
      reprennent tout ceci commande par commande, avec les sorties obtenues sur une machine.</p>
 </section>
 
+<section id="lab1">
+  <h2><span class="num">10</span>Le laboratoire du TP, conteneur par conteneur</h2>
+
+  <p class="chapeau">Le TP de réseaux ne demande pas d'écrire un
+     <code>Dockerfile</code> : il demande de <strong>monter une maquette</strong> de quatre
+     machines, de s'y connecter et de travailler dedans. Tout ce que les neuf sections
+     précédentes ont expliqué s'y retrouve en une seule commande — et c'est l'occasion de
+     voir à quoi ça sert.</p>
+
+  <h3>Ce que la maquette contient</h3>
+
+  <p>Quatre conteneurs, sur un même réseau privé <code>192.168.56.0/24</code>. Chacun joue
+     un rôle, et les quatre ensemble forment un petit réseau d'entreprise avec son
+     attaquant.</p>
+
+  <div class="tableau">
+  <table>
+    <caption>Les quatre machines du laboratoire</caption>
+    <thead>
+      <tr><th>Rôle</th><th>Système</th><th>Adresse</th><th>Ce qu'elle fait tourner</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Serveur</strong></td><td>Debian 12</td>
+          <td><code>192.168.56.10</code></td>
+          <td>OpenSSH (22/TCP) et DNS Bind (53/UDP) — c'est lui le serveur DNS des
+              trois autres</td></tr>
+      <tr><td><strong>Client</strong></td><td>Debian 12</td>
+          <td><code>192.168.56.11</code></td>
+          <td>Bureau XFCE, accessible en RDP (3389/TCP), et un client SSH</td></tr>
+      <tr><td><strong>Attaquant</strong></td><td>Kali Linux</td>
+          <td><code>192.168.56.12</code></td>
+          <td>Bureau XFCE en RDP, et les outils d'analyse réseau du programme</td></tr>
+      <tr><td><strong>Routeur</strong></td><td>Debian 12</td>
+          <td><code>192.168.56.254</code></td>
+          <td>Deux interfaces — une vers l'extérieur en DHCP, une vers le réseau du
+              laboratoire — et <code>iptables</code> comme pare-feu</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Les trois clients ont le routeur pour <strong>passerelle</strong> et le serveur pour
+     <strong>DNS</strong> : c'est le plan d'adressage d'un vrai réseau, en miniature. Le
+     <code>.254</code> du routeur n'est pas un hasard — c'est la convention qui réserve le
+     haut de la plage à l'équipement d'interconnexion.</p>
+
+  <h3>Le monter, et le défaire</h3>
+
+  <p>La maquette se gère par un script, qui fait pour vous ce que la
+     <a href="#reseau">section 9</a> a décrit à la main : créer le réseau, lancer les quatre
+     conteneurs dessus avec leurs adresses fixes, et publier les ports.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># 1. verifier que Docker tourne (section 2 de ce chapitre)</span>
+<span class="j-fn">systemctl</span> status docker
+
+<span class="j-com"># 2. recuperer le script de gestion du laboratoire</span>
+<span class="j-fn">wget</span> https://forge.apps.education.fr/reseau-certa/bts-sio/labos-kali-docker/lab1/-/raw/main/gestion_lab1.sh \
+     <span class="j-att">-O</span> gestion_lab1.sh
+
+<span class="j-com"># 3. le creer et le demarrer</span>
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-c</span></code></pre></div>
+
+  <p>Le script télécharge les images si elles ne sont pas déjà là, puis lance les
+     conteneurs. Ensuite, <code>docker ps</code> doit en montrer quatre.</p>
+
+  <div class="tableau">
+  <table>
+    <caption>Les cinq options du script</caption>
+    <thead><tr><th>Option</th><th>Effet</th><th>Ce qui survit</th></tr></thead>
+    <tbody>
+      <tr><td><code>-c</code></td><td>créer et démarrer</td><td>—</td></tr>
+      <tr><td><code>-s</code></td><td>stopper</td><td>tout : conteneurs et volumes</td></tr>
+      <tr><td><code>-l</code></td><td>relancer après un arrêt</td><td>tout</td></tr>
+      <tr><td><code>-r</code></td><td>redémarrer</td><td>tout</td></tr>
+      <tr><td><code>-d</code></td><td><strong>supprimer</strong></td>
+          <td><strong>rien</strong> — volumes et images partent avec</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>-s</code> et <code>-d</code> ne font pas la même chose</div>
+    <p>C'est exactement la distinction de la <a href="#volumes">section 7</a>, sur un cas
+       réel. <code>-s</code> <strong>stoppe</strong> : le travail est encore là au prochain
+       <code>-l</code>. <code>-d</code> <strong>supprime</strong> : les volumes
+       <code>home_*_lab1</code> disparaissent, et avec eux tout ce qui était dans
+       <code>/home</code> des quatre machines. Entre deux séances, on stoppe. On ne
+       supprime qu'en fin de TP, et après avoir sorti ce qu'on veut garder.</p>
+  </div>
+
+  <h3>S'y connecter : deux chemins, et pourquoi</h3>
+
+  <p>Depuis la machine qui héberge les conteneurs, on les atteint par leur adresse privée,
+     directement — ils sont sur le même réseau qu'elle.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># depuis l'hote : l'adresse du conteneur, port standard</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.10</span>      <span class="j-com"># le serveur</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.11</span>      <span class="j-com"># le client</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.12</span>      <span class="j-com"># kali</span>
+<span class="j-fn">ssh</span> etusio@<span class="j-num">192.168</span>.<span class="j-num">56.254</span>     <span class="j-com"># le routeur</span>
+
+<span class="j-com"># verifier que les quatre repondent</span>
+<span class="j-fn">for</span> ip in <span class="j-num">10</span> <span class="j-num">11</span> <span class="j-num">12</span> <span class="j-num">254</span>; do ping <span class="j-att">-c</span> <span class="j-num">1</span> <span class="j-num">192.168</span>.<span class="j-num">56</span>.<span class="j-var">$ip</span>; done</code></pre></div>
+
+  <p>Depuis une <strong>autre</strong> machine, ces adresses n'existent pas : le réseau
+     <code>192.168.56.0/24</code> vit à l'intérieur de l'hôte. C'est là que la
+     <a href="#ports">section 6</a> sert — chaque conteneur a un port publié sur l'hôte,
+     et c'est par lui qu'on entre.</p>
+
+  <div class="tableau">
+  <table>
+    <caption>Les ports publiés sur l'hôte</caption>
+    <thead><tr><th>Machine</th><th>SSH</th><th>Bureau à distance</th></tr></thead>
+    <tbody>
+      <tr><td>Serveur</td><td><code>12222</code></td><td>—</td></tr>
+      <tr><td>Client</td><td><code>22222</code></td><td><code>23389</code></td></tr>
+      <tr><td>Kali</td><td><code>32222</code></td><td><code>33389</code></td></tr>
+      <tr><td>Routeur</td><td><code>42222</code></td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-com"># depuis l'exterieur : l'adresse de l'HOTE, et le port publie</span>
+<span class="j-fn">ssh</span> etusio@&lt;ip-de-l-hote&gt; <span class="j-att">-p</span> <span class="j-num">12222</span>     <span class="j-com"># arrive sur le serveur</span>
+<span class="j-fn">ssh</span> etusio@&lt;ip-de-l-hote&gt; <span class="j-att">-p</span> <span class="j-num">32222</span>     <span class="j-com"># arrive sur kali</span></code></pre></div>
+
+  <p class="rap">La logique des numéros se lit d'un coup d'œil : <code>22</code> devient
+     <code>12222</code>, <code>22222</code>, <code>32222</code>, <code>42222</code> — le
+     premier chiffre désigne la machine. Et <code>3389</code> devient <code>23389</code> et
+     <code>33389</code>. Ce n'est pas une règle de Docker, c'est une convention de celui
+     qui a écrit la maquette ; elle évite d'avoir à retenir une table.</p>
+
+  <p>Les identifiants des comptes sont donnés dans le document du TP ; ils ne figurent pas
+     ici, parce que cette page est publique.</p>
+
+  <h3>Ce qui survit, et où</h3>
+
+  <p>Chaque conteneur monte un volume sur le dossier personnel de son utilisateur. C'est le
+     mécanisme de la <a href="#volumes">section 7</a>, appliqué quatre fois.</p>
+
+<div class="bloc-code" data-fam="bash"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> volume ls
+<span class="j-com"># home_serveur_lab1   home_client_lab1   home_kali_lab1   home_routeur_lab1</span>
+
+<span class="j-com"># ou vivent reellement les donnees, sur l'hote :</span>
+<span class="j-fn">sudo ls</span> <span class="j-att">-l</span> /var/lib/docker/volumes/home_client_lab1/_data/</code></pre></div>
+
+  <div class="encart">
+    <div class="titre">Ce que ce laboratoire démontre du chapitre</div>
+    <p>Un réseau privé nommé, des adresses fixes dessus, des ports publiés vers l'hôte, des
+       volumes qui survivent à l'arrêt : les quatre notions des sections 6, 7 et 9, mises
+       bout à bout. La différence avec les exemples de ce cours, c'est l'échelle — et le
+       fait qu'un script fasse le travail à votre place. Savoir lire ce script, c'est
+       savoir refaire la maquette sans lui.</p>
+  </div>
+</section>
+
 <section id="memo">
-  <h2><span class="num">10</span>L'aide-mémoire</h2>
+  <h2><span class="num">11</span>L'aide-mémoire</h2>
 
   <div class="tableau">
   <table>
@@ -824,7 +1084,7 @@ $ curl http://localhost:8080                          ->  Connection refused</co
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/cours.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/cours.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d0656319"></script>
-<script src="../../assets/app.js?v=d0656319"></script>
+<script src="../../assets/fiche.js?v=84366a9d"></script>
+<script src="../../assets/app.js?v=84366a9d"></script>
 </body>
 </html>

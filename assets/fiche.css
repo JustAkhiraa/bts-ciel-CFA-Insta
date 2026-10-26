@@ -914,6 +914,20 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
 }
 /* Le volet affiché suit la valeur cochée — par la valeur, jamais par un
    identifiant : le composant doit pouvoir resservir ailleurs. */
+/* Le même mécanisme, un cran plus bas : la distribution, à l'intérieur du
+   volet Linux. Demandé : « un bouton en haut, ça met le cours en fonction ».
+   Zéro script, comme le sélecteur de système — des boutons radio et le
+   sélecteur « ~ ». Un cours qui a besoin de JavaScript pour montrer ses
+   commandes ne s'ouvre plus hors ligne. */
+.choix-distro { margin: 1rem 0 .4rem; }
+.choix-distro > input { position: absolute; width: 1px; height: 1px; opacity: 0;
+  pointer-events: none; }
+.choix-distro .choix-os-barre { margin-bottom: -1px; }
+.choix-distro .volet { display: none; padding: 1rem 1.1rem .3rem; }
+.choix-distro > input[value="debian"]:checked ~ .volet[data-distro="debian"],
+.choix-distro > input[value="ubuntu"]:checked ~ .volet[data-distro="ubuntu"],
+.choix-distro > input[value="fedora"]:checked ~ .volet[data-distro="fedora"],
+.choix-distro > input[value="nixos"]:checked  ~ .volet[data-distro="nixos"] { display: block; }
 .choix-os > input[value="mac"]:checked    ~ .volet[data-os="mac"],
 .choix-os > input[value="windows"]:checked ~ .volet[data-os="windows"],
 .choix-os > input[value="linux"]:checked  ~ .volet[data-os="linux"],
@@ -932,9 +946,21 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
 /* Le focus clavier doit se voir sur l'ÉTIQUETTE, puisque l'entrée est
    invisible. Sans cette règle, on tabule dans le vide. */
 .choix-os > input:focus-visible ~ .choix-os-barre label { outline: 2px solid var(--accent); }
+
+/* L'onglet actif du sélecteur de distribution, même principe : le rang. */
+.choix-distro > input[value="debian"]:checked ~ .choix-os-barre label:nth-child(1),
+.choix-distro > input[value="ubuntu"]:checked ~ .choix-os-barre label:nth-child(2),
+.choix-distro > input[value="fedora"]:checked ~ .choix-os-barre label:nth-child(3),
+.choix-distro > input[value="nixos"]:checked  ~ .choix-os-barre label:nth-child(4) {
+  background: var(--carte);
+  color: var(--accent-sombre);
+  border-bottom-color: var(--carte);
+}
+.choix-distro > input:focus-visible ~ .choix-os-barre label { outline: 2px solid var(--accent); }
+
 @media print {
   .choix-os-barre { display: none; }
-  .choix-os .volet { display: block; border-radius: 10px; }
+  .choix-os .volet, .choix-distro .volet { display: block; border-radius: 10px; }
 }
 
 /* ═══════════════════════════ l'appui sur un TP ═════════════════════════
@@ -9221,6 +9247,152 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: 116px; z-index: 6; }
   .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: 62px; max-height: 45%; }
   .tb-a-droite .tb-props { left: 10px; }
+}
+
+/* ═══════════════════════════════════ la page 404
+   Demandé : une page d'erreur belle. Elle n'a presque pas de classes à
+   elle : elle réemploie la grille de cartes, la recherche et les blocs du
+   cours. Ce qui suit ne règle donc que ce qu'elle ajoute — le grand
+   nombre, et le centrage de l'ensemble, qu'aucune autre page ne demande. */
+.err { padding-top: .4rem; }
+.err-tete { text-align: center; padding: 1.6rem 0 .4rem; }
+.err-code {
+  margin: 0;
+  font-size: clamp(5rem, 17vw, 10.5rem);
+  line-height: .82;
+  font-weight: 800;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-sombre);
+}
+.err-tete h1 { margin: .5rem 0 .6rem; }
+.err-sous {
+  margin: 0 auto;
+  max-width: 54ch;
+  color: var(--encre-douce);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+/* La recherche est le geste utile de cette page : elle est au centre, et
+   elle est large. « position: relative » est déjà porté par « .recherche »
+   — c'est ce qui tient la liste de résultats sous le champ. */
+.err-rech { margin: 1.8rem auto 2.4rem; max-width: 620px; }
+.err-sorties { margin-bottom: 3rem; }
+.err-lecon {
+  max-width: 76ch;
+  margin: 0 auto;
+  padding-top: 2.2rem;
+  border-top: 1px solid var(--bord);
+}
+.err-lecon h2 { margin-top: 0; }
+
+@media (max-width: 560px) {
+  .err-tete { padding-top: .8rem; }
+  .err-code { letter-spacing: -.03em; }
+}
+
+/* ═══════════════════════════ la liste des langages
+   Sept boutons côte à côte remplissaient la barre et débordaient sur un
+   téléphone. Un seul bouton les remplace, et il porte le nom du langage
+   courant. Le panneau réemploie « .at-menu » — même fond, même ombre,
+   même filet de séparation que les réglages juste à côté. */
+.at-langue-boite { position: relative; display: flex; }
+
+.at-langue-btn {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  white-space: nowrap;
+}
+
+/* « Langage : » devant la valeur. On le cache sous 760 px, où la place
+   manque : le nom du langage suffit alors à dire ce que c'est. */
+.at-langue-etiquette {
+  font-size: .7273rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--encre-douce);
+}
+
+.at-langue-courant { font-weight: 700; }
+
+/* Le chevron, dessiné en bordures : pas d'image, pas de police d'icônes. */
+.at-langue-fleche {
+  width: .42rem;
+  height: .42rem;
+  margin-left: .1rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  opacity: .65;
+}
+
+.at-langue-btn[aria-expanded="true"] .at-langue-fleche {
+  transform: translateY(1px) rotate(225deg);
+}
+
+/* Le panneau s'ouvre à GAUCHE de son bouton : celui des réglages est
+   calé à droite de la barre, et deux panneaux alignés du même côté se
+   recouvriraient.
+
+   Les deux limites : il ne dépasse jamais l'écran en largeur, et il ne
+   le dépasse jamais en hauteur non plus — sept langages décrits font
+   367 px, ce qui ne tient pas sur un téléphone posé à l'horizontale. */
+.at-langue-menu {
+  right: auto;
+  left: 0;
+  min-width: 17.5rem;
+  max-width: calc(100vw - 1.5rem);
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Chaque langage : son nom, et ce qu'il fait. La description est ce qui
+   rend la liste utile — « JS » tout court ne disait pas que le
+   JavaScript tourne sans page autour. */
+.at-langue-menu .at-menu-item {
+  align-items: flex-start;
+  min-height: 0;
+  padding: .4rem .55rem;
+}
+
+.at-langue-menu .at-menu-item b {
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.at-langue-menu .at-menu-item small {
+  display: block;
+  margin-top: .05rem;
+  font-size: .7273rem;
+  line-height: 1.35;
+  color: var(--encre-douce);
+}
+
+/* Le texte du langage choisi passe à l'accent, et sa coche s'allume —
+   la même coche que les bascules des réglages, pour qu'il n'y ait qu'un
+   seul signe « c'est celui-là » dans tout l'outil. */
+.at-langue-menu .at-menu-item[aria-pressed="true"] b { color: var(--accent-sombre); }
+
+.at-langue-menu .at-coche { margin-top: .15rem; flex: none; }
+
+@media (max-width: 760px) {
+  .at-langue-etiquette { display: none; }
+}
+
+@media (max-width: 560px) {
+  /* Sur un petit écran, le bouton se retrouve à droite de « Exécuter » :
+     un panneau calé sur son bord GAUCHE partirait hors de l'écran. On
+     l'accroche donc à son bord droit, et il rentre toujours. Mesuré :
+     sans cette règle, le panneau affleurait le bord à 375 px de large. */
+  .at-langue-menu {
+    left: auto;
+    right: 0;
+    min-width: 0;
+    width: calc(100vw - 2.4rem);
+    max-width: 20rem;
+  }
 }
 
 
