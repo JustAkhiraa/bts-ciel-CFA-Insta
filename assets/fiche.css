@@ -4179,6 +4179,50 @@ html[data-theme="bristol"] .lan-gtitre {
   border-bottom: 2px solid var(--encre); padding-bottom: .25rem;
 }
 
+/* ═══════════════════════════════════════════ BRISTOL, LA FACE DE NUIT ═══
+   Signalé : « le mode nuit ne fonctionne pas avec Bristol ».
+
+   Il ne fonctionnait pas, et la cause est en deux temps. Le drapeau « duo »
+   est posé dans app.js sur TOUT le dernier groupe de thèmes — et Bristol a
+   été rangé dans ce groupe. Il est donc déclaré « thème à deux faces » : la
+   lune ne le quitte pas, elle lui demande sa face de nuit. Comme cette face
+   n'existait pas, le bouton posait data-sombre="1" et rien ne répondait.
+
+   Ce qui définit Bristol n'est pas sa couleur, c'est sa FORME : rayon zéro,
+   trait de 2 px, ombre portée sans flou, titres en capitales lourdes. Cette
+   forme vaut de jour comme de nuit — exactement l'argument écrit dans
+   app.js pour les univers. On ne redéfinit donc que les jetons : toutes les
+   règles de Bristol passent déjà par « var(--encre) » et suivent d'elles-
+   mêmes. L'ombre devient crème, puisqu'une ombre d'encre sur un fond
+   d'encre ne se voit pas. */
+html[data-theme="bristol"][data-sombre="1"],
+html[data-theme="bristol"][data-sombre="1"] [data-matiere] {
+  --papier:#17121F; --carte:#221B2D; --carte-creuse:#1C1626;
+  --bord:#EFE5D5; --bord-fort:#EFE5D5;
+  --encre:#F7EFE2; --encre-douce:#D2C5B1; --encre-tenue:#A79882;
+  --accent:#FF79AE; --accent-pale:#3B2438; --accent-sombre:#FFAACB;
+  --sur-accent:#17121F;
+  --ambiance-sombre: 1;
+  --vert:#7FE3AC;   --vert-pale:#17382A;   --vert-bord:#EFE5D5;
+  --ambre:#FFCC63;  --ambre-pale:#3A2D11;  --ambre-bord:#EFE5D5;
+  --ambre-sombre:#FFCC63;
+  --rouge:#FF9393;  --rouge-pale:#3B1D21;  --rouge-bord:#EFE5D5;
+}
+html[data-theme="bristol"][data-sombre="1"] {
+  --ombre:4px 4px 0 #EFE5D5; --ombre-haut:6px 6px 0 #EFE5D5;
+}
+/* Le grain du papier kraft s'inverse : des points sombres sur un fond
+   sombre ne sont rien du tout. */
+html[data-theme="bristol"][data-sombre="1"] body {
+  background-image: radial-gradient(#EFE5D514 1.2px, transparent 1.4px);
+}
+/* L'onglet courant garde son jaune — mais son texte ne peut plus être
+   « --encre », qui vient de passer en crème : crème sur jaune ne se lit
+   pas. Il reprend l'encre du jour, qui est ici la couleur du papier. */
+html[data-theme="bristol"][data-sombre="1"] .lan-dest > a[aria-current] {
+  background:#FFD84A; color:#17121F;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    COQUILLE — accueil, pages de matière, recherche
    Ne concerne que les pages de navigation. Les fiches gardent theme.css.

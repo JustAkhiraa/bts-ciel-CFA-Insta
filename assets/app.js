@@ -897,6 +897,30 @@
      puissent faire le geste. */
   window.CIEL.dispo = function (idTheme) { Dispo.appliquer(idTheme); };
 
+  /* LE REGISTRE DES THÈMES, exposé aux bancs.
+
+     Les deux bancs tenaient chacun leur propre copie de la liste — des
+     identifiants recopiés à la main, plus celle des thèmes à deux faces.
+     Trois listes pour une vérité, et c'est la troisième fois que ça mord :
+     un thème ajouté ici restait invisible là-bas, et la mesure annonçait
+     « tout va bien » sans l'avoir regardé. Le pire cas s'est produit —
+     « le mode nuit ne fonctionne pas avec Bristol » : personne, dans toute
+     la chaîne, ne savait que ce thème avait une seconde face.
+
+     La liste est donc PRISE ICI, où elle est écrite. Un banc qui lit ce
+     crochet ne peut plus mesurer un catalogue périmé. */
+  window.CIEL.themes = (function () {
+    var out = [];
+    for (var i = 0; i < GROUPES.length; i++) {
+      var items = GROUPES[i].items;
+      for (var j = 0; j < items.length; j++) {
+        if (!items[j].id) continue;             // « Système » n'est pas un thème
+        out.push({ id: items[j].id, sombre: !!items[j].sombre, duo: !!items[j].duo });
+      }
+    }
+    return out;
+  })();
+
   function construireFeuille() {
     leVoile();
 
