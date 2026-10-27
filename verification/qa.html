@@ -28,7 +28,8 @@ réécriture a effacé deux fonctions sans que rien ne le signale — les
 <b>erreurs JavaScript</b> et les <b>ressources introuvables</b>. Il relit aussi les
 <b>schémas</b> : deux étiquettes superposées donnent une bouillie illisible, et rien
 dans le HTML ne le signale. Il croise toutes les
-pages aux trois largeurs de référence, puis un échantillon sur les 41 thèmes.</p>
+pages aux trois largeurs de référence, puis un échantillon sur les
+<b id="nb-themes">…</b> thèmes.</p>
 <button id="go">Lancer le contrôle</button>
 <div id="etat"></div>
 <div id="journal"></div>
@@ -40,7 +41,12 @@ const THEMES = ["light","sand","cream","dawn","sakura","porcelain","linen","mist
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
   "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
-  "console-bleue"];
+  "console-bleue","bristol"];
+/* Le chapeau annonçait « 41 thèmes » alors que la liste en contenait 42 :
+   un banc qui récite un chiffre périmé apprend à ne plus le lire. Il le
+   compte, maintenant, sur la liste qu'il balaye vraiment. */
+document.getElementById("nb-themes").textContent = THEMES.length;
+
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
@@ -141,7 +147,14 @@ function charger(url) {
    l'affichage — là où l'ancienne ligne ne regardait qu'une globale. */
 async function coquilleVivante(fen, doc) {
   const manques = [];
-  if (!doc.querySelector(".barre-outils, .app-tete nav button")) manques.push("aucune commande posée");
+  /* La barre du style « lanceur » est fabriquée par app.js : elle REMPLACE
+     « .app-tete », qui passe à display:none et dont les boutons déménagent.
+     Le banc ne connaissait que l'ancienne, et accusait donc 22 pages qui
+     portent pourtant tout ce qu'il faut. Vérifié à la main sur annales.html :
+     la barre est là, « / » ouvre la palette, et le focus tombe sur #qp.
+     Un garde qui crie au loup sur 22 pages saines finit par ne plus être lu. */
+  if (!doc.querySelector(".barre-outils, .app-tete nav button, .lan-actions"))
+    manques.push("aucune commande posée");
   if (doc.getElementById("q") && !doc.getElementById("resultats")) manques.push("champ sans liste de résultats");
 
   /* Deux surfaces, et « / » ne mène pas à la même : l'accueil a son propre

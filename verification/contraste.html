@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=84366a9d">
+<link rel="stylesheet" href="../assets/fiche.css?v=133f36e7">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -30,8 +30,7 @@
 
 <h1>Contrôle du contraste</h1>
 <p class="chapeau">Chaque texte du site est mesuré contre son fond réel, sur
-   <strong>les 41 thèmes</strong> — les 24 ambiances et les 17 univers de jeu
-   ou d'écran — sur 17 pages.
+   <strong>les <span id="nb-themes">…</span> thèmes</strong> — sur 17 pages.
    Seuil AA : 4,5:1, ramené à 3:1 pour le grand texte.</p>
 <p class="chapeau">Le <strong>village 3D</strong> a sa propre campagne, plus bas :
    son axe n'est pas les thèmes mais les deux heures, et sous son texte il n'y a
@@ -85,14 +84,19 @@
 <p id="banniere" aria-live="polite"></p>
 
 <script>
-/* Les 41 thèmes, y compris les quinze « jeux et écrans ». Le sélecteur
+/* Les thèmes balayés, « jeux et écrans » compris. Le sélecteur
    d'accent a disparu des réglages : il n'y a plus qu'un axe à croiser. */
 const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","frost",
   "peachlight","mintlight","marble","dark","emerald","ocean","mocha","nordic","carbon",
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
   "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
-  "console-bleue"];
+  "console-bleue","bristol"];
+/* Le chapeau annonçait « 41 thèmes » alors que la liste en contenait 42 :
+   un banc qui récite un chiffre périmé apprend à ne plus le lire. Il le
+   compte, maintenant, sur la liste qu'il balaye vraiment. */
+document.getElementById("nb-themes").textContent = AMB.length;
+
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
@@ -102,7 +106,7 @@ const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","ros
    la moitié du site sans contrôle — et c'est justement la moitié neuve. */
 const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
   "determination","velours","neon-lime","androide","grand-large","cahier-rose",
-  "console-blanche","bloc-notes","liquid","zellige","console-bleue"]);
+  "console-blanche","bloc-notes","liquid","zellige","console-bleue","bristol"]);
 function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 /* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
    interligne serré ne change pas le contraste, mais une largeur « pleine »
@@ -467,6 +471,44 @@ function fondDuCode(doc, vue) {
   return pre ? vue.getComputedStyle(pre).backgroundColor : "";
 }
 
+/* ── La liste des thèmes ne doit plus pouvoir diverger en silence ────────
+   Ce banc tenait sa propre copie du catalogue : les identifiants, et ceux
+   des thèmes à deux faces. app.js tient la sienne, qui est la vraie. Trois
+   fois déjà un thème ajouté d'un côté est resté invisible de l'autre, et
+   le banc a répondu « OK » sans l'avoir regardé — la dernière fois, c'est
+   une face de nuit entière qui manquait sans que rien ne le dise.
+
+   On ne recopie plus : on CONFRONTE, à la première page chargée, et tout
+   écart devient une anomalie affichée. Un garde qui ne peut pas se
+   déclencher ne prouve rien. */
+let registreVu = false;
+function confronterRegistre(win) {
+  if (registreVu) return;
+  const vrai = win && win.CIEL && win.CIEL.themes;
+  if (!vrai) return;                 /* page sans app.js : rien à confronter */
+  registreVu = true;
+  const ids = new Set(vrai.map(t => t.id));
+  const manquants = vrai.filter(t => !AMB.includes(t.id)).map(t => t.id);
+  const fantomes  = AMB.filter(id => !ids.has(id));
+  const duoRates  = vrai.filter(t => t.duo && !DUO.has(t.id)).map(t => t.id);
+  const duoTrop   = [...DUO].filter(id => {
+    const t = vrai.find(x => x.id === id); return t && !t.duo;
+  });
+  const ecarts = [];
+  if (manquants.length) ecarts.push("jamais mesuré(s) : " + manquants.join(", "));
+  if (fantomes.length)  ecarts.push("thème(s) disparu(s) du site : " + fantomes.join(", "));
+  if (duoRates.length)  ecarts.push("face de nuit non mesurée : " + duoRates.join(", "));
+  if (duoTrop.length)   ecarts.push("plus de deux faces annoncées à tort : " + duoTrop.join(", "));
+  if (ecarts.length) {
+    const d = document.getElementById("journal") || document.body;
+    const p = document.createElement("p");
+    p.className = "ko";
+    p.textContent = "⚠️ la liste de ce banc ne correspond plus au site — "
+                  + ecarts.join(" · ");
+    d.prepend(p);
+  }
+}
+
 function charger(url) {
   return new Promise(res => {
     const f = document.getElementById("cadre");
@@ -487,7 +529,11 @@ function charger(url) {
         const h = l.getAttribute("href").split(/[?&]m=\d+/)[0];
         l.href = h + (h.includes("?") ? "&" : "?") + "m=" + Date.now();
       })));
-    f.onload = async () => { await rafraichirStyles(f.contentDocument); res(f); };
+    f.onload = async () => {
+      await rafraichirStyles(f.contentDocument);
+      confronterRegistre(f.contentWindow);
+      res(f);
+    };
     f.src = url + "?m=" + Date.now();
   });
 }
@@ -630,7 +676,7 @@ document.getElementById("go").addEventListener("click", async () => {
     ? "<p class=\"ko\">⚠️ le fond des blocs de code n'est PAS le même partout — "
       + "une seule palette de coloration ne suffit plus : "
       + [...fondsCode].slice(0, 4).join(" · ") + "</p>"
-    : "<p>fond des blocs de code : " + fondRef + " sur les 41 thèmes — "
+    : "<p>fond des blocs de code : " + fondRef + " sur les " + AMB.length + " thèmes — "
       + "une palette suffit.</p>";
   /* Un banc qui ne mesure rien annonce « OK ». Le nombre de teintes
      réellement rencontrées est donc affiché, et zéro est signalé comme une

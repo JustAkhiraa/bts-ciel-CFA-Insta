@@ -463,6 +463,35 @@ pre { margin: 0; background: #23211E; color: #EDE7DC; border-radius: var(--r);
   font-size: 0.8061rem; line-height: 1.66; }
 pre code { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
 
+/* ── UN BLOC QUI DÉPASSE DE DEUX CARACTÈRES NE DOIT PAS DÉFILER ───────
+   Signalé : sur un téléphone, les matrices étaient coupées en deux. Les
+   mises en page côte à côte ont été reprises une par une, et c'était le
+   vrai défaut. Mais en mesurant après coup, huit blocs du même cours
+   dépassaient encore — de 15 à 80 px. Deux caractères. Rattraper ça en
+   resserrant les espaces, c'est courir après des caractères à chaque
+   nouveau cours écrit, et perdre la course.
+
+   Alors le bloc rétrécit JUSTE ASSEZ pour tenir. publier.py relève la
+   plus longue ligne de chaque bloc et l'écrit dans « --car » ; la règle
+   en déduit la taille qui fait entrer cette ligne dans la largeur
+   disponible. Trois bornes la tiennent :
+     · jamais plus grand que la taille normale — sur un écran large,
+       rien ne change, le calcul est simplement ignoré par le « max » ;
+     · jamais plus petit que 0,6 rem, soit 9,9 px — en dessous on ne lit
+       plus, et il vaut mieux faire défiler ;
+     · le facteur 0,67 est la largeur d'un caractère de cette fonte,
+       rapportée à sa taille. Mesuré dans la page, pas supposé : 43
+       caractères à 10,56 px occupaient 301 px de texte.
+
+   Ce qui dépasse encore est le code long — jusqu'à 315 caractères sur
+   une ligne de C. Celui-là DOIT défiler : on ne lit pas du C à 5 px.
+   « clip » n'irait pas ici, et « inline-size » est le seul type de
+   conteneur qui laisse la hauteur libre. */
+.bloc-code pre { container-type: inline-size; }
+.bloc-code pre code {
+  font-size: clamp(0.6rem, calc(100cqi / (var(--car, 40) * 0.67)), 0.8061rem);
+}
+
 /* ------------------------------------------- coloration du code publié
    Demandé : colorer chaque élément et chaque attribut, comme le fait
    l'éditeur — c'est ce qui rend un bloc lisible d'un coup d'œil.
@@ -1531,9 +1560,7 @@ html[data-theme="voxel"] h1,
 html[data-theme="voxel"] h2,
 html[data-theme="voxel"] h3,
 html[data-theme="voxel"] .app-marque,
-html[data-theme="voxel"] .heros p,
-html[data-theme="voxel"] .chiffres strong,
-html[data-theme="voxel"] .chiffres span { text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+html[data-theme="voxel"] .heros p { text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
 html[data-theme="voxel"] h1, html[data-theme="voxel"] h2 { letter-spacing:.01em; font-weight:400; }
 html[data-theme="voxel"] .heros h1 span { color:#FCFC54; }   /* le jaune du titre */
 html[data-theme="voxel"] .heros::before { background:none; }
@@ -2391,9 +2418,7 @@ html[data-theme="voxel"][data-sombre="0"] h1,
 html[data-theme="voxel"][data-sombre="0"] h2,
 html[data-theme="voxel"][data-sombre="0"] h3,
 html[data-theme="voxel"][data-sombre="0"] .app-marque,
-html[data-theme="voxel"][data-sombre="0"] .heros p,
-html[data-theme="voxel"][data-sombre="0"] .chiffres strong,
-html[data-theme="voxel"][data-sombre="0"] .chiffres span { text-shadow:none; }
+html[data-theme="voxel"][data-sombre="0"] .heros p { text-shadow:none; }
 html[data-theme="voxel"][data-sombre="0"] .heros h1 span { color:#8A5F00; }
 
 /* ─────────────────────────────────────────────────────── PIXEL en clair */
@@ -3469,7 +3494,7 @@ html[data-dispo="wii"] .app-pied { display: none; }
 /* L'en-tête se fait oublier : sur le menu d'une console, rien ne précède les
    chaînes. On la garde — c'est la seule navigation du site — mais réduite. */
 html[data-dispo="wii"] .app-tete { box-shadow: none; background: transparent; }
-html[data-dispo="wii"] .heros, html[data-dispo="wii"] .chiffres,
+html[data-dispo="wii"] .heros,
 html[data-dispo="wii"] .bandeau-plan { opacity: .92; }
 
 /* LES CHAÎNES. Des carrés tous égaux, blanc laqué, coins très arrondis,
@@ -3961,6 +3986,274 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
   html[data-dispo] .liste-chapitres .chapitre { aspect-ratio: auto; }
 }
 
+/* ─────────────────────────────────────────────────── BRISTOL (néo-brutaliste)
+   Demandé : le style d'un site de classement d'IA, « exactement le même ».
+
+   Ce qui fait ce style n'est pas une couleur, c'est une GRAMMAIRE, et elle
+   tient en quatre règles. Relevées sur la page, pas devinées :
+
+     le rayon est ZÉRO           les angles sont vifs, sauf les onglets
+     l'ombre n'a pas de flou     4px 4px 0 — un carton posé sur la table
+     le trait est plein et noir  2px, la couleur de l'encre, jamais un gris
+     le titre est lourd          900, capitales, chasse resserrée
+
+   Le fond est un kraft piqué d'une trame de points — pas un aplat : c'est
+   ce grain qui fait « papier » plutôt que « écran ».
+
+   La police d'origine est Montserrat, servie par Google. Le dépôt n'a aucun
+   CDN (CLAUDE.md) et n'embarque aucune police : on garde donc la pile du
+   site et on va chercher le caractère dans le POIDS et la CASSE, qui font
+   l'essentiel du travail. Embarquer Montserrat — elle est libre — reste
+   possible : c'est un fichier dans le dépôt, pas une dépendance externe. */
+html[data-theme="bristol"], html[data-theme="bristol"] [data-matiere] {
+  --papier:#F3EADB; --carte:#FFF6E8; --carte-creuse:#F8EEDD;
+  --bord:#1A1026; --bord-fort:#1A1026;
+  --encre:#1A1026; --encre-douce:#4A3950; --encre-tenue:#6E5C78;
+  --accent:#D6246E; --accent-pale:#CFE9FF; --accent-sombre:#A8004E;
+  --sur-accent:#FFF6E8;
+  --ambiance-sombre: 0;
+
+  /* Les encadrés du site tirent leur fond d'un jeton « pâle ». Dans ce
+     style, un encadré n'est pas une teinte : c'est un APLAT, cerné du même
+     trait noir que tout le reste. On remplace donc les six teintes par les
+     couleurs franches de la palette — et les bords par l'encre.
+
+     Les fonds restent assez clairs pour porter du texte foncé : c'est la
+     condition pour passer le banc de contraste, qui mesure chaque texte
+     contre son fond réel sur les 42 thèmes. */
+  --vert:#0B5132;   --vert-pale:#C8F4DA;   --vert-bord:#1A1026;
+  --ambre:#7A4E00;  --ambre-pale:#FFEFB0;  --ambre-bord:#1A1026;
+  --ambre-sombre:#7A4E00;
+  --rouge:#A8004E;  --rouge-pale:#FFD9D9;  --rouge-bord:#1A1026;
+}
+html[data-theme="bristol"] {
+  /* Montserrat est une GÉOMÉTRIQUE : ses lettres sont construites sur le
+     cercle et le trait d'égale épaisseur. La police système d'un Mac est une
+     néo-grotesque — même graisse, dessin différent. On demande donc d'abord
+     les géométriques présentes sur les machines, et on retombe sur le
+     système si aucune n'est là. Aucun téléchargement, aucun CDN.
+
+     Pour l'avoir exactement : Montserrat est sous licence libre (SIL OFL),
+     donc on PEUT la poser dans « assets » et la servir soi-même. Ce n'est
+     pas une dépendance externe, c'est un fichier du dépôt — mais c'est un
+     fichier tiers qui part sur un dépôt public, alors je ne l'ajoute pas
+     sans que ce soit demandé. */
+  --r:0px; --r-l:0px;
+  --ombre:4px 4px 0 #1A1026;
+  --ombre-haut:6px 6px 0 #1A1026;
+}
+/* « data-police » vaut TOUJOURS quelque chose — « systeme » par défaut.
+   Poser « --sans » sur le thème seul écraserait donc le choix de police du
+   lecteur : serif et mono n'auraient plus aucun effet sous ce thème. On ne
+   remplace la pile que dans le cas par défaut ; dès qu'il a choisi, c'est
+   son choix qui parle. */
+html[data-theme="bristol"][data-police="systeme"] {
+  --sans: "Avenir Next", Avenir, "Century Gothic", Futura, "Trebuchet MS",
+          system-ui, -apple-system, sans-serif;
+  --titre-accent: var(--sans);
+}
+
+/* Le grain du papier. 18 px : assez serré pour se lire comme une texture,
+   assez lâche pour ne pas moirer sur un écran à forte densité. */
+html[data-theme="bristol"] body {
+  background-image: radial-gradient(#1A102614 1.2px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+/* Les CARTES — et elles seules — prennent le trait plein et l'ombre dure.
+
+   Signalé, capture à l'appui : « c'est très laid ». Ça l'était, et la faute
+   était de poser ce cadre partout. Un trait noir de 2 px est un geste FORT :
+   sur un objet détaché il dit « carte posée sur la table » ; sur une barre
+   pleine largeur, sur un sommaire repliable, sur un bloc de code déjà cerné,
+   il ne dit plus rien — les traits s'empilent et se touchent, et on obtient
+   des barres noires qui encadrent du vide.
+
+   La règle est donc : ce qui est une carte reçoit le cadre, ce qui est de la
+   CHARPENTE n'en reçoit pas. Le sommaire, les blocs de code et la feuille
+   gardent le dessin du site. */
+html[data-theme="bristol"] .carte-matiere,
+html[data-theme="bristol"] .chapitre,
+html[data-theme="bristol"] .encart,
+html[data-theme="bristol"] .devoir,
+html[data-theme="bristol"] .memo,
+html[data-theme="bristol"] .quiz {
+  border:2px solid var(--encre); box-shadow: var(--ombre);
+}
+/* Deux cadres qui se touchent font un trait de 4 px et un couloir mort :
+   une carte DANS une carte perd son ombre et s'allège. */
+html[data-theme="bristol"] .encart .encart,
+html[data-theme="bristol"] .quiz .encart,
+html[data-theme="bristol"] .devoir .encart,
+html[data-theme="bristol"] .chapitre .encart {
+  box-shadow: none; border-width: 1px;
+}
+/* Le sommaire n'est pas une carte : c'est une barre. Un filet dessous
+   suffit à le poser, et rien ne vient l'encadrer. */
+html[data-theme="bristol"] .sommaire {
+  border: 0; border-bottom: 2px solid var(--encre); box-shadow: none;
+}
+/* Les titres : lourds, en capitales, serrés. La chasse négative est ce qui
+   distingue un titre « brutaliste » d'un titre simplement gras. */
+html[data-theme="bristol"] h1,
+html[data-theme="bristol"] h2 {
+  font-weight:900; text-transform:uppercase; letter-spacing:-.025em;
+  line-height:1.05;
+}
+html[data-theme="bristol"] h3 { font-weight:800; letter-spacing:-.01em; }
+/* Signalé : les pastilles de la barre étaient sales. Elles l'étaient.
+
+   Relevé sur le site d'origine, bouton par bouton : l'ombre orange
+   n'apparaît QUE sous les boutons pleins, ceux qui n'ont aucune bordure.
+   Dès qu'un objet porte un trait d'encre, son ombre est encre elle aussi.
+   J'avais mis les deux sur le même objet — ça n'existe nulle part là-bas,
+   et sur une pastille de 36 px ce n'était pas un relief, c'était une
+   bavure d'impression qui s'échappait de sous une boîte noire. */
+html[data-theme="bristol"] .quiz button,
+html[data-theme="bristol"] .pastilles button,
+html[data-theme="bristol"] .bouton-hasard,
+html[data-theme="bristol"] .mini,
+html[data-theme="bristol"] .lan-dest > a,
+html[data-theme="bristol"] button.lan-de,
+html[data-theme="bristol"] .chapitre .liens a,
+html[data-theme="bristol"] .reglage-liens a {
+  border:2px solid var(--encre); box-shadow:3px 3px 0 var(--encre);
+  font-weight:800;
+}
+/* Les petites commandes de la barre portent la même chose en plus court :
+   deux pixels. C'est ce que mesure la plus petite commande de l'original. */
+html[data-theme="bristol"] .lan-nav > :is(button, a),
+html[data-theme="bristol"] .lan-plus > summary {
+  border:2px solid var(--encre); box-shadow:2px 2px 0 var(--encre);
+}
+/* Au survol, la carte « s'enfonce » : l'ombre se réduit et l'objet avance.
+   C'est le seul mouvement du style, et il doit être net — pas un fondu. */
+html[data-theme="bristol"] .quiz button:hover,
+html[data-theme="bristol"] .chapitre .liens a:hover,
+html[data-theme="bristol"] button.lan-de:hover,
+html[data-theme="bristol"] .lan-dest > a:hover,
+html[data-theme="bristol"] .reglage-liens a:hover {
+  box-shadow:1px 1px 0 var(--encre); transform:translate(2px, 2px);
+}
+html[data-theme="bristol"] .lan-nav > :is(button, a):hover,
+html[data-theme="bristol"] .lan-plus > summary:hover {
+  box-shadow:0 0 0 var(--encre); transform:translate(2px, 2px);
+}
+/* Les onglets gardent leurs deux coins du haut : c'est leur seule rondeur,
+   et elle dit « onglet » mieux qu'un soulignement. */
+html[data-theme="bristol"] .lan-dest > a[aria-current] {
+  border-radius:8px 8px 0 0; background:#FFD84A; color:var(--encre);
+}
+
+/* Le style « lanceur » — celui par défaut — aplatit volontairement la liste
+   des chapitres : « border: 0 » et un filet entre les lignes, pour tenir
+   douze chapitres sans scroller. Sa règle est plus spécifique que la mienne,
+   et elle gagnait.
+
+   Mais une carte posée avec son ombre EST le geste de ce style : sans elle,
+   il ne reste que des couleurs. On la reprend donc, en gardant le
+   rembourrage serré du lanceur — on veut des cartes, pas une liste deux
+   fois plus longue. */
+html[data-theme="bristol"][data-style="lanceur"] body:not([data-accueil]) .chapitre {
+  border: 2px solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  margin-bottom: .55rem;
+}
+html[data-theme="bristol"][data-style="lanceur"] body:not([data-accueil]) .chapitre + .chapitre {
+  border-top: 2px solid var(--encre);
+}
+html[data-theme="bristol"][data-style="lanceur"] .chapitre:hover {
+  box-shadow: 1px 1px 0 var(--encre); transform: translate(2px, 2px);
+}
+/* La barre du lanceur touche les bords de la fenêtre : l'encadrer de tous
+   les côtés dessine une boîte autour de rien. Un filet dessous, et c'est
+   tout — comme un onglet posé sur la page. */
+html[data-theme="bristol"] .lan-actions-page {
+  border: 0; border-bottom: 2px solid var(--encre); box-shadow: none;
+}
+
+/* ── L'accueil ────────────────────────────────────────────────────────
+   C'est la page qu'on voit le plus, et elle n'avait rien reçu : ses
+   rangées ne sont ni des « .chapitre » ni des « .encart », et la règle des
+   cartes l'écarte explicitement (« body:not([data-accueil]) »).
+
+   Les rangées deviennent donc des cartes, et les pastilles d'outils
+   prennent le trait et l'ombre comme les autres boutons. Le GROUPE qui les
+   contient, lui, n'est pas encadré : deux cadres emboîtés font le défaut
+   qu'on vient de corriger ailleurs. */
+html[data-theme="bristol"] body[data-accueil] .lan-ligne {
+  border: 2px solid var(--encre);
+  box-shadow: 3px 3px 0 var(--encre);
+  border-radius: 0;
+}
+html[data-theme="bristol"] body[data-accueil] .lan-ligne:hover {
+  box-shadow: 1px 1px 0 var(--encre); transform: translate(2px, 2px);
+}
+html[data-theme="bristol"] .lan-oc {
+  border: 2px solid var(--encre);
+  box-shadow: 2px 2px 0 var(--encre);
+  border-radius: 0;
+}
+html[data-theme="bristol"] .lan-oc:hover {
+  box-shadow: 0 0 0 var(--encre); transform: translate(2px, 2px);
+}
+/* Le champ de recherche : le trait franc, et le fond du papier. */
+html[data-theme="bristol"] .lan-entree,
+html[data-theme="bristol"] .recherche input,
+html[data-theme="bristol"] #q {
+  border: 2px solid var(--encre); border-radius: 0;
+  background: var(--carte); box-shadow: 3px 3px 0 var(--encre);
+}
+/* Le titre d'un groupe : petit, en capitales, souligné d'un filet franc —
+   c'est l'étiquette d'un classeur, pas un titre de section. */
+html[data-theme="bristol"] .lan-gtitre {
+  font-weight: 900; letter-spacing: .06em;
+  border-bottom: 2px solid var(--encre); padding-bottom: .25rem;
+}
+
+/* ═══════════════════════════════════════════ BRISTOL, LA FACE DE NUIT ═══
+   Signalé : « le mode nuit ne fonctionne pas avec Bristol ».
+
+   Il ne fonctionnait pas, et la cause est en deux temps. Le drapeau « duo »
+   est posé dans app.js sur TOUT le dernier groupe de thèmes — et Bristol a
+   été rangé dans ce groupe. Il est donc déclaré « thème à deux faces » : la
+   lune ne le quitte pas, elle lui demande sa face de nuit. Comme cette face
+   n'existait pas, le bouton posait data-sombre="1" et rien ne répondait.
+
+   Ce qui définit Bristol n'est pas sa couleur, c'est sa FORME : rayon zéro,
+   trait de 2 px, ombre portée sans flou, titres en capitales lourdes. Cette
+   forme vaut de jour comme de nuit — exactement l'argument écrit dans
+   app.js pour les univers. On ne redéfinit donc que les jetons : toutes les
+   règles de Bristol passent déjà par « var(--encre) » et suivent d'elles-
+   mêmes. L'ombre devient crème, puisqu'une ombre d'encre sur un fond
+   d'encre ne se voit pas. */
+html[data-theme="bristol"][data-sombre="1"],
+html[data-theme="bristol"][data-sombre="1"] [data-matiere] {
+  --papier:#17121F; --carte:#221B2D; --carte-creuse:#1C1626;
+  --bord:#EFE5D5; --bord-fort:#EFE5D5;
+  --encre:#F7EFE2; --encre-douce:#D2C5B1; --encre-tenue:#A79882;
+  --accent:#FF79AE; --accent-pale:#3B2438; --accent-sombre:#FFAACB;
+  --sur-accent:#17121F;
+  --ambiance-sombre: 1;
+  --vert:#7FE3AC;   --vert-pale:#17382A;   --vert-bord:#EFE5D5;
+  --ambre:#FFCC63;  --ambre-pale:#3A2D11;  --ambre-bord:#EFE5D5;
+  --ambre-sombre:#FFCC63;
+  --rouge:#FF9393;  --rouge-pale:#3B1D21;  --rouge-bord:#EFE5D5;
+}
+html[data-theme="bristol"][data-sombre="1"] {
+  --ombre:4px 4px 0 #EFE5D5; --ombre-haut:6px 6px 0 #EFE5D5;
+}
+/* Le grain du papier kraft s'inverse : des points sombres sur un fond
+   sombre ne sont rien du tout. */
+html[data-theme="bristol"][data-sombre="1"] body {
+  background-image: radial-gradient(#EFE5D514 1.2px, transparent 1.4px);
+}
+/* L'onglet courant garde son jaune — mais son texte ne peut plus être
+   « --encre », qui vient de passer en crème : crème sur jaune ne se lit
+   pas. Il reprend l'encre du jour, qui est ici la couleur du papier. */
+html[data-theme="bristol"][data-sombre="1"] .lan-dest > a[aria-current] {
+  background:#FFD84A; color:#17121F;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    COQUILLE — accueil, pages de matière, recherche
    Ne concerne que les pages de navigation. Les fiches gardent theme.css.
@@ -4157,7 +4450,12 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
 }
 .chapitre .txt p { margin: .15rem 0 0; font-size: 0.8rem; color: var(--encre-douce); }
 .chapitre .liens { grid-area: liens; display: flex; gap: .35rem; flex-wrap: wrap; }
+/* Cours, Exercices, Fiche, QCM : quatre liens côte à côte sur chaque ligne
+   de chapitre, et les plus cliqués du site. Mesurés à 29 px de haut — sous
+   le plancher de 34. On ne touche pas au rembourrage, qui fixe la largeur :
+   une hauteur minimale suffit, et le texte reste centré. */
 .chapitre .liens a {
+  display: inline-flex; align-items: center; min-height: 36px;
   padding: .34rem .7rem; border-radius: 8px; text-decoration: none;
   border: 1px solid var(--bord); background: var(--carte-creuse);
   color: var(--encre-douce); font-size: 0.7576rem; font-weight: 650;
@@ -4170,20 +4468,6 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
   .chapitre .liens { margin-top: .5rem; }
 }
 
-/* ───────────────────────────────────────────────────────────── chiffres */
-.chiffres {
-  display: flex; flex-wrap: wrap; gap: 1.6rem 2.6rem; justify-content: center;
-  margin-top: 2.2rem;
-}
-.chiffres div { text-align: center; }
-.chiffres strong {
-  display: block; font-size: 1.9rem; font-weight: 800; color: var(--encre);
-  letter-spacing: -.02em; line-height: 1;
-}
-.chiffres span {
-  display: block; margin-top: .25rem; font-size: 0.697rem; color: var(--encre-tenue);
-  text-transform: uppercase; letter-spacing: .08em; font-weight: 700;
-}
 
 /* ─────────────────────────────────────────────────────────────── pied */
 .app-pied {
@@ -4217,6 +4501,9 @@ html[data-anim="1"] .dispo-heure .dispo-deux { animation: dispo-clin 2s steps(1)
 .bouton-rond {
   width: 36px; height: 36px; flex: none; border-radius: 10px; cursor: pointer;
   display: grid; place-items: center; padding: 0;
+  /* Ce sont des <button> : sans « appearance », le navigateur garde la main
+     sur leur fond et leur police. Relevé au même endroit que « .lan-de ». */
+  appearance: none; -webkit-appearance: none; font-family: inherit;
   background: transparent; color: var(--encre-douce);
   border: 1px solid transparent; font-size: 0.9091rem; line-height: 1;
   transition: background .15s, color .15s, border-color .15s;
@@ -4341,6 +4628,29 @@ html[data-anim="0"] .bouton-3d::before { display: none; }
   letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue);
 }
 .reglage > p { margin: 0 0 .7rem; font-size: 0.7758rem; color: var(--encre-tenue); line-height: 1.5; }
+
+/* ── les mondes, en liens directs ─────────────────────────────────────
+   Les pastilles au-dessus choisissent l'ACCUEIL : elles n'emmènent nulle
+   part avant le prochain chargement de l'accueil. Ces liens-ci partent
+   tout de suite, et ne changent rien au réglage — aller voir l'île ne
+   devrait pas obliger à faire de l'île son accueil, puis à revenir
+   défaire le réglage.
+   Quarante pixels de haut : c'est un lien qu'on touche au doigt. Tout
+   est dit en jetons, donc les quarante-deux thèmes l'habillent sans une
+   règle de plus. */
+.reglage-liens { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0; }
+.reglage-liens a {
+  display: inline-flex; align-items: center; gap: .35rem;
+  min-height: 40px; padding: 0 .8rem;
+  border: 1px solid var(--bord); border-radius: 10px;
+  background: var(--carte-creuse); color: var(--encre);
+  text-decoration: none; font-size: 0.7758rem; font-weight: 640;
+  transition: background .13s, border-color .13s, color .13s;
+}
+.reglage-liens a::after { content: "\203A"; font-weight: 800; opacity: .55; }
+.reglage-liens a:is(:hover, :focus-visible) {
+  background: var(--accent-pale); border-color: var(--accent); color: var(--accent-sombre);
+}
 
 .pastilles { display: flex; flex-wrap: wrap; gap: .45rem; }
 .pastilles button {
@@ -4727,8 +5037,6 @@ html[data-anim="0"] .apparait { opacity: 1; }
   .resultats { max-height: 52vh; }
   .grille-matieres { grid-template-columns: 1fr; gap: .7rem; margin-top: 1.6rem; }
   .carte-matiere { padding: 1.1rem 1.1rem 1rem; }
-  .chiffres { gap: 1.1rem 1.6rem; }
-  .chiffres strong { font-size: 1.55rem; }
   .feuille-corps { padding: .4rem .95rem 1.2rem; }
   .pastilles button { padding: .44rem .7rem; }   /* ≥ 38 px de haut : cible tactile */
 }
@@ -5358,7 +5666,22 @@ td.etat.sur   { color: var(--vert); }
    Seule l'imminence ajoute un signal, et elle est calculée dans le
    navigateur — une échéance écrite en dur vieillit mal.
    ═══════════════════════════════════════════════════════════════════════ */
-.dev-liste { display: grid; gap: 1.1rem; margin-top: 2rem; }
+/* Mesuré par le banc de rendu : dans le repli des devoirs PASSÉS, à 375 px
+   de large, la page partait à 779 px — elle se décalait au doigt. La grille
+   faisait 350 px de large et sa colonne en calculait 750.
+
+   La cause est le duo par défaut de la grille : une colonne implicite vaut
+   « auto », qui se dimensionne sur le contenu, et un élément de grille a
+   « min-width: auto », donc il refuse de se réduire. Rien ne ramenait la
+   colonne à la largeur disponible.
+
+   « minmax(0, 1fr) » dit les deux : minimum ZÉRO — la colonne a le droit de
+   rétrécir — et maximum une fraction de la place réelle. Vérifié : l'article
+   passe de 750 px à 317 px, et la page tient dans ses 375. */
+.dev-liste {
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: 1.1rem; margin-top: 2rem;
+}
 .devoir {
   position: relative; padding: 1.3rem 1.5rem 1.4rem;
   background: var(--carte); border: 1px solid var(--bord);
@@ -6182,8 +6505,8 @@ td.etat.sur   { color: var(--vert); }
    mode normal, et défile. Elle reste redimensionnable à la main pour qui
    veut la voir plus grande. */
 #atelier.at-grand .at-grille { align-items: start; }
-/* « Je t'ai pas demandé de réduire le programme.c » — et il a raison : en
-   bornant la console j'avais rogné l'éditeur de 2 rem au passage. Il garde
+/* Signalé : l'éditeur avait rétréci alors que personne ne l'avait demandé.
+   En bornant la console je l'avais rogné de 2 rem au passage. Il garde
    exactement la hauteur qu'il avait, celle de la grille en plein écran. */
 #atelier.at-grand .at-volet-code { height: calc(100vh - 7.5rem); }
 #atelier.at-grand .at-volet-sortie {
@@ -6332,7 +6655,8 @@ body.at-fige { overflow: hidden; }
    Quand une échoppe du village ouvre un outil, elle le charge dans un
    « iframe ». L'outil arrivait avec toute la coquille du site : en-tête,
    navigation, et le bouton « 3D » — donc on relançait le village DANS le
-   village. « je t'avais dit que chaque monde est indépendant de l'autre. »
+   village. Rappelé, et c'était déjà la règle : chaque monde reste
+   indépendant de l'autre.
 
    Deux choses disparaissent, et pas une de plus :
 
@@ -6715,9 +7039,9 @@ body.at-fige { overflow: hidden; }
    La vignette reprend le signe que tout le monde connaît déjà : un carré
    arrondi, une grille de petites pastilles dedans, le nom dessous. On
    n'apprend rien à personne, et c'est tout l'intérêt. */
-/* « C'est pas sur la même ligne » : à 7,5 rem de large minimum, deux
-   dossiers seulement tenaient dans le tiroir, et le troisième passait seul à
-   la ligne. Mesuré sur son tiroir : 300 px utiles, 0,6 rem de gouttière —
+/* Signalé : les dossiers ne tombaient pas sur la même ligne. À 7,5 rem de
+   large minimum, deux seulement tenaient dans le tiroir, et le troisième
+   passait seul à la ligne. Mesuré sur son tiroir : 300 px utiles, 0,6 rem de gouttière —
    il faut descendre sous 5,8 rem pour en loger trois. À 5,6 rem, trois
    colonnes font 93 px chacune ; quatre n'en feraient que 68 et ne tiennent
    donc pas. La vignette fait 3,1 rem, « 7 exercices » environ 4,4 rem : la
@@ -7779,7 +8103,8 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
    « jeton sans déclaration » : valide, silencieux, et sans effet.) */
 .at-menu {
   position: absolute; top: calc(100% + .35rem); right: 0; z-index: 40;
-  min-width: 15.5rem; padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
+  min-width: 15.5rem; max-width: calc(100vw - 1.5rem);
+  padding: .3rem; display: flex; flex-direction: column; gap: .1rem;
   background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 12px;
   box-shadow: 0 14px 34px rgba(0,0,0,.22);
 }
@@ -7873,7 +8198,11 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 
 @media (max-width: 760px) {
   .at-surligneur { order: 9; }
-  .at-menu { right: auto; left: 0; }
+  /* Le basculement du menu vers la gauche a été RETIRÉ : il supposait que
+     sous 760 px le bouton est à droite de la barre. Il peut être partout,
+     puisque la barre passe à la ligne — et le menu sortait alors par la
+     droite. C'est « calerPanneau() », dans atelier.js, qui décide
+     maintenant, en mesurant. */
 }
 
 /* ── La barre serrée : une seule rangée, et le badge seul ────────────────
@@ -8276,6 +8605,15 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
   text-transform: none; font-size: .7273rem; text-decoration: none;
   color: color-mix(in srgb, var(--cat, var(--accent)) 78%, var(--encre)); }
 .lan-gtitre a:hover { text-decoration: underline; }
+/* « 12 outils → » et « Tous les devoirs → » mesuraient 21 px de haut : sous
+   le seuil de 34 px, donc ratés au doigt une fois sur trois. La cible monte
+   à 36 px, et les marges négatives la rendent au bandeau — qui garde ses
+   33 px. « align-self » la sort de l'alignement sur la ligne de base, sinon
+   c'est elle qui dicterait la hauteur de la rangée. */
+.lan-gtitre a {
+  display: inline-flex; align-items: center; align-self: center;
+  min-height: 36px; margin-block: -7px;
+}
 
 /* ── La ligne ─────────────────────────────────────────────────────────
    L'heure et le nom se lisent d'un coup ; la fin du cours et la salle
@@ -8362,7 +8700,10 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
    le LIBELLÉ et le FILET, à pleine force : ΔE 13,5. */
 .lan-outils { display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
   gap: .3rem; padding: .15rem .6rem .3rem; }
+/* Les douze pastilles d'outils de l'accueil : 33 px de haut, un pixel sous
+   le plancher. Même correction que pour les liens de chapitre. */
 .lan-oc { display: flex; align-items: center; gap: .33rem; min-width: 0;
+  min-height: 36px;
   padding: .3rem .5rem; border-radius: 9px;
   background: color-mix(in srgb, var(--mat) 16%, var(--carte));
   border: 1px solid color-mix(in srgb, var(--mat) 34%, transparent);
@@ -8382,6 +8723,38 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
 .lan-actions { display: flex; align-items: center; gap: .9rem;
   padding: .45rem .75rem; border-top: 1px solid var(--lan-filet);
   background: var(--lan-creux); }
+
+/* ── LA BARRE DU LANCEUR RESTE ATTEIGNABLE ────────────────────────────
+   Signalé : « quand je vois tout, pas besoin ; mais quand la page est
+   étroite, le menu est en bas et il faut défiler tout en bas pour y
+   accéder ». Exact : la barre est le pied de la fenêtre du lanceur, et
+   sur un écran étroit cette fenêtre fait deux fois et demie la hauteur
+   visible. Le thème, les réglages et le village étaient donc à six cents
+   pixels de défilement de l'endroit où on les cherche.
+
+   Elle reste au bas de la fenêtre — c'est sa place, et la déplacer en
+   haut remettrait sur le lanceur le mobilier de l'ancien site. Elle se
+   COLLE simplement au bas de l'écran tant que la fenêtre dépasse. Aucune
+   largeur de rupture n'est écrite : quand tout tient, « sticky » ne fait
+   rien, et la barre est exactement où elle a toujours été. Une règle qui
+   se désactive toute seule ne peut pas se tromper de seuil.
+
+   « clip » et non « hidden » : les deux coupent aux coins arrondis, mais
+   « hidden » fait de la fenêtre un conteneur de défilement, et une barre
+   collante dans un conteneur aussi haut qu'elle ne colle à rien. C'est
+   mesuré : avec « hidden », la barre restait à 1248 px dans une fenêtre
+   de 812 ; avec « clip », elle remonte à 722 et se voit sans défiler.
+
+   Et le fond devient OPAQUE : « --lan-creux » est une teinte translucide,
+   posée sur le papier de la fenêtre. Collée, elle laissait défiler les
+   cartes au travers. La teinte est donc reposée sur « --carte », qui est
+   le papier de cette fenêtre — même couleur qu'avant, dans les 42 thèmes,
+   mais plus de transparence. */
+html[data-style="lanceur"] body[data-accueil] .lan-fen { overflow: clip; }
+html[data-style="lanceur"] body[data-accueil] .lan-actions {
+  position: sticky; bottom: 0; z-index: 3;
+  background: linear-gradient(var(--lan-creux), var(--lan-creux)), var(--carte);
+}
 .lan-comptes { display: flex; gap: .9rem; flex: 1; min-width: 0;
   font-size: .7576rem; color: var(--encre-tenue); }
 .lan-comptes b { color: var(--encre); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -8394,6 +8767,26 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
 @media (max-width: 560px) { .lan-heure { margin-left: 0; } }
 .lan-act { display: inline-flex; align-items: center; gap: .4rem; flex: none;
   font-size: .7576rem; font-weight: 600; color: var(--encre-douce); }
+
+/* « Au hasard » est un <button>, et aucune règle ne le visait : il gardait
+   le bouton gris du système — fond #EFEFEF, bordure « outset », Arial — sur
+   les 42 thèmes, posé au milieu d'une barre entièrement dessinée. Trouvé en
+   relevant les styles calculés de la barre, pas à l'œil : de loin, un gris
+   clair sur du papier crème passe pour un choix.
+
+   Il reprend donc le vocabulaire de « .bouton-rond », sa voisine immédiate,
+   et sa hauteur de 36 px — la cible tactile du reste de la barre. */
+button.lan-de {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  min-height: 36px; padding: .3rem .66rem; border-radius: 10px;
+  border: 1px solid var(--bord); background: transparent;
+  color: var(--encre-douce); font-family: inherit; line-height: 1.2;
+  transition: background .15s, color .15s, border-color .15s;
+}
+button.lan-de:hover {
+  background: var(--carte-creuse); color: var(--accent-sombre);
+  border-color: var(--bord-fort);
+}
 .lan-k { display: grid; place-items: center; min-width: 20px; height: 20px;
   padding: 0 5px; border-radius: 6px;
   background: color-mix(in srgb, var(--encre) 11%, transparent);
@@ -8513,8 +8906,14 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
 /* Les boutons arrivent de l'en-tête, où ils étaient habillés par
    « .app-tete nav … » ; ce sélecteur ne les suit pas. On les rhabille
    ici, à la taille de la barre. */
+/* Mesuré par le banc de rendu, sur 22 pages : Rechercher, Passer en sombre,
+   Réglages et 3D faisaient 28x28, six pixels sous le plancher de 34. La règle
+   « pointer: coarse » plus bas les passe bien à 40x40 — mais elle ne couvre
+   que les écrans qui se déclarent tactiles. Un portable à écran tactile se
+   déclare « fine », et visait donc 28 px. Le plancher vaut pour tout le
+   monde : on part de 36. */
 .lan-nav > :is(button, a) {
-  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
   border: 1px solid var(--bord); border-radius: 8px;
   background: var(--carte); color: var(--encre-douce); cursor: pointer;
   transition: border-color .14s, color .14s, background .14s;
@@ -8525,13 +8924,15 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
 .lan-nav .ico { width: 15px; height: 15px; }
 /* Le bouton du village garde son relief : c'est le seul de la barre qui
    mène ailleurs, et il le dit. */
-.lan-nav .bouton-3d { width: auto; min-width: 34px; padding: 0 .4rem;
+.lan-nav .bouton-3d { width: auto; min-width: 36px; padding: 0 .4rem;
   font-size: .6667rem; font-weight: 800; letter-spacing: .04em; }
 
 .lan-plus { position: relative; flex: none; }
+/* Le « ⋯ » est dans la même rangée que les quatre boutons d'icône : il suit
+   le même plancher de cible tactile, sans quoi il reste seul à 28 px. */
 .lan-plus > summary {
   list-style: none; cursor: pointer;
-  display: grid; place-items: center; width: 28px; height: 28px;
+  display: grid; place-items: center; width: 36px; height: 36px;
   border: 1px solid var(--bord); border-radius: 8px;
   background: var(--carte); color: var(--encre-douce);
   font-size: .9091rem; line-height: 1;
@@ -8548,11 +8949,13 @@ html[data-style="lanceur"] body[data-accueil] .app-pied { display: none; }
   backdrop-filter: blur(14px) saturate(1.3); box-shadow: var(--ombre-haut);
 }
 .lan-plus-menu :is(a, button) {
+  display: flex; align-items: center; min-height: 36px;
   padding: .4rem .6rem; border-radius: 8px; text-decoration: none;
   color: var(--encre-douce); font-size: .7879rem; font-weight: 600;
   /* Le bouton de bascule vit au milieu de trois liens : il doit leur
      ressembler trait pour trait, sinon il se lit comme un intrus. */
   border: 0; background: none; font-family: inherit; text-align: left;
+  appearance: none; -webkit-appearance: none;
   cursor: pointer; width: 100%;
 }
 .lan-plus-menu :is(a, button):hover { background: var(--lan-choisi); color: var(--encre-forte); }
@@ -8967,8 +9370,14 @@ html[data-style="lanceur"] .lan-actions-bas {
   min-width: 0; flex-wrap: wrap; }
 /* Les quatre destinations reprennent le dessin des pastilles d'outils du
    lanceur : le libellé porte la couleur, pas un cadre autour. */
+/* Mesuré sur 25 pages : 83x33, 89x33, 84x33, 76x33 — un pixel sous le
+   plancher de 34 px des cibles tactiles. Un seul pixel, mais c'est la barre
+   de navigation : elle est sur chaque page, et c'est elle qu'on vise au
+   pouce. On passe à 36 px, ce qui laisse de la marge au-dessus du plancher
+   sans changer la hauteur perçue de la barre. */
 .lan-dest > a {
   display: inline-flex; align-items: center; gap: .35rem;
+  min-height: 36px;
   padding: .3rem .55rem; border-radius: 9px;
   border: 1px solid transparent; background: none;
   color: var(--encre-douce); font-size: .7576rem; font-weight: 650;
@@ -8993,8 +9402,29 @@ html[data-style="lanceur"] body:not([data-accueil]) .fil-app {
 }
 html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top: 0; }
 
+/* Signalé, capture annotée à l'appui : sous 620 px la barre du haut
+   « flottait » — une bande de papier de 23 px au-dessus d'elle, des coins
+   arrondis en BAS, et le fil d'Ariane coupé en deux derrière son bord.
+
+   Une seule cause pour les trois : la règle ci-dessous donnait à la barre
+   du HAUT la géométrie de celle du BAS. Les deux portent « .lan-actions-page »
+   — app.js clone la première pour fabriquer la seconde — et à spécificité
+   égale c'est la dernière écrite qui gagne (§ 34). Comparez :
+
+       en haut, il faut   marge -.7rem  …  +.7rem   coins en HAUT
+       il était écrit     marge  .7rem  …  -1rem    coins en BAS
+
+   La marge haute positive s'AJOUTE au rembourrage du parent au lieu de
+   l'annuler : 11,55 + 11,55 = 23 px de papier visible, dans lesquels le
+   contenu défile. Et la marge basse négative remonte ce qui suit de 16,5 px,
+   c'est-à-dire sous la barre — le fil d'Ariane tranché.
+
+   Chaque barre reçoit donc sa propre géométrie, en miroir l'une de l'autre. */
 @media (max-width: 620px) {
-  html[data-style="lanceur"] .lan-actions-page {
+  html[data-style="lanceur"] .lan-actions-page:not(.lan-actions-bas) {
+    margin: -.7rem -.7rem .7rem; border-radius: 16px 16px 0 0;
+  }
+  html[data-style="lanceur"] .lan-actions-bas {
     margin: .7rem -.7rem -1rem; border-radius: 0 0 16px 16px;
   }
 }
@@ -9377,18 +9807,34 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 
 .at-langue-menu .at-coche { margin-top: .15rem; flex: none; }
 
+/* La coche du langage courant. Elle ne s'allumait PAS : la règle qui la
+   remplit ne vise que « .at-bascule », et ces boutons-là sont des
+   « .at-menu-item ». Un carré vide en face des sept langages, y compris
+   celui qu'on utilise — le commentaire au-dessus affirmait le contraire,
+   et c'était faux. Vérifié dans la page : aria-pressed passait bien à
+   « true », c'est le dessin qui manquait. */
+.at-langue-menu .at-menu-item[aria-pressed="true"] .at-coche {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.at-langue-menu .at-menu-item[aria-pressed="true"] .at-coche::after {
+  content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
+  border: solid var(--sur-accent); border-width: 0 2px 2px 0; transform: rotate(42deg);
+}
+
 @media (max-width: 760px) {
   .at-langue-etiquette { display: none; }
 }
 
 @media (max-width: 560px) {
-  /* Sur un petit écran, le bouton se retrouve à droite de « Exécuter » :
-     un panneau calé sur son bord GAUCHE partirait hors de l'écran. On
-     l'accroche donc à son bord droit, et il rentre toujours. Mesuré :
-     sans cette règle, le panneau affleurait le bord à 375 px de large. */
+  /* Sur un petit écran, le panneau prend presque toute la largeur : à
+     375 px, 17,5 rem de minimum le faisaient affleurer le bord.
+
+     L'ancrage à droite qui se trouvait ici a été RETIRÉ. Il corrigeait un
+     débordement par la gauche en en créant un par la droite dès que la
+     barre s'enroulait autrement — c'est ce que montrait la capture. Le
+     bord est désormais choisi par la mesure, dans atelier.js. */
   .at-langue-menu {
-    left: auto;
-    right: 0;
     min-width: 0;
     width: calc(100vw - 2.4rem);
     max-width: 20rem;

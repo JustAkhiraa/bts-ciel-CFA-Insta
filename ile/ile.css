@@ -1,0 +1,278 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   L'ÎLE — l'habillage autour de la scène.
+
+   Tout ce qui est ici se tient AU-DESSUS du rendu : le canevas occupe
+   l'écran entier, et chaque élément d'interface est posé par-dessus. Rien
+   n'est en flux, donc rien ne peut faire défiler la page sous la scène.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --encre: #14101C;
+  --papier: #FFF6E8;
+  --ciel: #8FD3F4;
+  --accent: #D6246E;
+  --r: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  overflow: hidden;                   /* la scène ne défile pas */
+  background: var(--ciel);
+  font-family: "Avenir Next", Avenir, system-ui, -apple-system, sans-serif;
+  color: var(--encre);
+  overscroll-behavior: none;          /* pas de rebond élastique au doigt */
+}
+
+#scene {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;                 /* le glissé tourne la vue, il ne zoome pas */
+}
+
+/* ── l'en-tête ────────────────────────────────────────────────────────
+   Posé dans l'encoche des téléphones grâce à « env() » : sans ça, le
+   bouton de retour passe sous la barre d'état et devient incliquable. */
+.hud-haut {
+  position: fixed; z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + .7rem);
+  left: calc(env(safe-area-inset-left, 0px) + .7rem);
+  right: calc(env(safe-area-inset-right, 0px) + .7rem);
+  display: flex; align-items: center; gap: .6rem;
+}
+
+.retour, .rond {
+  display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 40px; padding: 0 .8rem;
+  border-radius: var(--r); border: 0;
+  background: color-mix(in srgb, var(--papier) 88%, transparent);
+  backdrop-filter: blur(7px);
+  color: var(--encre); text-decoration: none;
+  font-family: inherit; font-size: .82rem; font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.16);
+  transition: background .15s, transform .15s;
+}
+.retour svg, .rond svg { width: 19px; height: 19px; }
+.retour:hover, .rond:hover { background: var(--papier); transform: translateY(-1px); }
+
+.rond { width: 40px; padding: 0; justify-content: center; }
+
+.titre-monde {
+  margin: 0 auto 0 .2rem; padding: 0 .2rem;
+  font-size: .95rem; font-weight: 800; letter-spacing: .02em;
+  color: var(--papier);
+  text-shadow: 0 1px 6px rgba(0,0,0,.45);
+}
+.titre-monde span { font-weight: 500; opacity: .85; margin-left: .3rem; }
+
+/* ── l'aide ───────────────────────────────────────────────────────────
+   Elle s'efface au premier déplacement : une consigne qu'on a lue et qui
+   reste affichée cesse d'être lue et devient du décor. */
+.aide {
+  position: fixed; z-index: 4;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1.1rem);
+  margin: 0; padding: .5rem .9rem;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--encre) 72%, transparent);
+  color: #fff; font-size: .78rem; font-weight: 600;
+  display: flex; align-items: center; gap: .3rem; flex-wrap: wrap;
+  justify-content: center;
+  transition: opacity .6s;
+  pointer-events: none;
+}
+.aide[data-parti] { opacity: 0; }
+
+kbd {
+  display: inline-grid; place-items: center;
+  min-width: 21px; height: 21px; padding: 0 4px;
+  border-radius: 5px;
+  background: rgba(255,255,255,.2);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,.3);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .72rem; font-weight: 700;
+}
+
+/* ── le manche tactile ────────────────────────────────────────────────
+   Caché au clavier : un manche affiché sur un ordinateur ne sert à rien
+   et mange un coin de l'écran. « pointer: coarse » est le seul test qui
+   dise « doigt » sans deviner d'après la largeur de l'écran — une fenêtre
+   étroite sur un ordinateur reste un ordinateur. */
+.manche { display: none; }
+
+@media (pointer: coarse) {
+  .manche {
+    position: fixed; z-index: 6;
+    left: calc(env(safe-area-inset-left, 0px) + 1.2rem);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.4rem);
+    display: grid; place-items: center;
+    width: 118px; height: 118px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--papier) 32%, transparent);
+    border: 2px solid color-mix(in srgb, var(--papier) 55%, transparent);
+    backdrop-filter: blur(5px);
+    touch-action: none;
+  }
+  .manche span {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: color-mix(in srgb, var(--papier) 88%, transparent);
+    box-shadow: 0 2px 9px rgba(0,0,0,.26);
+    transition: transform .07s;
+  }
+  .manche.tenu span { transition: none; }
+  .aide { display: none; }          /* pas de clavier à annoncer */
+}
+
+/* ── le chargement et les secours ─────────────────────────────────────
+   Le secours n'est pas un message d'erreur : c'est une porte. Il dit où
+   sont les fiches, parce que c'est la seule chose qui compte. */
+.chargement, .secours {
+  position: fixed; inset: 0; z-index: 9;
+  display: grid; place-content: center; justify-items: center;
+  gap: .7rem; padding: 2rem;
+  text-align: center;
+  background: var(--ciel);
+  color: var(--encre);
+}
+.chargement[hidden], .secours[hidden] { display: none; }
+
+.chargement p { margin: 0; font-size: 1rem; font-weight: 700; opacity: .8; }
+
+.secours { background: var(--papier); }
+.secours h1 { margin: 0; font-size: 1.3rem; font-weight: 800; }
+.secours p { margin: 0; max-width: 34ch; line-height: 1.5; }
+.secours a {
+  display: inline-flex; align-items: center; min-height: 42px;
+  margin-top: .4rem; padding: 0 1.1rem;
+  border-radius: var(--r);
+  background: var(--accent); color: #fff;
+  text-decoration: none; font-weight: 800;
+}
+
+/* Le mouvement n'est jamais une condition d'affichage. */
+@media (prefers-reduced-motion: reduce) {
+  .retour, .rond, .manche span { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════ l'invite ══════════════
+   Elle n'apparaît que devant une porte. C'est un BOUTON, pas une étiquette :
+   au doigt il n'y a pas de touche E à presser, et une invite qu'on ne peut
+   pas toucher ne sert qu'aux claviers. La touche affichée reste pour ceux
+   qui en ont un, et disparaît pour les autres. */
+.invite {
+  position: fixed; z-index: 5;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.6rem);
+  display: inline-flex; align-items: center; gap: .55rem;
+  min-height: 46px; padding: 0 1rem;
+  border: 0; border-radius: var(--r);
+  background: color-mix(in srgb, var(--papier) 94%, transparent);
+  backdrop-filter: blur(7px);
+  color: var(--encre); font-family: inherit;
+  font-size: .86rem; font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,.26);
+  animation: monte .22s ease-out;
+}
+.invite[hidden] { display: none; }
+.invite .invite-touche {
+  background: color-mix(in srgb, var(--encre) 13%, transparent);
+  color: var(--encre);
+}
+@media (pointer: coarse) { .invite .invite-touche { display: none; } }
+@keyframes monte { from { opacity: 0; transform: translate(-50%, 9px); }
+                   to   { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ═══════════════════════════════════════════════ le dedans ═════════════
+   Le décor reste VISIBLE derrière la feuille : on est entré dans un lieu,
+   on n'a pas ouvert une fenêtre par-dessus un jeu. La feuille est donc
+   posée sur un côté et laisse voir la pièce. */
+.dedans {
+  position: fixed; inset: 0; z-index: 8;
+  display: grid; align-items: end; justify-items: center;
+  padding: 1rem;
+  background: linear-gradient(to top,
+              color-mix(in srgb, var(--encre) 55%, transparent), transparent 62%);
+  animation: fondu .25s ease-out;
+}
+.dedans[hidden] { display: none; }
+@keyframes fondu { from { opacity: 0 } to { opacity: 1 } }
+
+.dedans-feuille {
+  width: min(560px, 100%);
+  max-height: min(68vh, 560px);
+  display: flex; flex-direction: column;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--papier) 96%, transparent);
+  backdrop-filter: blur(11px);
+  box-shadow: 0 16px 48px rgba(0,0,0,.34);
+  overflow: hidden;
+}
+.dedans-feuille header {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: .3rem 1rem; padding: 1rem 1.1rem .8rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--encre) 12%, transparent);
+}
+.dedans-sorte {
+  grid-column: 1; margin: 0;
+  font-size: .64rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--accent);
+}
+.dedans-feuille h1 {
+  grid-column: 1; margin: 0;
+  font-size: 1.12rem; font-weight: 800; letter-spacing: -.01em;
+}
+.dedans-sortir {
+  grid-column: 2; grid-row: 1 / span 2;
+  display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 38px; padding: 0 .75rem;
+  border: 1px solid color-mix(in srgb, var(--encre) 20%, transparent);
+  border-radius: 10px; background: none;
+  color: var(--encre); font-family: inherit;
+  font-size: .76rem; font-weight: 700; cursor: pointer;
+}
+.dedans-sortir:hover { background: color-mix(in srgb, var(--encre) 7%, transparent); }
+.dedans-sortir kbd { background: color-mix(in srgb, var(--encre) 13%, transparent); }
+
+.dedans-corps { overflow-y: auto; padding: .7rem .8rem 1rem; }
+
+/* Les rayons : un groupe par chapitre, ses fiches en dessous. */
+.rayon { margin: 0 0 .25rem; }
+.rayon > p {
+  margin: .55rem .3rem .35rem;
+  font-size: .72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--encre); opacity: .62;
+}
+.rayon-liens { display: flex; flex-wrap: wrap; gap: .4rem; }
+.rayon-liens a {
+  display: inline-flex; align-items: center; min-height: 38px;
+  padding: 0 .75rem; border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 7%, transparent);
+  color: var(--encre); text-decoration: none;
+  font-size: .8rem; font-weight: 600;
+}
+.rayon-liens a:hover { background: var(--accent); color: #fff; }
+
+/* La boutique affiche un outil par ligne : leurs noms sont longs, et une
+   grille de pastilles les couperait tous au même endroit. */
+.etal { display: grid; gap: .35rem; }
+.etal a {
+  display: flex; align-items: center; gap: .6rem; min-height: 44px;
+  padding: .3rem .7rem; border-radius: 11px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  color: var(--encre); text-decoration: none; font-weight: 650;
+  font-size: .84rem;
+}
+.etal a:hover { background: var(--accent); color: #fff; }
+.etal a::before {
+  content: "›"; font-weight: 800; opacity: .5; font-size: 1.05rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite, .dedans { animation: none; }
+}

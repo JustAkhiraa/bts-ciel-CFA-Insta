@@ -2114,7 +2114,18 @@
       const multiSauve = multi.slice();
       const enrouleSauve = racine.classList.contains("enroule");
       const dit = (ok, quoi) => { r.controles++; if (!ok) r.erreurs.push(quoi); };
-      const poser = (v) => { saisie.value = v; multi = []; redessiner(); };
+      /* Le redessin SYNCHRONE, pas le différé. redessiner() passe par
+         requestAnimationFrame : le diagnostic posait un programme puis
+         mesurait la marge dans la foulée, avant que la moindre image ait
+         été peinte. Il ne pouvait donc jamais être juste — il lisait
+         l'état d'AVANT sa propre modification.
+         Mesuré, et c'est net : interrogé tout de suite il annonçait
+         « 0 numéros au lieu de 4 » ; après deux images, « 16 au lieu de
+         4 ». Deux réponses fausses pour la même page, et le banc a
+         rapporté la première comme un défaut du site pendant des
+         semaines. Un contrôle qui crie au loup finit par couvrir les
+         vrais défauts : c'est le pire état d'un instrument. */
+      const poser = (v) => { saisie.value = v; multi = []; redessinerMaintenant(); };
       const TROIS = "int n = 0;\nint n2 = n + 1;\nreturn n;\n";
       const troisFois = () => {
         poser(TROIS);
@@ -2194,6 +2205,7 @@
         if (peint.clientWidth > 10) {
           poser("a\n// " + "mot ".repeat(90).trim() + "\nb\n");
           if (!racine.classList.contains("enroule")) basculerEnroulement();
+          redessinerMaintenant();     // même raison : l'enroulement se peint
           ajusterMarge(saisie.value);
           const pas = parseFloat(getComputedStyle(peint).lineHeight);
           const hauts = [];
@@ -3646,6 +3658,58 @@
        réglages juste à côté — un bouton, un panneau, Échap et le clic
        dehors qui referment — pour qu'il n'y ait qu'un seul comportement à
        apprendre dans cette barre. */
+    /* ── Un panneau qui reste DANS la fenêtre ──────────────────────────
+       Signalé, deux captures à l'appui : la liste des langages sortait de
+       l'écran par la gauche, le menu des réglages par la droite, et il n'en
+       restait qu'une tranche — « je vois rien ».
+
+       Les deux n'avaient qu'une seule cause, et ce n'est pas la largeur de
+       l'écran : c'est que « .at-barre » passe à la ligne. Selon le langage
+       choisi — « JavaScript » est deux fois plus long que « C » — et selon
+       le nombre de pastilles affichées, le MÊME bouton se retrouve au début
+       ou à la fin de sa rangée. Un panneau collé à un bord fixe de son
+       bouton sort donc tantôt d'un côté, tantôt de l'autre, et aucune règle
+       @media ne peut le savoir : la largeur de la fenêtre ne dit pas où le
+       bouton a atterri.
+
+       On ne devine donc plus, on mesure — à l'ouverture, et à chaque fois
+       que la fenêtre change de taille, puisque la barre se réenroule. La
+       feuille de style garde le bord PRÉFÉRÉ ; cette fonction ne corrige
+       que ce qui dépasse, et ne touche à rien quand tout rentre.
+
+       (Même défaut que le « ⋯ » de la barre du bas, corrigé le 22 octobre
+       en calant le menu sur la barre. Ici la barre n'occupe pas toute la
+       largeur de la fenêtre : il faut la mesure.) */
+    const MARGE_ECRAN = 8;
+    function calerPanneau(panneau) {
+      if (!panneau || panneau.hidden) return;
+      /* On repart de la position donnée par la feuille de style : sans
+         cette remise à zéro, deux ouvertures de suite cumuleraient leurs
+         décalages, et le panneau s'enfuirait à chaque clic. */
+      panneau.style.left = "";
+      panneau.style.right = "";
+      /* clientWidth, pas innerWidth : innerWidth compte la barre de
+         défilement verticale, et le panneau passerait dessous. */
+      const large = document.documentElement.clientWidth;
+      const r = panneau.getBoundingClientRect();
+      let dx = 0;
+      if (r.right > large - MARGE_ECRAN) dx = (large - MARGE_ECRAN) - r.right;
+      if (r.left + dx < MARGE_ECRAN) dx = MARGE_ECRAN - r.left;
+      if (!dx) return;
+      /* Le panneau est posé en absolu dans la boîte de son bouton.
+         offsetLeft donne sa position RÉELLE dans cette boîte, quel que
+         soit le bord sur lequel la feuille de style l'a accroché — on
+         peut donc le redire en « left » sans savoir lequel c'était. */
+      panneau.style.left = Math.round(panneau.offsetLeft + dx) + "px";
+      panneau.style.right = "auto";
+    }
+    /* La barre se réenroule au redimensionnement : un panneau ouvert à ce
+       moment-là doit se recaler, sinon il reste accroché à l'ancienne
+       place de son bouton. */
+    window.addEventListener("resize", () => {
+      for (const p of racine.querySelectorAll(".at-menu")) calerPanneau(p);
+    });
+
     const btLangue = $("#at-langue-btn", racine);
     const menuLangue = $("#at-langue-menu", racine);
     function ouvrirLangues(ouvrir) {
@@ -3655,6 +3719,7 @@
       if (ouvrir) {
         /* Le focus part sur le langage ACTIF, pas sur le premier : au
            clavier, on arrive là où l'on est. */
+        calerPanneau(menuLangue);
         const actif = menuLangue.querySelector('[aria-pressed="true"]')
                    || menuLangue.querySelector("[data-langue]");
         if (actif) actif.focus();
@@ -3742,6 +3807,7 @@
       if (!menu || !btReglages) return;
       menu.hidden = !ouvrir;
       btReglages.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+      if (ouvrir) calerPanneau(menu);
     }
     if (btReglages && menu) {
       btReglages.addEventListener("click", () => ouvrirMenu(menu.hidden));

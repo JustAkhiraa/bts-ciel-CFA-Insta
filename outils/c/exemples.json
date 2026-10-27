@@ -396,6 +396,28 @@
   "id": "e59d1"
  },
  {
+  "groupe": "Les TP, corrigés",
+  "titre": "Contrôle 1 · Les temps de réponse",
+  "quoi": "malloc, parcours au pointeur, et suppression par décalage.",
+  "hors": false,
+  "langue": "c",
+  "code": "#include <stdio.h>\n#include <stdlib.h>\n\n/* Exercice 1 : les temps de reponse d'un equipement reseau. */\n\nint maximum(const int *tab, int taille)\n{\n    const int *p = tab;              /* le parcours se fait AU POINTEUR */\n    int max = *p;\n    for (p = tab + 1; p < tab + taille; p++)\n        if (*p > max) max = *p;\n    return max;\n}\n\nint compterSuperieurs(const int *tab, int taille, int seuil)\n{\n    int n = 0;\n    for (const int *p = tab; p < tab + taille; p++)\n        if (*p > seuil) n++;\n    return n;\n}\n\nvoid supprimerSuperieurs(int *tab, int *taille, int seuil)\n{\n    int garde = 0;\n    for (int i = 0; i < *taille; i++)\n        if (tab[i] <= seuil)\n            tab[garde++] = tab[i];   /* on decale vers la gauche */\n    *taille = garde;                 /* et on met a jour le compte */\n}\n\nint main(void)\n{\n    int n;\n    do {\n        printf(\"Nombre de mesures : \");\n        if (scanf(\"%d\", &n) != 1) return 1;\n        if (n <= 0) printf(\"Il faut un nombre strictement positif.\\n\");\n    } while (n <= 0);\n\n    int *mesures = malloc(n * sizeof *mesures);\n    if (mesures == NULL) {\n        printf(\"Allocation impossible.\\n\");\n        return 1;\n    }\n\n    for (int i = 0; i < n; i++) {\n        printf(\"Mesure %d : \", i + 1);\n        scanf(\"%d\", &mesures[i]);\n    }\n\n    printf(\"\\nDans l'ordre inverse :\");\n    for (int i = n - 1; i >= 0; i--) printf(\" %d\", mesures[i]);\n    printf(\"\\n\");\n\n    printf(\"Maximum : %d\\n\", maximum(mesures, n));\n\n    int seuil;\n    printf(\"Seuil S : \");\n    scanf(\"%d\", &seuil);\n    printf(\"Mesures strictement superieures a %d : %d\\n\",\n           seuil, compterSuperieurs(mesures, n, seuil));\n\n    supprimerSuperieurs(mesures, &n, seuil);\n    printf(\"Apres suppression (%d mesures) :\", n);\n    for (int i = 0; i < n; i++) printf(\" %d\", mesures[i]);\n    printf(\"\\n\");\n\n    free(mesures);\n    return 0;\n}\n",
+  "entree": "6\npuis 12 8 15 6 10 18\npuis 10\n",
+  "source": "les exercices du chapitre Langage C",
+  "id": "943bb"
+ },
+ {
+  "groupe": "Les TP, corrigés",
+  "titre": "Contrôle 1 · La consommation de cinq bâtiments",
+  "quoi": "Un tableau 5 x 3, lu par bâtiment puis par mois.",
+  "hors": false,
+  "langue": "c",
+  "code": "#include <stdio.h>\n\n#define BATIMENTS 5\n#define MOIS      3\n\nvoid afficherConsommations(int t[BATIMENTS][MOIS])\n{\n    printf(\"\\n           mois 1  mois 2  mois 3\\n\");\n    for (int b = 0; b < BATIMENTS; b++) {\n        printf(\"batiment %d\", b + 1);\n        for (int m = 0; m < MOIS; m++) printf(\"%8d\", t[b][m]);\n        printf(\"\\n\");\n    }\n}\n\nint totalBatiment(int t[BATIMENTS][MOIS], int batiment)\n{\n    int somme = 0;\n    for (int m = 0; m < MOIS; m++) somme += t[batiment][m];\n    return somme;\n}\n\nint compterConsommations(int t[BATIMENTS][MOIS], int seuil)\n{\n    int n = 0;\n    for (int b = 0; b < BATIMENTS; b++)\n        for (int m = 0; m < MOIS; m++)\n            if (t[b][m] > seuil) n++;\n    return n;\n}\n\nint main(void)\n{\n    int conso[BATIMENTS][MOIS];\n\n    for (int b = 0; b < BATIMENTS; b++)\n        for (int m = 0; m < MOIS; m++) {\n            printf(\"Batiment %d, mois %d : \", b + 1, m + 1);\n            if (scanf(\"%d\", &conso[b][m]) != 1) return 1;\n        }\n\n    afficherConsommations(conso);\n\n    printf(\"\\nTotal par batiment :\\n\");\n    for (int b = 0; b < BATIMENTS; b++)\n        printf(\"  batiment %d : %d\\n\", b + 1, totalBatiment(conso, b));\n\n    int seuil;\n    printf(\"\\nValeur S : \");\n    scanf(\"%d\", &seuil);\n    printf(\"Consommations strictement superieures a %d : %d\\n\",\n           seuil, compterConsommations(conso, seuil));\n\n    /* Le mois ou le total des cinq batiments est le plus faible. */\n    int moisMin = 0, totalMin = 0;\n    for (int b = 0; b < BATIMENTS; b++) totalMin += conso[b][0];\n    for (int m = 1; m < MOIS; m++) {\n        int total = 0;\n        for (int b = 0; b < BATIMENTS; b++) total += conso[b][m];\n        if (total < totalMin) { totalMin = total; moisMin = m; }\n    }\n    printf(\"Mois le plus econome : mois %d (total %d)\\n\", moisMin + 1, totalMin);\n\n    return 0;\n}\n",
+  "entree": "les quinze consommations ci-dessous\npuis 140\n",
+  "source": "les exercices du chapitre Langage C",
+  "id": "34f5a"
+ },
+ {
   "groupe": "Pour commencer",
   "titre": "Moyenne d'un tableau",
   "langue": "c",

@@ -93,6 +93,7 @@
       { id: "console-blanche", nom: "Console blanche", sombre: false },
       { id: "bloc-notes", nom: "Bloc-notes", sombre: false },
       { id: "liquid", nom: "Liquid Glass", sombre: false },
+      { id: "bristol", nom: "Bristol", sombre: false },
       { id: "zellige", nom: "Zellige", sombre: false },
       { id: "console-bleue", nom: "Console bleue", sombre: true }
     ]}
@@ -148,8 +149,18 @@
        Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
        3D : le choisir envoie là-bas. La redirection est posée dans le
        script d'en-tête, avant le premier pixel, donc on ne voit pas
-       l'accueil clignoter avant de partir. */
-    { id: "monde",     nom: "3D" }
+       l'accueil clignoter avant de partir.
+
+       « dossier » est ce qui distingue un monde des deux autres accueils :
+       il a SA page, les autres sont dessinés dans celle-ci. Tout ce qui
+       suit s'en déduit — où le réglage emmène, quels liens directs la
+       feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
+       première page. Une seconde liste des mêmes noms est exactement ce qui
+       a déjà laissé un thème entier sans mesure, trois fois. */
+    { id: "monde",     nom: "3D",     dossier: "monde", ouvre: "le village" },
+    /* L'île, le second monde : celui où l'on marche, où l'on entre dans
+       les bâtiments. Demandé pour pouvoir y revenir plus tard. */
+    { id: "ile",       nom: "3D bis", dossier: "ile",   ouvre: "l'île" }
   ];
 
   var TAILLES = [
@@ -527,6 +538,48 @@
     if (dernierFocus && dernierFocus.focus) dernierFocus.focus();
   }
 
+  /* L'adresse d'un monde, bâtie sur la racine du site — donc valable sur
+     TOUTES les pages. Je l'avais d'abord lue sur l'attribut que publier.py
+     écrit à côté du bouton « 3D » : il n'existe que sur 25 pages des 283.
+     Les fiches, elles, n'ont pas d'en-tête de site du tout, et le réglage
+     avait disparu de toutes — y compris le réglage « 3D », qui était là
+     avant moi.
+     Que les deux mondes soient réellement publiés ne peut donc pas se
+     vérifier ici. Cette garantie se prend à la publication, dans
+     publier.py, avant la première page écrite. */
+  function adresseMonde(cle) { return racine() + cle + "/index.html"; }
+
+  /* L'accueil nommé, ou rien s'il n'est pas un monde. Un monde est un
+     accueil qui a SA page : « dossier » est la seule chose qui le dise, et
+     c'est le seul endroit où on le demande. */
+  function leMonde(id) {
+    for (var i = 0; i < STYLES.length; i++) {
+      if (STYLES[i].id === id && STYLES[i].dossier) return STYLES[i];
+    }
+    return null;
+  }
+
+  /* Les mondes, et leur rangée à eux.
+
+     Demandé : « à quoi ça sert d'avoir ces boutons ? » — et c'était une
+     bonne question, parce que rien ne disait en quoi ils diffèrent des
+     pastilles. Ils répondent à deux besoins qu'on confond tant qu'ils sont
+     côte à côte : la pastille choisit sur quoi le site S'OUVRE, ces liens
+     y emmènent MAINTENANT sans rien changer. Aller voir l'île ne doit pas
+     décider de ce qu'on verra demain matin.
+     D'où une rangée séparée, avec son titre : la différence est portée par
+     la structure, pas par une phrase d'aide qu'on ne lit qu'une fois. */
+  function rangeeMondes() {
+    var h = STYLES.filter(function (o) { return o.dossier; })
+      .map(function (o) {
+        return '<a href="' + adresseMonde(o.dossier) + '">Ouvrir ' + o.ouvre + "</a>";
+      }).join("");
+    if (!h) return "";
+    return '<div class="reglage"><h3>Les mondes en 3D</h3>' +
+           "<p>Y aller maintenant, sans changer l'accueil.</p>" +
+           '<p class="reglage-liens">' + h + "</p></div>";
+  }
+
   function pastilles(liste, actuel) {
     return liste.map(function (o) {
       return '<button type="button" data-v="' + o.id + '" aria-pressed="' +
@@ -896,6 +949,30 @@
      puissent faire le geste. */
   window.CIEL.dispo = function (idTheme) { Dispo.appliquer(idTheme); };
 
+  /* LE REGISTRE DES THÈMES, exposé aux bancs.
+
+     Les deux bancs tenaient chacun leur propre copie de la liste — des
+     identifiants recopiés à la main, plus celle des thèmes à deux faces.
+     Trois listes pour une vérité, et c'est la troisième fois que ça mord :
+     un thème ajouté ici restait invisible là-bas, et la mesure annonçait
+     « tout va bien » sans l'avoir regardé. Le pire cas s'est produit —
+     « le mode nuit ne fonctionne pas avec Bristol » : personne, dans toute
+     la chaîne, ne savait que ce thème avait une seconde face.
+
+     La liste est donc PRISE ICI, où elle est écrite. Un banc qui lit ce
+     crochet ne peut plus mesurer un catalogue périmé. */
+  window.CIEL.themes = (function () {
+    var out = [];
+    for (var i = 0; i < GROUPES.length; i++) {
+      var items = GROUPES[i].items;
+      for (var j = 0; j < items.length; j++) {
+        if (!items[j].id) continue;             // « Système » n'est pas un thème
+        out.push({ id: items[j].id, sombre: !!items[j].sombre, duo: !!items[j].duo });
+      }
+    }
+    return out;
+  })();
+
   function construireFeuille() {
     leVoile();
 
@@ -919,9 +996,10 @@
 
         '<div class="reglage"><h3>Accueil</h3>' +
         '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-        '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
-        'le classique garde les grandes cartes ; la 3D ouvre le village. ' +
-        'Depuis le village, « retour » ramène ici, et le choix se change.</p></div>' +
+        '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
+        'Le lanceur montre tout en un écran, le classique garde les grandes ' +
+        'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
+        '« retour » y ramène ici.</p></div>' + rangeeMondes() +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
@@ -997,6 +1075,17 @@
       var b;
       if (e.target.closest("[data-fermer]")) return fermer();
 
+      /* Aller voir un monde par le lien direct, c'est une VISITE, pas un
+         changement d'accueil : le réglage n'est pas touché. On pose quand
+         même le jeton de session que poserait la redirection — sinon, pour
+         qui a fait d'un monde son accueil, le « retour » du monde visité
+         retomberait sur l'accueil, qui le renverrait aussitôt dans son
+         monde. Un aller sans retour. */
+      if (e.target.closest(".reglage-liens a")) {
+        try { sessionStorage.setItem("ciel-monde", "1"); } catch (err) {}
+        return;
+      }
+
       if ((b = e.target.closest("[data-hasard-theme]"))) {
         var tous = [];
         GROUPES.forEach(function (g) { g.items.forEach(function (o) { if (o.id) tous.push(o); }); });
@@ -1010,11 +1099,49 @@
 
       if ((b = e.target.closest(".pastilles [data-v]"))) {
         var champ = b.closest("[data-champ]").dataset.champ;
+        var styleAvant = document.documentElement.dataset.style;
         S[champ] = b.dataset.v;
         b.parentNode.querySelectorAll("[data-v]").forEach(function (x) {
           x.setAttribute("aria-pressed", String(x === b));
         });
         enregistrer(); appliquer();
+        /* Signalé : « les deux boutons 3D ne fonctionnent pas ». Ils ne
+           faisaient rien de VISIBLE, et c'était vrai des deux depuis le
+           début : la pastille inscrit une préférence, mais le départ est
+           décidé par l'amorce d'en-tête au CHARGEMENT de l'accueil. Depuis
+           une fiche, ou depuis l'accueil déjà ouvert, il n'y avait rien à
+           charger. Un réglage sans effet visible passe pour cassé.
+
+           Les y faire partir était la mauvaise réponse : cliquer pour aller
+           voir changeait du même coup l'accueil de tous les jours, sans
+           l'avoir demandé. Un piège qui se redéclenche à chaque visite.
+           La pastille dit donc ce qu'elle a fait, et la rangée du dessous
+           emmène. Deux gestes, deux endroits. */
+        var m = (champ === "style") && leMonde(S.style);
+        if (m) { toast("Le site s'ouvrira sur " + m.ouvre); return; }
+        /* CHANGER D'ACCUEIL CHANGE LA PAGE, pas seulement son habillage.
+
+           Les deux accueils sont bien dessinés tous les deux dans le
+           document, et une classe sur <html> montre l'un ou l'autre : c'est
+           ce qui a fait croire qu'appliquer() suffisait. Mais les COMMANDES
+           ne sont pas dans le document. poserBoutons() les dépose AU
+           CHARGEMENT dans l'un des deux porte-outils — la barre du lanceur
+           ou l'en-tête du site — et sur une page intérieure barrePage()
+           DÉPLACE en plus les liens de navigation de l'en-tête vers la
+           barre. Changer de style ne les ramenait pas : elles restaient
+           dans le conteneur devenu invisible.
+
+           Signalé, capture à l'appui : « le menu de base, il n'y a pas tous
+           les champs ; après que je clique sur Accueil tout revient ». Le
+           retour à l'accueil rechargeait la page, et le chargement reposait
+           les commandes au bon endroit. Le défaut n'était pas dans le menu,
+           il était dans l'instant où on le remplit.
+
+           On recharge donc. Les déplacer à la main marcherait sur
+           l'accueil et laisserait les pages intérieures à moitié faites —
+           deux comportements pour un seul réglage, et celui qu'on ne
+           regarde pas pourrit. */
+        if (champ === "style" && S.style !== styleAvant) location.reload();
         return;
       }
 
@@ -1401,10 +1528,12 @@
     };
     peindre();
     b.addEventListener("click", function () {
+      /* Même raison qu'au panneau de réglages : les commandes sont déposées
+         au chargement, pas dessinées dans la page. Cet interrupteur-ci
+         portait exactement le même défaut. */
       S.style = (S.style === "classique") ? "lanceur" : "classique";
-      enregistrer(); appliquer(); peindre();
-      var d = b.closest("details");
-      if (d) d.open = false;
+      enregistrer();
+      location.reload();
     });
   }
 
@@ -1872,7 +2001,7 @@
   function apparitions() {
     if (!S.anim || !("IntersectionObserver" in window)) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    var cibles = document.querySelectorAll(".carte-matiere, .chapitre, .chiffres div");
+    var cibles = document.querySelectorAll(".carte-matiere, .chapitre");
     if (!cibles.length || cibles.length > 120) return;
     var obs = new IntersectionObserver(function (entrees) {
       entrees.forEach(function (x) {
