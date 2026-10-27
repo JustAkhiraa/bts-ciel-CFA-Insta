@@ -1099,6 +1099,7 @@
 
       if ((b = e.target.closest(".pastilles [data-v]"))) {
         var champ = b.closest("[data-champ]").dataset.champ;
+        var styleAvant = document.documentElement.dataset.style;
         S[champ] = b.dataset.v;
         b.parentNode.querySelectorAll("[data-v]").forEach(function (x) {
           x.setAttribute("aria-pressed", String(x === b));
@@ -1117,7 +1118,30 @@
            La pastille dit donc ce qu'elle a fait, et la rangée du dessous
            emmène. Deux gestes, deux endroits. */
         var m = (champ === "style") && leMonde(S.style);
-        if (m) toast("Le site s'ouvrira sur " + m.ouvre);
+        if (m) { toast("Le site s'ouvrira sur " + m.ouvre); return; }
+        /* CHANGER D'ACCUEIL CHANGE LA PAGE, pas seulement son habillage.
+
+           Les deux accueils sont bien dessinés tous les deux dans le
+           document, et une classe sur <html> montre l'un ou l'autre : c'est
+           ce qui a fait croire qu'appliquer() suffisait. Mais les COMMANDES
+           ne sont pas dans le document. poserBoutons() les dépose AU
+           CHARGEMENT dans l'un des deux porte-outils — la barre du lanceur
+           ou l'en-tête du site — et sur une page intérieure barrePage()
+           DÉPLACE en plus les liens de navigation de l'en-tête vers la
+           barre. Changer de style ne les ramenait pas : elles restaient
+           dans le conteneur devenu invisible.
+
+           Signalé, capture à l'appui : « le menu de base, il n'y a pas tous
+           les champs ; après que je clique sur Accueil tout revient ». Le
+           retour à l'accueil rechargeait la page, et le chargement reposait
+           les commandes au bon endroit. Le défaut n'était pas dans le menu,
+           il était dans l'instant où on le remplit.
+
+           On recharge donc. Les déplacer à la main marcherait sur
+           l'accueil et laisserait les pages intérieures à moitié faites —
+           deux comportements pour un seul réglage, et celui qu'on ne
+           regarde pas pourrit. */
+        if (champ === "style" && S.style !== styleAvant) location.reload();
         return;
       }
 
@@ -1504,10 +1528,12 @@
     };
     peindre();
     b.addEventListener("click", function () {
+      /* Même raison qu'au panneau de réglages : les commandes sont déposées
+         au chargement, pas dessinées dans la page. Cet interrupteur-ci
+         portait exactement le même défaut. */
       S.style = (S.style === "classique") ? "lanceur" : "classique";
-      enregistrer(); appliquer(); peindre();
-      var d = b.closest("details");
-      if (d) d.open = false;
+      enregistrer();
+      location.reload();
     });
   }
 

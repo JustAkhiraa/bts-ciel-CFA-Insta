@@ -8693,6 +8693,38 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
 .lan-actions { display: flex; align-items: center; gap: .9rem;
   padding: .45rem .75rem; border-top: 1px solid var(--lan-filet);
   background: var(--lan-creux); }
+
+/* ── LA BARRE DU LANCEUR RESTE ATTEIGNABLE ────────────────────────────
+   Signalé : « quand je vois tout, pas besoin ; mais quand la page est
+   étroite, le menu est en bas et il faut défiler tout en bas pour y
+   accéder ». Exact : la barre est le pied de la fenêtre du lanceur, et
+   sur un écran étroit cette fenêtre fait deux fois et demie la hauteur
+   visible. Le thème, les réglages et le village étaient donc à six cents
+   pixels de défilement de l'endroit où on les cherche.
+
+   Elle reste au bas de la fenêtre — c'est sa place, et la déplacer en
+   haut remettrait sur le lanceur le mobilier de l'ancien site. Elle se
+   COLLE simplement au bas de l'écran tant que la fenêtre dépasse. Aucune
+   largeur de rupture n'est écrite : quand tout tient, « sticky » ne fait
+   rien, et la barre est exactement où elle a toujours été. Une règle qui
+   se désactive toute seule ne peut pas se tromper de seuil.
+
+   « clip » et non « hidden » : les deux coupent aux coins arrondis, mais
+   « hidden » fait de la fenêtre un conteneur de défilement, et une barre
+   collante dans un conteneur aussi haut qu'elle ne colle à rien. C'est
+   mesuré : avec « hidden », la barre restait à 1248 px dans une fenêtre
+   de 812 ; avec « clip », elle remonte à 722 et se voit sans défiler.
+
+   Et le fond devient OPAQUE : « --lan-creux » est une teinte translucide,
+   posée sur le papier de la fenêtre. Collée, elle laissait défiler les
+   cartes au travers. La teinte est donc reposée sur « --carte », qui est
+   le papier de cette fenêtre — même couleur qu'avant, dans les 42 thèmes,
+   mais plus de transparence. */
+html[data-style="lanceur"] body[data-accueil] .lan-fen { overflow: clip; }
+html[data-style="lanceur"] body[data-accueil] .lan-actions {
+  position: sticky; bottom: 0; z-index: 3;
+  background: linear-gradient(var(--lan-creux), var(--lan-creux)), var(--carte);
+}
 .lan-comptes { display: flex; gap: .9rem; flex: 1; min-width: 0;
   font-size: .7576rem; color: var(--encre-tenue); }
 .lan-comptes b { color: var(--encre); font-weight: 700; font-variant-numeric: tabular-nums; }
