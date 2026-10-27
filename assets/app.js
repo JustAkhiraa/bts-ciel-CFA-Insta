@@ -149,11 +149,18 @@
        Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
        3D : le choisir envoie là-bas. La redirection est posée dans le
        script d'en-tête, avant le premier pixel, donc on ne voit pas
-       l'accueil clignoter avant de partir. */
-    { id: "monde",     nom: "3D" },
+       l'accueil clignoter avant de partir.
+
+       « dossier » est ce qui distingue un monde des deux autres accueils :
+       il a SA page, les autres sont dessinés dans celle-ci. Tout ce qui
+       suit s'en déduit — où le réglage emmène, quels liens directs la
+       feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
+       première page. Une seconde liste des mêmes noms est exactement ce qui
+       a déjà laissé un thème entier sans mesure, trois fois. */
+    { id: "monde",     nom: "3D",     dossier: "monde", aller: "Ouvrir le village" },
     /* L'île, le second monde : celui où l'on marche, où l'on entre dans
        les bâtiments. Demandé pour pouvoir y revenir plus tard. */
-    { id: "ile",       nom: "3D bis" }
+    { id: "ile",       nom: "3D bis", dossier: "ile",   aller: "Ouvrir l'île" }
   ];
 
   var TAILLES = [
@@ -542,14 +549,25 @@
      publier.py, avant la première page écrite. */
   function adresseMonde(cle) { return racine() + cle + "/index.html"; }
 
-  /* Les mondes, en liens directs. Les pastilles au-dessus choisissent
-     l'ACCUEIL : elles n'emmènent nulle part avant le prochain chargement de
-     l'accueil. Aller voir l'île ne devrait pas obliger à en faire son
-     accueil, puis à revenir défaire le réglage — d'où ces deux liens. */
+  /* Le dossier d'un accueil, ou rien si cet accueil est dessiné dans la
+     page. C'est le seul endroit où l'on demande « est-ce un monde ? ». */
+  function dossierDuMonde(id) {
+    for (var i = 0; i < STYLES.length; i++) {
+      if (STYLES[i].id === id) return STYLES[i].dossier || "";
+    }
+    return "";
+  }
+
+  /* Les mondes, en liens directs. Les pastilles au-dessus CHANGENT
+     l'accueil ; ces liens emmènent sans y toucher — aller voir l'île ne
+     devrait pas obliger à en faire son accueil, puis à revenir défaire le
+     réglage. La liste se relève dans STYLES, elle n'y est pas recopiée. */
   function liensMondes() {
-    return '<p class="reglage-liens">' +
-      '<a href="' + adresseMonde("monde") + '">Ouvrir le village</a>' +
-      '<a href="' + adresseMonde("ile") + '">Ouvrir l\'île</a></p>';
+    var h = STYLES.filter(function (o) { return o.dossier; })
+      .map(function (o) {
+        return '<a href="' + adresseMonde(o.dossier) + '">' + o.aller + "</a>";
+      }).join("");
+    return h ? '<p class="reglage-liens">' + h + "</p>" : "";
   }
 
   function pastilles(liste, actuel) {
@@ -1076,6 +1094,23 @@
           x.setAttribute("aria-pressed", String(x === b));
         });
         enregistrer(); appliquer();
+        /* Signalé : « les deux boutons 3D ne fonctionnent pas ». Ils
+           n'emmenaient nulle part, et c'était vrai des deux depuis le
+           début. La pastille n'inscrivait qu'une préférence ; le départ,
+           lui, est décidé par l'amorce d'en-tête AU CHARGEMENT de
+           l'accueil. Depuis une fiche, ou depuis l'accueil déjà ouvert, il
+           n'y avait donc rien à charger — et comme le jeton de session est
+           posé dès qu'on a visité un monde une fois, même recharger ne
+           partait plus. Un réglage qui ne fait rien de visible passe pour
+           cassé, et il l'était.
+           Choisir un monde, c'est vouloir y aller : on y va. Le jeton se
+           pose ici, comme sur le lien direct, pour que le « retour » du
+           monde rende bien l'accueil ordinaire. */
+        var dossier = (champ === "style") && dossierDuMonde(S.style);
+        if (dossier) {
+          try { sessionStorage.setItem("ciel-monde", "1"); } catch (err) {}
+          location.href = adresseMonde(dossier);
+        }
         return;
       }
 
