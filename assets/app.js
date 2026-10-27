@@ -157,10 +157,10 @@
        feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
        première page. Une seconde liste des mêmes noms est exactement ce qui
        a déjà laissé un thème entier sans mesure, trois fois. */
-    { id: "monde",     nom: "3D",     dossier: "monde", aller: "Ouvrir le village" },
+    { id: "monde",     nom: "3D",     dossier: "monde", ouvre: "le village" },
     /* L'île, le second monde : celui où l'on marche, où l'on entre dans
        les bâtiments. Demandé pour pouvoir y revenir plus tard. */
-    { id: "ile",       nom: "3D bis", dossier: "ile",   aller: "Ouvrir l'île" }
+    { id: "ile",       nom: "3D bis", dossier: "ile",   ouvre: "l'île" }
   ];
 
   var TAILLES = [
@@ -549,25 +549,35 @@
      publier.py, avant la première page écrite. */
   function adresseMonde(cle) { return racine() + cle + "/index.html"; }
 
-  /* Le dossier d'un accueil, ou rien si cet accueil est dessiné dans la
-     page. C'est le seul endroit où l'on demande « est-ce un monde ? ». */
-  function dossierDuMonde(id) {
+  /* L'accueil nommé, ou rien s'il n'est pas un monde. Un monde est un
+     accueil qui a SA page : « dossier » est la seule chose qui le dise, et
+     c'est le seul endroit où on le demande. */
+  function leMonde(id) {
     for (var i = 0; i < STYLES.length; i++) {
-      if (STYLES[i].id === id) return STYLES[i].dossier || "";
+      if (STYLES[i].id === id && STYLES[i].dossier) return STYLES[i];
     }
-    return "";
+    return null;
   }
 
-  /* Les mondes, en liens directs. Les pastilles au-dessus CHANGENT
-     l'accueil ; ces liens emmènent sans y toucher — aller voir l'île ne
-     devrait pas obliger à en faire son accueil, puis à revenir défaire le
-     réglage. La liste se relève dans STYLES, elle n'y est pas recopiée. */
-  function liensMondes() {
+  /* Les mondes, et leur rangée à eux.
+
+     Demandé : « à quoi ça sert d'avoir ces boutons ? » — et c'était une
+     bonne question, parce que rien ne disait en quoi ils diffèrent des
+     pastilles. Ils répondent à deux besoins qu'on confond tant qu'ils sont
+     côte à côte : la pastille choisit sur quoi le site S'OUVRE, ces liens
+     y emmènent MAINTENANT sans rien changer. Aller voir l'île ne doit pas
+     décider de ce qu'on verra demain matin.
+     D'où une rangée séparée, avec son titre : la différence est portée par
+     la structure, pas par une phrase d'aide qu'on ne lit qu'une fois. */
+  function rangeeMondes() {
     var h = STYLES.filter(function (o) { return o.dossier; })
       .map(function (o) {
-        return '<a href="' + adresseMonde(o.dossier) + '">' + o.aller + "</a>";
+        return '<a href="' + adresseMonde(o.dossier) + '">Ouvrir ' + o.ouvre + "</a>";
       }).join("");
-    return h ? '<p class="reglage-liens">' + h + "</p>" : "";
+    if (!h) return "";
+    return '<div class="reglage"><h3>Les mondes en 3D</h3>' +
+           "<p>Y aller maintenant, sans changer l'accueil.</p>" +
+           '<p class="reglage-liens">' + h + "</p></div>";
   }
 
   function pastilles(liste, actuel) {
@@ -986,10 +996,10 @@
 
         '<div class="reglage"><h3>Accueil</h3>' +
         '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-        '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
-        'le classique garde les grandes cartes ; la 3D ouvre le village, ' +
-        '« 3D bis » ouvre l\'île. Depuis un monde, « retour » ramène ici, ' +
-        'et le choix se change.</p>' + liensMondes() + '</div>' +
+        '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
+        'Le lanceur montre tout en un écran, le classique garde les grandes ' +
+        'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
+        '« retour » y ramène ici.</p></div>' + rangeeMondes() +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
@@ -1094,23 +1104,20 @@
           x.setAttribute("aria-pressed", String(x === b));
         });
         enregistrer(); appliquer();
-        /* Signalé : « les deux boutons 3D ne fonctionnent pas ». Ils
-           n'emmenaient nulle part, et c'était vrai des deux depuis le
-           début. La pastille n'inscrivait qu'une préférence ; le départ,
-           lui, est décidé par l'amorce d'en-tête AU CHARGEMENT de
-           l'accueil. Depuis une fiche, ou depuis l'accueil déjà ouvert, il
-           n'y avait donc rien à charger — et comme le jeton de session est
-           posé dès qu'on a visité un monde une fois, même recharger ne
-           partait plus. Un réglage qui ne fait rien de visible passe pour
-           cassé, et il l'était.
-           Choisir un monde, c'est vouloir y aller : on y va. Le jeton se
-           pose ici, comme sur le lien direct, pour que le « retour » du
-           monde rende bien l'accueil ordinaire. */
-        var dossier = (champ === "style") && dossierDuMonde(S.style);
-        if (dossier) {
-          try { sessionStorage.setItem("ciel-monde", "1"); } catch (err) {}
-          location.href = adresseMonde(dossier);
-        }
+        /* Signalé : « les deux boutons 3D ne fonctionnent pas ». Ils ne
+           faisaient rien de VISIBLE, et c'était vrai des deux depuis le
+           début : la pastille inscrit une préférence, mais le départ est
+           décidé par l'amorce d'en-tête au CHARGEMENT de l'accueil. Depuis
+           une fiche, ou depuis l'accueil déjà ouvert, il n'y avait rien à
+           charger. Un réglage sans effet visible passe pour cassé.
+
+           Les y faire partir était la mauvaise réponse : cliquer pour aller
+           voir changeait du même coup l'accueil de tous les jours, sans
+           l'avoir demandé. Un piège qui se redéclenche à chaque visite.
+           La pastille dit donc ce qu'elle a fait, et la rangée du dessous
+           emmène. Deux gestes, deux endroits. */
+        var m = (champ === "style") && leMonde(S.style);
+        if (m) toast("Le site s'ouvrira sur " + m.ouvre);
         return;
       }
 
