@@ -156,3 +156,123 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .retour, .rond, .manche span { transition: none; }
 }
+
+/* ═══════════════════════════════════════════════ l'invite ══════════════
+   Elle n'apparaît que devant une porte. C'est un BOUTON, pas une étiquette :
+   au doigt il n'y a pas de touche E à presser, et une invite qu'on ne peut
+   pas toucher ne sert qu'aux claviers. La touche affichée reste pour ceux
+   qui en ont un, et disparaît pour les autres. */
+.invite {
+  position: fixed; z-index: 5;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.6rem);
+  display: inline-flex; align-items: center; gap: .55rem;
+  min-height: 46px; padding: 0 1rem;
+  border: 0; border-radius: var(--r);
+  background: color-mix(in srgb, var(--papier) 94%, transparent);
+  backdrop-filter: blur(7px);
+  color: var(--encre); font-family: inherit;
+  font-size: .86rem; font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,.26);
+  animation: monte .22s ease-out;
+}
+.invite[hidden] { display: none; }
+.invite .invite-touche {
+  background: color-mix(in srgb, var(--encre) 13%, transparent);
+  color: var(--encre);
+}
+@media (pointer: coarse) { .invite .invite-touche { display: none; } }
+@keyframes monte { from { opacity: 0; transform: translate(-50%, 9px); }
+                   to   { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ═══════════════════════════════════════════════ le dedans ═════════════
+   Le décor reste VISIBLE derrière la feuille : on est entré dans un lieu,
+   on n'a pas ouvert une fenêtre par-dessus un jeu. La feuille est donc
+   posée sur un côté et laisse voir la pièce. */
+.dedans {
+  position: fixed; inset: 0; z-index: 8;
+  display: grid; align-items: end; justify-items: center;
+  padding: 1rem;
+  background: linear-gradient(to top,
+              color-mix(in srgb, var(--encre) 55%, transparent), transparent 62%);
+  animation: fondu .25s ease-out;
+}
+.dedans[hidden] { display: none; }
+@keyframes fondu { from { opacity: 0 } to { opacity: 1 } }
+
+.dedans-feuille {
+  width: min(560px, 100%);
+  max-height: min(68vh, 560px);
+  display: flex; flex-direction: column;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--papier) 96%, transparent);
+  backdrop-filter: blur(11px);
+  box-shadow: 0 16px 48px rgba(0,0,0,.34);
+  overflow: hidden;
+}
+.dedans-feuille header {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: .3rem 1rem; padding: 1rem 1.1rem .8rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--encre) 12%, transparent);
+}
+.dedans-sorte {
+  grid-column: 1; margin: 0;
+  font-size: .64rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--accent);
+}
+.dedans-feuille h1 {
+  grid-column: 1; margin: 0;
+  font-size: 1.12rem; font-weight: 800; letter-spacing: -.01em;
+}
+.dedans-sortir {
+  grid-column: 2; grid-row: 1 / span 2;
+  display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 38px; padding: 0 .75rem;
+  border: 1px solid color-mix(in srgb, var(--encre) 20%, transparent);
+  border-radius: 10px; background: none;
+  color: var(--encre); font-family: inherit;
+  font-size: .76rem; font-weight: 700; cursor: pointer;
+}
+.dedans-sortir:hover { background: color-mix(in srgb, var(--encre) 7%, transparent); }
+.dedans-sortir kbd { background: color-mix(in srgb, var(--encre) 13%, transparent); }
+
+.dedans-corps { overflow-y: auto; padding: .7rem .8rem 1rem; }
+
+/* Les rayons : un groupe par chapitre, ses fiches en dessous. */
+.rayon { margin: 0 0 .25rem; }
+.rayon > p {
+  margin: .55rem .3rem .35rem;
+  font-size: .72rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--encre); opacity: .62;
+}
+.rayon-liens { display: flex; flex-wrap: wrap; gap: .4rem; }
+.rayon-liens a {
+  display: inline-flex; align-items: center; min-height: 38px;
+  padding: 0 .75rem; border-radius: 10px;
+  background: color-mix(in srgb, var(--encre) 7%, transparent);
+  color: var(--encre); text-decoration: none;
+  font-size: .8rem; font-weight: 600;
+}
+.rayon-liens a:hover { background: var(--accent); color: #fff; }
+
+/* La boutique affiche un outil par ligne : leurs noms sont longs, et une
+   grille de pastilles les couperait tous au même endroit. */
+.etal { display: grid; gap: .35rem; }
+.etal a {
+  display: flex; align-items: center; gap: .6rem; min-height: 44px;
+  padding: .3rem .7rem; border-radius: 11px;
+  background: color-mix(in srgb, var(--encre) 6%, transparent);
+  color: var(--encre); text-decoration: none; font-weight: 650;
+  font-size: .84rem;
+}
+.etal a:hover { background: var(--accent); color: #fff; }
+.etal a::before {
+  content: "›"; font-weight: 800; opacity: .5; font-size: 1.05rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite, .dedans { animation: none; }
+}

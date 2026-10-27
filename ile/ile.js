@@ -662,7 +662,169 @@ function poserVillage(poles) {
     e.position.set(ex, hauteurSol(ex, ez), ez);
     e.lookAt(new THREE.Vector3(PLACE.x, e.position.y, PLACE.z));
     scene.add(e);
+
+    /* La porte, et non le bâtiment : on entre par devant. */
+    declarerLieu(x + vers.x * 3.5, z + vers.z * 3.5,
+                 pole.titre, "classe",
+                 { sorte: "chapitres", chapitres: pole.chapitres || [] });
   });
+}
+
+/* LA BOUTIQUE. Elle n'est pas sur la place mais SUR LE CHEMIN du port :
+   on la croise en arrivant, avant même d'avoir vu le village. C'est le
+   premier endroit où l'on entre, donc celui qui apprend à entrer. */
+function poserBoutique(outils) {
+  const x = 11.5, z = 33;
+  const b = bati({ largeur: 6.2, hauteur: 4.0, profondeur: 5.0,
+                   toit: 0x16A085, forme: "deux-pentes", enduit: C.enduitRose });
+  b.position.set(x, hauteurSol(x, z) - 0.15, z);
+  const versPort = new THREE.Vector3(PORT.x - x, 0, PORT.z - z).normalize();
+  b.lookAt(new THREE.Vector3(PORT.x, b.position.y, PORT.z));
+  scene.add(b);
+
+  const ex = x + versPort.x * 4.4, ez = z + versPort.z * 4.4;
+  const e = enseigne();
+  e.position.set(ex, hauteurSol(ex, ez), ez);
+  e.lookAt(new THREE.Vector3(PORT.x, e.position.y, PORT.z));
+  scene.add(e);
+
+  declarerLieu(x + versPort.x * 3.5, z + versPort.z * 3.5,
+               "La boutique", "boutique", { sorte: "outils", outils: outils || [] });
+}
+
+/* ═══════════════════════════════════════════════ LES LIEUX ══════════════
+   Un lieu, c'est une porte : un point au sol, un nom, et ce qu'on y trouve.
+   Les bâtiments ne sont pas des lieux — leur PORTE l'est. On entre par une
+   porte, pas par un mur, et viser le centre du bâtiment ferait apparaître
+   l'invite quand on en longe l'arrière. */
+const LIEUX = [];
+const RAYON_PORTE = 5.4;
+const declarerLieu = (x, z, titre, sorte, contenu) =>
+  LIEUX.push({ x, z, titre, sorte, contenu });
+
+/* ═══════════════════════════════════════════════ LE DEDANS ══════════════
+   Une seconde scène, bâtie une fois et REMEUBLÉE à chaque visite. En
+   rebâtir une à chaque entrée coûterait une seconde d'attente sur un
+   téléphone, et la carte graphique garderait les anciennes.
+
+   La pièce est volontairement petite et fermée : on vient y lire, pas y
+   marcher. La fenêtre n'est pas un décor — c'est elle qui dit qu'il fait
+   jour dehors, et qui empêche la pièce de ressembler à une cave. */
+const sceneInt = new THREE.Scene();
+const camInt = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 90);
+let meubles = null;
+
+function batirPiece() {
+  sceneInt.background = new THREE.Color(0x1B1510);
+  sceneInt.fog = new THREE.Fog(0x1B1510, 16, 34);
+
+  const L = 13, P = 10, H = 4.4;
+  const sol = new THREE.Mesh(new THREE.BoxGeometry(L, 0.3, P), matiere(0x8A6440));
+  sol.position.y = -0.15; sol.receiveShadow = true;
+  sceneInt.add(sol);
+
+  const murMat = matiere(0xE8D6B8);
+  for (const [sx, sz, lx, lz] of [[0, -1, L, 0.3], [-1, 0, 0.3, P], [1, 0, 0.3, P]]) {
+    const mur = new THREE.Mesh(new THREE.BoxGeometry(lx, H, lz), murMat);
+    mur.position.set(sx * (L / 2), H / 2, sz * (P / 2));
+    mur.receiveShadow = true;
+    sceneInt.add(mur);
+  }
+  const plafond = new THREE.Mesh(new THREE.BoxGeometry(L, 0.3, P), matiere(0xC9B48F));
+  plafond.position.y = H;
+  sceneInt.add(plafond);
+
+  /* Les poutres : elles donnent l'échelle du plafond. Sans elles, la pièce
+     n'a pas de hauteur — juste un couvercle. */
+  for (let i = -2; i <= 2; i++) {
+    const poutre = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.34, P), matiere(C.boisSombre));
+    poutre.position.set(i * 2.4, H - 0.3, 0);
+    sceneInt.add(poutre);
+  }
+
+  /* La fenêtre, au fond : un cadre et une vitre claire, plus une lumière
+     qui entre par là. C'est la source principale, et elle vient d'un
+     endroit qu'on VOIT — une pièce éclairée de nulle part sonne faux. */
+  const vitre = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 2.1),
+    new THREE.MeshBasicMaterial({ color: 0xBFE6FF }));
+  vitre.position.set(0, 2.5, -P / 2 + 0.17);
+  sceneInt.add(vitre);
+  const cadreF = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 0.16), matiere(C.bois));
+  cadreF.position.set(0, 2.5, -P / 2 + 0.1);
+  sceneInt.add(cadreF);
+  for (const dx of [0]) {
+    const meneau = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.1, 0.2), matiere(C.bois));
+    meneau.position.set(dx, 2.5, -P / 2 + 0.2);
+    sceneInt.add(meneau);
+  }
+
+  const jour = new THREE.DirectionalLight(0xFFF0D6, 1.9);
+  jour.position.set(1.5, 5.5, -7);
+  jour.target.position.set(0, 1, 2);
+  jour.castShadow = true;
+  jour.shadow.mapSize.set(1024, 1024);
+  sceneInt.add(jour, jour.target);
+  sceneInt.add(new THREE.HemisphereLight(0xFFE9C8, 0x6B4F33, 1.25));
+}
+batirPiece();
+
+/* Le mobilier change avec le lieu : une salle de classe et une boutique ne
+   se reconnaissent pas à une pancarte, elles se reconnaissent à ce qu'il y
+   a dedans. */
+function meubler(sorte) {
+  if (meubles) { sceneInt.remove(meubles); meubles = null; }
+  const g = new THREE.Group();
+
+  if (sorte === "boutique") {
+    const comptoir = new THREE.Mesh(new THREE.BoxGeometry(6.4, 1.1, 1.3), matiere(C.bois));
+    comptoir.position.set(0, 0.55, 0.6);
+    comptoir.castShadow = comptoir.receiveShadow = true;
+    contourer(comptoir, 0.03); g.add(comptoir);
+
+    /* Des caisses de couleur sur deux étagères : c'est la couleur en
+       quantité qui dit « boutique », pas un panneau « boutique ». */
+    const teintes = [0xC0392B, 0x2874A6, 0x1E8449, 0xB9770E, 0x7D3C98, 0x16A085];
+    for (let etage = 0; etage < 2; etage++) {
+      const planche = new THREE.Mesh(new THREE.BoxGeometry(9, 0.18, 0.9), matiere(C.bois));
+      planche.position.set(0, 1.5 + etage * 1.15, -4.2);
+      g.add(planche);
+      for (let i = 0; i < 6; i++) {
+        const caisse = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.8, 0.7),
+          matiere(teintes[(i + etage * 3) % 6]));
+        caisse.position.set(-4 + i * 1.6, 2.0 + etage * 1.15, -4.2);
+        caisse.castShadow = true;
+        contourer(caisse, 0.022); g.add(caisse);
+      }
+    }
+  } else {
+    /* La salle de classe : un tableau, et des tables tournées vers lui. La
+       DIRECTION des tables fait la pièce — alignées face au mur, on lit
+       « classe » immédiatement. */
+    const tableau = new THREE.Mesh(new THREE.BoxGeometry(7.2, 2.5, 0.17), matiere(0x24402F));
+    tableau.position.set(0, 2.35, -4.75);
+    contourer(tableau, 0.03); g.add(tableau);
+    const rebord = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.16, 0.42), matiere(C.bois));
+    rebord.position.set(0, 1.05, -4.6);
+    g.add(rebord);
+
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const table = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.14, 0.9), matiere(0xD9B98C));
+      table.position.set(-3.4 + c * 3.4, 0.78, -1.6 + r * 2.1);
+      table.castShadow = table.receiveShadow = true;
+      contourer(table, 0.022); g.add(table);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const pied = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.055, 0.055, 0.78, 5), matiere(C.boisSombre));
+        pied.position.set(table.position.x + sx * 0.72, 0.39, table.position.z + sz * 0.33);
+        g.add(pied);
+      }
+      const chaise = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.7), matiere(0xB98E5E));
+      chaise.position.set(table.position.x, 0.48, table.position.z + 1.0);
+      g.add(chaise);
+    }
+  }
+  meubles = g;
+  sceneInt.add(g);
 }
 
 /* ── le personnage et la caméra ────────────────────────────────────── */
@@ -677,7 +839,10 @@ scene.add(joueur);
 const VITESSE = 7.6;
 const touches = new Set();
 addEventListener("keydown", (ev) => {
-  touches.add(ev.key.toLowerCase());
+  const k = ev.key.toLowerCase();
+  if (k === "escape" && dedans) { sortir(); return; }
+  if (k === "e" && !dedans && lieuProche) { entrer(lieuProche); return; }
+  touches.add(k);
   if (ev.key.startsWith("Arrow")) ev.preventDefault();
 });
 addEventListener("keyup", (ev) => touches.delete(ev.key.toLowerCase()));
@@ -788,6 +953,107 @@ appliquerHeure();
 const btnHeure = document.getElementById("btn-heure");
 if (btnHeure) btnHeure.addEventListener("click", () => { nuit = !nuit; appliquerHeure(); });
 
+/* ── entrer, et ce qu'on trouve dedans ─────────────────────────────── */
+let lieuProche = null, dedans = null, tInt = 0;
+const elInvite = document.getElementById("invite");
+const elInviteQuoi = document.getElementById("invite-quoi");
+const elDedans = document.getElementById("dedans");
+
+function majInvite() {
+  let meilleur = null, meilleureD = RAYON_PORTE;
+  for (const L of LIEUX) {
+    const d = Math.hypot(L.x - joueur.position.x, L.z - joueur.position.z);
+    if (d < meilleureD) { meilleureD = d; meilleur = L; }
+  }
+  if (meilleur === lieuProche) return;         // on ne repeint que si ça change
+  lieuProche = meilleur;
+  if (!elInvite) return;
+  elInvite.hidden = !meilleur || !!dedans;
+  if (meilleur && elInviteQuoi) elInviteQuoi.textContent = "Entrer · " + meilleur.titre;
+}
+
+/* Le contenu est posé en VRAI HTML, nœud par nœud — jamais en chaîne
+   assemblée. Un titre de chapitre peut contenir une esperluette ou un
+   chevron ; passé par innerHTML il casserait la page ou, pire, ne la
+   casserait pas tout de suite. */
+function remplirPanneau(lieu) {
+  const corps = document.getElementById("dedans-corps");
+  const titre = document.getElementById("dedans-titre");
+  const sorte = document.getElementById("dedans-sorte");
+  if (!corps) return;
+  corps.replaceChildren();
+  titre.textContent = lieu.titre;
+  sorte.textContent = lieu.sorte === "boutique" ? "La boutique" : "La salle de classe";
+
+  if (lieu.contenu.sorte === "outils") {
+    const etal = document.createElement("div");
+    etal.className = "etal";
+    for (const o of lieu.contenu.outils) {
+      const a = document.createElement("a");
+      a.href = "../" + o.url;
+      a.textContent = o.titre;
+      etal.appendChild(a);
+    }
+    corps.appendChild(etal);
+    if (!lieu.contenu.outils.length) corps.appendChild(rienADire());
+    return;
+  }
+
+  for (const ch of lieu.contenu.chapitres) {
+    const rayon = document.createElement("div");
+    rayon.className = "rayon";
+    const nom = document.createElement("p");
+    nom.textContent = ch.titre;
+    rayon.appendChild(nom);
+    const liens = document.createElement("div");
+    liens.className = "rayon-liens";
+    for (const [quoi, url] of (ch.fiches || [])) {
+      const a = document.createElement("a");
+      a.href = "../" + url;
+      a.textContent = quoi;
+      liens.appendChild(a);
+    }
+    rayon.appendChild(liens);
+    corps.appendChild(rayon);
+  }
+  if (!lieu.contenu.chapitres.length) corps.appendChild(rienADire());
+}
+
+/* Une pièce vide doit le DIRE. Un panneau blanc laisse croire que le site
+   a échoué, alors qu'il n'a simplement rien à montrer ici. */
+function rienADire() {
+  const p = document.createElement("p");
+  p.style.cssText = "margin:.6rem .3rem;opacity:.65;font-size:.85rem";
+  p.textContent = "Rien sur les rayons pour l'instant.";
+  return p;
+}
+
+function entrer(lieu) {
+  if (!lieu || dedans) return;
+  dedans = lieu;
+  meubler(lieu.sorte);
+  remplirPanneau(lieu);
+  if (elDedans) elDedans.hidden = false;
+  if (elInvite) elInvite.hidden = true;
+  /* On relâche les touches : entrer avec « Z » enfoncé ferait sortir en
+     marche arrière à la seconde où l'on ressort. */
+  touches.clear();
+  const sortie = document.getElementById("dedans-sortir");
+  if (sortie) sortie.focus();
+}
+
+function sortir() {
+  if (!dedans) return;
+  dedans = null;
+  if (elDedans) elDedans.hidden = true;
+  touches.clear();
+  lieuProche = null;              // force le recalcul de l'invite
+}
+
+if (elInvite) elInvite.addEventListener("click", () => entrer(lieuProche));
+const btnSortir = document.getElementById("dedans-sortir");
+if (btnSortir) btnSortir.addEventListener("click", sortir);
+
 /* ── la boucle ─────────────────────────────────────────────────────── */
 let precedent = performance.now();
 let marche = 0, aidePartie = false;
@@ -796,6 +1062,22 @@ function image(maintenant) {
   requestAnimationFrame(image);
   const dt = Math.min(0.05, (maintenant - precedent) / 1000);
   precedent = maintenant;
+
+  /* Dedans, l'île ne tourne plus du tout : ni houle, ni marche, ni caméra
+     extérieure. Une scène qu'on ne regarde pas n'a aucune raison de coûter
+     des images — et sur un téléphone, ça s'entend au ventilateur.
+
+     La caméra intérieure DÉRIVE très lentement : parfaitement immobile,
+     une pièce ressemble à une image fixe et l'on doute qu'elle soit en
+     trois dimensions. */
+  if (dedans) {
+    tInt += dt;
+    camInt.position.set(Math.sin(tInt * 0.14) * 1.2, 3.15, 7.2);
+    camInt.lookAt(0, 2.0, -1.4);
+    rendu.render(sceneInt, camInt);
+    return;
+  }
+
   matMer.userData.temps.value += dt;
 
   /* ZQSD pour un clavier français, WASD pour un qwerty, les flèches pour
@@ -842,19 +1124,23 @@ function image(maintenant) {
     js[1].rotation.x = -Math.sin(marche) * amp;
   }
 
+  majInvite();
   majCamera(dt, false);
   rendu.render(scene, camera);
 }
 
 addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
+  for (const c of [camera, camInt]) {
+    c.aspect = innerWidth / innerHeight;
+    c.updateProjectionMatrix();
+  }
   rendu.setSize(innerWidth, innerHeight);
 });
 
 /* ── les données du site ───────────────────────────────────────────── */
-function demarrer(poles) {
-  poserVillage(poles);
+function demarrer(d) {
+  poserVillage(d.poles || []);
+  poserBoutique(d.outils || []);
   majCamera(0, true);                        // la première image est déjà cadrée
   const chargement = document.getElementById("chargement");
   if (chargement) chargement.hidden = true;
@@ -865,7 +1151,7 @@ function demarrer(poles) {
 
 fetch("../monde/donnees.json", { cache: "no-cache" })
   .then((r) => r.json())
-  .then((d) => demarrer(d.poles || []))
+  .then((d) => demarrer(d))
   /* L'île doit exister même si le fichier manque : on perd les bâtiments,
      pas le monde. Un écran noir ne dit rien à personne. */
-  .catch(() => demarrer([]));
+  .catch(() => demarrer({}));
