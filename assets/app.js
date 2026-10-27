@@ -150,7 +150,10 @@
        3D : le choisir envoie là-bas. La redirection est posée dans le
        script d'en-tête, avant le premier pixel, donc on ne voit pas
        l'accueil clignoter avant de partir. */
-    { id: "monde",     nom: "3D" }
+    { id: "monde",     nom: "3D" },
+    /* L'île, le second monde : celui où l'on marche, où l'on entre dans
+       les bâtiments. Demandé pour pouvoir y revenir plus tard. */
+    { id: "ile",       nom: "3D bis" }
   ];
 
   var TAILLES = [
@@ -526,6 +529,27 @@
     document.body.style.overflow = "";
     fermerVoile = null;
     if (dernierFocus && dernierFocus.focus) dernierFocus.focus();
+  }
+
+  /* L'adresse d'un monde, bâtie sur la racine du site — donc valable sur
+     TOUTES les pages. Je l'avais d'abord lue sur l'attribut que publier.py
+     écrit à côté du bouton « 3D » : il n'existe que sur 25 pages des 283.
+     Les fiches, elles, n'ont pas d'en-tête de site du tout, et le réglage
+     avait disparu de toutes — y compris le réglage « 3D », qui était là
+     avant moi.
+     Que les deux mondes soient réellement publiés ne peut donc pas se
+     vérifier ici. Cette garantie se prend à la publication, dans
+     publier.py, avant la première page écrite. */
+  function adresseMonde(cle) { return racine() + cle + "/index.html"; }
+
+  /* Les mondes, en liens directs. Les pastilles au-dessus choisissent
+     l'ACCUEIL : elles n'emmènent nulle part avant le prochain chargement de
+     l'accueil. Aller voir l'île ne devrait pas obliger à en faire son
+     accueil, puis à revenir défaire le réglage — d'où ces deux liens. */
+  function liensMondes() {
+    return '<p class="reglage-liens">' +
+      '<a href="' + adresseMonde("monde") + '">Ouvrir le village</a>' +
+      '<a href="' + adresseMonde("ile") + '">Ouvrir l\'île</a></p>';
   }
 
   function pastilles(liste, actuel) {
@@ -945,8 +969,9 @@
         '<div class="reglage"><h3>Accueil</h3>' +
         '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
         '</div><p class="reglage-aide">Le lanceur montre tout en un écran ; ' +
-        'le classique garde les grandes cartes ; la 3D ouvre le village. ' +
-        'Depuis le village, « retour » ramène ici, et le choix se change.</p></div>' +
+        'le classique garde les grandes cartes ; la 3D ouvre le village, ' +
+        '« 3D bis » ouvre l\'île. Depuis un monde, « retour » ramène ici, ' +
+        'et le choix se change.</p>' + liensMondes() + '</div>' +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
@@ -1021,6 +1046,17 @@
     feuille.addEventListener("click", function (e) {
       var b;
       if (e.target.closest("[data-fermer]")) return fermer();
+
+      /* Aller voir un monde par le lien direct, c'est une VISITE, pas un
+         changement d'accueil : le réglage n'est pas touché. On pose quand
+         même le jeton de session que poserait la redirection — sinon, pour
+         qui a fait d'un monde son accueil, le « retour » du monde visité
+         retomberait sur l'accueil, qui le renverrait aussitôt dans son
+         monde. Un aller sans retour. */
+      if (e.target.closest(".reglage-liens a")) {
+        try { sessionStorage.setItem("ciel-monde", "1"); } catch (err) {}
+        return;
+      }
 
       if ((b = e.target.closest("[data-hasard-theme]"))) {
         var tous = [];
