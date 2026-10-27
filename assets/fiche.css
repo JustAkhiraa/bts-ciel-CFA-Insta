@@ -8750,6 +8750,54 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
    cartes au travers. La teinte est donc reposée sur « --carte », qui est
    le papier de cette fenêtre — même couleur qu'avant, dans les 42 thèmes,
    mais plus de transparence. */
+/* Signalé, capture d'un vrai téléphone à l'appui : la barre collée
+   mangeait le bas de l'écran. Mesuré à 390 px — 90 px de haut, 11 % de
+   la hauteur visible, sur DEUX rangées, et trois sur un écran plus
+   étroit. Collée, elle est là en permanence : sa hauteur n'est plus un
+   détail de fin de page, c'est de la place prise à la lecture.
+
+   La cause tient en une déclaration. « .lan-comptes » portait les quatre
+   compteurs retirés depuis ; il ne lui reste que l'heure, mais il a gardé
+   son « flex: 1 ». Il réclamait donc 332 px des 366 disponibles et se
+   jetait seul sur une deuxième rangée, en poussant le « ⋯ » sur une
+   troisième. Une boîte qui prend toute la largeur pour afficher cinq
+   caractères.
+
+   Elle ne prend plus que sa taille, et rien ne s'enroule : 56 px, une
+   rangée, 7 % de l'écran. Borné aux écrans étroits — sur un grand écran
+   la barre a la place, et l'heure y sert d'entretoise entre le titre et
+   les commandes. */
+@media (max-width: 620px) {
+  html[data-style="lanceur"] body[data-accueil] .lan-actions {
+    flex-wrap: nowrap; gap: .5rem;
+  }
+  html[data-style="lanceur"] body[data-accueil] .lan-comptes {
+    flex: none; margin-right: auto;
+  }
+}
+
+/* Et sous 380 px, le dé perd son mot. Empêcher l'enroulement a d'abord
+   DÉPLACÉ le défaut : à 360 px la barre ne s'enroulait plus, elle
+   débordait de 24 px — « Au hasard » coûte 100 px à lui seul.
+   Le texte reste dans le document, seule sa taille tombe à zéro : le
+   bouton garde donc son nom pour un lecteur d'écran, et le dé suffit à
+   le reconnaître — c'est une action secondaire, pas une destination.
+   Mesuré à 320 px, l'écran le plus étroit qu'on rencontre encore : la
+   barre tient pile, et les quatre commandes font 44×36, 40×40, 40×40 et
+   36×40 — toutes au-dessus des 34 px que le site s'impose. */
+@media (max-width: 380px) {
+  html[data-style="lanceur"] body[data-accueil] .lan-actions {
+    gap: .4rem; padding-inline: .55rem;
+  }
+  html[data-style="lanceur"] body[data-accueil] .lan-nav { gap: .2rem; }
+  html[data-style="lanceur"] body[data-accueil] button.lan-de {
+    font-size: 0; padding-inline: .6rem;
+  }
+  html[data-style="lanceur"] body[data-accueil] button.lan-de > span {
+    font-size: .95rem;
+  }
+}
+
 html[data-style="lanceur"] body[data-accueil] .lan-fen { overflow: clip; }
 html[data-style="lanceur"] body[data-accueil] .lan-actions {
   position: sticky; bottom: 0; z-index: 3;
