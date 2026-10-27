@@ -2114,7 +2114,18 @@
       const multiSauve = multi.slice();
       const enrouleSauve = racine.classList.contains("enroule");
       const dit = (ok, quoi) => { r.controles++; if (!ok) r.erreurs.push(quoi); };
-      const poser = (v) => { saisie.value = v; multi = []; redessiner(); };
+      /* Le redessin SYNCHRONE, pas le différé. redessiner() passe par
+         requestAnimationFrame : le diagnostic posait un programme puis
+         mesurait la marge dans la foulée, avant que la moindre image ait
+         été peinte. Il ne pouvait donc jamais être juste — il lisait
+         l'état d'AVANT sa propre modification.
+         Mesuré, et c'est net : interrogé tout de suite il annonçait
+         « 0 numéros au lieu de 4 » ; après deux images, « 16 au lieu de
+         4 ». Deux réponses fausses pour la même page, et le banc a
+         rapporté la première comme un défaut du site pendant des
+         semaines. Un contrôle qui crie au loup finit par couvrir les
+         vrais défauts : c'est le pire état d'un instrument. */
+      const poser = (v) => { saisie.value = v; multi = []; redessinerMaintenant(); };
       const TROIS = "int n = 0;\nint n2 = n + 1;\nreturn n;\n";
       const troisFois = () => {
         poser(TROIS);
@@ -2194,6 +2205,7 @@
         if (peint.clientWidth > 10) {
           poser("a\n// " + "mot ".repeat(90).trim() + "\nb\n");
           if (!racine.classList.contains("enroule")) basculerEnroulement();
+          redessinerMaintenant();     // même raison : l'enroulement se peint
           ajusterMarge(saisie.value);
           const pas = parseFloat(getComputedStyle(peint).lineHeight);
           const hauts = [];

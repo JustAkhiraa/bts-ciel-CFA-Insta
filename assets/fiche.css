@@ -463,6 +463,35 @@ pre { margin: 0; background: #23211E; color: #EDE7DC; border-radius: var(--r);
   font-size: 0.8061rem; line-height: 1.66; }
 pre code { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
 
+/* ── UN BLOC QUI DÉPASSE DE DEUX CARACTÈRES NE DOIT PAS DÉFILER ───────
+   Signalé : sur un téléphone, les matrices étaient coupées en deux. Les
+   mises en page côte à côte ont été reprises une par une, et c'était le
+   vrai défaut. Mais en mesurant après coup, huit blocs du même cours
+   dépassaient encore — de 15 à 80 px. Deux caractères. Rattraper ça en
+   resserrant les espaces, c'est courir après des caractères à chaque
+   nouveau cours écrit, et perdre la course.
+
+   Alors le bloc rétrécit JUSTE ASSEZ pour tenir. publier.py relève la
+   plus longue ligne de chaque bloc et l'écrit dans « --car » ; la règle
+   en déduit la taille qui fait entrer cette ligne dans la largeur
+   disponible. Trois bornes la tiennent :
+     · jamais plus grand que la taille normale — sur un écran large,
+       rien ne change, le calcul est simplement ignoré par le « max » ;
+     · jamais plus petit que 0,6 rem, soit 9,9 px — en dessous on ne lit
+       plus, et il vaut mieux faire défiler ;
+     · le facteur 0,67 est la largeur d'un caractère de cette fonte,
+       rapportée à sa taille. Mesuré dans la page, pas supposé : 43
+       caractères à 10,56 px occupaient 301 px de texte.
+
+   Ce qui dépasse encore est le code long — jusqu'à 315 caractères sur
+   une ligne de C. Celui-là DOIT défiler : on ne lit pas du C à 5 px.
+   « clip » n'irait pas ici, et « inline-size » est le seul type de
+   conteneur qui laisse la hauteur libre. */
+.bloc-code pre { container-type: inline-size; }
+.bloc-code pre code {
+  font-size: clamp(0.6rem, calc(100cqi / (var(--car, 40) * 0.67)), 0.8061rem);
+}
+
 /* ------------------------------------------- coloration du code publié
    Demandé : colorer chaque élément et chaque attribut, comme le fait
    l'éditeur — c'est ce qui rend un bloc lisible d'un coup d'œil.
