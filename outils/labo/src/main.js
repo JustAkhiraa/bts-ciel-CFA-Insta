@@ -328,7 +328,7 @@ $("#lb-cables").addEventListener("click", (e) => {
   else interactions.commencerPose(b.dataset.cable);
   $("#lb-scene").focus({ preventScroll: true });
 });
-$("#lb-labs").innerHTML = LABS.map((l) => '<button type="button" class="lb-lab" data-lab="' + l.id + '"><b>' + l.court + "</b><span>" + l.titre.split(" — ")[0] + "</span></button>").join("");
+$("#lb-labs").innerHTML = LABS.map((l) => '<button type="button" class="lb-lab' + (l.panne ? " panne" : "") + '" data-lab="' + l.id + '"><b>' + l.court + "</b><span>" + l.titre.split(" — ")[0] + "</span></button>").join("");
 $("#lb-labs").addEventListener("click", (e) => { const b = e.target.closest("[data-lab]"); if (b) ouvrirLab(b.dataset.lab); });
 
 function majOutils() {

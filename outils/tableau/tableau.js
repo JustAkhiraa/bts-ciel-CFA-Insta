@@ -10,11 +10,12 @@
 (function () {
   "use strict";
   const R = window.TB_RENDU;
+  const S = window.TB_STYLET;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
   const section = $("#tableau");
-  if (!section || !R) return;
+  if (!section || !R || !S) return;
   const scene = $("#tb-scene");
   const toile = $("#tb-toile");
   const ctx = toile.getContext("2d");
@@ -110,6 +111,10 @@
     /* Les trois stylos, réglés chacun pour soi. */
     stylos: [{ c: NOIR, w: 1.6 }, { c: OC.red[4], w: 1.6 }, { c: OC.blue[4], w: 1.6 }],
     stylo: 0,
+    /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
+       ce qu'on fait du doigt quand un stylet a été vu. */
+    formes: false, gommeMode: "objet", gommeTaille: 12,
+    styletSeul: false, inclinaison: true, regle: null,
   };
   /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
@@ -126,6 +131,8 @@
   let laser = [];                     // la traînée du pointeur laser
   let traineeGomme = [];
   let fantomes = new Set();           // ce que la gomme va effacer
+  const ignores = new Set();          // les doigts écartés : une paume posée
+  let penBas = null;                  // le stylet en contact, s'il l'est
   let pressePapiers = null;
 
   /* ── l'historique : une photographie de la scène par action ── */
@@ -172,7 +179,20 @@
           elements, fond: etat.fond, grille: etat.grille, theme: etat.theme,
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
+          formes: etat.formes, gommeMode: etat.gommeMode, gommeTaille: etat.gommeTaille,
+          styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
+        /* Les images vivent dans leur propre clé : réécrire un mégaoctet
+           de photo à chaque trait tracé ferait ramer la main. Elles ne
+           sont réécrites que quand la liste des images en usage change. */
+        const vues = fichiersDe(elements), cle = Object.keys(vues).sort().join();
+        if (cle !== fichiersGardes) {
+          try { localStorage.setItem(FICHIERS_CLE, JSON.stringify(vues)); fichiersGardes = cle; }
+          catch (e) {
+            dire("Les images dépassent la mémoire du navigateur : Ctrl S enregistre le tableau en fichier, images comprises.", true);
+            return;
+          }
+        }
         marquerSauve(true);
       } catch (e) { /* stockage plein ou bloqué : le tableau marche quand même */ }
     }, 250);
@@ -182,11 +202,14 @@
       const lu = JSON.parse(localStorage.getItem(ECRIT_CLE) || "null");
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
-      ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo"].forEach((k) => {
+      ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
+       "formes", "gommeMode", "gommeTaille", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       if (lu.courant) Object.assign(etat.courant, lu.courant);
       if (Array.isArray(lu.stylos) && lu.stylos.length === 3) etat.stylos = lu.stylos;
+      const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
+      if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
   }
 
@@ -413,6 +436,7 @@
   /* ═══════════════ 6. La peinture ═════════════════════════════════════ */
   let demande = 0;
   function demander() {
+    majLiens();
     if (!demande) demande = requestAnimationFrame(() => { demande = 0; peindre(); });
   }
   const cacheChemins = new Map();
@@ -451,13 +475,17 @@
       // l'ombre portée d'une note collée : ce qui la distingue d'un rectangle
       c.shadowColor = "rgba(0,0,0,.18)"; c.shadowBlur = 10; c.shadowOffsetY = 3;
     }
+    const effet = el.type === "freedraw" && el.customData && el.customData.effet;
     if (el.type === "text") {
       dessinerTexte(c, el);
+    } else if (el.type === "image") {
+      dessinerImage(c, el);
     } else {
       cheminsDe(el).forEach((op) => {
         if (!op.couleur || op.couleur === "transparent") return;
         if (!op.p) op.p = new Path2D(op.d);
-        if (op.mode === "fond") { c.fillStyle = op.couleur; c.fill(op.p); }
+        if (op.mode === "fond" && effet && op.couleur === el.strokeColor) peindreEffet(c, el, effet, op.p);
+        else if (op.mode === "fond") { c.fillStyle = op.couleur; c.fill(op.p); }
         else {
           c.strokeStyle = op.couleur; c.lineWidth = op.largeur || 1;
           c.lineCap = "round"; c.lineJoin = "round";
@@ -469,6 +497,72 @@
     }
     c.restore();
   }
+  /* ── les effets de pointe ──
+     L'encre reste un contour plein ; seul son REMPLISSAGE change. Le
+     dégradé suit la diagonale du trait, dans le repère de l'élément : il
+     se déplace avec lui et ne dépend pas du zoom. */
+  const EFFETS = {
+    arcenciel: [[0, "#e03131"], [0.17, "#f08c00"], [0.33, "#f2c200"], [0.5, "#2f9e44"],
+                [0.67, "#1c7ed6"], [0.83, "#6741d9"], [1, "#c2255c"]],
+    or: [[0, "#8a6a12"], [0.22, "#e2bd4f"], [0.42, "#fff1a8"], [0.6, "#d1a12a"], [0.82, "#93700f"], [1, "#e6c158"]],
+  };
+  function diagonale(el) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of el.points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+    if (x1 - x0 < 1 && y1 - y0 < 1) { x0 -= 4; x1 += 4; }
+    return [x0, y0, x1, y1];
+  }
+  function peindreEffet(c, el, effet, p) {
+    if (effet === "neon") {
+      // une lueur de la couleur, puis un cœur pâle : le tube allumé
+      c.shadowColor = el.strokeColor; c.shadowBlur = 14;
+      c.fillStyle = el.strokeColor; c.fill(p);
+      c.shadowBlur = 0; c.shadowColor = "transparent";
+      c.globalAlpha *= 0.35; c.fillStyle = "#ffffff"; c.fill(p); c.globalAlpha /= 0.35;
+      return;
+    }
+    const arrets = EFFETS[effet];
+    if (!arrets) { c.fillStyle = el.strokeColor; c.fill(p); return; }
+    const [x0, y0, x1, y1] = diagonale(el);
+    const g = c.createLinearGradient(x0, y0, x1, y1);
+    arrets.forEach(([t, couleur]) => g.addColorStop(t, couleur));
+    if (effet === "or") { c.shadowColor = "rgba(110,70,0,.35)"; c.shadowBlur = 2; c.shadowOffsetY = 1; }
+    c.fillStyle = g; c.fill(p);
+    c.shadowColor = "transparent"; c.shadowBlur = 0; c.shadowOffsetY = 0;
+  }
+  function svgEffet(el, effet, d) {
+    if (effet === "neon") {
+      const f = "n" + el.id;
+      return '<filter id="' + f + '" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/>'
+        + '<feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+        + '<path d="' + d + '" fill="' + el.strokeColor + '" filter="url(#' + f + ')"/>'
+        + '<path d="' + d + '" fill="#ffffff" fill-opacity=".35"/>';
+    }
+    const [x0, y0, x1, y1] = diagonale(el), id = "d" + el.id;
+    return '<linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="' + x0.toFixed(1) + '" y1="' + y0.toFixed(1)
+      + '" x2="' + x1.toFixed(1) + '" y2="' + y1.toFixed(1) + '">'
+      + EFFETS[effet].map(([t, couleur]) => '<stop offset="' + t + '" stop-color="' + couleur + '"/>').join("")
+      + '</linearGradient><path d="' + d + '" fill="url(#' + id + ')"/>';
+  }
+
+  /* Une image se dessine telle quelle. En sombre, le canevas entier est
+     inversé par un filtre (voir « sombre ») : une photo y sortirait en
+     négatif. On lui applique donc le même filtre AVANT, qui l'annule à
+     peu près — à l'écran seulement : un export n'est jamais sombre. */
+  function dessinerImage(c, el) {
+    const img = imageDe(el.fileId);
+    if (img && img.complete && img.naturalWidth) {
+      if (c === ctx && sombre()) c.filter = "invert(93%) hue-rotate(180deg)";
+      c.drawImage(img, 0, 0, el.width, el.height);
+      c.filter = "none";
+      return;
+    }
+    // pas encore décodée, ou fichier absent : un cadre qui garde sa place
+    c.fillStyle = "rgba(134,142,150,.12)"; c.fillRect(0, 0, el.width, el.height);
+    c.strokeStyle = "rgba(134,142,150,.7)"; c.lineWidth = 1 / etat.zoom;
+    c.setLineDash([6 / etat.zoom, 4 / etat.zoom]); c.strokeRect(0, 0, el.width, el.height); c.setLineDash([]);
+  }
+
   function dessinerTexte(c, el) {
     const lignes = String(el.text).split("\n");
     const lh = el.fontSize * (el.lineHeight || 1.25);
@@ -514,8 +608,10 @@
     dessinerScene(ctx, elements, { x0: a.x, y0: a.y, x1: b.x, y1: b.y });
     dessinerSelection();
     dessinerEphemeres();
+    dessinerRegle(dpr);
     $("#tb-accueil").hidden = elements.length > 0 || !!geste;
     placerContexte();
+    placerLecture();
   }
 
   /* ── la grille ────────────────────────────────────────────────────
@@ -686,6 +782,20 @@
     }
     ctx.shadowBlur = 0;
     if (traineeGomme.length) trace(traineeGomme, "rgba(120,120,120,.5)", 12, 260);
+    if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
+      ctx.beginPath();
+      geste.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = "rgba(76,110,245,.07)"; ctx.fill();
+      ctx.setLineDash([6 / z, 5 / z]); ctx.lineWidth = 1.5 / z; ctx.strokeStyle = BLEU_SEL; ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // la gomme partielle montre ce qu'elle va prendre
+    if (etat.outil === "gomme" && etat.gommeMode === "partie" && dernierePos) {
+      ctx.beginPath(); ctx.arc(dernierePos.x, dernierePos.y, etat.gommeTaille / z, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fill();
+      ctx.lineWidth = 1 / z; ctx.strokeStyle = "rgba(73,80,87,.85)"; ctx.stroke();
+    }
     ctx.restore();
     if (laser.length || traineeGomme.length) demander();
   }
@@ -727,9 +837,11 @@
   /* ═══════════════ 8. Les outils ══════════════════════════════════════ */
   const OUTILS_FORME = ["rectangle", "diamond", "ellipse", "postit"];
   const OUTILS_DESSIN = ["freedraw", "surligneur"];
+  const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser"];
   function choisirOutil(o) {
     if (edition) finirEdition();
     etat.outil = o;
+    lienDebut = null;
     if (o !== "selection") selection.clear();
     $$("[data-outil]").forEach((b) => {
       if (b.dataset.outil !== "verrou") b.setAttribute("aria-pressed", String(b.dataset.outil === o));
@@ -751,6 +863,327 @@
     toile.style.cursor = c;
   }
 
+  /* ═══════════════ 8 bis. Le stylet ══════════════════════════════════
+     La géométrie vit dans « stylet.js » ; ici, seulement ce qu'il faut
+     pour la brancher sur les gestes et sur la scène. */
+  const absolus = (el) => el.points.map(([x, y]) => [el.x + x, el.y + y]);
+  const NOM_FORME = { line: "segment", rectangle: "rectangle", diamond: "losange", ellipse: "ellipse",
+                      triangle: "triangle", polygone: "quadrilatère" };
+
+  /* ── la paume ──
+     Dès qu'un stylet a touché l'écran, le doigt n'écrit plus sur les
+     outils d'encre : il fait défiler, et deux doigts zooment. Tant que la
+     pointe est posée, tout contact de la peau est ignoré — c'est la main
+     qui s'appuie pour écrire. */
+  function accueillir(e) {
+    if (e.pointerType === "pen") {
+      if (!etat.styletSeul) {
+        etat.styletSeul = true; garder();
+        dire("Stylet reconnu : il écrit, le doigt fait défiler. Réglable en recliquant sur un stylo.");
+      }
+      penBas = e.pointerId;
+      // une paume posée AVANT la pointe : son geste est oublié
+      for (const [id, q] of pointeurs) if (q.type === "touch") { pointeurs.delete(id); ignores.add(id); }
+      if (geste && geste.type === "touch") annulerGeste();
+      return true;
+    }
+    if (e.pointerType === "touch" && etat.styletSeul && penBas !== null) { ignores.add(e.pointerId); return false; }
+    return true;
+  }
+
+  /* ── la pression, et l'inclinaison ──
+     Un stylet couché élargit le trait, comme une mine qu'on incline pour
+     ombrer. L'angle vient d'« altitudeAngle » (π/2 : debout), ou se déduit
+     de tiltX / tiltY quand le navigateur n'a que ceux-là. Le résultat reste
+     une PRESSION, le seul champ que le format connaisse : un tableau ouvert
+     ailleurs garde le trait tel qu'il a été tracé. */
+  function pressionDe(ev, el) {
+    if (el.simulatePressure) return 0.5;
+    let p = ev.pressure || 0.5;
+    if (etat.inclinaison && ev.pointerType === "pen") {
+      let alt = typeof ev.altitudeAngle === "number" ? ev.altitudeAngle : null;
+      if (alt === null && (ev.tiltX || ev.tiltY)) {
+        const tx = Math.tan(ev.tiltX * Math.PI / 180), ty = Math.tan(ev.tiltY * Math.PI / 180);
+        alt = Math.atan(1 / Math.hypot(tx, ty));
+      }
+      if (alt !== null) {
+        const couche = 1 - Math.max(0, Math.min(1, alt / (Math.PI / 2)));
+        p *= 1 + 2 * couche * couche;
+      }
+    }
+    return p;
+  }
+
+  /* ── d'un trait à une forme ── */
+  function droite(el, a, b) {
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(2, Math.ceil(L / 6));
+    const pm = el.pressures && el.pressures.length
+      ? el.pressures.reduce((s, x) => s + x, 0) / el.pressures.length : 0.5;
+    el.x = a[0]; el.y = a[1];
+    el.points = Array.from({ length: n + 1 }, (_, i) => [(b[0] - a[0]) * i / n, (b[1] - a[1]) * i / n]);
+    el.pressures = el.points.map(() => pm);
+    const bb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+    el.width = bb.w; el.height = bb.h;
+    toucher(el);
+    return el;
+  }
+  /* Un segment reste un TRAIT d'encre — il garde la plume, l'effet et le
+     surligneur. Une forme fermée devient une vraie forme, que « Format »
+     sait ensuite remplir, tramer ou arrondir. */
+  function versForme(f, src) {
+    if (f.type === "line") {
+      const copie = Object.assign({}, src, { id: nouvelId(), seed: graine(),
+        customData: src.customData ? Object.assign({}, src.customData) : null });
+      return droite(copie, f.points[0], f.points[1]);
+    }
+    const st = { strokeColor: src.strokeColor, strokeWidth: Math.max(1, Math.round(src.strokeWidth * 5) / 2),
+                 backgroundColor: "transparent", strokeStyle: "solid", roughness: 0, opacity: src.opacity };
+    if (f.type === "triangle" || f.type === "polygone") {
+      const [x0, y0] = f.points[0];
+      const pts = f.points.concat([f.points[0]]).map(([x, y]) => [x - x0, y - y0]);
+      const el = nouvelElement("line", x0, y0, Object.assign(st, { points: pts, polygon: true, roundness: null,
+        lastCommittedPoint: null, startBinding: null, endBinding: null, startArrowhead: null, endArrowhead: null }));
+      const b = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+      el.width = b.w; el.height = b.h;
+      return el;
+    }
+    return nouvelElement(f.type, f.x, f.y, Object.assign(st, { width: f.width, height: f.height }));
+  }
+  /* Formes automatiques : à la fin du trait, s'il en est une. Sous 48 px
+     d'écran, c'est de l'écriture — un « 0 » ne doit pas devenir une
+     ellipse. Le trait brut est déjà dans l'historique : Ctrl Z le rend. */
+  function formeAuto(el) {
+    const b = R.boite(el);
+    if (Math.max(b.w, b.h) * etat.zoom < 48) return;
+    const f = S.reconnaitreForme(absolus(el));
+    if (!f) return;
+    const i = elements.indexOf(el);
+    if (i < 0) return;
+    elements[i] = versForme(f, el);
+    memoriser();
+    dire("Forme reconnue : " + NOM_FORME[f.type] + ". Ctrl + Z rend le trait à main levée.");
+  }
+
+  /* ── tenir pour redresser ──
+     Une pointe qui s'arrête plus d'une demi-seconde transforme le trait :
+     en forme nette s'il en est une, en segment sinon — et le segment suit
+     encore la pointe, pour l'orienter avant de lâcher. Le tremblement d'une
+     main posée n'est pas un mouvement : il faut s'éloigner de 6 px pour
+     relancer l'attente. */
+  function guetterArret(g, sx, sy) {
+    if (g.regle) return;
+    if (g.arret && Math.hypot(sx - g.arret.sx, sy - g.arret.sy) <= 6) return;
+    g.arret = { sx, sy };
+    clearTimeout(g.minuterie);
+    g.minuterie = setTimeout(() => redresser(g), 550);
+  }
+  function redresser(g) {
+    if (geste !== g) return;
+    const src = g.el, abs = absolus(src), L = S.longueur(abs);
+    if (L * etat.zoom < 24) return;
+    let f = estSurligneur(src) ? null : S.reconnaitreForme(abs);
+    if (!f) {
+      // une boucle qu'on ne reconnaît pas reste telle quelle
+      const a = abs[0], b = abs[abs.length - 1];
+      if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.3 * L) return;
+      f = { type: "line", points: [a, b] };
+    }
+    const fait = versForme(f, src);
+    elements[elements.indexOf(src)] = fait;
+    geste = { mode: "redresse", el: fait, brut: src, ligne: f.type === "line", depart: abs[0], type: g.type };
+    // un frémissement sous la pointe — seulement après un vrai geste, sans quoi le navigateur le refuse en criant
+    if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.isActive)) navigator.vibrate(8);
+    dire("Redressé : " + NOM_FORME[f.type] + (f.type === "line" ? ", glissez pour l'orienter" : "")
+      + ". Ctrl + Z rend le trait d'origine.");
+    demander();
+  }
+  function ajusterRedresse(g, p, e) {
+    if (!g.ligne) return;
+    let dx = p.x - g.depart[0], dy = p.y - g.depart[1];
+    const l = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    // aimanté à l'horizontale, à la verticale et aux diagonales ; Maj : tous les 15°
+    const pas = e.shiftKey ? Math.PI / 12 : Math.PI / 4, cran = Math.round(a / pas) * pas;
+    if (e.shiftKey || Math.abs(a - cran) < 0.05) { dx = Math.cos(cran) * l; dy = Math.sin(cran) * l; }
+    droite(g.el, g.depart, [g.depart[0] + dx, g.depart[1] + dy]);
+    demander();
+  }
+
+  /* ── la règle ──
+     Elle vit à l'ÉCRAN, pas dans la scène : on zoome sous elle sans
+     qu'elle grandisse, comme une vraie règle posée sur une feuille. Un
+     trait commencé contre un de ses bords le suit ; saisie au milieu, elle
+     se déplace ; par un bout, elle tourne — aimantée tous les 15°. */
+  function regleEcran() {
+    const L = Math.min(820, Math.max(300, toile.clientWidth * 0.8));
+    return { x: etat.regle.sx, y: etat.regle.sy, angle: etat.regle.angle, longueur: L, largeur: 76 };
+  }
+  function regleScene() {
+    const E = regleEcran(), c = versScene(E.x, E.y), z = etat.zoom;
+    return { x: c.x, y: c.y, angle: E.angle, longueur: E.longueur / z, largeur: E.largeur / z };
+  }
+  function saisirRegle(e, sx, sy) {
+    if (!etat.regle) return false;
+    const E = regleEcran();
+    if (!S.dansRegle(E, [sx, sy])) return false;
+    const encre = OUTILS_DESSIN.includes(etat.outil) && !(e.pointerType === "touch" && etat.styletSeul);
+    if (encre && S.bordProche(E, [sx, sy], 26)) return false;      // on trace contre le bord
+    const t = (sx - E.x) * Math.cos(E.angle) + (sy - E.y) * Math.sin(E.angle);
+    geste = { mode: "regle", tourne: Math.abs(t) > E.longueur / 2 - 70, sx, sy,
+              r0: Object.assign({}, etat.regle), a0: Math.atan2(sy - E.y, sx - E.x) };
+    return true;
+  }
+  function bougerRegle(g, sx, sy, e) {
+    if (g.tourne) {
+      let a = g.r0.angle + Math.atan2(sy - g.r0.sy, sx - g.r0.sx) - g.a0;
+      const pas = Math.PI / 12, cran = Math.round(a / pas) * pas;
+      if (e.shiftKey || Math.abs(a - cran) < 0.035) a = cran;
+      etat.regle.angle = a;
+    } else {
+      etat.regle.sx = g.r0.sx + sx - g.sx;
+      etat.regle.sy = g.r0.sy + sy - g.sy;
+    }
+    demander();
+  }
+  function dessinerRegle(dpr) {
+    if (!etat.regle) return;
+    const E = regleEcran(), L = E.longueur, W = E.largeur;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(E.x, E.y); ctx.rotate(E.angle);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-L / 2, -W / 2, L, W, 10); else ctx.rect(-L / 2, -W / 2, L, W);
+    ctx.shadowColor = "rgba(0,0,0,.2)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 2;
+    ctx.fillStyle = "rgba(248,249,250,.84)"; ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(52,58,64,.4)"; ctx.stroke();
+    // graduations : tous les 10 px, une moyenne tous les 50, une grande tous les 100
+    ctx.strokeStyle = "rgba(52,58,64,.7)"; ctx.fillStyle = "rgba(52,58,64,.85)";
+    ctx.font = "10px " + SANS; ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.beginPath();
+    for (let x = -L / 2 + 14, k = 0; x <= L / 2 - 14; x += 10, k++) {
+      const h = k % 10 === 0 ? 14 : k % 5 === 0 ? 10 : 6;
+      ctx.moveTo(x, -W / 2); ctx.lineTo(x, -W / 2 + h);
+      ctx.moveTo(x, W / 2); ctx.lineTo(x, W / 2 - h);
+      if (k % 10 === 0 && k) ctx.fillText(String(k / 10), x, -W / 2 + 16);
+    }
+    ctx.stroke();
+    // les deux poignées de rotation, et l'angle au centre
+    ctx.lineWidth = 1.4;
+    [-1, 1].forEach((s) => {
+      const cx = s * (L / 2 - 34);
+      ctx.beginPath(); ctx.arc(cx, 6, 8, -Math.PI * 0.85, Math.PI * 0.55); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - 4.5, 12.5); ctx.lineTo(cx - 1, 12.6); ctx.lineTo(cx - 3, 9.5); ctx.stroke();
+    });
+    const deg = ((Math.round(-E.angle * 180 / Math.PI) % 360) + 360) % 360;
+    ctx.font = "600 13px " + SANS; ctx.textBaseline = "middle";
+    ctx.fillText(deg + "°", 0, 8);
+    // le bord contre lequel on trace s'allume
+    if (geste && geste.mode === "dessin" && geste.regle) {
+      const b = geste.regle.bord;
+      const s = b.nx * -Math.sin(E.angle) + b.ny * Math.cos(E.angle) > 0 ? 1 : -1;
+      ctx.strokeStyle = BLEU_SEL; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(-L / 2 + 6, s * W / 2); ctx.lineTo(L / 2 - 6, s * W / 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function basculerRegle() {
+    etat.regle = etat.regle ? null
+      : { sx: toile.clientWidth / 2, sy: toile.clientHeight * 0.55, angle: 0 };
+    majBascules();
+    dire(etat.regle ? "Règle posée : tracez contre un bord. Glissez-la par le milieu, tournez-la par un bout ou à la molette."
+      : "Règle rangée.");
+    demander();
+  }
+  function basculerFormes() {
+    etat.formes = !etat.formes;
+    majBascules(); garder();
+    dire(etat.formes ? "Formes automatiques : un cercle, un carré, un triangle ou un trait tracés à main levée deviennent nets."
+      : "Formes automatiques coupées. Garder la pointe immobile en fin de trait redresse toujours.");
+  }
+  function majBascules() {
+    $('[data-bascule="formes"]').setAttribute("aria-pressed", String(etat.formes));
+    $('[data-bascule="regle"]').setAttribute("aria-pressed", String(!!etat.regle));
+  }
+
+  /* ── le lasso ──
+     Une boucle à main levée ; est pris ce dont la plus grande part est
+     dedans. La sélection faite, l'outil reste en main : on saisit ce
+     qu'on a pris pour le déplacer, ou on entoure autre chose. */
+  function debutLasso(e, p) {
+    const sel = selectionnes();
+    if (sel.length) {
+      if (poigneeSous(p.x, p.y)) return debutSelection(e, p);
+      const b = boiteDe(sel), m = 8 / etat.zoom;
+      if (p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m) {
+        geste = { mode: "deplacer", x0: p.x, y0: p.y, bouge: false,
+                  origines: sel.filter((x) => !x.locked).map((x) => ({ el: x, x: x.x, y: x.y })) };
+        return;
+      }
+    }
+    if (!e.shiftKey) selection.clear();
+    geste = { mode: "lasso", pts: [[p.x, p.y]], avant: new Set(selection) };
+    majPanneau(); demander();
+  }
+  function echantillon(el) {
+    if (el.points && el.points.length) {
+      const pas = Math.max(1, Math.floor(el.points.length / 40));
+      return el.points.filter((_, i) => i % pas === 0).map(([x, y]) => [el.x + x, el.y + y]);
+    }
+    const b = R.boite(el), out = [];
+    for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) out.push([b.x + b.w * i / 2, b.y + b.h * j / 2]);
+    return out;
+  }
+  function finLasso(g) {
+    selection = new Set(g.avant);
+    if (g.pts.length > 2) {
+      elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+    }
+    const n = selection.size;
+    dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso." : "Rien d'entouré.");
+    majPanneau(); demander();
+  }
+
+  /* ── la gomme ──
+     Deux manières : le trait ENTIER (fantôme, puis effacé au relâchement)
+     ou une PARTIE du trait — l'encre sous le cercle disparaît et le trait
+     se coupe en morceaux, chacun redevenu un trait complet. */
+  function debutGomme(p) {
+    geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements) };
+    fantomes = new Set();
+    effacer(geste, p, p);
+  }
+  function effacer(g, a, b) { if (g.partie) gommerPartie(g, a, b); else gommer(a, b); }
+  function morceau(el, m) {
+    const [x0, y0] = m.points[0];
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), x: x0, y: y0,
+      points: m.points.map(([x, y]) => [x - x0, y - y0]), pressures: m.pressions,
+      customData: el.customData ? Object.assign({}, el.customData) : null });
+    const b = R.boite(Object.assign({}, n, { x: 0, y: 0 }));
+    n.width = b.w; n.height = b.h;
+    toucher(n);
+    return n;
+  }
+  function gommerPartie(g, a, b) {
+    const r = etat.gommeTaille / etat.zoom;
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.5)));
+    for (let k = 0; k <= n; k++) {
+      const c = [a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n];
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const el = elements[i];
+        if (el.type !== "freedraw" || el.locked) continue;
+        const rr = r + (el.strokeWidth || 1) * 1.7, bb = R.boite(el);
+        if (c[0] < bb.x - rr || c[0] > bb.x + bb.w + rr || c[1] < bb.y - rr || c[1] > bb.y + bb.h + rr) continue;
+        const morceaux = S.decouper(absolus(el), el.pressures, c, rr);
+        if (morceaux.length === 1 && morceaux[0].points.length === el.points.length) continue;
+        elements.splice(i, 1, ...morceaux.filter((m) => m.points.length > 1).map((m) => morceau(el, m)));
+        selection.delete(el.id);
+        g.coupes = true;
+      }
+    }
+    traineeGomme.push({ x: b.x, y: b.y, t: performance.now() });
+    demander();
+  }
+
   /* ── pointeur posé ── */
   toile.addEventListener("pointerdown", (e) => {
     /* Le geste appartient au tableau : pas de sélection de texte de la
@@ -758,11 +1191,13 @@
        relâchement — il fermerait aussitôt la zone de frappe qu'un clic de
        l'outil Texte vient d'ouvrir. */
     e.preventDefault();
+    if (!accueillir(e)) return;
+    if (!lecture.hidden) fermerLecture();
     scene.focus({ preventScroll: true });
     if (edition) { finirEdition(); if (etat.outil === "texte") return; }
     toile.setPointerCapture(e.pointerId);
     const { sx, sy } = posPointeur(e);
-    pointeurs.set(e.pointerId, { sx, sy });
+    pointeurs.set(e.pointerId, { sx, sy, type: e.pointerType });
     if (pointeurs.size === 2) {
       // deux doigts : on abandonne le geste commencé et on pince
       annulerGeste();
@@ -774,7 +1209,12 @@
     if (pointeurs.size > 2) return;
     const p = versScene(sx, sy);
     dernierePos = p;
-    if (e.button === 1 || e.button === 2 || espace || etat.outil === "main") {
+    if (e.button === 0 && saisirRegle(e, sx, sy)) return;
+    // le bout gomme d'un stylet efface, quel que soit l'outil en main
+    if (e.pointerType === "pen" && (e.buttons & 32)) { debutGomme(p); return; }
+    // un stylet a été vu : sur les outils d'encre, le doigt fait défiler
+    const doigt = e.pointerType === "touch" && etat.styletSeul && OUTILS_ENCRE.includes(etat.outil);
+    if (e.button === 1 || e.button === 2 || espace || etat.outil === "main" || doigt) {
       e.preventDefault();
       geste = { mode: "pan", sx, sy, x0: etat.scrollX, y0: etat.scrollY };
       majCurseur();
@@ -787,12 +1227,9 @@
     if (o === "arrow" || o === "line") return debutLigne(e, p);
     if (OUTILS_DESSIN.includes(o)) return debutDessin(e, p);
     if (o === "texte") return debutTexte(e, p);
-    if (o === "gomme") {
-      geste = { mode: "gomme" };
-      fantomes = new Set();
-      gommer(p, p);
-      return;
-    }
+    if (o === "gomme") { debutGomme(p); return; }
+    if (o === "lasso") return debutLasso(e, p);
+    if (o === "lien") return debutLien(e, p);
     if (o === "laser") {
       geste = { mode: "laser" };
       laser.push({ x: p.x, y: p.y, t: performance.now(), coupure: true });
@@ -815,10 +1252,12 @@
     }
     const el = aPortee(p.x, p.y);
     if (el) {
+      const groupe = groupeDe(el);
       if (e.shiftKey) {
-        if (selection.has(el.id)) selection.delete(el.id); else selection.add(el.id);
+        if (selection.has(el.id)) groupe.forEach((id) => selection.delete(id));
+        else groupe.forEach((id) => selection.add(id));
       } else if (!selection.has(el.id)) {
-        selection = new Set([el.id]);
+        selection = new Set(groupe);
       }
       const sel = selectionnes().filter((x) => !x.locked);
       geste = { mode: "deplacer", x0: p.x, y0: p.y, bouge: false,
@@ -866,8 +1305,18 @@
     /* Une souris rend une pression de 0,5 tout le temps : c'est le signe
        qu'il faut la simuler par la vitesse. */
     const simuler = !(e.pointerType === "pen" && e.pressure && e.pressure !== 0.5);
+    // posé contre un bord de la règle, le trait le suivra jusqu'au bout
+    let regle = null;
+    if (etat.regle) {
+      const bord = S.bordProche(regleScene(), [p.x, p.y], 26 / etat.zoom);
+      if (bord) {
+        regle = { bord, ecart: (surl ? etat.courant.surligneurW : etat.stylos[etat.stylo].w) * 1.7 };
+        const j = S.projeter(bord, [p.x, p.y], regle.ecart);
+        p = { x: j[0], y: j[1] };
+      }
+    }
     const el = nouvelElement("freedraw", p.x, p.y, {
-      points: [[0, 0]], pressures: [simuler ? 0.5 : e.pressure], simulatePressure: simuler,
+      points: [[0, 0]], pressures: [simuler ? 0.5 : pressionDe(e, { simulatePressure: false })], simulatePressure: simuler,
       lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
     });
     if (surl) {
@@ -877,9 +1326,10 @@
     } else {
       const st = etat.stylos[etat.stylo];
       Object.assign(el, { strokeColor: st.c, strokeWidth: st.w, opacity: 100 });
+      if (st.effet) el.customData = { effet: st.effet };
     }
     elements.push(el);
-    geste = { mode: "dessin", el };
+    geste = { mode: "dessin", el, regle };
     demander();
   }
 
@@ -899,11 +1349,16 @@
 
   /* ── pointeur qui bouge ── */
   toile.addEventListener("pointermove", (e) => {
+    if (ignores.has(e.pointerId)) return;
     const { sx, sy } = posPointeur(e);
-    if (pointeurs.has(e.pointerId)) pointeurs.set(e.pointerId, { sx, sy });
+    if (pointeurs.has(e.pointerId)) pointeurs.set(e.pointerId, { sx, sy, type: e.pointerType });
     const p = versScene(sx, sy);
     dernierePos = p;
-    if (!geste) { survol(p); return; }
+    if (!geste) {
+      survol(p);
+      if (etat.outil === "gomme" && etat.gommeMode === "partie") demander();
+      return;
+    }
     const g = geste;
     if (g.mode === "pince") {
       const [a, b] = [...pointeurs.values()];
@@ -945,6 +1400,9 @@
       demander();
       return;
     }
+    if (g.mode === "regle") return bougerRegle(g, sx, sy, e);
+    if (g.mode === "lasso") { g.pts.push([p.x, p.y]); demander(); return; }
+    if (g.mode === "redresse") return ajusterRedresse(g, p, e);
     if (g.mode === "creer") return tracerForme(g, p, e);
     if (g.mode === "ligne") return tracerLigne(g.el, 1, p, e);
     if (g.mode === "bout") return tracerLigne(g.el, g.i, p, e);
@@ -952,20 +1410,22 @@
     if (g.mode === "dessin") {
       const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       (evs.length ? evs : [e]).forEach((ev) => {
-        const q = versScene(posPointeur(ev).sx, posPointeur(ev).sy);
+        let q = versScene(posPointeur(ev).sx, posPointeur(ev).sy);
+        if (g.regle) { const j = S.projeter(g.regle.bord, [q.x, q.y], g.regle.ecart); q = { x: j[0], y: j[1] }; }
         const el = g.el, der = el.points[el.points.length - 1];
         const px = q.x - el.x, py = q.y - el.y;
         if (Math.hypot(px - der[0], py - der[1]) * etat.zoom < 1) return;
         el.points.push([px, py]);
-        el.pressures.push(el.simulatePressure ? 0.5 : ev.pressure);
+        el.pressures.push(pressionDe(ev, el));
       });
       const b = R.boite(g.el);
       g.el.width = b.w; g.el.height = b.h;
+      guetterArret(g, sx, sy);
       demander();
       return;
     }
     if (g.mode === "gomme") {
-      gommer(g.dernier || p, p);
+      effacer(g, g.dernier || p, p);
       g.dernier = p;
       return;
     }
@@ -1037,7 +1497,7 @@
     if (g.h.includes("s")) y1 = Math.max(p.y, y0 + 1);
     let sx = b.w ? (x1 - x0) / b.w : 1, sy = b.h ? (y1 - y0) / b.h : 1;
     const coin = g.h.length === 2;
-    const texteSeul = g.origines.every((o) => o.type === "text");
+    const texteSeul = g.origines.every((o) => o.type === "text" || o.type === "image");
     if (coin && (e.shiftKey || texteSeul)) {
       const s = Math.max(sx, sy);
       sx = sy = s;
@@ -1097,15 +1557,27 @@
     if (avait && !geste) majPanneau();
   }
   function finGesteInterne(e) {
+    if (ignores.delete(e.pointerId)) return;
+    if (e.pointerId === penBas) penBas = null;
     pointeurs.delete(e.pointerId);
     if (!geste) return;
     const g = geste;
+    clearTimeout(g.minuterie);
     if (g.mode === "pince") { if (pointeurs.size < 2) { geste = null; garder(); } return; }
     geste = null;
     if (g.mode === "pan") { garder(); majCurseur(); return; }
     if (g.mode === "deplacer") { if (g.bouge) memoriser(); majPanneau(); demander(); return; }
     if (g.mode === "cadre") { majPanneau(); demander(); return; }
     if (g.mode === "redim" || g.mode === "bout") { memoriser(); majPanneau(); demander(); return; }
+    if (g.mode === "regle") { demander(); return; }
+    if (g.mode === "lasso") return finLasso(g);
+    if (g.mode === "redresse") {
+      // deux pas d'historique : le trait d'origine, puis la forme — Ctrl Z rend le premier
+      const i = elements.indexOf(g.el);
+      if (i >= 0) { elements[i] = g.brut; memoriser(); elements[i] = g.el; }
+      toucher(g.el); memoriser(); demander();
+      return;
+    }
     if (g.mode === "creer") {
       const el = g.el;
       if (estPostit(el) && (el.width < 12 || el.height < 12)) {
@@ -1129,10 +1601,16 @@
       g.el.width = b.w; g.el.height = b.h;
       toucher(g.el);
       memoriser();
+      if (etat.formes && !g.regle && !estSurligneur(g.el)) formeAuto(g.el);
       demander();
       return;
     }
     if (g.mode === "gomme") {
+      if (g.partie) {
+        if (g.coupes) { memoriser(); dire("Encre effacée. Ctrl + Z pour revenir."); }
+        demander();
+        return;
+      }
       if (fantomes.size) {
         retirer([...fantomes]);
         dire(fantomes.size + " élément" + (fantomes.size > 1 ? "s effacés" : " effacé")
@@ -1146,7 +1624,13 @@
     if (g.mode === "laser") demander();
   }
   toile.addEventListener("pointerup", finGeste);
-  toile.addEventListener("pointercancel", (e) => { annulerGeste(); pointeurs.delete(e.pointerId); });
+  toile.addEventListener("pointercancel", (e) => {
+    if (ignores.delete(e.pointerId)) return;
+    if (e.pointerId === penBas) penBas = null;
+    annulerGeste(); pointeurs.delete(e.pointerId);
+  });
+  // le type du pointeur qui a commencé le geste : c'est lui que la paume écarte
+  toile.addEventListener("pointerdown", (e) => { if (geste && !geste.type) geste.type = e.pointerType; });
   toile.addEventListener("contextmenu", (e) => e.preventDefault());
 
   function apresCreation(el) {
@@ -1164,6 +1648,9 @@
     geste = null;
     if ((g.mode === "creer" || g.mode === "ligne" || g.mode === "dessin") && g.el) retirer([g.el.id]);
     if (g.mode === "gomme") fantomes = new Set();
+    if (g.mode === "gomme" && g.partie && g.coupes) elements = JSON.parse(g.avant);
+    if (g.mode === "redresse") retirer([g.el.id]);
+    if (g.mode === "regle") etat.regle = g.r0;
     if (g.mode === "deplacer") g.origines.forEach((o) => { o.el.x = o.x; o.el.y = o.y; });
     if ((g.mode === "redim" || g.mode === "bout") && pile[curseurPile]) elements = JSON.parse(pile[curseurPile]);
     replacerLies();
@@ -1175,6 +1662,11 @@
   toile.addEventListener("wheel", (e) => {
     e.preventDefault();
     const { sx, sy } = posPointeur(e);
+    if (etat.regle && !e.ctrlKey && !e.metaKey && S.dansRegle(regleEcran(), [sx, sy])) {
+      etat.regle.angle += Math.sign(e.deltaY || e.deltaX) * (e.shiftKey ? Math.PI / 12 : Math.PI / 180);
+      demander();
+      return;
+    }
     if (e.ctrlKey || e.metaKey) {
       // un cran de molette (100) vaut ×1,16 ; le pincement d'un pavé
       // tactile envoie de petits deltas, et zoome donc en douceur
@@ -1197,6 +1689,15 @@
     const el = aPortee(p.x, p.y);
     if (el && el.type === "text") return ouvrirEdition(el);
     if (el && conteneur(el)) return editerLie(el);
+    // le contour d'un gabarit (un parallélogramme, un document) : on écrit
+    // le texte de son groupe — celui du cadre invisible, ou le texte libre
+    if (el && el.groupIds && el.groupIds.length) {
+      const voisins = groupeDe(el).map(parId).filter(Boolean);
+      const cadre = voisins.find((x) => conteneur(x) && texteDe(x));
+      if (cadre) return editerLie(cadre);
+      const libreDuGroupe = voisins.find((x) => x.type === "text" && !x.containerId);
+      if (libreDuGroupe) return ouvrirEdition(libreDuGroupe);
+    }
     if (!el) {
       etat.outil = "texte";
       debutTexte(e, p);
@@ -1309,6 +1810,11 @@
   /* ═══════════════ 10. Les actions sur la sélection ═══════════════════ */
   function retirer(ids) {
     const tout = new Set(ids);
+    // supprimer un équipement emporte les liens qui y sont accrochés
+    elements.forEach((l) => {
+      if (estLien(l) && ((l.startBinding && tout.has(l.startBinding.elementId))
+                     || (l.endBinding && tout.has(l.endBinding.elementId)))) tout.add(l.id);
+    });
     // le texte d'un conteneur part avec lui ; un conteneur perd son lien
     ids.forEach((id) => {
       const el = parId(id);
@@ -1338,12 +1844,23 @@
   }
   function clonerBrut(sources, dx, dy) {
     const map = new Map(sources.map((e) => [e.id, nouvelId()]));
+    // une copie d'icône et de son nom forme un groupe à elle : garder
+    // l'identifiant de groupe ferait sélectionner l'original avec la copie
+    const groupes = new Map();
     return sources.map((e) => {
       const c = JSON.parse(JSON.stringify(e));
       c.id = map.get(e.id);
+      c.groupIds = (c.groupIds || []).map((g) => {
+        if (!groupes.has(g)) groupes.set(g, nouvelId());
+        return groupes.get(g);
+      });
       c.x += dx; c.y += dy;
       c.seed = graine(); c.version = 1; c.versionNonce = graine(); c.updated = Date.now();
       if (c.containerId) c.containerId = map.get(c.containerId) || null;
+      // copiés ensemble, des équipements et leur lien : le lien suit les copies
+      for (const k of ["startBinding", "endBinding"]) {
+        if (c[k] && map.has(c[k].elementId)) c[k] = Object.assign({}, c[k], { elementId: map.get(c[k].elementId) });
+      }
       if (c.boundElements) {
         c.boundElements = c.boundElements.filter((b) => map.has(b.id)).map((b) => ({ type: b.type, id: map.get(b.id) }));
         if (!c.boundElements.length) c.boundElements = null;
@@ -1368,7 +1885,7 @@
     pressePapiers = JSON.parse(JSON.stringify(liste));
     /* Le format de presse-papiers partagé : ce qu'on copie ici se colle
        dans les éditeurs qui le lisent, et l'inverse. */
-    const texte = JSON.stringify({ type: "excalidraw/clipboard", elements: liste, files: {} });
+    const texte = JSON.stringify({ type: "excalidraw/clipboard", elements: liste, files: fichiersDe(liste) });
     try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texte).catch(() => {}); }
     catch (e) { /* le presse-papiers interne suffit */ }
     if (couper) supprimerSelection();
@@ -1388,11 +1905,19 @@
   }
   document.addEventListener("paste", (e) => {
     if (document.activeElement !== scene || edition) return;
+    // une capture d'écran collée devient une image, là où est la souris
+    const img = e.clipboardData && Array.from(e.clipboardData.files || []).find((f) => /^image\//.test(f.type));
+    if (img) { e.preventDefault(); insererImage(img, dernierePos); return; }
     const t = e.clipboardData && e.clipboardData.getData("text/plain");
     if (t) {
       try {
         const j = JSON.parse(t);
-        if (j && Array.isArray(j.elements)) { e.preventDefault(); coller(j.elements); return; }
+        if (j && Array.isArray(j.elements)) {
+          e.preventDefault();
+          if (j.files && typeof j.files === "object") Object.assign(fichiers, j.files);
+          coller(j.elements);
+          return;
+        }
       } catch (err) { /* ce n'est pas un dessin : c'est du texte */ }
       e.preventDefault();
       const ou = dernierePos || versScene(toile.clientWidth / 2, toile.clientHeight / 2);
@@ -1514,6 +2039,7 @@
     const types = new Set(T.map((e) => e.type));
     const a1 = (f) => T.some(f);
     const postits = T.every(estPostit);
+    const images = T.every((e) => e.type === "image");
     const surl = T.every(estSurligneur);
     const formes = a1((e) => /^(rectangle|diamond|ellipse)$/.test(e.type) && !estPostit(e));
     const lignes = types.has("line") || types.has("arrow");
@@ -1523,6 +2049,8 @@
     const bloc = (titre, corps) => { h += '<fieldset class="tb-bloc"><legend>' + titre + '</legend>' + corps + '</fieldset>'; };
     if (postits) {
       bloc("Couleur du post-it", '<div class="tb-pastilles">' + POSTITS.map((c) => pastille("postit", c, a.backgroundColor)).join("") + '</div>');
+    } else if (images) {
+      // une image n'a ni trait ni fond : seulement l'opacité et les calques
     } else if (surl) {
       bloc("Surligneur", '<div class="tb-pastilles">' + SURLIGNEURS.map((c) => pastille("surligneur", c, a.strokeColor)).join("") + '</div>');
     } else {
@@ -1538,7 +2066,7 @@
       bloc("Remplissage", choix("fillStyle", [["hachure", "Hachures", IC.hachure],
         ["cross-hatch", "Hachures croisées", IC["cross-hatch"]], ["solid", "Plein", IC.solid]], a.fillStyle));
     }
-    if (!types.has("text") && !postits && !surl) {
+    if (!types.has("text") && !postits && !surl && !types.has("image")) {
       bloc("Épaisseur", choix("strokeWidth", [[1, "Fin", IC.w1], [2, "Gras", IC.w2], [4, "Très gras", IC.w4]], a.strokeWidth));
       if (!types.has("freedraw")) {
         bloc("Style du trait", choix("strokeStyle", [["solid", "Continu", IC.solide], ["dashed", "Tirets", IC.tirets],
@@ -1641,7 +2169,7 @@
   const TOUCHES = { v: "selection", 1: "selection", r: "rectangle", 2: "rectangle", d: "diamond", 3: "diamond",
                     o: "ellipse", 4: "ellipse", a: "arrow", 5: "arrow", l: "line", 6: "line", p: "freedraw",
                     7: "freedraw", t: "texte", 8: "texte", e: "gomme", 0: "gomme", h: "main", k: "laser",
-                    n: "postit", m: "surligneur" };
+                    n: "postit", m: "surligneur", s: "lasso" };
   scene.addEventListener("keydown", (e) => {
     if (e.target !== scene) return;
     const k = e.key.toLowerCase();
@@ -1701,6 +2229,8 @@
       return;
     }
     if (k === "q") { basculerVerrou(); return; }
+    if (k === "g") { basculerRegle(); return; }
+    if (k === "f") { basculerFormes(); return; }
     if (e.key === "?") { ouvrirDialogue("#tb-aide"); return; }
     const o = TOUCHES[k] || TOUCHES[e.code.replace(/^(Digit|Numpad)/, "")];
     if (o && !e.altKey) { e.preventDefault(); choisirOutil(o); }
@@ -1723,7 +2253,7 @@
       type: "excalidraw", version: 2, source: location.origin + location.pathname,
       elements: elements.map((e) => { const c = Object.assign({}, e); delete c.neuf; delete c.virtuel; return c; }),
       appState: { gridSize: PAS_GRILLE, gridStep: 5, gridModeEnabled: false, viewBackgroundColor: etat.fond },
-      files: {},
+      files: fichiersDe(elements),
     };
   }
   function telecharger(nom, contenu, type) {
@@ -1749,8 +2279,11 @@
       dire("« " + nom + " » est un fichier « " + j.type + " », pas un tableau.", true); return;
     }
     const lus = liste.map(normaliser).filter(Boolean);
-    const images = lus.filter((e) => e.type === "image").length;
-    elements = lus.filter((e) => e.type !== "image" && e.type !== "embeddable" && e.type !== "iframe");
+    if (j.files && typeof j.files === "object") Object.assign(fichiers, j.files);
+    // une image dont le fichier n'a pas suivi n'a rien à montrer
+    const orphelines = (e) => e.type === "image" && !fichiers[e.fileId];
+    const images = lus.filter(orphelines).length;
+    elements = lus.filter((e) => !orphelines(e) && e.type !== "embeddable" && e.type !== "iframe");
     reparer();
     elements.forEach((e) => { if (e.type === "text" && e.containerId) placerLie(e); });
     if (j.appState && j.appState.viewBackgroundColor) etat.fond = j.appState.viewBackgroundColor;
@@ -1759,7 +2292,7 @@
     memoriser(); ajuster(); majPanneau(); majFond();
     const nb = elements.length;
     dire(nb + " élément" + (nb > 1 ? "s" : "") + " ouvert" + (nb > 1 ? "s" : "")
-      + (images ? " — " + images + " image(s) laissée(s) de côté : les images arrivent au prochain lot." : "."));
+      + (images ? " — " + images + " image(s) sans leur fichier, laissée(s) de côté." : "."));
   }
   function lireFichier(f) {
     if (!f) return;
@@ -1772,6 +2305,7 @@
   scene.addEventListener("drop", (e) => {
     e.preventDefault();
     const f = e.dataTransfer && e.dataTransfer.files[0];
+    if (f && /^image\//.test(f.type)) { const { sx, sy } = posPointeur(e); insererImage(f, versScene(sx, sy)); return; }
     if (f) lireFichier(f);
   });
 
@@ -1828,9 +2362,17 @@
           + el.strokeColor + '" text-anchor="' + ancre + '" dominant-baseline="middle">'
           + String(el.text).split("\n").map((l, i) => '<tspan x="' + x.toFixed(2) + '" y="' + (i * lh + lh / 2).toFixed(2)
             + '">' + ech(l) + "</tspan>").join("") + "</text>";
+      } else if (el.type === "image") {
+        const f = fichiers[el.fileId];
+        if (f) t += '<image href="' + f.dataURL + '" width="' + el.width.toFixed(2) + '" height="' + el.height.toFixed(2)
+          + '" preserveAspectRatio="none"/>';
       } else {
+        const effet = el.type === "freedraw" && el.customData && el.customData.effet;
         cheminsDe(el).forEach((o) => {
           if (!o.couleur || o.couleur === "transparent") return;
+          if (effet && o.mode === "fond" && o.couleur === el.strokeColor && (effet === "neon" || EFFETS[effet])) {
+            t += svgEffet(el, effet, o.d); return;
+          }
           t += o.mode === "fond" ? '<path d="' + o.d + '" fill="' + o.couleur + '"/>'
             : '<path d="' + o.d + '" fill="none" stroke="' + o.couleur + '" stroke-width="' + (o.largeur || 1)
               + '" stroke-linecap="round" stroke-linejoin="round"' + (o.tirets ? ' stroke-dasharray="' + o.tirets.join(" ") + '"' : "") + "/>";
@@ -1857,7 +2399,15 @@
     dire.m = setTimeout(() => etatLigne.classList.remove("tb-vu"), 3800);
   }
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.outil === "verrou") basculerVerrou(); else choisirOutil(b.dataset.outil);
+    const o = b.dataset.outil;
+    if (o === "verrou") basculerVerrou();
+    else if ((o === "surligneur" || o === "gomme") && etat.outil === o && b.closest(".tb-encrage")) {
+      if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
+    } else choisirOutil(o);
+    scene.focus({ preventScroll: true });
+  }));
+  $$("[data-bascule]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.bascule === "regle") basculerRegle(); else basculerFormes();
     scene.focus({ preventScroll: true });
   }));
   $("#tb-annuler").addEventListener("click", () => revenir(-1));
@@ -2008,9 +2558,22 @@
     ["ligne", "Ligne", { type: "line" }],
     ["fleche", "Flèche", { type: "arrow", fin: "arrow" }],
     ["double", "Flèche double", { type: "arrow", debut: "arrow", fin: "arrow" }],
+    ["pointillee", "Flèche en pointillés", { type: "arrow", fin: "arrow", style: "dashed",
+      ic: '<path d="M4 19L20 5" stroke-dasharray="3 2.5"/><path d="M13 5h7v7"/>' }],
+    ["coudee", "Flèche coudée", { type: "arrow", fin: "arrow", coude: true, h: 90,
+      ic: '<path d="M3 6h9v12h8M17 15l3 3-3 3"/>' }],
+    ["pleine", "Flèche à pointe pleine", { type: "arrow", fin: "triangle",
+      ic: '<path d="M4 19L15 8"/><path d="M20 4l-2.5 8.5-6-6z" fill="currentColor"/>' }],
+    ["rond", "Flèche à rond", { type: "arrow", debut: "dot", fin: "arrow",
+      ic: '<path d="M7 17L20 5M13 5h7v7"/><circle cx="5.5" cy="18.5" r="2.2" fill="currentColor"/>' }],
+    ["epaisse", "Flèche épaisse", { type: "arrow", fin: "arrow", epais: 5,
+      ic: '<path d="M4 19L20 5M13 5h7v7" stroke-width="3"/>' }],
+    ["ligne-pointillee", "Ligne en pointillés", { type: "line", style: "dashed",
+      ic: '<path d="M4 19L20 5" stroke-dasharray="3 2.5"/>' }],
   ];
   function apercu(def) {
     const svg = (corps) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + corps + "</svg>";
+    if (def.ic) return svg(def.ic);
     if (def.pts) {
       const w = def.w || 140, h = def.h || 140, k = 18 / Math.max(w, h);
       const ox = 12 - w * k / 2, oy = 12 - h * k / 2;
@@ -2023,6 +2586,567 @@
     if (def.debut) return svg('<path d="M4 19L20 5M14 5h6v6M4 13v6h6"/>');
     return svg('<path d="M4 19L20 5M13 5h7v7"/>');
   }
+  /* ═══════════════ 13 bis. Images, réactions, modèles ══════════════════
+     Ce que la liste « Bientôt » promettait. */
+
+  /* ── les images ──
+     Ramenées à 1 600 px au plus avant d'entrer : un appareil photo donne
+     des 4 000 px, que personne ne regarde sur un tableau et que la mémoire
+     du navigateur ne tiendrait pas. Le fichier est désigné par son
+     EMPREINTE : coller deux fois la même capture n'en garde qu'une copie. */
+  const FICHIERS_CLE = "ciel-tableau-fichiers-v1";
+  let fichiers = {};                  // fileId → { id, mimeType, dataURL, created }
+  let fichiersGardes = "";            // la liste écrite en dernier dans la mémoire
+  const imagesChargees = new Map();
+  function imageDe(id) {
+    let img = imagesChargees.get(id);
+    if (!img && fichiers[id]) {
+      img = new Image();
+      img.onload = () => demander();
+      img.src = fichiers[id].dataURL;
+      imagesChargees.set(id, img);
+    }
+    return img;
+  }
+  function fichiersDe(liste) {
+    const o = {};
+    liste.forEach((e) => { if (e.type === "image" && fichiers[e.fileId]) o[e.fileId] = fichiers[e.fileId]; });
+    return o;
+  }
+  function empreinte(s) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0).toString(16).padStart(8, "0") + s.length.toString(16);
+  }
+  function preparerImage(f) {
+    return new Promise((ok, ko) => {
+      const url = URL.createObjectURL(f), img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        // une photo reste en JPEG ; le reste en PNG, qui garde la transparence —
+        // et en WebP si le navigateur sait l'écrire et qu'il pèse moins
+        let type = f.type === "image/jpeg" ? "image/jpeg" : "image/png";
+        let data = c.toDataURL(type, 0.86);
+        if (type === "image/png" && data.length > 400000) {
+          const w2 = c.toDataURL("image/webp", 0.9);
+          if (w2.startsWith("data:image/webp") && w2.length < data.length) { data = w2; type = "image/webp"; }
+        }
+        ok({ dataURL: data, mimeType: type, w, h });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("illisible")); };
+      img.src = url;
+    });
+  }
+  async function insererImage(f, ou) {
+    if (!f || !/^image\//.test(f.type)) return;
+    let r;
+    try { r = await preparerImage(f); }
+    catch (e) { dire("« " + (f.name || "image") + " » n'est pas une image lisible.", true); return; }
+    const id = empreinte(r.dataURL);
+    if (!fichiers[id]) fichiers[id] = { id, mimeType: r.mimeType, dataURL: r.dataURL, created: Date.now() };
+    // au plus 480 px d'écran au zoom courant : elle se voit entière en arrivant
+    const k = Math.min(1, 480 / Math.max(0.35, etat.zoom) / Math.max(r.w, r.h));
+    const w = r.w * k, h = r.h * k;
+    const p = ou ? { x: ou.x - w / 2, y: ou.y - h / 2 } : pointInsertion(w, h);
+    inserer(nouvelElement("image", p.x, p.y, {
+      width: w, height: h, fileId: id, status: "saved", scale: [1, 1], crop: null,
+      strokeColor: "transparent", backgroundColor: "transparent", roundness: null, opacity: 100,
+    }));
+    dire("Image posée. Tirer un coin l'agrandit sans la déformer.");
+  }
+
+  /* ── les réactions ──
+     Un tampon posé sur ce qu'on montre : au coin haut-droit de la
+     sélection, ou au centre de l'écran. Plusieurs réactions sur la même
+     chose se rangent côte à côte au lieu de s'empiler, et le panneau
+     reste ouvert pour en poser une autre. C'est un texte : il se déplace,
+     s'efface et s'enregistre comme les autres. */
+  const REACTIONS = [["👍", "Pouce levé"], ["❤️", "Cœur"], ["😂", "Rire"], ["🎉", "Bravo"], ["⭐", "Étoile"],
+                     ["✅", "Validé"], ["❌", "Refusé"], ["❓", "Question"], ["💡", "Idée"], ["🔥", "Génial"],
+                     ["👀", "À regarder"], ["🙏", "Merci"]];
+  const estReaction = (e) => !!(e && e.customData && e.customData.reaction);
+  function insererReaction(r) {
+    const taille = 36 / Math.max(0.35, etat.zoom);
+    const cible = selectionnes().filter((e) => !estReaction(e) && !estLie(e));
+    let x, y;
+    if (cible.length) {
+      const b = boiteDe(cible);
+      y = b.y - taille * 0.75;
+      // celles déjà posées sur ce coin
+      const deja = elements.filter((e) => estReaction(e) && Math.abs(e.y - y) < taille * 0.3
+        && e.x > b.x - taille * 8 && e.x < b.x + b.w + taille);
+      x = b.x + b.w - taille * 0.6 - deja.length * taille * 1.15;
+    } else {
+      const p = pointInsertion(taille, taille * 1.25);
+      x = p.x; y = p.y;
+    }
+    const el = nouvelElement("text", x, y, {
+      text: r, originalText: r, fontSize: taille, fontFamily: 2, textAlign: "left", verticalAlign: "top",
+      containerId: null, autoResize: true, lineHeight: 1.25, backgroundColor: "transparent", roundness: null,
+      opacity: 100, customData: { reaction: true },
+    });
+    mesurerLibre(el);
+    elements.push(el);
+    memoriser(); demander();
+    dire("Réaction posée" + (cible.length ? " sur la sélection." : ". Sélectionnez un objet d'abord pour la poser dessus."));
+  }
+
+  /* ── les icônes réseau ──
+     Des symboles en volume, comme sur un schéma de réseau : le routeur est
+     un cylindre à quatre flèches, le commutateur un boîtier plat. Ils sont
+     dessinés par _pilotage/scripts/icones-tableau.py, qui écrit icones.js.
+     L'icône est une IMAGE (un seul objet, qui s'agrandit sans se déformer)
+     et son nom un texte ordinaire, qu'on réécrit au double-clic — « R1 »,
+     « SW-ADMIN ». Les deux partagent un groupe : un clic les prend
+     ensemble, le glisser les déplace ensemble. Une image n'est pas inversée
+     en mode sombre : les couleurs restent celles du dessin. */
+  const RESEAU = window.TB_ICONES || [];
+  const FAMILLES_RESEAU = [["inter", "Interconnexion"], ["term", "Terminaux"], ["serv", "Serveurs et services"],
+                           ["secu", "Sécurité"], ["zone", "Zones et infrastructure"]];
+  const svgReseau = (r) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' + r[2] + "</svg>";
+  function groupeDe(el) {
+    const g = el.groupIds && el.groupIds.length ? el.groupIds[el.groupIds.length - 1] : null;
+    if (!g) return [el.id];
+    return elements.filter((e) => !e.isDeleted && e.groupIds && e.groupIds.includes(g)).map((e) => e.id);
+  }
+  /* ── les liens ──
+     Comme dans un simulateur : on choisit le type de câble, puis on clique
+     deux équipements. Le lien est ACCROCHÉ aux deux (startBinding,
+     endBinding) : déplacer une icône le fait suivre, supprimer une icône
+     l'emporte. Son tracé est recalculé à chaque image, d'un bord à
+     l'autre — jamais d'un centre à l'autre, il passerait sous l'icône. */
+  const LIENS = [
+    // [id, nom, couleur, style, épaisseur]
+    ["droit", "Cuivre droit", "#343a40", "solid", 2.5],
+    ["croise", "Cuivre croisé", "#343a40", "dashed", 2.5],
+    ["fibre", "Fibre optique", "#f08c00", "solid", 3],
+    ["serie", "Série (WAN)", "#e03131", "solid", 2.5],
+    ["console", "Console", "#4dabf7", "dotted", 2.5],
+    ["coaxial", "Coaxial", "#0ca678", "solid", 3],
+    ["sans-fil", "Sans fil", "#2f9e44", "dotted", 2],
+    ["internet", "Internet", "#1971c2", "solid", 4.5],
+    ["vpn", "Tunnel VPN", "#7048e8", "dashed", 3],
+  ];
+  const estLien = (el) => !!(el && el.customData && el.customData.lien);
+  let lienDebut = null;
+  function majLiens() {
+    for (const l of elements) {
+      if (!estLien(l)) continue;
+      const a = l.startBinding && parId(l.startBinding.elementId), b = l.endBinding && parId(l.endBinding.elementId);
+      if (!a || !b) continue;
+      const A = R.boite(a), Bx = R.boite(b);
+      const ax = A.x + A.w / 2, ay = A.y + A.h / 2, bx = Bx.x + Bx.w / 2, by = Bx.y + Bx.h / 2;
+      const d = Math.hypot(bx - ax, by - ay);
+      if (d < 1) continue;
+      const ux = (bx - ax) / d, uy = (by - ay) / d;
+      const bord = (k) => Math.min(k.w / 2 / Math.max(Math.abs(ux), 1e-9), k.h / 2 / Math.max(Math.abs(uy), 1e-9)) + 4;
+      const ta = Math.min(bord(A), d / 2), tb = Math.min(bord(Bx), d / 2);
+      const s = [ax + ux * ta, ay + uy * ta], f = [bx - ux * tb, by - uy * tb];
+      let pts = [s, f];
+      // la série : l'éclair rouge, au milieu, quand il y a la place
+      if (l.customData.lien === "serie" && d - ta - tb > 40) {
+        const mx = (s[0] + f[0]) / 2, my = (s[1] + f[1]) / 2, nx = -uy, ny = ux;
+        pts = [s, [mx - ux * 9 + nx * 9, my - uy * 9 + ny * 9], [mx + ux * 9 - nx * 9, my + uy * 9 - ny * 9], f];
+      }
+      const rel = pts.map(([x, y]) => [x - s[0], y - s[1]]);
+      if (l.x === s[0] && l.y === s[1] && JSON.stringify(rel) === JSON.stringify(l.points)) continue;
+      l.x = s[0]; l.y = s[1]; l.points = rel;
+      const xs = rel.map((q) => q[0]), ys = rel.map((q) => q[1]);
+      l.width = Math.max(...xs) - Math.min(...xs); l.height = Math.max(...ys) - Math.min(...ys);
+    }
+  }
+  /* Ce qu'un lien accroche : l'icône d'un groupe, même si l'on a cliqué
+     son nom ; sinon la forme cliquée. Ni un trait de stylo, ni un lien. */
+  function ancreLien(el) {
+    if (!el || estLien(el) || el.type === "freedraw") return null;
+    if (el.groupIds && el.groupIds.length) {
+      const img = groupeDe(el).map(parId).find((e) => e && e.type === "image");
+      if (img) return img;
+    }
+    return el;
+  }
+  function choisirLien(id) {
+    etat.lienType = id;
+    choisirOutil("lien");
+    fermerCreer();
+    scene.focus({ preventScroll: true });
+    dire("Lien « " + LIENS.find((l) => l[0] === id)[1] + " » : cliquez le premier équipement, puis le second. Échap pour arrêter.");
+  }
+  function debutLien(e, p) {
+    const el = ancreLien(aPortee(p.x, p.y));
+    if (!el) { dire("Cliquez sur un équipement.", true); return; }
+    if (!lienDebut || !parId(lienDebut) || lienDebut === el.id) {
+      lienDebut = el.id;
+      selection = new Set(groupeDe(el));
+      demander();
+      dire("Et maintenant le second équipement.");
+      return;
+    }
+    const def = LIENS.find((l) => l[0] === etat.lienType) || LIENS[0];
+    const l = nouvelElement("line", 0, 0, {
+      points: [[0, 0], [1, 0]], lastCommittedPoint: null, startArrowhead: null, endArrowhead: null, polygon: false,
+      startBinding: { elementId: lienDebut, focus: 0, gap: 4 }, endBinding: { elementId: el.id, focus: 0, gap: 4 },
+      strokeColor: def[2], strokeStyle: def[3], strokeWidth: def[4], roughness: 0, roundness: null,
+      backgroundColor: "transparent", opacity: 100, customData: { lien: def[0] },
+    });
+    // sous les icônes : un câble ne passe jamais par-dessus un équipement
+    elements.unshift(l);
+    majLiens();
+    lienDebut = null;
+    selection = new Set([l.id]);
+    memoriser(); majPanneau(); demander();
+    dire(def[1] + " posé. Il suit les équipements ; pour un autre, cliquez encore deux équipements.");
+  }
+
+  function insererReseau(id) {
+    const def = RESEAU.find((r) => r[0] === id);
+    // l'image : un vrai fichier SVG, désigné par son empreinte comme une photo
+    const dataURL = "data:image/svg+xml;base64," + btoa(svgReseau(def));
+    const fid = empreinte(dataURL);
+    if (!fichiers[fid]) fichiers[fid] = { id: fid, mimeType: "image/svg+xml", dataURL, created: Date.now() };
+    const z = Math.max(0.35, etat.zoom), s = 72 / z, g = nouvelId();
+    const nom = libre(0, 0, def[1], 16 / z, { textAlign: "center", groupIds: [g] });
+    const p = pointInsertion(Math.max(s, nom.width), s + 6 / z + nom.height);
+    const icone = nouvelElement("image", p.x + (Math.max(s, nom.width) - s) / 2, p.y, {
+      width: s, height: s, fileId: fid, status: "saved", scale: [1, 1], crop: null, groupIds: [g],
+      strokeColor: "transparent", backgroundColor: "transparent", roundness: null, opacity: 100,
+    });
+    nom.x = icone.x + s / 2 - nom.width / 2;
+    nom.y = icone.y + s + 6 / z;
+    elements.push(icone, nom);
+    choisirOutil("selection");
+    selection = new Set([icone.id, nom.id]);
+    fermerCreer();
+    scene.focus({ preventScroll: true });
+    memoriser(); majPanneau(); demander();
+    dire(def[1] + " posé. Double-clic sur son nom pour l'écrire — « R1 », « SW-ADMIN ».");
+  }
+
+  /* ── les gabarits de diagramme ──
+     Algorigramme, MCD, UML : des formes ORDINAIRES — rectangles, losanges,
+     ellipses, contours — posées ensemble et groupées. Une forme qui n'est
+     pas un conteneur (parallélogramme, hexagone, document) reçoit son texte
+     par un cadre invisible posé dedans. Une fois posé, tout se déplace, se
+     réécrit au double-clic et s'enregistre comme le reste. */
+  const ENCRE_G = "#1e1e1e", FOND_G = "#ffffff";
+  const styleG = (o) => Object.assign({ strokeColor: ENCRE_G, backgroundColor: FOND_G, fillStyle: "solid", strokeWidth: 2,
+    strokeStyle: "solid", roughness: 0, opacity: 100, roundness: null }, o || {});
+  const gRect = (x, y, w, h, o) => nouvelElement("rectangle", x, y, styleG(Object.assign({ width: w, height: h }, o)));
+  const gEllipse = (x, y, w, h, o) => nouvelElement("ellipse", x, y, styleG(Object.assign({ width: w, height: h }, o)));
+  const gLosange = (x, y, w, h, o) => nouvelElement("diamond", x, y, styleG(Object.assign({ width: w, height: h }, o)));
+  function gTrace(pts, ferme, o) {
+    o = o || {};
+    const [x0, y0] = pts[0];
+    const rel = pts.map(([x, y]) => [x - x0, y - y0]);
+    if (ferme) rel.push([0, 0]);
+    const fleche = !!(o.fin || o.debut);
+    const el = nouvelElement(fleche ? "arrow" : "line", x0, y0, styleG({
+      points: rel, lastCommittedPoint: null, startBinding: null, endBinding: null,
+      startArrowhead: o.debut || null, endArrowhead: o.fin || null,
+      backgroundColor: ferme ? (o.fond || FOND_G) : "transparent", strokeStyle: o.style || "solid", strokeWidth: o.w || 2,
+    }));
+    if (fleche) el.elbowed = false; else el.polygon = !!ferme;
+    const b = R.boite(el);
+    el.width = b.w; el.height = b.h;
+    return el;
+  }
+  const gTexte = (c, t, o) => etiquette(c, t, Object.assign({ fontSize: 18 }, o || {}));
+  // les attributs d'une entité, d'une classe : à gauche, en haut
+  const gListe = (c, t) => gTexte(c, t, { textAlign: "left", verticalAlign: "top", fontSize: 16 });
+  // le contour (ou null : seulement le cadre et son texte), un cadre invisible, le texte
+  function gDans(contour, x, y, w, h, t) {
+    const c = gRect(x, y, w, h, { strokeColor: "transparent", backgroundColor: "transparent" });
+    return [contour, c, gTexte(c, t)];
+  }
+  const arcG = (cx, cy, rx, ry, a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => {
+    const a = a0 + (a1 - a0) * i / n;
+    return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+  });
+  function gCylindre(w, h, t, fond) {
+    const ry = Math.min(14, h * 0.14);
+    const corps = gTrace([[0, ry]].concat(arcG(w / 2, h - ry, w / 2, ry, Math.PI, 0, 18), [[w, ry]],
+                                          arcG(w / 2, ry, w / 2, ry, 0, -Math.PI, 18)), true, { fond });
+    const devant = gTrace(arcG(w / 2, ry, w / 2, ry, Math.PI, 0, 18), false);
+    return [corps, devant].concat(gDans(null, 8, ry * 2 + 4, w - 16, h - ry * 3 - 8, t).slice(1));
+  }
+  function gDocument(w, h, t) {
+    const vague = Array.from({ length: 21 }, (_, i) => [w - w * i / 20, h - 10 + 9 * Math.sin(2 * Math.PI * i / 20)]);
+    return gDans(gTrace([[0, 0], [w, 0]].concat(vague), true), 8, 8, w - 16, h - 30, t);
+  }
+  function gNote(w, h, t, fond) {
+    const f = 22;
+    return [gTrace([[0, 0], [w - f, 0], [w, f], [w, h], [0, h]], true, { fond }), gTrace([[w - f, 0], [w - f, f], [w, f]], false)]
+      .concat(gDans(null, 8, f, w - 16, h - f - 8, t).slice(1));
+  }
+  function gEntete(w, h1, h2, couleur, titre, corps) {
+    const tete = gRect(0, 0, w, h1, { backgroundColor: couleur }), bas = gRect(0, h1, w, h2);
+    return [tete, gTexte(tete, titre), bas, gListe(bas, corps)];
+  }
+  const GABARITS = {
+    // ── général ──
+    cylindre: ["Cylindre", "general", '<path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><ellipse cx="12" cy="6" rx="7" ry="3"/>', "base disque stockage",
+      () => gCylindre(150, 120, "")],
+    document: ["Document", "general", '<path d="M5 4h14v13c-2.3 2-4.7-2-7 0s-4.7 2-7 0z"/>', "page fichier",
+      () => gDocument(180, 110, "")],
+    nuage: ["Nuage", "general", '<path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.6-1.4A4.3 4.3 0 0 0 7 18z"/>', "cloud",
+      () => {
+        const w = 220, h = 130;
+        const pts = Array.from({ length: 96 }, (_, i) => {
+          const a = 2 * Math.PI * i / 96, r = 0.84 + 0.16 * Math.abs(Math.sin(4 * a));
+          return [w / 2 + w / 2 * r * Math.cos(a), h / 2 + h / 2 * r * Math.sin(a)];
+        });
+        return gDans(gTrace(pts, true), w * 0.22, h * 0.28, w * 0.56, h * 0.44, "");
+      }],
+    cube: ["Cube", "general", '<path d="M4 9h11v11H4zM4 9l5-5h11l-5 5M15 20l5-5V4"/>', "boite 3d",
+      () => {
+        const w = 150, h = 130, d = 24, face = gRect(0, d, w - d, h - d);
+        return [gTrace([[0, d], [d, 0], [w, 0], [w - d, d]], true, { fond: "#f1f3f5" }),
+                gTrace([[w - d, d], [w, 0], [w, h - d], [w - d, h]], true, { fond: "#dee2e6" }), face, gTexte(face, "")];
+      }],
+    note: ["Note pliée", "general", '<path d="M5 4h10l4 4v12H5zM15 4v4h4"/>', "post-it commentaire",
+      () => gNote(170, 120, "Note", "#fff9db")],
+    tableau: ["Tableau 3 × 3", "general", '<path d="M3 5h18v14H3zM3 10h18M3 15h18M9 5v14M15 5v14"/>', "grille cases cellules",
+      () => { const o = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) o.push(gRect(j * 110, i * 44, 110, 44, { backgroundColor: i ? FOND_G : "#e9ecef" })); return o; }],
+
+    // ── diagramme de flux (algorigramme) ──
+    debut: ["Début / Fin", "flux", '<rect x="3" y="8" width="18" height="8" rx="4"/>', "algorigramme terminal debut fin",
+      () => { const c = gRect(0, 0, 170, 64, { roundness: { type: 3 } }); return [c, gTexte(c, "Début")]; }],
+    traitement: ["Traitement", "flux", '<rect x="3" y="7" width="18" height="10"/>', "algorigramme instruction action affectation",
+      () => { const c = gRect(0, 0, 190, 80); return [c, gTexte(c, "Traitement")]; }],
+    decision: ["Test / Décision", "flux", '<path d="M12 4l9 8-9 8-9-8z"/>', "algorigramme condition si alors sinon",
+      () => { const c = gLosange(0, 0, 200, 120); return [c, gTexte(c, "Condition ?")]; }],
+    es: ["Entrée / Sortie", "flux", '<path d="M7 7h14l-4 10H3z"/>', "algorigramme lire afficher ecrire saisir",
+      () => gDans(gTrace([[34, 0], [220, 0], [186, 84], [0, 84]], true), 34, 8, 152, 68, "Lire x")],
+    sousprog: ["Sous-programme", "flux", '<path d="M3 7h18v10H3zM6 7v10M18 7v10"/>', "algorigramme fonction procedure appel",
+      () => { const c = gRect(0, 0, 210, 80); return [c, gTexte(c, "Sous-programme"), gTrace([[16, 0], [16, 80]]), gTrace([[194, 0], [194, 80]])]; }],
+    boucle: ["Boucle (préparation)", "flux", '<path d="M7 7h10l4 5-4 5H7l-4-5z"/>', "algorigramme pour tant que repeter iteration",
+      () => gDans(gTrace([[26, 0], [194, 0], [220, 42], [194, 84], [26, 84], [0, 42]], true), 26, 8, 168, 68, "Pour i de 1 à n")],
+    saisie: ["Saisie manuelle", "flux", '<path d="M3 10l18-4v12H3z"/>', "algorigramme clavier",
+      () => gDans(gTrace([[0, 26], [200, 0], [200, 84], [0, 84]], true), 10, 30, 180, 50, "Saisie")],
+    "doc-flux": ["Document", "flux", '<path d="M5 4h14v13c-2.3 2-4.7-2-7 0s-4.7 2-7 0z"/>', "algorigramme impression etat",
+      () => gDocument(190, 100, "Document")],
+    stockage: ["Données stockées", "flux", '<path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><ellipse cx="12" cy="6" rx="7" ry="3"/>', "algorigramme base fichier",
+      () => gCylindre(150, 110, "Données")],
+    connecteur: ["Connecteur", "flux", '<circle cx="12" cy="12" r="6"/>', "algorigramme renvoi",
+      () => { const c = gEllipse(0, 0, 50, 50); return [c, gTexte(c, "A")]; }],
+    commentaire: ["Commentaire", "flux", '<path d="M8 5H5v14h3M11 12h9"/>', "algorigramme annotation",
+      () => { const t = libre(28, 26, "Commentaire", 18); return [gTrace([[18, 0], [0, 0], [0, 80], [18, 80]]), t]; }],
+    liaison: ["Liaison", "flux", '<path d="M12 3v17M8 16l4 4 4-4"/>', "algorigramme fleche suite",
+      () => [gTrace([[0, 0], [0, 90]], false, { fin: "arrow" })]],
+    branche: ["Branche Oui / Non", "flux", '<path d="M3 15h16M16 12l3 3-3 3M5 9h5"/>', "algorigramme sortie test",
+      () => [gTrace([[0, 30], [170, 30]], false, { fin: "arrow" }), libre(40, 0, "Oui", 18)]],
+
+    // ── relation d'entité ──
+    entite: ["Entité (MCD)", "mcd", '<path d="M4 5h16v14H4zM4 9h16"/>', "merise mcd entite attributs identifiant",
+      () => gEntete(190, 42, 112, "#d0ebff", "CLIENT", "idClient\nnom\nprénom\nville")],
+    association: ["Association", "mcd", '<ellipse cx="12" cy="12" rx="9" ry="5.5"/>', "merise mcd relation verbe",
+      () => { const c = gEllipse(0, 0, 180, 74, { backgroundColor: "#fff3bf" }); return [c, gTexte(c, "Commander")]; }],
+    "association-attr": ["Association porteuse", "mcd", '<ellipse cx="12" cy="12" rx="9" ry="6.5"/><path d="M7 12h10"/>', "merise mcd attribut",
+      () => { const c = gEllipse(0, 0, 200, 100, { backgroundColor: "#fff3bf" }); return [c, gTexte(c, "Commander\nquantité")]; }],
+    cardinalite: ["Cardinalité", "mcd", '<text x="12" y="16" font-size="10" font-family="sans-serif" text-anchor="middle" stroke="none" fill="currentColor">0,n</text>', "merise 0,n 1,1 0,1 1,n",
+      () => [libre(0, 0, "0,n", 20)]],
+    table: ["Table (MLD / SQL)", "mcd", '<path d="M4 5h16v14H4zM4 9h16M10 9v10"/>', "sql mld cle primaire etrangere colonne",
+      () => gEntete(240, 42, 104, "#d3f9d8", "client", "id_client   INT   PK\nnom   VARCHAR(50)\nid_ville   INT   FK")],
+    "lien-1n": ["Lien un à plusieurs", "mcd", '<path d="M3 12h18M6 9v6M17 12l4-3M17 12l4 3"/>', "patte d oie crow foot cardinalite",
+      () => [gTrace([[0, 0], [200, 0]], false, { debut: "crowfoot_one", fin: "crowfoot_many" })]],
+    "lien-11": ["Lien un à un", "mcd", '<path d="M3 12h18M6 9v6M18 9v6"/>', "crow foot cardinalite",
+      () => [gTrace([[0, 0], [200, 0]], false, { debut: "crowfoot_one", fin: "crowfoot_one" })]],
+    "lien-1-1n": ["Lien un à un ou plusieurs", "mcd", '<path d="M3 12h18M6 9v6M14 9v6M17 12l4-3M17 12l4 3"/>', "crow foot cardinalite",
+      () => [gTrace([[0, 0], [200, 0]], false, { debut: "crowfoot_one", fin: "crowfoot_one_or_many" })]],
+    "lien-mcd": ["Lien simple", "mcd", '<path d="M3 12h18"/>', "patte trait",
+      () => [gTrace([[0, 0], [200, 0]], false)]],
+
+    // ── UML ──
+    classe: ["Classe", "uml", '<path d="M4 3h16v18H4zM4 8h16M4 14h16"/>', "uml poo attribut methode",
+      () => { const o = gEntete(230, 44, 74, "#e5dbff", "Classe", "- nom : string\n- age : int"); const m = gRect(0, 118, 230, 74); return o.concat(m, gListe(m, "+ getNom() : string\n+ setNom(n : string)")); }],
+    interface: ["Interface", "uml", '<path d="M4 4h16v16H4zM4 10h16M8 7h8"/>', "uml interface contrat",
+      () => gEntete(230, 58, 60, "#d0ebff", "«interface»\nAffichable", "+ afficher() : void")],
+    enumeration: ["Énumération", "uml", '<path d="M4 4h16v16H4zM4 9h16M7 12h6M7 15h6M7 18h4"/>', "uml enum",
+      () => gEntete(200, 58, 86, "#fff3bf", "«enumeration»\nCouleur", "ROUGE\nVERT\nBLEU")],
+    acteur: ["Acteur", "uml", '<circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M7 10h10M12 14.5l-4 6M12 14.5l4 6"/>', "uml cas utilisation utilisateur",
+      () => { const t = libre(0, 110, "Acteur", 18); t.x = 36 - t.width / 2;
+        return [gEllipse(22, 0, 28, 28), gTrace([[36, 28], [36, 70]]), gTrace([[12, 44], [60, 44]]), gTrace([[16, 104], [36, 70], [56, 104]]), t]; }],
+    cas: ["Cas d'utilisation", "uml", '<ellipse cx="12" cy="12" rx="9" ry="5"/>', "uml use case",
+      () => { const c = gEllipse(0, 0, 210, 84); return [c, gTexte(c, "Cas d'utilisation")]; }],
+    systeme: ["Système (frontière)", "uml", '<rect x="3" y="3" width="18" height="18"/><path d="M6 6h6"/>', "uml cas utilisation limite",
+      () => { const c = gRect(0, 0, 340, 420, { backgroundColor: "transparent" }); return [c, gTexte(c, "Système", { verticalAlign: "top" })]; }],
+    "note-uml": ["Note", "uml", '<path d="M5 4h10l4 4v12H5zM15 4v4h4"/>', "uml commentaire",
+      () => gNote(180, 100, "Note", "#fff9db")],
+    paquetage: ["Paquetage", "uml", '<path d="M3 8h18v12H3zM3 8V5h7v3"/>', "uml package",
+      () => { const tab = gRect(0, 0, 120, 30), corps = gRect(0, 30, 260, 150); return [tab, gTexte(tab, "paquetage", { fontSize: 16 }), corps]; }],
+    "ligne-vie": ["Ligne de vie", "uml", '<rect x="6" y="3" width="12" height="5"/><path d="M12 8v13" stroke-dasharray="2 2"/>', "uml sequence objet",
+      () => { const t = gRect(0, 0, 170, 50); return [t, gTexte(t, "objet : Classe"), gTrace([[85, 50], [85, 320]], false, { style: "dashed" })]; }],
+    action: ["Action (activité)", "uml", '<rect x="3" y="7" width="18" height="10" rx="4"/>', "uml activite",
+      () => { const c = gRect(0, 0, 190, 70, { roundness: { type: 3 } }); return [c, gTexte(c, "Action")]; }],
+    "debut-act": ["Début (activité)", "uml", '<circle cx="12" cy="12" r="5" fill="currentColor"/>', "uml etat initial",
+      () => [gEllipse(0, 0, 32, 32, { backgroundColor: ENCRE_G })]],
+    "fin-act": ["Fin (activité)", "uml", '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>', "uml etat final",
+      () => [gEllipse(0, 0, 38, 38), gEllipse(8, 8, 22, 22, { backgroundColor: ENCRE_G })]],
+    "uml-association": ["Association", "uml", '<path d="M3 12h18"/>', "uml relation",
+      () => [gTrace([[0, 0], [200, 0]], false)]],
+    heritage: ["Héritage", "uml", '<path d="M3 12h12M15 7l6 5-6 5z"/>', "uml generalisation extends",
+      () => [gTrace([[0, 0], [200, 0]], false, { fin: "triangle_outline" })]],
+    realisation: ["Réalisation", "uml", '<path d="M3 12h12" stroke-dasharray="2.5 2"/><path d="M15 7l6 5-6 5z"/>', "uml implements interface",
+      () => [gTrace([[0, 0], [200, 0]], false, { fin: "triangle_outline", style: "dashed" })]],
+    dependance: ["Dépendance", "uml", '<path d="M3 12h17" stroke-dasharray="2.5 2"/><path d="M16 8l4 4-4 4"/>', "uml utilise",
+      () => [gTrace([[0, 0], [200, 0]], false, { fin: "arrow", style: "dashed" })]],
+    agregation: ["Agrégation", "uml", '<path d="M10 12h11M3 12l3.5-3 3.5 3-3.5 3z"/>', "uml losange vide",
+      () => [gTrace([[0, 0], [200, 0]], false, { debut: "diamond_outline" })]],
+    composition: ["Composition", "uml", '<path d="M10 12h11"/><path d="M3 12l3.5-3 3.5 3-3.5 3z" fill="currentColor"/>', "uml losange plein",
+      () => [gTrace([[0, 0], [200, 0]], false, { debut: "diamond" })]],
+    message: ["Message", "uml", '<path d="M3 12h15"/><path d="M15 8l5 4-5 4z" fill="currentColor"/>', "uml sequence appel synchrone",
+      () => { const t = libre(40, -30, "message()", 16); return [gTrace([[0, 0], [200, 0]], false, { fin: "triangle" }), t]; }],
+    retour: ["Retour", "uml", '<path d="M21 12H5" stroke-dasharray="2.5 2"/><path d="M8 8l-4 4 4 4"/>', "uml sequence reponse",
+      () => [gTrace([[200, 0], [0, 0]], false, { fin: "arrow", style: "dashed" })]],
+  };
+  function insererGabarit(id) {
+    const [nom, , , , faire] = GABARITS[id];
+    const liste = faire().filter(Boolean);
+    const k = 1 / Math.max(0.35, etat.zoom);
+    if (k !== 1) liste.forEach((e) => {
+      e.x *= k; e.y *= k; e.width *= k; e.height *= k;
+      if (e.fontSize) e.fontSize *= k;
+      if (e.strokeWidth && e.type !== "text") e.strokeWidth = Math.max(1, e.strokeWidth * Math.min(k, 2));
+      if (e.points) e.points = e.points.map(([x, y]) => [x * k, y * k]);
+    });
+    liste.forEach((e) => { if (e.type === "text" && !e.containerId) mesurerLibre(e); });
+    const libres = liste.filter((e) => !estLie(e));
+    if (libres.length > 1) { const g = nouvelId(); libres.forEach((e) => { e.groupIds = [g]; }); }
+    const b = boiteDe(libres), p = pointInsertion(b.w, b.h);
+    liste.forEach((e) => { e.x += p.x - b.x; e.y += p.y - b.y; });
+    elements.push(...liste);
+    liste.forEach((e) => { if (estLie(e)) placerLie(e); });
+    choisirOutil("selection");
+    selection = new Set(libres.map((e) => e.id));
+    fermerCreer();
+    scene.focus({ preventScroll: true });
+    memoriser(); majPanneau(); demander();
+    dire(nom + " posé." + (liste.some((e) => e.type === "text") ? " Double-clic sur un texte pour l'écrire." : ""));
+  }
+
+  /* ── les modèles ──
+     Des éléments ordinaires, posés d'un coup : un rectangle et son titre
+     lié, des notes, des traits. Une fois posé, un modèle n'a plus rien de
+     spécial — on le déplace, l'écrit, le défait comme le reste. */
+  function cadre(x, y, w, h, o) {
+    return nouvelElement("rectangle", x, y, Object.assign({
+      width: w, height: h, strokeColor: OC.gray[3], backgroundColor: "transparent", fillStyle: "solid",
+      strokeWidth: 1, strokeStyle: "solid", roughness: 0, opacity: 100, roundness: { type: 3 },
+    }, o || {}));
+  }
+  function etiquette(c, texte, o) {
+    const t = nouvelElement("text", c.x, c.y, Object.assign({
+      text: texte, originalText: texte, fontSize: 20, fontFamily: etat.courant.fontFamily, textAlign: "center",
+      verticalAlign: "middle", containerId: c.id, autoResize: true, lineHeight: 1.25, strokeColor: NOIR,
+      backgroundColor: "transparent", roundness: null, opacity: 100,
+    }, o || {}));
+    c.boundElements = [{ type: "text", id: t.id }];
+    return t;
+  }
+  function libre(x, y, texte, taille, o) {
+    const t = nouvelElement("text", x, y, Object.assign({
+      text: texte, originalText: texte, fontSize: taille, fontFamily: etat.courant.fontFamily, textAlign: "left",
+      verticalAlign: "top", containerId: null, autoResize: true, lineHeight: 1.25, strokeColor: NOIR,
+      backgroundColor: "transparent", roundness: null, opacity: 100,
+    }, o || {}));
+    mesurerLibre(t);
+    return t;
+  }
+  function note(x, y, couleur, texte) {
+    const n = cadre(x, y, 230, 110, { backgroundColor: couleur, strokeColor: "transparent", customData: { postit: true, taille: 22 } });
+    return [n, etiquette(n, texte, { fontSize: 22 })];
+  }
+  function trait(x1, y1, x2, y2, o) {
+    o = o || {};
+    const el = nouvelElement(o.fleche ? "arrow" : "line", x1, y1, {
+      points: [[0, 0], [x2 - x1, y2 - y1]], width: Math.abs(x2 - x1), height: Math.abs(y2 - y1),
+      lastCommittedPoint: null, startBinding: null, endBinding: null, startArrowhead: null,
+      endArrowhead: o.fleche ? "arrow" : null, strokeColor: o.couleur || OC.gray[4], strokeWidth: o.w || 2,
+      strokeStyle: "solid", roughness: 0, backgroundColor: "transparent", roundness: null, opacity: 100,
+    });
+    if (o.fleche) el.elbowed = false; else el.polygon = false;
+    return el;
+  }
+  const IC_MODELE = {
+    kanban: '<rect x="2" y="3" width="5" height="14" rx="1"/><rect x="8" y="3" width="5" height="14" rx="1"/><rect x="14" y="3" width="4" height="14" rx="1"/><path d="M3 6h3M9 6h3"/>',
+    swot: '<rect x="2.5" y="2.5" width="15" height="15" rx="1.5"/><path d="M10 2.5v15M2.5 10h15"/>',
+    carte: '<ellipse cx="10" cy="10" rx="3.5" ry="2.2"/><rect x="1.5" y="2" width="4" height="3" rx=".8"/><rect x="14.5" y="2" width="4" height="3" rx=".8"/><rect x="1.5" y="15" width="4" height="3" rx=".8"/><rect x="14.5" y="15" width="4" height="3" rx=".8"/><path d="M5.5 4.5l2 3.5M14.5 4.5l-2 3.5M5.5 15.5l2-3.5M14.5 15.5l-2-3.5"/>',
+    chrono: '<path d="M2 9h15M15 7l2 2-2 2M5 7.5v3M9.5 7.5v3M14 7.5v3"/><rect x="3" y="13" width="4" height="3" rx=".8"/><rect x="11.5" y="13" width="4" height="3" rx=".8"/>',
+  };
+  const MODELES = {
+    kanban: ["Kanban", "trois colonnes, des notes à déplacer", () => {
+      const out = [libre(0, -56, "Kanban", 32)];
+      [["À faire", OC.gray[0]], ["En cours", OC.blue[0]], ["Fait", OC.green[0]]].forEach(([t, fond], i) => {
+        const c = cadre(i * 290, 0, 270, 460, { backgroundColor: fond });
+        out.push(c, etiquette(c, t, { fontSize: 22, verticalAlign: "top" }));
+      });
+      return out.concat(note(20, 64, POSTITS[0], "Une tâche"), note(20, 190, POSTITS[1], "Une autre"),
+                        note(310, 64, POSTITS[3], "Commencée"));
+    }],
+    swot: ["SWOT", "forces, faiblesses, opportunités, menaces", () => {
+      const out = [libre(0, -56, "Analyse SWOT", 32)];
+      [["Forces", OC.green[1], 0, 0], ["Faiblesses", OC.red[1], 1, 0],
+       ["Opportunités", OC.blue[1], 0, 1], ["Menaces", OC.yellow[1], 1, 1]].forEach(([t, fond, i, j]) => {
+        const c = cadre(i * 350, j * 270, 340, 260, { backgroundColor: fond, strokeColor: "transparent" });
+        out.push(c, etiquette(c, t, { fontSize: 24, verticalAlign: "top" }));
+      });
+      const gris = { strokeColor: OC.gray[3] };
+      return out.concat(libre(-100, 118, "Interne", 18, gris), libre(-100, 388, "Externe", 18, gris),
+                        libre(140, 540, "Positif", 18, gris), libre(490, 540, "Négatif", 18, gris));
+    }],
+    carte: ["Carte mentale", "un sujet au centre, quatre idées", () => {
+      const cx = 380, cy = 230, rx = 120, ry = 60;
+      const sujet = nouvelElement("ellipse", cx - rx, cy - ry, {
+        width: rx * 2, height: ry * 2, backgroundColor: OC.violet[1], fillStyle: "solid", strokeColor: OC.violet[4],
+        strokeWidth: 2, strokeStyle: "solid", roughness: 0, opacity: 100, roundness: null,
+      });
+      const out = [sujet, etiquette(sujet, "Sujet", { fontSize: 26 })];
+      [[0, 0], [540, 0], [0, 370], [540, 370]].forEach(([x, y], i) => {
+        const bx = x + 110, by = y + 45, d = Math.hypot(bx - cx, by - cy), ux = (bx - cx) / d, uy = (by - cy) / d;
+        // d'un bord à l'autre, pas d'un centre à l'autre
+        const te = 1 / Math.hypot(ux / rx, uy / ry), tb = Math.min(110 / Math.abs(ux || 1e-9), 45 / Math.abs(uy || 1e-9));
+        out.push(trait(cx + ux * te, cy + uy * te, bx - ux * tb, by - uy * tb, { couleur: OC.violet[3] }));
+        const b = cadre(x, y, 220, 90, { backgroundColor: OC.violet[0], strokeColor: OC.violet[3] });
+        out.push(b, etiquette(b, "Idée " + (i + 1)));
+      });
+      return out;
+    }],
+    chrono: ["Chronologie", "une flèche du temps, quatre étapes", () => {
+      const out = [libre(0, -70, "Chronologie", 32), trait(0, 60, 940, 60, { fleche: true, w: 3 })];
+      for (let i = 0; i < 4; i++) {
+        const x = 110 + i * 230;
+        out.push(trait(x, 46, x, 74, { w: 3, couleur: OC.blue[4] }), libre(x - 26, 84, "Date", 18, { strokeColor: OC.blue[4] }));
+        const e = cadre(x - 95, 130, 190, 84, { backgroundColor: OC.blue[0], strokeColor: OC.blue[2] });
+        out.push(e, etiquette(e, "Étape " + (i + 1)));
+      }
+      return out;
+    }],
+  };
+  function insererModele(nom) {
+    const liste = MODELES[nom][2]();
+    elements.push(...liste);
+    liste.forEach((e) => { if (estLie(e)) placerLie(e); });
+    const libres = liste.filter((e) => !estLie(e));
+    const b = boiteDe(libres), c = versScene(toile.clientWidth / 2, toile.clientHeight / 2);
+    const dx = c.x - (b.x + b.w / 2), dy = c.y - (b.y + b.h / 2);
+    liste.forEach((e) => { e.x += dx; e.y += dy; });
+    choisirOutil("selection");
+    selection = new Set(libres.map((e) => e.id));
+    fermerCreer();
+    scene.focus({ preventScroll: true });
+    // plus grand que la vue, barres flottantes comprises : on recule pour le voir
+    // entier — la marge de 60 px est celle d'« Ajuster à l'écran ». Mesuré : un
+    // Kanban de 516 px « tenait » dans 592 px, titre caché sous la barre du haut.
+    if (b.w * etat.zoom > toile.clientWidth - 120 || b.h * etat.zoom > toile.clientHeight - 120) ajuster(libres);
+    memoriser(); majPanneau(); demander();
+    dire("Modèle « " + MODELES[nom][0] + " » posé. Double-clic sur un titre ou une note pour l'écrire.");
+  }
+
   let derniereInsertion = null;
   function pointInsertion(w, h) {
     const c = versScene(toile.clientWidth / 2, toile.clientHeight / 2);
@@ -2059,12 +3183,15 @@
       const b = R.boite(el);
       el.width = b.w; el.height = b.h;
     } else if (def.type === "line" || def.type === "arrow") {
-      el = nouvelElement(def.type, p.x, p.y + h / 2, {
-        points: [[0, 0], [w, 0]], lastCommittedPoint: null, startBinding: null, endBinding: null,
-        startArrowhead: def.debut || null, endArrowhead: def.fin || null, width: w, height: 0,
+      el = nouvelElement(def.type, p.x, def.coude ? p.y : p.y + h / 2, {
+        points: def.coude ? [[0, 0], [w / 2, 0], [w / 2, h], [w, h]] : [[0, 0], [w, 0]],
+        lastCommittedPoint: null, startBinding: null, endBinding: null,
+        startArrowhead: def.debut || null, endArrowhead: def.fin || null, width: w, height: def.coude ? h : 0,
         backgroundColor: "transparent",
       });
       if (def.type === "arrow") el.elbowed = false; else el.polygon = false;
+      if (def.style) el.strokeStyle = def.style;
+      if (def.epais) el.strokeWidth = def.epais;
     } else {
       el = nouvelElement(def.type, p.x, p.y, { width: w, height: h });
       if (def.type === "rectangle") el.roundness = def.rond ? { type: 3 } : null;
@@ -2097,10 +3224,75 @@
   }
   $("#tb-notes").innerHTML = POSTITS.map((c) => '<button type="button" class="tb-pastille tb-note" data-note="' + c
     + '" style="--c:' + c + '" title="Note" aria-label="Note de couleur ' + c + '"></button>').join("");
-  $("#tb-formes").innerHTML = FORMES.map(([id, t, def]) => '<button type="button" class="tb-b tb-forme" data-forme="' + id
-    + '" title="' + t + '" aria-label="' + t + '">' + apercu(def) + "</button>").join("");
-  $("#tb-lignes").innerHTML = LIGNES.map(([id, t, def]) => '<button type="button" class="tb-b tb-forme" data-ligne="' + id
-    + '" title="' + t + '" aria-label="' + t + '">' + apercu(def) + "</button>").join("");
+  const estFleche = (id) => /^fleche-|^double-bloc$/.test(id);
+  const boutonForme = (attr, id, t, def) => '<button type="button" class="tb-b tb-forme" ' + attr + '="' + id
+    + '" title="' + t + '" aria-label="' + t + '">' + apercu(def) + "</button>";
+  const boutonGab = (id, grand) => {
+    const [nom, , dessin, mots] = GABARITS[id];
+    const svg = '<svg viewBox="0 0 24 24" aria-hidden="true">' + dessin + "</svg>";
+    return grand ? '<button type="button" class="tb-ic-ligne tb-gab" data-gabarit="' + id + '" data-mots="' + mots + '">' + svg + "<span>" + nom + "</span></button>"
+                 : '<button type="button" class="tb-b tb-forme tb-gab" data-gabarit="' + id + '" data-mots="' + mots + '" title="' + nom + '" aria-label="' + nom + '">' + svg + "</button>";
+  };
+  const gabaritsDe = (fam) => Object.keys(GABARITS).filter((id) => GABARITS[id][1] === fam);
+  $("#tb-formes").innerHTML = FORMES.filter(([id]) => !estFleche(id)).map(([id, t, def]) => boutonForme("data-forme", id, t, def)).join("")
+    + gabaritsDe("general").map((id) => boutonGab(id, false)).join("");
+  $("#tb-lignes").innerHTML = LIGNES.map(([id, t, def]) => boutonForme("data-ligne", id, t, def)).join("")
+    + FORMES.filter(([id]) => estFleche(id)).map(([id, t, def]) => boutonForme("data-forme", id, t, def)).join("");
+  for (const fam of ["flux", "mcd", "uml"]) $("#tb-" + fam).innerHTML = gabaritsDe(fam).map((id) => boutonGab(id, true)).join("");
+  $("#tb-reactions").innerHTML = REACTIONS.map(([e, t]) => '<button type="button" class="tb-b tb-forme tb-reaction" data-reaction="'
+    + e + '" title="' + t + '" aria-label="Réaction : ' + t + '">' + e + "</button>").join("");
+  const icReseau = (r) => svgReseau(r).replace("<svg ", '<svg aria-hidden="true" ');
+  $("#tb-reseau-n").textContent = RESEAU.length;
+  $("#tb-reseau-tout").innerHTML = FAMILLES_RESEAU.map(([f, titre]) => '<div class="tb-famille"><p class="tb-famille-titre">' + titre + "</p>"
+    + '<div class="tb-liste-ic">' + RESEAU.filter((r) => r[3] === f).map((r) => '<button type="button" class="tb-ic-ligne" data-reseau="' + r[0]
+      + '" data-mots="' + r[4] + '">' + icReseau(r) + "<span>" + r[1] + "</span></button>").join("") + "</div></div>").join("");
+  $("#tb-liens").innerHTML = LIENS.map(([id, nom, c, st, w]) => '<button type="button" class="tb-lien" data-lien="' + id + '" data-mots="cable lien ' + nom + '">'
+    + '<svg viewBox="0 0 40 12" aria-hidden="true"><path d="' + (id === "serie" ? "M2 6h14l5-5-2 10 5-5h14" : "M2 6h36") + '" fill="none" stroke="' + c
+    + '" stroke-width="' + Math.min(w, 3.5) + '" stroke-linecap="round"' + (st === "dashed" ? ' stroke-dasharray="6 4"' : st === "dotted" ? ' stroke-dasharray="0.1 4.5"' : "")
+    + "/></svg><span>" + nom + "</span></button>").join("");
+
+  /* Une recherche pour tout le panneau : on tape « routeur », « décision »,
+     « classe », et seules les formes qui répondent restent, sections
+     ouvertes. Effacer la recherche rend les sections dans l'état où on les
+     avait laissées. */
+  const sansAccent = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const SECTIONS_CLE = "ciel-tableau-sections-v1";
+  const sections = $$("#tb-creer .tb-section");
+  try {
+    const ouvertes = JSON.parse(localStorage.getItem(SECTIONS_CLE) || "null");
+    if (ouvertes) sections.forEach((s) => { s.open = ouvertes.includes(s.dataset.section); });
+  } catch (e) { /* mémoire refusée : les sections gardent leur état d'origine */ }
+  let avantRecherche = null;
+  sections.forEach((s) => s.addEventListener("toggle", () => {
+    // « toggle » arrive après coup : pendant une recherche, rien n'est retenu
+    if (avantRecherche) return;
+    try { localStorage.setItem(SECTIONS_CLE, JSON.stringify(sections.filter((x) => x.open).map((x) => x.dataset.section))); } catch (e) { /* rien */ }
+  }));
+  $("#tb-creer-f").addEventListener("input", (e) => {
+    const mots = sansAccent(e.target.value.trim()).split(/\s+/).filter(Boolean);
+    if (mots.length && !avantRecherche) avantRecherche = sections.map((s) => s.open);
+    let total = 0;
+    sections.forEach((s, i) => {
+      let n = 0;
+      s.querySelectorAll("button").forEach((b) => {
+        const t = sansAccent((b.title || "") + " " + b.textContent + " " + (b.dataset.mots || "") + " " + s.querySelector("summary").textContent);
+        b.hidden = mots.length > 0 && !mots.every((m) => t.includes(m));
+        if (!b.hidden) n++;
+      });
+      s.querySelectorAll(".tb-famille").forEach((f) => { f.hidden = !f.querySelector("button:not([hidden])"); });
+      s.hidden = mots.length > 0 && !n;
+      if (mots.length) s.open = n > 0;
+      else if (avantRecherche) s.open = avantRecherche[i];
+      total += n;
+    });
+    if (!mots.length) avantRecherche = null;
+    $("#tb-creer-rien").hidden = !mots.length || total > 0;
+    $(".tb-creer-base").hidden = mots.length > 0;
+  });
+  $("#tb-modeles").innerHTML = Object.keys(MODELES).map((k) => '<button type="button" class="tb-carte tb-modele" data-modele="' + k
+    + '"><span class="tb-carte-ic"><svg viewBox="0 0 20 20" aria-hidden="true">' + IC_MODELE[k] + "</svg></span><span>"
+    + MODELES[k][0] + "<small>" + MODELES[k][1] + "</small></span></button>").join("");
+  $("#tb-image-fichier").addEventListener("change", (e) => { insererImage(e.target.files[0]); e.target.value = ""; });
   const creer = $("#tb-creer"), bCreer = $("#tb-creer-b");
   function fermerCreer() { creer.hidden = true; bCreer.setAttribute("aria-expanded", "false"); }
   bCreer.addEventListener("click", () => {
@@ -2114,6 +3306,12 @@
     if (b.hasAttribute("data-fermer-creer")) { fermerCreer(); return; }
     if (b.dataset.note) return insererNote(b.dataset.note);
     if (b.dataset.creer === "texte") return insererTexte();
+    if (b.dataset.creer === "image") { $("#tb-image-fichier").click(); return; }
+    if (b.dataset.reaction) return insererReaction(b.dataset.reaction);
+    if (b.dataset.modele) return insererModele(b.dataset.modele);
+    if (b.dataset.reseau) return insererReseau(b.dataset.reseau);
+    if (b.dataset.lien) return choisirLien(b.dataset.lien);
+    if (b.dataset.gabarit) return insererGabarit(b.dataset.gabarit);
     if (b.dataset.forme) return insererForme(FORMES.find((f) => f[0] === b.dataset.forme)[2]);
     if (b.dataset.ligne) return insererForme(LIGNES.find((f) => f[0] === b.dataset.ligne)[2]);
   });
@@ -2125,14 +3323,38 @@
   function majStylos() {
     $$("[data-stylo]").forEach((b) => {
       const st = etat.stylos[Number(b.dataset.stylo)];
-      b.querySelector("i").style.setProperty("--c", st.c);
+      b.querySelector("i").style.setProperty("--c", APERCUS[st.effet] || st.c);
       b.querySelector("i").style.setProperty("--w", Math.min(8, 2 + st.w * 1.3) + "px");
     });
     const s = $('.tb-encrage [data-outil="surligneur"] i');
     s.style.setProperty("--c", etat.courant.surligneur);
     s.style.setProperty("--w", "8px");
   }
+  const EFFETS_NOMS = [["", "Aucun"], ["arcenciel", "Arc-en-ciel"], ["or", "Or"], ["neon", "Néon"]];
+  const APERCUS = {
+    arcenciel: "linear-gradient(90deg,#e03131,#f08c00,#f2c200,#2f9e44,#1c7ed6,#6741d9)",
+    or: "linear-gradient(90deg,#8a6a12,#e2bd4f,#fff1a8,#d1a12a,#93700f)",
+  };
+  const TAILLES_GOMME = [6, 12, 20, 32];
+  const option = (opt, libelle) => '<button type="button" class="tb-option" data-ropt="' + opt
+    + '" aria-pressed="' + !!etat[opt] + '">' + libelle + "</button>";
+  function ouvrirReglageGomme() {
+    const partie = etat.gommeMode === "partie";
+    reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p><div class="tb-choix">'
+      + [["objet", "Trait entier"], ["partie", "Partie du trait"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rg="'
+        + v + '" aria-pressed="' + (etat.gommeMode === v) + '">' + t + "</button>").join("") + "</div>"
+      + (partie ? '<p class="tb-menu-titre">Taille</p><div class="tb-calibres">'
+        + TAILLES_GOMME.map((t, i) => '<button type="button" class="tb-b tb-petit tb-calibre tb-calibre-gomme" data-rgt="' + t
+          + '" aria-pressed="' + (t === etat.gommeTaille) + '" title="Taille ' + (i + 1) + '" aria-label="Taille ' + (i + 1)
+          + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "")
+      + '<p class="tb-note">' + (partie
+        ? "Efface l'encre sous le cercle et coupe le trait. Les formes et le texte ne sont pas touchés."
+        : "Efface tout trait, forme ou texte touché. Échap avant de lâcher rend tout.") + "</p>";
+    reglage.dataset.quoi = "gomme";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
+    if (quoi === "gomme") return ouvrirReglageGomme();
     const surl = quoi === "surligneur";
     const st = surl ? { c: etat.courant.surligneur, w: etat.courant.surligneurW } : etat.stylos[quoi];
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
@@ -2143,7 +3365,14 @@
       + '<p class="tb-menu-titre">Épaisseur</p><div class="tb-calibres">'
       + calibres.map((w, i) => '<button type="button" class="tb-b tb-petit tb-calibre" data-rw="' + w + '" aria-pressed="'
         + (w === st.w) + '" title="Épaisseur ' + (i + 1) + '" aria-label="Épaisseur ' + (i + 1) + '"><i style="--w:'
-        + Math.min(16, 2 + i * 2.4) + 'px;--c:' + st.c + '"></i></button>').join("") + "</div>";
+        + Math.min(16, 2 + i * 2.4) + 'px;--c:' + st.c + '"></i></button>').join("") + "</div>"
+      + (surl ? "" : '<p class="tb-menu-titre">Effet</p><div class="tb-effets">'
+        + EFFETS_NOMS.map(([v, t]) => '<button type="button" class="tb-b tb-petit tb-effet" data-reff="' + v
+          + '" aria-pressed="' + ((st.effet || "") === v) + '"><i style="--c:' + (APERCUS[v] || st.c)
+          + '"' + (v === "neon" ? ' class="tb-neon"' : "") + "></i>" + t + "</button>").join("") + "</div>"
+        + '<p class="tb-menu-titre">Pour tous les stylos</p><div class="tb-options">'
+        + option("formes", "Formes automatiques") + option("styletSeul", "Le doigt fait défiler")
+        + option("inclinaison", "Incliner le stylet élargit le trait") + "</div>");
     reglage.dataset.quoi = String(quoi);
     reglage.hidden = false;
   }
@@ -2151,9 +3380,17 @@
     const b = e.target.closest("button");
     if (!b) return;
     const q = reglage.dataset.quoi;
+    if (q === "gomme") {
+      if (b.dataset.rg) etat.gommeMode = b.dataset.rg;
+      if (b.dataset.rgt) etat.gommeTaille = Number(b.dataset.rgt);
+      garder(); demander(); ouvrirReglageGomme();
+      return;
+    }
     const surl = q === "surligneur";
     if (b.dataset.rc) { if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc; }
     if (b.dataset.rw) { if (surl) etat.courant.surligneurW = Number(b.dataset.rw); else etat.stylos[Number(q)].w = Number(b.dataset.rw); }
+    if (b.dataset.reff !== undefined) etat.stylos[Number(q)].effet = b.dataset.reff || null;
+    if (b.dataset.ropt) { etat[b.dataset.ropt] = !etat[b.dataset.ropt]; majBascules(); }
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));
   });
@@ -2169,7 +3406,9 @@
     scene.focus({ preventScroll: true });
   }));
   document.addEventListener("pointerdown", (e) => {
-    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo")) reglage.hidden = true;
+    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil]")) {
+      reglage.hidden = true;
+    }
   });
   const bEncre = $("#tb-encre-b");
   function majEncre() {
@@ -2178,7 +3417,7 @@
   }
   bEncre.addEventListener("click", () => {
     etat.encre = !etat.encre;
-    if (!etat.encre && /^(freedraw|surligneur|gomme|laser)$/.test(etat.outil)) choisirOutil("selection");
+    if (!etat.encre && OUTILS_ENCRE.includes(etat.outil)) choisirOutil("selection");
     majEncre(); garder();
   });
 
@@ -2190,6 +3429,7 @@
     const b = boiteDe(sel);
     const a = versEcran(b.x, b.y), z = versEcran(b.x + b.w, b.y + b.h);
     contexte.hidden = false;
+    $('[data-ctx="lire"]').hidden = !traitsLisibles().length;
     const bw = contexte.offsetWidth, bh = contexte.offsetHeight;
     const W = scene.clientWidth, H = scene.clientHeight;
     let y = a.y - bh - 18;
@@ -2203,12 +3443,113 @@
     const b = e.target.closest("button");
     if (!b) return;
     const a = b.dataset.ctx;
+    if (a === "lire") { lireSelection(); return; }
     if (a === "format") { etat.format = !etat.format; majPanneau(); demander(); }
     else if (a === "copier") copier(false);
     else if (a === "dupliquer") dupliquer();
     else if (a === "devant" || a === "fond") empiler(a);
     else if (a === "supprimer") supprimerSelection();
     scene.focus({ preventScroll: true });
+  });
+
+  /* ── lire l'écriture ──
+     Chiffres et symboles écrits à la main deviennent du texte. La lecture
+     se fait ICI, sans rien envoyer : « stylet.js » compare les traits à
+     des modèles. Corriger un caractère mal lu, c'est apprendre — le
+     symbole corrigé rejoint les modèles, dans ce navigateur seulement. */
+  const APPRIS_CLE = "ciel-tableau-ecriture-v1";
+  const lecture = $("#tb-lecture"), champLu = $("#tb-lu");
+  let lu = null;
+  function appris() {
+    try {
+      const t = JSON.parse(localStorage.getItem(APPRIS_CLE) || "[]");
+      return Array.isArray(t) ? t.map((m) => ({ car: m.c, pts: m.p.map(([x, y, id]) => ({ x, y, id })),
+                                                aspect: m.a, ferme: m.f, n: m.n })) : [];
+    } catch (e) { return []; }
+  }
+  function retenir(nouveaux) {
+    try {
+      const t = JSON.parse(localStorage.getItem(APPRIS_CLE) || "[]");
+      // le nuage, et l'allure qu'il ne dit pas : proportion, fermeture, nombre de traits
+      nouveaux.forEach(({ car, traits }) => {
+        const s = S.signature(traits);
+        t.push({ c: car, p: s.pts.map((q) => [+q.x.toFixed(3), +q.y.toFixed(3), q.id]),
+                 a: +s.aspect.toFixed(3), f: s.ferme, n: s.n });
+      });
+      localStorage.setItem(APPRIS_CLE, JSON.stringify(t.slice(-400)));
+    } catch (e) { /* stockage refusé : la lecture marche, elle n'apprend pas */ }
+  }
+  function traitsLisibles() { return selectionnes().filter((el) => el.type === "freedraw" && !estSurligneur(el)); }
+  function lireSelection() {
+    const T = traitsLisibles();
+    if (!T.length) return;
+    const modeles = appris();
+    lu = Object.assign(S.lireEcriture(T.map(absolus), modeles), { T });
+    champLu.value = lu.texte;
+    champLu.rows = Math.min(4, lu.texte.split("\n").length);
+    $("#tb-lu-note").textContent = "Un caractère mal lu ? Corrigez-le : le tableau retient votre écriture"
+      + (modeles.length ? " (" + modeles.length + " modèle" + (modeles.length > 1 ? "s" : "") + " appris)." : ".");
+    $('[data-lu="oublier"]').hidden = !modeles.length;
+    lecture.hidden = false;
+    placerLecture();
+    champLu.focus(); champLu.select();
+  }
+  function placerLecture() {
+    if (lecture.hidden || !lu) return;
+    const b = boiteDe(lu.T);
+    const bas = versEcran(b.x, b.y + b.h), haut = versEcran(b.x + b.w, b.y);
+    const W = scene.clientWidth, H = scene.clientHeight, lw = lecture.offsetWidth, lh = lecture.offsetHeight;
+    let y = bas.y + 14;
+    if (y + lh > H - 10) y = Math.max(10, haut.y - lh - 60);
+    const x = Math.max(8, Math.min(W - lw - 8, (bas.x + haut.x) / 2 - lw / 2));
+    lecture.style.transform = "translate(" + Math.round(x) + "px," + Math.round(y) + "px)";
+  }
+  function fermerLecture() { lecture.hidden = true; lu = null; scene.focus({ preventScroll: true }); }
+  function validerLecture() {
+    if (!lu) return;
+    const texte = champLu.value.replace(/\s+$/, "");
+    if (!texte.trim()) { fermerLecture(); return; }
+    // chaque caractère retrouve son symbole : alors seulement on apprend
+    const purs = Array.from(texte.replace(/\s/g, ""));
+    let n = 0;
+    if (purs.length === lu.symboles.length) {
+      const neufs = lu.symboles.map((s, i) => ({ car: purs[i], traits: s.traits, avant: s.car }))
+        .filter((s) => s.car !== s.avant);
+      n = neufs.length;
+      if (n) retenir(neufs);
+    }
+    const b = boiteDe(lu.T);
+    const H = lu.lignes.reduce((s, l) => s + (l.y1 - l.y0), 0) / lu.lignes.length;
+    const el = nouvelElement("text", b.x, b.y, {
+      text: texte, originalText: texte, fontSize: Math.max(10, Math.round(H / 0.8)),
+      fontFamily: etat.courant.fontFamily, textAlign: "left", verticalAlign: "top", containerId: null,
+      autoResize: true, lineHeight: 1.25, backgroundColor: "transparent", roundness: null,
+      strokeColor: lu.T[0].strokeColor,
+    });
+    mesurerLibre(el);
+    retirer(lu.T.map((x) => x.id));
+    elements.push(el);
+    selection = new Set([el.id]);
+    memoriser();
+    dire("Écriture remplacée par du texte" + (n ? " — " + n + " symbole" + (n > 1 ? "s" : "") + " appris" : "")
+      + ". Ctrl + Z pour revenir.");
+    fermerLecture(); majPanneau(); demander();
+  }
+  lecture.addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.lu === "ok") validerLecture();
+    else if (b.dataset.lu === "annuler") fermerLecture();
+    else if (b.dataset.lu === "oublier") {
+      try { localStorage.removeItem(APPRIS_CLE); } catch (x) { /* rien à oublier */ }
+      dire("Écriture oubliée : la lecture repart des modèles de base.");
+      fermerLecture();
+    }
+  });
+  champLu.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Escape") { e.preventDefault(); fermerLecture(); }
+    else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); validerLecture(); }
   });
 
   /* ── le titre ── */
@@ -2231,9 +3572,10 @@
   majMenu();
   titre.value = etat.titre;
   $("#tb-cote").value = etat.cote;
-  majZoom(); majFond(); majStylos(); majEncre(); majCote(); choisirOutil("selection");
+  majZoom(); majFond(); majStylos(); majEncre(); majCote(); majBascules(); choisirOutil("selection");
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { replacerLies(); demander(); });
   /* Un point d'entrée pour la vérification automatique : la scène lue
      et écrite telle qu'elle est, sans passer par la souris. */
-  window.CIEL_TABLEAU = { scene: () => sceneJSON(), ouvrir: (t) => ouvrirTexte(t, "test"), etat: () => etat };
+  window.CIEL_TABLEAU = { scene: () => sceneJSON(), ouvrir: (t) => ouvrirTexte(t, "test"), etat: () => etat,
+                          selection: (ids) => { selection = new Set(ids); majPanneau(); demander(); } };
 })();

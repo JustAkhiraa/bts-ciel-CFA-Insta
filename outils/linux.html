@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aide-mémoire Linux et cybersécurité — BTS CIEL</title>
+<meta name="description" content="Les commandes Linux des TP de réseau et de cybersécurité : fichiers, droits, utilisateurs, services, réseau, iptables, SSH, tcpdump, nmap, Wireshark et Docker, avec ce que chacune fait.">
+<meta name="theme-color" content="#FDF5E6">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/logo-classe.jpg">
+<link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=d3aadbc6">
+</head>
+<body data-matiere="reseau">
+
+<header class="app-tete">
+  <a class="app-marque" href="../index.html" aria-label="BTS CIEL — révisions, accueil">
+    <span class="sigle"><img class="logo-insta" src="../assets/logo-classe.jpg" alt="CFA INSTA — BTS CIEL" width="64" height="64" decoding="async"></span><span class="nom">BTS CIEL<span class="nom-long"> — révisions</span></span>
+  </a>
+  <nav data-monde="../monde/index.html">
+    <a href="../index.html" aria-label="Accueil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Accueil</span></a>
+    <a href="../planning.html" aria-label="Planning"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Planning</span></a>
+    <a href="../devoirs.html" aria-label="Devoirs"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12l2 2 4-4"/></svg><span>Devoirs</span></a>
+    <a href="../outils/index.html" aria-current="page" aria-label="Outils"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.2 3.6a4.8 4.8 0 0 0-5.1 7.6L4.6 18.7a1.9 1.9 0 0 0 2.7 2.7l7.5-7.5a4.8 4.8 0 0 0 5.6-6.8l-2.9 2.9-2.6-.7-.7-2.6z"/><path d="M9.4 13.9 12 16.5"/></svg><span>Outils</span></a>
+  </nav>
+</header>
+<main class="contenu">
+  <div class="fil-app"><a href="../index.html">Accueil</a> <span>/</span>
+    <a href="index.html">Outils</a> <span>/</span>
+    <a href="index.html#reseau">Réseaux &amp; systèmes</a> <span>/</span>
+    <span>Aide-mémoire Linux</span></div>
+
+  <div class="tete-matiere">
+    <h1>Aide-mémoire Linux</h1>
+    <p>Chaque commande est écrite <b>telle qu'on la tape</b>, avec ce qu'elle fait en une phrase. Un clic la copie ; cherchez par nom, par usage, par mot.</p>
+  </div>
+
+  <section class="outil" id="linux">
+    <div class="filtre">
+      <label for="lx-f">Chercher</label>
+      <input id="lx-f" type="search" autocomplete="off" spellcheck="false"
+             placeholder="droits · port · ssh · pare-feu · capture · docker"
+             aria-label="Chercher une commande">
+      <button type="button" id="lx-vide">Tout afficher</button>
+    </div>
+    <p class="note">Les adresses et les noms sont des exemples : remplacez-les par ceux de
+       votre TP. <code>sudo</code> demande votre mot de passe, pas celui de root.</p>
+    <p class="note" id="lx-rien" hidden>Aucune commande ne correspond.</p>
+  </section>
+
+  <section class="outil lx-famille" id="lx-1">
+    <h2><span class="num-outil">◎</span> Se repérer</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="ou suis-je chemin"><td class="lx-cmd"><code>pwd</code><button type="button" class="lx-copier" aria-label="Copier « pwd »">Copier</button></td><td>Le dossier où l'on se trouve.</td></tr>
+        <tr data-mots="lister"><td class="lx-cmd"><code>ls -la</code><button type="button" class="lx-copier" aria-label="Copier « ls -la »">Copier</button></td><td>Tout le contenu du dossier, fichiers cachés compris, avec droits, propriétaire et taille.</td></tr>
+        <tr data-mots="changer dossier"><td class="lx-cmd"><code>cd ..</code><button type="button" class="lx-copier" aria-label="Copier « cd .. »">Copier</button></td><td>Remonter d'un dossier. <code>cd</code> seul ramène chez soi, <code>cd -</code> au dossier précédent.</td></tr>
+        <tr data-mots="version debian ubuntu"><td class="lx-cmd"><code>cat /etc/os-release</code><button type="button" class="lx-copier" aria-label="Copier « cat /etc/os-release »">Copier</button></td><td>Quelle distribution, et quelle version.</td></tr>
+        <tr data-mots="lire"><td class="lx-cmd"><code>less /var/log/syslog</code><button type="button" class="lx-copier" aria-label="Copier « less /var/log/syslog »">Copier</button></td><td>Lire un long fichier page par page : <code>/</code> pour chercher, <code>q</code> pour quitter.</td></tr>
+        <tr data-mots="log journal direct"><td class="lx-cmd"><code>tail -f /var/log/auth.log</code><button type="button" class="lx-copier" aria-label="Copier « tail -f /var/log/auth.log »">Copier</button></td><td>Suivre un journal en direct ; <code>Ctrl C</code> pour arrêter.</td></tr>
+        <tr data-mots="trouver fichier"><td class="lx-cmd"><code>find / -name "sshd_config" 2&gt;/dev/null</code><button type="button" class="lx-copier" aria-label="Copier « find / -name "sshd_config" 2&gt;/dev/null »">Copier</button></td><td>Chercher un fichier par son nom dans tout le disque, sans afficher les refus d'accès.</td></tr>
+        <tr data-mots="rechercher texte"><td class="lx-cmd"><code>grep -rn "PermitRootLogin" /etc/ssh/</code><button type="button" class="lx-copier" aria-label="Copier « grep -rn "PermitRootLogin" /etc/ssh/ »">Copier</button></td><td>Chercher un mot dans tous les fichiers d'un dossier, avec le numéro de ligne.</td></tr>
+        <tr data-mots="aide documentation"><td class="lx-cmd"><code>man ss</code><button type="button" class="lx-copier" aria-label="Copier « man ss »">Copier</button></td><td>Le manuel d'une commande : ses options, avec des exemples en bas.</td></tr>
+        <tr data-mots="historique"><td class="lx-cmd"><code>history</code><button type="button" class="lx-copier" aria-label="Copier « history »">Copier</button></td><td>Les commandes déjà tapées ; <code>!42</code> relance la 42ᵉ.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-2">
+    <h2><span class="num-outil">▤</span> Fichiers et droits</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="creer dossier"><td class="lx-cmd"><code>mkdir -p tp/lab1</code><button type="button" class="lx-copier" aria-label="Copier « mkdir -p tp/lab1 »">Copier</button></td><td>Créer un dossier, et ses parents s'ils manquent.</td></tr>
+        <tr data-mots="copier"><td class="lx-cmd"><code>cp -r source/ copie/</code><button type="button" class="lx-copier" aria-label="Copier « cp -r source/ copie/ »">Copier</button></td><td>Copier un dossier entier.</td></tr>
+        <tr data-mots="renommer deplacer"><td class="lx-cmd"><code>mv ancien.txt nouveau.txt</code><button type="button" class="lx-copier" aria-label="Copier « mv ancien.txt nouveau.txt »">Copier</button></td><td>Renommer — ou déplacer, si la destination est un dossier.</td></tr>
+        <tr data-mots="supprimer effacer"><td class="lx-cmd"><code>rm -r dossier/</code><button type="button" class="lx-copier" aria-label="Copier « rm -r dossier/ »">Copier</button></td><td>Supprimer un dossier et tout ce qu'il contient. Pas de corbeille : c'est définitif.</td></tr>
+        <tr data-mots="editer editeur"><td class="lx-cmd"><code>nano /etc/hosts</code><button type="button" class="lx-copier" aria-label="Copier « nano /etc/hosts »">Copier</button></td><td>Modifier un fichier : <code>Ctrl O</code> enregistre, <code>Ctrl X</code> quitte.</td></tr>
+        <tr data-mots="droits permissions rwx octal"><td class="lx-cmd"><code>chmod 640 secret.txt</code><button type="button" class="lx-copier" aria-label="Copier « chmod 640 secret.txt »">Copier</button></td><td>Droits en octal, un chiffre par public : 6 = <code>rw-</code> pour le propriétaire, 4 = <code>r--</code> pour le groupe, 0 pour les autres. (r = 4, w = 2, x = 1.)</td></tr>
+        <tr data-mots="droits executable"><td class="lx-cmd"><code>chmod u+x script.sh</code><button type="button" class="lx-copier" aria-label="Copier « chmod u+x script.sh »">Copier</button></td><td>Rendre un script exécutable par son propriétaire.</td></tr>
+        <tr data-mots="proprietaire groupe"><td class="lx-cmd"><code>chown alice:profs rapport.txt</code><button type="button" class="lx-copier" aria-label="Copier « chown alice:profs rapport.txt »">Copier</button></td><td>Changer le propriétaire et le groupe d'un fichier.</td></tr>
+        <tr data-mots="disque espace"><td class="lx-cmd"><code>df -h</code><button type="button" class="lx-copier" aria-label="Copier « df -h »">Copier</button></td><td>La place libre sur chaque disque, en Go.</td></tr>
+        <tr data-mots="taille"><td class="lx-cmd"><code>du -sh dossier/</code><button type="button" class="lx-copier" aria-label="Copier « du -sh dossier/ »">Copier</button></td><td>La taille d'un dossier.</td></tr>
+        <tr data-mots="archive compresser sauvegarde"><td class="lx-cmd"><code>tar -czf sauvegarde.tar.gz dossier/</code><button type="button" class="lx-copier" aria-label="Copier « tar -czf sauvegarde.tar.gz dossier/ »">Copier</button></td><td>Archiver et compresser ; <code>tar -xzf sauvegarde.tar.gz</code> pour extraire.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-3">
+    <h2><span class="num-outil">☺</span> Utilisateurs</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="whoami groupes"><td class="lx-cmd"><code>id</code><button type="button" class="lx-copier" aria-label="Copier « id »">Copier</button></td><td>Qui suis-je : mon identifiant et mes groupes.</td></tr>
+        <tr data-mots="root administrateur"><td class="lx-cmd"><code>sudo apt update</code><button type="button" class="lx-copier" aria-label="Copier « sudo apt update »">Copier</button></td><td><code>sudo</code> devant une commande l'exécute avec les droits d'administrateur, après votre mot de passe.</td></tr>
+        <tr data-mots="root su"><td class="lx-cmd"><code>sudo -i</code><button type="button" class="lx-copier" aria-label="Copier « sudo -i »">Copier</button></td><td>Ouvrir un terminal root ; <code>exit</code> pour le refermer.</td></tr>
+        <tr data-mots="creer compte utilisateur"><td class="lx-cmd"><code>sudo adduser bob</code><button type="button" class="lx-copier" aria-label="Copier « sudo adduser bob »">Copier</button></td><td>Créer un utilisateur, avec son dossier personnel et son mot de passe.</td></tr>
+        <tr data-mots="groupe ajouter"><td class="lx-cmd"><code>sudo usermod -aG sudo bob</code><button type="button" class="lx-copier" aria-label="Copier « sudo usermod -aG sudo bob »">Copier</button></td><td>Ajouter bob au groupe <code>sudo</code>. Sans le <code>-a</code>, il serait RETIRÉ de tous ses autres groupes.</td></tr>
+        <tr data-mots="mot de passe"><td class="lx-cmd"><code>passwd</code><button type="button" class="lx-copier" aria-label="Copier « passwd »">Copier</button></td><td>Changer son mot de passe ; <code>sudo passwd bob</code> pour celui d'un autre.</td></tr>
+        <tr data-mots="connectes"><td class="lx-cmd"><code>who</code><button type="button" class="lx-copier" aria-label="Copier « who »">Copier</button></td><td>Qui est connecté en ce moment.</td></tr>
+        <tr data-mots="connexions historique"><td class="lx-cmd"><code>last</code><button type="button" class="lx-copier" aria-label="Copier « last »">Copier</button></td><td>Les dernières connexions, avec leur origine.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-4">
+    <h2><span class="num-outil">⚙</span> Paquets, services, processus</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="mise a jour liste"><td class="lx-cmd"><code>sudo apt update</code><button type="button" class="lx-copier" aria-label="Copier « sudo apt update »">Copier</button></td><td>Relire la liste des paquets disponibles. N'installe rien.</td></tr>
+        <tr data-mots="mise a jour"><td class="lx-cmd"><code>sudo apt upgrade</code><button type="button" class="lx-copier" aria-label="Copier « sudo apt upgrade »">Copier</button></td><td>Mettre à jour les paquets installés.</td></tr>
+        <tr data-mots="installer"><td class="lx-cmd"><code>sudo apt install openssh-server</code><button type="button" class="lx-copier" aria-label="Copier « sudo apt install openssh-server »">Copier</button></td><td>Installer un paquet.</td></tr>
+        <tr data-mots="desinstaller supprimer"><td class="lx-cmd"><code>sudo apt purge apache2</code><button type="button" class="lx-copier" aria-label="Copier « sudo apt purge apache2 »">Copier</button></td><td>Désinstaller un paquet, configuration comprise.</td></tr>
+        <tr data-mots="service etat"><td class="lx-cmd"><code>systemctl status ssh</code><button type="button" class="lx-copier" aria-label="Copier « systemctl status ssh »">Copier</button></td><td>Le service tourne-t-il, depuis quand, et ses dernières lignes de journal.</td></tr>
+        <tr data-mots="service redemarrer"><td class="lx-cmd"><code>sudo systemctl restart ssh</code><button type="button" class="lx-copier" aria-label="Copier « sudo systemctl restart ssh »">Copier</button></td><td>Redémarrer un service — après avoir modifié sa configuration.</td></tr>
+        <tr data-mots="service activer"><td class="lx-cmd"><code>sudo systemctl enable --now ssh</code><button type="button" class="lx-copier" aria-label="Copier « sudo systemctl enable --now ssh »">Copier</button></td><td>Démarrer un service maintenant, et à chaque démarrage de la machine.</td></tr>
+        <tr data-mots="log journal"><td class="lx-cmd"><code>journalctl -u ssh -f</code><button type="button" class="lx-copier" aria-label="Copier « journalctl -u ssh -f »">Copier</button></td><td>Le journal d'un service, en direct.</td></tr>
+        <tr data-mots="log erreurs"><td class="lx-cmd"><code>journalctl -p err -b</code><button type="button" class="lx-copier" aria-label="Copier « journalctl -p err -b »">Copier</button></td><td>Les erreurs depuis le dernier démarrage.</td></tr>
+        <tr data-mots="processus"><td class="lx-cmd"><code>ps aux</code><button type="button" class="lx-copier" aria-label="Copier « ps aux »">Copier</button></td><td>Tous les processus, avec leur numéro (PID) et ce qu'ils consomment.</td></tr>
+        <tr data-mots="processus cpu memoire"><td class="lx-cmd"><code>top</code><button type="button" class="lx-copier" aria-label="Copier « top »">Copier</button></td><td>Les processus en direct, les plus gourmands en haut ; <code>q</code> pour quitter.</td></tr>
+        <tr data-mots="tuer arreter processus"><td class="lx-cmd"><code>kill 1234</code><button type="button" class="lx-copier" aria-label="Copier « kill 1234 »">Copier</button></td><td>Demander au processus 1234 de s'arrêter ; <code>kill -9 1234</code> s'il refuse.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-5">
+    <h2><span class="num-outil">◈</span> Réseau</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="adresse ip interface ifconfig"><td class="lx-cmd"><code>ip a</code><button type="button" class="lx-copier" aria-label="Copier « ip a »">Copier</button></td><td>Les interfaces, leurs adresses IP et MAC, et leur état (UP / DOWN).</td></tr>
+        <tr data-mots="route passerelle"><td class="lx-cmd"><code>ip route</code><button type="button" class="lx-copier" aria-label="Copier « ip route »">Copier</button></td><td>La table de routage ; la ligne <code>default via</code> donne la passerelle.</td></tr>
+        <tr data-mots="arp mac voisins"><td class="lx-cmd"><code>ip neigh</code><button type="button" class="lx-copier" aria-label="Copier « ip neigh »">Copier</button></td><td>La table ARP : quelle adresse MAC derrière chaque IP du réseau local.</td></tr>
+        <tr data-mots="icmp joindre"><td class="lx-cmd"><code>ping -c 4 192.168.1.1</code><button type="button" class="lx-copier" aria-label="Copier « ping -c 4 192.168.1.1 »">Copier</button></td><td>Quatre échos ICMP. Sans <code>-c</code>, Linux ne s'arrête pas : <code>Ctrl C</code>.</td></tr>
+        <tr data-mots="tracert chemin"><td class="lx-cmd"><code>traceroute 8.8.8.8</code><button type="button" class="lx-copier" aria-label="Copier « traceroute 8.8.8.8 »">Copier</button></td><td>Les routeurs traversés, un par ligne (paquet <code>traceroute</code>).</td></tr>
+        <tr data-mots="ports ecoute netstat"><td class="lx-cmd"><code>ss -tulpn</code><button type="button" class="lx-copier" aria-label="Copier « ss -tulpn »">Copier</button></td><td>Les ports en écoute, TCP et UDP, et le programme derrière chacun (avec <code>sudo</code> pour voir les programmes).</td></tr>
+        <tr data-mots="dns nslookup resolution"><td class="lx-cmd"><code>dig www.example.com</code><button type="button" class="lx-copier" aria-label="Copier « dig www.example.com »">Copier</button></td><td>Interroger le DNS ; la section ANSWER donne l'adresse (paquet <code>dnsutils</code>).</td></tr>
+        <tr data-mots="dns"><td class="lx-cmd"><code>cat /etc/resolv.conf</code><button type="button" class="lx-copier" aria-label="Copier « cat /etc/resolv.conf »">Copier</button></td><td>Le serveur DNS que la machine utilise.</td></tr>
+        <tr data-mots="http web"><td class="lx-cmd"><code>curl -I https://example.com</code><button type="button" class="lx-copier" aria-label="Copier « curl -I https://example.com »">Copier</button></td><td>Seulement les en-têtes de la réponse HTTP : le code (200, 301, 404…) et le serveur.</td></tr>
+        <tr data-mots="adresse statique"><td class="lx-cmd"><code>sudo ip addr add 192.168.1.50/24 dev eth0</code><button type="button" class="lx-copier" aria-label="Copier « sudo ip addr add 192.168.1.50/24 dev eth0 »">Copier</button></td><td>Ajouter une adresse à la main — perdue au redémarrage.</td></tr>
+        <tr data-mots="nom hote hostname"><td class="lx-cmd"><code>sudo hostnamectl set-hostname srv-web</code><button type="button" class="lx-copier" aria-label="Copier « sudo hostnamectl set-hostname srv-web »">Copier</button></td><td>Renommer la machine.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-6">
+    <h2><span class="num-outil">▥</span> Pare-feu</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="regles lister"><td class="lx-cmd"><code>sudo iptables -L -n -v</code><button type="button" class="lx-copier" aria-label="Copier « sudo iptables -L -n -v »">Copier</button></td><td>Les règles en place, adresses en chiffres, avec le compteur de paquets de chacune.</td></tr>
+        <tr data-mots="autoriser ssh"><td class="lx-cmd"><code>sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT</code><button type="button" class="lx-copier" aria-label="Copier « sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT »">Copier</button></td><td>Autoriser SSH en entrée. <code>-A</code> ajoute à la FIN de la chaîne : l'ordre des règles compte.</td></tr>
+        <tr data-mots="etat connexion"><td class="lx-cmd"><code>sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT</code><button type="button" class="lx-copier" aria-label="Copier « sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT »">Copier</button></td><td>Laisser revenir les réponses aux connexions que la machine a elle-même ouvertes.</td></tr>
+        <tr data-mots="bloquer politique"><td class="lx-cmd"><code>sudo iptables -P INPUT DROP</code><button type="button" class="lx-copier" aria-label="Copier « sudo iptables -P INPUT DROP »">Copier</button></td><td>Politique par défaut : tout ce qu'aucune règle n'autorise est jeté. À taper APRÈS avoir autorisé SSH, sinon on se coupe soi-même.</td></tr>
+        <tr data-mots="routage routeur"><td class="lx-cmd"><code>sudo sysctl -w net.ipv4.ip_forward=1</code><button type="button" class="lx-copier" aria-label="Copier « sudo sysctl -w net.ipv4.ip_forward=1 »">Copier</button></td><td>Autoriser la machine à router d'une interface à l'autre.</td></tr>
+        <tr data-mots="nat pat masquerade"><td class="lx-cmd"><code>sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE</code><button type="button" class="lx-copier" aria-label="Copier « sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE »">Copier</button></td><td>Le NAT d'un routeur Linux : tout ce qui sort par <code>eth0</code> prend son adresse (c'est du PAT).</td></tr>
+        <tr data-mots="nftables"><td class="lx-cmd"><code>sudo nft list ruleset</code><button type="button" class="lx-copier" aria-label="Copier « sudo nft list ruleset »">Copier</button></td><td>Les règles de nftables, le successeur d'iptables.</td></tr>
+        <tr data-mots="ufw ubuntu"><td class="lx-cmd"><code>sudo ufw allow 22/tcp</code><button type="button" class="lx-copier" aria-label="Copier « sudo ufw allow 22/tcp »">Copier</button></td><td>Ubuntu : autoriser SSH avec le pare-feu simplifié ; puis <code>sudo ufw enable</code>, et <code>sudo ufw status verbose</code>.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-7">
+    <h2><span class="num-outil">⌁</span> SSH</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="connexion distante"><td class="lx-cmd"><code>ssh utilisateur@192.168.1.10</code><button type="button" class="lx-copier" aria-label="Copier « ssh utilisateur@192.168.1.10 »">Copier</button></td><td>Se connecter à une machine ; <code>-p 2222</code> si le serveur écoute sur un autre port.</td></tr>
+        <tr data-mots="cle generer"><td class="lx-cmd"><code>ssh-keygen -t ed25519</code><button type="button" class="lx-copier" aria-label="Copier « ssh-keygen -t ed25519 »">Copier</button></td><td>Créer une paire de clés : la privée reste chez vous, la publique part sur les serveurs.</td></tr>
+        <tr data-mots="cle copier"><td class="lx-cmd"><code>ssh-copy-id utilisateur@192.168.1.10</code><button type="button" class="lx-copier" aria-label="Copier « ssh-copy-id utilisateur@192.168.1.10 »">Copier</button></td><td>Déposer sa clé publique sur le serveur : la connexion se fera sans mot de passe.</td></tr>
+        <tr data-mots="copier transfert"><td class="lx-cmd"><code>scp rapport.txt utilisateur@192.168.1.10:/tmp/</code><button type="button" class="lx-copier" aria-label="Copier « scp rapport.txt utilisateur@192.168.1.10:/tmp/ »">Copier</button></td><td>Copier un fichier vers le serveur, à travers SSH.</td></tr>
+        <tr data-mots="known_hosts empreinte mitm"><td class="lx-cmd"><code>ssh-keygen -R 192.168.1.10</code><button type="button" class="lx-copier" aria-label="Copier « ssh-keygen -R 192.168.1.10 »">Copier</button></td><td>Oublier l'empreinte connue d'un serveur, après sa réinstallation. Si elle change SANS raison, ce peut être une attaque de l'homme du milieu.</td></tr>
+        <tr data-mots="durcir securiser"><td class="lx-cmd"><code>PermitRootLogin no</code><button type="button" class="lx-copier" aria-label="Copier « PermitRootLogin no »">Copier</button></td><td>Dans <code>/etc/ssh/sshd_config</code> : interdire la connexion directe en root.</td></tr>
+        <tr data-mots="durcir cle"><td class="lx-cmd"><code>PasswordAuthentication no</code><button type="button" class="lx-copier" aria-label="Copier « PasswordAuthentication no »">Copier</button></td><td>Dans le même fichier : n'accepter que les clés. Vérifier d'abord que sa clé passe.</td></tr>
+        <tr data-mots="verifier configuration"><td class="lx-cmd"><code>sudo sshd -t</code><button type="button" class="lx-copier" aria-label="Copier « sudo sshd -t »">Copier</button></td><td>Vérifier la syntaxe de <code>sshd_config</code> AVANT de redémarrer le service.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-8">
+    <h2><span class="num-outil">⚑</span> Analyse et cybersécurité</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="capture sniffer"><td class="lx-cmd"><code>sudo tcpdump -i eth0 -nn port 22</code><button type="button" class="lx-copier" aria-label="Copier « sudo tcpdump -i eth0 -nn port 22 »">Copier</button></td><td>Capturer le trafic SSH sur <code>eth0</code>, adresses et ports en chiffres.</td></tr>
+        <tr data-mots="capture pcap wireshark"><td class="lx-cmd"><code>sudo tcpdump -i eth0 -w capture.pcap</code><button type="button" class="lx-copier" aria-label="Copier « sudo tcpdump -i eth0 -w capture.pcap »">Copier</button></td><td>Enregistrer la capture, pour l'ouvrir ensuite dans Wireshark.</td></tr>
+        <tr data-mots="arp spoofing empoisonnement"><td class="lx-cmd"><code>sudo tcpdump -nn arp</code><button type="button" class="lx-copier" aria-label="Copier « sudo tcpdump -nn arp »">Copier</button></td><td>Voir passer les requêtes et réponses ARP — c'est là qu'une usurpation se trahit.</td></tr>
+        <tr data-mots="scan decouverte"><td class="lx-cmd"><code>nmap -sn 192.168.56.0/24</code><button type="button" class="lx-copier" aria-label="Copier « nmap -sn 192.168.56.0/24 »">Copier</button></td><td>Quelles machines répondent sur le réseau, sans scanner leurs ports.</td></tr>
+        <tr data-mots="scan ports services"><td class="lx-cmd"><code>nmap -sV 192.168.56.10</code><button type="button" class="lx-copier" aria-label="Copier « nmap -sV 192.168.56.10 »">Copier</button></td><td>Les ports ouverts d'une machine, et la version du service derrière chacun.</td></tr>
+        <tr data-mots="brute force log"><td class="lx-cmd"><code>sudo grep "Failed password" /var/log/auth.log</code><button type="button" class="lx-copier" aria-label="Copier « sudo grep "Failed password" /var/log/auth.log »">Copier</button></td><td>Les connexions SSH refusées : une rafale venue d'une même adresse est une attaque par force brute.</td></tr>
+        <tr data-mots="hash empreinte integrite"><td class="lx-cmd"><code>sha256sum debian.iso</code><button type="button" class="lx-copier" aria-label="Copier « sha256sum debian.iso »">Copier</button></td><td>L'empreinte d'un fichier, à comparer à celle que publie le site officiel.</td></tr>
+        <tr data-mots="certificat tls ssl"><td class="lx-cmd"><code>openssl s_client -connect example.com:443</code><button type="button" class="lx-copier" aria-label="Copier « openssl s_client -connect example.com:443 »">Copier</button></td><td>Le certificat TLS d'un site : qui l'a émis, pour quel nom, jusqu'à quand.</td></tr>
+        <tr data-mots="wireshark filtre"><td class="lx-cmd"><code>ip.addr == 192.168.1.10</code><button type="button" class="lx-copier" aria-label="Copier « ip.addr == 192.168.1.10 »">Copier</button></td><td>Filtre d'affichage Wireshark : tout ce qui part de cette adresse ou y arrive.</td></tr>
+        <tr data-mots="wireshark filtre"><td class="lx-cmd"><code>tcp.port == 22</code><button type="button" class="lx-copier" aria-label="Copier « tcp.port == 22 »">Copier</button></td><td>Filtre Wireshark : un port, en source ou en destination. Aussi <code>arp</code>, <code>dns</code>, <code>http.request</code>.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <section class="outil lx-famille" id="lx-9">
+    <h2><span class="num-outil">▣</span> Docker</h2>
+    <div class="tableau"><table class="lx-table">
+      <thead><tr><th scope="col">Commande</th><th scope="col">Ce qu'elle fait</th></tr></thead>
+      <tbody>
+        <tr data-mots="conteneurs lister"><td class="lx-cmd"><code>docker ps -a</code><button type="button" class="lx-copier" aria-label="Copier « docker ps -a »">Copier</button></td><td>Les conteneurs, y compris ceux qui sont arrêtés.</td></tr>
+        <tr data-mots="images"><td class="lx-cmd"><code>docker images</code><button type="button" class="lx-copier" aria-label="Copier « docker images »">Copier</button></td><td>Les images présentes sur la machine.</td></tr>
+        <tr data-mots="lancer"><td class="lx-cmd"><code>docker run -d -p 8080:80 --name web nginx</code><button type="button" class="lx-copier" aria-label="Copier « docker run -d -p 8080:80 --name web nginx »">Copier</button></td><td>Lancer un conteneur en arrière-plan, son port 80 publié sur le 8080 de l'hôte.</td></tr>
+        <tr data-mots="entrer shell"><td class="lx-cmd"><code>docker exec -it web bash</code><button type="button" class="lx-copier" aria-label="Copier « docker exec -it web bash »">Copier</button></td><td>Ouvrir un terminal dans un conteneur qui tourne.</td></tr>
+        <tr data-mots="log"><td class="lx-cmd"><code>docker logs -f web</code><button type="button" class="lx-copier" aria-label="Copier « docker logs -f web »">Copier</button></td><td>Le journal d'un conteneur, en direct.</td></tr>
+        <tr data-mots="arreter supprimer"><td class="lx-cmd"><code>docker stop web</code><button type="button" class="lx-copier" aria-label="Copier « docker stop web »">Copier</button></td><td>Arrêter un conteneur ; <code>docker rm web</code> le supprime.</td></tr>
+        <tr data-mots="donnees persistance"><td class="lx-cmd"><code>docker volume ls</code><button type="button" class="lx-copier" aria-label="Copier « docker volume ls »">Copier</button></td><td>Les volumes : les données qui survivent aux conteneurs.</td></tr>
+        <tr data-mots="reseau"><td class="lx-cmd"><code>docker network inspect bridge</code><button type="button" class="lx-copier" aria-label="Copier « docker network inspect bridge »">Copier</button></td><td>Un réseau Docker : son sous-réseau, et les conteneurs branchés dessus.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="outil">
+    <div class="encart piege">
+      <div class="titre">⚠️ Scanner et capturer : seulement chez soi</div>
+      <p><code>nmap</code>, <code>tcpdump</code> et les outils de Kali sont faits pour le
+         laboratoire : votre maquette, ou un réseau dont on vous a confié le test. Sur le
+         réseau de l'école, d'un voisin ou d'une entreprise, sans autorisation écrite, c'est
+         une infraction — l'accès et le maintien frauduleux dans un système sont punis par
+         les articles 323-1 et suivants du Code pénal.</p>
+    </div>
+  </section>
+
+  <nav class="voisins" aria-label="Autres outils">
+    <a class="prec" href="ports.html"><span>Outil précédent</span><b>Ports et protocoles</b></a>
+    <a class="suiv" href="compte-rendu.html"><span>Outil suivant</span><b>Compteur de mots</b></a>
+  </nav>
+</main>
+
+<script>
+/* Chercher dans l'aide-mémoire, et copier une commande d'un clic. Les
+   tableaux sont écrits à la génération : ils se lisent sans JavaScript. */
+(function () {
+  "use strict";
+  var champ = document.getElementById("lx-f"),
+      vide = document.getElementById("lx-vide"),
+      rien = document.getElementById("lx-rien");
+  if (!champ) return;
+  var familles = Array.prototype.slice.call(document.querySelectorAll(".lx-famille"));
+
+  function sansAccent(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+  function filtrer() {
+    var mots = sansAccent(champ.value.trim()).split(/\s+/).filter(Boolean), vus = 0;
+    familles.forEach(function (f) {
+      var titre = sansAccent(f.querySelector("h2").textContent), dans = 0;
+      f.querySelectorAll("tbody tr").forEach(function (tr) {
+        var texte = sansAccent(tr.textContent + " " + (tr.getAttribute("data-mots") || "") + " " + titre);
+        var ok = mots.every(function (m) { return texte.indexOf(m) > -1; });
+        tr.hidden = !ok;
+        if (ok) dans++;
+      });
+      f.hidden = !dans;
+      vus += dans;
+    });
+    rien.hidden = vus > 0;
+  }
+  champ.addEventListener("input", filtrer);
+  vide.addEventListener("click", function () { champ.value = ""; filtrer(); champ.focus(); });
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".lx-copier");
+    if (!b) return;
+    var texte = b.parentNode.querySelector("code").textContent;
+    function fait() {
+      b.textContent = "Copié";
+      setTimeout(function () { b.textContent = "Copier"; }, 1400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texte).then(fait, function () { secours(texte); fait(); });
+    } else { secours(texte); fait(); }
+  });
+  // presse-papiers refusé (page en fichier local, vieux navigateur) : la
+  // vieille méthode, par une zone de texte posée hors de l'écran
+  function secours(texte) {
+    var z = document.createElement("textarea");
+    z.value = texte; z.setAttribute("readonly", "");
+    z.style.position = "fixed"; z.style.left = "-9999px";
+    document.body.appendChild(z); z.select();
+    try { document.execCommand("copy"); } catch (err) {}
+    z.remove();
+  }
+})();
+</script>
+
+<script src="../assets/fiche.js?v=d3aadbc6"></script>
+
+<footer class="app-pied">
+  <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
+     Aucun document de cours original n'est redistribué.</p>
+  <p class="liens">
+    <a href="../kit.html">Kit de survie</a>
+    <a href="../a-propos.html">À propos</a>
+    <a href="https://github.com/JustAkhiraa/bts-ciel-CFA-Insta">Code source</a>
+  </p>
+</footer>
+
+<script src="../assets/app.js?v=d3aadbc6"></script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){
+  navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
+</body>
+</html>

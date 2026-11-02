@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C | BTS CIEL</title>
-<meta name="description" content="Cours complet : compilation, types, opérateurs, printf et scanf, conditions et boucles, les fonctions et les tableaux, puis les pointeurs, l'allocation dynamique (malloc, calloc, free) et les structures.">
+<meta name="description" content="Cours complet : compilation, types, opérateurs, printf et scanf, conditions et boucles, les fonctions et les tableaux, puis les pointeurs, l'allocation dynamique (malloc, calloc, free), les structures, les chaînes de caractères et les fichiers texte (fopen, fprintf, fscanf, fgets).">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=bc06e08b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -53,6 +53,16 @@
     <li><a href="#string-h">35 · Les quatre fonctions de <code>&lt;string.h&gt;</code></a></li>
     <li><a href="#strcmp">36 · <code>strcmp</code> : le piège du <code>0</code></a></li>
     <li><a href="#parcourir-chaine">37 · Parcourir caractère par caractère</a></li>
+    <li><a href="#fichiers">38 · Pourquoi écrire dans un fichier</a></li>
+    <li><a href="#fopen">39 · <code>fopen</code> et ses six modes</a></li>
+    <li><a href="#fopen-null">40 · Vérifier : <code>NULL</code></a></li>
+    <li><a href="#fclose">41 · Fermer : <code>fclose</code></a></li>
+    <li><a href="#fprintf">42 · Écrire : <code>fprintf</code></a></li>
+    <li><a href="#fscanf">43 · Lire : <code>fscanf</code></a></li>
+    <li><a href="#fscanf-boucle">44 · Lire tout le fichier</a></li>
+    <li><a href="#fgetc">45 · <code>fputc</code> et <code>fgetc</code></a></li>
+    <li><a href="#fgets">46 · <code>fputs</code> et <code>fgets</code></a></li>
+    <li><a href="#fichiers-resume">47 · Les huit fonctions</a></li>
   </ol>
 </nav>
 
@@ -69,8 +79,9 @@
      de le lancer — et où le type de chaque variable est une déclaration, pas une devinette.
      Le chapitre couvre les trois séances : d'abord le langage lui-même, jusqu'aux boucles ;
      ensuite le découpage en <strong>fonctions</strong> et les <strong>tableaux</strong> ;
-     enfin les <strong>pointeurs</strong>, la mémoire réservée à l'exécution et les
-     <strong>structures</strong>.</p>
+     puis les <strong>pointeurs</strong>, la mémoire réservée à l'exécution et les
+     <strong>structures</strong> ; enfin les <strong>chaînes de caractères</strong> et les
+     <strong>fichiers texte</strong>, qui gardent les données après l'arrêt du programme.</p>
 
   <div class="flash">
     <span class="pastille">📌</span>
@@ -103,6 +114,8 @@
     <code>#break</code> <code>#continue</code> <code>#fonction</code> <code>#void</code>
     <code>#return</code> <code>#parametres</code> <code>#arguments</code> <code>#prototype</code>
     <code>#portee</code> <code>#tableau</code> <code>#indice</code>
+    <code>#FILE</code> <code>#fopen</code> <code>#fclose</code> <code>#fprintf</code>
+    <code>#fscanf</code> <code>#fgets</code> <code>#EOF</code>
   </p>
 </header>
 
@@ -3302,6 +3315,585 @@ r</code></pre></div>
   </div>
 </section>
 
+<!-- ================================================================= 38 -->
+<section id="fichiers">
+  <h2><span class="num">38</span>Pourquoi écrire dans un fichier</h2>
+
+  <p>Jusqu'ici, tout passait par <code>printf</code> et <code>scanf</code> : on parle à
+     l'utilisateur, il répond, et ses réponses vivent dans des variables. Mais une variable
+     vit en <strong>mémoire vive</strong> — elle disparaît à la seconde où le programme
+     s'arrête. Pour <strong>garder</strong> des données d'une exécution à l'autre, on les
+     écrit dans un <strong>fichier</strong>.</p>
+<div class="bloc-code" data-fam="c" style="--car:69"><span class="langue">C</span><pre><code><span class="j-typ">int</span> <span class="j-var">age</span>;
+<span class="j-fn">printf</span>(<span class="j-txt">"Entrez votre age : "</span>);
+<span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>);          <span class="j-com">/* age disparait a la fin du programme */</span></code></pre></div>
+
+  <div class="encart analogie">
+    <div class="titre">🧠 Le tableau blanc et le cahier</div>
+    <p>La mémoire vive, c'est le tableau blanc : rapide, pratique, effacé en fin de séance.
+       Le fichier, c'est le cahier : il faut l'ouvrir, y écrire, le refermer — mais ce
+       qui y est écrit est encore là la semaine suivante.</p>
+  </div>
+
+  <p>Un <strong>fichier texte</strong> contient des caractères lisibles : on peut l'ouvrir
+     dans n'importe quel éditeur et le lire. <code>etudiants.txt</code>,
+     <code>produits.txt</code>, <code>notes.txt</code> en sont. Un programme C peut les
+     créer, les ouvrir, les lire et les modifier.</p>
+
+  <p>Pour manipuler un fichier, le programme ne le touche pas directement : il passe par un
+     <strong>pointeur de type <code>FILE *</code></strong>, que lui donne le système à
+     l'ouverture. Toutes les fonctions de ce chapitre sont dans
+     <code>&lt;stdio.h&gt;</code> — la même bibliothèque que <code>printf</code> : rien
+     de plus à inclure.</p>
+<div class="bloc-code" data-fam="c" style="--car:72"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;              <span class="j-com">/* fichier permettra d'acceder au fichier */</span></code></pre></div>
+  <p class="rap">Le <code>FILE</code> s'écrit <strong>en majuscules</strong> — c'est un type
+     défini par <code>&lt;stdio.h&gt;</code>, et le C est sensible à la casse :
+     <code>file *f;</code> ne compile pas.</p>
+</section>
+
+<section id="fopen">
+  <h2><span class="num">39</span>Ouvrir : <code>fopen</code> et ses six modes</h2>
+
+  <p><code>fopen</code> reçoit deux chaînes — le <strong>nom du fichier</strong> et le
+     <strong>mode</strong> — et rend le <code>FILE *</code> qui servira à tout le reste.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" data-fam="c" style="--car:42"><span class="langue">C</span><pre><code><span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"nom_du_fichier"</span>, <span class="j-txt">"mode"</span>);</code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:34"><span class="langue">C</span><pre><code><span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+<span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);</code></pre></div>
+  <p><code>notes.txt</code> est le nom du fichier · <code>"r"</code> dit qu'on veut le
+     <em>lire</em> · <code>fichier</code> reçoit le résultat de l'ouverture.</p>
+
+  <div class="tableau">
+    <table>
+      <caption>Le second paramètre dit ce qu'on veut faire du fichier</caption>
+      <thead><tr><th>Mode</th><th>Lire</th><th>Écrire</th><th>S'il n'existe pas</th><th>S'il existe</th></tr></thead>
+      <tbody>
+        <tr><td><code>"r"</code></td><td>oui</td><td>non</td><td><strong>échec</strong> (<code>NULL</code>)</td><td>lu tel quel</td></tr>
+        <tr><td><code>"w"</code></td><td>non</td><td>oui</td><td>créé</td><td><strong>vidé</strong> d'abord</td></tr>
+        <tr><td><code>"a"</code></td><td>non</td><td>à la fin</td><td>créé</td><td>conservé, on ajoute</td></tr>
+        <tr><td><code>"r+"</code></td><td>oui</td><td>oui</td><td><strong>échec</strong></td><td>conservé</td></tr>
+        <tr><td><code>"w+"</code></td><td>oui</td><td>oui</td><td>créé</td><td><strong>vidé</strong> d'abord</td></tr>
+        <tr><td><code>"a+"</code></td><td>oui</td><td>à la fin</td><td>créé</td><td>conservé, on ajoute</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="rap">La lettre dit l'intention — <strong>r</strong>ead, <strong>w</strong>rite,
+     <strong>a</strong>ppend —, le <code>+</code> ajoute l'autre sens.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>"w"</code> efface sans prévenir</div>
+    <p>Ouvrir en <code>"w"</code> un fichier qui existe le <strong>vide immédiatement</strong>,
+       avant même la première écriture. Aucune confirmation, aucune corbeille. Pour
+       compléter un fichier sans perdre ce qu'il contient, c'est <code>"a"</code>.</p>
+  </div>
+</section>
+
+<section id="fopen-null">
+  <h2><span class="num">40</span>Vérifier l'ouverture : <code>NULL</code></h2>
+
+  <p>Une ouverture peut échouer : fichier absent en <code>"r"</code>, nom mal orthographié,
+     dossier sans droit d'écriture. Dans ce cas <code>fopen</code> ne plante pas — il rend
+     <strong><code>NULL</code></strong>, un pointeur qui ne mène nulle part. C'est le même
+     test qu'après <code>malloc</code>, et pour la même raison.</p>
+<div class="bloc-code" data-fam="c" style="--car:74"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"absent.txt"</span>, <span class="j-txt">"r"</span>);      <span class="j-com">/* ce fichier n'existe pas */</span>
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur lors de l'ouverture du fichier.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:38"><span class="langue">sortie réelle</span><pre><code>Erreur lors de l&#x27;ouverture du fichier.</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Sans le test, le programme plante plus loin — et ailleurs</div>
+    <p>Écrire ou lire avec un pointeur <code>NULL</code> fait s'arrêter le programme
+       brutalement, à la ligne du <code>fprintf</code> ou du <code>fscanf</code> — loin
+       de la vraie cause, qui est l'ouverture. Le <code>return 1;</code> arrête proprement,
+       et le <code>1</code> dit au système que quelque chose s'est mal passé.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — <code>NULL</code> s'écrit en majuscules</div>
+    <p>La seconde version du cours écrit <code>if (fichier == null)</code>. En C,
+       <code>null</code> n'existe pas : le compilateur refuse —
+       <em>use of undeclared identifier 'null'</em>. La constante est
+       <code>NULL</code>, définie par <code>&lt;stdio.h&gt;</code>. (<code>null</code> est
+       la forme de Java ou de JavaScript, d'où la confusion.)</p>
+<div class="bloc-code" data-fam="c" style="--car:52"><span class="langue">C — ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);
+
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">null</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"impossible d'ouvrir le fichier.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  </div>
+</section>
+
+<section id="fclose">
+  <h2><span class="num">41</span>Fermer : <code>fclose</code></h2>
+
+  <p>Quand on a fini, on <strong>ferme</strong> le fichier. Ce n'est pas une politesse :
+     ce qu'on écrit avec <code>fprintf</code> part d'abord dans une mémoire tampon, et
+     c'est la fermeture qui garantit que tout est réellement écrit sur le disque.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" data-fam="c" style="--car:16"><span class="langue">C</span><pre><code><span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);</code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:38"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"w"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <p class="rap">Un fichier ouvert, un <code>fclose</code> — comme un <code>malloc</code>,
+     un <code>free</code>. Et on ne ferme que ce qui a été <strong>ouvert avec
+     succès</strong> : c'est pour ça que le <code>return 1;</code> du test sort avant.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — <code>fclose</code>, et non <code>close</code></div>
+    <p>L'exemple du cours termine par <code>close(fichier);</code>. Ce n'est pas la même
+       fonction : <code>close</code> appartient à une autre bibliothèque
+       (<code>&lt;unistd.h&gt;</code>, Unix) et attend un numéro, pas un
+       <code>FILE *</code>. Le compilateur refuse —
+       <em>call to undeclared function 'close'</em>. La syntaxe donnée juste au-dessus, elle,
+       était la bonne.</p>
+<div class="bloc-code" data-fam="c" style="--car:38"><span class="langue">C — ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+    <span class="j-fn">close</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  </div>
+</section>
+
+<section id="fprintf">
+  <h2><span class="num">42</span>Écrire : <code>fprintf</code></h2>
+
+  <p><code>fprintf</code> est <code>printf</code> avec <strong>un paramètre de plus,
+     en premier : le fichier</strong>. Tout le reste — la chaîne de format, les
+     <code>%d</code>, les variables — fonctionne exactement pareil. La seule différence :
+     <code>printf</code> affiche à l'écran, <code>fprintf</code> écrit dans le fichier.</p>
+<div class="bloc-code" data-fam="c" style="--car:65"><span class="langue">C</span><pre><code><span class="j-fn">printf</span>(<span class="j-txt">"Age : %d\n"</span>, <span class="j-var">age</span>);             <span class="j-com">/* vers l'ecran        */</span>
+<span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Age : %d\n"</span>, <span class="j-var">age</span>);    <span class="j-com">/* vers le fichier     */</span></code></pre></div>
+  <p>Si <code>age</code> vaut 20, la première ligne affiche <code>Age : 20</code> ; la
+     seconde écrit <code>Age : 20</code> dans le fichier. <code>fichier</code> dit
+     <em>où</em>, <code>"Age : %d\n"</code> dit <em>sous quelle forme</em>,
+     <code>age</code> remplace <code>%d</code>.</p>
+
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe, et les formats — les mêmes qu'avec <code>printf</code></div>
+<div class="bloc-code" data-fam="c" style="--car:46"><span class="langue">C</span><pre><code><span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"format"</span>, <span class="j-var">variables</span>);
+
+<span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Nom : %s\n"</span>, <span class="j-var">nom</span>);
+<span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Age : %d\n"</span>, <span class="j-var">age</span>);
+<span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Moyenne : %.2f\n"</span>, <span class="j-var">moyenne</span>);</code></pre></div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Format</th><th>Type de donnée</th></tr></thead>
+        <tbody>
+          <tr><td><code>%d</code></td><td>entier (<code>int</code>)</td></tr>
+          <tr><td><code>%f</code></td><td>réel (<code>float</code>)</td></tr>
+          <tr><td><code>%.2f</code></td><td>réel avec deux chiffres après la virgule</td></tr>
+          <tr><td><code>%c</code></td><td>caractère (<code>char</code>)</td></tr>
+          <tr><td><code>%s</code></td><td>chaîne de caractères</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p>Le programme du cours crée <code>notes.txt</code> et y écrit trois étudiants, un par
+     ligne :</p>
+<div class="bloc-code" data-fam="c" style="--car:42"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"w"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'ouverture.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Alice 20 15.5\n"</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Yasmine 21 14.8\n"</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Mehdi 19 16.2\n"</span>);
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:15"><span class="langue">fichier notes.txt — après exécution</span><pre><code>Alice 20 15.5
+Yasmine 21 14.8
+Mehdi 19 16.2</code></pre></div>
+  <p class="rap">À l'écran : <strong>rien</strong>. Tout est parti dans le fichier — c'est
+     exactement le but, et c'est déroutant la première fois. Un
+     <code>printf("Fichier cree.\n");</code> à la fin rassure l'utilisateur.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le <code>\n</code>, c'est vous qui l'écrivez</div>
+    <p>Sans <code>\n</code>, les trois étudiants tiennent sur une seule ligne :
+       <code>Alice 20 15.5Yasmine 21 14.8…</code>. <code>fprintf</code> écrit
+       <strong>exactement</strong> ce qu'on lui donne, rien de plus — et le programme
+       qui relira ce fichier, lui, comptera sur le découpage en lignes.</p>
+  </div>
+</section>
+
+<section id="fscanf">
+  <h2><span class="num">43</span>Lire : <code>fscanf</code></h2>
+
+  <p>Le chemin inverse. <code>fscanf</code> est <code>scanf</code> avec le fichier en
+     premier paramètre : au lieu d'attendre le clavier, elle lit dans le fichier.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" data-fam="c" style="--car:41"><span class="langue">C</span><pre><code><span class="j-fn">fscanf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"format"</span>, <span class="j-op">&amp;</span><span class="j-var">variables</span>);
+
+<span class="j-fn">fscanf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"%d %f"</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>);</code></pre></div>
+  </div>
+  <p>Premier paramètre : où chercher · deuxième : la forme des données · les suivants : les
+     <strong>adresses</strong> où ranger ce qui est lu. L'exemple lit un entier puis un
+     réel, et les range dans <code>age</code> et <code>moyenne</code>.</p>
+
+  <p>Supposons que <code>notes.txt</code> contienne une seule ligne :</p>
+<div class="bloc-code" style="--car:7"><span class="langue">fichier notes.txt</span><pre><code>20 15.5</code></pre></div>
+<div class="bloc-code" data-fam="c" style="--car:45"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'ouverture.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-fn">fscanf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"%d %f"</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Age : %d\n"</span>, <span class="j-var">age</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"Moyenne : %.2f\n"</span>, <span class="j-var">moyenne</span>);
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:15"><span class="langue">sortie réelle</span><pre><code>Age : 20
+Moyenne : 15.50</code></pre></div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — la moyenne affichée est 15.50, pas 15.75</div>
+    <p>Le cours annonce <code>Moyenne : 15.75</code> pour un fichier qui contient
+       <code>15.5</code>. Le programme lit 15,5 et l'affiche avec deux décimales :
+       <strong><code>15.50</code></strong>. La sortie ci-dessus est celle qu'on obtient en
+       l'exécutant.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le <code>&amp;</code> revient — comme avec <code>scanf</code></div>
+    <p><code>fscanf</code> <em>écrit</em> dans les variables : elle a besoin de leur
+       adresse, donc du <code>&amp;</code>. Sauf pour une chaîne (<code>%s</code>), qui est
+       déjà une adresse — exactement la règle de <code>scanf</code>
+       (<a href="#saisir-chaine">section 34</a>).</p>
+  </div>
+</section>
+
+<section id="fscanf-boucle">
+  <h2><span class="num">44</span>Lire tout le fichier : ce que rend <code>fscanf</code></h2>
+
+  <p>Un vrai fichier a plusieurs lignes, et on ne sait pas toujours combien. On lit donc
+     dans une boucle — mais quand s'arrêter ? La réponse est dans la <strong>valeur que
+     rend <code>fscanf</code></strong> : le <strong>nombre de valeurs qu'elle a réussi à
+     lire</strong>.</p>
+<div class="bloc-code" style="--car:15"><span class="langue">fichier notes.txt</span><pre><code>Alice 20 15.5
+Yasmine 21 14.8
+Mehdi 19 16.2</code></pre></div>
+<div class="bloc-code" data-fam="c" style="--car:67"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">while</span> (<span class="j-fn">fscanf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"%s %d %f"</span>, <span class="j-var">nom</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>) <span class="j-op">==</span> <span class="j-num">3</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%s - %d ans - %.2f\n"</span>, <span class="j-var">nom</span>, <span class="j-var">age</span>, <span class="j-var">moyenne</span>);
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:24"><span class="langue">sortie réelle</span><pre><code>Alice - 20 ans - 15.50
+Yasmine - 21 ans - 14.80
+Mehdi - 19 ans - 16.20</code></pre></div>
+  <p>On attend trois valeurs par ligne — un nom, un âge, une moyenne —, donc on vérifie
+     <code>== 3</code>. Tant que <code>fscanf</code> en trouve trois, la boucle continue ;
+     à la fin du fichier, ou sur une ligne mal formée, elle en trouve moins, et la boucle
+     s'arrête.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi <code>== 3</code> plutôt que <code>!= EOF</code></div>
+    <p>À la fin du fichier, <code>fscanf</code> rend <code>EOF</code> (une valeur
+       négative). On pourrait donc écrire <code>!= EOF</code>… mais sur une ligne
+       <strong>mal formée</strong> — <code>Alice vingt 15.5</code> — elle rend
+       <code>1</code> : elle a lu le nom, puis bute sur <code>vingt</code> sans le
+       consommer. <code>1 != EOF</code> est vrai, la boucle repart, rebute au même endroit…
+       et ne s'arrête plus. <code>== 3</code> s'arrête dès que la ligne n'est pas
+       complète.</p>
+  </div>
+  <p class="rap">Pas de <code>&amp;</code> devant <code>nom</code> : c'est un tableau de
+     <code>char</code>, donc déjà une adresse.</p>
+</section>
+
+<section id="fgetc">
+  <h2><span class="num">45</span>Un caractère à la fois : <code>fputc</code> et <code>fgetc</code></h2>
+
+  <p>Parfois on ne veut pas de format du tout — juste un caractère.
+     <code>fputc(caractere, fichier)</code> en écrit un ;
+     <code>caractere = fgetc(fichier)</code> en lit un.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ Les deux syntaxes — attention à l'ordre des paramètres</div>
+<div class="bloc-code" data-fam="c" style="--car:78"><span class="langue">C</span><pre><code><span class="j-fn">fputc</span>(<span class="j-var">caractere</span>, <span class="j-var">fichier</span>);      <span class="j-com">/* le caractere d'abord, le fichier ensuite */</span>
+<span class="j-var">caractere</span> <span class="j-op">=</span> <span class="j-fn">fgetc</span>(<span class="j-var">fichier</span>);     <span class="j-com">/* rend le caractere lu                     */</span></code></pre></div>
+  </div>
+  <p><code>fputc('A', fichier);</code> écrit <code>A</code>. Plusieurs appels se suivent :</p>
+<div class="bloc-code" data-fam="c" style="--car:42"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"mot.txt"</span>, <span class="j-txt">"w"</span>);
+
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+    <span class="j-fn">fputc</span>(<span class="j-txt">'B'</span>, <span class="j-var">fichier</span>);
+    <span class="j-fn">fputc</span>(<span class="j-txt">'o'</span>, <span class="j-var">fichier</span>);
+    <span class="j-fn">fputc</span>(<span class="j-txt">'n'</span>, <span class="j-var">fichier</span>);
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:3"><span class="langue">fichier mot.txt — après exécution</span><pre><code>Bon</code></pre></div>
+
+  <p>Dans l'autre sens, <code>fgetc</code> lit <strong>le prochain</strong> caractère.
+     Le fichier doit être ouvert en lecture. Si <code>message.txt</code> contient
+     <code>Bonjour</code>, un seul appel rend la première lettre :</p>
+<div class="bloc-code" style="--car:7"><span class="langue">fichier message.txt</span><pre><code>Bonjour</code></pre></div>
+<div class="bloc-code" data-fam="c" style="--car:40"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">int</span> <span class="j-var">c</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"message.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'ouverture.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-var">c</span> <span class="j-op">=</span> <span class="j-fn">fgetc</span>(<span class="j-var">fichier</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"%c\n"</span>, <span class="j-var">c</span>);
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code"><span class="langue">sortie réelle</span><pre><code>B</code></pre></div>
+
+  <p>Pour lire <strong>tout</strong> le fichier, on appelle <code>fgetc</code> en boucle
+     jusqu'à ce qu'elle rende <strong><code>EOF</code></strong> — <em>End Of File</em>, la
+     fin du fichier :</p>
+<div class="bloc-code" data-fam="c" style="--car:41"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">int</span> <span class="j-var">c</span>;
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"message.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">while</span> ((<span class="j-var">c</span> <span class="j-op">=</span> <span class="j-fn">fgetc</span>(<span class="j-var">fichier</span>)) <span class="j-op">!=</span> <span class="j-var">EOF</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%c"</span>, <span class="j-var">c</span>);
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:7"><span class="langue">sortie réelle</span><pre><code>Bonjour</code></pre></div>
+  <p class="rap">La condition fait deux choses à la fois : elle <strong>lit</strong>
+     (<code>c = fgetc(fichier)</code>), puis elle <strong>compare</strong> ce qu'elle vient
+     de lire à <code>EOF</code>. Les parenthèses autour de l'affectation sont
+     obligatoires : sans elles, <code>!=</code> passerait en premier.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — <code>int c</code>, et non <code>char c</code></div>
+    <p>Le cours déclare <code>char c;</code>. C'est l'erreur la plus classique du
+       chapitre : <code>fgetc</code> rend un <strong><code>int</code></strong>, justement
+       pour pouvoir rendre <em>tous</em> les caractères possibles (256 valeurs)
+       <strong>plus</strong> <code>EOF</code>. Un <code>char</code> n'a que 256 cases :
+       <code>EOF</code> s'y confond avec un vrai caractère.</p>
+    <p>Mesuré sur deux compilateurs, avec la boucle ci-dessus écrite en <code>char</code> :</p>
+    <ul>
+      <li>là où <code>char</code> est <strong>signé</strong> (ce Mac, un PC) : la lecture
+          <strong>s'arrête trop tôt</strong> au premier octet <code>0xFF</code> — sur
+          <code>A</code>, <code>0xFF</code>, <code>B</code>, seul <code>A</code> est lu ;</li>
+      <li>là où <code>char</code> est <strong>non signé</strong> (un Raspberry Pi, beaucoup
+          de cartes ARM) : <code>EOF</code> n'est <strong>jamais</strong> reconnu, et la
+          boucle ne s'arrête plus.</li>
+    </ul>
+    <p class="rap">Sur un simple texte, la version <code>char</code> semble marcher — c'est
+       ce qui rend l'erreur si tenace. Avec <code>int c</code>, elle marche partout.</p>
+  </div>
+</section>
+
+<section id="fgets">
+  <h2><span class="num">46</span>Une ligne à la fois : <code>fputs</code> et <code>fgets</code></h2>
+
+  <p><code>fputs</code> écrit une <strong>chaîne</strong> telle quelle, sans format : pas
+     de <code>%</code>, pas de variables à remplacer. Utile pour du texte fixe.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ Les deux syntaxes</div>
+<div class="bloc-code" data-fam="c" style="--car:82"><span class="langue">C</span><pre><code><span class="j-fn">fputs</span>(<span class="j-var">chaine</span>, <span class="j-var">fichier</span>);              <span class="j-com">/* la chaine d'abord, le fichier ensuite   */</span>
+<span class="j-fn">fgets</span>(<span class="j-var">chaine</span>, <span class="j-var">taille</span>, <span class="j-var">fichier</span>);      <span class="j-com">/* lit une ligne, au plus taille - 1 car.  */</span></code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:54"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"cours.txt"</span>, <span class="j-txt">"w"</span>);
+    <span class="j-typ">char</span> <span class="j-var">message</span>[] <span class="j-op">=</span> <span class="j-txt">"Bonjour les étudiants"</span>;
+
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+    <span class="j-fn">fputs</span>(<span class="j-var">message</span>, <span class="j-var">fichier</span>);
+    <span class="j-fn">fputs</span>(<span class="j-txt">"\n"</span>, <span class="j-var">fichier</span>);
+    <span class="j-fn">fputs</span>(<span class="j-txt">"Bienvenue dans le cours de C.\n"</span>, <span class="j-var">fichier</span>);
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:29"><span class="langue">fichier cours.txt — après exécution</span><pre><code>Bonjour les étudiants
+Bienvenue dans le cours de C.</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>fputs</code> n'ajoute pas de retour à la ligne</div>
+    <p>Contrairement à ce qu'on attendrait, <code>fputs("Bonjour", f)</code> n'écrit
+       <strong>que</strong> <code>Bonjour</code>. Pour passer à la ligne, on écrit le
+       <code>\n</code> soi-même — dans la chaîne, ou par un second <code>fputs</code>
+       comme ci-dessus.</p>
+  </div>
+
+  <p><code>fgets</code> fait l'inverse : elle lit <strong>une ligne entière</strong> et la
+     range dans une chaîne. On lui donne la <strong>taille</strong> du tableau pour qu'elle
+     ne déborde jamais : <code>fgets(ligne, 100, fichier)</code> lit au plus
+     <strong>99</strong> caractères, la centième case étant réservée au <code>'\0'</code>
+     qui termine la chaîne (<a href="#zero-final">section 32</a>). Arrivée à la fin du
+     fichier, elle rend <code>NULL</code> — d'où la boucle :</p>
+<div class="bloc-code" data-fam="c" style="--car:48"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">char</span> <span class="j-var">ligne</span>[<span class="j-num">100</span>];
+
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"notes.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-mc">while</span> (<span class="j-fn">fgets</span>(<span class="j-var">ligne</span>, <span class="j-num">100</span>, <span class="j-var">fichier</span>) <span class="j-op">!=</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"%s"</span>, <span class="j-var">ligne</span>);
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:15"><span class="langue">sortie réelle</span><pre><code>Alice 20 15.5
+Yasmine 21 14.8
+Mehdi 19 16.2</code></pre></div>
+  <p class="rap">Le <code>printf("%s", ligne)</code> n'a pas de <code>\n</code> :
+     <code>fgets</code> <strong>garde</strong> le retour à la ligne lu dans le fichier.
+     C'est le même comportement qu'avec le clavier (<a href="#saisir-chaine">section 34</a>) —
+     là, on lisait <code>stdin</code> ; ici, un fichier.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>fgets</code> ou <code>fscanf</code> ?</div>
+    <p><code>fscanf("%s")</code> s'arrête au premier espace : sur
+       <code>Bonjour les étudiants</code>, elle ne lit que <code>Bonjour</code>.
+       <code>fgets</code> prend la ligne entière, espaces compris. On choisit
+       <code>fscanf</code> pour des <strong>données découpées</strong> (un nom, un âge, une
+       moyenne), <code>fgets</code> pour du <strong>texte</strong>.</p>
+  </div>
+</section>
+
+<section id="fichiers-resume">
+  <h2><span class="num">47</span>Les huit fonctions, et le schéma qui ne change jamais</h2>
+
+  <div class="tableau">
+    <table>
+      <caption>Elles vont par paires : une pour écrire, une pour lire</caption>
+      <thead><tr><th>Ce qu'on manipule</th><th>Écrire</th><th>Lire</th></tr></thead>
+      <tbody>
+        <tr><td>le fichier lui-même</td><td><code>fopen()</code> — ouvrir</td><td><code>fclose()</code> — fermer</td></tr>
+        <tr><td>des données formatées</td><td><code>fprintf()</code></td><td><code>fscanf()</code></td></tr>
+        <tr><td>un caractère</td><td><code>fputc()</code></td><td><code>fgetc()</code></td></tr>
+        <tr><td>une chaîne, une ligne</td><td><code>fputs()</code></td><td><code>fgets()</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🛠️ Les quatre temps de tout programme qui touche un fichier</div>
+<div class="bloc-code" data-fam="c" style="--car:72"><span class="langue">C</span><pre><code><span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">f</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"nom.txt"</span>, <span class="j-txt">"w"</span>);    <span class="j-com">/* 1. ouvrir   ("r" pour lire)  */</span>
+<span class="j-mc">if</span> (<span class="j-var">f</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {                     <span class="j-com">/* 2. verifier                   */</span>
+    <span class="j-mc">return</span> <span class="j-num">1</span>;
+}
+<span class="j-fn">fprintf</span>(<span class="j-var">f</span>, <span class="j-txt">"...\n"</span>);                 <span class="j-com">/* 3. ecrire ou lire             */</span>
+<span class="j-fn">fclose</span>(<span class="j-var">f</span>);                           <span class="j-com">/* 4. fermer                     */</span></code></pre></div>
+    <p>D'un exercice à l'autre, seule l'étape 3 change. Les trois autres se recopient.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Essayer sans installer de compilateur</div>
+    <p>L'atelier C du site a un panneau <strong>Fichiers</strong> sous la console. Ce que
+       le programme écrit y apparaît, et y reste d'une exécution à l'autre : un exercice
+       peut relire ce que le précédent vient d'écrire. Un fichier à lire —
+       <code>etudiants.txt</code>, <code>message.txt</code> — se crée à la main avec
+       <strong>+ Fichier</strong>.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
@@ -3385,6 +3977,29 @@ r</code></pre></div>
       <li><strong>Passée par valeur, une structure est copiée</strong> : pour la modifier,
           on passe son adresse.</li>
     </ul>
+    <p class="recap-part"><strong>Les fichiers texte</strong></p>
+    <ul>
+      <li><strong>Quatre temps, toujours</strong> : <code>fopen</code> → test
+          <code>== NULL</code> → écrire ou lire → <code>fclose</code>.</li>
+      <li><strong><code>"r"</code> lit</strong> un fichier qui doit exister ;
+          <strong><code>"w"</code> crée ou VIDE</strong> ; <strong><code>"a"</code>
+          ajoute à la fin</strong>. Le <code>+</code> donne l'autre sens en plus.</li>
+      <li><strong><code>NULL</code> en majuscules</strong>, <strong><code>fclose</code></strong>
+          et non <code>close</code> — les deux autres formes ne compilent pas.</li>
+      <li><strong><code>fprintf</code> et <code>fscanf</code></strong> = <code>printf</code>
+          et <code>scanf</code> avec le fichier en premier paramètre. Mêmes formats,
+          même <code>&amp;</code>.</li>
+      <li><strong><code>fscanf</code> rend le nombre de valeurs lues</strong> : on boucle
+          tant qu'il vaut le nombre attendu (<code>== 3</code>).</li>
+      <li><strong><code>int c = fgetc(f)</code>, jamais <code>char</code></strong> — sinon
+          <code>EOF</code> se confond avec un vrai caractère.</li>
+      <li><strong><code>fputc</code> et <code>fputs</code> : le fichier en DERNIER</strong>,
+          à l'inverse de <code>fprintf</code>. Et <code>fputs</code> n'ajoute pas de
+          <code>\n</code>.</li>
+      <li><strong><code>fgets(ligne, 100, f)</code></strong> lit une ligne entière, 99
+          caractères au plus, et garde son <code>\n</code> ; elle rend <code>NULL</code> à
+          la fin.</li>
+    </ul>
   </div>
 
   <div class="sources">
@@ -3402,6 +4017,9 @@ r</code></pre></div>
       <li>Le même polycopié, séance du 09/10/2026 (243 diapositives) — chapitre 5, les
           pointeurs (pages 167 à 207) et chapitre 6, les structures (pages 208 à 243)</li>
       <li>Sujet « TP 5 : les pointeurs », quatre exercices</li>
+      <li>« Algorithmique et programmation », séance du 30/10/2026 — chapitre 7, entrée /
+          sortie en fichier texte (34 diapositives)</li>
+      <li>Sujet « TP8 : Entrée / Sortie dans un fichier texte en C », cinq exercices</li>
 </ul>
     <p class="rap">Toutes les sorties annoncées « sortie réelle » ont été obtenues en compilant
        et en exécutant le programme, pas en le lisant.</p>
@@ -3409,10 +4027,10 @@ r</code></pre></div>
 </footer>
 
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/cours.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><a class="suiv" href="../13-poo-cpp/cours.html"><span>Chapitre suivant</span><b>POO en C++</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=bc06e08b"></script>
-<script src="../../assets/app.js?v=bc06e08b"></script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
 </body>
 </html>

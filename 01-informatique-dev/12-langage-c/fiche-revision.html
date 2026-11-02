@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche imprimable : squelette d'un programme, types, codes de format printf et scanf, opérateurs, if/switch, while/do-while/for, puis les fonctions (prototype, portée, les quatre formes), les tableaux, les pointeurs, malloc/calloc/free, les structures, et les pièges qui coûtent des points.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=bc06e08b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
@@ -516,12 +516,60 @@
        <code>== -1</code>.</p>
   </article>
 
+  <article class="memo">
+    <h2>⚡ Les fichiers : quatre temps, toujours</h2>
+    <div class="formule">FILE *f = fopen("nom.txt", "w");<br>
+      if (f == NULL) { return 1; }<br>
+      fprintf(f, "...\n");  ← le seul temps qui change<br>
+      fclose(f);</div>
+    <p class="rap"><code>FILE</code> et <code>NULL</code> en majuscules. Tout est dans
+       <code>&lt;stdio.h&gt;</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les modes de <code>fopen</code></h2>
+    <div class="formule">"r" → lire · le fichier doit exister, sinon NULL<br>
+      "w" → écrire · créé, ou <strong>VIDÉ</strong> s'il existe<br>
+      "a" → ajouter à la fin · rien n'est effacé<br>
+      "r+" "w+" "a+" → le même, plus l'autre sens</div>
+    <p class="rap">Un <code>fopen("…", "w")</code> dans une boucle vide le fichier à chaque tour.</p>
+  </article>
+
+  <article class="memo">
+    <h2>⚡ Les huit fonctions, par paires</h2>
+    <div class="formule">fprintf(f, "%d\n", x)  ↔  fscanf(f, "%d", &amp;x)<br>
+      fputc('A', f)          ↔  c = fgetc(f)<br>
+      fputs("texte", f)      ↔  fgets(ligne, 100, f)<br>
+      fopen(…)               ↔  fclose(f)</div>
+    <p><code>fprintf</code> et <code>fscanf</code> : le fichier <strong>en premier</strong>.
+       <code>fputc</code> et <code>fputs</code> : le fichier <strong>en dernier</strong>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Lire jusqu'au bout</h2>
+    <div class="formule">while (fscanf(f, "%s %d %f", nom, &amp;age, &amp;m) == 3)<br>
+      while ((c = fgetc(f)) != EOF)<br>
+      while (fgets(ligne, 100, f) != NULL)</div>
+    <p class="rap"><code>fscanf</code> rend le <strong>nombre de valeurs lues</strong> ;
+       <code>fgets</code> garde le <code>\n</code> de la ligne.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚠️ Les quatre pièges des fichiers</h2>
+    <p><strong><code>int c</code></strong> pour <code>fgetc</code>, jamais <code>char</code> :
+       sinon <code>EOF</code> se confond avec un caractère.</p>
+    <p><strong><code>fputs</code> n'ajoute pas de <code>\n</code></strong>.</p>
+    <p><strong>« Erreur d'ouverture »</strong> : vérifier le nom du fichier, à une lettre près.</p>
+    <p><strong>Rien à l'écran ?</strong> C'est normal : <code>fprintf</code> écrit dans le
+       fichier, pas dans la console.</p>
+  </article>
+
 </section>
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/fiche-revision.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/fiche-revision.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><a class="suiv" href="../13-poo-cpp/fiche-revision.html"><span>Chapitre suivant</span><b>POO en C++</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=bc06e08b"></script>
-<script src="../../assets/app.js?v=bc06e08b"></script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
 </body>
 </html>

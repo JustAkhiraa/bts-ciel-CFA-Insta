@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Langage C — exercices corrigés | BTS CIEL</title>
-<meta name="description" content="Les exercices des TP 2 à 5 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, puis les pointeurs et l'allocation dynamique. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
+<meta name="description" content="Les exercices des TP 2 à 8 corrigés et exécutés : conditions et boucles, fonctions et tableaux, matrices, pointeurs et allocation dynamique, structures, chaînes, puis les fichiers texte. Les huit exercices du TP2 corrigés : appréciation d'une note, somme de 1 à N, menu serveur, nombre inversé, jeu du nombre caché, nombre presque parfait, permutations de chiffres, et six programmes à tracer.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=bc06e08b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -33,6 +33,7 @@
     <li><a href="#tp6">15 · TP 6 · Les structures</a></li>
     <li><a href="#tp7">16 · TP 7 · Les chaînes de caractères</a></li>
     <li><a href="#controle1">17 · Contrôle 1 · le sujet et son corrigé</a></li>
+    <li><a href="#tp8">18 · TP 8 · Les fichiers texte</a></li>
   </ol>
 </nav>
 
@@ -46,7 +47,7 @@
   </div>
 
   <h1>Langage C — exercices</h1>
-  <p class="chapeau">Les <strong>six TP</strong> du chapitre, du langage jusqu'aux chaînes : TP&nbsp;2 (le langage et les boucles), TP&nbsp;3 (fonctions et tableaux), TP&nbsp;4 (tableaux à deux dimensions), TP&nbsp;5 (pointeurs), TP&nbsp;6 (structures) et TP&nbsp;7 (chaînes de caractères). <strong>Les énoncés sont ceux des sujets</strong>, et chaque correction a été <strong>compilée puis exécutée</strong> avant d'être écrite ici.</p>
+  <p class="chapeau">Les <strong>sept TP</strong> du chapitre, du langage jusqu'aux fichiers : TP&nbsp;2 (le langage et les boucles), TP&nbsp;3 (fonctions et tableaux), TP&nbsp;4 (tableaux à deux dimensions), TP&nbsp;5 (pointeurs), TP&nbsp;6 (structures), TP&nbsp;7 (chaînes de caractères) et TP&nbsp;8 (fichiers texte). <strong>Les énoncés sont ceux des sujets</strong>, et chaque correction a été <strong>compilée puis exécutée</strong> avant d'être écrite ici.</p>
 
   <div class="encart methode">
     <div class="titre">🎯 Comment travailler ce chapitre</div>
@@ -4590,6 +4591,415 @@ Mois le plus econome : mois 2 (total 585)</code></pre></div>
   </div>
 </section>
 
+<section id="tp8">
+  <h2><span class="num">18</span>TP 8 · Les fichiers texte</h2>
+  <p class="chapeau">Cinq exercices, et quatre temps qui ne changent jamais : ouvrir avec
+     <code>fopen</code>, vérifier que le résultat n'est pas <code>NULL</code>, écrire ou lire,
+     fermer avec <code>fclose</code>. D'un exercice à l'autre, seul le troisième temps change.</p>
+  <article class="exo">
+    <h3><span class="no">29</span>Écrire trois lignes dans un fichier <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 1.</strong> Écrire un programme en langage C qui :</p>
+      <ol>
+        <li>Ouvre un fichier appelé bonjour.txt en mode écriture.</li>
+        <li>Vérifie que l&#x27;ouverture du fichier a réussi.</li>
+        <li>Écrit dans le fichier les trois lignes suivantes : Bonjour, Bienvenue en programmation C, Les fichiers permettent de conserver les données.</li>
+        <li>Ferme le fichier.</li>
+        <li>Affiche à l&#x27;écran : Le fichier a été créé avec succès.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c" style="--car:146"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 1 : écrire trois lignes
+ ========================================
+On écrit trois lignes de texte dans un fichier.
+
+Écrire un programme qui :
+    1. Ouvre un fichier appelé bonjour.txt en mode écriture.
+    2. Vérifie que l'ouverture du fichier a réussi.
+    3. Écrit dans le fichier les trois lignes suivantes : Bonjour, Bienvenue en programmation C, Les fichiers permettent de conserver les données.
+    4. Ferme le fichier.
+    5. Affiche à l'écran : Le fichier a été créé avec succès.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+
+    <span class="j-com">// 1. Ouvre un fichier appelé bonjour.txt en mode écriture.</span>
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"bonjour.txt"</span>, <span class="j-txt">"w"</span>);
+
+    <span class="j-com">// 2. Vérifie que l'ouverture du fichier a réussi.</span>
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur lors de l'ouverture du fichier.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-com">// 3. Écrit dans le fichier les trois lignes suivantes : Bonjour, Bienvenue en</span>
+    <span class="j-com">//    programmation C, Les fichiers permettent de conserver les données.</span>
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Bonjour\n"</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Bienvenue en programmation C\n"</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Les fichiers permettent de conserver les données\n"</span>);
+
+    <span class="j-com">// 4. Ferme le fichier.</span>
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+
+    <span class="j-com">// 5. Affiche à l'écran : Le fichier a été créé avec succès.</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Le fichier a été créé avec succès.\n"</span>);
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:34"><span class="langue">sortie réelle</span><pre><code>Le fichier a été créé avec succès.</code></pre></div><div class="bloc-code" style="--car:48"><span class="langue">fichier bonjour.txt — après exécution</span><pre><code>Bonjour
+Bienvenue en programmation C
+Les fichiers permettent de conserver les données</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ Le message de réussite vient APRÈS le <code>fclose</code></div>
+          <p>Annoncer « créé avec succès » avant d'avoir fermé, c'est annoncer une écriture qui
+             n'est peut-être pas encore sur le disque : c'est la fermeture qui vide la mémoire
+             tampon. L'ordre des questions 4 et 5 n'est pas un hasard.</p>
+          <p class="rap">Le TP s'arrête souvent là chez les élèves : <code>fopen</code>, le test,
+             <code>fclose</code>… et rien entre les deux. Le fichier est alors créé,
+             <strong>mais vide</strong>. Ce sont les trois <code>fprintf</code> qui le
+             remplissent.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">30</span>Enregistrer un étudiant saisi au clavier <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 2.</strong> Écrire un programme qui demande à l&#x27;utilisateur de
+         saisir son nom, son âge et sa moyenne, puis les enregistre dans un fichier.</p>
+      <ol>
+        <li>Demande à l&#x27;utilisateur de saisir son nom.</li>
+        <li>Demande à l&#x27;utilisateur de saisir son âge.</li>
+        <li>Demande à l&#x27;utilisateur de saisir sa moyenne.</li>
+        <li>Enregistre ces informations dans un fichier etudiant.txt, sous la forme Nom : Alice, Age : 20, Moyenne : 15.50.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c" style="--car:118"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 2 : enregistrer un étudiant
+ ========================================
+On enregistre dans un fichier ce que l'utilisateur a saisi.
+
+Écrire un programme qui :
+    1. Demande à l'utilisateur de saisir son nom.
+    2. Demande à l'utilisateur de saisir son âge.
+    3. Demande à l'utilisateur de saisir sa moyenne.
+    4. Enregistre ces informations dans un fichier etudiant.txt, sous la forme Nom : Alice, Age : 20, Moyenne : 15.50.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+
+    <span class="j-com">// 1. Demande à l'utilisateur de saisir son nom.</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Nom : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">nom</span>);
+
+    <span class="j-com">// 2. Demande à l'utilisateur de saisir son âge.</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Age : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>);
+
+    <span class="j-com">// 3. Demande à l'utilisateur de saisir sa moyenne.</span>
+    <span class="j-fn">printf</span>(<span class="j-txt">"Moyenne : "</span>);
+    <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>);
+
+    <span class="j-com">// 4. Enregistre ces informations dans un fichier etudiant.txt,</span>
+    <span class="j-com">//    sous la forme Nom : Alice, Age : 20, Moyenne : 15.50.</span>
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"etudiant.txt"</span>, <span class="j-txt">"w"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur lors de l'ouverture du fichier.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Nom : %s\n"</span>, <span class="j-var">nom</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Age : %d\n"</span>, <span class="j-var">age</span>);
+    <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"Moyenne : %.2f\n"</span>, <span class="j-var">moyenne</span>);
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+
+    <span class="j-fn">printf</span>(<span class="j-txt">"Informations enregistrées dans etudiant.txt\n"</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:65"><span class="langue">sortie réelle — saisies : Alice puis 20 puis 15.5</span><pre><code>Nom : Age : Moyenne : Informations enregistrées dans etudiant.txt</code></pre></div><div class="bloc-code" style="--car:15"><span class="langue">fichier etudiant.txt — après exécution</span><pre><code>Nom : Alice
+Age : 20
+Moyenne : 15.50</code></pre></div><div class="encart savoir">
+          <div class="titre">💡 On ouvre le fichier APRÈS les saisies</div>
+          <p>Rien n'oblige à ouvrir le fichier en premier. Ouvert après les trois
+             <code>scanf</code>, il reste ouvert le moins longtemps possible — et si
+             l'utilisateur abandonne en pleine saisie, aucun fichier vide n'a été créé.</p>
+          <p class="rap">Tapé <code>15.5</code>, enregistré <code>15.50</code> : c'est le
+             <code>%.2f</code> qui fixe deux décimales, comme demandé par la forme
+             <code>Moyenne : 15.50</code>.</p>
+        </div>
+        <div class="encart piege">
+          <div class="titre">⚠️ <code>%29s</code> : un nom de 29 lettres, pas une de plus</div>
+          <p><code>nom</code> a 30 cases, dont une pour le <code>'\0'</code>. Le
+             <code>29</code> empêche <code>scanf</code> d'écrire au-delà. Et
+             <code>%s</code> s'arrête au premier espace : <code>Jean Dupont</code> ne
+             garderait que <code>Jean</code>.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">31</span>Enregistrer cinq étudiants, un par ligne <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 3.</strong> Écrire un programme qui permet de saisir les
+         informations de 5 étudiants et les enregistre dans un fichier.</p>
+      <ol>
+        <li>Permet de saisir les informations de 5 étudiants.</li>
+        <li>Demande, pour chaque étudiant, le nom, l&#x27;âge et la moyenne.</li>
+        <li>Enregistre les informations dans le fichier etudiants.txt.</li>
+        <li>Enregistre chaque étudiant sur une ligne, sous la forme : Alice 20 15.50.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c" style="--car:87"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 3 : enregistrer cinq étudiants
+ ========================================
+On enregistre cinq étudiants, un par ligne.
+
+Écrire un programme qui :
+    1. Permet de saisir les informations de 5 étudiants.
+    2. Demande, pour chaque étudiant, le nom, l'âge et la moyenne.
+    3. Enregistre les informations dans le fichier etudiants.txt.
+    4. Enregistre chaque étudiant sur une ligne, sous la forme : Alice 20 15.50.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+    <span class="j-typ">int</span> <span class="j-var">i</span>;
+
+    <span class="j-com">// 3. Enregistre les informations dans le fichier etudiants.txt.</span>
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"etudiants.txt"</span>, <span class="j-txt">"w"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur lors de l'ouverture du fichier.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-com">// 1. Permet de saisir les informations de 5 étudiants.</span>
+    <span class="j-mc">for</span> (<span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">1</span>; <span class="j-var">i</span> <span class="j-op">&lt;=</span> <span class="j-num">5</span>; <span class="j-var">i</span><span class="j-op">++</span>) {
+        <span class="j-com">// 2. Demande, pour chaque étudiant, le nom, l'âge et la moyenne.</span>
+        <span class="j-fn">printf</span>(<span class="j-txt">"Etudiant %d - nom : "</span>, <span class="j-var">i</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%29s"</span>, <span class="j-var">nom</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Etudiant %d - age : "</span>, <span class="j-var">i</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%d"</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>);
+        <span class="j-fn">printf</span>(<span class="j-txt">"Etudiant %d - moyenne : "</span>, <span class="j-var">i</span>);
+        <span class="j-fn">scanf</span>(<span class="j-txt">"%f"</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>);
+
+        <span class="j-com">// 4. Enregistre chaque étudiant sur une ligne, sous la forme : Alice 20 15.50.</span>
+        <span class="j-fn">fprintf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"%s %d %.2f\n"</span>, <span class="j-var">nom</span>, <span class="j-var">age</span>, <span class="j-var">moyenne</span>);
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-fn">printf</span>(<span class="j-txt">"5 etudiants enregistres dans etudiants.txt\n"</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:105"><span class="langue">sortie réelle, abrégée — saisies : Alice, 20, 15.5, Yasmine, 21, 14.8, Mehdi, 19, 16.2, Sara, 20, 13.75, Thomas, 22, 12.5</span><pre><code>Etudiant 1 - nom : Etudiant 1 - age : … Etudiant 5 - moyenne : 5 etudiants enregistres dans etudiants.txt</code></pre></div><div class="bloc-code" style="--car:16"><span class="langue">fichier etudiants.txt — après exécution</span><pre><code>Alice 20 15.50
+Yasmine 21 14.80
+Mehdi 19 16.20
+Sara 20 13.75
+Thomas 22 12.50</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ Le <code>fopen</code> AVANT la boucle, jamais dedans</div>
+          <p>Placé dans la boucle, <code>fopen("etudiants.txt", "w")</code> serait exécuté
+             cinq fois — et <code>"w"</code> <strong>vide</strong> le fichier à chaque fois.
+             Il ne resterait que Thomas. On ouvre une fois, on écrit cinq fois, on ferme une
+             fois. C'est pourquoi la question 3 est traitée avant la question 1.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 Ce fichier est celui que lit l'exercice 4</div>
+          <p>La forme <code>Alice 20 15.50</code> — trois valeurs séparées par des espaces —
+             est exactement celle que <code>fscanf(f, "%s %d %f", …)</code> sait relire. Dans
+             l'atelier C du site, lancez cet exercice puis le suivant : le second trouve le
+             fichier que le premier vient d'écrire.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">32</span>Relire les étudiants et les afficher <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 4.</strong> Écrire un programme qui :</p>
+      <ol>
+        <li>Ouvre le fichier en lecture.</li>
+        <li>Lit les informations de chaque étudiant.</li>
+        <li>Affiche les informations sous la forme : Alice - 20 ans - moyenne : 15.50.</li>
+      </ol>
+      <p>On dispose du fichier <code>etudiants.txt</code> :</p>
+<div class="bloc-code" style="--car:16"><span class="langue">fichier etudiants.txt</span><pre><code>Alice 20 15.50
+Yasmine 21 14.80
+Mehdi 19 16.20
+Sara 20 13.75
+Thomas 22 12.50</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c" style="--car:88"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 4 : relire les étudiants
+ ========================================
+On dispose du fichier etudiants.txt :
+    Alice 20 15.50
+    Yasmine 21 14.80
+    Mehdi 19 16.20
+    Sara 20 13.75
+    Thomas 22 12.50
+
+Écrire un programme qui :
+    1. Ouvre le fichier en lecture.
+    2. Lit les informations de chaque étudiant.
+    3. Affiche les informations sous la forme : Alice - 20 ans - moyenne : 15.50.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">char</span> <span class="j-var">nom</span>[<span class="j-num">30</span>];
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span>;
+
+    <span class="j-com">// 1. Ouvre le fichier en lecture.</span>
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"etudiants.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'ouverture.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-com">// 2. Lit les informations de chaque étudiant.</span>
+    <span class="j-mc">while</span> (<span class="j-fn">fscanf</span>(<span class="j-var">fichier</span>, <span class="j-txt">"%29s %d %f"</span>, <span class="j-var">nom</span>, <span class="j-op">&amp;</span><span class="j-var">age</span>, <span class="j-op">&amp;</span><span class="j-var">moyenne</span>) <span class="j-op">==</span> <span class="j-num">3</span>) {
+        <span class="j-com">// 3. Affiche les informations sous la forme : Alice - 20 ans - moyenne : 15.50.</span>
+        <span class="j-fn">printf</span>(<span class="j-txt">"%s - %d ans - moyenne : %.2f\n"</span>, <span class="j-var">nom</span>, <span class="j-var">age</span>, <span class="j-var">moyenne</span>);
+    }
+
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:34"><span class="langue">sortie réelle</span><pre><code>Alice - 20 ans - moyenne : 15.50
+Yasmine - 21 ans - moyenne : 14.80
+Mehdi - 19 ans - moyenne : 16.20
+Sara - 20 ans - moyenne : 13.75
+Thomas - 22 ans - moyenne : 12.50</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ « Erreur d'ouverture » : vérifier le NOM du fichier</div>
+          <p>Si le programme affiche « Erreur d'ouverture. », le fichier n'est pas là où il
+             le cherche — et le plus souvent, <strong>son nom ne correspond pas à une lettre
+             près</strong>. <code>etudiant.txt</code> et <code>etudiants.txt</code> sont deux
+             fichiers différents pour l'ordinateur. Le test <code>== NULL</code> a alors fait
+             exactement son travail.</p>
+          <p class="rap">Dans l'atelier C du site, un clic droit sur l'onglet du fichier permet
+             de le renommer.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 Pas de <code>&amp;</code> devant <code>nom</code>, et
+            <code>== 3</code> pour s'arrêter</div>
+          <p><code>nom</code> est un tableau, donc déjà une adresse. Et <code>fscanf</code>
+             rend le nombre de valeurs lues : tant qu'elle en trouve trois, il y a un étudiant
+             complet ; à la fin du fichier, elle en trouve moins, et la boucle s'arrête
+             (<a href="cours.html#fscanf-boucle">cours, section 44</a>).</p>
+        </div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">33</span>Lire un fichier caractère par caractère <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Exercice 5.</strong> Écrire un programme qui :</p>
+      <ol>
+        <li>Ouvre le fichier en lecture.</li>
+        <li>Lit le contenu caractère par caractère.</li>
+        <li>Affiche chaque caractère à l&#x27;écran.</li>
+        <li>S&#x27;arrête lorsqu&#x27;il atteint la fin du fichier.</li>
+        <li>Ferme le fichier.</li>
+      </ol>
+      <p>On dispose du fichier <code>message.txt</code> :</p>
+<div class="bloc-code" style="--car:29"><span class="langue">fichier message.txt</span><pre><code>Bonjour les etudiants !
+Bienvenue en programmation C.</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="c" style="--car:74"><span class="langue">C</span><pre><code><span class="j-com">/* ========================================
+ Exercice 5 : lire caractère par caractère
+ ========================================
+On dispose du fichier message.txt :
+    Bonjour les etudiants !
+    Bienvenue en programmation C.
+
+Écrire un programme qui :
+    1. Ouvre le fichier en lecture.
+    2. Lit le contenu caractère par caractère.
+    3. Affiche chaque caractère à l'écran.
+    4. S'arrête lorsqu'il atteint la fin du fichier.
+    5. Ferme le fichier.
+*/</span>
+
+<span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>(<span class="j-typ">void</span>)
+{
+    <span class="j-typ">FILE</span> <span class="j-op">*</span><span class="j-var">fichier</span>;
+    <span class="j-typ">int</span> <span class="j-var">c</span>;                          <span class="j-com">/* int, et non char : voir l'encart */</span>
+
+    <span class="j-com">// 1. Ouvre le fichier en lecture.</span>
+    <span class="j-var">fichier</span> <span class="j-op">=</span> <span class="j-fn">fopen</span>(<span class="j-txt">"message.txt"</span>, <span class="j-txt">"r"</span>);
+    <span class="j-mc">if</span> (<span class="j-var">fichier</span> <span class="j-op">==</span> <span class="j-var">NULL</span>) {
+        <span class="j-fn">printf</span>(<span class="j-txt">"Erreur d'ouverture.\n"</span>);
+        <span class="j-mc">return</span> <span class="j-num">1</span>;
+    }
+
+    <span class="j-com">// 2. Lit le contenu caractère par caractère.</span>
+    <span class="j-com">// 4. S'arrête lorsqu'il atteint la fin du fichier.</span>
+    <span class="j-mc">while</span> ((<span class="j-var">c</span> <span class="j-op">=</span> <span class="j-fn">fgetc</span>(<span class="j-var">fichier</span>)) <span class="j-op">!=</span> <span class="j-var">EOF</span>) {
+        <span class="j-com">// 3. Affiche chaque caractère à l'écran.</span>
+        <span class="j-fn">putchar</span>(<span class="j-var">c</span>);
+    }
+
+    <span class="j-com">// 5. Ferme le fichier.</span>
+    <span class="j-fn">fclose</span>(<span class="j-var">fichier</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:29"><span class="langue">sortie réelle</span><pre><code>Bonjour les etudiants !
+Bienvenue en programmation C.</code></pre></div><div class="encart piege">
+          <div class="titre">⚠️ <code>int c</code>, jamais <code>char c</code></div>
+          <p><code>fgetc</code> rend un <code>int</code> : les 256 caractères possibles
+             <strong>plus</strong> <code>EOF</code>. Rangé dans un <code>char</code>,
+             <code>EOF</code> se confond avec un vrai caractère : selon la machine, la lecture
+             s'arrête trop tôt ou ne s'arrête jamais
+             (<a href="cours.html#fgetc">cours, section 45</a>).</p>
+          <p class="rap"><code>putchar(c)</code> affiche un caractère — c'est
+             <code>printf("%c", c)</code> en plus court. Les deux conviennent.</p>
+        </div>
+        <div class="encart savoir">
+          <div class="titre">💡 Deux questions, une seule ligne</div>
+          <p>Les questions 2 et 4 sont traitées par la même condition :
+             <code>(c = fgetc(fichier)) != EOF</code> lit un caractère <em>et</em> teste la fin
+             du fichier. C'est pour cela que les deux commentaires sont l'un sous l'autre.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces trois TP font travailler</h2>
@@ -4649,6 +5059,20 @@ Mois le plus econome : mois 2 (total 585)</code></pre></div>
       <li><strong>Le dernier élément d'un <code>[3][4]</code> est <code>[2][3]</code></strong> —
           la taille moins un, dans chaque dimension.</li>
     </ul>
+    <p class="recap-part"><strong>TP 8 — les fichiers texte</strong></p>
+    <ul>
+      <li><strong>Exercice 1</strong> — <code>fopen</code> en <code>"w"</code>, test
+          <code>NULL</code>, trois <code>fprintf</code>, <code>fclose</code>… et le message
+          de réussite <em>après</em> la fermeture.</li>
+      <li><strong>Exercice 2</strong> — saisir d'abord, ouvrir ensuite ; <code>%.2f</code>
+          pour obtenir <code>15.50</code>.</li>
+      <li><strong>Exercice 3</strong> — <code>fopen</code> <strong>avant</strong> la boucle :
+          dedans, <code>"w"</code> viderait le fichier à chaque tour.</li>
+      <li><strong>Exercice 4</strong> — <code>while (fscanf(…) == 3)</code>, et « Erreur
+          d'ouverture » veut d'abord dire : vérifier le nom du fichier.</li>
+      <li><strong>Exercice 5</strong> — <code>int c = fgetc(f)</code> jusqu'à
+          <code>EOF</code>, jamais <code>char c</code>.</li>
+    </ul>
   </div>
 
   <div class="sources">
@@ -4673,6 +5097,11 @@ Mois le plus econome : mois 2 (total 585)</code></pre></div>
       <li>Sujet « TP 6 : les structures », sept exercices — un produit, un véhicule, un stock
           de cinq produits, deux fonctions, un capteur au pointeur, une bibliothèque allouée
           dynamiquement, et un équipement avec sa date d'achat</li>
+      <li>Sujet « TP8 : Entrée / Sortie dans un fichier texte en C », cinq exercices —
+          écrire trois lignes, enregistrer un puis cinq étudiants, les relire, et lire un
+          message caractère par caractère</li>
+      <li>Cours « Algorithmique et programmation » du 30/10/2026, chapitre 7 — entrée /
+          sortie en fichier texte</li>
 </ul>
     <p class="rap">Les huit corrections ont été compilées avec <code>cc -std=c99 -Wall</code>
        puis exécutées. Les sorties annoncées sont celles obtenues, pas celles attendues.</p>
@@ -4684,10 +5113,10 @@ Mois le plus econome : mois 2 (total 585)</code></pre></div>
 </footer>
 
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><span class="vide"></span></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../11-algorithmique/exercices.html"><span>Chapitre précédent</span><b>Algorithmique</b></a><a class="suiv" href="../13-poo-cpp/exercices.html"><span>Chapitre suivant</span><b>POO en C++</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=bc06e08b"></script>
-<script src="../../assets/app.js?v=bc06e08b"></script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
 </body>
 </html>

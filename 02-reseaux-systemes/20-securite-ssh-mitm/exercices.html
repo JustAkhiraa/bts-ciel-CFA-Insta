@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sécurité SSH et MITM — questions corrigées | BTS CIEL</title>
+<meta name="description" content="Les 19 questions de l'activité MITM sur SSH, corrigées : sudo, clés d'hôte et sshd_config, TOFU et known_hosts, reconnaissance nmap, principes du MITM, routage et redirection de port, ARP spoofing, détection du changement de clé et remise en état.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#p1">1 · Découverte et premiers pas</a></li>
+    <li><a href="#p1b">2 · Reconnaissance du réseau</a></li>
+    <li><a href="#p2">3 · Préparer l'interception</a></li>
+    <li><a href="#p3">4 · L'ARP spoofing en action</a></li>
+    <li><a href="#p4">5 · Détection et contre-mesures</a></li>
+  </ol>
+</nav>
+
+<main class="corps">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 20</span>
+    <span class="sep">/</span><span class="badge">Questions corrigées</span>
+  </div>
+
+  <h1>Sécurité SSH et MITM — questions</h1>
+  <p class="chapeau">Les <strong>19 questions</strong> de l'activité, corrigées et replacées
+     dans le fil de l'attaque : la reconnaissance, la mise en place de l'interception,
+     l'ARP spoofing, puis la <strong>détection</strong> et la remise en état. Chaque réponse
+     renvoie à la section du <a href="cours.html">cours</a> qui l'explique.</p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Comment travailler cette activité</div>
+    <p>Cherchez la réponse <strong>avant</strong> de l'ouvrir : reformulez ce que fait chaque
+       commande, et pour chaque question « pourquoi », demandez-vous ce qui <em>casserait</em>
+       si on ne le faisait pas. C'est ainsi qu'on retient un mécanisme, pas une recette.</p>
+    <p class="rap">Toutes les commandes s'exécutent dans l'environnement de lab du TP, sur des
+       machines virtuelles isolées — jamais sur un réseau qui ne vous appartient pas.</p>
+  </div>
+</header>
+
+<section id="p1">
+  <h2><span class="num">01</span>Partie 1 · Découverte et premiers pas</h2>
+<p>La première partie installe le décor : comment on administre une machine Linux à distance, et comment SSH présente l'identité d'un serveur à la première connexion.</p>
+  <article class="exo">
+    <h3><span class="no">1</span>Q1 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q1.</strong> Pourquoi l'accès aux machines virtuelles par la console ou l'interface graphique n'est pas possible avec le super-administrateur <code>root</code> ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Par sécurité, la connexion directe en <code>root</code> est <strong>désactivée</strong> : un attaquant qui devine le mot de passe de <code>root</code> aurait aussitôt tous les droits, et les actions faites en <code>root</code> ne sont rattachées à aucun utilisateur nommé — donc <strong>non traçables</strong>. On se connecte avec un compte ordinaire, puis on élève ses droits ponctuellement.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">2</span>Q2 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q2.</strong> Expliquer à quoi sert la commande <code>sudo</code> et quels avantages elle a sur l'utilisation de « <code>su -</code> ».</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p><code>sudo</code> exécute <strong>une seule commande</strong> avec les droits d'administrateur, après avoir demandé le mot de passe de <strong>l'utilisateur</strong> (pas celui de root). Avantages sur <code>su -</code>, qui ouvre une session root entière : chaque action élevée est <strong>journalisée</strong> (qui, quand, quoi), les droits sont accordés <strong>au cas par cas</strong>, et le mot de passe de root n'a pas besoin d'être connu ni même défini.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">3</span>Q3 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q3.</strong> Quelles commandes permettent de savoir si le service OpenSSH (serveur) est déjà installé et démarré ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="bash" style="--car:55"><span class="langue">terminal</span><pre><code><span class="j-fn">dpkg</span> <span class="j-att">-l</span> | grep openssh-server     <span class="j-com"># installe ?</span>
+<span class="j-fn">systemctl</span> status ssh              <span class="j-com"># demarre ? (ou sshd)</span></code></pre></div><p>La première liste les paquets installés et filtre sur <code>openssh-server</code> ; la seconde interroge le gestionnaire de services sur l'état du démon SSH (actif, arrêté, au démarrage).</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">4</span>Q4 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q4.</strong> Indiquer le répertoire des clés publique et privée et les permissions appliquées, puis le fichier de configuration du service SSH.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Les <strong>clés d'hôte</strong> du serveur sont dans <code>/etc/ssh/</code> : par exemple <code>ssh_host_ed25519_key</code> (privée, permissions <code>600</code>, lisible par <code>root</code> seul) et <code>ssh_host_ed25519_key.pub</code> (publique, <code>644</code>). Le fichier de configuration du démon est <strong><code>/etc/ssh/sshd_config</code></strong>. (À ne pas confondre avec <code>ssh_config</code>, qui configure le <em>client</em>.)</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">5</span>Q5 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q5.</strong> Que signifie l'alerte « The authenticity of host … can't be established » ? Devez-vous continuer ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>C'est la question <strong>TOFU</strong> du premier usage : le client n'a <strong>jamais vu</strong> ce serveur, il ne peut donc pas garantir son identité et affiche son empreinte de clé. On ne continue (<code>yes</code>) <strong>qu'après avoir vérifié</strong> que l'empreinte affichée est bien celle que l'administrateur a communiquée. Sinon, on refuse : accepter les yeux fermés, c'est accepter un éventuel imposteur.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">6</span>Q6 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q6.</strong> Lors d'une prochaine connexion depuis le même client, ce message réapparaîtra-t-il ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p><strong>Non.</strong> En répondant <code>yes</code>, l'empreinte a été enregistrée dans <code>~/.ssh/known_hosts</code>. Aux connexions suivantes, le client y retrouve la clé, la compare à celle présentée : elles correspondent, donc <strong>aucune question</strong>. Le message ne reviendrait que si la clé du serveur changeait — ou si quelqu'un se faisait passer pour lui.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">7</span>Q7 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q7.</strong> Sur la machine cliente, à quoi sert le fichier <code>/home/etuciel/.ssh/known_hosts</code> ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Il mémorise les <strong>clés publiques des serveurs déjà visités</strong>. C'est lui qui permet au client de <strong>reconnaître</strong> un serveur d'une fois sur l'autre et de détecter un changement de clé. C'est la pièce centrale de l'authentification du serveur côté client.</p>
+      </div>
+    </div>
+  </article>
+<div class="encart savoir"><div class="titre">💡 Le lien avec le cours</div><p>Les questions 5 à 7 sont exactement le mécanisme <a href="cours.html#tofu">TOFU</a> et le fichier <a href="cours.html#knownhosts"><code>known_hosts</code></a>. Les retenir ici, c'est comprendre pourquoi l'attaque de la partie 3 est, ou non, détectée.</p></div>
+</section>
+<section id="p1b">
+  <h2><span class="num">02</span>Partie 1 · Reconnaissance du réseau</h2>
+<p>Avant d'attaquer, on observe. L'attaquant cartographie le réseau pour choisir sa cible.</p>
+  <article class="exo">
+    <h3><span class="no">8</span>Q8 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q8.</strong> Quelles informations un attaquant obtient-il grâce aux commandes <code>nmap</code> ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
+<span class="j-fn">nmap</span> <span class="j-att">-sV</span> <span class="j-num">192.168</span>.<span class="j-num">56.10</span>       <span class="j-com"># quels ports, quels services, quelles versions</span></code></pre></div><p>Le premier scan dresse la <strong>liste des machines actives</strong> sur le réseau (découverte d'hôtes). Le second révèle, pour une machine, les <strong>ports ouverts</strong>, les <strong>services</strong> qui écoutent et souvent leur <strong>version précise</strong> (par exemple <code>OpenSSH 9.2p1</code>). L'attaquant sait alors quoi viser — ici, le port 22/SSH — et peut chercher des failles connues de cette version.</p>
+      </div>
+    </div>
+  </article>
+<div class="encart piege"><div class="titre">⚠️ Un scan se voit</div><p>Un balayage <code>nmap</code> génère un trafic caractéristique qu'un IDS (système de détection d'intrusion) repère. La reconnaissance n'est pas invisible : c'est déjà un signal pour le défenseur.</p></div>
+</section>
+<section id="p2">
+  <h2><span class="num">03</span>Partie 2 · Préparer l'interception</h2>
+<p>L'attaquant met en place les deux conditions techniques qui rendront l'interception possible : relayer le trafic, et le faire passer par son outil.</p>
+  <article class="exo">
+    <h3><span class="no">9</span>Q9 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q9.</strong> Expliquer les principes généraux d'une attaque de l'homme du milieu (MITM).</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>L'attaquant se place <strong>entre</strong> deux correspondants et relaie leurs échanges, de sorte que chacun croit parler directement à l'autre. Comme tout passe par lui, il peut <strong>lire</strong>, et souvent <strong>modifier</strong>, les messages — sans que les victimes sachent que le canal est compromis (<a href="cours.html#mitm">cours, section 9</a>).</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">10</span>Q10 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q10.</strong> Noter les associations IP/MAC présentes sur les deux machines. Sont-elles cohérentes ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Avant l'attaque, <strong>oui</strong> : chaque IP pointe vers la MAC de la bonne machine, et les deux caches concordent. C'est l'état de référence — celui auquel on comparera après l'empoisonnement pour prouver l'attaque.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">11</span>Q11 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q11.</strong> Pourquoi l'activation du routage sur la machine de l'attaquant est-elle indispensable au MITM ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="bash" style="--car:31"><span class="langue">terminal</span><pre><code><span class="j-fn">sysctl</span> <span class="j-att">-w</span> net.ipv4.ip_forward=<span class="j-num">1</span></code></pre></div><p>Une fois le trafic détourné vers lui, l'attaquant doit le <strong>faire suivre</strong> au vrai destinataire, sinon la communication est coupée et l'attaque immédiatement repérée. Le routage (<code>ip_forward</code>) lui permet de <strong>relayer</strong> les paquets : la victime continue de recevoir ses réponses, et ne remarque rien.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">12</span>Q12 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q12.</strong> Pourquoi la redirection de ports est-elle indispensable au succès de l'attaque ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit que le flux passe par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client. La redirection envoie tout ce qui arrive sur le port 22 vers le port local où cet outil écoute (10022). Sans elle, les paquets seraient simplement transmis, jamais déchiffrés par l'attaquant.</p>
+      </div>
+    </div>
+  </article>
+<div class="encart savoir"><div class="titre">💡 Deux rôles, une machine</div><p>Pendant l'attaque, la machine de l'attaquant tient <strong>deux rôles</strong> : elle est le « serveur » pour le client, et le « client » pour le vrai serveur. Le routage assure le relais, la redirection assure l'interception.</p></div>
+</section>
+<section id="p3">
+  <h2><span class="num">04</span>Partie 3 · L'ARP spoofing en action</h2>
+<p>L'attaquant lance l'empoisonnement ARP et vérifie, capture à l'appui, que le trafic passe désormais par lui.</p>
+  <article class="exo">
+    <h3><span class="no">13</span>Q13 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q13.</strong> En quoi une attaque ARP Spoofing est-elle utile ici au pirate ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>C'est le moyen de <strong>se placer au milieu</strong>. En empoisonnant les caches ARP, l'attaquant fait croire au client qu'il est le serveur, et au serveur qu'il est le client. Le trafic, qui irait normalement en droite ligne, est <strong>forcé de transiter par lui</strong> — condition préalable au MITM (<a href="cours.html#spoofing">cours, section 8</a>).</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">14</span>Q14 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q14.</strong> Comparer les caches ARP après l'attaque avec ceux de la question 10. Qu'en concluez-vous ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Après l'empoisonnement, l'IP du serveur (et celle du client) pointe désormais vers la <strong>MAC de l'attaquant</strong>. Deux IP différentes partagent la même MAC : c'est <strong>incohérent</strong>, et c'est la <strong>signature</strong> de l'ARP spoofing. On conclut que le cache a été empoisonné et que le trafic passe par un tiers.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">15</span>Q15 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q15.</strong> À partir de ces observations, expliquer en détail comment fonctionne une attaque ARP Spoofing.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>ARP associe une IP à une MAC, et <strong>n'authentifie pas</strong> les réponses. L'attaquant en abuse : il envoie en boucle de <strong>fausses réponses ARP</strong> (même non sollicitées) affirmant « l'IP X, c'est ma MAC ». Les victimes mettent à jour leur cache et lui envoient désormais ce qu'elles croyaient destiner à l'autre. Comme le routage est activé, il relaie — l'attaque reste invisible côté utilisateur (<a href="cours.html#arp">cours, section 7</a>).</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">16</span>Q16 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q16.</strong> Envoyer un ping du client vers le serveur, puis vérifier par une capture sur la machine attaquante que les trames passent bien par elle. Qu'est-ce qui le démontre ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Sur la capture (Wireshark) faite <strong>sur la machine de l'attaquant</strong>, on voit apparaître les trames <strong>ICMP écho</strong> échangées entre le client et le serveur — alors qu'elles ne devraient pas y transiter. Leur <strong>présence</strong> sur cette machine démontre que le trafic est bien détourné par elle : l'attaque fonctionne.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">17</span>Q17 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q17.</strong> Que contient le fichier <code>/home/ssh-mitm/shell_session_0.txt</code> sur la machine attaquante ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Le <strong>journal de la session interceptée</strong> : tout ce que le client a transmis en pensant parler au serveur, enregistré en clair par l'outil d'interception — commandes tapées, et éventuellement identifiants. C'est le but de l'attaque, et la preuve concrète de sa réussite.</p>
+      </div>
+    </div>
+  </article>
+<div class="encart piege"><div class="titre">⚠️ Lire ne veut pas dire tout obtenir</div><p>Même au milieu, l'attaquant ne récupère en clair que ce qui transite par son faux serveur SSH. Et, comme le montre la question suivante, cette position déclenche une alerte côté client dès qu'il compare la clé.</p></div>
+</section>
+<section id="p4">
+  <h2><span class="num">05</span>Détection et contre-mesures</h2>
+<p>C'est le dénouement : SSH détecte l'imposture, et on remet la connexion en état — dans le bon ordre.</p>
+  <article class="exo">
+    <h3><span class="no">18</span>Q18 <span class="niveau n3">Analyse</span></h3>
+    <div class="enonce">
+      <p><strong>Q18.</strong> Expliquer pourquoi le message « REMOTE HOST IDENTIFICATION HAS CHANGED » apparaît.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>À la reconnexion, le serveur présenté est en réalité l'attaquant, avec <strong>sa</strong> clé d'hôte. Le client compare cette clé à celle rangée dans <code>known_hosts</code> : elles <strong>diffèrent</strong>. SSH en déduit que l'identité du serveur a changé — ce qui peut signaler un MITM — affiche l'avertissement et <strong>refuse</strong> la connexion (<a href="cours.html#detection">cours, section 10</a>).</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">19</span>Q19 <span class="niveau n3">Analyse</span></h3>
+    <div class="enonce">
+      <p><strong>Q19.</strong> Proposer une solution pour pouvoir à nouveau se connecter au service SSH depuis le client.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:62"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"exemple.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
+      </div>
+    </div>
+  </article>
+<div class="encart savoir"><div class="titre">💡 Ce que le TP démontre vraiment</div><p>L'attaque a été <strong>détectée et bloquée</strong> par SSH. Le point faible n'était pas le protocole, mais le geste humain — vider <code>known_hosts</code>, ignorer l'alerte. Les <a href="cours.html#contremesures">contre-mesures</a> agissent sur les deux plans : le réseau (ARP) et la vigilance.</p></div>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Ce que cette activité fait travailler</h2>
+    <ul>
+      <li><strong>Administration Linux</strong> : <code>sudo</code> contre <code>su -</code>,
+          l'état d'un service, les permissions des clés.</li>
+      <li><strong>SSH</strong> : clés d'hôte, <code>sshd_config</code>, TOFU et
+          <code>known_hosts</code> — et pourquoi la deuxième connexion est silencieuse.</li>
+      <li><strong>Reconnaissance</strong> : ce qu'un scan <code>nmap</code> révèle, et qu'il
+          se voit.</li>
+      <li><strong>MITM</strong> : relayer (routage) et intercepter (redirection) — deux rôles,
+          une machine.</li>
+      <li><strong>ARP spoofing</strong> : la faille d'ARP, la signature dans les caches, la
+          preuve par la capture.</li>
+      <li><strong>Détection</strong> : le changement de clé bloque la connexion ; la remise en
+          état se fait <em>après</em> avoir traité l'attaque.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Activité 1 — attaque MITM d'un service SSH et mise en place de contre-mesures »,
+          Réseau Certa, 19 questions et 6 annexes</li>
+    </ul>
+    <p class="rap">Les réponses reformulent les concepts de l'activité et de ses annexes. Les
+       commandes reprennent celles du sujet, exécutées dans l'environnement de lab isolé qu'il
+       décrit.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/exercices.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
+</body>
+</html>

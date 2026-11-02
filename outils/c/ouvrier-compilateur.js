@@ -192,11 +192,19 @@ async function batir({ source, langue, strict }) {
 
   api.memfs.addFile(nom, new TextEncoder().encode(source));
 
+  /* Une fonction appelée sans avoir été déclarée est une ERREUR, comme
+     sur un compilateur récent (Clang 16, GCC 14) et comme le veut la norme
+     depuis C99. Ce clang-ci, plus ancien, n'en faisait qu'un avertissement :
+     « close(fichier) » passait, puis se comportait n'importe comment — alors
+     que la fiche du chapitre 7 montre, à juste titre, qu'il ne compile pas.
+     Le banc l'a vu. Une faute de frappe dans un nom de fonction est ainsi
+     dite à la bonne ligne, au lieu d'un « undefined symbol » de l'éditeur
+     de liens. */
   const options = [
     "-Wall", "-Wextra", "-Wshadow", "-Wconditional-uninitialized",
     "-O1", "-std=" + (cpp ? "c++17" : "c11"), "-x", cpp ? "c++" : "c",
     "-ftrivial-auto-var-init=pattern",
-  ];
+  ].concat(cpp ? [] : ["-Werror=implicit-function-declaration"]);
   if (strict) options.push("-fsanitize=" + CONTROLES, "-fsanitize-recover=" + CONTROLES);
 
   recolte = "";
@@ -252,7 +260,7 @@ async function relire({ source, langue }) {
   try {
     await api.run(await api.getModule("clang"), "clang", "-cc1", "-fsyntax-only",
                   ...COMMUNS, "-std=" + (cpp ? "c++17" : "c11"),
-                  "-x", cpp ? "c++" : "c", nom);
+                  "-x", cpp ? "c++" : "c", ...(cpp ? [] : ["-Werror=implicit-function-declaration"]), nom);
   } catch (e) { /* le code de sortie n'apprend rien que les messages ne disent */ }
   return { t: "relu", diagnostics: lireDiagnostics(recolte) };
 }

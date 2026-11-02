@@ -365,9 +365,23 @@
         + "L" + n(fond[0]) + " " + n(fond[1]) + "L" + n(mid[0] - px) + " " + n(mid[1] - py) + "Z";
       if (type === "diamond") plein(d);
       trait(d);
+    } else if (/^crowfoot_/.test(type)) {
+      // La patte d'oie des schémas de base de données : trois traits qui
+      // s'ouvrent vers l'entité (« plusieurs »), une barre (« un »).
+      const L = Math.min(12 + sw * 2, l * 0.4), w = L * 0.7, px = -uy, py = ux;
+      const base = [tip[0] - ux * L, tip[1] - uy * L];
+      if (type !== "crowfoot_one") {
+        trait(ligneDouble(base[0], base[1], tip[0] + px * w, tip[1] + py * w, o)
+            + ligneDouble(base[0], base[1], tip[0], tip[1], o)
+            + ligneDouble(base[0], base[1], tip[0] - px * w, tip[1] - py * w, o));
+      }
+      if (type !== "crowfoot_many") {
+        const d = type === "crowfoot_one" ? L * 0.55 : L * 1.35, c = [tip[0] - ux * d, tip[1] - uy * d];
+        trait(ligneDouble(c[0] + px * w, c[1] + py * w, c[0] - px * w, c[1] - py * w, o));
+      }
     } else {
-      // Pattes d'oie et autres : on ne dessine pas ce qu'on ne sait pas
-      // dessiner juste ; la flèche reste lisible, la pointe manque.
+      // Ce qu'on ne sait pas dessiner juste ne se dessine pas : la flèche
+      // reste lisible, la pointe manque.
     }
     return ops;
   }

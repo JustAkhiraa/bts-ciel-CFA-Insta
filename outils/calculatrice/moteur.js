@@ -774,8 +774,13 @@ function lire(src) {
       jetons.push({ t: c === "(" ? "(" : c === ")" ? ")" : c === ";" ? ";" : "op", v: c });
       i++; continue;
     }
-    if (c === "[" || c === "{") { jetons.push({ t: "(", v: "(" }); i++; continue; }
-    if (c === "]" || c === "}") { jetons.push({ t: ")", v: ")" }); i++; continue; }
+    /* Les crochets sont aux MATRICES : « [[1;2];[3;4]] ». Ils servaient de
+       parenthèses de secours, et aucun calcul du banc ne s'en servait ; les
+       accolades, elles, le restent. */
+    if (c === "[") { jetons.push({ t: "[", v: "[" }); i++; continue; }
+    if (c === "]") { jetons.push({ t: "]", v: "]" }); i++; continue; }
+    if (c === "{") { jetons.push({ t: "(", v: "(" }); i++; continue; }
+    if (c === "}") { jetons.push({ t: ")", v: ")" }); i++; continue; }
     return { erreur: "Caractère que je ne sais pas lire : « " + c + " »." };
   }
   jetons.push({ t: "fin" });
@@ -826,6 +831,21 @@ const ALIAS = {
   "aleatoire": "alea", "alea": "alea", "random": "alea",
   "entieraleatoire": "aleaEntier", "randint": "aleaEntier",
   "arcsin": "asin", "arccos": "acos", "arctan": "atan",
+  "determinant": "det", "déterminant": "det",
+  "transpose": "transposee", "transposée": "transposee", "trn": "transposee",
+  "identity": "identite", "identité": "identite",
+  "taille": "dim", "dimension": "dim",
+  "echelonnee": "ref", "échelonnée": "ref",
+  "echelonneereduite": "rref", "échelonnéeréduite": "rref",
+  "produitscalaire": "dot", "scalaire": "dot",
+  "produitvectoriel": "cross", "vectoriel": "cross",
+  "norm": "norme",
+  "frac": "partieDecimale", "partiedecimale": "partieDecimale", "decimale": "partieDecimale",
+  "sort": "tri", "trier": "tri",
+  "randintnorep": "aleaUniques", "aleauniques": "aleaUniques",
+  "factor": "facteurs", "decomposer": "facteurs", "décomposer": "facteurs",
+  "real": "re", "reel": "re", "réel": "re", "imag": "im", "imaginaire": "im",
+  "argument": "arg", "conjugue": "conj", "conjugué": "conj", "module": "abs",
   "ln": "ln", "log": "log", "exp": "exp",
 };
 const N_FONCTIONS = new Set([
@@ -840,7 +860,18 @@ const N_FONCTIONS = new Set([
   "poissonPdf", "poissonCdf", "geomPdf", "geomCdf", "hyperPdf", "hyperCdf",
   "expoPdf", "expoCdf", "invExpo", "uniformeCdf",
   "studentCdf", "khi2Cdf", "fisherCdf", "alea", "aleaEntier",
+  "inverse", "det", "transposee", "trace", "identite",
+  "dim", "ref", "rref", "dot", "cross", "norme",
+  "partieDecimale", "tri", "aleaUniques", "facteurs",
+  "re", "im", "arg", "conj",
 ]);
+/* Celles-ci prennent ou rendent une MATRICE : elles ne passent pas par les
+   deux couches des nombres, mais par la section 8 bis. */
+const MAT_FONCTIONS = new Set(["inverse", "det", "transposee", "trace", "identite",
+                               "dim", "ref", "rref", "dot", "cross", "norme",
+                               "tri", "aleaUniques", "facteurs"]);
+/* Celles-ci sont aux NOMBRES COMPLEXES (section 8 ter). */
+const CPLX_FONCTIONS = new Set(["re", "im", "arg", "conj"]);
 /* Les quatre formes SPÉCIALES : leur deuxième argument est un NOM de
    variable, pas une valeur. « somme(k;k;1;10) » ne doit pas évaluer le
    deuxième « k » — il désigne la lettre qui varie. */
@@ -872,9 +903,51 @@ function analyser(src) {
   let faute = null;
   const rater = (m) => { if (!faute) faute = m; return { t: "num", v: "0", exact: exZero() }; };
 
+  /* Une matrice s'écrit ligne par ligne : « [[1;2];[3;4]] », ou sans le
+     point-virgule entre les lignes, comme sur l'appareil : « [[1;2][3;4]] ».
+     Une seule paire de crochets fait une matrice LIGNE : « [1;2;3] ». */
+  function ligneDeMatrice() {
+    const termes = [];
+    if (voir().t === "]") return rater("Une ligne de matrice vide : « [] ».");
+    for (;;) {
+      termes.push(expr(0));
+      if (voir().t === ";") { avancer(); continue; }
+      break;
+    }
+    if (voir().t !== "]") return rater("Il manque un crochet fermant « ] » dans la matrice.");
+    avancer();
+    return termes;
+  }
+  function matrice() {
+    let lignes;
+    if (voir().t === "[") {
+      lignes = [];
+      for (;;) {
+        avancer();                              // le « [ » de la ligne
+        const l = ligneDeMatrice();
+        if (!Array.isArray(l)) return l;
+        lignes.push(l);
+        if (voir().t === ";" && J[k + 1] && J[k + 1].t === "[") { avancer(); }
+        if (voir().t === "[") continue;
+        break;
+      }
+      if (voir().t !== "]") return rater("Il manque le crochet fermant « ] » de la matrice.");
+      avancer();
+    } else {
+      const l = ligneDeMatrice();
+      if (!Array.isArray(l)) return l;
+      lignes = [l];
+    }
+    const c = lignes[0].length;
+    if (lignes.some((l) => l.length !== c))
+      return rater("Toutes les lignes d'une matrice doivent avoir le même nombre de termes.");
+    return { t: "mat", lignes };
+  }
+
   function atome() {
     const j = avancer();
     if (j.t === "num") return { t: "num", v: parseFloat(j.v), exact: j.exact, brut: j.v };
+    if (j.t === "[") return matrice();
     if (j.t === "(") {
       const e = expr(0);
       if (voir().t !== ")") return rater("Il manque une parenthèse fermante.");
@@ -984,7 +1057,7 @@ function analyser(src) {
       /* La multiplication implicite. Elle ne se déclenche QUE devant un
          atome qui ne peut pas être un opérateur : un nombre, une lettre,
          une parenthèse ouvrante, un radical. */
-      if (20 >= mini && (j.t === "num" || j.t === "nom" || j.t === "("
+      if (20 >= mini && (j.t === "num" || j.t === "nom" || j.t === "(" || j.t === "["
                          || (j.t === "op" && j.v === "√"))) {
         const d = expr(21);
         g = suite({ t: "op", o: "*", a: g, b: d, implicite: true });
@@ -1183,6 +1256,9 @@ function appeler(noeud, ctx, R) {
     }
     case "abs": return Math.abs(n1("La valeur absolue"));
     case "floor": return Math.floor(n1("La partie entière"));
+    /* x − partie entière : 3,75 → 0,75 et −3,2 → 0,8 — toujours dans [0 ; 1[,
+       comme sur l'appareil. */
+    case "partieDecimale": { const x = n1("La partie décimale"); return x - Math.floor(x); }
     case "ceil": return Math.ceil(n1("Le plafond"));
     case "trunc": return Math.trunc(n1("La troncature"));
     case "signe": { const x = n1("Le signe"); return x > 0 ? 1 : x < 0 ? -1 : 0; }
@@ -1581,6 +1657,11 @@ function exacte(noeud, ctx) {
                   : arrondiBig(a);
           return n === null ? null : ex(n);
         }
+        case "partieDecimale": {
+          const a = A.length === 1 ? E(A[0]) : null;
+          if (!estRationnel(a)) return null;
+          return ex(a.p - divPlancher(a.p, a.q) * a.q, a.q);
+        }
         case "fact": return exacte({ t: "fac", a: A[0] }, ctx);
         case "combinaison": {
           if (A.length !== 2) return null;
@@ -1738,9 +1819,705 @@ function formater(x, R) {
   return mant.replace("-", "−") + "×10" + enExposant(e);
 }
 
+/* ═════════════════════ 8 bis. Les matrices ═════════════════════════════
+   Demandé : « je ne trouve pas les matrices dans la boîte à outils ». Elles
+   manquaient, et la page le disait — le chapitre 14 en a pourtant besoin :
+   un produit, une inverse, un système A X = C, et un devoir qui demande
+   « A⁻¹ à la calculatrice ».
+
+   ── Exact d'abord, comme le reste ─────────────────────────────────────
+   L'inverse de ( 2 −1,5 ; −1 1 ) est ( 2 3 ; 2 4 ). En flottants, Gauss
+   rend 1,9999999999999996 : juste, mais faux à l'écran, et c'est l'écran
+   qu'on recopie. Tant que TOUS les termes sont rationnels, le calcul se
+   fait donc en fractions de grands entiers ; il ne retombe en décimal que
+   devant un √2 ou un π, et alors il le fait pour toute la matrice.
+
+   Un nombre est ici { k: "s", f, q, ex } — sa valeur décimale, sa fraction
+   [p, q] si elle existe, sa forme exacte du moteur. Une matrice est
+   { k: "m", l, c, f, q } — les mêmes, en tableaux. */
+const MAT = (function () {
+  const TAILLE_MAX = 10;
+  const fr = (p, q) => {
+    p = BigInt(p); q = BigInt(q);
+    if (q === ZERO) boum("Division par zéro.");
+    if (q < ZERO) { p = -p; q = -q; }
+    const g = pgcdB(p, q) || UN;
+    return [p / g, q / g];
+  };
+  const fAdd = (a, b) => fr(a[0] * b[1] + b[0] * a[1], a[1] * b[1]);
+  const fSub = (a, b) => fr(a[0] * b[1] - b[0] * a[1], a[1] * b[1]);
+  const fMul = (a, b) => fr(a[0] * b[0], a[1] * b[1]);
+  const fDiv = (a, b) => fr(a[0] * b[1], a[1] * b[0]);
+  const fNul = (a) => a[0] === ZERO;
+  const fVal = (a) => Number(a[0]) / Number(a[1]);
+  const F0 = () => [ZERO, UN], F1 = () => [UN, UN];
+
+  const scal = (f, q) => ({ k: "s", f, q, ex: q ? ex(q[0], q[1]) : null });
+  const mat = (f, q) => ({ k: "m", l: f.length, c: f[0].length, f, q });
+  const nomDe = (v) => (v.k === "m" ? "matrice " + v.l + " × " + v.c : "nombre");
+
+  /* La saisie touche-t-elle une matrice ? Un littéral, une fonction de
+     matrices, ou une lettre qui en porte une. */
+  function contient(n, ctx) {
+    if (!n || typeof n !== "object") return false;
+    if (n.t === "mat") return true;
+    if (n.t === "appel" && MAT_FONCTIONS.has(n.n)) return true;
+    if (n.t === "var" && ctx.mats && ctx.mats.has(n.n)) return true;
+    for (const x of [n.a, n.b]) if (contient(x, ctx)) return true;
+    if (n.args) for (const x of n.args) if (contient(x, ctx)) return true;
+    if (n.lignes) for (const l of n.lignes) for (const x of l) if (contient(x, ctx)) return true;
+    return false;
+  }
+
+  /* Un nombre ordinaire passe par les deux couches du moteur, sans rien
+     changer à leur règle : l'exact n'est gardé que s'il est d'accord. */
+  function nombre(n, ctx) {
+    if (CPLX.contient(n, ctx))
+      boum("Les matrices de nombres complexes ne sont pas prises en charge ici.");
+    const f = evaluer(n, ctx);
+    if (typeof f !== "number" || !Number.isFinite(f))
+      boum("Un terme de la matrice n'est pas un nombre fini.");
+    let e = null;
+    try { e = exacte(n, ctx); } catch (err) { e = null; }
+    if (e && estRationnel(e) && Math.abs(EX.nombre(e) - f) <= 1e-9 * Math.max(1, Math.abs(f)))
+      return scal(f, [e.p, e.q]);
+    return scal(f, null);
+  }
+
+  const identiteF = (n) => Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+  const identiteQ = (n) => Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => (i === j ? F1() : F0())));
+
+  function produit(A, B) {
+    if (A.c !== B.l)
+      boum("Produit impossible : la première matrice a " + A.c + " colonne" + (A.c > 1 ? "s" : "")
+           + ", la seconde " + B.l + " ligne" + (B.l > 1 ? "s" : "")
+           + ". Il faut autant de colonnes à gauche que de lignes à droite.");
+    const f = [], q = A.q && B.q ? [] : null;
+    for (let i = 0; i < A.l; i++) {
+      f.push([]); if (q) q.push([]);
+      for (let j = 0; j < B.c; j++) {
+        let s = 0, t = q ? F0() : null;
+        for (let k = 0; k < A.c; k++) {
+          s += A.f[i][k] * B.f[k][j];
+          if (q) t = fAdd(t, fMul(A.q[i][k], B.q[k][j]));
+        }
+        f[i].push(q ? fVal(t) : s); if (q) q[i].push(t);
+      }
+    }
+    return mat(f, q);
+  }
+
+  /* Gauss-Jordan, en fractions si possible, en flottants sinon — avec le
+     pivot le plus grand dans ce cas-là, sans quoi un 10⁻¹⁶ fait un pivot. */
+  function gauss(A, B) {
+    const n = A.l, exact = !!(A.q && (!B || B.q));
+    const M = A.f.map((r, i) => r.concat(B ? B.f[i] : []));
+    const Q = exact ? A.q.map((r, i) => r.concat(B ? B.q[i] : [])) : null;
+    const larg = M[0].length;
+    let det = 1, detQ = exact ? F1() : null;
+    for (let col = 0; col < n; col++) {
+      let piv = -1;
+      if (exact) { for (let i = col; i < n; i++) if (!fNul(Q[i][col])) { piv = i; break; } }
+      else {
+        let best = 0;
+        for (let i = col; i < n; i++) if (Math.abs(M[i][col]) > best) { best = Math.abs(M[i][col]); piv = i; }
+        const echelle = Math.max(1, ...A.f.map((r) => Math.max(...r.map(Math.abs))));
+        if (best <= 1e-12 * echelle) piv = -1;
+      }
+      if (piv < 0) return { singuliere: true, det: 0, detQ: exact ? F0() : null };
+      if (piv !== col) {
+        [M[piv], M[col]] = [M[col], M[piv]];
+        if (exact) [Q[piv], Q[col]] = [Q[col], Q[piv]];
+        det = -det; if (exact) detQ = fr(-detQ[0], detQ[1]);
+      }
+      const p = M[col][col], pq = exact ? Q[col][col] : null;
+      det *= p; if (exact) detQ = fMul(detQ, pq);
+      for (let j = 0; j < larg; j++) {
+        M[col][j] /= p;
+        if (exact) Q[col][j] = fDiv(Q[col][j], pq);
+      }
+      for (let i = 0; i < n; i++) {
+        if (i === col) continue;
+        const k = M[i][col], kq = exact ? Q[i][col] : null;
+        if (exact ? fNul(kq) : k === 0) continue;
+        for (let j = 0; j < larg; j++) {
+          M[i][j] -= k * M[col][j];
+          if (exact) Q[i][j] = fSub(Q[i][j], fMul(kq, Q[col][j]));
+        }
+      }
+    }
+    const droite = B ? (r) => r.slice(n) : (r) => r;
+    const f = exact ? Q.map((r) => droite(r).map(fVal)) : M.map(droite);
+    return { singuliere: false, det: exact ? fVal(detQ) : det, detQ,
+             f, q: exact ? Q.map(droite) : null };
+  }
+
+  /* La forme échelonnée (pivots à 1, zéros en dessous) et la forme
+     échelonnée RÉDUITE (zéros aussi au-dessus). Toute matrice, carrée ou
+     non : c'est l'outil d'un système qui n'a pas d'inverse. */
+  function echelonner(A, reduite) {
+    const exact = !!A.q;
+    const M = A.f.map((r) => r.slice()), Q = exact ? A.q.map((r) => r.slice()) : null;
+    const echelle = Math.max(1, ...A.f.map((r) => Math.max(...r.map(Math.abs))));
+    let ligne = 0;
+    for (let col = 0; col < A.c && ligne < A.l; col++) {
+      let piv = -1;
+      if (exact) { for (let i = ligne; i < A.l; i++) if (!fNul(Q[i][col])) { piv = i; break; } }
+      else {
+        let best = 0;
+        for (let i = ligne; i < A.l; i++) if (Math.abs(M[i][col]) > best) { best = Math.abs(M[i][col]); piv = i; }
+        if (best <= 1e-12 * echelle) piv = -1;
+      }
+      if (piv < 0) continue;
+      [M[piv], M[ligne]] = [M[ligne], M[piv]];
+      if (exact) [Q[piv], Q[ligne]] = [Q[ligne], Q[piv]];
+      const p = M[ligne][col], pq = exact ? Q[ligne][col] : null;
+      for (let j = 0; j < A.c; j++) { M[ligne][j] /= p; if (exact) Q[ligne][j] = fDiv(Q[ligne][j], pq); }
+      for (let i = reduite ? 0 : ligne + 1; i < A.l; i++) {
+        if (i === ligne) continue;
+        const k = M[i][col], kq = exact ? Q[i][col] : null;
+        if (exact ? fNul(kq) : k === 0) continue;
+        for (let j = 0; j < A.c; j++) {
+          M[i][j] -= k * M[ligne][j];
+          if (exact) Q[i][j] = fSub(Q[i][j], fMul(kq, Q[ligne][j]));
+        }
+      }
+      ligne++;
+    }
+    /* Un −0 ou un 1e−17 qui reste d'un calcul en flottants s'affiche « 0 ». */
+    const net = (x) => (Math.abs(x) <= 1e-12 * echelle ? 0 : x);
+    return mat(exact ? Q.map((r) => r.map(fVal)) : M.map((r) => r.map(net)), Q);
+  }
+
+  /* Un vecteur s'écrit en ligne [1;2;3] ou en colonne [[1];[2];[3]]. */
+  function vecteur(v, quoi) {
+    if (v.k !== "m" || (v.l !== 1 && v.c !== 1))
+      boum(quoi + " s'applique à un vecteur : une matrice d'une seule ligne ou d'une seule colonne.");
+    const f = v.l === 1 ? v.f[0] : v.f.map((r) => r[0]);
+    const q = v.q ? (v.l === 1 ? v.q[0] : v.q.map((r) => r[0])) : null;
+    return { f, q, ligne: v.l === 1 };
+  }
+
+  function carree(A, quoi) {
+    if (A.k !== "m") boum(quoi + " s'applique à une matrice, pas à un nombre.");
+    if (A.l !== A.c) boum(quoi + " n'existe que pour une matrice carrée ; celle-ci est "
+                          + A.l + " × " + A.c + ".");
+  }
+  function inverse(A) {
+    carree(A, "L'inverse");
+    const I = mat(identiteF(A.l), A.q ? identiteQ(A.l) : null);
+    const g = gauss(A, I);
+    if (g.singuliere)
+      boum("Cette matrice n'est pas inversible : son déterminant est nul.");
+    return mat(g.f, g.q);
+  }
+  function determinant(A) {
+    carree(A, "Le déterminant");
+    const g = gauss(A, null);
+    if (g.singuliere) return scal(0, A.q ? F0() : null);
+    return scal(g.det, g.detQ);
+  }
+  function puissance(A, n) {
+    carree(A, "Une puissance de matrice");
+    let base = n < 0 ? inverse(A) : A;
+    let r = mat(identiteF(A.l), A.q ? identiteQ(A.l) : null);
+    for (let i = 0; i < Math.abs(n); i++) r = produit(r, base);
+    return r;
+  }
+  const carte = (A, fn, fq) => mat(A.f.map((r) => r.map(fn)),
+                                   A.q ? A.q.map((r) => r.map(fq)) : null);
+  function parNombre(A, s) {
+    return mat(A.f.map((r) => r.map((x) => x * s.f)),
+               A.q && s.q ? A.q.map((r) => r.map((x) => fMul(x, s.q))) : null);
+  }
+  function somme(A, B, signe) {
+    if (A.l !== B.l || A.c !== B.c)
+      boum((signe > 0 ? "Somme" : "Différence") + " impossible : " + A.l + " × " + A.c
+           + " et " + B.l + " × " + B.c + ". Il faut les mêmes dimensions.");
+    return mat(A.f.map((r, i) => r.map((x, j) => x + signe * B.f[i][j])),
+      A.q && B.q ? A.q.map((r, i) => r.map((x, j) => (signe > 0 ? fAdd : fSub)(x, B.q[i][j]))) : null);
+  }
+
+  function ev(n, ctx) {
+    if (!contient(n, ctx)) return nombre(n, ctx);
+    switch (n.t) {
+      case "mat": {
+        if (n.lignes.length > TAILLE_MAX || n.lignes[0].length > TAILLE_MAX)
+          boum("Une matrice a au plus " + TAILLE_MAX + " lignes et " + TAILLE_MAX + " colonnes ici.");
+        const T = n.lignes.map((l) => l.map((x) => {
+          const v = ev(x, ctx);
+          if (v.k !== "s") boum("Un terme de matrice est un nombre, pas une matrice.");
+          return v;
+        }));
+        const toutes = T.every((l) => l.every((v) => v.q));
+        return mat(T.map((l) => l.map((v) => v.f)), toutes ? T.map((l) => l.map((v) => v.q)) : null);
+      }
+      case "var": {
+        const m = ctx.mats.get(n.n);
+        return mat(m.f.map((r) => r.slice()), m.q ? m.q.map((r) => r.slice()) : null);
+      }
+      case "neg": {
+        const v = ev(n.a, ctx);
+        return v.k === "m" ? carte(v, (x) => -x, (x) => fr(-x[0], x[1]))
+                           : scal(-v.f, v.q ? fr(-v.q[0], v.q[1]) : null);
+      }
+      case "op": {
+        if (n.o === "->") {
+          const v = ev(n.a, ctx);
+          const cible = n.b.t === "var" ? n.b.n : null;
+          if (!cible || !/^[A-Za-z]$/.test(cible))
+            boum("Après « → » il faut une lettre : « [[1;2];[3;4]]→A ».");
+          if (v.k === "m") { ctx.mats.set(cible, v); ctx.vars.delete(cible); ctx.exacts.delete(cible); }
+          else { ctx.vars.set(cible, v.f); ctx.exacts.set(cible, v.ex); ctx.mats.delete(cible); }
+          ctx.dernierStockage = cible;
+          return v;
+        }
+        if (["=", "<", ">", "<=", ">="].includes(n.o))
+          boum("On ne compare pas des matrices avec « " + n.o + " ».");
+        const a = ev(n.a, ctx), b = ev(n.b, ctx);
+        switch (n.o) {
+          case "+": case "-":
+            if (a.k === "m" && b.k === "m") return somme(a, b, n.o === "+" ? 1 : -1);
+            boum("On n'ajoute pas un " + nomDe(a.k === "m" ? b : a) + " à une matrice : "
+                 + "les deux doivent être des matrices de mêmes dimensions.");
+            break;
+          case "*":
+            if (a.k === "m" && b.k === "m") return produit(a, b);
+            return a.k === "m" ? parNombre(a, b) : parNombre(b, a);
+          case "/":
+            if (b.k === "m") boum("On ne divise pas par une matrice : on multiplie par son "
+                                  + "inverse, « inverse(B) » ou « B^-1 ».");
+            if (b.f === 0) boum("Division par zéro.");
+            return parNombre(a, scal(1 / b.f, b.q ? fr(b.q[1], b.q[0]) : null));
+          case "^": {
+            if (b.k === "m") boum("Un exposant est un nombre, pas une matrice.");
+            if (a.k !== "m") boum("Cette puissance mélange un nombre et une matrice.");
+            if (!Number.isInteger(b.f)) boum("Une matrice ne s'élève qu'à une puissance entière.");
+            if (Math.abs(b.f) > 50) boum("Puissance trop grande pour une matrice (50 au plus).");
+            return puissance(a, b.f);
+          }
+        }
+        break;
+      }
+      case "appel": {
+        if (!MAT_FONCTIONS.has(n.n))
+          boum("« " + n.n + " » s'applique à un nombre, pas à une matrice.");
+        if (n.n === "tri") {
+          /* « tri(5;2;8) » ou « tri([5;2;8]) » : une liste rendue en ligne. */
+          let vals;
+          if (n.args.length === 1) {
+            const v = ev(n.args[0], ctx);
+            if (v.k !== "m" || (v.l !== 1 && v.c !== 1)) boum("tri attend des nombres, ou une liste [a;b;c].");
+            const u = vecteur(v, "Le tri");
+            vals = u.f.map((f, i) => ({ f, q: u.q ? u.q[i] : null }));
+          } else {
+            vals = n.args.map((a) => { const v = ev(a, ctx); if (v.k !== "s") boum("tri attend des nombres."); return v; });
+          }
+          if (vals.length > 100) boum("tri : 100 nombres au plus.");
+          vals.sort((a, b) => a.f - b.f);
+          const toutes = vals.every((v) => v.q);
+          return mat([vals.map((v) => v.f)], toutes ? [vals.map((v) => v.q)] : null);
+        }
+        if (n.n === "aleaUniques") {
+          if (n.args.length !== 3) boum("aleaUniques(n;a;b) : combien d'entiers, puis les deux bornes.");
+          const [k, a, b] = n.args.map((x) => { const v = ev(x, ctx); if (v.k !== "s" || !Number.isInteger(v.f)) boum("aleaUniques attend trois entiers."); return v.f; });
+          if (b < a) boum("aleaUniques : la borne basse doit précéder la haute.");
+          if (k < 1 || k > 100) boum("aleaUniques : de 1 à 100 entiers.");
+          if (k > b - a + 1) boum("Impossible : " + k + " entiers distincts entre " + a + " et " + b + ", il n'y en a que " + (b - a + 1) + ".");
+          /* Fisher-Yates partiel sur l'intervalle : pas de tirage refusé en
+             boucle, donc une durée bornée même pour 100 parmi 100. */
+          const pris = new Map(), out = [];
+          for (let i = 0; i < k; i++) {
+            const j = i + Math.floor(Math.random() * (b - a + 1 - i));
+            const vj = pris.has(j) ? pris.get(j) : a + j, vi = pris.has(i) ? pris.get(i) : a + i;
+            pris.set(j, vi); out.push(vj);
+          }
+          return mat([out], [out.map((x) => fr(x, 1))]);
+        }
+        if (n.n === "facteurs") {
+          if (n.args.length !== 1) boum("facteurs prend un seul entier.");
+          const v = ev(n.args[0], ctx);
+          if (v.k !== "s" || !Number.isInteger(v.f) || v.f < 2 || v.f > 1e12)
+            boum("facteurs attend un entier entre 2 et 10¹².");
+          let x = v.f; const parts = [];
+          for (let d = 2; d * d <= x; d += d === 2 ? 1 : 2) {
+            let e = 0; while (x % d === 0) { x /= d; e++; }
+            if (e) parts.push(d + (e > 1 ? String(e).replace(/[0-9]/g, (c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]) : ""));
+          }
+          if (x > 1) parts.push(String(x));
+          const r = scal(v.f, [BigInt(v.f), UN]);
+          r.texte = parts.join(" × ");
+          return r;
+        }
+        const deux = n.n === "dot" || n.n === "cross";
+        if (n.args.length !== (deux ? 2 : 1))
+          boum("« " + n.n + " » prend " + (deux ? "deux vecteurs, séparés par « ; »." : "un seul argument."));
+        const v = ev(n.args[0], ctx);
+        switch (n.n) {
+          case "dim":
+            if (v.k !== "m") boum("dim s'applique à une matrice.");
+            return mat([[v.l, v.c]], [[fr(v.l, 1), fr(v.c, 1)]]);
+          case "ref": case "rref":
+            if (v.k !== "m") boum("La forme échelonnée s'applique à une matrice.");
+            return echelonner(v, n.n === "rref");
+          case "norme": {
+            const u = vecteur(v, "La norme");
+            const f = Math.sqrt(u.f.reduce((s, x) => s + x * x, 0));
+            if (!u.q) return scal(f, null);
+            let s2 = F0(); for (const x of u.q) s2 = fAdd(s2, fMul(x, x));
+            /* √(p/q) = √(p·q) / q : la forme exacte du moteur sort les carrés. */
+            const e = ex(UN, s2[1], s2[0] * s2[1]);
+            const r = { k: "s", f, q: e && estRationnel(e) ? [e.p, e.q] : null, ex: e };
+            return r;
+          }
+          case "dot": case "cross": {
+            const a = vecteur(v, n.n === "dot" ? "Le produit scalaire" : "Le produit vectoriel");
+            const b = vecteur(ev(n.args[1], ctx), n.n === "dot" ? "Le produit scalaire" : "Le produit vectoriel");
+            if (a.f.length !== b.f.length)
+              boum("Les deux vecteurs n'ont pas la même taille : " + a.f.length + " et " + b.f.length + ".");
+            const exact = a.q && b.q;
+            if (n.n === "dot") {
+              let s = 0, t = exact ? F0() : null;
+              a.f.forEach((x, i) => { s += x * b.f[i]; if (t) t = fAdd(t, fMul(a.q[i], b.q[i])); });
+              return scal(t ? fVal(t) : s, t);
+            }
+            if (a.f.length !== 3) boum("Le produit vectoriel ne se fait qu'en dimension 3.");
+            const idx = [[1, 2], [2, 0], [0, 1]];
+            const f = idx.map(([i, j]) => a.f[i] * b.f[j] - a.f[j] * b.f[i]);
+            const q = exact ? idx.map(([i, j]) => fSub(fMul(a.q[i], b.q[j]), fMul(a.q[j], b.q[i]))) : null;
+            const ff = q ? q.map(fVal) : f;
+            return a.ligne ? mat([ff], q ? [q] : null) : mat(ff.map((x) => [x]), q ? q.map((x) => [x]) : null);
+          }
+          case "inverse": return inverse(v);
+          case "det": return determinant(v);
+          case "transposee":
+            if (v.k !== "m") boum("La transposée s'applique à une matrice.");
+            return mat(v.f[0].map((_, j) => v.f.map((r) => r[j])),
+                       v.q ? v.q[0].map((_, j) => v.q.map((r) => r[j])) : null);
+          case "trace": {
+            carree(v, "La trace");
+            let t = 0, tq = v.q ? F0() : null;
+            for (let i = 0; i < v.l; i++) { t += v.f[i][i]; if (tq) tq = fAdd(tq, v.q[i][i]); }
+            return scal(tq ? fVal(tq) : t, tq);
+          }
+          case "identite": {
+            if (v.k !== "s" || !Number.isInteger(v.f) || v.f < 1 || v.f > TAILLE_MAX)
+              boum("identite(n) attend un entier n entre 1 et " + TAILLE_MAX + ".");
+            return mat(identiteF(v.f), identiteQ(v.f));
+          }
+        }
+        break;
+      }
+      case "appelUtil":
+        boum("Une fonction définie dans l'application Fonctions s'applique à un nombre.");
+        break;
+      case "fac":
+        boum("La factorielle ne s'applique pas à une matrice.");
+        break;
+    }
+    boum("Ce calcul mélange des matrices d'une façon que je ne sais pas faire.");
+  }
+
+  /* Le texte d'un terme : la fraction si elle existe — « 3/2 » —, ou la
+     décimale finie si la saisie en contenait une, comme pour un nombre. */
+  function texte(q, f, R, decimalVu) {
+    if (q) return EX.texte(ex(q[0], q[1]), { decimalSiPossible: decimalVu });
+    return formater(f, R);
+  }
+
+  function calculer(a, entree, ctx) {
+    let v;
+    try { v = ev(a.arbre, ctx); }
+    catch (e) {
+      if (e instanceof ErreurCalc) return { ok: false, entree, erreur: e.message };
+      throw e;
+    }
+    const R = ctx.reglages;
+    if (v.k === "s") {
+      ctx.vars.set("ans", v.f); ctx.exacts.set("ans", v.ex); ctx.mats.delete("ans");
+      const exact = v.texte || (v.ex ? EX.texte(v.ex, { decimalSiPossible: a.decimalVu }) : null);
+      const approx = formater(v.f, R);
+      return { ok: true, entree, valeur: v.f, exact, approx,
+               montrerLesDeux: !!(exact && exact !== approx),
+               stocke: ctx.dernierStockage || null, desaccord: null };
+    }
+    ctx.mats.set("ans", v);
+    const approx = v.f.map((r) => r.map((x) => formater(x, R)));
+    const exact = v.q ? v.q.map((r, i) => r.map((q, j) => texte(q, v.f[i][j], R, a.decimalVu))) : null;
+    const differe = !!exact && exact.some((r, i) => r.some((t, j) => t !== approx[i][j]));
+    return { ok: true, entree, matrice: { l: v.l, c: v.c, exact, approx },
+             montrerLesDeux: differe, stocke: ctx.dernierStockage || null };
+  }
+
+  /* Pour ranger une matrice dans le navigateur : les fractions en texte,
+     parce que JSON ne connaît pas les grands entiers. */
+  const versJSON = (m) => ({ f: m.f, q: m.q ? m.q.map((r) => r.map((x) => x[0] + "/" + x[1])) : null });
+  function depuisJSON(o) {
+    if (!o || !Array.isArray(o.f) || !o.f.length || !Array.isArray(o.f[0])) return null;
+    const q = Array.isArray(o.q) ? o.q.map((r) => r.map((t) => {
+      const [p, d] = String(t).split("/"); return fr(p, d || "1");
+    })) : null;
+    return mat(o.f.map((r) => r.map(Number)), q);
+  }
+
+  return { contient, calculer, versJSON, depuisJSON, ev };
+})();
+
+/* ═════════════════════ 8 ter. Les nombres complexes ════════════════════
+   Demandé : « ajoute aussi les complexes ». La page le notait comme le
+   manque le plus lourd — « c'est le moteur à reprendre, pas un réglage ».
+   Il n'est pas repris : comme les matrices, les complexes ont leur
+   évaluateur, et les deux couches des réels n'en voient rien.
+
+   « i » est l'unité imaginaire, toujours — comme sur l'appareil, et pour
+   la même raison : une lettre qui serait tantôt i, tantôt une mémoire,
+   rendrait faux un calcul recopié d'un voisin. En électricité on écrit j ;
+   ici, comme sur la calculatrice de l'épreuve, c'est i.
+
+   Un complexe est { re, im } en décimal, et { er, ei } sous la forme
+   exacte du moteur (fractions, radicaux, π) quand elle existe : 2i, i√2,
+   1/2 + (√3/2)i. Comme partout, la forme exacte n'est gardée que si elle
+   tombe d'accord avec le décimal. */
+const CPLX = (function () {
+  const z = (re, im, er, ei) => ({ k: "c", re, im, er: er === undefined ? null : er, ei: ei === undefined ? null : ei });
+
+  function contient(n, ctx) {
+    if (!n || typeof n !== "object") return false;
+    if (n.t === "var" && n.n === "i") return true;
+    if (n.t === "appel" && CPLX_FONCTIONS.has(n.n)) return true;
+    if (n.t === "var" && ctx.cplx && ctx.cplx.has(n.n)) return true;
+    for (const x of [n.a, n.b]) if (contient(x, ctx)) return true;
+    if (n.args) for (const x of n.args) if (contient(x, ctx)) return true;
+    return false;
+  }
+
+  /* Un réel ordinaire, par les deux couches du moteur. */
+  function reel(n, ctx) {
+    const f = evaluer(n, ctx);
+    if (typeof f !== "number" || !Number.isFinite(f)) boum("Un terme n'est pas un nombre fini.");
+    let e = null;
+    try { e = exacte(n, ctx); } catch (err) { e = null; }
+    if (e && Math.abs(EX.nombre(e) - f) > 1e-9 * Math.max(1, Math.abs(f))) e = null;
+    return z(f, 0, e, exZero());
+  }
+
+  const add = (a, b) => z(a.re + b.re, a.im + b.im, EX.somme(a.er, b.er), EX.somme(a.ei, b.ei));
+  /* « 0 − x » et non « −x » : l'opposé de 0 serait −0, et atan2(−0, −8)
+     vaut −π. ln(−1) sortait −iπ au lieu de iπ — le banc l'a vu. */
+  const neg = (a) => z(0 - a.re, 0 - a.im, EX.oppose(a.er), EX.oppose(a.ei));
+  const sub = (a, b) => add(a, neg(b));
+  function mul(a, b) {
+    const P = EX.produit;
+    return z(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re,
+             EX.difference(P(a.er, b.er), P(a.ei, b.ei)), EX.somme(P(a.er, b.ei), P(a.ei, b.er)));
+  }
+  function div(a, b) {
+    const m = b.re * b.re + b.im * b.im;
+    if (m === 0) boum("Division par zéro.");
+    const cb = z(b.re, -b.im, b.er, EX.oppose(b.ei));
+    const num = mul(a, cb);
+    const em = EX.somme(EX.produit(b.er, b.er), EX.produit(b.ei, b.ei));
+    return z(num.re / m, num.im / m, EX.quotient(num.er, em), EX.quotient(num.ei, em));
+  }
+  const module_ = (a) => Math.hypot(a.re, a.im);
+  const argument = (a) => Math.atan2(a.im === 0 ? 0 : a.im, a.re);
+  function polaire(r, t) { return z(r * Math.cos(t), r * Math.sin(t), null, null); }
+
+  /* Un angle remarquable redevient exact : k·π/12, k·π/8, k·π/6… — c'est le
+     cas de tous les arguments d'un exercice (1 + i, √3 + i, −1…). */
+  function angleExact(t) {
+    for (const d of [1, 2, 3, 4, 6, 8, 12]) {
+      const k = Math.round(t * d / Math.PI);
+      if (Math.abs(k * Math.PI / d - t) < 1e-12) return ex(k, d, 1, k === 0 ? 0 : 1);
+    }
+    return null;
+  }
+
+  function puissance(a, b) {
+    if (b.im === 0 && Number.isInteger(b.re) && Math.abs(b.re) <= 64) {
+      let n = b.re, base = n < 0 ? div(z(1, 0, exUn(), exZero()), a) : a, r = z(1, 0, exUn(), exZero());
+      for (let i = 0; i < Math.abs(n); i++) r = mul(r, base);
+      return r;
+    }
+    /* Exposant quelconque : la forme exponentielle, en décimal seulement. */
+    if (a.re === 0 && a.im === 0) {
+      if (b.re > 0) return z(0, 0, exZero(), exZero());
+      boum("0 à une puissance négative ou complexe n'existe pas.");
+    }
+    const lr = Math.log(module_(a)), t = argument(a);
+    const reE = b.re * lr - b.im * t, imE = b.re * t + b.im * lr;
+    return polaire(Math.exp(reE), imE);
+  }
+
+  function racine(a) {
+    /* La racine d'un réel négatif reste exacte : √(−8) = 2i√2. */
+    if (a.im === 0 && a.re < 0 && estZero(a.ei)) {
+      const er = EX.racine(EX.oppose(a.er));
+      return z(0, Math.sqrt(-a.re), exZero(), er);
+    }
+    const m = module_(a);
+    const re = Math.sqrt((m + a.re) / 2), im = Math.sign(a.im || 1) * Math.sqrt((m - a.re) / 2);
+    return z(re, a.im === 0 && a.re >= 0 ? 0 : im, null, null);
+  }
+
+  /* Dans un calcul complexe, une racine, un logarithme ou une puissance
+     d'un RÉEL négatif doivent passer ici aussi : « √(−4) + 3i » vaut 2i + 3i,
+     pas une erreur. Le reste des sous-calculs réels garde ses deux couches. */
+  const COMPLEXIFIANTS = new Set(["sqrt", "ln", "exp", "abs"]);
+  const aParcourir = (n) => n.t === "op" || n.t === "neg"
+    || (n.t === "appel" && (COMPLEXIFIANTS.has(n.n) || CPLX_FONCTIONS.has(n.n)));
+
+  function ev(n, ctx) {
+    if (!contient(n, ctx) && !(ctx.forceComplexe && aParcourir(n))) return reel(n, ctx);
+    switch (n.t) {
+      case "var":
+        if (n.n === "i") return z(0, 1, exZero(), exUn());
+        return Object.assign({}, ctx.cplx.get(n.n));
+      case "neg": return neg(ev(n.a, ctx));
+      case "op": {
+        if (n.o === "->") {
+          const cible = n.b.t === "var" ? n.b.n : null;
+          if (cible === "i") boum("« i » est l'unité imaginaire : on ne range rien dedans.");
+          const v = ev(n.a, ctx);
+          if (!cible || !/^[A-Za-z]$/.test(cible)) boum("Après « → » il faut une lettre : « 3+4i→Z ».");
+          if (v.im === 0 && estZero(v.ei)) {
+            ctx.vars.set(cible, v.re); ctx.exacts.set(cible, v.er); ctx.cplx.delete(cible);
+          } else { ctx.cplx.set(cible, v); ctx.vars.delete(cible); ctx.exacts.delete(cible); }
+          if (ctx.mats) ctx.mats.delete(cible);
+          ctx.dernierStockage = cible;
+          return v;
+        }
+        if (["=", "<", ">", "<=", ">="].includes(n.o))
+          boum("On ne compare pas des nombres complexes : ils ne sont pas rangés sur une droite.");
+        const a = ev(n.a, ctx), b = ev(n.b, ctx);
+        switch (n.o) {
+          case "+": return add(a, b);
+          case "-": return sub(a, b);
+          case "*": return mul(a, b);
+          case "/": return div(a, b);
+          case "^": return puissance(a, b);
+        }
+        break;
+      }
+      case "appel": {
+        const v = n.args.length ? ev(n.args[0], ctx) : null;
+        if (n.args.length !== 1) boum("« " + n.n + " » prend un seul argument.");
+        const R = ctx.reglages || REGLAGES();
+        const versUnite = (t) => depuisRadian(t, R.angle);
+        /* Un argument RÉEL qui reste dans le domaine des réels : on rend la
+           main aux deux couches, qui savent la forme exacte (√2, ln 2, e³).
+           Sans ce retour, « (1+i)/√2 » perdait son √2/2 — le banc l'a vu. */
+        if (v.im === 0 && (n.n === "exp" || n.n === "abs"
+            || (n.n === "sqrt" && v.re >= 0) || (n.n === "ln" && v.re > 0)) && !contient(n.args[0], ctx))
+          return reel(n, ctx);
+        switch (n.n) {
+          case "re": return z(v.re, 0, v.er, exZero());
+          case "im": return z(v.im, 0, v.ei, exZero());
+          case "conj": return z(v.re, -v.im, v.er, EX.oppose(v.ei));
+          case "abs": {
+            const e = EX.racine(EX.somme(EX.produit(v.er, v.er), EX.produit(v.ei, v.ei)));
+            return z(module_(v), 0, e, exZero());
+          }
+          case "arg": {
+            if (v.re === 0 && v.im === 0) boum("0 n'a pas d'argument.");
+            const t = argument(v);
+            const e = R.angle === "rad" ? angleExact(t) : null;
+            return z(versUnite(t), 0, e, exZero());
+          }
+          case "sqrt": return racine(v);
+          case "exp": return z(Math.exp(v.re) * Math.cos(v.im), Math.exp(v.re) * Math.sin(v.im),
+                                v.im === 0 ? null : null, null);
+          case "ln": {
+            if (v.re === 0 && v.im === 0) boum("ln(0) n'existe pas.");
+            return z(Math.log(module_(v)), argument(v), null, null);
+          }
+        }
+        boum("« " + n.n + " » ne s'applique pas à un nombre complexe ici. "
+             + "Disponibles : re, im, abs (le module), arg, conj, √, exp, ln et les puissances.");
+        break;
+      }
+      case "fac": boum("La factorielle ne s'applique pas à un nombre complexe.");
+    }
+    boum("Ce calcul mélange des complexes d'une façon que je ne sais pas faire.");
+  }
+
+  /* L'écriture : a + bi, la partie nulle omise, i seul plutôt que 1i. */
+  function ecrire(re, im, texte) {
+    const nul = (t) => t === "0" || t === "−0";
+    const r = texte(re, true), m = texte(im, false);
+    if (nul(m)) return r;
+    let mi;
+    const negatif = m[0] === "−";
+    const abs = negatif ? m.slice(1) : m;
+    if (abs === "1") mi = "i";
+    else if (/^[0-9.]+$/.test(abs)) mi = abs + "i";
+    else if (/^√/.test(abs)) mi = "i" + abs;
+    else mi = "(" + abs + ")i";
+    if (nul(r)) return (negatif ? "−" : "") + mi;
+    return r + (negatif ? " − " : " + ") + mi;
+  }
+
+  function calculer(a, entree, ctx) {
+    let v;
+    ctx.forceComplexe = true;
+    try { v = ev(a.arbre, ctx); }
+    catch (e) {
+      if (e instanceof ErreurCalc) return { ok: false, entree, erreur: e.message };
+      throw e;
+    }
+    finally { delete ctx.forceComplexe; }
+    const R = ctx.reglages;
+    const net = (x) => (Math.abs(x) < 1e-13 * Math.max(1, Math.abs(v.re), Math.abs(v.im)) ? 0 : x);
+    const re = net(v.re), im = net(v.im);
+    /* L'exact n'est gardé que s'il est d'accord avec le décimal. */
+    const daccord = (e, x) => e && Math.abs(EX.nombre(e) - x) <= 1e-9 * Math.max(1, Math.abs(x));
+    const er = daccord(v.er, re) ? v.er : null, ei = daccord(v.ei, im) ? v.ei : null;
+    const approx = ecrire(re, im, (x) => formater(x, R));
+    const exact = er && ei ? ecrire(er, ei, (e) => EX.texte(e, { decimalSiPossible: a.decimalVu })) : null;
+    if (im === 0) {
+      ctx.vars.set("ans", re); ctx.exacts.set("ans", er); ctx.cplx.delete("ans");
+      return { ok: true, entree, valeur: re, exact: exact && exact !== approx ? exact : (exact || null), approx,
+               montrerLesDeux: !!(exact && exact !== approx), stocke: ctx.dernierStockage || null, desaccord: null };
+    }
+    ctx.cplx.set("ans", { k: "c", re, im, er, ei });
+    /* Les formes que demande un exercice d'impédances : module, argument,
+       et la forme exponentielle qui les réunit. */
+    const mod = Math.hypot(re, im), t = Math.atan2(im, re);
+    const emod = er && ei ? EX.racine(EX.somme(EX.produit(er, er), EX.produit(ei, ei))) : null;
+    const tExact = R.angle === "rad" ? angleExact(t) : null;
+    const tModTxt = emod && daccord(emod, mod) ? EX.texte(emod) : formater(mod, R);
+    const tArgTxt = tExact ? EX.texte(tExact) : formater(depuisRadian(t, R.angle), R);
+    const complements = [
+      ["Module", tModTxt],
+      ["Argument", tArgTxt + (R.angle === "deg" ? "°" : R.angle === "grad" ? " gr" : "")],
+      ["Forme exponentielle", (() => {
+        const ang = R.angle === "rad" ? tArgTxt : formater(t, R);
+        const neg = ang[0] === "−";
+        return (tModTxt === "1" ? "" : tModTxt + "·") + "e^(" + (neg ? "−" : "") + "i·" + (neg ? ang.slice(1) : ang) + ")";
+      })()],
+    ];
+    return { ok: true, entree, complexe: { re, im }, exact, approx,
+             montrerLesDeux: !!(exact && exact !== approx), complements,
+             stocke: ctx.dernierStockage || null };
+  }
+
+  /* Pour ranger un complexe dans le navigateur : les formes exactes en
+     texte que le moteur sait relire. */
+  const versJSON = (c) => ({ re: c.re, im: c.im, er: c.er ? EX.texte(c.er) : null, ei: c.ei ? EX.texte(c.ei) : null });
+  function depuisJSON(o) {
+    if (!o || !Number.isFinite(o.re) || !Number.isFinite(o.im)) return null;
+    const relire = (t) => { if (!t) return null; try { return exacte(analyser(t).arbre, contexte()); } catch (e) { return null; } };
+    return z(o.re, o.im, relire(o.er), relire(o.ei));
+  }
+
+  return { contient, calculer, versJSON, depuisJSON };
+})();
+
 /* ═════════════════════ 8. L'entrée publique ════════════════════════════ */
 function contexte(reglages) {
-  return { vars: new Map(), exacts: new Map(),
+  return { vars: new Map(), exacts: new Map(), mats: new Map(), cplx: new Map(),
            reglages: Object.assign(REGLAGES(), reglages || {}) };
 }
 
@@ -1751,6 +2528,10 @@ function calculer(src, ctx) {
   const a = analyser(texte);
   if (a.erreur) return { ok: false, entree: texte, erreur: a.erreur };
   ctx.dernierStockage = null;
+  if (!ctx.mats) ctx.mats = new Map();
+  if (!ctx.cplx) ctx.cplx = new Map();
+  if (MAT.contient(a.arbre, ctx)) return MAT.calculer(a, texte, ctx);
+  if (CPLX.contient(a.arbre, ctx)) return CPLX.calculer(a, texte, ctx);
   let valeur, exactVal = null;
   try {
     /* L'exact d'abord : il ne modifie rien et ne peut pas lever, donc
@@ -1758,7 +2539,15 @@ function calculer(src, ctx) {
     try { exactVal = exacte(a.arbre, ctx); } catch (e) { exactVal = null; }
     valeur = evaluer(a.arbre, ctx);
   } catch (e) {
-    if (e instanceof ErreurCalc) return { ok: false, entree: texte, erreur: e.message };
+    if (e instanceof ErreurCalc) {
+      /* Hors des réels, mais pas hors des complexes : √(−4) vaut 2i, ln(−1)
+         vaut iπ. On reprend le calcul en complexe plutôt que de refuser. */
+      if (/dans les réels|nombres complexes|strictement positifs/.test(e.message)) {
+        const c = CPLX.calculer(a, texte, ctx);
+        if (c.ok) return c;
+      }
+      return { ok: false, entree: texte, erreur: e.message };
+    }
     throw e;
   }
   if (typeof valeur !== "number")
@@ -2365,7 +3154,7 @@ const ALGEBRE = {
 /* ═════════════════════ 11. Ce qui sort d'ici ═══════════════════════════ */
 return {
   REGLAGES, contexte, calculer, analyser, evaluer, exacte, formater, fonction, suite,
-  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES,
+  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES, MAT, CPLX,
   /* La liste des fonctions, exportée pour que le banc puisse vérifier
      qu'AUCUNE ne manque au catalogue — et que le catalogue n'en annonce
      aucune qui n'existe pas. */

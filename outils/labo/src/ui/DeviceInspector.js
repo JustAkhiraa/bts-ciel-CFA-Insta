@@ -5,7 +5,7 @@
      avec leur état, ses tables vivantes (ARP, CAM, routage) ;
    · un câble : ses deux bouts, son type, et pourquoi il ne marche pas ;
    · une trame (mode simulation) : l'inspecteur de PDU ;
-   · rien : le lab en cours, ses étapes.
+   · rien : le lab en cours, ses étapes, ses objectifs à vérifier.
 
    Les tables se rafraîchissent seules au fil du trafic, sans redessiner
    un formulaire qu'on est en train de remplir. */
@@ -16,6 +16,7 @@ import { TYPES_CABLE } from "../devices/Cable.js";
 import { runningConfig, etatInterface } from "../cli/IOSAffichage.js";
 import { ecrireListeVlan } from "../devices/SwitchL2.js";
 import { rendrePDU } from "./PDUInspector.js";
+import { verifierObjectifs } from "./Objectifs.js";
 
 const ech = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pastille = (couleur) => '<span class="lb-pastille ' + couleur + '"></span>';
@@ -240,6 +241,24 @@ export class DeviceInspector {
       h += '<section class="lb-section"><h3>' + ech(lab.titre) + '</h3><p class="lb-texte">' + lab.resume + '</p><ol class="lb-etapes">'
         + lab.etapes.map((e) => "<li>" + e + "</li>").join("") + "</ol>"
         + '<div class="lb-rangee"><button type="button" class="lb-b" data-act="recharger-lab">Recharger ce lab</button></div></section>';
+      if (lab.objectifs) {
+        // Le résultat ne vaut que pour le lab où il a été obtenu : changer
+        // de lab, c'est repartir de cases vides, pas de coches héritées.
+        const v = this.verif && this.verif.id === lab.id ? this.verif.res : null;
+        const faits = v ? v.filter((r) => r.ok).length : 0;
+        h += '<section class="lb-section"><h3>Objectifs</h3><ul class="lb-objectifs">'
+          + lab.objectifs.map((o, i) => {
+            const etat = v ? (v[i].ok ? "ok" : "ko") : "";
+            return '<li data-etat="' + etat + '"><span class="lb-coche" aria-hidden="true">' + (etat === "ok" ? "✓" : etat === "ko" ? "✗" : "○") + "</span>"
+              + ech(o.texte) + (etat ? '<span class="lb-hors">' + (etat === "ok" ? " — atteint" : " — pas encore") + "</span>" : "") + "</li>";
+          }).join("") + "</ul>"
+          + '<div class="lb-rangee"><button type="button" class="lb-b" data-act="verifier-lab">Vérifier</button>'
+          + (v ? '<span class="lb-bilan" role="status">' + faits + " / " + v.length + (faits === v.length ? " — tout est atteint" : "") + "</span>" : "")
+          + "</div>"
+          + '<p class="lb-note">Le labo vérifie sur une copie de votre réseau : rien de ce qu\'il essaie n\'apparaît dans le journal ni la simulation.</p>'
+          + (lab.solution ? '<details class="lb-solution"><summary>Voir la solution</summary><p class="lb-texte">' + lab.solution + "</p></details>" : "")
+          + "</section>";
+      }
     }
     h += '<section class="lb-section"><h3>Topologie</h3><p class="lb-texte">' + n + " équipement" + (n > 1 ? "s" : "") + ", " + this.reseau.cables.length
       + " câble" + (this.reseau.cables.length > 1 ? "s" : "") + ". Cliquez un équipement pour l'inspecter ; double-cliquez pour ouvrir son terminal.</p></section>"
@@ -281,7 +300,12 @@ export class DeviceInspector {
     else if (act === "dhcp" && a) this.lancerDhcp(a);
     else if (act === "vider-arp" && a) { a.ip.viderArp(); this.rendre(true); }
     else if (act === "vider-cam" && a) { a.viderCam(); this.rendre(true); }
-    else if (act === "recharger-lab") this.rappels.rechargerLab();
+    else if (act === "recharger-lab") { this.verif = null; this.rappels.rechargerLab(); }
+    else if (act === "verifier-lab") {
+      const lab = this.rappels.lab();
+      this.verif = { id: lab.id, res: verifierObjectifs(this.reseau, lab) };
+      this.rendre(true);
+    }
     else if (act === "inverser-dce") {
       const c = this.cible().cable;
       // le premier bout d'un câble série est son DCE : on échange les deux

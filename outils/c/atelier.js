@@ -2523,6 +2523,7 @@
     }
     if (barreFichiers) {
       barreFichiers.addEventListener("click", (e) => {
+        if (estC(langue)) { clicOngletC(e); return; }
         const f = barreFichiers.querySelector(".at-fic-form");
         const b = e.target.closest("button, label");
         if (!b) return;
@@ -2540,6 +2541,7 @@
         if (b.dataset.annuler) { f.hidden = true; }
       });
       barreFichiers.addEventListener("submit", (e) => {
+        if (estC(langue)) { creerFicC(e); return; }
         e.preventDefault();
         const champ = e.target.querySelector("input[type=text]");
         const n = champ.value.trim().toLowerCase().replace(/\s+/g, "-");
@@ -3210,6 +3212,7 @@
         entreeCumul = "";
         finSaisie = false;
         fichiers = {};
+        disqueDepart = Object.assign({}, disque);
         editeur.marquesErreur = [];
         zoneEntree.hidden = true;
       } else {
@@ -3259,6 +3262,7 @@
         if (m.t === "fini") {
           clearTimeout(minuteur);
           fichiers = m.fichiers || {};
+          if (!m.attente) poserDisque(fichiers);
           finExec(m, msC, Math.round(performance.now() - t0));
         }
       };
@@ -3275,7 +3279,7 @@
       }, budget);
 
       ouvrierExec.postMessage({ wasm: copie, entree: entreeCumul,
-                                finEntree: finSaisie, fichiers }, [copie]);
+                                finEntree: finSaisie, fichiers: disqueDepart }, [copie]);
     }
 
     function finExec(m, msC, msE) {
@@ -3560,7 +3564,7 @@
     }
 
     function listerFichiers() {
-      const noms = Object.keys(fichiers);
+      const noms = Object.keys(fichiers).filter((n) => fichiers[n] !== disqueDepart[n]);
       if (!noms.length) return;
       const c = document.createElement("div");
       c.className = "at-diag d-fichier";
@@ -3572,9 +3576,213 @@
       $("#at-diag-tete").hidden = false;
     }
 
+    /* ── le disque : les fichiers que le programme lit et écrit ──────────
+       Demandé : créer à la main le fichier qu'un TP fait LIRE
+       (etudiants.txt), et retrouver à l'exercice suivant celui que
+       l'exercice précédent vient d'ÉCRIRE (bonjour.txt). Le disque ne
+       vivait que le temps d'une exécution, vide au départ : ni l'un ni
+       l'autre n'était possible.
+
+       Il est donc posé ici et gardé d'une exécution à l'autre, comme celui
+       d'un vrai ordinateur. Ses fichiers s'ouvrent en ONGLETS, à côté de
+       programme.c, dans la barre qui sert déjà au mode Web — demandé tel
+       quel, après un premier essai en panneau sous la console, jugé
+       compliqué. Un fichier ouvert remplace l'éditeur par une simple zone
+       de texte : l'éditeur, lui, n'est jamais touché, si bien qu'Exécuter,
+       Indenter, Partager et la relecture portent toujours sur le
+       programme. Le programme
+       part de « disqueDepart », figé au clic sur Exécuter : une saisie
+       rejoue le programme depuis le début, et il doit retrouver le disque
+       tel qu'il était, pas tel qu'il l'a déjà modifié.
+
+       « var » et non « const » : poserLangue() appelle majDisque() pendant
+       la restauration, avant que ces lignes ne soient atteintes. */
+    var CLE_DISQUE = CLE + "-disque";
+    var disque = {}, disqueDepart = {}, ficC = null, disqueNeufs = [];
+    try {
+      const d = JSON.parse(localStorage.getItem(CLE_DISQUE) || "null");
+      if (d && typeof d === "object")
+        for (const n of Object.keys(d)) if (typeof d[n] === "string") disque[n] = d[n];
+    } catch (e) {}
+
+    function sauverDisque() {
+      try { localStorage.setItem(CLE_DISQUE, JSON.stringify(disque)); } catch (e) {}
+    }
+
+    const estC = (l) => l === "c" || l === "c++";
+    const attr = (t) => ech(t).replace(/"/g, "&quot;");
+
+    function poserDisque(sortis) {
+      disqueNeufs = Object.keys(sortis).filter((n) => sortis[n] !== disqueDepart[n]);
+      disque = Object.assign({}, sortis);
+      sauverDisque();
+      if (ficC !== null && !(ficC in disque)) montrerFicC(null);   // le programme l'a effacé
+      else dessinerDisque();
+    }
+
+    /* Appelée par poserLangue() à chaque changement de langage ou
+       d'exemple : on revient au programme, qui vient de changer. */
+    function majDisque(l) {
+      if (!disque) return;              // appelée avant la lecture du disque
+      montrerFicC(null);
+      if (!barreFichiers) return;
+      barreFichiers.classList.toggle("en-c", estC(l));
+      if (!estC(l)) return;
+      if (nomFichier) nomFichier.hidden = true;
+      barreFichiers.hidden = false;
+      dessinerDisque();
+    }
+
+    /* null : le programme. Un nom : ce fichier, à la place de l'éditeur. */
+    function montrerFicC(n) {
+      const zone = $("#at-fic-texte", racine), volet = $(".at-volet-code", racine);
+      if (!zone || !volet) return;
+      ficC = n;
+      zone.hidden = n === null;
+      volet.classList.toggle("voir-fichier", n !== null);
+      if (n !== null) {
+        zone.value = disque[n];
+        zone.setAttribute("aria-label", "Contenu de " + n);
+      }
+      if (estC(langue)) dessinerDisque();
+    }
+
+    function dessinerDisque() {
+      if (!barreFichiers || !disque || !estC(langue)) return;
+      const noms = Object.keys(disque).sort((a, b) => a.localeCompare(b, "fr"));
+      barreFichiers.innerHTML =
+        '<span class="at-fic' + (ficC === null ? " actif" : "") + '">' +
+        '<button type="button" role="tab" data-prog="1" aria-selected="' + (ficC === null) + '">' +
+        ech(FICHIER[langue] || "programme.c") + "</button></span>" +
+        noms.map((n) => {
+          const neuf = disqueNeufs.indexOf(n) >= 0;
+          return '<span class="at-fic' + (n === ficC ? " actif" : "") + (neuf ? " neuf" : "") + '">' +
+            '<button type="button" role="tab" data-ficc="' + attr(n) + '" aria-selected="' + (n === ficC) + '"' +
+            ' title="' + (neuf ? "Écrit par le programme — " : "") + 'clic droit pour renommer">' + ech(n) + "</button>" +
+            '<button type="button" class="at-fic-x" data-supprc="' + attr(n) + '" aria-label="Supprimer ' +
+            attr(n) + '" title="Supprimer ' + attr(n) + '">×</button></span>';
+        }).join("") +
+        '<button type="button" class="at-fic-plus" data-ajoutc="1" aria-label="Créer un fichier" ' +
+        'title="Créer un fichier — par exemple celui qu\'un programme lit avec fopen(…, &quot;r&quot;)">+</button>' +
+        '<form class="at-fic-form" hidden><input type="text" spellcheck="false" autocomplete="off" ' +
+        'autocapitalize="off" aria-label="Nom du nouveau fichier" placeholder="etudiants.txt">' +
+        '<button type="submit">Créer</button><button type="button" data-annulerc="1">Annuler</button></form>';
+      /* Le programme vient peut-être de réécrire le fichier ouvert. */
+      const zone = $("#at-fic-texte", racine);
+      if (ficC !== null && zone && document.activeElement !== zone && zone.value !== disque[ficC])
+        zone.value = disque[ficC];
+    }
+
+    function clicOngletC(e) {
+      const b = e.target.closest("button");
+      if (!b) return;
+      const f = barreFichiers.querySelector(".at-fic-form");
+      if (b.dataset.prog) { montrerFicC(null); editeur.focus(); return; }
+      if (b.dataset.ficc) { montrerFicC(b.dataset.ficc); $("#at-fic-texte", racine).focus(); return; }
+      if (b.dataset.supprc) {
+        const n = b.dataset.supprc;
+        if (disque[n] && !confirm("Supprimer « " + n + " » et son contenu ?")) return;
+        delete disque[n];
+        disqueNeufs = disqueNeufs.filter((x) => x !== n);
+        sauverDisque();
+        if (ficC === n) montrerFicC(null); else dessinerDisque();
+        return;
+      }
+      if (b.dataset.ajoutc) { ouvrirFormC(null); return; }
+      if (b.dataset.annulerc) f.hidden = true;
+    }
+
+    /* Le même petit formulaire sert à créer (« + ») et à renommer
+       (clic droit ou F2 sur un onglet) — demandé : « donne la possibilité
+       de renommer avec un clic droit ». Le cas qui l'a fait demander :
+       etudiant.txt créé, etudiants.txt ouvert par le programme. */
+    function ouvrirFormC(ancien) {
+      const f = barreFichiers.querySelector(".at-fic-form");
+      const champ = f.querySelector("input");
+      f.dataset.renomme = ancien || "";
+      f.querySelector("button[type=submit]").textContent = ancien ? "Renommer" : "Créer";
+      champ.setAttribute("aria-label", ancien ? "Nouveau nom de " + ancien : "Nom du nouveau fichier");
+      champ.value = ancien || "";
+      f.hidden = false;
+      champ.focus();
+      if (ancien) {              // sélectionner le nom, sans l'extension
+        const point = ancien.lastIndexOf(".");
+        champ.setSelectionRange(0, point > 0 ? point : ancien.length);
+      }
+    }
+
+    /* Le nom est celui que le programme passera à fopen() : pas de
+       dossier — le disque n'en a pas —, et un nom qui existe déjà ouvre
+       ce fichier au lieu de l'écraser. */
+    function creerFicC(e) {
+      e.preventDefault();
+      const n = e.target.querySelector("input").value.trim().replace(/^\.\//, "");
+      let refus = "";
+      if (!n) refus = "Donnez un nom au fichier, par exemple etudiants.txt";
+      else if (/[\/\\]/.test(n)) refus = "Pas de dossier : un simple nom, comme etudiants.txt";
+      else if (n.length > 60) refus = "Nom trop long : 60 caractères au plus";
+      else if (n === FICHIER[langue]) refus = "« " + n + " » est le nom du programme";
+      if (refus) { dirEtat(refus, "erreur"); return; }
+      const ancien = e.target.dataset.renomme;
+      if (ancien) {
+        if (n !== ancien) {
+          if (n in disque) { dirEtat("« " + n + " » existe déjà", "erreur"); return; }
+          disque[n] = disque[ancien];
+          delete disque[ancien];
+          disqueNeufs = disqueNeufs.map((x) => (x === ancien ? n : x));
+          sauverDisque();
+          dirEtat("« " + ancien + " » renommé en « " + n + " »", "ok");
+        }
+        if (ficC === ancien) montrerFicC(n); else dessinerDisque();
+        return;
+      }
+      if (!(n in disque)) { disque[n] = ""; sauverDisque(); }
+      montrerFicC(n);
+      $("#at-fic-texte", racine).focus();
+    }
+
+    (function brancherDisque() {
+      const zone = $("#at-fic-texte", racine);
+      if (!zone) return;
+      if (barreFichiers) {
+        barreFichiers.addEventListener("contextmenu", (e) => {
+          const b = estC(langue) && e.target.closest("[data-ficc]");
+          if (!b) return;
+          e.preventDefault();
+          ouvrirFormC(b.dataset.ficc);
+        });
+        barreFichiers.addEventListener("keydown", (e) => {
+          const b = e.key === "F2" && estC(langue) && e.target.closest("[data-ficc]");
+          if (!b) return;
+          e.preventDefault();
+          ouvrirFormC(b.dataset.ficc);
+        });
+      }
+      zone.addEventListener("input", () => {
+        if (ficC === null) return;
+        disque[ficC] = zone.value;
+        sauverDisque();
+        if (disqueNeufs.indexOf(ficC) >= 0) {
+          disqueNeufs = disqueNeufs.filter((x) => x !== ficC);
+          const o = barreFichiers && barreFichiers.querySelector(".at-fic.actif");
+          if (o) o.classList.remove("neuf");
+        }
+      });
+      zone.addEventListener("keydown", (e) => {
+        if (e.key !== "Tab" || e.shiftKey) return;     // une tabulation, pas un saut de focus
+        e.preventDefault();
+        zone.setRangeText("\t", zone.selectionStart, zone.selectionEnd, "end");
+        zone.dispatchEvent(new Event("input"));
+      });
+      /* Pas d'appel à majDisque() ici : FICHIER, plus bas, n'existe pas
+         encore, et l'erreur arrêtait TOUT le démarrage de l'atelier. La
+         restauration appelle poserLangue(), donc majDisque(), après. */
+    })();
+
     diags.addEventListener("click", (e) => {
       const b = e.target.closest(".at-aller");
       if (!b) return;
+      if (ficC !== null) montrerFicC(null);
       if (b.dataset.fichier && estWeb(langue) && b.dataset.fichier !== fichierActif) ouvrirFichier(b.dataset.fichier);
       editeur.aller(+b.dataset.ligne, +b.dataset.colonne);
     });
@@ -3638,6 +3846,7 @@
          n'y a pas de compilateur, et un bouton qui n'agit sur rien use la
          confiance dans tous les autres. */
       if (bStrict) bStrict.hidden = (l !== "c" && l !== "c++");
+      majDisque(l);
       if ((l === "c" || l === "c++") && !differe) moteur.lancer();
       choixLangue.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langue === l)));
       /* Le bouton de la liste porte le nom du langage courant : c'est la
