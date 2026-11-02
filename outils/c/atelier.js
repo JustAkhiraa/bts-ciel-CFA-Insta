@@ -2946,31 +2946,64 @@
     /* ── exécuter du Python ───────────────────────────────────────────
        Rien à compiler, rien à télécharger : l'interprète est déjà là, et il
        rend tout d'un coup — la sortie complète, ou l'erreur avec sa ligne.
-       Il n'y a donc ni ouvrier, ni minuterie, ni saisie au clavier : c'est
-       un sous-ensemble assumé, pas un Python incomplet dont on espère que
-       ça passe, et la page le dit sous l'éditeur.
+       Il n'y a donc ni ouvrier ni minuterie.
+
+       La saisie au clavier passe par le même REJEU que le C et le
+       JavaScript : quand input() n'a plus rien à lire, l'interprète rend
+       la main en disant qu'il attend ; la console ouvre son champ, et la
+       réponse relance le programme depuis le début avec une saisie de
+       plus. Avant cela, tout TP qui posait une question s'arrêtait sur
+       « il n'y a plus de saisie ».
 
        La borne d'opérations est DANS l'interprète : une boucle sans fin
        s'arrête d'elle-même au lieu de figer l'onglet. C'est le seul endroit
        où elle peut être posée — un setTimeout ne peut pas interrompre du
        JavaScript synchrone. */
-    function executerPython() {
-      console2.vider();
-      diags.innerHTML = "";
-      editeur.marquesErreur = [];
+    function executerPython(reprise) {
+      if (!reprise) {
+        console2.vider();
+        /* Par afficherDiagnostics, et non en vidant la liste : l'en-tête
+           « 4 erreurs » d'une relecture faite en C restait affiché. */
+        afficherDiagnostics([]);
+        editeur.marquesErreur = [];
+        entreeCumul = "";
+        finSaisie = false;
+      }
       zoneEntree.hidden = true;
+      attendEntree = false;
+      relancer = () => executerPython(true);
+      const rendreLaMain = () => {
+        tourne = false;
+        bEx.disabled = false;
+        bEx.querySelector(".lib").textContent = "Exécuter";
+        bArret.hidden = true;
+      };
       if (!window.PYMINI) {
+        rendreLaMain();
         dirEtat("L'interprète Python n'a pas pu être chargé.", "erreur");
         console2.note("Le fichier calculatrice/python-mini.js est absent.", "stop");
         return;
       }
       const t0 = performance.now();
       let r;
-      try { r = window.PYMINI.executer(editeur.valeur); }
+      try {
+        r = window.PYMINI.executer(editeur.valeur, {
+          entree: entreeCumul ? entreeCumul.split("\n").slice(0, -1) : [],
+          attente: true, finEntree: finSaisie });
+      }
       catch (e) { r = { ok: false, sortie: [], erreur: { message: String(e && e.message || e), ligne: 0 } }; }
+      rendreLaMain();
       const ms = Math.round(performance.now() - t0);
-      const sortie = (r.sortie || []).join("\n");
-      if (sortie) console2.poser(sortie + "\n", false);
+      /* La sortie cumulée : à la reprise, la console n'ajoute que ce qui
+         dépasse ce qu'elle montre déjà, saisies intercalées à leur place. */
+      const sortie = r.texte !== undefined ? r.texte : (r.sortie || []).join("\n") + "\n";
+      if (sortie) console2.poser(sortie, false);
+      if (r.attente) {
+        attendEntree = true;
+        demanderEntree();
+        dirEtat("Le programme attend une saisie", "avert");
+        return;
+      }
       if (r.ok) {
         dirEtat("Terminé en " + ms + " ms — " + (r.operations || 0) + " opérations", "ok");
       } else {

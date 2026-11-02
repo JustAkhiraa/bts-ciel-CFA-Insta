@@ -184,6 +184,14 @@
       const c = CALC.CPLX.depuisJSON(ETAT.complexes[nom]);
       if (c) ctx.cplx.set(nom, c);
     }
+    /* Les colonnes des applications de données, lisibles ici sous les noms
+       de la machine : V1 et N1 (Statistiques), X1/Y1 à X3/Y3 (Régressions).
+       Elles sont RÉSERVÉES : on les lit ici, on les modifie là-bas. */
+    ctx.reserves = new Set(RESERVEES);
+    for (const [nom, valeurs] of colonnesDeDonnees()) {
+      const m = CALC.MAT.depuisJSON(listeExacte(valeurs));
+      if (m) ctx.mats.set(nom, m);
+    }
     ctx.fonctions = Object.create(null);
     ETAT.fonctions.forEach((f, i) => {
       if (!f.expr.trim()) return;
@@ -202,6 +210,35 @@
     });
     return ctx;
   }
+  const RESERVEES = ["V1", "N1", "X1", "Y1", "X2", "Y2", "X3", "Y3"];
+  /* Les colonnes non vides, dans l'ordre de la machine. */
+  function colonnesDeDonnees() {
+    const out = [];
+    const prendre = (nom, v) => {
+      const nombres = (v || []).map(Number).filter(Number.isFinite);
+      if (nombres.length) out.push([nom, nombres]);
+    };
+    prendre("V1", ETAT.stats.valeurs);
+    prendre("N1", ETAT.stats.effectifs);
+    (ETAT.regression.series || []).slice(0, 3).forEach((s, i) => {
+      prendre("X" + (i + 1), s.X); prendre("Y" + (i + 1), s.Y);
+    });
+    return out;
+  }
+  /* Une liste saisie en décimales reste EXACTE : 2.5 devient 25/10, et
+     moyenne(V1;N1) rend la fraction que l'application Statistiques montre. */
+  function listeExacte(valeurs) {
+    const q = valeurs.map((x) => {
+      const s = String(x);
+      if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+      const [e, d = ""] = s.split(".");
+      return (e + d).replace(/^(-?)0+(?=\d)/, "$1") + "/1" + "0".repeat(d.length);
+    });
+    return { f: [valeurs], q: q.every(Boolean) ? [q] : null };
+  }
+  /* Une mémoire : une lettre, ou une lettre et un chiffre — A, L1 —, hors
+     des colonnes réservées. */
+  const memoire = (nom) => /^[A-Za-z][0-9]?$/.test(nom) && RESERVEES.indexOf(nom) < 0;
   const fmt = (x) => CALC.formater(x, ETAT.reglages);
 
   /* ═══════════════ 2. Le clavier ═════════════════════════════════════
@@ -887,16 +924,33 @@
           + ESSAIS.map((e) => '<button type="button" class="nw-essai" data-essai="'
               + ech(e) + '">' + ech(e) + '</button>').join(" ")
           + '</p>';
+      /* Le menu « var » : les nombres rangés, puis les listes et matrices,
+         puis les colonnes des applications de données. Un clic insère le
+         nom dans la ligne de saisie. */
       const vars = Object.keys(ETAT.variables).sort();
+      const mats = Object.keys(ETAT.matrices).filter((n) => n !== "ans").sort();
+      const decrire = (o) => {
+        const l = o.f.length, c = o.f[0].length;
+        if (l !== 1) return "matrice " + l + " × " + c;
+        const t = o.f[0].slice(0, 4).map(fmt).join(";");
+        return "[" + t + (c > 4 ? ";…" : "") + "]";
+      };
+      const bouton = (nom, texte) => '<button type="button" class="nw-bouton" data-insvar="'
+        + ech(nom) + '">' + ech(texte) + '</button>';
+      const colonnes = colonnesDeDonnees();
       const panneau = panneauVar ? '<div class="nw-rangee" style="margin-top:.6rem">'
-          + (vars.length
-            ? vars.map((v) => '<button type="button" class="nw-bouton" data-insvar="' + ech(v)
-                + '">' + ech(v) + ' = ' + ech(fmt(ETAT.variables[v])) + '</button>').join("")
+          + (vars.length || mats.length
+            ? vars.map((v) => bouton(v, v + " = " + fmt(ETAT.variables[v]))).join("")
+              + mats.map((m) => bouton(m, m + " = " + decrire(ETAT.matrices[m]))).join("")
             : '<span class="nw-sous">Aucune valeur rangée. Écrivez par exemple '
-              + '<code>5→A</code> pour en ranger une.</span>')
-          + (vars.length ? '<button type="button" class="nw-bouton" id="nw-vider-vars">'
+              + '<code>5→A</code>, ou <code>[12;15;9]→L1</code> pour une liste.</span>')
+          + (vars.length || mats.length ? '<button type="button" class="nw-bouton" id="nw-vider-vars">'
               + 'Tout effacer</button>' : '')
-          + '</div>' : "";
+          + '</div>'
+          + (colonnes.length ? '<div class="nw-rangee" style="margin-top:.4rem">'
+              + '<span class="nw-sous">Colonnes des applications :</span>'
+              + colonnes.map(([n, v]) => bouton(n, n + " (" + v.length + ")")).join("")
+              + '</div>' : '') : "";
       /* La saisie passe EN TÊTE, et le dernier calcul apparaît juste en
          dessous d'elle. Ce qu'on vient de taper et ce qu'on vient
          d'obtenir se touchent : plus rien ne pousse le résultat hors de
@@ -937,7 +991,7 @@
       if (ok) ok.addEventListener("click", valider);
       const vider = $("#nw-vider-vars");
       if (vider) vider.addEventListener("click", () => {
-        ETAT.variables = {}; garder(); redessiner();
+        ETAT.variables = {}; ETAT.matrices = {}; ETAT.complexes = {}; garder(); redessiner();
         dire("Mémoires effacées.", "e-ok");
       });
       $$("[data-insvar]", page).forEach((b) => b.addEventListener("click", () => {
@@ -979,13 +1033,13 @@
          toutes : une lettre qui passe d'un nombre à une matrice (ou
          l'inverse) ne doit pas garder l'autre valeur dans un coin. */
       ETAT.variables = {};
-      for (const [nom, v] of ctx.vars) if (/^[A-Za-z]$/.test(nom)) ETAT.variables[nom] = v;
+      for (const [nom, v] of ctx.vars) if (memoire(nom)) ETAT.variables[nom] = v;
       ETAT.matrices = {};
       for (const [nom, m] of ctx.mats)
-        if (/^[A-Za-z]$/.test(nom) || (nom === "ans" && r.matrice)) ETAT.matrices[nom] = CALC.MAT.versJSON(m);
+        if (memoire(nom) || (nom === "ans" && r.matrice)) ETAT.matrices[nom] = CALC.MAT.versJSON(m);
       ETAT.complexes = {};
       for (const [nom, c] of ctx.cplx)
-        if (/^[A-Za-z]$/.test(nom) || (nom === "ans" && r.complexe)) ETAT.complexes[nom] = CALC.CPLX.versJSON(c);
+        if (memoire(nom) || (nom === "ans" && r.complexe)) ETAT.complexes[nom] = CALC.CPLX.versJSON(c);
       if (r.stocke) dire("Rangé dans " + r.stocke + ".", "e-ok");
       else dire("");
     } else {
