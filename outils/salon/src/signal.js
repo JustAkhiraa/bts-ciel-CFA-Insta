@@ -34,6 +34,13 @@ export function compacter(desc) {
   return ["S1", desc.type === "offer" ? "o" : "r", ufrag, pwd, empreinte, setup, cands.slice(0, 4).join(",")].join(SEP);
 }
 
+/* Les adresses d'un code, et si elles sont MASQUÉES. Sans accès à la
+   caméra, Chrome et Safari n'écrivent pas l'adresse IP de l'appareil mais un
+   nom aléatoire en « .local », que l'autre appareil doit retrouver par
+   multicast — mesuré dans ce salon : c'est le cas par défaut. */
+export const adressesDe = (code) => String(code).split(SEP)[6].split(",");
+export const masquees = (code) => adressesDe(code).every((a) => /\.local:\d+$/.test(a));
+
 /* Le code peut arriver nu, ou dans une adresse (le QR d'invitation est un
    lien vers cette page : l'appareil photo du téléphone l'ouvre tout seul). */
 export function extraireCode(texte) {
@@ -44,7 +51,7 @@ export function extraireCode(texte) {
 
 export function deplier(code) {
   const p = String(code).split(SEP);
-  if (p.length !== 7 || p[0] !== "S1" || !/^[or]$/.test(p[1])) throw new Error("ce n'est pas un code du salon");
+  if (p.length !== 7 || p[0] !== "S1" || !/^[or]$/.test(p[1])) throw new Error("ce n'est pas un code SkyChat");
   const [, sens, ufrag, pwd, emp, setup, adresses] = p;
   const fp = [...depuisB64(emp)].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(":");
   if (fp.length !== 95) throw new Error("empreinte DTLS invalide");

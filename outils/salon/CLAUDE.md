@@ -1,4 +1,7 @@
-# Le salon — architecture
+# SkyChat — architecture
+
+Le nom (« sky », le ciel : CIEL) a remplacé « Salon » le 2 novembre 2026 ; l'adresse
+`outils/salon.html` reste, pour que les liens et les QR déjà partagés marchent encore.
 
 Une messagerie de classe **sans Internet et sans serveur**, en maillage :
 chaque appareil est un nœud qui relaie pour les autres. Une page

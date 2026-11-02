@@ -53,9 +53,16 @@ export class TransportWebRTC {
     });
   }
 
+  /* Chaque étape de la recherche d'un chemin est dite à l'écran : sans
+     elle, une liaison qui échoue ressemble à une page qui ne fait rien. */
+  suivre(pc, surEtat) {
+    if (surEtat) pc.addEventListener("iceconnectionstatechange", () => surEtat(pc.iceConnectionState));
+  }
+
   /* Côté qui invite : une offre, puis la réponse de l'autre. */
-  async inviter() {
+  async inviter({ surEtat } = {}) {
     const pc = this.creer();
+    this.suivre(pc, surEtat);
     const dc = pc.createDataChannel("salon", { ordered: true });
     const ouvert = this.brancher(pc, dc);
     await pc.setLocalDescription(await pc.createOffer());
@@ -73,10 +80,11 @@ export class TransportWebRTC {
   }
 
   /* Côté qui rejoint : l'offre lue, une réponse à montrer. */
-  async rejoindre(codeOffre) {
+  async rejoindre(codeOffre, { surEtat } = {}) {
     const d = deplier(codeOffre);
     if (d.type !== "offer") throw new Error("c'est une réponse, pas une invitation");
     const pc = this.creer();
+    this.suivre(pc, surEtat);
     let resoudre;
     const ouvert = new Promise((r) => { resoudre = r; });
     pc.ondatachannel = (e) => this.brancher(pc, e.channel).then(resoudre);
