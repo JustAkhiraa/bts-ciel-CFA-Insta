@@ -9,7 +9,7 @@ import * as C from "./crypto.js";
 import { Noeud, SALON_DEFAUT, nomValide, salonValide, TTL_MAX } from "./noeud.js";
 import { TransportOnglets, TransportWebRTC } from "./transports.js";
 import { encoder, versSvg } from "./qr.js";
-import { extraireCode } from "./signal.js";
+import { extraireCode, adressesDe, masquees } from "./signal.js";
 import { scanner, lireFichier } from "./camera.js";
 import * as S from "./stockage.js";
 
@@ -387,9 +387,16 @@ async function soumettre(texte) {
   }
 }
 
+let ditSeul = 0;
 async function parler(texte, action = false) {
   if (etat.actif.startsWith("@")) return envoyerPrive(etat.actif.slice(1), action ? "* " + noeud.nick + " " + texte : texte);
   await noeud.parler(etat.actif, texte, { action });
+  // signalé : « j'envoie, ça fait rien » — seul, un message ne part nulle
+  // part, et la page doit le dire plutôt que de laisser croire à une panne
+  if (!noeud.pairs.size && Date.now() - ditSeul > 60000) {
+    ditSeul = Date.now();
+    systeme("Personne n'est relié : ce message reste sur cet appareil. Bouton « Relier » pour connecter un autre appareil.");
+  }
 }
 async function envoyerPrive(fp, texte) {
   if (!noeud.pairs.has(fp)) return systeme("Ce pair n'est plus joignable : le message ne peut pas être chiffré pour lui.");
@@ -431,6 +438,8 @@ let enCours = null;          // la caméra ou la connexion en cours, à arrêter
 function fermerRelier() {
   if (enCours && enCours.arreter) enCours.arreter();
   enCours = null;
+  libererAdresses();
+  cameraDemandee = false;
   $("#sl-relier").hidden = true;
   $("#sl-champ").focus();
 }
@@ -496,20 +505,66 @@ function messageEchec() {
   return "La liaison n'a pas abouti en " + DELAI_LIAISON / 1000 + " s. Les deux appareils doivent être sur le "
     + "MÊME réseau. Cause la plus fréquente : le Wi-Fi de l'école isole les appareils les uns des autres — "
     + "dans ce cas, aucun code n'y changera rien. Solution : activez le partage de connexion d'un téléphone, "
-    + "connectez-y les deux appareils, puis recommencez. Vérifiez aussi qu'aucun n'est en 4G ou derrière un VPN.";
+    + "connectez-y les deux appareils, puis recommencez. Vérifiez aussi qu'aucun n'est en 4G ou derrière un VPN, "
+    + "et que la caméra a été autorisée des deux côtés (sans elle, l'adresse reste masquée).";
 }
+
+/* Révéler l'adresse locale. Sans accès à la caméra, Chrome et Safari
+   n'écrivent pas l'adresse IP de l'appareil dans l'offre WebRTC, mais un
+   nom aléatoire en « .local » que l'autre appareil doit retrouver par
+   multicast. Signalé : Mac et iPhone sur le même Wi-Fi, rien ne se relie —
+   et mesuré dans la page : les codes ne portaient que ces noms masqués.
+   Une page qui a accès à la caméra reçoit, elle, les vraies adresses. Le
+   salon s'en sert déjà pour scanner : on la demande donc AVANT de préparer
+   l'offre ou la réponse, et on la garde jusqu'à la liaison. Rien n'est
+   filmé ni affiché. Refusée, on continue avec l'adresse masquée, et on le dit. */
+let fluxAdresse = null, cameraDemandee = false;
+async function revelerAdresses() {
+  if (fluxAdresse) return true;
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    fluxAdresse = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    return true;
+  } catch (e) { return false; }
+}
+function libererAdresses() {
+  if (fluxAdresse) { fluxAdresse.getTracks().forEach((t) => t.stop()); fluxAdresse = null; }
+}
+function ligneAdresses(code) {
+  return masquees(code)
+    ? '<p class="sl-note sl-erreur">Adresse annoncée : masquée (nom en .local), la caméra n\'a pas été autorisée. '
+      + "Si la liaison n'aboutit pas, fermez, autorisez la caméra, et recommencez.</p>"
+    : '<p class="sl-note">Adresse annoncée sur le Wi-Fi : ' + ech(adressesDe(code).join(", ")) + "</p>";
+}
+/* Ce que fait la liaison, dit à l'écran, étape par étape. */
+function etatLiaison(el) {
+  return (s) => {
+    const e = typeof el === "string" ? $(el) : el;
+    if (!e) return;
+    const T = { checking: ["Les deux appareils se cherchent sur le Wi-Fi…", ""], connected: ["Chemin trouvé, ouverture du canal…", ""],
+                completed: ["Chemin trouvé, ouverture du canal…", ""], disconnected: ["Liaison interrompue.", "sl-erreur"],
+                failed: [messageEchec(), "sl-erreur"] }[s];
+    if (T) { e.className = "sl-texte " + T[1]; e.textContent = T[0]; }
+  };
+}
+const NOTE_PRESSE_PAPIERS = '<p class="sl-note">Mac et iPhone sur le même compte : « Copier » sur l\'un, '
+  + "collez sur l'autre — pas besoin de scanner.</p>";
 const limite = () => new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON));
 
 async function inviter(corps) {
+  corps.innerHTML = '<p>Le navigateur va demander la <b>caméra</b> : elle servira à scanner la réponse, et sans elle il '
+    + "n'annonce pas sa vraie adresse sur le Wi-Fi.</p>";
+  await revelerAdresses();
   corps.innerHTML = '<p>Préparation de l\'invitation : le navigateur cherche ses adresses sur le réseau local…</p>';
   let inv;
-  try { inv = await rtc.inviter(); } catch (e) { corps.innerHTML = '<p class="sl-erreur">' + ech(e.message) + "</p>"; return; }
+  try { inv = await rtc.inviter({ surEtat: etatLiaison("#inv-etat") }); } catch (e) { corps.innerHTML = '<p class="sl-erreur">' + ech(e.message) + "</p>"; return; }
   enCours = { arreter: () => {} };
   const lien = location.origin + location.pathname + "#o=" + inv.code;
   corps.innerHTML = '<div class="sl-etapes"><div><p class="sl-etape">1 · Il scanne ceci</p>' + qrHtml(lien)
     + '<p class="sl-note">Avec l\'appareil photo de son téléphone (le lien ouvre le salon), ou avec <b>Rejoindre</b> sur son ordinateur.</p>'
-    + '<textarea class="sl-code" rows="3" readonly>' + ech(inv.code) + '</textarea><div class="sl-rangee"><button type="button" class="sl-b" data-copier>Copier le code</button></div></div>'
-    + '<div><p class="sl-etape">2 · Vous scannez sa réponse</p>' + zoneScan("inv") + "</div></div>";
+    + '<textarea class="sl-code" rows="3" readonly>' + ech(inv.code) + '</textarea><div class="sl-rangee"><button type="button" class="sl-b" data-copier>Copier le code</button></div>'
+    + ligneAdresses(inv.code) + "</div>"
+    + '<div><p class="sl-etape">2 · Vous scannez sa réponse</p>' + zoneScan("inv") + NOTE_PRESSE_PAPIERS + "</div></div>";
   corps.querySelector("[data-copier]").onclick = () => copier(inv.code);
   brancherScan("inv", async (code) => {
     const e = $("#inv-etat");
@@ -518,6 +573,7 @@ async function inviter(corps) {
       const ouvert = await inv.accepter(code);
       await Promise.race([ouvert, limite()]);
       e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — l'autre appareil fait maintenant partie du salon.";
+      libererAdresses();
       setTimeout(fermerRelier, 1400);
     } catch (err) { e.className = "sl-texte sl-erreur"; e.textContent = err.message; }
   });
@@ -529,14 +585,23 @@ async function rejoindre(corps, code = null) {
     brancherScan("rej", (c) => rejoindre(corps, c));
     return;
   }
+  if (!fluxAdresse && !cameraDemandee) {
+    // un geste d'abord : sur iPhone, la demande de caméra doit suivre un toucher
+    corps.innerHTML = '<p class="sl-etape">Invitation reçue ✓</p><p>Le navigateur va demander la <b>caméra</b> : sans elle, il '
+      + "n'annonce pas sa vraie adresse sur le Wi-Fi, et l'autre appareil ne le trouve pas toujours. Rien n'est filmé.</p>"
+      + '<div class="sl-rangee"><button type="button" class="sl-b" id="rej-pret">Préparer ma réponse</button></div>';
+    $("#rej-pret").onclick = async () => { cameraDemandee = true; await revelerAdresses(); rejoindre(corps, code); };
+    return;
+  }
   corps.innerHTML = "<p>Invitation lue. Préparation de votre réponse…</p>";
   let rep;
-  try { rep = await rtc.rejoindre(code); } catch (e) { corps.innerHTML = '<p class="sl-erreur">' + ech(e.message) + "</p>"; return; }
+  try { rep = await rtc.rejoindre(code, { surEtat: etatLiaison("#rej-attente") }); } catch (e) { corps.innerHTML = '<p class="sl-erreur">' + ech(e.message) + "</p>"; return; }
   enCours = { arreter: () => {} };
   corps.innerHTML = '<p class="sl-etape">2 · Montrez-lui votre réponse</p><div class="sl-etapes"><div>' + qrHtml(rep.code) + '</div><div>'
     + "<p>L'appareil qui vous invite scanne ce QR code (étape 2 de son côté).</p>"
     + '<textarea class="sl-code" rows="4" readonly>' + ech(rep.code) + '</textarea><div class="sl-rangee"><button type="button" class="sl-b" data-copier>Copier la réponse</button></div>'
-    + '<p class="sl-texte" id="rej-attente">En attente de la connexion…</p></div></div>';
+    + ligneAdresses(rep.code) + NOTE_PRESSE_PAPIERS
+    + '<p class="sl-texte" id="rej-attente">En attente : l\'autre appareil doit lire cette réponse.</p></div></div>';
   corps.querySelector("[data-copier]").onclick = () => copier(rep.code);
   /* Le délai ne court qu'une fois la réponse montrée : l'autre doit
      encore la scanner, d'où une marge plus longue que du côté qui invite. */
@@ -544,6 +609,7 @@ async function rejoindre(corps, code = null) {
     .then(() => {
       const e = $("#rej-attente");
       if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans le salon."; }
+      libererAdresses();
       setTimeout(fermerRelier, 1400);
     })
     .catch((err) => {

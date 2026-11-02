@@ -34,6 +34,13 @@ export function compacter(desc) {
   return ["S1", desc.type === "offer" ? "o" : "r", ufrag, pwd, empreinte, setup, cands.slice(0, 4).join(",")].join(SEP);
 }
 
+/* Les adresses d'un code, et si elles sont MASQUÉES. Sans accès à la
+   caméra, Chrome et Safari n'écrivent pas l'adresse IP de l'appareil mais un
+   nom aléatoire en « .local », que l'autre appareil doit retrouver par
+   multicast — mesuré dans ce salon : c'est le cas par défaut. */
+export const adressesDe = (code) => String(code).split(SEP)[6].split(",");
+export const masquees = (code) => adressesDe(code).every((a) => /\.local:\d+$/.test(a));
+
 /* Le code peut arriver nu, ou dans une adresse (le QR d'invitation est un
    lien vers cette page : l'appareil photo du téléphone l'ouvre tout seul). */
 export function extraireCode(texte) {
