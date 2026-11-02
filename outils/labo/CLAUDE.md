@@ -76,7 +76,10 @@ outils/labo/src/
     TerminalTabs.js             terminaux en onglets, en bas
     PDUInspector.js             les en-têtes d'une trame, couche par couche
     CommandPalette.js           Ctrl K
-    Presets.js                  les cinq labs
+    Presets.js                  cinq labs à découvrir, trois pannes à trouver
+    Objectifs.js                les objectifs d'un lab, éprouvés sur une COPIE du
+                                réseau (JSON → réseau neuf) : pings et « show »
+                                n'y laissent aucune trame chez l'élève
 outils/labo/tests/              bancs node (aucun DOM) ; blocs.test.mjs rejoue
                                 chaque bloc de outils/packet-tracer.html
 ```

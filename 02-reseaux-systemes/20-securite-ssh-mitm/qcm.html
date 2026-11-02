@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sécurité SSH et MITM — QCM | BTS CIEL</title>
+<meta name="description" content="Douze questions : les garanties de SSH, clés et empreinte, Diffie-Hellman, TOFU et known_hosts, la faille d'ARP, l'ARP spoofing, le MITM, la détection par changement de clé et les contre-mesures.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; systèmes</a>
+    <span class="sep">/</span><span>Chapitre 20</span>
+    <span class="sep">/</span><span class="badge">QCM</span>
+  </div>
+  <h1>Sécurité SSH et MITM — QCM</h1>
+  <p class="chapeau">12 questions. Une seule bonne réponse par question, et
+     l'explication s'affiche dès que vous avez répondu.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<main class="corps">
+
+<div class="qcm-tete">
+  <span class="sc" id="qcm-sc">0 / 12</span>
+  <span class="av"><span id="qcm-av"></span></span>
+</div>
+
+<section class="qcm" id="qcm">
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">1</span>Que garantit le chiffrement d'une connexion SSH ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Que personne ne peut lire ce qui passe</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Que les données n'ont pas été modifiées</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Que le serveur est à jour</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Que l'on parle à la bonne machine</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le <b>chiffrement</b> protège la <b>confidentialité</b> : personne ne peut lire le contenu. « La bonne machine » est l'authentification, « non modifié » est l'intégrité.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">2</span>Laquelle de ces clés ne doit JAMAIS quitter la machine ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>L'empreinte</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>La clé privée</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Le fichier known_hosts</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>La clé publique</span></button>
+      </div>
+      <p class="qcm-why" hidden>La <b>clé privée</b> reste secrète sur la machine. La clé publique, elle, se distribue ; l'empreinte en est un résumé public.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">3</span>À quoi sert l'empreinte (fingerprint) d'une clé ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>À accélérer la connexion</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>À chiffrer les données</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>À comparer facilement une clé publique, trop longue à lire</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>À stocker le mot de passe</span></button>
+      </div>
+      <p class="qcm-why" hidden>Une clé publique fait des centaines de caractères. L'<b>empreinte</b> en est un condensé court et unique, que l'humain peut comparer d'un coup d'œil.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">4</span>Que garantit l'échange de clés Diffie-Hellman ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>L'intégrité des fichiers</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>L'absence d'ARP spoofing</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>L'identité du serveur</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une clé de session secrète sans la transmettre</span></button>
+      </div>
+      <p class="qcm-why" hidden>Diffie-Hellman fabrique une <b>clé commune secrète</b> sans jamais la faire transiter. Mais il ne prouve pas <b>à qui</b> on parle — d'où le risque de MITM.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">5</span>Que signifie l'approche TOFU en SSH ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Trust On First Use : on accepte l'empreinte au premier usage</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un algorithme de chiffrement</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Un type d'attaque réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le nom du fichier de configuration</span></button>
+      </div>
+      <p class="qcm-why" hidden><b>Trust On First Use</b> : à la première connexion, le client affiche l'empreinte et, si on l'accepte, la mémorise pour les fois suivantes.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">6</span>Où le client enregistre-t-il les clés des serveurs déjà visités ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>~/.ssh/id_ed25519</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>~/.ssh/known_hosts</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>/etc/ssh/sshd_config</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>~/.ssh/authorized_keys</span></button>
+      </div>
+      <p class="qcm-why" hidden><code>~/.ssh/known_hosts</code> côté client. <code>authorized_keys</code> (côté serveur) liste les clients autorisés ; <code>sshd_config</code> configure le démon.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">7</span>Pourquoi la deuxième connexion à un serveur SSH ne repose-t-elle aucune question ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Parce que le serveur a changé de clé</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Parce que le mot de passe est enregistré</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Parce que l'empreinte est déjà dans known_hosts et correspond</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Parce que SSH désactive la sécurité</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le client retrouve l'empreinte dans <code>known_hosts</code>, la compare à celle présentée : elles correspondent, donc connexion silencieuse.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">8</span>Quelle est la faille fondamentale du protocole ARP ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Il ne fonctionne que sur Wi-Fi</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Il est trop lent</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Il chiffre mal les données</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une réponse ARP n'est pas authentifiée</span></button>
+      </div>
+      <p class="qcm-why" hidden>ARP associe IP et MAC <b>sans vérifier</b> l'émetteur : n'importe quelle machine peut affirmer posséder une IP, et les autres la croient.</p>
+    </article>
+    <article class="qcm-q" data-bon="0">
+      <p><span class="qcm-n">9</span>Quelle est la signature d'une attaque ARP spoofing dans les caches ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Deux adresses IP différentes qui pointent vers la même MAC</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un cache ARP vide</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Une MAC sans IP</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Une IP sans MAC</span></button>
+      </div>
+      <p class="qcm-why" hidden>L'IP du serveur et celle du client pointent toutes deux vers la <b>MAC de l'attaquant</b> : deux IP, une seule MAC — c'est incohérent.</p>
+    </article>
+    <article class="qcm-q" data-bon="1">
+      <p><span class="qcm-n">10</span>Pourquoi l'attaquant active-t-il le routage (ip_forward) sur sa machine ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Pour accélérer son réseau</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Pour relayer le trafic au vrai destinataire et rester invisible</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Pour chiffrer la session</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Pour scanner les ports</span></button>
+      </div>
+      <p class="qcm-why" hidden>Sans relais, le trafic détourné serait abandonné et la communication coupée — l'attaque serait repérée. Le routage fait suivre les paquets au vrai destinataire.</p>
+    </article>
+    <article class="qcm-q" data-bon="2">
+      <p><span class="qcm-n">11</span>Qu'est-ce qui détecte l'attaque quand le client se reconnecte à travers l'attaquant ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Le ping ne passe plus</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Un antivirus</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>La clé d'hôte reçue diffère de celle enregistrée dans known_hosts</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Le mot de passe est refusé</span></button>
+      </div>
+      <p class="qcm-why" hidden>Le client compare la clé présentée à celle de <code>known_hosts</code> : elles diffèrent, donc SSH affiche « HOST IDENTIFICATION HAS CHANGED » et refuse la connexion.</p>
+    </article>
+    <article class="qcm-q" data-bon="3">
+      <p><span class="qcm-n">12</span>Laquelle N'EST PAS une contre-mesure efficace contre cette attaque ?</p>
+      <div class="qcm-opts">
+        <button type="button" class="qcm-opt" data-i="0"><span class="qcm-lt">A</span><span>Distribuer les known_hosts à l'avance</span></button>
+        <button type="button" class="qcm-opt" data-i="1"><span class="qcm-lt">B</span><span>Authentification par clé plutôt que par mot de passe</span></button>
+        <button type="button" class="qcm-opt" data-i="2"><span class="qcm-lt">C</span><span>Entrées ARP statiques et DAI sur les commutateurs</span></button>
+        <button type="button" class="qcm-opt" data-i="3"><span class="qcm-lt">D</span><span>Ignorer l'avertissement de changement de clé pour gagner du temps</span></button>
+      </div>
+      <p class="qcm-why" hidden>Ignorer l'alerte, c'est désactiver la dernière protection — exactement ce que l'attaque espère. Toutes les autres réponses sont de vraies contre-mesures.</p>
+    </article>
+</section>
+
+<div class="qcm-fin" id="qcm-fin" hidden>
+  <h2>Terminé</h2>
+  <p class="gros" id="qcm-note"></p>
+  <p id="qcm-mot"></p>
+  <button type="button" id="qcm-refaire">Recommencer</button>
+</div>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/qcm.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
+</main>
+</div>
+
+<script>
+/* QCM — sans dépendance. Une réponse se donne une fois : on ne peut pas
+   essayer les quatre jusqu'à tomber juste, sinon la note ne veut rien dire. */
+(function () {
+  "use strict";
+  var qs = Array.prototype.slice.call(document.querySelectorAll(".qcm-q"));
+  var sc = document.getElementById("qcm-sc"),
+      av = document.getElementById("qcm-av"),
+      fin = document.getElementById("qcm-fin"),
+      note = document.getElementById("qcm-note"),
+      mot = document.getElementById("qcm-mot"),
+      refaire = document.getElementById("qcm-refaire");
+  if (!qs.length) return;
+  var total = qs.length, justes = 0, repondues = 0;
+
+  function majuscule() {
+    sc.textContent = justes + " / " + total;
+    av.style.width = Math.round(repondues / total * 100) + "%";
+    if (repondues === total) {
+      note.textContent = justes + " / " + total;
+      mot.textContent =
+        justes === total ? "Tout juste. Passez à la fiche de révision."
+        : justes >= total * 0.7 ? "Bien. Relisez les explications des questions ratées."
+        : justes >= total * 0.4 ? "À revoir : reprenez le cours avant de recommencer."
+        : "Le cours d'abord, le QCM ensuite.";
+      fin.hidden = false;
+    }
+  }
+
+  qs.forEach(function (q) {
+    var bon = +q.getAttribute("data-bon");
+    var opts = Array.prototype.slice.call(q.querySelectorAll(".qcm-opt"));
+    var why = q.querySelector(".qcm-why");
+    opts.forEach(function (o) {
+      o.addEventListener("click", function () {
+        if (q.getAttribute("data-fait")) return;
+        q.setAttribute("data-fait", "1");
+        var choisi = +o.getAttribute("data-i");
+        repondues++;
+        if (choisi === bon) justes++;
+        opts.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === bon) x.classList.add("bon");
+          else if (j === choisi) x.classList.add("faux");
+          else x.classList.add("pale");
+        });
+        why.hidden = false;
+        majuscule();
+      });
+    });
+  });
+
+  refaire.addEventListener("click", function () {
+    justes = 0; repondues = 0; fin.hidden = true;
+    qs.forEach(function (q) {
+      q.removeAttribute("data-fait");
+      q.querySelector(".qcm-why").hidden = true;
+      q.querySelectorAll(".qcm-opt").forEach(function (x) {
+        x.disabled = false;
+        x.classList.remove("bon", "faux", "pale");
+      });
+    });
+    majuscule();
+    qs[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  majuscule();
+})();
+</script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
+</body>
+</html>

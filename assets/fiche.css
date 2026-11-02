@@ -5342,6 +5342,18 @@ html[data-anim="0"] .apparait { opacity: 1; }
 }
 .filtre button:hover { border-color: var(--accent); color: var(--accent-sombre); }
 
+/* l'aide-mémoire Linux : la commande telle qu'on la tape, et son bouton */
+.lx-table td { vertical-align: top; }
+.lx-cmd { width: 46%; }
+.lx-cmd code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8182rem; }
+.lx-copier {
+  margin-top: .35rem; min-height: 34px; min-width: 34px; padding: .2rem .7rem; cursor: pointer;
+  font: inherit; font-size: .7576rem; font-weight: 650;
+  background: var(--carte-creuse); color: var(--encre-douce);
+  border: 1px solid var(--bord-fort); border-radius: var(--r);
+}
+.lx-copier:hover { border-color: var(--accent); color: var(--accent-sombre); }
+
 .legende {
   display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem;
   margin: 0 0 1rem; font-size: .8182rem; color: var(--encre-douce);
@@ -5730,6 +5742,9 @@ td.etat.sur   { color: var(--vert); }
 .dev-attendu ol { margin: 0; padding-left: 1.3rem; }
 .dev-attendu li { margin-bottom: .35rem; font-size: .8788rem; line-height: 1.55; color: var(--encre); }
 .dev-attendu li b { color: var(--accent-sombre); }
+.dev-questions ul { margin: 0; padding: 0; list-style: none; }
+.dev-questions li { margin-bottom: .35rem; font-size: .8788rem; line-height: 1.55; color: var(--encre); }
+.dev-questions li b { color: var(--accent-sombre); }
 
 .dev-reviser { margin-top: 1.1rem; display: grid; gap: .4rem; }
 .dev-reviser a {
@@ -7485,6 +7500,21 @@ body.at-fige { overflow: hidden; }
   font-family: var(--mono); font-size: .8182rem; color: var(--nw-encre-douce);
   text-align: right; font-variant-numeric: tabular-nums;
 }
+/* Une matrice dans l'historique : un tableau aligné à droite, comme un
+   nombre, entre deux crochets dessinés par ses bords — sans image ni
+   caractère de dessin, donc net à tous les zooms et dans les 42 thèmes. */
+/* width: auto — theme.css donne « width: 100% » à TOUT tableau, et la
+   matrice s'étirait d'un bord à l'autre de l'écran, ses termes à 20 cm
+   les uns des autres. */
+.nw-mat {
+  display: inline-table; width: auto; font-size: inherit;
+  margin-left: auto; border-collapse: separate;
+  border-spacing: .75em .12em; padding: .1em .05em;
+  border-left: 2px solid currentColor; border-right: 2px solid currentColor;
+  border-radius: 7px; font-variant-numeric: tabular-nums;
+}
+.nw-mat td { text-align: right; padding: 0; white-space: nowrap; }
+.nw-resultat:has(> .nw-mat), .nw-approche:has(> .nw-mat) { display: flex; justify-content: flex-end; align-items: center; gap: .4em; overflow-x: auto; }
 .nw-erreur {
   color: var(--nw-rouge); font-size: .8182rem; font-weight: 600;
   background: none; text-align: left;
@@ -8182,6 +8212,21 @@ body.at-tire, body.at-tire * { cursor: col-resize !important; user-select: none 
 #atelier[data-edi-theme="papier"] .j-var { color: #A32020; }
 #atelier[data-edi-theme="papier"] .j-op  { color: #4A5560; }
 #atelier[data-edi-theme="papier"] .j-pre { color: #6B3FA0; }
+
+/* Le bloc d'erreur reste un pre noir (#23211E, § 23) même en papier : les
+   teintes foncées de ci-dessus y tombaient sous 2:1. Il reprend donc la
+   palette d'écran, celle que theme.css mesure contre ce fond. */
+#atelier[data-edi-theme="papier"] .at-extrait .j-com { color: #948D80; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-mc  { color: #E58AC9; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-typ { color: #6FC3DF; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-txt { color: #C3E88D; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-num { color: #F7A66B; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-fn  { color: #82AAFF; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-bal { color: #E5C07B; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-att { color: #8FD4C1; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-var { color: #F09E9E; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-op  { color: #A9B6C4; }
+#atelier[data-edi-theme="papier"] .at-extrait .j-pre { color: #C8A2E8; }
 
 /* ── Le surlignage lui-même ──────────────────────────────────────────────
    Un fond OPAQUE, pas un voile : un voile se compose avec le fond du thème,
@@ -9577,12 +9622,43 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   box-shadow: 0 0 0 1px rgba(0,0,0,.15);
 }
 .tb-stylo svg { margin-bottom: 5px; }
-.tb-reglage-stylo { top: calc(100% + 8px); left: 0; width: 16.5rem; padding: .6rem .7rem; }
+.tb-reglage-stylo { top: calc(100% + 8px); left: 0; width: 16.5rem; padding: .6rem .7rem; max-height: 62vh; overflow-y: auto; }
+/* la barre d'encrage passe au-dessus des coins : son réglage déborde sur
+   celui du zoom au téléphone, et à z-index égal c'est le dernier venu qui gagnait */
+.tb-encrage { z-index: 4; }
+/* une commande fait 34 px, même dans un réglage */
+.tb-reglage-stylo .tb-b.tb-petit { height: 34px; min-width: 34px; }
 .tb-calibres { display: flex; gap: .2rem; }
 .tb-calibre i { display: block; width: var(--w); height: var(--w); border-radius: 50%; background: var(--c); }
+.tb-calibre-gomme i { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+/* les effets de pointe : l'aperçu est la pastille, le nom est à côté */
+.tb-effets { display: grid; grid-template-columns: repeat(2, 1fr); gap: .2rem; }
+.tb-effet { justify-content: flex-start; background: var(--carte-creuse); font-size: .8rem; }
+.tb-effet[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--accent); }
+.tb-effet i { flex: none; width: 18px; height: 6px; border-radius: 3px; background: var(--c); }
+.tb-effet i.tb-neon { box-shadow: 0 0 5px 1px var(--c); }
+
+/* les options du stylet : un interrupteur par ligne, la phrase dit ce qu'il fait */
+.tb-options { display: flex; flex-direction: column; gap: .1rem; }
+.tb-option {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem; width: 100%;
+  min-height: 34px; padding: .25rem .35rem; border: 0; border-radius: 6px; background: none;
+  color: var(--tb-encre); font: inherit; font-size: .82rem; text-align: left; cursor: pointer;
+}
+.tb-option:hover { background: var(--carte-creuse); }
+.tb-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tb-option::after {
+  content: ""; flex: none; width: 30px; height: 18px; border-radius: 999px;
+  background: radial-gradient(circle at 9px 50%, #fff 6px, transparent 6.5px), var(--tb-bord);
+  transition: background-position .15s;
+}
+.tb-option[aria-pressed="true"]::after {
+  background: radial-gradient(circle at 21px 50%, #fff 6px, transparent 6.5px), var(--accent);
+}
 
 .tb-creer {
-  top: 56px; bottom: 60px; left: 66px; width: 17rem; overflow-y: auto; padding: .7rem .8rem 1rem;
+  top: 56px; bottom: 60px; left: 66px; width: 19rem; overflow-y: auto; padding: .7rem .8rem 1rem;
 }
 .tb-creer-tete, .tb-props-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: .2rem; }
 .tb-creer-titre, .tb-menu-titre {
@@ -9600,6 +9676,48 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 }
 .tb-carte:hover { border-color: var(--accent); }
 .tb-carte-ic { font-weight: 800; font-size: 1.1rem; width: 1.4rem; text-align: center; }
+.tb-carte-ic svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5;
+                   stroke-linecap: round; stroke-linejoin: round; }
+.tb-carte + .tb-note { margin-top: .35rem; }
+/* les réactions : l'emoji EST l'étiquette, il lui faut sa taille */
+.tb-reaction { font-size: 1.2rem; padding: 0; }
+.tb-creer > .tb-chercher { width: 100%; margin: .2rem 0 .1rem; }
+.tb-cartes { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; margin-top: .5rem; }
+.tb-section { border-top: 1px solid var(--tb-bord); }
+.tb-section:last-of-type { border-bottom: 1px solid var(--tb-bord); }
+.tb-creer-base + .tb-section { margin-top: .7rem; }
+.tb-section > summary {
+  display: flex; align-items: center; gap: .4rem; min-height: 38px; cursor: pointer; list-style: none;
+  font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-section > summary::-webkit-details-marker { display: none; }
+.tb-section > summary::before { content: "▸"; font-size: .8rem; transition: transform .15s; }
+.tb-section[open] > summary::before { transform: rotate(90deg); }
+.tb-section > summary:hover { color: var(--accent-sombre); }
+.tb-section[open] { padding-bottom: .6rem; }
+.tb-section[hidden], .tb-creer-base[hidden] { display: none; }
+.tb-compte { margin-left: auto; font-weight: 600; letter-spacing: 0; color: var(--encre-douce); }
+.tb-chercher {
+  display: block; box-sizing: border-box; min-height: 34px; padding: .3rem .55rem;
+  font: inherit; font-size: .85rem; color: var(--tb-encre); background: var(--carte-creuse); border: 1px solid var(--tb-bord); border-radius: 6px;
+}
+.tb-famille-titre { margin: .4rem 0 .2rem; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-douce); }
+.tb-liste-ic { display: grid; grid-template-columns: 1fr 1fr; gap: .15rem; }
+.tb-ic-ligne, .tb-lien {
+  display: flex; align-items: center; gap: .45rem; min-height: 38px; padding: .2rem .35rem; text-align: left; cursor: pointer;
+  font: inherit; font-size: .76rem; line-height: 1.2; color: var(--tb-encre); background: transparent; border: 1px solid transparent; border-radius: 6px;
+}
+.tb-ic-ligne:hover, .tb-lien:hover { border-color: var(--accent); }
+.tb-ic-ligne svg { flex: none; width: 30px; height: 30px; }
+.tb-ic-ligne[hidden], .tb-lien[hidden], .tb-famille[hidden], .tb-forme[hidden], .tb-modele[hidden] { display: none; }
+.tb-gab svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.tb-ic-ligne.tb-gab svg { width: 24px; height: 24px; }
+.tb-liens { display: grid; grid-template-columns: 1fr 1fr; gap: .15rem; }
+.tb-lien svg { flex: none; width: 34px; height: 12px; }
+/* les modèles : le nom, et en dessous ce qu'on y trouve */
+.tb-modeles { display: grid; gap: .3rem; }
+.tb-modele small { display: block; font-size: .74rem; color: var(--encre-douce); margin-top: .05rem; }
+.tb-modele .tb-carte-ic svg { width: 26px; height: 26px; }
 .tb-bientot { list-style: none; margin: 0; padding: 0; font-size: .82rem; color: var(--encre-douce); }
 .tb-bientot li { display: flex; justify-content: space-between; padding: .2rem 0; }
 .tb-badge {
@@ -9627,6 +9745,20 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 
 /* la barre d'actions au-dessus de la sélection */
 .tb-contexte { top: 0; left: 0; display: flex; gap: .1rem; padding: .2rem; z-index: 4; }
+
+/* l'écriture lue : un champ à corriger, en chasse fixe pour voir chaque signe */
+.tb-lecture { top: 0; left: 0; width: 17rem; padding: .6rem .7rem .7rem; z-index: 5; }
+.tb-lecture .tb-menu-titre { display: block; margin-top: 0; }
+.tb-lu {
+  display: block; width: 100%; box-sizing: border-box; min-height: 42px; resize: vertical;
+  padding: .35rem .5rem; border: 1px solid var(--tb-bord); border-radius: 7px;
+  background: var(--papier); color: var(--tb-encre); font: 600 1.25rem/1.3 var(--mono);
+}
+.tb-lu:focus { outline: none; border-color: var(--accent); }
+.tb-lecture .tb-note { margin: .45rem 0 .55rem; }
+.tb-lecture-pied { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .25rem; }
+.tb-lecture-pied [data-lu="oublier"] { margin-right: auto; color: var(--encre-douce); }
+.tb-lu-ok, .tb-lu-ok:hover { background: var(--accent); color: var(--sur-accent); }
 
 /* le panneau « Format » */
 .tb-props {
@@ -9719,6 +9851,10 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   .tb-sauve { display: none; }
   .tb-titre { width: 7.5rem; }
   .tb-encrage { top: auto; bottom: 10px; left: 10px; transform: none; }
+  /* dix outils sur 355 px : les filets cèdent leur place, les cibles gardent 34 px */
+  .tb-encrage .tb-b { min-width: 34px; padding: 0 .15rem; }
+  .tb-encrage .tb-sep { display: none; }
+  .tb-lecture { width: calc(100% - 20px); }
   .tb-reglage-stylo { top: auto; bottom: calc(100% + 8px); }
   .tb-bd { bottom: 62px; }
   .tb-cote { top: 60px; transform: none; }

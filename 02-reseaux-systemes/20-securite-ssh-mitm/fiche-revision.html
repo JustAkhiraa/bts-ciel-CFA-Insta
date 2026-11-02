@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sécurité SSH et MITM — fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : les trois garanties de SSH, clé publique/privée et empreinte, Diffie-Hellman, TOFU et known_hosts, la faille d'ARP, l'ARP spoofing, le MITM, la détection par changement de clé et les contre-mesures.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 20</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>Sécurité SSH et MITM</h1>
+  <p class="chapeau">Comment SSH protège, par où passe l'attaque, et comment elle est détectée.
+     À relire la veille. <a href="cours.html">Le cours</a> ·
+     <a href="exercices.html">Les questions</a></p>
+</header>
+
+<main class="corps">
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ Les trois garanties de SSH</h2>
+    <div class="formule">Chiffrement → personne ne LIT<br>
+      Authentification → c'est la BONNE machine<br>
+      Intégrité → personne ne MODIFIE</div>
+    <p class="rap">Le MITM vise la 2<sup>e</sup> : usurper l'identité du serveur.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Clés et empreinte</h2>
+    <p><strong>Clé privée</strong> : ne sort jamais de la machine.
+       <strong>Clé publique</strong> : distribuable.</p>
+    <p>On compare l'<strong>empreinte</strong> (<code>SHA256:…</code>), condensé court et unique
+       de la clé publique.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Diffie-Hellman</h2>
+    <p>Fabrique une clé de session <strong>secrète commune</strong> sans la transmettre.</p>
+    <p class="rap">⚠️ Protège du vol, <strong>pas de l'imposture</strong> : ne dit pas à QUI on
+       parle.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ TOFU et <code>known_hosts</code></h2>
+    <div class="formule">1<sup>re</sup> connexion → on accepte l'empreinte (yes)<br>
+      → rangée dans ~/.ssh/known_hosts<br>
+      connexions suivantes → vérifiée, silencieuse</div>
+    <p>Maillon faible : taper <strong>yes sans vérifier</strong>, ou vider
+       <code>known_hosts</code>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚠️ La faille d'ARP</h2>
+    <p>ARP associe IP → MAC et <strong>n'authentifie rien</strong>. Toute machine peut
+       affirmer « cette IP, c'est ma MAC » — même sans qu'on lui demande.</p>
+    <p class="rap"><code>ip neigh show</code> affiche le cache ARP.</p>
+  </article>
+
+  <article class="memo">
+    <h2>ARP spoofing</h2>
+    <p>L'attaquant fait pointer l'IP du serveur ET celle du client vers <strong>sa</strong>
+       MAC.</p>
+    <p class="rap"><strong>Signature</strong> : deux IP, une seule MAC dans les caches.</p>
+  </article>
+
+  <article class="memo">
+    <h2>⚡ Le MITM, deux conditions</h2>
+    <div class="formule">ip_forward = 1 → RELAYER (sinon coupé)<br>
+      redirection :22 → :10022 → INTERCEPTER</div>
+    <p>L'attaquant est « serveur » pour le client, « client » pour le serveur.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Ce qui détecte l'attaque</h2>
+    <div class="formule">clé reçue ≠ clé de known_hosts<br>
+      → REMOTE HOST IDENTIFICATION HAS CHANGED<br>
+      → Host key verification failed (refus)</div>
+    <p class="rap">N'a réussi, avant, que parce que <code>known_hosts</code> avait été vidé.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les contre-mesures</h2>
+    <p><strong>Réseau</strong> : ARP statique, DAI, port security, <code>arpwatch</code>.</p>
+    <p><strong>SSH</strong> : ne jamais ignorer l'alerte, vérifier l'empreinte, distribuer
+       <code>known_hosts</code>, s'authentifier par clé.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Remettre en état (après coup)</h2>
+    <div class="formule">1. stopper l'attaque, nettoyer les caches ARP<br>
+      2. ssh-keygen -R nom_du_serveur</div>
+    <p class="rap">Dans cet ordre : retirer l'entrée avant d'avoir écarté l'attaque, c'est
+       ré-accepter l'imposteur.</p>
+  </article>
+
+</section>
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/fiche-revision.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
+</body>
+</html>

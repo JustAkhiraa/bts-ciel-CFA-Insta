@@ -51,6 +51,13 @@
   const PAR_DEFAUT = () => ({
     reglages: { angle: "rad", format: "auto", chiffres: 10, ecranSombre: false, examen: false },
     variables: {},
+    /* Les matrices rangées (« [[1;2];[3;4]]→A »), et « ans » quand le
+       dernier résultat en était une. Un OBJET, jamais null : la fusion
+       champ par champ ci-dessous ferait Object.assign(null, …), lèverait,
+       et la mémoire entière repartirait de zéro. */
+    matrices: {},
+    /* Les complexes rangés (« 3+4i→Z »), même règle : un objet, jamais null. */
+    complexes: {},
     historique: [],
     fonctions: [{ expr: "x^2-2", visible: true }, { expr: "", visible: true },
                 { expr: "", visible: true }, { expr: "", visible: true }],
@@ -168,6 +175,14 @@
     for (const nom in ETAT.variables) {
       const v = Number(ETAT.variables[nom]);
       if (Number.isFinite(v)) ctx.vars.set(nom, v);
+    }
+    for (const nom in ETAT.matrices) {
+      const m = CALC.MAT.depuisJSON(ETAT.matrices[nom]);
+      if (m) ctx.mats.set(nom, m);
+    }
+    for (const nom in ETAT.complexes) {
+      const c = CALC.CPLX.depuisJSON(ETAT.complexes[nom]);
+      if (c) ctx.cplx.set(nom, c);
     }
     ctx.fonctions = Object.create(null);
     ETAT.fonctions.forEach((f, i) => {
@@ -814,6 +829,15 @@
     return out;
   }
 
+  /* Une matrice à l'écran : un vrai tableau, entre deux crochets dessinés
+     par ses bords. Le lecteur d'écran en annonce les dimensions. */
+  function tableMatrice(lignes) {
+    return '<table class="nw-mat" aria-label="Matrice ' + lignes.length + ' × '
+      + lignes[0].length + '"><tbody>'
+      + lignes.map((r) => '<tr>' + r.map((t) => '<td>' + ech(t) + '</td>').join("") + '</tr>').join("")
+      + '</tbody></table>';
+  }
+
   APPS.calculs = {
     nom: "Calculs", icone: "1+2",
     html() {
@@ -830,6 +854,9 @@
           + ech(l.entree) + '</button>'
           + (l.erreur
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
+            : l.matrice
+            ? '<span class="nw-resultat">' + tableMatrice(l.matrice.exact || l.matrice.approx) + '</span>'
+              + (l.deux ? '<span class="nw-approche">≈ ' + tableMatrice(l.matrice.approx) + '</span>' : '')
             : '<span class="nw-resultat">' + ech(l.exact || l.approx) + '</span>'
               + (l.deux ? '<span class="nw-approche">≈ ' + ech(l.approx) + '</span>' : ''))
           /* Les compléments ne s'affichent que sous le DERNIER calcul :
@@ -947,8 +974,18 @@
     const prefixe = /^[+\-*/^]/.test(texte) && ETAT.historique.length ? "ans" : "";
     const r = CALC.calculer(prefixe + texte, ctx);
     if (r.ok) {
-      ETAT.dernier = r.valeur;
+      if (Number.isFinite(r.valeur)) ETAT.dernier = r.valeur;
+      /* Les mémoires sont REFAITES depuis le contexte, qui les contenait
+         toutes : une lettre qui passe d'un nombre à une matrice (ou
+         l'inverse) ne doit pas garder l'autre valeur dans un coin. */
+      ETAT.variables = {};
       for (const [nom, v] of ctx.vars) if (/^[A-Za-z]$/.test(nom)) ETAT.variables[nom] = v;
+      ETAT.matrices = {};
+      for (const [nom, m] of ctx.mats)
+        if (/^[A-Za-z]$/.test(nom) || (nom === "ans" && r.matrice)) ETAT.matrices[nom] = CALC.MAT.versJSON(m);
+      ETAT.complexes = {};
+      for (const [nom, c] of ctx.cplx)
+        if (/^[A-Za-z]$/.test(nom) || (nom === "ans" && r.complexe)) ETAT.complexes[nom] = CALC.CPLX.versJSON(c);
       if (r.stocke) dire("Rangé dans " + r.stocke + ".", "e-ok");
       else dire("");
     } else {
@@ -956,8 +993,13 @@
     }
     ETAT.historique.push({ entree: prefixe ? prefixe + texte : texte,
                            exact: r.exact || null, approx: r.approx || "",
+                           matrice: r.matrice || null,
                            deux: !!r.montrerLesDeux, erreur: r.ok ? null : r.erreur,
-                           complements: r.ok ? complements(r.valeur, texte) : [] });
+                           /* Un complexe apporte les siens : module,
+                              argument, forme exponentielle. */
+                           complements: !r.ok ? [] : r.complements
+                             ? r.complements
+                             : Number.isFinite(r.valeur) ? complements(r.valeur, texte) : [] });
     if (ETAT.historique.length > 40) ETAT.historique.splice(0, ETAT.historique.length - 40);
     rappel = -1;
     garder();

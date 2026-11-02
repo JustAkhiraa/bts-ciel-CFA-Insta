@@ -2,8 +2,8 @@
    chaque fiche visitee s'y ajoute ensuite.
    VERSION est l'empreinte du site publie : elle change des qu'un
    octet change, ce qui purge l'ancien cache a l'activation. */
-const VERSION='bts-ciel-a0b5af243e';
-const COQUILLE=["./", "./index.html", "./a-propos.html", "./kit.html", "./devoirs.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/icone-180.png", "./assets/icone-192.png", "./assets/icone-512.png", "./assets/icone-maskable-512.png", "./assets/fiche.css?v=bc06e08b", "./assets/app.js?v=bc06e08b", "./assets/fiche.js?v=bc06e08b", "./assets/recherche.js?v=bc06e08b", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./assets/fond-voxel-clair.webp", "./planning.html", "./planning.ics", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html", "./06-physique/index.html"];
+const VERSION='bts-ciel-8c702d168e';
+const COQUILLE=["./", "./index.html", "./a-propos.html", "./kit.html", "./devoirs.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/icone-180.png", "./assets/icone-192.png", "./assets/icone-512.png", "./assets/icone-maskable-512.png", "./assets/fiche.css?v=d3aadbc6", "./assets/app.js?v=d3aadbc6", "./assets/fiche.js?v=d3aadbc6", "./assets/recherche.js?v=d3aadbc6", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./assets/fond-voxel-clair.webp", "./planning.html", "./planning.ics", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html", "./06-physique/index.html"];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting()));
@@ -57,14 +57,23 @@ self.addEventListener('fetch', e => {
 
   /* Une PAGE se relit sur le reseau d'abord : le corpus grandit au fil de
      l'annee, et une fiche corrigee doit arriver. Hors ligne, on retombe sur
-     le cache, puis sur l'accueil. Les ASSETS, eux, restent en cache d'abord :
-     ils portent deja la version dans la cle du cache. */
+     le cache, puis sur l'accueil. Un asset VERSIONNE (?v=) reste en cache
+     d'abord : son empreinte est dans la cle. Un asset SANS version - les
+     modules qu'un script importe lui-meme, par exemple - n'a rien qui
+     signale son changement : il se relit sur le reseau comme une page, et
+     le cache ne sert que hors ligne.
+     « no-cache » n'est pas « pas de cache » : c'est REVALIDER. Sans lui, le
+     reseau d'abord passait par le cache HTTP du navigateur, qui ressert une
+     page par heuristique tant que le serveur ne dit rien - mesure : service
+     worker neuf actif, et la page d'avant servie quand meme. Une
+     revalidation coute un 304 de quelques octets. */
   const page = r.mode === 'navigate' ||
-               (r.headers.get('accept') || '').includes('text/html');
+               (r.headers.get('accept') || '').includes('text/html') ||
+               !u.searchParams.has('v');
 
   e.respondWith(
     page
-      ? fetch(r).then(rep => garder(rep, r))
+      ? fetch(r, { cache: 'no-cache' }).then(rep => garder(rep, r))
                 .catch(() => caches.match(r).then(c => c || caches.match('./index.html')))
       : caches.match(r).then(c => c || fetch(r).then(rep => garder(rep, r))
                                               .catch(() => caches.match('./index.html')))

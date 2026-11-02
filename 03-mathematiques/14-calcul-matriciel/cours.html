@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Calcul matriciel | BTS CIEL</title>
-<meta name="description" content="Cours : ce qu'est une matrice et comment on nomme ses termes, la somme et la soustraction à dimensions égales, la multiplication par un nombre, le produit de deux matrices et sa condition d'existence, les dimensions du résultat, l'associativité, et les deux surprises — un produit qui change avec l'ordre, et un produit nul sans facteur nul.">
+<meta name="description" content="Cours : ce qu'est une matrice et comment on nomme ses termes, la somme et la soustraction à dimensions égales, la multiplication par un nombre, le produit de deux matrices et sa condition d'existence, les dimensions du résultat, l'associativité, et les deux surprises — un produit qui change avec l'ordre, et un produit nul sans facteur nul, puis la matrice identité, la matrice inverse et la résolution d'un système linéaire par substitution et par les matrices.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=bc06e08b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
 </head>
 <body data-matiere="maths">
 <div class="page">
@@ -25,7 +25,12 @@
     <li><a href="#exemple">7 · Un produit en entier</a></li>
     <li><a href="#surprises">8 · Deux surprises qui n'existent pas chez les nombres</a></li>
     <li><a href="#associatif">9 · Ce qui marche encore : l'associativité</a></li>
-    <li><a href="#recap">10 · Récap en 2 minutes</a></li>
+    <li><a href="#inconnue">10 · Retrouver une inconnue dans un produit</a></li>
+    <li><a href="#identite">11 · La matrice identité</a></li>
+    <li><a href="#inverse">12 · La matrice inverse</a></li>
+    <li><a href="#substitution">13 · Un système, par substitution</a></li>
+    <li><a href="#systeme">14 · Un système, avec les matrices</a></li>
+    <li><a href="#recap">15 · Récap en 2 minutes</a></li>
   </ol>
 </nav>
 
@@ -59,6 +64,10 @@
        a les <strong>lignes de A</strong> et les <strong>colonnes de B</strong>.</p>
     <p><strong>Un terme du produit</strong> se lit <em>ligne de la première × colonne de la
        seconde</em> : on multiplie deux à deux, et on additionne.</p>
+    <p><strong>La matrice identité</strong> <code>I</code> (des 1 en diagonale) ne change rien :
+       <code>A × I = A = I × A</code>. <strong>L'inverse</strong> <code>A⁻¹</code> vérifie
+       <code>A × A⁻¹ = I</code> — toutes les matrices n'en ont pas. Un système s'écrit
+       <code>A X = C</code>, et se résout par <code>X = A⁻¹ × C</code>.</p>
     </div>
   </div>
 
@@ -68,6 +77,8 @@
     <code>#multiplication-par-un-reel</code> <code>#produit-matriciel</code>
     <code>#ligne-par-colonne</code> <code>#non-commutatif</code>
     <code>#matrice-nulle</code> <code>#associativite</code>
+    <code>#matrice-identite</code> <code>#matrice-inverse</code>
+    <code>#systeme-lineaire</code> <code>#substitution</code> <code>#AX=C</code>
   </p>
 </header>
 
@@ -370,8 +381,171 @@
   </div>
 </section>
 
+<section id="inconnue">
+  <h2><span class="num">10</span> Retrouver une inconnue dans un produit</h2>
+
+  <p>Un produit de matrices est une égalité <strong>terme à terme</strong>. Si un terme contient
+     une inconnue, chaque terme connu du résultat devient une <strong>équation</strong>. On donne :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:69"><span class="langue">calcul</span><pre><code>        ( x   <span class="j-num">2</span>   <span class="j-num">0</span> )            ( <span class="j-num">1</span>   <span class="j-num">2</span> )                 ( <span class="j-num">2</span>   <span class="j-num">5</span>y )
+   A <span class="j-op">=</span>  ( <span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">1</span>   <span class="j-num">1</span> )      B <span class="j-op">=</span>   ( <span class="j-num">0</span>   <span class="j-num">3</span> )      A x B  <span class="j-op">=</span>   ( <span class="j-num">5</span>    <span class="j-num">1</span> )
+                                 ( <span class="j-num">4</span>   <span class="j-num">2</span> )</code></pre></div>
+  <p>Le terme <code>p<sub>11</sub></code> est la ligne 1 de A par la colonne 1 de B. Il ne
+     contient que <code>x</code> : on commence par lui.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:37"><span class="langue">calcul</span><pre><code>   p11 :  x x <span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">2</span> x <span class="j-num">0</span> <span class="j-op">+</span> <span class="j-num">0</span> x <span class="j-num">4</span>  <span class="j-op">=</span>  <span class="j-num">2</span>
+          x                      <span class="j-op">=</span>  <span class="j-num">2</span></code></pre></div>
+  <p>Le terme <code>p<sub>12</sub></code>, ligne 1 par colonne 2, vaut <code>5y</code>. On y
+     remplace <code>x</code> par la valeur trouvée :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:35"><span class="langue">calcul</span><pre><code>   p12 :  <span class="j-num">2</span>x <span class="j-op">+</span> <span class="j-num">2</span> x <span class="j-num">3</span> <span class="j-op">+</span> <span class="j-num">0</span> x <span class="j-num">2</span>  <span class="j-op">=</span>  <span class="j-num">5</span>y
+          <span class="j-num">5</span>y  <span class="j-op">=</span>  <span class="j-num">2</span>x <span class="j-op">+</span> <span class="j-num">6</span>
+          <span class="j-num">5</span>y  <span class="j-op">=</span>  <span class="j-num">2</span> x <span class="j-num">2</span> <span class="j-op">+</span> <span class="j-num">6</span>
+          <span class="j-num">5</span>y  <span class="j-op">=</span>  <span class="j-num">10</span>
+          y   <span class="j-op">=</span>  <span class="j-num">10</span> <span class="j-op">/</span> <span class="j-num">5</span>
+          y   <span class="j-op">=</span>  <span class="j-num">2</span></code></pre></div>
+  <p class="rap">Les deux autres termes servent de <strong>vérification</strong>, sans
+     inconnue : <code>1 x 1 + (-1) x 0 + 1 x 4 = 5</code> et
+     <code>1 x 2 + (-1) x 3 + 1 x 2 = 1</code>. Ils redonnent bien la seconde ligne.</p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Par où commencer</div>
+    <p>Choisir le terme qui ne contient <strong>qu'une seule</strong> inconnue, la trouver, puis
+       la reporter dans le suivant. C'est le même geste que la substitution, plus bas : un
+       produit matriciel avec inconnues est un système d'équations écrit en tableau.</p>
+  </div>
+</section>
+
+<section id="identite">
+  <h2><span class="num">11</span> La matrice identité</h2>
+
+  <p>Chez les nombres, multiplier par 1 ne change rien. Les matrices ont leur « 1 » : la
+     <strong>matrice identité</strong>. Elle est <strong>carrée</strong>, avec des
+     <strong>1 sur la diagonale</strong> et des <strong>0 partout ailleurs</strong>.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:47"><span class="langue">calcul</span><pre><code>        ( <span class="j-num">1</span>   <span class="j-num">3</span>    <span class="j-op">-</span><span class="j-num">2</span> )             ( <span class="j-num">1</span>  <span class="j-num">0</span>  <span class="j-num">0</span> )
+   A <span class="j-op">=</span>  ( <span class="j-num">0</span>   <span class="j-num">1,5</span>   <span class="j-num">6</span> )       I  <span class="j-op">=</span>  ( <span class="j-num">0</span>  <span class="j-num">1</span>  <span class="j-num">0</span> )
+        ( <span class="j-num">2</span>   <span class="j-num">2</span>     <span class="j-num">5</span> )             ( <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">1</span> )
+
+   A x I  <span class="j-op">=</span>  A  <span class="j-op">=</span>  I x A</code></pre></div>
+  <p><code>I</code> s'appelle la <strong>matrice identité d'ordre 3</strong>. Calculer
+     <code>A × I</code> rend <code>A</code> intacte, et <code>I × A</code> aussi : la matrice
+     identité est l'<strong>élément neutre du produit matriciel</strong>.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:48"><span class="langue">calcul</span><pre><code>          ( <span class="j-num">1</span>  <span class="j-num">0</span> )                ( <span class="j-num">1</span>  <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">0</span> )
+   I2  <span class="j-op">=</span>  ( <span class="j-num">0</span>  <span class="j-num">1</span> )         I4  <span class="j-op">=</span>  ( <span class="j-num">0</span>  <span class="j-num">1</span>  <span class="j-num">0</span>  <span class="j-num">0</span> )
+                                  ( <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">1</span>  <span class="j-num">0</span> )
+   ordre <span class="j-num">2</span>                        ( <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">1</span> )
+                                  ordre <span class="j-num">4</span></code></pre></div>
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi l'ordre de la multiplication n'importe pas, ici</div>
+    <p>On a vu que <code>A × B</code> et <code>B × A</code> diffèrent en général
+       (<a href="#surprises">section 8</a>). La matrice identité est une exception :
+       <code>A × I = I × A</code>, pour toute matrice carrée <code>A</code> de même ordre. Encore
+       faut-il que les dimensions collent — <code>I</code> a l'ordre de <code>A</code>.</p>
+  </div>
+</section>
+
+<section id="inverse">
+  <h2><span class="num">12</span> La matrice inverse</h2>
+
+  <p>Un rappel sur les nombres : si <code>x × y = 1</code>, alors <code>x = 1/y</code> (pour
+     <code>y ≠ 0</code>), et on note <code>x⁻¹ = 1/x</code>. Les matrices ont la même idée, avec
+     <code>I</code> à la place de 1.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:67"><span class="langue">calcul</span><pre><code>        ( <span class="j-num">2</span>   <span class="j-op">-</span><span class="j-num">1,5</span> )             ( <span class="j-num">2</span>   <span class="j-num">3</span> )
+   A <span class="j-op">=</span>  ( <span class="j-op">-</span><span class="j-num">1</span>   <span class="j-num">1</span>   )       B  <span class="j-op">=</span>  ( <span class="j-num">2</span>   <span class="j-num">4</span> )
+
+   A x B  <span class="j-op">=</span>  ( <span class="j-num">2</span>x2 <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">1,5</span>)x2      <span class="j-num">2</span>x3 <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">1,5</span>)x4 )   <span class="j-op">=</span>   ( <span class="j-num">1</span>   <span class="j-num">0</span> )
+             ( (<span class="j-op">-</span><span class="j-num">1</span>)x2 <span class="j-op">+</span> <span class="j-num">1</span>x2      (<span class="j-op">-</span><span class="j-num">1</span>)x3 <span class="j-op">+</span> <span class="j-num">1</span>x4    )       ( <span class="j-num">0</span>   <span class="j-num">1</span> )</code></pre></div>
+  <p>Quand <code>A × B = I</code>, on dit que <code>B</code> est la <strong>matrice inverse de
+     A</strong>, et on la note <strong><code>A⁻¹</code></strong>. On a donc
+     <code>A × A⁻¹ = I</code>. Et dans l'autre sens :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:74"><span class="langue">calcul</span><pre><code>   B x A  <span class="j-op">=</span>  ( <span class="j-num">2</span>x2 <span class="j-op">+</span> <span class="j-num">3</span>x(<span class="j-op">-</span><span class="j-num">1</span>)      <span class="j-num">2</span>x(<span class="j-op">-</span><span class="j-num">1,5</span>) <span class="j-op">+</span> <span class="j-num">3</span>x1 )   <span class="j-op">=</span>   ( <span class="j-num">1</span>   <span class="j-num">0</span> )   <span class="j-op">=</span>   <span class="j-fn">I2</span>
+             ( <span class="j-num">2</span>x2 <span class="j-op">+</span> <span class="j-num">4</span>x(<span class="j-op">-</span><span class="j-num">1</span>)      <span class="j-num">2</span>x(<span class="j-op">-</span><span class="j-num">1,5</span>) <span class="j-op">+</span> <span class="j-num">4</span>x1 )       ( <span class="j-num">0</span>   <span class="j-num">1</span> )</code></pre></div>
+  <p class="rap"><code>A</code> est donc aussi l'inverse de <code>B</code> : l'inverse marche
+     dans les deux sens.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Toutes les matrices ne sont pas inversibles</div>
+    <p>Chez les nombres, 0 n'a pas d'inverse. Chez les matrices, beaucoup n'en ont pas — et pas
+       seulement la matrice nulle. <code>( 1 2 ; 2 4 )</code>, par exemple, n'a pas d'inverse :
+       sa seconde ligne est le double de la première.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pour aller plus loin — le test des matrices 2 × 2 (hors cours)</div>
+    <p>Pour <code>( a b ; c d )</code>, on calcule <code>ad − bc</code>. S'il est nul, pas
+       d'inverse. Sinon, l'inverse est <code>( d −b ; −c a )</code> divisé par
+       <code>ad − bc</code>. Pour <code>A</code> : <code>2 × 1 − (−1,5) × (−1) = 0,5</code>, et
+       l'on retrouve bien <code>B = ( 2 3 ; 2 4 )</code>. Pour <code>( 1 2 ; 2 4 )</code> :
+       <code>4 − 4 = 0</code>. Ce test n'est pas au cours ; il permet seulement de vérifier un
+       résultat. Les sujets donnent l'inverse, ou demandent de le calculer à la calculatrice.</p>
+  </div>
+</section>
+
+<section id="substitution">
+  <h2><span class="num">13</span> Résoudre un système : par substitution</h2>
+
+  <p>Voici le système que la suite va résoudre de deux façons. D'abord, la méthode connue :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:54"><span class="langue">calcul</span><pre><code>   ( <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span>y <span class="j-op">=</span> <span class="j-num">3</span>              ( <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span>y <span class="j-op">=</span> <span class="j-num">3</span>
+   (  <span class="j-op">-</span>x <span class="j-op">+</span>    y <span class="j-op">=</span> <span class="j-num">2,5</span>    <span class="j-op">&lt;=&gt;</span>    (          y <span class="j-op">=</span> x <span class="j-op">+</span> <span class="j-num">2,5</span></code></pre></div>
+  <p>La seconde ligne donne <code>y</code> en fonction de <code>x</code>. On remplace
+     <code>y</code> par <code>x + 2,5</code> dans la première équation :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:38"><span class="langue">calcul</span><pre><code>   <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span> <span class="j-fn">x</span> (x <span class="j-op">+</span> <span class="j-num">2,5</span>)  <span class="j-op">=</span>  <span class="j-num">3</span>
+   <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span>x <span class="j-op">-</span> <span class="j-num">3,75</span>      <span class="j-op">=</span>  <span class="j-num">3</span>
+   <span class="j-num">0,5</span>x                  <span class="j-op">=</span>  <span class="j-num">6,75</span>
+   x                     <span class="j-op">=</span>  <span class="j-num">6,75</span> <span class="j-op">/</span> <span class="j-num">0,5</span>
+   x                     <span class="j-op">=</span>  <span class="j-num">13,5</span>
+
+   y  <span class="j-op">=</span>  x <span class="j-op">+</span> <span class="j-num">2,5</span>  <span class="j-op">=</span>  <span class="j-num">13,5</span> <span class="j-op">+</span> <span class="j-num">2,5</span>  <span class="j-op">=</span>  <span class="j-num">16</span></code></pre></div>
+  <p class="rap">Vérification dans les deux équations : <code>2 × 13,5 − 1,5 × 16 = 27 − 24 = 3</code>
+     et <code>−13,5 + 16 = 2,5</code>. Le système a pour solution <code>x = 13,5</code> et
+     <code>y = 16</code>.</p>
+</section>
+
+<section id="systeme">
+  <h2><span class="num">14</span> Résoudre un système avec les matrices</h2>
+
+  <p>Le même système, écrit en tableaux. On met à part trois matrices :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:79"><span class="langue">calcul</span><pre><code>   ( <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span>y <span class="j-op">=</span> <span class="j-num">3</span>          coefficients        inconnues       seconds <span class="j-fn">membres</span>
+   (  <span class="j-op">-</span>x <span class="j-op">+</span>    y <span class="j-op">=</span> <span class="j-num">2,5</span>
+                                ( <span class="j-num">2</span>   <span class="j-op">-</span><span class="j-num">1,5</span> )          ( x )             ( <span class="j-num">3</span>   )
+                           A <span class="j-op">=</span>  ( <span class="j-op">-</span><span class="j-num">1</span>   <span class="j-num">1</span>   )     X <span class="j-op">=</span>  ( y )        C <span class="j-op">=</span>  ( <span class="j-num">2,5</span> )</code></pre></div>
+  <p><code>A</code> est la <strong>matrice des coefficients des inconnues</strong>,
+     <code>X</code> la <strong>matrice colonne des inconnues</strong>, <code>C</code> celle des
+     <strong>seconds membres</strong>. Le produit <code>A × X</code> redonne les premiers
+     membres :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:39"><span class="langue">calcul</span><pre><code>   A x X  <span class="j-op">=</span>  ( <span class="j-num">2</span>x <span class="j-op">-</span> <span class="j-num">1,5</span>y )
+             ( <span class="j-op">-</span>x <span class="j-op">+</span>    y )
+
+<span class="j-com">   le système s'écrit donc :  </span>  A X <span class="j-op">=</span> C</code></pre></div>
+  <p>Or on connaît l'inverse de <code>A</code> : c'est <code>B = ( 2 3 ; 2 4 )</code>
+     (<a href="#inverse">section 12</a>). On <strong>multiplie les deux membres par B, à
+     gauche</strong> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:78"><span class="langue">calcul</span><pre><code>        A X  <span class="j-op">=</span>  C
+   <span class="j-op">&lt;=&gt;</span>  B x A X  <span class="j-op">=</span>  B x C          on multiplie par B, à gauche des deux côtés
+   <span class="j-op">&lt;=&gt;</span>  I2 x X   <span class="j-op">=</span>  B x C          car B x A <span class="j-op">=</span> I2
+   <span class="j-op">&lt;=&gt;</span>  X        <span class="j-op">=</span>  B x C          car I2 x X <span class="j-op">=</span> X</code></pre></div>
+  <p>Il ne reste qu'un produit à calculer :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:65"><span class="langue">calcul</span><pre><code>   ( x )     ( <span class="j-num">2</span>   <span class="j-num">3</span> )   ( <span class="j-num">3</span>   )     ( <span class="j-num">2</span>x3 <span class="j-op">+</span> <span class="j-num">3</span>x2,5 )     ( <span class="j-num">13,5</span> )
+   ( y )  <span class="j-op">=</span>  ( <span class="j-num">2</span>   <span class="j-num">4</span> ) <span class="j-fn">x</span> ( <span class="j-num">2,5</span> )  <span class="j-op">=</span>  ( <span class="j-num">2</span>x3 <span class="j-op">+</span> <span class="j-num">4</span>x2,5 )  <span class="j-op">=</span>  ( <span class="j-num">16</span>   )</code></pre></div>
+  <p class="rap">On obtient bien les solutions de la substitution : <code>x = 13,5</code> et
+     <code>y = 16</code>.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ « À gauche », des deux côtés — jamais B à gauche d'un côté et à droite de l'autre</div>
+    <p>Le produit n'est pas commutatif. <code>B × (A X)</code> se simplifie en
+       <code>I × X</code> parce que <code>B</code> est collé à gauche de <code>A</code>. De
+       l'autre côté, c'est donc <code>B × C</code>, pas <code>C × B</code> — qui n'existe
+       d'ailleurs pas : <code>C</code> a une colonne, <code>B</code> deux lignes.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi s'embêter, si la substitution marche ?</div>
+    <p>À deux inconnues, la substitution suffit. À trois inconnues, elle devient longue ; à dix,
+       impraticable. La méthode matricielle, elle, ne change pas : <code>X = A⁻¹ × C</code>, et
+       la calculatrice donne <code>A⁻¹</code>. C'est exactement l'objet du devoir à trois
+       inconnues des <a href="exercices.html#p7">exercices</a>.</p>
+  </div>
+</section>
+
 <section id="recap">
-  <h2><span class="num">10</span> Récap en 2 minutes</h2>
+  <h2><span class="num">15</span> Récap en 2 minutes</h2>
 
   <div class="recap">
     <h2>⚡ Tout le chapitre</h2>
@@ -386,6 +560,14 @@
        chaque terme est une <em>ligne × colonne</em>.</p>
     <p><strong>Ce qui change</strong> — l'ordre compte, et un produit nul n'oblige aucun facteur
        à l'être. <strong>Ce qui reste</strong> — on peut déplacer les parenthèses.</p>
+    <p><strong>Une inconnue dans un produit</strong> — chaque terme connu est une équation ;
+       commencer par celui qui n'a qu'une inconnue.</p>
+    <p><strong>Identité</strong> — carrée, 1 en diagonale, 0 ailleurs ;
+       <code>A × I = A = I × A</code>. C'est le « 1 » des matrices.</p>
+    <p><strong>Inverse</strong> — <code>A × B = I</code> ⇒ <code>B = A⁻¹</code>, et
+       <code>A</code> est l'inverse de <code>B</code>. Toutes les matrices n'en ont pas.</p>
+    <p><strong>Système</strong> — <code>A X = C</code> ; on multiplie par <code>A⁻¹</code>
+       <em>à gauche</em> des deux côtés : <code>X = A⁻¹ × C</code>.</p>
   </div>
 
   <p class="rap">La suite, ce sont <a href="exercices.html">les exercices corrigés</a> : les
@@ -404,6 +586,9 @@
           et l'exemple du produit nul</li>
       <li>L'exercice de cours travaillé en classe, et l'exercice 7 « Produits de matrices de
           tailles différentes » donné à faire</li>
+      <li>La suite du cours écrit au tableau, parties II.3 à II.5 (33 captures) : une inconnue
+          dans un produit, la matrice identité, la matrice inverse et la résolution d'un
+          système par substitution puis par les matrices</li>
     </ul>
     <p class="rap"><strong>Tous les résultats de ce chapitre ont été recalculés en fractions
        exactes</strong>, sans virgule flottante : sommes, différences, multiplication par 1,5,
@@ -416,7 +601,7 @@
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../13-statistiques/cours.html"><span>Chapitre précédent</span><b>Statistiques</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=bc06e08b"></script>
-<script src="../../assets/app.js?v=bc06e08b"></script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
 </body>
 </html>

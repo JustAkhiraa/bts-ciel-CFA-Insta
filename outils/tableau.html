@@ -10,7 +10,7 @@
 <link rel="icon" href="../assets/logo-classe.jpg">
 <link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";if(S.style==="monde"&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace("monde/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../assets/fiche.css?v=a68f97e5">
+<link rel="stylesheet" href="../assets/fiche.css?v=f8a1f226">
 </head>
 <body data-matiere="projets">
 
@@ -34,7 +34,8 @@
   <div class="tete-matiere">
     <h1>Tableau blanc</h1>
     <p>Un tableau <b>infini</b> : trois stylos, surligneur, gomme,
-       post-its, formes et flèches. Il enregistre dans un <b>format de tableau blanc ouvert</b> —
+       post-its, formes et flèches — et, au stylet, une règle, un lasso, des formes qui
+       se redressent et des chiffres écrits qui deviennent du texte. Il enregistre dans un <b>format de tableau blanc ouvert</b> —
        ce qu'on dessine ici s'ouvre dans les éditeurs qui le partagent, et l'inverse.
        Tout reste dans ce navigateur.</p>
   </div>
@@ -104,20 +105,40 @@
       <div class="tb-creer" id="tb-creer" hidden>
         <div class="tb-creer-tete"><b>Créer</b>
           <button type="button" class="tb-b tb-petit" data-fermer-creer aria-label="Fermer le panneau">✕</button></div>
-        <p class="tb-creer-titre">Notes</p>
-        <div class="tb-pastilles tb-notes" id="tb-notes"></div>
-        <p class="tb-creer-titre">Texte</p>
-        <button type="button" class="tb-carte" data-creer="texte"><span class="tb-carte-ic">T</span>Zone de texte</button>
-        <p class="tb-creer-titre">Formes</p>
-        <div class="tb-formes" id="tb-formes"></div>
-        <p class="tb-creer-titre">Lignes et flèches</p>
-        <div class="tb-formes" id="tb-lignes"></div>
-        <p class="tb-creer-titre">Bientôt</p>
-        <ul class="tb-bientot">
-          <li>Réactions <span class="tb-badge">lot 2</span></li>
-          <li>Images <span class="tb-badge">lot 2</span></li>
-          <li>Modèles (Kanban, SWOT…) <span class="tb-badge">lot 3</span></li>
-        </ul>
+        <input type="search" id="tb-creer-f" class="tb-chercher" autocomplete="off" spellcheck="false"
+               placeholder="Chercher : routeur, décision, classe…" aria-label="Chercher une forme">
+        <p class="tb-note" id="tb-creer-rien" hidden>Rien ne correspond.</p>
+        <div class="tb-creer-base">
+          <p class="tb-creer-titre">Notes</p>
+          <div class="tb-pastilles tb-notes" id="tb-notes"></div>
+          <div class="tb-cartes">
+            <button type="button" class="tb-carte" data-creer="texte"><span class="tb-carte-ic">T</span>Texte</button>
+            <button type="button" class="tb-carte" data-creer="image"><span class="tb-carte-ic"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3.5" width="15" height="13" rx="2"/><circle cx="7" cy="8" r="1.6"/><path d="M3 15l4.5-4.5 3 3 2-2 4.5 4.5"/></svg></span>Image</button>
+          </div>
+          <p class="tb-note">Une image se colle aussi (<kbd>Ctrl V</kbd>) ou se dépose sur le tableau.</p>
+        </div>
+        <details class="tb-section" data-section="general" open><summary>Général</summary>
+          <div class="tb-formes" id="tb-formes"></div></details>
+        <details class="tb-section" data-section="fleches"><summary>Flèches</summary>
+          <div class="tb-formes" id="tb-lignes"></div></details>
+        <details class="tb-section" data-section="reseau"><summary>Réseau — équipements <span class="tb-compte" id="tb-reseau-n"></span></summary>
+          <div id="tb-reseau-tout"></div>
+          <p class="tb-note">L'icône et son nom bougent ensemble ; double-clic sur le nom pour l'écrire.</p></details>
+        <details class="tb-section" data-section="liens"><summary>Réseau — liens <span class="tb-compte">9</span></summary>
+          <div class="tb-liens" id="tb-liens"></div>
+          <p class="tb-note">Choisissez un câble, puis cliquez deux équipements : le lien les suit quand on les déplace. <kbd>Échap</kbd> pour arrêter.</p></details>
+        <details class="tb-section" data-section="flux"><summary>Diagramme de flux</summary>
+          <div class="tb-liste-ic" id="tb-flux"></div></details>
+        <details class="tb-section" data-section="mcd"><summary>Relation d'entité</summary>
+          <div class="tb-liste-ic" id="tb-mcd"></div>
+          <p class="tb-note">Merise : entités, associations, cardinalités. Pour le SQL : tables et pattes d'oie.</p></details>
+        <details class="tb-section" data-section="uml"><summary>UML</summary>
+          <div class="tb-liste-ic" id="tb-uml"></div></details>
+        <details class="tb-section" data-section="reactions"><summary>Réactions</summary>
+          <div class="tb-formes tb-reactions" id="tb-reactions"></div>
+          <p class="tb-note">Sur la sélection s'il y en a une, sinon au centre.</p></details>
+        <details class="tb-section" data-section="modeles"><summary>Modèles</summary>
+          <div class="tb-modeles" id="tb-modeles"></div></details>
         <p class="tb-note">Un clic pose l'objet au centre de l'écran. Pour le tracer à la main :
           <kbd>R</kbd> rectangle, <kbd>D</kbd> losange, <kbd>O</kbd> ellipse, <kbd>A</kbd> flèche.</p>
       </div>
@@ -128,8 +149,16 @@
         <button type="button" class="tb-b tb-stylo" data-stylo="1" title="Stylo 2 — recliquer pour le régler" aria-label="Stylo 2"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/></svg><i></i></button>
         <button type="button" class="tb-b tb-stylo" data-stylo="2" title="Stylo 3 — recliquer pour le régler" aria-label="Stylo 3"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/></svg><i></i></button>
         <button type="button" class="tb-b tb-stylo" data-outil="surligneur" title="Surligneur (M) — recliquer pour le régler" aria-label="Surligneur"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 13l6-9 4 3-6 9z"/><path d="M6 13l-1.5 3.5L8 16"/></svg><i></i></button>
-        <button type="button" class="tb-b" data-outil="gomme" title="Gomme (E ou 0)" aria-label="Gomme">
+        <button type="button" class="tb-b" data-outil="gomme" title="Gomme (E ou 0) — recliquer pour la régler" aria-label="Gomme">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 16l-4-4 8-8 6 6-6 6z"/><path d="M8 16h9M6.5 9.5l5 5"/></svg></button>
+        <button type="button" class="tb-b" data-outil="lasso" title="Lasso (S) : entourer pour sélectionner" aria-label="Lasso">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5c4 0 7 1.9 7 4.2S14 12 10 12 3 10 3 7.7 6 3.5 10 3.5z" stroke-dasharray="2.4 2"/><path d="M6.2 11.2c-.6 1.6.2 3 1.6 3.3 1 .2 1.4 1.1.9 2"/></svg></button>
+        <span class="tb-sep" aria-hidden="true"></span>
+        <button type="button" class="tb-b" data-bascule="regle" aria-pressed="false" title="Règle (G) : tracer droit contre un bord" aria-label="Règle">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 13.5l11-11 4 4-11 11z"/><path d="M6 10l1.5 1.5M8.5 7.5l1.5 1.5M11 5l1.5 1.5"/></svg></button>
+        <button type="button" class="tb-b" data-bascule="formes" aria-pressed="false" title="Formes automatiques (F) : un trait à main levée devient une forme nette" aria-label="Formes automatiques">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="6.5" cy="13" r="3.5"/><path d="M13.5 3.5l4 7h-8z"/></svg></button>
+        <span class="tb-sep" aria-hidden="true"></span>
         <button type="button" class="tb-b" data-outil="laser" title="Pointeur laser (K)" aria-label="Pointeur laser">
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="13" cy="7" r="2.5"/><path d="M4 16l6.5-6.5M13 2v1.5M18 7h-1.5M16.5 3.5l-1 1"/></svg></button>
         <div class="tb-pop tb-reglage-stylo" id="tb-reglage" hidden></div>
@@ -147,8 +176,22 @@
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5" class="plein"/><path d="M4 12V5.5A1.5 1.5 0 0 1 5.5 4H12"/></svg></button>
         <button type="button" class="tb-b tb-petit" data-ctx="fond" title="Mettre à l'arrière-plan (Ctrl Maj [)" aria-label="Mettre à l'arrière-plan">
           <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="4" width="9" height="9" rx="1.5" class="plein"/><path d="M16 8v6.5a1.5 1.5 0 0 1-1.5 1.5H8"/></svg></button>
+        <button type="button" class="tb-b tb-petit" data-ctx="lire" title="Lire l'écriture : chiffres et symboles deviennent du texte" aria-label="Lire l'écriture" hidden>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 13c1.2-3 2.4-4.6 3.2-4.6S5 12.4 6.4 12.4 8.5 8.4 9.3 8.4"/><path d="M12 6h5.5M14.75 6v9"/></svg></button>
         <button type="button" class="tb-b tb-petit" data-ctx="supprimer" title="Supprimer (Suppr)" aria-label="Supprimer">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6h10M8 6V4.5h4V6M6.5 6l.8 10h5.4l.8-10"/></svg></button>
+      </div>
+
+      <!-- l'écriture lue, à corriger avant de la remplacer -->
+      <div class="tb-pop tb-lecture" id="tb-lecture" role="dialog" aria-label="Écriture lue" hidden>
+        <label class="tb-menu-titre" for="tb-lu">Écriture lue</label>
+        <textarea id="tb-lu" class="tb-lu" rows="1" spellcheck="false" autocomplete="off"></textarea>
+        <p class="tb-note" id="tb-lu-note"></p>
+        <div class="tb-lecture-pied">
+          <button type="button" class="tb-b tb-petit" data-lu="oublier" hidden>Oublier mon écriture</button>
+          <button type="button" class="tb-b tb-petit" data-lu="annuler">Annuler</button>
+          <button type="button" class="tb-b tb-petit tb-lu-ok" data-lu="ok">Remplacer</button>
+        </div>
       </div>
 
       <div class="tb-props" id="tb-props" hidden></div>
@@ -202,6 +245,9 @@
             <tr><th scope="row">Gomme</th><td><kbd>E</kbd> ou <kbd>0</kbd></td></tr>
             <tr><th scope="row">Post-it</th><td><kbd>N</kbd></td></tr>
             <tr><th scope="row">Surligneur</th><td><kbd>M</kbd></td></tr>
+            <tr><th scope="row">Lasso</th><td><kbd>S</kbd></td></tr>
+            <tr><th scope="row">Règle (montrer, ranger)</th><td><kbd>G</kbd></td></tr>
+            <tr><th scope="row">Formes automatiques</th><td><kbd>F</kbd></td></tr>
             <tr><th scope="row">Main</th><td><kbd>H</kbd></td></tr>
             <tr><th scope="row">Pointeur laser</th><td><kbd>K</kbd></td></tr>
             <tr><th scope="row">Garder l'outil</th><td><kbd>Q</kbd></td></tr>
@@ -215,7 +261,10 @@
             <tr><th scope="row">Écrire dans une forme</th><td>double-clic ou <kbd>Entrée</kbd></td></tr>
             <tr><th scope="row">Finir le texte</th><td><kbd>Échap</kbd> ou <kbd>Ctrl Entrée</kbd></td></tr>
             <tr><th scope="row">Gomme : tout rendre</th><td><kbd>Échap</kbd> avant de lâcher</td></tr>
-            <tr><th scope="row">Régler un stylo</th><td>recliquer dessus</td></tr>
+            <tr><th scope="row">Régler un stylo, la gomme</th><td>recliquer dessus</td></tr>
+            <tr><th scope="row">Redresser un trait</th><td>pointe immobile en fin de trait</td></tr>
+            <tr><th scope="row">Tourner la règle</th><td>par un bout, ou molette</td></tr>
+            <tr><th scope="row">Lire l'écriture</th><td>la sélectionner, puis <b>T</b></td></tr>
             <tr><th scope="row">Poser une note, une forme</th><td><b>+</b> Créer, puis un clic</td></tr>
           </tbody>
         </table>
@@ -224,6 +273,7 @@
           <tbody>
             <tr><th scope="row">Annuler / rétablir</th><td><kbd>Ctrl Z</kbd> / <kbd>Ctrl Y</kbd></td></tr>
             <tr><th scope="row">Copier, couper, coller</th><td><kbd>Ctrl C</kbd> <kbd>Ctrl X</kbd> <kbd>Ctrl V</kbd></td></tr>
+            <tr><th scope="row">Coller une capture d'écran</th><td><kbd>Ctrl V</kbd></td></tr>
             <tr><th scope="row">Dupliquer</th><td><kbd>Ctrl D</kbd></td></tr>
             <tr><th scope="row">Tout sélectionner</th><td><kbd>Ctrl A</kbd></td></tr>
             <tr><th scope="row">Supprimer</th><td><kbd>Suppr</kbd></td></tr>
@@ -243,6 +293,7 @@
     </dialog>
 
     <input type="file" id="tb-fichier" accept=".excalidraw,.json,application/json" hidden>
+    <input type="file" id="tb-image-fichier" accept="image/*" hidden>
   </section>
 
   <nav class="voisins" aria-label="Autres outils">
@@ -251,10 +302,12 @@
   </nav>
 </main>
 
-<script src="tableau/rendu.js?v=1"></script>
-<script src="tableau/tableau.js?v=1"></script>
+<script src="tableau/rendu.js?v=949a30ed"></script>
+<script src="tableau/stylet.js?v=4e300156"></script>
+<script src="tableau/icones.js?v=c2f815e6"></script>
+<script src="tableau/tableau.js?v=1eb688ee"></script>
 
-<script src="../assets/fiche.js?v=a68f97e5"></script>
+<script src="../assets/fiche.js?v=8c34b9da"></script>
 
 <footer class="app-pied">
   <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
@@ -266,7 +319,7 @@
   </p>
 </footer>
 
-<script src="../assets/app.js?v=a68f97e5"></script>
+<script src="../assets/app.js?v=d6f9bdd7"></script>
 <script>if("serviceWorker" in navigator){addEventListener("load",function(){
   navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
 </body>

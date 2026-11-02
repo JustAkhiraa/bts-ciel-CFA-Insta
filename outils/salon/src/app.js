@@ -353,7 +353,7 @@ async function soumettre(texte) {
       systeme(L.length ? L.length + " pair(s) joignable(s) :" : "Personne. Reliez un appareil (/relier) ou ouvrez un deuxième onglet.");
       L.sort((a, b) => a[1].sauts - b[1].sauts).forEach(([fp, p]) => systeme("  " + p.nick + "#" + court(fp) + " — "
         + (p.lien ? "direct (" + (p.lien.type === "onglet" ? "onglet" : "WebRTC") + (p.lien.rtt != null ? ", " + p.lien.rtt + " ms" : "") + ")" : p.sauts + " sauts")));
-      systeme("(La puissance radio, le « RSSI » de BitChat, n'existe pas en WebRTC : on affiche la distance en sauts et le temps d'aller-retour.)");
+      systeme("(La puissance radio, le « RSSI » d'une messagerie Bluetooth, n'existe pas en WebRTC : on affiche la distance en sauts et le temps d'aller-retour.)");
       return;
     }
     case "me": return parler(arg, true);
@@ -482,6 +482,24 @@ function qrHtml(texte) {
   catch (e) { return '<p class="sl-erreur">QR impossible : ' + ech(e.message) + "</p>"; }
 }
 
+/* Un échec de liaison se DIT, avec sa cause probable et le geste qui la
+   contourne. Signalé : « il fonctionne pas du tout ». Le code était sain —
+   deux onglets se parlent, la liaison par QR s'établit en local — mais
+   entre deux appareils la page restait muette : celui qui rejoint
+   attendait sans fin, celui qui invite lisait une question.
+   La cause la plus fréquente ne vient pas du salon : un Wi-Fi d'école ou
+   de CFA « isole » ses clients, et deux appareils n'y peuvent jamais se
+   joindre directement. Le partage de connexion d'un téléphone, lui, les
+   laisse se voir. */
+const DELAI_LIAISON = 20000;
+function messageEchec() {
+  return "La liaison n'a pas abouti en " + DELAI_LIAISON / 1000 + " s. Les deux appareils doivent être sur le "
+    + "MÊME réseau. Cause la plus fréquente : le Wi-Fi de l'école isole les appareils les uns des autres — "
+    + "dans ce cas, aucun code n'y changera rien. Solution : activez le partage de connexion d'un téléphone, "
+    + "connectez-y les deux appareils, puis recommencez. Vérifiez aussi qu'aucun n'est en 4G ou derrière un VPN.";
+}
+const limite = () => new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON));
+
 async function inviter(corps) {
   corps.innerHTML = '<p>Préparation de l\'invitation : le navigateur cherche ses adresses sur le réseau local…</p>';
   let inv;
@@ -498,8 +516,7 @@ async function inviter(corps) {
     try {
       e.className = "sl-texte"; e.textContent = "Réponse lue, connexion directe en cours…";
       const ouvert = await inv.accepter(code);
-      const delai = new Promise((_, ko) => setTimeout(() => ko(new Error("pas de connexion au bout de 15 s : les deux appareils sont-ils sur le même Wi-Fi ?")), 15000));
-      await Promise.race([ouvert, delai]);
+      await Promise.race([ouvert, limite()]);
       e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — l'autre appareil fait maintenant partie du salon.";
       setTimeout(fermerRelier, 1400);
     } catch (err) { e.className = "sl-texte sl-erreur"; e.textContent = err.message; }
@@ -521,11 +538,18 @@ async function rejoindre(corps, code = null) {
     + '<textarea class="sl-code" rows="4" readonly>' + ech(rep.code) + '</textarea><div class="sl-rangee"><button type="button" class="sl-b" data-copier>Copier la réponse</button></div>'
     + '<p class="sl-texte" id="rej-attente">En attente de la connexion…</p></div></div>';
   corps.querySelector("[data-copier]").onclick = () => copier(rep.code);
-  rep.ouvert.then(() => {
-    const e = $("#rej-attente");
-    if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans le salon."; }
-    setTimeout(fermerRelier, 1400);
-  });
+  /* Le délai ne court qu'une fois la réponse montrée : l'autre doit
+     encore la scanner, d'où une marge plus longue que du côté qui invite. */
+  Promise.race([rep.ouvert, new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON + 40000))])
+    .then(() => {
+      const e = $("#rej-attente");
+      if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans le salon."; }
+      setTimeout(fermerRelier, 1400);
+    })
+    .catch((err) => {
+      const e = $("#rej-attente");
+      if (e) { e.className = "sl-texte sl-erreur"; e.textContent = err.message; }
+    });
 }
 
 async function copier(texte) {

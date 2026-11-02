@@ -7,7 +7,7 @@
 <meta name="description" content="Onze exercices corrigés de calcul matriciel : vérifier les dimensions avant de calculer, somme et différence terme à terme, multiplication par un réel, un produit détaillé terme par terme, le calcul à trois matrices mené par les deux chemins, et le produit nul sans facteur nul.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=bc06e08b">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
 </head>
 <body data-matiere="maths">
 <div class="page">
@@ -21,6 +21,9 @@
     <li><a href="#p3">3 · Un produit, terme par terme</a></li>
     <li><a href="#p4">4 · Trois matrices, deux chemins</a></li>
     <li><a href="#p5">5 · Le produit nul</a></li>
+    <li><a href="#p6">6 · Exercice 8 — l'agence de voyages</a></li>
+    <li><a href="#p7">7 · Devoir 1 — retrouver n</a></li>
+    <li><a href="#p8">8 · Devoir 2 — un système à trois inconnues</a></li>
   </ol>
 </nav>
 
@@ -33,8 +36,8 @@
     <span class="sep">/</span><span class="badge">Exercices corrigés</span>
   </div>
   <h1>Calcul matriciel — les exercices</h1>
-  <p class="chapeau">Onze exercices, de la vérification des dimensions au calcul à trois
-     matrices. <strong>Chaque résultat a été recalculé en fractions exactes</strong>, terme par
+  <p class="chapeau">Dix-neuf exercices, de la vérification des dimensions à la résolution d'un
+     système à trois inconnues par une matrice inverse. <strong>Chaque résultat a été recalculé en fractions exactes</strong>, terme par
      terme. <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a> ·
      <a href="qcm.html">Le QCM</a></p>
 </header>
@@ -522,6 +525,270 @@
   </article>
 </section>
 
+<section id="p6">
+  <h2><span class="num">6</span>Exercice 8 — l'agence de voyages</h2>
+  <p class="chapeau">Le problème complet du cours : un circuit dans trois villes, trois périodes
+     de tarifs. Les matrices y servent à calculer un prix, puis à retrouver un séjour à partir de
+     ses prix.</p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 L'énoncé</div>
+    <p>Une agence propose un circuit dans trois villes A, B, C ; le client choisit la durée de
+       son séjour dans chacune. Les tarifs dépendent de la période — haute, moyenne, basse. Les
+       prix journaliers, en <strong>centaines d'euros</strong> par personne, sont :</p>
+    <div class="tableau"><table>
+      <thead><tr><th></th><th>Ville A</th><th>Ville B</th><th>Ville C</th></tr></thead>
+      <tbody>
+        <tr><td>Période haute</td><td>2,5</td><td>3,5</td><td>1,5</td></tr>
+        <tr><td>Période moyenne</td><td>2</td><td>2</td><td>1,5</td></tr>
+        <tr><td>Période basse</td><td>1</td><td>1</td><td>1</td></tr>
+      </tbody>
+    </table></div>
+<div class="bloc-code" data-fam="calcul" style="--car:75"><span class="langue">calcul</span><pre><code>        ( <span class="j-num">2,5</span>   <span class="j-num">3,5</span>   <span class="j-num">1,5</span> )
+   P <span class="j-op">=</span>  ( <span class="j-num">2</span>     <span class="j-num">2</span>     <span class="j-num">1,5</span> )          prix journaliers, par <span class="j-fn">période</span> (lignes)
+        ( <span class="j-num">1</span>     <span class="j-num">1</span>     <span class="j-num">1</span>   )          et par <span class="j-fn">ville</span> (colonnes)</code></pre></div>
+  </div>
+  <article class="exo">
+    <h3><span class="no">12</span>Le prix d'un circuit : P × M <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1. a.</strong> Monsieur M choisit un circuit de 14 jours : 6 jours en A, 5 en B et 3
+         en C. On lui associe <code>M = ( 6 ; 5 ; 3 )</code>, en colonne. Calculer
+         <code>P × M</code>. Que représentent les termes obtenus ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><code>P</code> est 3 × 3 et <code>M</code> 3 × 1 : le produit existe et sera une colonne de 3 termes.</p><div class="bloc-code" data-fam="calcul" style="--car:70"><span class="langue">calcul</span><pre><code>   ligne <span class="j-num">1</span> :  <span class="j-num">2,5</span> x <span class="j-num">6</span> <span class="j-op">+</span> <span class="j-num">3,5</span> x <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">1,5</span> x <span class="j-num">3</span>  <span class="j-op">=</span>  <span class="j-num">15</span> <span class="j-op">+</span> <span class="j-num">17,5</span> <span class="j-op">+</span> <span class="j-num">4,5</span>  <span class="j-op">=</span>  <span class="j-num">37</span>
+   ligne <span class="j-num">2</span> :  <span class="j-num">2</span>   x <span class="j-num">6</span> <span class="j-op">+</span> <span class="j-num">2</span>   x <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">1,5</span> x <span class="j-num">3</span>  <span class="j-op">=</span>  <span class="j-num">12</span> <span class="j-op">+</span> <span class="j-num">10</span>   <span class="j-op">+</span> <span class="j-num">4,5</span>  <span class="j-op">=</span>  <span class="j-num">26,5</span>
+   ligne <span class="j-num">3</span> :  <span class="j-num">1</span>   x <span class="j-num">6</span> <span class="j-op">+</span> <span class="j-num">1</span>   x <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">1</span>   x <span class="j-num">3</span>  <span class="j-op">=</span>   <span class="j-num">6</span> <span class="j-op">+</span>  <span class="j-num">5</span>   <span class="j-op">+</span> <span class="j-num">3</span>    <span class="j-op">=</span>  <span class="j-num">14</span>
+
+              ( <span class="j-num">37</span>   )
+   P x M  <span class="j-op">=</span>   ( <span class="j-num">26,5</span> )
+              ( <span class="j-num">14</span>   )</code></pre></div><p>Chaque terme est le <strong>prix total du circuit de M. M, par personne</strong>, selon la
+   période — en centaines d'euros : <strong>3 700 €</strong> en période haute,
+   <strong>2 650 €</strong> en période moyenne, <strong>1 400 €</strong> en période basse.</p>
+<p class="rap">Ces deux questions n'ont pas de correction dans les captures du cours : les
+   calculs ci-dessus sont les nôtres, recalculés en fractions exactes.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">13</span>Avec 2 600 € de budget <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1. b.</strong> Monsieur M dispose d'un budget de 2 600 euros. À quelle période
+         pourra-t-il voyager ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>On compare le budget aux trois prix de la question a : 3 700 € et 2 650 € le dépassent ;
+   1 400 € tient dedans. <strong>Il ne pourra voyager qu'en période basse.</strong></p>
+<div class="encart piege"><div class="titre">⚠️ La période moyenne échoue de 50 €</div>
+  <p>2 650 € contre 2 600 € : l'écart est faible, mais il suffit. Une réponse « période
+     moyenne ou basse » est fausse — et c'est l'erreur qu'on fait en lisant 26,5 comme « environ
+     2 600 ».</p></div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">14</span>Calculer Q × P <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>2. a.</strong> On donne les matrices ci-dessous, <code>I</code> étant la matrice
+         unité d'ordre 3. Calculer le produit <code>Q × P</code>.</p><div class="bloc-code" data-fam="calcul" style="--car:50"><span class="langue">calcul</span><pre><code>        ( <span class="j-op">-</span><span class="j-num">1</span>    <span class="j-num">4</span>   <span class="j-op">-</span><span class="j-num">4,5</span> )             ( <span class="j-num">1</span>  <span class="j-num">0</span>  <span class="j-num">0</span> )
+   Q <span class="j-op">=</span>  (  <span class="j-num">1</span>   <span class="j-op">-</span><span class="j-num">2</span>    <span class="j-num">1,5</span> )        I <span class="j-op">=</span>  ( <span class="j-num">0</span>  <span class="j-num">1</span>  <span class="j-num">0</span> )
+        (  <span class="j-num">0</span>   <span class="j-op">-</span><span class="j-num">2</span>    <span class="j-num">4</span>   )             ( <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">1</span> )</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="calcul" style="--car:68"><span class="langue">calcul</span><pre><code>   ligne <span class="j-num">1</span> de Q :  ( <span class="j-op">-</span><span class="j-num">1</span>   <span class="j-num">4</span>   <span class="j-op">-</span><span class="j-num">4,5</span> )
+      colonne <span class="j-num">1</span> :  <span class="j-op">-</span><span class="j-num">1</span>x2,5 <span class="j-op">+</span> <span class="j-num">4</span>x2 <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">4,5</span>)x1   <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">2,5</span> <span class="j-op">+</span> <span class="j-num">8</span> <span class="j-op">-</span> <span class="j-num">4,5</span>  <span class="j-op">=</span>  <span class="j-num">1</span>
+      colonne <span class="j-num">2</span> :  <span class="j-op">-</span><span class="j-num">1</span>x3,5 <span class="j-op">+</span> <span class="j-num">4</span>x2 <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">4,5</span>)x1   <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">3,5</span> <span class="j-op">+</span> <span class="j-num">8</span> <span class="j-op">-</span> <span class="j-num">4,5</span>  <span class="j-op">=</span>  <span class="j-num">0</span>
+      colonne <span class="j-num">3</span> :  <span class="j-op">-</span><span class="j-num">1</span>x1,5 <span class="j-op">+</span> <span class="j-num">4</span>x1,5 <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">4,5</span>)x1 <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">1,5</span> <span class="j-op">+</span> <span class="j-num">6</span> <span class="j-op">-</span> <span class="j-num">4,5</span>  <span class="j-op">=</span>  <span class="j-num">0</span>
+
+   ligne <span class="j-num">2</span> de Q :  (  <span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">2</span>    <span class="j-num">1,5</span> )
+      colonne <span class="j-num">1</span> :  <span class="j-num">2,5</span> <span class="j-op">-</span> <span class="j-num">4</span> <span class="j-op">+</span> <span class="j-num">1,5</span>             <span class="j-op">=</span>  <span class="j-num">0</span>
+      colonne <span class="j-num">2</span> :  <span class="j-num">3,5</span> <span class="j-op">-</span> <span class="j-num">4</span> <span class="j-op">+</span> <span class="j-num">1,5</span>             <span class="j-op">=</span>  <span class="j-num">1</span>
+      colonne <span class="j-num">3</span> :  <span class="j-num">1,5</span> <span class="j-op">-</span> <span class="j-num">3</span> <span class="j-op">+</span> <span class="j-num">1,5</span>             <span class="j-op">=</span>  <span class="j-num">0</span>
+
+   ligne <span class="j-num">3</span> de Q :  (  <span class="j-num">0</span>  <span class="j-op">-</span><span class="j-num">2</span>    <span class="j-num">4</span>   )
+      colonne <span class="j-num">1</span> :  <span class="j-num">0</span> <span class="j-op">-</span> <span class="j-num">4</span> <span class="j-op">+</span> <span class="j-num">4</span>                 <span class="j-op">=</span>  <span class="j-num">0</span>
+      colonne <span class="j-num">2</span> :  <span class="j-num">0</span> <span class="j-op">-</span> <span class="j-num">4</span> <span class="j-op">+</span> <span class="j-num">4</span>                 <span class="j-op">=</span>  <span class="j-num">0</span>
+      colonne <span class="j-num">3</span> :  <span class="j-num">0</span> <span class="j-op">-</span> <span class="j-num">3</span> <span class="j-op">+</span> <span class="j-num">4</span>                 <span class="j-op">=</span>  <span class="j-num">1</span>
+
+               ( <span class="j-num">1</span>  <span class="j-num">0</span>  <span class="j-num">0</span> )
+   Q x P   <span class="j-op">=</span>   ( <span class="j-num">0</span>  <span class="j-num">1</span>  <span class="j-num">0</span> )   <span class="j-op">=</span>   <span class="j-fn">I</span>
+               ( <span class="j-num">0</span>  <span class="j-num">0</span>  <span class="j-num">1</span> )</code></pre></div><p class="rap"><code>Q × P = I</code> : <code>Q</code> est l'inverse de <code>P</code>, ce qui servira à la question suivante.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">15</span>P × X = Y ⇔ X = Q × Y <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p><strong>2. b.</strong> Montrer que, pour toutes les matrices colonnes
+         <code>X = ( x ; y ; z )</code> et <code>Y = ( a ; b ; c )</code> :
+         <code>P × X = Y ⇔ X = Q × Y</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>Sens ⇒.</strong> On part de <code>P X = Y</code> et on multiplie par <code>Q</code>, à gauche des deux côtés :</p><div class="bloc-code" data-fam="calcul" style="--car:63"><span class="langue">calcul</span><pre><code>        P X  <span class="j-op">=</span>  Y
+   <span class="j-op">=&gt;</span>   Q x P X  <span class="j-op">=</span>  Q x Y          on multiplie par Q, à gauche
+   <span class="j-op">=&gt;</span>   I x X    <span class="j-op">=</span>  Q x Y          car Q x P <span class="j-op">=</span> I
+   <span class="j-op">=&gt;</span>   X        <span class="j-op">=</span>  Q x Y          car I x X <span class="j-op">=</span> X</code></pre></div><div class="encart savoir"><div class="titre">💡 Le sens retour ⇐ — que la correction du cours ne détaille pas</div>
+  <p>L'énoncé demande une <strong>équivalence</strong>. Le sens retour part de
+     <code>X = Q Y</code> et multiplie par <code>P</code> à gauche :
+     <code>P X = P × Q × Y</code>. Il faut alors savoir que <code>P × Q = I</code> — et c'est
+     le cas : pour des matrices carrées, <code>Q × P = I</code> entraîne <code>P × Q = I</code>
+     (on peut le vérifier en calculant les neuf termes). D'où <code>P X = I × Y = Y</code>.</p>
+  <p class="rap">Écrire seulement le sens ⇒ ne démontre pas un « ⇔ ». En épreuve, les deux sens
+     se rédigent.</p></div>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">16</span>Retrouver le circuit à partir de ses prix <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>3.</strong> Une publicité affirme qu'un circuit complet de 14 jours est possible
+         au prix de 2 600 € en période haute, 2 250 € en période moyenne et 1 400 € en période
+         basse. Comment se compose ce voyage ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>On cherche <code>X</code> tel que <code>P X = Y</code>. Les prix étant en centaines
+   d'euros, <code>Y = ( 26 ; 22,5 ; 14 )</code> — et non ( 2 600 ; 2 250 ; 1 400 ). D'après la
+   question 2b, <code>X = Q × Y</code> :</p><div class="bloc-code" data-fam="calcul" style="--car:66"><span class="langue">calcul</span><pre><code>   x  <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">1</span> x <span class="j-num">26</span> <span class="j-op">+</span> <span class="j-num">4</span> x <span class="j-num">22,5</span> <span class="j-op">+</span> (<span class="j-op">-</span><span class="j-num">4,5</span>) x <span class="j-num">14</span>  <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">26</span> <span class="j-op">+</span> <span class="j-num">90</span> <span class="j-op">-</span> <span class="j-num">63</span>  <span class="j-op">=</span>  <span class="j-num">1</span>
+   y  <span class="j-op">=</span>   <span class="j-num">1</span> x <span class="j-num">26</span> <span class="j-op">-</span> <span class="j-num">2</span> x <span class="j-num">22,5</span> <span class="j-op">+</span>   <span class="j-num">1,5</span>  x <span class="j-num">14</span>  <span class="j-op">=</span>   <span class="j-num">26</span> <span class="j-op">-</span> <span class="j-num">45</span> <span class="j-op">+</span> <span class="j-num">21</span>  <span class="j-op">=</span>  <span class="j-num">2</span>
+   z  <span class="j-op">=</span>   <span class="j-num">0</span> x <span class="j-num">26</span> <span class="j-op">-</span> <span class="j-num">2</span> x <span class="j-num">22,5</span> <span class="j-op">+</span>   <span class="j-num">4</span>    x <span class="j-num">14</span>  <span class="j-op">=</span>    <span class="j-num">0</span> <span class="j-op">-</span> <span class="j-num">45</span> <span class="j-op">+</span> <span class="j-num">56</span>  <span class="j-op">=</span>  <span class="j-num">11</span>
+
+              ( <span class="j-num">1</span>  )
+   X  <span class="j-op">=</span>       ( <span class="j-num">2</span>  )
+              ( <span class="j-num">11</span> )</code></pre></div><p><strong>Le voyage se compose de 1 jour dans la ville A, 2 jours dans la ville B et 11 jours
+   dans la ville C</strong> — 14 jours en tout, comme annoncé.</p>
+<div class="encart piege"><div class="titre">⚠️ Les unités du tableau</div>
+  <p>Avec <code>Y = ( 2 600 ; 2 250 ; 1 400 )</code>, on obtiendrait 100, 200 et 1 100
+     « jours ». Le tableau est en centaines d'euros : les prix doivent l'être aussi.
+     <strong>Vérification</strong> : <code>P × X</code> redonne bien 26 ; 22,5 ; 14.</p></div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p7">
+  <h2><span class="num">7</span>Devoir 1 — retrouver n</h2>
+  <p class="chapeau">Le sujet est une égalité de matrices où un seul terme manque, écrit
+     <code>n</code> en rouge. Tout le travail consiste à repérer les termes du résultat qui
+     dépendent de <code>n</code>, et ceux-là seulement.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:60"><span class="langue">calcul</span><pre><code>   ( <span class="j-num">1</span>   <span class="j-num">0</span>   <span class="j-num">1</span> )     ( <span class="j-num">3</span>   <span class="j-num">0</span>  <span class="j-op">-</span><span class="j-num">2</span>   <span class="j-num">0</span> )     ( <span class="j-num">4</span>  <span class="j-op">-</span><span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">2</span>   <span class="j-num">3</span> )
+   ( n   <span class="j-num">1</span>   <span class="j-num">3</span> )  <span class="j-fn">x</span>  (<span class="j-op">-</span><span class="j-num">2</span>   <span class="j-num">1</span>   <span class="j-num">1</span>   <span class="j-num">1</span> )  <span class="j-op">=</span>  ( <span class="j-num">7</span>  <span class="j-op">-</span><span class="j-num">2</span>  <span class="j-op">-</span><span class="j-num">3</span>  <span class="j-num">10</span> )
+   ( <span class="j-num">3</span>  <span class="j-op">-</span><span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">2</span> )     ( <span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">1</span>   <span class="j-num">0</span>   <span class="j-num">3</span> )     ( <span class="j-num">9</span>   <span class="j-num">1</span>  <span class="j-op">-</span><span class="j-num">7</span>  <span class="j-op">-</span><span class="j-num">7</span> )</code></pre></div>
+  <article class="exo">
+    <h3><span class="no">17</span>Trouver n <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Déterminer <code>n</code> pour que l'égalité soit vraie.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><code>n</code> est sur la <strong>ligne 2</strong> de la première matrice. Il n'intervient
+   donc que dans la ligne 2 du résultat, et seulement quand il multiplie un terme non nul de
+   la ligne 1 de la seconde matrice : <code>3</code> (colonne 1) et <code>−2</code>
+   (colonne 3). Deux termes à écrire, pas douze.</p><div class="bloc-code" data-fam="calcul" style="--car:71"><span class="langue">calcul</span><pre><code>   ligne <span class="j-num">2</span> x colonne <span class="j-num">1</span> :  n x <span class="j-num">3</span>  <span class="j-op">+</span> <span class="j-num">1</span> <span class="j-fn">x</span> (<span class="j-op">-</span><span class="j-num">2</span>) <span class="j-op">+</span> <span class="j-num">3</span> x <span class="j-num">1</span>   <span class="j-op">=</span>  <span class="j-num">3</span>n <span class="j-op">+</span> <span class="j-num">1</span>   <span class="j-op">=</span>  <span class="j-num">7</span>
+                                                  <span class="j-num">3</span>n <span class="j-op">=</span> <span class="j-num">6</span>    <span class="j-op">-&gt;</span>   n <span class="j-op">=</span> <span class="j-num">2</span>
+   ligne <span class="j-num">2</span> x colonne <span class="j-num">3</span> :  n <span class="j-fn">x</span> (<span class="j-op">-</span><span class="j-num">2</span>) <span class="j-op">+</span> <span class="j-num">1</span> x <span class="j-num">1</span>  <span class="j-op">+</span> <span class="j-num">3</span> x <span class="j-num">0</span>   <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">2</span>n <span class="j-op">+</span> <span class="j-num">1</span>  <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">3</span>
+                                                 <span class="j-op">-</span><span class="j-num">2</span>n <span class="j-op">=</span> <span class="j-op">-</span><span class="j-num">4</span>   <span class="j-op">-&gt;</span>   n <span class="j-op">=</span> <span class="j-num">2</span></code></pre></div><p><strong>n = 2.</strong> Les deux termes donnent la même valeur : l'égalité est donc
+   possible. Avec <code>n = 2</code>, la première matrice est la matrice <code>B</code> de
+   l'exercice 7, et le produit est celui de l'<a href="#p4">exercice 10</a>.</p><div class="encart piege"><div class="titre">⚠️ Une équation suffit, la seconde vérifie</div>
+  <p>Le premier terme donne déjà <code>n</code>. Le second ne sert pas à le trouver, il sert à
+     savoir si l'égalité tient : si les deux termes avaient donné deux valeurs différentes,
+     <strong>aucun</strong> <code>n</code> ne conviendrait, et c'est la réponse qu'il faudrait
+     écrire.</p></div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p8">
+  <h2><span class="num">8</span>Devoir 2 — un système à trois inconnues</h2>
+  <p class="chapeau">L'exercice donné à faire : résoudre un système de trois équations à trois
+     inconnues par une inversion de matrice, l'inverse étant obtenu à la calculatrice.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:56"><span class="langue">calcul</span><pre><code>        ( <span class="j-op">-</span><span class="j-num">4</span>x <span class="j-op">+</span>  y <span class="j-op">+</span> <span class="j-num">0,1</span>z <span class="j-op">=</span> <span class="j-num">1</span>
+   S :  ( <span class="j-num">11</span>x <span class="j-op">-</span> <span class="j-num">3</span>y <span class="j-op">-</span> <span class="j-num">0,2</span>z <span class="j-op">=</span> <span class="j-num">1</span>
+        ( <span class="j-op">-</span><span class="j-num">6</span>x <span class="j-op">+</span> <span class="j-num">2</span>y <span class="j-op">+</span> <span class="j-num">0,1</span>z <span class="j-op">=</span> <span class="j-num">2</span>
+
+        ( <span class="j-op">-</span><span class="j-num">4</span>    <span class="j-num">1</span>    <span class="j-num">0,1</span> )          ( x )          ( <span class="j-num">1</span> )
+   A <span class="j-op">=</span>  ( <span class="j-num">11</span>   <span class="j-op">-</span><span class="j-num">3</span>   <span class="j-op">-</span><span class="j-num">0,2</span> )     X <span class="j-op">=</span>  ( y )     B <span class="j-op">=</span>  ( <span class="j-num">1</span> )
+        ( <span class="j-op">-</span><span class="j-num">6</span>    <span class="j-num">2</span>    <span class="j-num">0,1</span> )          ( z )          ( <span class="j-num">2</span> )</code></pre></div>
+  <article class="exo">
+    <h3><span class="no">18</span>Le système, écrit A X = B <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>1.</strong> Vérifier que le système <code>S</code> est équivalent à l'égalité
+         matricielle <code>A X = B</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><code>A</code> est 3 × 3, <code>X</code> 3 × 1 : le produit est une colonne de trois termes, chacun une ligne de <code>A</code> par <code>X</code>.</p><div class="bloc-code" data-fam="calcul" style="--car:31"><span class="langue">calcul</span><pre><code>            ( <span class="j-op">-</span><span class="j-num">4</span>x <span class="j-op">+</span>  y <span class="j-op">+</span> <span class="j-num">0,1</span>z )
+   A X  <span class="j-op">=</span>   ( <span class="j-num">11</span>x <span class="j-op">-</span> <span class="j-num">3</span>y <span class="j-op">-</span> <span class="j-num">0,2</span>z )
+            ( <span class="j-op">-</span><span class="j-num">6</span>x <span class="j-op">+</span> <span class="j-num">2</span>y <span class="j-op">+</span> <span class="j-num">0,1</span>z )</code></pre></div><p>Deux colonnes sont égales quand leurs termes le sont un à un. <code>A X = B</code> dit donc exactement les trois équations de <code>S</code>.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">19</span>L'inverse, à la calculatrice <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>2. a.</strong> Déterminer <code>A⁻¹</code>, l'inverse de <code>A</code>, avec une
+         calculatrice ou un logiciel. <strong>b.</strong> Vérifier que
+         <code>X = A⁻¹ · B</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>La calculatrice donne :</p><div class="bloc-code" data-fam="calcul" style="--car:26"><span class="langue">calcul</span><pre><code>          ( <span class="j-num">1</span>    <span class="j-num">1</span>    <span class="j-num">1</span>  )
+   A⁻<span class="j-num">¹</span> <span class="j-op">=</span>  ( <span class="j-num">1</span>    <span class="j-num">2</span>    <span class="j-num">3</span>  )
+          ( <span class="j-num">40</span>   <span class="j-num">20</span>   <span class="j-num">10</span> )</code></pre></div><p>Un résultat de calculatrice se <strong>vérifie</strong> : <code>A × A⁻¹</code> doit donner
+   l'identité. Trois termes, par exemple :</p><div class="bloc-code" data-fam="calcul" style="--car:73"><span class="langue">calcul</span><pre><code>   ligne <span class="j-num">1</span> x colonne <span class="j-num">1</span> :  <span class="j-op">-</span><span class="j-num">4</span>x1  <span class="j-op">+</span> <span class="j-num">1</span>x1  <span class="j-op">+</span> <span class="j-num">0,1</span>x40     <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">4</span> <span class="j-op">+</span> <span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">4</span>    <span class="j-op">=</span>  <span class="j-num">1</span>
+   ligne <span class="j-num">2</span> x colonne <span class="j-num">2</span> :  <span class="j-num">11</span>x1  <span class="j-op">-</span> <span class="j-num">3</span>x2  <span class="j-op">-</span> <span class="j-num">0,2</span>x20     <span class="j-op">=</span>  <span class="j-num">11</span> <span class="j-op">-</span> <span class="j-num">6</span> <span class="j-op">-</span> <span class="j-num">4</span>    <span class="j-op">=</span>  <span class="j-num">1</span>
+   ligne <span class="j-num">2</span> x colonne <span class="j-num">3</span> :  <span class="j-num">11</span>x1  <span class="j-op">-</span> <span class="j-num">3</span>x3  <span class="j-op">-</span> <span class="j-num">0,2</span>x10     <span class="j-op">=</span>  <span class="j-num">11</span> <span class="j-op">-</span> <span class="j-num">9</span> <span class="j-op">-</span> <span class="j-num">2</span>    <span class="j-op">=</span>  <span class="j-num">0</span></code></pre></div><p>Les neuf termes donnent bien <code>I</code>. Pour <strong>b</strong>, c'est le
+   raisonnement du cours (<a href="cours.html#systeme">section 14</a>) : on multiplie
+   <code>A X = B</code> par <code>A⁻¹</code> <em>à gauche</em>, d'où
+   <code>A⁻¹ A X = A⁻¹ B</code>, soit <code>I X = A⁻¹ B</code>, soit
+   <code>X = A⁻¹ B</code>.</p>
+      </div>
+    </div>
+  </article>
+  <article class="exo">
+    <h3><span class="no">20</span>La solution du système <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>2. c.</strong> En déduire la solution du système <code>S</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="calcul" style="--car:59"><span class="langue">calcul</span><pre><code>   x  <span class="j-op">=</span>   <span class="j-num">1</span> x <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">1</span> x <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">1</span> x <span class="j-num">2</span>   <span class="j-op">=</span>   <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">2</span>   <span class="j-op">=</span>  <span class="j-num">4</span>
+   y  <span class="j-op">=</span>   <span class="j-num">1</span> x <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">2</span> x <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">3</span> x <span class="j-num">2</span>   <span class="j-op">=</span>   <span class="j-num">1</span> <span class="j-op">+</span>  <span class="j-num">2</span> <span class="j-op">+</span>  <span class="j-num">6</span>   <span class="j-op">=</span>  <span class="j-num">9</span>
+   z  <span class="j-op">=</span>  <span class="j-num">40</span> x <span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">20</span> x <span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">10</span> x <span class="j-num">2</span>   <span class="j-op">=</span>  <span class="j-num">40</span> <span class="j-op">+</span> <span class="j-num">20</span> <span class="j-op">+</span> <span class="j-num">20</span>   <span class="j-op">=</span>  <span class="j-num">80</span></code></pre></div><p><strong>La solution est x = 4, y = 9 et z = 80.</strong> On la vérifie dans les trois
+   équations :</p><div class="bloc-code" data-fam="calcul" style="--car:55"><span class="langue">calcul</span><pre><code>   <span class="j-op">-</span><span class="j-num">4</span>x4  <span class="j-op">+</span> <span class="j-num">9</span>   <span class="j-op">+</span> <span class="j-num">0,1</span>x80   <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">16</span> <span class="j-op">+</span>  <span class="j-num">9</span> <span class="j-op">+</span>  <span class="j-num">8</span>   <span class="j-op">=</span>  <span class="j-num">1</span>     ✓
+   <span class="j-num">11</span>x4  <span class="j-op">-</span> <span class="j-num">3</span>x9 <span class="j-op">-</span> <span class="j-num">0,2</span>x80   <span class="j-op">=</span>   <span class="j-num">44</span> <span class="j-op">-</span> <span class="j-num">27</span> <span class="j-op">-</span> <span class="j-num">16</span>   <span class="j-op">=</span>  <span class="j-num">1</span>     ✓
+   <span class="j-op">-</span><span class="j-num">6</span>x4  <span class="j-op">+</span> <span class="j-num">2</span>x9 <span class="j-op">+</span> <span class="j-num">0,1</span>x80   <span class="j-op">=</span>  <span class="j-op">-</span><span class="j-num">24</span> <span class="j-op">+</span> <span class="j-num">18</span> <span class="j-op">+</span>  <span class="j-num">8</span>   <span class="j-op">=</span>  <span class="j-num">2</span>     ✓</code></pre></div><div class="encart savoir"><div class="titre">💡 Un système qu'on ne résoudrait pas à la main</div>
+  <p>Par substitution, ces coefficients — 0,1, −0,2 — rendraient le calcul long et fragile. Par
+     les matrices, une fois <code>A⁻¹</code> en main, la solution tient en un seul produit. C'est
+     tout l'intérêt de la méthode.</p></div>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="sources">
     <h2>Sources exploitées</h2>
@@ -530,9 +797,14 @@
           23 octobre 2026</li>
       <li>L'exercice de cours travaillé en classe</li>
       <li>L'exercice 7, « Produits de matrices de tailles différentes » — les deux questions</li>
+      <li>L'exercice 8 « L'agence de voyages », avec la correction écrite au tableau de la
+          question 3</li>
+      <li>Le devoir 1 (retrouver <code>n</code> dans une égalité de produit, corrigé au tableau) et le
+          devoir 2 (un système à trois inconnues, résolu par l'inverse d'une matrice)</li>
     </ul>
-    <p class="rap"><strong>Les onze corrections ont été recalculées en fractions exactes</strong>,
-      indépendamment du corrigé manuscrit, et les deux concordent.</p>
+    <p class="rap"><strong>Les dix-neuf corrections ont été recalculées en fractions exactes</strong>,
+      indépendamment du corrigé manuscrit, et les deux concordent. Les questions 1a et 1b de
+      l'exercice 8 n'étaient pas corrigées au tableau : leurs réponses sont les nôtres.</p>
   </div>
 </footer>
 
@@ -540,7 +812,7 @@
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../13-statistiques/exercices.html"><span>Chapitre précédent</span><b>Statistiques</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=bc06e08b"></script>
-<script src="../../assets/app.js?v=bc06e08b"></script>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
 </body>
 </html>

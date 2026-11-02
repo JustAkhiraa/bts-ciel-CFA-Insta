@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POO en C++ | BTS CIEL</title>
+<meta name="description" content="Cours : qu'est-ce qu'un objet, programmation procédurale et orientée objet, classe, attribut, méthode, les quatre principes de la POO, puis les bases du C++ — bibliothèques, namespace std, cout, cin, string, getline et le piège de cin.ignore().">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=d3aadbc6">
+</head>
+<body data-matiere="dev">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Informatique &amp; Développement</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#objet">1 · Qu'est-ce qu'un objet ?</a></li>
+    <li><a href="#procedural">2 · Procédural ou objet</a></li>
+    <li><a href="#avantages">3 · Ce que la POO apporte</a></li>
+    <li><a href="#principes">4 · Les quatre principes</a></li>
+    <li><a href="#bibliotheques">5 · Les bibliothèques : <code>#include</code></a></li>
+    <li><a href="#namespace">6 · L'espace de noms <code>std</code></a></li>
+    <li><a href="#squelette">7 · Le squelette d'un programme C++</a></li>
+    <li><a href="#cout">8 · Afficher : <code>cout</code> et <code>&lt;&lt;</code></a></li>
+    <li><a href="#cin">9 · Lire : <code>cin</code> et <code>&gt;&gt;</code></a></li>
+    <li><a href="#string">10 · Les chaînes : <code>string</code> et <code>getline</code></a></li>
+    <li><a href="#ignore">11 · Le piège : <code>getline</code> après <code>cin</code></a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Informatique &amp; Développement</a>
+    <span class="sep">/</span><span>Chapitre 13</span>
+  </div>
+
+  <h1>POO en C++</h1>
+  <p class="chapeau">Jusqu'ici, un programme était une suite d'instructions qui manipulent des
+     données. La <strong>programmation orientée objet</strong> range ensemble les données et
+     ce qu'on en fait, dans des <strong>objets</strong>. Le chapitre pose les idées — objet,
+     classe, attribut, méthode, et les quatre principes — puis les <strong>bases du
+     C++</strong>, le langage dans lequel on les pratiquera : afficher, lire, et manipuler
+     des chaînes.</p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Un <strong>objet</strong> a des <strong>attributs</strong> (ce qu'il est) et des
+         <strong>méthodes</strong> (ce qu'il fait). La <strong>classe</strong> est le modèle,
+         l'objet un exemplaire fabriqué d'après lui. Quatre principes : encapsulation,
+         abstraction, héritage, polymorphisme.</p>
+      <p>En C++ : <code>#include &lt;iostream&gt;</code>, <code>using namespace std;</code>,
+         puis <strong><code>cout &lt;&lt;</code></strong> pour afficher et
+         <strong><code>cin &gt;&gt;</code></strong> pour lire — sans code de format ni
+         <code>&amp;</code>. <code>string</code> remplace le tableau de <code>char</code>,
+         <code>getline</code> lit une ligne entière — et <strong>après un
+         <code>cin &gt;&gt;</code>, il faut un <code>cin.ignore()</code></strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#objet</code> <code>#classe</code> <code>#attribut</code> <code>#methode</code>
+    <code>#encapsulation</code> <code>#abstraction</code> <code>#heritage</code>
+    <code>#polymorphisme</code> <code>#include</code> <code>#namespace</code>
+    <code>#std</code> <code>#cout</code> <code>#cin</code> <code>#endl</code>
+    <code>#string</code> <code>#getline</code> <code>#cin.ignore</code>
+  </p>
+</header>
+
+<section id="objet">
+  <h2><span class="num">01</span>Qu'est-ce qu'un objet ?</h2>
+
+  <p>La <strong>programmation orientée objet</strong> — la <strong>POO</strong> — est une
+     manière de concevoir un programme en l'organisant autour d'<strong>objets</strong>. Un
+     objet représente un élément, concret ou abstrait, du système qu'on veut programmer :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Domaine</th><th>Des objets</th></tr></thead>
+      <tbody>
+        <tr><td>Informatique</td><td>ordinateur, serveur, capteur</td></tr>
+        <tr><td>Réseau</td><td>routeur, commutateur, pare-feu</td></tr>
+        <tr><td>Gestion</td><td>utilisateur, compte, produit</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Chaque objet possède deux choses : des <strong>informations qui le décrivent</strong> et
+     des <strong>actions qu'il sait faire</strong>. Les premières s'appellent des
+     <strong>attributs</strong>, les secondes des <strong>méthodes</strong>.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 460 210" role="img" aria-label="L'objet Ordinateur : trois attributs, trois méthodes">
+      <style>
+        .ob-cadre{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .ob-tete{fill:var(--accent-pale);stroke:var(--bord-fort);stroke-width:1.5}
+        .ob-titre{font:700 16px var(--sans);fill:var(--encre);text-anchor:middle}
+        .ob-sous{font:12px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .ob-lib{font:700 12px var(--sans);fill:var(--accent-sombre)}
+        .ob-txt{font:14px var(--mono);fill:var(--encre)}
+        .ob-trait{stroke:var(--bord-fort);stroke-width:1.2}
+        .ob-note{font:12px var(--sans);fill:var(--encre-douce)}
+      </style>
+      <rect class="ob-cadre" x="20" y="10" width="250" height="190" rx="8"/>
+      <rect class="ob-tete" x="20" y="10" width="250" height="44" rx="8"/>
+      <text class="ob-titre" x="145" y="32">Ordinateur</text>
+      <text class="ob-sous" x="145" y="48">objet informatique</text>
+      <text class="ob-lib" x="34" y="74">ATTRIBUTS</text>
+      <text class="ob-txt" x="34" y="94">marque</text>
+      <text class="ob-txt" x="34" y="112">memoireRAM</text>
+      <text class="ob-txt" x="34" y="130">etat</text>
+      <line class="ob-trait" x1="20" y1="140" x2="270" y2="140"/>
+      <text class="ob-lib" x="34" y="158">MÉTHODES</text>
+      <text class="ob-txt" x="34" y="176">demarrer()  arreter()</text>
+      <text class="ob-txt" x="34" y="193">afficher()</text>
+      <text class="ob-note" x="290" y="104">← ce qu'il EST</text>
+      <text class="ob-note" x="290" y="184">← ce qu'il FAIT</text>
+    </svg>
+    <figcaption>Un ordinateur se décrit par une marque, une quantité de mémoire RAM et un état
+      de fonctionnement ; il sait démarrer, s'arrêter et afficher ses caractéristiques.</figcaption>
+  </figure>
+
+  <div class="encart analogie">
+    <div class="titre">🧠 Un nom et des verbes</div>
+    <p>Pour trouver les attributs et les méthodes d'un objet, on le décrit en français. Les
+       <strong>noms</strong> et adjectifs (« sa marque », « sa mémoire », « allumé ») sont ses
+       attributs ; les <strong>verbes</strong> (« démarrer », « afficher ») sont ses méthodes.</p>
+  </div>
+</section>
+<section id="procedural">
+  <h2><span class="num">02</span>Procédural ou objet : deux façons d'organiser</h2>
+
+  <p>Il y a plusieurs façons d'organiser un programme. Celle que vous connaissez déjà, c'est la
+     <strong>programmation procédurale</strong> : le programme est une suite de fonctions et
+     d'instructions qui manipulent des données. C'est celle du langage C.</p>
+<div class="bloc-code" data-fam="c" style="--car:53"><span class="langue">C</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;stdio.h&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">temperature</span> <span class="j-op">=</span> <span class="j-num">25</span>;
+    <span class="j-fn">printf</span>(<span class="j-txt">"Temperature : %d degres\n"</span>, <span class="j-var">temperature</span>);
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:23"><span class="langue">sortie réelle</span><pre><code>Temperature : 25 degres</code></pre></div>
+  <p><code>temperature</code> est une variable qui contient une donnée ; <code>printf()</code>
+     est une fonction qui l'affiche. La donnée et ce qu'on en fait sont <strong>séparés</strong>.</p>
+
+  <p>En <strong>programmation orientée objet</strong>, on les <strong>regroupe</strong>. En
+     C++, l'outil pour cela est la <strong>classe</strong> : elle réunit les données et les
+     opérations qui leur sont associées.</p>
+<div class="bloc-code" data-fam="c" style="--car:49"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-var">class</span> <span class="j-var">Capteur</span> {
+<span class="j-var">public</span><span class="j-op">:</span>
+    <span class="j-typ">int</span> <span class="j-var">temperature</span>;
+
+    <span class="j-typ">void</span> <span class="j-fn">afficher</span>() {
+        <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Temperature : "</span>
+             <span class="j-op">&lt;&lt;</span> <span class="j-var">temperature</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" degres"</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Capteur</span> <span class="j-var">c</span>;
+    <span class="j-var">c</span>.<span class="j-var">temperature</span> <span class="j-op">=</span> <span class="j-num">25</span>;
+    <span class="j-var">c</span>.<span class="j-fn">afficher</span>();
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:23"><span class="langue">sortie réelle</span><pre><code>Temperature : 25 degres</code></pre></div>
+
+  <div class="tableau">
+    <table>
+      <caption>Quatre mots, et ce qu'ils désignent dans ce programme</caption>
+      <thead><tr><th>Mot</th><th>Ici</th><th>C'est…</th></tr></thead>
+      <tbody>
+        <tr><td><strong>classe</strong></td><td><code>Capteur</code></td><td>le modèle : ce que tout capteur possède et sait faire</td></tr>
+        <tr><td><strong>attribut</strong></td><td><code>temperature</code></td><td>une donnée rangée dans l'objet</td></tr>
+        <tr><td><strong>méthode</strong></td><td><code>afficher()</code></td><td>une fonction qui appartient à la classe</td></tr>
+        <tr><td><strong>objet</strong></td><td><code>c</code></td><td>un capteur précis, fabriqué d'après le modèle</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Vous avez déjà vu la moitié de l'idée : la <code>struct</code></div>
+    <p>Une <code>struct</code> du C regroupait déjà des données de types différents
+       (<a href="../12-langage-c/cours.html#structures">chapitre 12, section 27</a>). La classe
+       va plus loin : elle range <strong>aussi les fonctions</strong> avec les données. La
+       méthode <code>afficher()</code> lit <code>temperature</code> directement, sans qu'on
+       la lui passe en paramètre — parce qu'elles sont dans le même objet.</p>
+    <p class="rap">Et le point de <code>c.temperature</code> est celui de la structure :
+       « le champ <code>temperature</code> de <code>c</code> ».</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Le point-virgule après l'accolade de la classe</div>
+    <p>Comme pour une <code>struct</code>, la définition d'une classe se termine par
+       <code>}</code><strong><code>;</code></strong>. L'oublier provoque une erreur de
+       compilation souvent signalée… à la ligne suivante.</p>
+  </div>
+</section>
+<section id="avantages">
+  <h2><span class="num">03</span>Ce que la POO apporte</h2>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Avantage</th><th>Ce que cela veut dire</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Organisation</strong></td><td>le programme est structuré en classes et en objets</td></tr>
+        <tr><td><strong>Réutilisation</strong></td><td>une classe sert dans plusieurs parties d'un programme, ou dans un autre</td></tr>
+        <tr><td><strong>Maintenance</strong></td><td>le code est plus facile à comprendre et à modifier — s'il est bien conçu</td></tr>
+        <tr><td><strong>Évolutivité</strong></td><td>ajouter une fonctionnalité est plus simple quand l'organisation s'y prête</td></tr>
+        <tr><td><strong>Modélisation</strong></td><td>le programme représente directement les éléments du système : un routeur, un capteur, un compte</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="rap">« S'il est bien conçu » n'est pas une précaution de style : une mauvaise
+     découpe en classes rend un programme plus difficile à lire qu'une bonne découpe en
+     fonctions. La POO est un outil, pas une garantie.</p>
+</section>
+<section id="principes">
+  <h2><span class="num">04</span>Les quatre principes fondamentaux</h2>
+
+  <p>Quatre idées font la POO. Elles seront étudiées une par une dans les chapitres suivants ;
+     il suffit pour l'instant de savoir les nommer et de reconnaître un exemple.</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Principe</th><th>Définition</th><th>Exemple</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Encapsulation</strong></td><td>regrouper les données et les méthodes, tout en contrôlant l'accès aux données</td><td>protéger les informations d'un compte utilisateur</td></tr>
+        <tr><td><strong>Abstraction</strong></td><td>ne présenter que les caractéristiques utiles d'un objet, en masquant les détails internes</td><td>utiliser un équipement réseau sans connaître tous ses mécanismes internes</td></tr>
+        <tr><td><strong>Héritage</strong></td><td>créer une classe spécialisée à partir d'une classe existante</td><td>créer une classe <code>Routeur</code> à partir d'une classe <code>EquipementReseau</code></td></tr>
+        <tr><td><strong>Polymorphisme</strong></td><td>permettre à une même opération d'avoir des comportements différents selon l'objet</td><td>afficher l'état d'un serveur ou d'un routeur avec une opération commune</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart analogie">
+    <div class="titre">🧠 Les quatre, sur une box Internet</div>
+    <p><strong>Encapsulation</strong> : le mot de passe d'administration est dans la box, et on
+       ne peut le changer que par son interface. <strong>Abstraction</strong> : on la branche
+       et elle marche, sans savoir comment elle négocie avec l'opérateur.
+       <strong>Héritage</strong> : une « box fibre » est une box, avec en plus un module
+       optique. <strong>Polymorphisme</strong> : « redémarrer » marche sur toutes les box,
+       mais chaque modèle le fait à sa façon.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les mêmes idées, déjà vues en Python</div>
+    <p>Classes, encapsulation, héritage et polymorphisme ont été travaillés en Python
+       (<a href="../08-python-poo/cours.html">chapitre 8</a>). Les principes sont
+       <strong>les mêmes</strong> ; ce qui change en C++, c'est l'écriture — les types
+       déclarés, <code>public:</code>, le point-virgule.</p>
+  </div>
+</section>
+<section id="bibliotheques">
+  <h2><span class="num">05</span>Les bibliothèques : <code>#include</code></h2>
+
+  <p>Une <strong>bibliothèque</strong> est un ensemble de fonctionnalités déjà écrites et mises
+     à disposition des programmeurs : des fonctions, des classes, des types de données, des
+     constantes, des outils. On réutilise ce code au lieu de tout programmer à partir de
+     zéro.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" data-fam="c" style="--car:59"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">nom_bibliotheque</span><span class="j-op">&gt;</span>
+
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>       <span class="j-com">// entrees et sorties : cout, cin</span></code></pre></div>
+    <p class="rap">Le <strong>préprocesseur</strong> traite cette directive
+       <em>avant</em> la compilation : il insère à sa place ce que la bibliothèque déclare.
+       C'est le même mécanisme que <code>#include &lt;stdio.h&gt;</code> en C.</p>
+  </div>
+
+  <div class="tableau">
+    <table>
+      <caption>Les bibliothèques standard les plus utilisées</caption>
+      <thead><tr><th>Bibliothèque</th><th>Rôle</th><th>Son équivalent en C</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;iostream&gt;</code></td><td>entrées et sorties standard</td><td><code>&lt;stdio.h&gt;</code></td></tr>
+        <tr><td><code>&lt;string&gt;</code></td><td>chaînes de caractères</td><td><code>&lt;string.h&gt;</code></td></tr>
+        <tr><td><code>&lt;cmath&gt;</code></td><td>fonctions mathématiques</td><td><code>&lt;math.h&gt;</code></td></tr>
+        <tr><td><code>&lt;iomanip&gt;</code></td><td>mise en forme de l'affichage</td><td>les formats de <code>printf</code></td></tr>
+        <tr><td><code>&lt;fstream&gt;</code></td><td>lecture et écriture de fichiers</td><td><code>fopen</code>, <code>fprintf</code>…</td></tr>
+        <tr><td><code>&lt;vector&gt;</code></td><td>tableaux dynamiques</td><td><code>malloc</code> et un tableau</td></tr>
+        <tr><td><code>&lt;cstdlib&gt;</code></td><td>fonctions générales et conversions</td><td><code>&lt;stdlib.h&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="rap">Les bibliothèques du C++ s'écrivent <strong>sans <code>.h</code></strong>.
+     Et la troisième colonne n'est pas une curiosité : un programme C++ peut encore utiliser
+     <code>printf</code> — mais on ne mélange pas les deux styles dans un même affichage.</p>
+</section>
+<section id="namespace">
+  <h2><span class="num">06</span>L'espace de noms <code>std</code></h2>
+
+  <p>Un <strong>espace de noms</strong> (<em>namespace</em>) regroupe des éléments sous un
+     même nom. Il sert à éviter les conflits : deux bibliothèques peuvent chacune avoir une
+     fonction <code>afficher</code> sans se gêner, si elles sont dans deux espaces
+     différents.</p>
+  <p>La bibliothèque standard du C++ range tout dans un espace appelé <strong><code>std</code></strong>
+     — notamment <code>cout</code>, <code>cin</code>, <code>endl</code> et <code>string</code>.
+     Pour s'en servir, on précise l'espace devant chaque nom, avec l'opérateur
+     <code>::</code> :</p>
+<div class="bloc-code" data-fam="c" style="--car:49"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">std</span><span class="j-op">::</span><span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Bonjour BTS CIEL"</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">std</span><span class="j-op">::</span><span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:16"><span class="langue">sortie réelle</span><pre><code>Bonjour BTS CIEL</code></pre></div>
+  <p><code>std</code> désigne l'espace de noms standard · <code>::</code> est l'<strong>opérateur
+     de résolution de portée</strong> · <code>cout</code> affiche · <code>endl</code> passe à
+     la ligne.</p>
+
+  <p>Pour ne pas répéter <code>std::</code> partout, on écrit une fois
+     <code>using namespace std;</code> :</p>
+<div class="bloc-code" data-fam="c" style="--car:39"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Bonjour BTS CIEL"</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:16"><span class="langue">sortie réelle</span><pre><code>Bonjour BTS CIEL</code></pre></div>
+  <p class="rap">Les deux écritures sont correctes et donnent exactement le même programme.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Pourquoi les professionnels écrivent souvent <code>std::</code></div>
+    <p><code>using namespace std;</code> fait entrer <strong>tous</strong> les noms de la
+       bibliothèque standard — il y en a des centaines. Dans un petit programme d'exercice,
+       c'est pratique. Dans un gros projet, cela peut créer exactement les conflits que
+       l'espace de noms devait éviter. D'où les deux usages, qu'il faut savoir lire.</p>
+  </div>
+</section>
+<section id="squelette">
+  <h2><span class="num">07</span>Le squelette d'un programme C++</h2>
+
+<div class="bloc-code" data-fam="c" style="--car:32"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">string</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-com">// Declaration des variables</span>
+
+    <span class="j-com">// Instructions du programme</span>
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+  <p>Les bibliothèques d'abord, puis l'espace de noms, puis <code>main</code>. Le fichier
+     s'enregistre avec l'extension <strong><code>.cpp</code></strong> — et non
+     <code>.c</code>, que le compilateur traiterait comme du C.</p>
+  <div class="encart savoir">
+    <div class="titre">💡 Ce qui ne change pas depuis le C</div>
+    <p><code>int main()</code>, <code>return 0;</code>, les <code>{ }</code>, le
+       <code>;</code> à la fin de chaque instruction, les types <code>int</code>,
+       <code>float</code>, <code>char</code>, les <code>if</code>, <code>for</code>,
+       <code>while</code> : tout ce qui a été appris en C s'écrit de la même façon en C++.
+       Ce qui change d'abord, c'est l'affichage et la saisie.</p>
+  </div>
+</section>
+<section id="cout">
+  <h2><span class="num">08</span>Afficher : <code>cout</code> et <code>&lt;&lt;</code></h2>
+
+  <p><code>cout</code> est le <strong>flux de sortie standard</strong> : ce qu'on lui envoie
+     apparaît à l'écran. On envoie avec <code>&lt;&lt;</code>, l'<strong>opérateur
+     d'insertion</strong>.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" style="--car:19"><span class="langue">C++</span><pre><code>cout &lt;&lt; expression;</code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:31"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Bienvenue en C++"</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:16"><span class="langue">sortie réelle</span><pre><code>Bienvenue en C++</code></pre></div>
+
+  <p>Pour afficher une variable, on l'insère à la suite — et on peut enchaîner autant de
+     <code>&lt;&lt;</code> qu'on veut :</p>
+<div class="bloc-code" data-fam="c" style="--car:44"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span> <span class="j-op">=</span> <span class="j-num">20</span>;
+    <span class="j-typ">float</span> <span class="j-var">moyenne</span> <span class="j-op">=</span> <span class="j-num">15.5</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Age : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">age</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Moyenne : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">moyenne</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:14"><span class="langue">sortie réelle</span><pre><code>Age : 20
+Moyenne : 15.5</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Plus de code de format</div>
+    <p><code>printf</code> demandait de dire le type : <code>%d</code>, <code>%f</code>.
+       <code>cout</code> le <strong>devine</strong> d'après la variable. Contrepartie :
+       <code>15.5</code> s'affiche <code>15.5</code>, et non <code>15.50</code> comme avec
+       <code>%.2f</code>. Pour fixer le nombre de décimales, il faut
+       <code>&lt;iomanip&gt;</code> :
+       <code>cout &lt;&lt; fixed &lt;&lt; setprecision(2) &lt;&lt; moyenne</code>.</p>
+  </div>
+
+  <h3>Passer à la ligne : <code>endl</code> ou <code>\n</code></h3>
+<div class="bloc-code" style="--car:33"><span class="langue">C++</span><pre><code>cout &lt;&lt; &quot;Premiere ligne&quot; &lt;&lt; endl;
+cout &lt;&lt; &quot;Deuxieme ligne&quot; &lt;&lt; endl;</code></pre></div><div class="bloc-code" style="--car:14"><span class="langue">sortie réelle</span><pre><code>Premiere ligne
+Deuxieme ligne</code></pre></div>
+<div class="bloc-code" style="--car:27"><span class="langue">C++</span><pre><code>cout &lt;&lt; &quot;Premiere ligne\n&quot;;
+cout &lt;&lt; &quot;Deuxieme ligne\n&quot;;</code></pre></div><div class="bloc-code" style="--car:14"><span class="langue">sortie réelle</span><pre><code>Premiere ligne
+Deuxieme ligne</code></pre></div>
+  <p class="rap">Les deux passent à la ligne. <code>endl</code> fait en plus vider
+     immédiatement l'affichage ; pour un exercice, la différence ne se voit pas.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ <code>cout</code> n'ajoute aucun espace</div>
+    <p><code>cout &lt;&lt; "Age :" &lt;&lt; age</code> affiche <code>Age :20</code>. Les
+       espaces sont à mettre <strong>dans les guillemets</strong> : <code>"Age : "</code>.</p>
+  </div>
+</section>
+<section id="cin">
+  <h2><span class="num">09</span>Lire : <code>cin</code> et <code>&gt;&gt;</code></h2>
+
+  <p><code>cin</code> est le <strong>flux d'entrée standard</strong> : il récupère ce qui est
+     tapé au clavier. On le lit avec <code>&gt;&gt;</code>, l'<strong>opérateur
+     d'extraction</strong>, qui range la valeur dans une variable.</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe — les chevrons pointent vers la variable</div>
+<div class="bloc-code" style="--car:16"><span class="langue">C++</span><pre><code>cin &gt;&gt; variable;</code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:46"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Saisir votre age : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">age</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Votre age est : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">age</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:37"><span class="langue">sortie réelle — saisies : 20</span><pre><code>Saisir votre age : Votre age est : 20</code></pre></div>
+  <p class="rap">Pas de <code>&amp;</code> : <code>cin</code> sait écrire dans la variable
+     sans qu'on lui donne son adresse. C'est l'une des premières simplifications par rapport
+     à <code>scanf</code>.</p>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé — des guillemets droits, et la ligne affichée qui va avec</div>
+    <p>L'exemple du cours écrit <code>cout &lt;&lt; « votre age est " &lt;&lt; age</code> :
+       il ouvre la chaîne par un guillemet <strong>français</strong> <code>«</code>. Le
+       compilateur ne connaît que le guillemet droit <code>"</code> et refuse le programme.
+       (C'est souvent un traitement de texte qui remplace les guillemets tout seul.)</p>
+<div class="bloc-code" data-fam="c" style="--car:45"><span class="langue">C++ — ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Saisir votre age : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">age</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> « <span class="j-var">votre</span> <span class="j-var">age</span> <span class="j-var">est</span> " <span class="j-op">&lt;&lt;</span> <span class="j-var">age</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    <p>L'exécution annoncée — <code>Votre age est : 20</code>, avec une majuscule et deux
+       points — ne correspondait pas non plus au texte du programme. L'exemple corrigé
+       ci-dessus écrit la chaîne qui donne cette ligne.</p>
+  </div>
+
+  <p>On peut lire plusieurs valeurs d'un coup, en enchaînant les <code>&gt;&gt;</code>. Elles
+     se tapent séparées par une espace ou par Entrée :</p>
+<div class="bloc-code" data-fam="c" style="--car:40"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">a</span>, <span class="j-var">b</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Saisir deux entiers : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">a</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">b</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Somme : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">a</span> <span class="j-op">+</span> <span class="j-var">b</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:32"><span class="langue">sortie réelle — saisies : 10 puis 5</span><pre><code>Saisir deux entiers : Somme : 15</code></pre></div>
+</section>
+<section id="string">
+  <h2><span class="num">10</span>Les chaînes : <code>string</code> et <code>getline</code></h2>
+
+  <p>Le C++ a un vrai type chaîne : <strong><code>string</code></strong>, fourni par
+     <code>&lt;string&gt;</code>. Plus de tableau de <code>char</code> à dimensionner, plus de
+     <code>'\0'</code> à prévoir : la chaîne prend la taille dont elle a besoin.</p>
+<div class="bloc-code" data-fam="c" style="--car:36"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">string</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">string</span> <span class="j-var">nom</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Saisir votre nom : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">nom</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Nom : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:28"><span class="langue">sortie réelle — saisies : BTS CIEL</span><pre><code>Saisir votre nom : Nom : BTS</code></pre></div>
+  <p>Tapé <code>BTS CIEL</code>, lu <code>BTS</code> : comme <code>scanf("%s")</code>,
+     <code>cin &gt;&gt;</code> <strong>s'arrête au premier espace</strong>. Pour lire une
+     ligne entière, espaces compris, on utilise <strong><code>getline</code></strong> :</p>
+  <div class="encart outils">
+    <div class="titre">🛠️ La syntaxe</div>
+<div class="bloc-code" style="--car:23"><span class="langue">C++</span><pre><code>getline(cin, variable);</code></pre></div>
+  </div>
+<div class="bloc-code" data-fam="c" style="--car:44"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">string</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">string</span> <span class="j-var">nom</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Saisir votre nom complet : "</span>;
+    <span class="j-fn">getline</span>(<span class="j-var">cin</span>, <span class="j-var">nom</span>);
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Nom complet : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:52"><span class="langue">sortie réelle — saisies : Jean Dupont</span><pre><code>Saisir votre nom complet : Nom complet : Jean Dupont</code></pre></div>
+
+  <div class="tableau">
+    <table>
+      <caption>Saisie : <code>BTS CIEL</code></caption>
+      <thead><tr><th>Instruction</th><th>Ce qu'elle fait</th><th>Valeur récupérée</th></tr></thead>
+      <tbody>
+        <tr><td><code>cin &gt;&gt; nom</code></td><td>lit une valeur, s'arrête au premier espace ou caractère blanc, <strong>laisse</strong> le retour à la ligne dans le flux</td><td><code>BTS</code></td></tr>
+        <tr><td><code>getline(cin, nom)</code></td><td>lit la ligne complète, espaces compris, et s'arrête au <code>\n</code></td><td><code>BTS CIEL</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="rap">C'est le même couple qu'en C : <code>scanf("%s")</code> s'arrêtait à
+     l'espace, <code>fgets</code> lisait la ligne entière
+     (<a href="../12-langage-c/cours.html#saisir-chaine">chapitre 12, section 34</a>).</p>
+</section>
+<section id="ignore">
+  <h2><span class="num">11</span>Le piège : <code>getline</code> après <code>cin</code></h2>
+
+  <p>Ce programme semble juste. Il demande un âge, puis un nom complet :</p>
+<div class="bloc-code" data-fam="c" style="--car:38"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">string</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-var">string</span> <span class="j-var">nom</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Age : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">age</span>;
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Nom complet : "</span>;
+    <span class="j-fn">getline</span>(<span class="j-var">cin</span>, <span class="j-var">nom</span>);
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"["</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"]"</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:22"><span class="langue">sortie réelle — saisies : 20 puis Jean Dupont</span><pre><code>Age : Nom complet : []</code></pre></div>
+  <p>Le programme <strong>ne laisse pas le temps de taper le nom</strong> : <code>nom</code>
+     reste vide. Que s'est-il passé ? L'utilisateur a tapé <code>20</code> puis
+     <kbd>Entrée</kbd>. La touche Entrée ajoute un caractère <code>\n</code> dans le flux
+     d'entrée. <code>cin &gt;&gt; age</code> prend le <code>20</code>… et laisse le
+     <code>\n</code>.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 480 120" role="img" aria-label="État du flux après la saisie de l'âge : 20 récupéré par cin, le retour à la ligne encore dans le flux">
+      <style>
+        .fl-pris{fill:var(--vert-pale);stroke:var(--bord-fort);stroke-width:1.2}
+        .fl-reste{fill:var(--rouge-pale);stroke:var(--bord-fort);stroke-width:1.2}
+        .fl-val{font:700 18px var(--mono);fill:var(--encre);text-anchor:middle}
+        .fl-lib{font:12px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .fl-titre{font:700 13px var(--sans);fill:var(--encre);text-anchor:middle}
+        .fl-fl{stroke:var(--encre-douce);stroke-width:1.5;fill:none}
+      </style>
+      <text class="fl-titre" x="240" y="18">État du flux après la saisie de l'âge</text>
+      <rect class="fl-pris" x="20" y="34" width="190" height="70" rx="8"/>
+      <text class="fl-val" x="115" y="68">20</text>
+      <text class="fl-lib" x="115" y="90">récupéré par cin</text>
+      <path class="fl-fl" d="M222,69 H254 M246,63 L254,69 L246,75"/>
+      <rect class="fl-reste" x="266" y="34" width="194" height="70" rx="8"/>
+      <text class="fl-val" x="363" y="68">\n</text>
+      <text class="fl-lib" x="363" y="90">encore dans le flux</text>
+    </svg>
+    <figcaption>Quand <code>getline</code> s'exécute, il trouve immédiatement ce
+      <code>\n</code> : pour lui, la ligne est finie — et elle était vide.</figcaption>
+  </figure>
+
+  <p>La solution : <strong><code>cin.ignore();</code></strong> juste après le
+     <code>cin &gt;&gt;</code>. Elle retire le caractère resté dans le flux.</p>
+<div class="bloc-code" data-fam="c" style="--car:77"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">iostream</span><span class="j-op">&gt;</span>
+<span class="j-pre">#include</span> <span class="j-op">&lt;</span><span class="j-var">string</span><span class="j-op">&gt;</span>
+<span class="j-var">using</span> <span class="j-var">namespace</span> <span class="j-var">std</span>;
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-typ">int</span> <span class="j-var">age</span>;
+    <span class="j-var">string</span> <span class="j-var">nom</span>;
+
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Age : "</span>;
+    <span class="j-var">cin</span> <span class="j-op">&gt;&gt;</span> <span class="j-var">age</span>;
+    <span class="j-var">cin</span>.<span class="j-fn">ignore</span>();                 <span class="j-com">// retire le \n laisse par la touche Entree</span>
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Nom complet : "</span>;
+    <span class="j-fn">getline</span>(<span class="j-var">cin</span>, <span class="j-var">nom</span>);
+    <span class="j-var">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"["</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"]"</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:33"><span class="langue">sortie réelle — saisies : 20 puis Jean Dupont</span><pre><code>Age : Nom complet : [Jean Dupont]</code></pre></div>
+  <ol>
+    <li><code>cin &gt;&gt; age</code> récupère l'âge ;</li>
+    <li><code>cin.ignore()</code> supprime le retour à la ligne ;</li>
+    <li><code>getline()</code> attend vraiment la saisie du nom complet.</li>
+  </ol>
+
+  <div class="encart savoir">
+    <div class="titre">💡 <code>cin.ignore()</code> n'enlève qu'UN caractère</div>
+    <p>Si l'utilisateur tape <code>20</code>, puis une espace, puis Entrée, il reste
+       <strong>deux</strong> caractères : l'espace et le <code>\n</code>.
+       <code>cin.ignore()</code> retire l'espace, et <code>getline</code> retombe sur le
+       <code>\n</code> — le nom est de nouveau vide. Vérifié au compilateur.</p>
+    <p>Deux écritures règlent aussi ce cas : <code>cin &gt;&gt; ws;</code> (« saute tous les
+       blancs ») ou
+       <code>cin.ignore(numeric_limits&lt;streamsize&gt;::max(), '\n');</code> (« jette tout
+       jusqu'au retour à la ligne », avec <code>&lt;limits&gt;</code>). Pour les exercices du
+       cours, <code>cin.ignore()</code> suffit.</p>
+  </div>
+  <p class="rap">La règle à retenir : <strong>un <code>getline</code> qui suit un
+     <code>cin &gt;&gt;</code> doit être précédé d'un <code>cin.ignore()</code></strong>.
+     Deux <code>getline</code> de suite, eux, n'en ont pas besoin.</p>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <p class="recap-part"><strong>Les idées de la POO</strong></p>
+    <ul>
+      <li><strong>Objet</strong> = des <strong>attributs</strong> (ce qu'il est) + des
+          <strong>méthodes</strong> (ce qu'il fait).</li>
+      <li><strong>Classe</strong> = le modèle ; <strong>objet</strong> = un exemplaire.
+          <code>Capteur c;</code> fabrique l'objet <code>c</code>.</li>
+      <li><strong>Procédural</strong> : données et fonctions séparées (le C).
+          <strong>Objet</strong> : regroupées dans la classe (le C++).</li>
+      <li><strong>Les quatre principes</strong> : encapsulation (regrouper et protéger),
+          abstraction (montrer l'utile), héritage (spécialiser une classe), polymorphisme
+          (une opération, plusieurs comportements).</li>
+      <li><strong>La classe se ferme par <code>};</code></strong>, comme une
+          <code>struct</code>.</li>
+    </ul>
+    <p class="recap-part"><strong>Les bases du C++</strong></p>
+    <ul>
+      <li><strong><code>#include &lt;iostream&gt;</code></strong> — sans <code>.h</code> ;
+          fichier en <strong><code>.cpp</code></strong>.</li>
+      <li><strong><code>std::cout</code></strong> ou <strong><code>using namespace std;</code></strong>
+          puis <code>cout</code> : les deux sont justes.</li>
+      <li><strong><code>cout &lt;&lt;</code> affiche, <code>cin &gt;&gt;</code> lit</strong> —
+          les chevrons pointent dans le sens où va la donnée.</li>
+      <li><strong>Ni code de format, ni <code>&amp;</code></strong> : le type est deviné.</li>
+      <li><strong><code>endl</code> ou <code>\n</code></strong> pour passer à la ligne.</li>
+      <li><strong>Des guillemets droits <code>"</code></strong>, jamais
+          <code>«</code> <code>»</code> ni les guillemets courbes d'un traitement de texte.</li>
+      <li><strong><code>cin &gt;&gt;</code> s'arrête à l'espace</strong>,
+          <strong><code>getline(cin, nom)</code></strong> lit la ligne.</li>
+      <li><strong><code>cin &gt;&gt; age;</code> puis <code>getline</code></strong> → il faut
+          <code>cin.ignore();</code> entre les deux, sinon le nom reste vide.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Programmation Orientée Objet » — le professeur, BTS CIEL 2<sup>e</sup>
+          année 2026-2027, séance du 30/10/2026 (39 diapositives) : chapitre 1, introduction
+          à la POO, et chapitre 2, les bases du C++</li>
+    </ul>
+    <p class="rap">Toutes les sorties annoncées « sortie réelle » ont été obtenues en compilant
+       et en exécutant le programme avec <code>c++ -std=c++17</code>. L'exemple de
+       <code>getline</code> du cours saisissait un nom réel ; il est remplacé par un nom
+       neutre.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-langage-c/cours.html"><span>Chapitre précédent</span><b>Langage C</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=d3aadbc6"></script>
+<script src="../../assets/app.js?v=d3aadbc6"></script>
+</body>
+</html>

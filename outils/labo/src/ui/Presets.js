@@ -1,9 +1,14 @@
-/* Les cinq labs intégrés, prêts à tester dès l'ouverture.
+/* Les labs intégrés, prêts à tester dès l'ouverture : cinq pour découvrir,
+   trois pannes à trouver.
 
    Ils sont construits comme un élève les construirait : les équipements
    posés, câblés, et les routeurs et commutateurs configurés en TAPANT des
    commandes IOS — passées par le même analyseur que le terminal. Un lab
-   qui se charge est donc aussi un banc de la CLI. */
+   qui se charge est donc aussi un banc de la CLI.
+
+   « objectifs » : ce que le labo vérifie lui-même (ui/Objectifs.js), sur
+   une copie du réseau, quand on clique « Vérifier ». Une panne a aussi sa
+   « solution », repliée : on la lit après avoir cherché, pas avant. */
 
 import { creer } from "../devices/Fabrique.js";
 import { IOSConsole } from "../cli/IOSParser.js";
@@ -24,6 +29,59 @@ function hote(reseau, type, nom, x, y, cfg) {
   return a;
 }
 const cable = (reseau, a, pa, b, pb, type = "droit") => reseau.connecter(a.port(pa), b.port(pb), type);
+
+/* La maquette du lab 3, réutilisée par deux pannes : chacune n'y change
+   qu'UNE ligne, et c'est cette ligne qu'il faut trouver. */
+function interVlan(reseau, { pool = "192.168.10.0", tag20 = 20 } = {}) {
+  const r = creer(reseau, "routeur", { nom: "R1", x: 0, y: -190 });
+  taper(r, ["hostname R1", "no ip domain-lookup",
+    "interface gi0/0", "no shutdown",
+    "interface gi0/0.10", "description VLAN 10 - ADMIN", "encapsulation dot1Q 10", "ip address 192.168.10.1 255.255.255.0",
+    "interface gi0/0.20", "description VLAN 20 - SERVEURS", "encapsulation dot1Q " + tag20, "ip address 192.168.20.1 255.255.255.0",
+    "exit", "ip dhcp excluded-address 192.168.10.1 192.168.10.9",
+    "ip dhcp pool VLAN10", "network " + pool + " 255.255.255.0", "default-router 192.168.10.1", "dns-server 192.168.20.10"]);
+  const s = creer(reseau, "switch", { nom: "SW1", x: 0, y: 0 });
+  taper(s, ["hostname SW1", "no ip domain-lookup", "vlan 10", "name ADMIN", "vlan 20", "name SERVEURS",
+    "interface range fa0/1 - 2", "switchport mode access", "switchport access vlan 10",
+    "interface range fa0/3 - 4", "switchport mode access", "switchport access vlan 20",
+    "interface gi0/1", "switchport mode trunk"]);
+  cable(reseau, r, "Gi0/0", s, "Gi0/1");
+  const a = hote(reseau, "pc", "PC-A", -300, 190, { dhcp: true });
+  const b = hote(reseau, "pc", "PC-B", -110, 220, { ip: "192.168.10.20", passerelle: "192.168.10.1", dns: "192.168.20.10" });
+  const c = hote(reseau, "portable", "PC-C", 110, 220, { ip: "192.168.20.20", passerelle: "192.168.20.1", dns: "192.168.20.10" });
+  const srv = hote(reseau, "serveur", "SRV", 300, 190, { ip: "192.168.20.10", passerelle: "192.168.20.1", dns: "192.168.20.10" });
+  srv.dns = { actif: true, enregistrements: [{ nom: "www.ciel.lan", ip: "192.168.20.10" }, { nom: "srv.ciel.lan", ip: "192.168.20.10" }] };
+  srv.web = { actif: true, page: "<h1>BTS CIEL — serveur du labo</h1>\n<p>Si vous lisez ceci, le DNS, le routage inter-VLAN et TCP fonctionnent.</p>" };
+  cable(reseau, a, "Fa0", s, "Fa0/1");
+  cable(reseau, b, "Fa0", s, "Fa0/2");
+  cable(reseau, c, "Fa0", s, "Fa0/3");
+  cable(reseau, srv, "Fa0", s, "Fa0/4");
+}
+
+/* La maquette du lab 5 ; « regle » pose le PAT d'emblée. */
+function sortieInternet(reseau, { regle = false, passerellePc2 = "192.168.1.1" } = {}) {
+  const r1 = creer(reseau, "routeur", { nom: "R1", x: -110, y: -150 });
+  const fai = creer(reseau, "routeur", { nom: "FAI", x: 230, y: -150 });
+  const s = creer(reseau, "switch", { nom: "SW1", x: -110, y: 30 });
+  cable(reseau, r1, "Se0/0/0", fai, "Se0/0/0", "serie");
+  taper(r1, ["hostname R1", "no ip domain-lookup",
+    "interface gi0/0", "description LAN prive", "ip address 192.168.1.1 255.255.255.0", "ip nat inside", "no shutdown",
+    "interface s0/0/0", "description Vers le FAI", "ip address 209.165.200.225 255.255.255.252", "ip nat outside", "clock rate 64000", "no shutdown",
+    "exit", "ip route 0.0.0.0 0.0.0.0 s0/0/0"].concat(regle
+      ? ["access-list 1 permit 192.168.1.0 0.0.0.255", "ip nat inside source list 1 interface s0/0/0 overload"] : []));
+  taper(fai, ["hostname FAI", "no ip domain-lookup",
+    "interface s0/0/0", "ip address 209.165.200.226 255.255.255.252", "no shutdown",
+    "interface gi0/0", "ip address 8.8.8.1 255.255.255.0", "no shutdown"]);
+  taper(s, ["hostname SW1", "no ip domain-lookup"]);
+  cable(reseau, r1, "Gi0/0", s, "Gi0/1");
+  const a = hote(reseau, "pc", "PC1", -260, 200, { ip: "192.168.1.10", passerelle: "192.168.1.1" });
+  const b = hote(reseau, "portable", "PC2", 40, 200, { ip: "192.168.1.11", passerelle: passerellePc2 });
+  const web = hote(reseau, "serveur", "WEB", 230, 40, { ip: "8.8.8.8", passerelle: "8.8.8.1" });
+  web.web = { actif: true, page: "<h1>Bienvenue sur Internet</h1>\n<p>Votre adresse privée a été traduite par R1 : c'est 209.165.200.225 qui me parle.</p>" };
+  cable(reseau, a, "Fa0", s, "Fa0/1");
+  cable(reseau, b, "Fa0", s, "Fa0/2");
+  cable(reseau, fai, "Gi0/0", web, "Fa0", "croise");
+}
 
 export const LABS = [
   {
@@ -94,31 +152,7 @@ export const LABS = [
       "Sur <b>R1</b> : <code>en</code>, <code>show ip route</code>, <code>show ip interface brief</code>, <code>show ip dhcp binding</code>.",
       "En <b>Simulation</b> : un ping de PC-A vers PC-C monte vers R1 étiqueté VLAN 10, et redescend étiqueté VLAN 20 — sur le MÊME câble.",
     ],
-    construire(reseau) {
-      const r = creer(reseau, "routeur", { nom: "R1", x: 0, y: -190 });
-      taper(r, ["hostname R1", "no ip domain-lookup",
-        "interface gi0/0", "no shutdown",
-        "interface gi0/0.10", "description VLAN 10 - ADMIN", "encapsulation dot1Q 10", "ip address 192.168.10.1 255.255.255.0",
-        "interface gi0/0.20", "description VLAN 20 - SERVEURS", "encapsulation dot1Q 20", "ip address 192.168.20.1 255.255.255.0",
-        "exit", "ip dhcp excluded-address 192.168.10.1 192.168.10.9",
-        "ip dhcp pool VLAN10", "network 192.168.10.0 255.255.255.0", "default-router 192.168.10.1", "dns-server 192.168.20.10"]);
-      const s = creer(reseau, "switch", { nom: "SW1", x: 0, y: 0 });
-      taper(s, ["hostname SW1", "no ip domain-lookup", "vlan 10", "name ADMIN", "vlan 20", "name SERVEURS",
-        "interface range fa0/1 - 2", "switchport mode access", "switchport access vlan 10",
-        "interface range fa0/3 - 4", "switchport mode access", "switchport access vlan 20",
-        "interface gi0/1", "switchport mode trunk"]);
-      cable(reseau, r, "Gi0/0", s, "Gi0/1");
-      const a = hote(reseau, "pc", "PC-A", -300, 190, { dhcp: true });
-      const b = hote(reseau, "pc", "PC-B", -110, 220, { ip: "192.168.10.20", passerelle: "192.168.10.1", dns: "192.168.20.10" });
-      const c = hote(reseau, "portable", "PC-C", 110, 220, { ip: "192.168.20.20", passerelle: "192.168.20.1", dns: "192.168.20.10" });
-      const srv = hote(reseau, "serveur", "SRV", 300, 190, { ip: "192.168.20.10", passerelle: "192.168.20.1", dns: "192.168.20.10" });
-      srv.dns = { actif: true, enregistrements: [{ nom: "www.ciel.lan", ip: "192.168.20.10" }, { nom: "srv.ciel.lan", ip: "192.168.20.10" }] };
-      srv.web = { actif: true, page: "<h1>BTS CIEL — serveur du labo</h1>\n<p>Si vous lisez ceci, le DNS, le routage inter-VLAN et TCP fonctionnent.</p>" };
-      cable(reseau, a, "Fa0", s, "Fa0/1");
-      cable(reseau, b, "Fa0", s, "Fa0/2");
-      cable(reseau, c, "Fa0", s, "Fa0/3");
-      cable(reseau, srv, "Fa0", s, "Fa0/4");
-    },
+    construire(reseau) { interVlan(reseau); },
   },
   {
     id: "lab4",
@@ -132,6 +166,11 @@ export const LABS = [
       "Sur R1 : <code>show ip route</code> — la ligne <code>R 192.168.2.0/24 [120/1] via 10.0.0.2</code> est apparue. <code>show ip protocols</code> dit d'où elle vient.",
       "Sur PC1 : <code>ping 192.168.2.10</code> — ça passe, avec un TTL de 126 : deux routeurs traversés.",
       "Bonus : sur R1, <code>debug ip rip</code>, puis éteignez la liaison sur R2 (<code>int s0/0/0</code>, <code>shutdown</code>) : la route disparaît. En <b>Simulation</b>, cochez RIP et regardez les mises à jour passer.",
+    ],
+    objectifs: [
+      { texte: "R1 a appris le LAN du site 2 par RIP", test: (s) => s.ios("R1", ["show ip route"]).some((l) => /^R\s+192\.168\.2\.0\/24/.test(l)) },
+      { texte: "PC1 joint PC2 (192.168.2.10)", test: (s) => s.joint("PC1", "192.168.2.10") },
+      { texte: "PC2 joint PC1 (192.168.1.10)", test: (s) => s.joint("PC2", "192.168.1.10") },
     ],
     construire(reseau) {
       const r1 = creer(reseau, "routeur", { nom: "R1", x: -200, y: -150 });
@@ -169,28 +208,71 @@ export const LABS = [
       "Sur PC1 : <code>curl http://8.8.8.8</code>, puis sur R1 <code>show ip nat statistics</code> : les Hits et Misses.",
       "En <b>Simulation</b> : cliquez le même écho avant R1 puis après — l'adresse source a changé (inside local → inside global).",
     ],
-    construire(reseau) {
-      const r1 = creer(reseau, "routeur", { nom: "R1", x: -110, y: -150 });
-      const fai = creer(reseau, "routeur", { nom: "FAI", x: 230, y: -150 });
-      const s = creer(reseau, "switch", { nom: "SW1", x: -110, y: 30 });
-      cable(reseau, r1, "Se0/0/0", fai, "Se0/0/0", "serie");
-      taper(r1, ["hostname R1", "no ip domain-lookup",
-        "interface gi0/0", "description LAN prive", "ip address 192.168.1.1 255.255.255.0", "ip nat inside", "no shutdown",
-        "interface s0/0/0", "description Vers le FAI", "ip address 209.165.200.225 255.255.255.252", "ip nat outside", "clock rate 64000", "no shutdown",
-        "exit", "ip route 0.0.0.0 0.0.0.0 s0/0/0"]);
-      taper(fai, ["hostname FAI", "no ip domain-lookup",
-        "interface s0/0/0", "ip address 209.165.200.226 255.255.255.252", "no shutdown",
-        "interface gi0/0", "ip address 8.8.8.1 255.255.255.0", "no shutdown"]);
-      taper(s, ["hostname SW1", "no ip domain-lookup"]);
-      cable(reseau, r1, "Gi0/0", s, "Gi0/1");
-      const a = hote(reseau, "pc", "PC1", -260, 200, { ip: "192.168.1.10", passerelle: "192.168.1.1" });
-      const b = hote(reseau, "portable", "PC2", 40, 200, { ip: "192.168.1.11", passerelle: "192.168.1.1" });
-      const web = hote(reseau, "serveur", "WEB", 230, 40, { ip: "8.8.8.8", passerelle: "8.8.8.1" });
-      web.web = { actif: true, page: "<h1>Bienvenue sur Internet</h1>\n<p>Votre adresse privée a été traduite par R1 : c'est 209.165.200.225 qui me parle.</p>" };
-      cable(reseau, a, "Fa0", s, "Fa0/1");
-      cable(reseau, b, "Fa0", s, "Fa0/2");
-      cable(reseau, fai, "Gi0/0", web, "Fa0", "croise");
-    },
+    objectifs: [
+      { texte: "PC1 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC1", "8.8.8.8") },
+      { texte: "PC2 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC2", "8.8.8.8") },
+    ],
+    construire(reseau) { sortieInternet(reseau); },
+  },
+  {
+    id: "panne1",
+    panne: true,
+    titre: "Panne 1 — Le DHCP ne répond pas",
+    court: "DHCP en panne",
+    resume: "La maquette du lab 3, à une ligne près. PC-A est en DHCP et n'obtient aucune adresse. Le routeur R1 est bien branché, son pool existe — et pourtant il ne répond pas. Trouvez pourquoi.",
+    etapes: [
+      "Sur <b>PC-A</b> : <code>ipconfig /renew</code>. Il ne reçoit qu'une adresse en <code>169.254</code> : c'est le signe qu'<b>aucun</b> serveur DHCP n'a répondu.",
+      "Passez en <b>Simulation</b> et recommencez : le <i>DHCP Discover</i> arrive bien jusqu'à R1. Cliquez l'enveloppe à son arrivée : R1 dit ce qu'il en fait.",
+      "Sur <b>R1</b> : <code>en</code>, <code>show ip dhcp pool</code>, puis <code>show running-config</code>. Comparez le réseau du pool à l'adresse de la sous-interface qui reçoit la demande.",
+      "Corrigez sur R1, puis cliquez <b>Vérifier</b>.",
+    ],
+    solution: "R1 choisit le pool d'après le réseau de l'interface qui reçoit la demande. La sous-interface Gi0/0.10 est en <code>192.168.10.1/24</code>, mais le pool annonce <code>network 192.168.11.0</code> : aucun pool ne correspond, et la demande reste sans réponse. Sur R1 : <code>conf t</code>, <code>ip dhcp pool VLAN10</code>, <code>network 192.168.10.0 255.255.255.0</code>, <code>end</code>.",
+    objectifs: [
+      { texte: "PC-A reçoit une adresse du VLAN 10 par DHCP", test: (s) => /^192\.168\.10\./.test(s.adresse("PC-A") || "") },
+      { texte: "PC-A joint le serveur (192.168.20.10)", test: (s) => s.joint("PC-A", "192.168.20.10") },
+      { texte: "PC-A résout www.ciel.lan", test: (s) => s.resout("PC-A", "www.ciel.lan", "192.168.20.10") },
+    ],
+    construire(reseau) { interVlan(reseau, { pool: "192.168.11.0" }); },
+  },
+  {
+    id: "panne2",
+    panne: true,
+    titre: "Panne 2 — Le VLAN 20 est coupé du reste",
+    court: "Inter-VLAN en panne",
+    resume: "Toujours la maquette du lab 3. Le VLAN 10 fonctionne, mais rien ne sort du VLAN 20 : PC-C ne joint même pas sa passerelle. Les câbles sont bons, les adresses aussi. Trouvez la ligne fautive.",
+    etapes: [
+      "Sur <b>PC-B</b> (VLAN 10) : <code>ping 192.168.10.1</code> — sa passerelle répond.",
+      "Sur <b>PC-C</b> (VLAN 20) : <code>ping 192.168.20.1</code> — la sienne se tait.",
+      "Sur <b>SW1</b> : <code>en</code>, <code>show vlan brief</code> puis <code>show interfaces trunk</code>. Le commutateur est-il en cause ?",
+      "En <b>Simulation</b>, refaites le ping de PC-C et cliquez la trame à son arrivée sur R1 : quelle étiquette VLAN porte-t-elle, et que dit R1 ?",
+      "Sur <b>R1</b> : <code>show running-config</code>, et lisez les deux sous-interfaces. Corrigez, puis <b>Vérifier</b>.",
+    ],
+    solution: "La sous-interface Gi0/0.20 attend l'étiquette <code>dot1Q 30</code> alors que le commutateur étiquette le VLAN 20 avec 20. Les trames de PC-C arrivent étiquetées 20 : R1 n'a aucune sous-interface pour elles, et les jette. Sur R1 : <code>conf t</code>, <code>interface gi0/0.20</code>, <code>encapsulation dot1Q 20</code>, <code>end</code>.",
+    objectifs: [
+      { texte: "PC-C joint sa passerelle (192.168.20.1)", test: (s) => s.joint("PC-C", "192.168.20.1") },
+      { texte: "PC-B joint PC-C, d'un VLAN à l'autre", test: (s) => s.joint("PC-B", "192.168.20.20") },
+      { texte: "PC-A obtient son adresse et joint le serveur", test: (s) => s.joint("PC-A", "192.168.20.10") },
+    ],
+    construire(reseau) { interVlan(reseau, { tag20: 30 }); },
+  },
+  {
+    id: "panne3",
+    panne: true,
+    titre: "Panne 3 — Un seul poste ne sort pas",
+    court: "Poste isolé",
+    resume: "La maquette du lab 5, PAT déjà en place. PC1 sort sur Internet ; PC2, branché sur le même commutateur, dans le même réseau, ne sort pas. Rien n'est cassé côté routeur.",
+    etapes: [
+      "Sur <b>PC1</b> : <code>ping 8.8.8.8</code> — ça passe : le PAT de R1 fonctionne.",
+      "Sur <b>PC2</b> : <code>ping 8.8.8.8</code> — rien. Puis <code>ping 192.168.1.10</code> : PC1 répond, le réseau local n'est pas en cause.",
+      "Sur PC2 puis sur PC1 : <code>ipconfig /all</code>. Comparez les deux, ligne par ligne.",
+      "Corrigez dans l'inspecteur de <b>PC2</b> (cliquez-le), puis <b>Vérifier</b>.",
+    ],
+    solution: "PC2 a pour passerelle <code>192.168.1.254</code>, une adresse que personne ne porte : tout ce qui sort du réseau local part vers elle, et la requête ARP reste sans réponse. Le réseau local marche, puisqu'il n'a pas besoin de passerelle. Dans l'inspecteur de PC2 : passerelle <code>192.168.1.1</code>.",
+    objectifs: [
+      { texte: "PC1 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC1", "8.8.8.8") },
+      { texte: "PC2 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC2", "8.8.8.8") },
+    ],
+    construire(reseau) { sortieInternet(reseau, { regle: true, passerellePc2: "192.168.1.254" }); },
   },
 ];
 
