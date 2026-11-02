@@ -51,7 +51,7 @@ export function extraireCode(texte) {
 
 export function deplier(code) {
   const p = String(code).split(SEP);
-  if (p.length !== 7 || p[0] !== "S1" || !/^[or]$/.test(p[1])) throw new Error("ce n'est pas un code du salon");
+  if (p.length !== 7 || p[0] !== "S1" || !/^[or]$/.test(p[1])) throw new Error("ce n'est pas un code SkyChat");
   const [, sens, ufrag, pwd, emp, setup, adresses] = p;
   const fp = [...depuisB64(emp)].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(":");
   if (fp.length !== 95) throw new Error("empreinte DTLS invalide");

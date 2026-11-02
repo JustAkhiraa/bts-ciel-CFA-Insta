@@ -32,7 +32,7 @@ let noeud = null, rtc = null;
 /* ═══════════════ démarrage ═══════════════ */
 async function demarrer() {
   if (!globalThis.isSecureContext || !globalThis.crypto || !crypto.subtle) {
-    $("#sl-messages").innerHTML = '<div class="sl-vide"><p><b>Le salon a besoin d\'une page sécurisée</b> (adresse en <code>https://</code>) : c\'est là seulement que le navigateur donne accès à sa cryptographie.</p></div>';
+    $("#sl-messages").innerHTML = '<div class="sl-vide"><p><b>SkyChat a besoin d\'une page sécurisée</b> (adresse en <code>https://</code>) : c\'est là seulement que le navigateur donne accès à sa cryptographie.</p></div>';
     return;
   }
   // le premier onglet prend l'identité gardée ; un onglet de plus est un
@@ -48,7 +48,7 @@ async function demarrer() {
   } else {
     identite = await C.creerIdentite();
     pseudo = await demanderPseudo((S.lirePseudo() || "eleve") + "-" + (2 + Math.floor(Math.random() * 8)),
-      "Un autre onglet du salon est déjà ouvert dans ce navigateur : celui-ci sera un pair de plus, avec sa propre identité, effacée à sa fermeture.");
+      "Un autre onglet de SkyChat est déjà ouvert dans ce navigateur : celui-ci sera un pair de plus, avec sa propre identité, effacée à sa fermeture.");
   }
   etat.principal = principal;
 
@@ -139,7 +139,7 @@ function majEtat() {
 }
 function majTitre() {
   const n = [...etat.nonLus.values()].reduce((s, x) => s + x, 0);
-  document.title = (n ? "(" + n + ") " : "") + "Salon — BTS CIEL";
+  document.title = (n ? "(" + n + ") " : "") + "SkyChat — BTS CIEL";
 }
 
 function nomPair(fp) {
@@ -449,7 +449,7 @@ function ouvrirRelier(mode = null, code = null) {
   if (!rtc.disponible) { corps.innerHTML = '<p class="sl-erreur">Ce navigateur ne sait pas faire de WebRTC : impossible de relier un autre appareil depuis ici.</p>'; return; }
   if (mode === "inviter") return inviter(corps);
   if (mode === "rejoindre") return rejoindre(corps, code);
-  corps.innerHTML = '<p>Deux appareils du <b>même Wi-Fi</b> (ou du même partage de connexion) se relient <b>directement</b>, sans Internet. Une fois relié, chacun relaie pour les autres : il suffit que chaque nouvel appareil se relie à <b>un</b> appareil déjà dans le salon.</p>'
+  corps.innerHTML = '<p>Deux appareils du <b>même Wi-Fi</b> (ou du même partage de connexion) se relient <b>directement</b>, sans Internet. Une fois relié, chacun relaie pour les autres : il suffit que chaque nouvel appareil se relie à <b>un</b> appareil déjà dans SkyChat.</p>'
     + '<div class="sl-choix"><button type="button" data-relier="inviter"><b>Inviter</b><span>J\'affiche un QR code, l\'autre le scanne et me montre sa réponse.</span></button>'
     + '<button type="button" data-relier="rejoindre"><b>Rejoindre</b><span>Je scanne le QR code de quelqu\'un qui m\'invite.</span></button></div>'
     + '<p class="sl-note" style="margin-top:.9rem">Hors ligne, la page doit avoir été ouverte une fois avec Internet (elle reste ensuite sur l\'appareil). Si rien ne se relie, le Wi-Fi isole peut-être ses appareils les uns des autres : un partage de connexion de téléphone, lui, ne le fait pas.</p>';
@@ -467,7 +467,7 @@ function brancherScan(id, suite) {
   const etatEl = $("#" + id + "-etat");
   const traiter = (texte) => {
     const code = extraireCode(texte);
-    if (!code) { etatEl.className = "sl-texte sl-erreur"; etatEl.textContent = "Ce n'est pas un code du salon."; return; }
+    if (!code) { etatEl.className = "sl-texte sl-erreur"; etatEl.textContent = "Ce n'est pas un code SkyChat."; return; }
     suite(code);
   };
   $("#" + id + "-cam").onclick = async () => {
@@ -561,7 +561,7 @@ async function inviter(corps) {
   enCours = { arreter: () => {} };
   const lien = location.origin + location.pathname + "#o=" + inv.code;
   corps.innerHTML = '<div class="sl-etapes"><div><p class="sl-etape">1 · Il scanne ceci</p>' + qrHtml(lien)
-    + '<p class="sl-note">Avec l\'appareil photo de son téléphone (le lien ouvre le salon), ou avec <b>Rejoindre</b> sur son ordinateur.</p>'
+    + '<p class="sl-note">Avec l\'appareil photo de son téléphone (le lien ouvre SkyChat), ou avec <b>Rejoindre</b> sur son ordinateur.</p>'
     + '<textarea class="sl-code" rows="3" readonly>' + ech(inv.code) + '</textarea><div class="sl-rangee"><button type="button" class="sl-b" data-copier>Copier le code</button></div>'
     + ligneAdresses(inv.code) + "</div>"
     + '<div><p class="sl-etape">2 · Vous scannez sa réponse</p>' + zoneScan("inv") + NOTE_PRESSE_PAPIERS + "</div></div>";
@@ -572,7 +572,7 @@ async function inviter(corps) {
       e.className = "sl-texte"; e.textContent = "Réponse lue, connexion directe en cours…";
       const ouvert = await inv.accepter(code);
       await Promise.race([ouvert, limite()]);
-      e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — l'autre appareil fait maintenant partie du salon.";
+      e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — l'autre appareil fait maintenant partie de SkyChat.";
       libererAdresses();
       setTimeout(fermerRelier, 1400);
     } catch (err) { e.className = "sl-texte sl-erreur"; e.textContent = err.message; }
@@ -608,7 +608,7 @@ async function rejoindre(corps, code = null) {
   Promise.race([rep.ouvert, new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON + 40000))])
     .then(() => {
       const e = $("#rej-attente");
-      if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans le salon."; }
+      if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans SkyChat."; }
       libererAdresses();
       setTimeout(fermerRelier, 1400);
     })
