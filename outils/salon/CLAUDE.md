@@ -1,7 +1,7 @@
 # Le salon — architecture
 
-Une messagerie de classe **sans Internet et sans serveur**, dans l'esprit de
-BitChat : chaque appareil est un nœud qui relaie pour les autres. Une page
+Une messagerie de classe **sans Internet et sans serveur**, en maillage :
+chaque appareil est un nœud qui relaie pour les autres. Une page
 (`outils/salon.html`), des modules ES natifs (`outils/salon/src/`), **aucune
 dépendance, aucune compilation**. Les bancs : `node outils/salon/tests/tout.mjs`.
 
@@ -11,7 +11,7 @@ Ce fichier est la référence. Une règle qui change ici change dans le code.
 
 ## 1. Ce qui est fait, et ce qui ne peut pas l'être dans un navigateur
 
-| BitChat (application installée) | Le salon (une page web) | Pourquoi |
+| Une messagerie maillée installée | Le salon (une page web) | Pourquoi |
 | --- | --- | --- |
 | Maillage Bluetooth LE | **WebRTC** sur le Wi-Fi de la salle | Une page ne peut ni émettre ni relayer en Bluetooth : Web Bluetooth ne sait que se connecter, en client, à un appareil qui émet. |
 | Découverte automatique | **Présentation par QR code** (ou code copié) | Sans serveur, deux navigateurs doivent échanger une fois « offre » et « réponse ». |

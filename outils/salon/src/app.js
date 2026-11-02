@@ -353,7 +353,7 @@ async function soumettre(texte) {
       systeme(L.length ? L.length + " pair(s) joignable(s) :" : "Personne. Reliez un appareil (/relier) ou ouvrez un deuxième onglet.");
       L.sort((a, b) => a[1].sauts - b[1].sauts).forEach(([fp, p]) => systeme("  " + p.nick + "#" + court(fp) + " — "
         + (p.lien ? "direct (" + (p.lien.type === "onglet" ? "onglet" : "WebRTC") + (p.lien.rtt != null ? ", " + p.lien.rtt + " ms" : "") + ")" : p.sauts + " sauts")));
-      systeme("(La puissance radio, le « RSSI » de BitChat, n'existe pas en WebRTC : on affiche la distance en sauts et le temps d'aller-retour.)");
+      systeme("(La puissance radio, le « RSSI » d'une messagerie Bluetooth, n'existe pas en WebRTC : on affiche la distance en sauts et le temps d'aller-retour.)");
       return;
     }
     case "me": return parler(arg, true);
