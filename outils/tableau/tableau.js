@@ -553,6 +553,11 @@
     const img = imageDe(el.fileId);
     if (img && img.complete && img.naturalWidth) {
       if (c === ctx && sombre()) c.filter = "invert(93%) hue-rotate(180deg)";
+      const s = Array.isArray(el.scale) ? el.scale : [1, 1];
+      if (s[0] < 0 || s[1] < 0) {
+        c.translate(s[0] < 0 ? el.width : 0, s[1] < 0 ? el.height : 0);
+        c.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1);
+      }
       c.drawImage(img, 0, 0, el.width, el.height);
       c.filter = "none";
       return;
@@ -744,6 +749,7 @@
         ctx.fill(); ctx.stroke();
       });
     }
+    dessinerPoigneeTourner(sel);
     if (geste && geste.mode === "cadre") {
       const g = geste;
       ctx.setLineDash([]);
@@ -832,6 +838,172 @@
       if (Math.hypot(el.x + el.points[i][0] - x, el.y + el.points[i][1] - y) <= t) return i;
     }
     return null;
+  }
+
+  /* ── tourner : la poignée ronde ──
+     Demandé : tourner ce qu'on a sélectionné, au doigt, comme une feuille
+     posée sur la table. La poignée se tient SOUS la sélection — au-dessus,
+     la barre d'actions la cacherait. Elle sert aussi aux éléments déjà
+     tournés : la boîte qui la place est celle qu'on VOIT, coins tournés
+     compris, et non la boîte d'avant rotation. */
+  function boiteVue(liste) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    liste.forEach((el) => {
+      const b = R.boite(el);
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2, a = el.angle || 0;
+      const co = Math.cos(a), si = Math.sin(a);
+      [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].forEach(([x, y]) => {
+        const X = cx + (x - cx) * co - (y - cy) * si, Y = cy + (x - cx) * si + (y - cy) * co;
+        x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y);
+      });
+    });
+    return liste.length ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+  }
+  function poigneeTourner() {
+    const sel = selectionnes();
+    if (!sel.length || geste || edition || sel.some((e) => e.locked)) return null;
+    const b = boiteVue(sel), z = etat.zoom;
+    return { x: b.x + b.w / 2, y: b.y + b.h + 30 / z, r: 11 / z };
+  }
+  function surPoigneeTourner(x, y) {
+    const T = poigneeTourner();
+    // au doigt, une marge de plus : la poignée fait 22 px, une cible 34
+    return !!T && Math.hypot(x - T.x, y - T.y) <= T.r + 7 / etat.zoom;
+  }
+  function dessinerPoigneeTourner(sel) {
+    const z = etat.zoom;
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = BLEU_SEL;
+    if (geste && geste.mode === "tourner") {
+      // pendant le geste : le centre, le rayon jusqu'au doigt, et l'angle
+      const g = geste;
+      ctx.lineWidth = 1 / z;
+      ctx.beginPath(); ctx.moveTo(g.c.x, g.c.y); ctx.lineTo(g.p.x, g.p.y); ctx.stroke();
+      ctx.fillStyle = BLEU_SEL;
+      ctx.beginPath(); ctx.arc(g.c.x, g.c.y, 3 / z, 0, Math.PI * 2); ctx.fill();
+      const txt = (g.deg > 0 ? "+" : "") + g.deg + "°";
+      ctx.font = "600 " + (13 / z) + "px system-ui, sans-serif";
+      const w = ctx.measureText(txt).width + 12 / z, h = 20 / z;
+      const x = g.p.x + 14 / z, y = g.p.y - h - 6 / z;
+      ctx.fillStyle = BLEU_SEL;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 6 / z) : ctx.rect(x, y, w, h); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+      ctx.fillText(txt, x + 6 / z, y + h / 2);
+      ctx.restore();
+      return;
+    }
+    const T = poigneeTourner();
+    if (!T || !sel.length) { ctx.restore(); return; }
+    const b = boiteVue(sel);
+    ctx.lineWidth = 1 / z;
+    ctx.beginPath(); ctx.moveTo(T.x, b.y + b.h + 6 / z); ctx.lineTo(T.x, T.y - T.r); ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(T.x, T.y, T.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // la flèche qui tourne : un arc ouvert, et sa pointe
+    const r = T.r * 0.52, a0 = -Math.PI * 0.35, a1 = Math.PI * 1.25;
+    ctx.lineWidth = 1.6 / z; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(T.x, T.y, r, a0, a1); ctx.stroke();
+    const px = T.x + r * Math.cos(a0), py = T.y + r * Math.sin(a0), k = 3.2 / z;
+    ctx.beginPath();
+    ctx.moveTo(px - k, py - k * 0.6); ctx.lineTo(px + k * 0.2, py); ctx.lineTo(px - k * 0.7, py + k * 0.9);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── tourner et retourner ──
+     Chaque élément est recalculé depuis sa COPIE d'origine, prise au début
+     du geste : tourner de 1° deux cents fois ne doit pas accumuler deux cents
+     arrondis. Un trait — à main levée, une ligne, une flèche — reçoit la
+     transformation dans ses points : il reste droit dans sa boîte, donc
+     redimensionnable. Une forme, un texte, une image gardent leur dessin et
+     prennent un angle — un texte retourné en miroir resterait illisible, il
+     change donc de place, pas de sens de lecture. */
+  const TOUR = Math.PI * 2;
+  const normaliserAngle = (a) => {
+    const r = ((a % TOUR) + TOUR) % TOUR;
+    return Math.abs(r) < 1e-9 || Math.abs(r - TOUR) < 1e-9 ? 0 : r;
+  };
+  function rotationAutour(c, a) {
+    const co = Math.cos(a), si = Math.sin(a);
+    return (x, y) => [c.x + (x - c.x) * co - (y - c.y) * si, c.y + (x - c.x) * si + (y - c.y) * co];
+  }
+  function pointsVus(o) {
+    const b = R.boite(o);
+    const f = o.angle ? rotationAutour({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, o.angle) : null;
+    return o.points.map(([x, y]) => (f ? f(o.x + x, o.y + y) : [o.x + x, o.y + y]));
+  }
+  function transformer(origines, f, da, miroir) {
+    origines.forEach((o) => {
+      const el = parId(o.id);
+      if (!el) return;
+      if (o.points && o.points.length) {
+        const pts = pointsVus(o).map(([x, y]) => f(x, y));
+        el.x = pts[0][0]; el.y = pts[0][1];
+        el.points = pts.map(([x, y]) => [x - el.x, y - el.y]);
+        el.angle = 0;
+        const bb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+        el.width = bb.w; el.height = bb.h;
+      } else {
+        const w = o.width || 0, h = o.height || 0;
+        const cx = o.x + w / 2, cy = o.y + h / 2;
+        const [nx, ny] = f(cx, cy);
+        let a = normaliserAngle(miroir ? -(o.angle || 0) : (o.angle || 0) + da);
+        el.width = w; el.height = h;
+        /* Un rectangle, une ellipse, un losange tournés d'un quart de tour
+           sont le même dessin, largeur et hauteur échangées : on les garde
+           droits, et leurs poignées de taille restent là. */
+        const quarts = a / (Math.PI / 2);
+        if (/^(rectangle|ellipse|diamond)$/.test(el.type) && Math.abs(quarts - Math.round(quarts)) < 1e-9) {
+          if (Math.round(quarts) % 2) { el.width = h; el.height = w; }
+          a = 0;
+        }
+        el.x = nx - el.width / 2; el.y = ny - el.height / 2;
+        el.angle = a;
+        if (miroir && el.type === "image") {
+          const s = Array.isArray(o.scale) ? o.scale : [1, 1];
+          el.scale = miroir === "miroirH" ? [-s[0], s[1]] : [s[0], -s[1]];
+        }
+      }
+      toucher(el);
+    });
+    replacerLies(origines.map((o) => parId(o.id)).filter(Boolean));
+  }
+  function centreDe(liste) {
+    const b = boiteVue(liste);
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  }
+  function transformerSelection(quoi) {
+    const sel = selectionnes().filter((x) => !x.locked);
+    if (!sel.length) return;
+    const c = centreDe(sel);
+    const origines = sel.map((el) => JSON.parse(JSON.stringify(el)));
+    if (quoi === "droite" || quoi === "gauche") {
+      const a = (quoi === "droite" ? 1 : -1) * Math.PI / 2;
+      transformer(origines, rotationAutour(c, a), a, false);
+    } else {
+      transformer(origines, quoi === "miroirH" ? (x, y) => [2 * c.x - x, y] : (x, y) => [x, 2 * c.y - y], 0, quoi);
+    }
+    memoriser(); majPanneau(); demander();
+    dire({ droite: "Tourné d'un quart de tour à droite.", gauche: "Tourné d'un quart de tour à gauche.",
+           miroirH: "Retourné de gauche à droite.", miroirV: "Retourné de haut en bas." }[quoi]);
+  }
+  /* Le geste : l'angle est celui du doigt autour du centre, depuis là où
+     il s'est posé. Il s'aimante à 0°, 45°, 90°… à 4° près ; avec Maj, il
+     avance de 15° en 15°. */
+  function tournerGeste(g, p, e) {
+    let deg = (Math.atan2(p.y - g.c.y, p.x - g.c.x) - g.a0) * 180 / Math.PI;
+    deg = ((deg % 360) + 540) % 360 - 180;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    else {
+      const q = Math.round(deg / 45) * 45;
+      if (Math.abs(deg - q) < 4) deg = q;
+    }
+    g.deg = Math.round(deg);
+    g.p = p;
+    const a = deg * Math.PI / 180;
+    transformer(g.origines, rotationAutour(g.c, a), a, false);
+    demander();
   }
 
   /* ═══════════════ 8. Les outils ══════════════════════════════════════ */
@@ -1112,7 +1284,7 @@
   function debutLasso(e, p) {
     const sel = selectionnes();
     if (sel.length) {
-      if (poigneeSous(p.x, p.y)) return debutSelection(e, p);
+      if (poigneeSous(p.x, p.y) || surPoigneeTourner(p.x, p.y)) return debutSelection(e, p);
       const b = boiteDe(sel), m = 8 / etat.zoom;
       if (p.x >= b.x - m && p.x <= b.x + b.w + m && p.y >= b.y - m && p.y <= b.y + b.h + m) {
         geste = { mode: "deplacer", x0: p.x, y0: p.y, bouge: false,
@@ -1238,6 +1410,15 @@
   });
 
   function debutSelection(e, p) {
+    if (surPoigneeTourner(p.x, p.y)) {
+      const sel = selectionnes();
+      geste = { mode: "tourner", c: centreDe(sel), a0: 0, deg: 0, p,
+                origines: sel.map((el) => JSON.parse(JSON.stringify(el))) };
+      geste.a0 = Math.atan2(p.y - geste.c.y, p.x - geste.c.x);
+      majCurseur("grabbing");
+      demander();
+      return;
+    }
     const bout = boutSous(p.x, p.y);
     if (bout !== null) {
       const el = selectionnes()[0];
@@ -1407,6 +1588,7 @@
     if (g.mode === "ligne") return tracerLigne(g.el, 1, p, e);
     if (g.mode === "bout") return tracerLigne(g.el, g.i, p, e);
     if (g.mode === "redim") return redimensionner(g, p, e);
+    if (g.mode === "tourner") return tournerGeste(g, p, e);
     if (g.mode === "dessin") {
       const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       (evs.length ? evs : [e]).forEach((ev) => {
@@ -1438,6 +1620,7 @@
   function survol(p) {
     if (etat.outil !== "selection" || espace) return majCurseur();
     if (boutSous(p.x, p.y) !== null) return majCurseur("pointer");
+    if (surPoigneeTourner(p.x, p.y)) return majCurseur("grab");
     const h = poigneeSous(p.x, p.y);
     if (h) {
       return majCurseur({ n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
@@ -1569,6 +1752,7 @@
     if (g.mode === "deplacer") { if (g.bouge) memoriser(); majPanneau(); demander(); return; }
     if (g.mode === "cadre") { majPanneau(); demander(); return; }
     if (g.mode === "redim" || g.mode === "bout") { memoriser(); majPanneau(); demander(); return; }
+    if (g.mode === "tourner") { if (g.deg) memoriser(); majCurseur(); majPanneau(); demander(); return; }
     if (g.mode === "regle") { demander(); return; }
     if (g.mode === "lasso") return finLasso(g);
     if (g.mode === "redresse") {
@@ -1652,7 +1836,8 @@
     if (g.mode === "redresse") retirer([g.el.id]);
     if (g.mode === "regle") etat.regle = g.r0;
     if (g.mode === "deplacer") g.origines.forEach((o) => { o.el.x = o.x; o.el.y = o.y; });
-    if ((g.mode === "redim" || g.mode === "bout") && pile[curseurPile]) elements = JSON.parse(pile[curseurPile]);
+    if ((g.mode === "redim" || g.mode === "bout" || g.mode === "tourner") && pile[curseurPile])
+      elements = JSON.parse(pile[curseurPile]);
     replacerLies();
     demander();
   }
@@ -2203,6 +2388,10 @@
     if (mod && e.key === "0") { e.preventDefault(); zoomerEn(1, toile.clientWidth / 2, toile.clientHeight / 2); return; }
     if (mod) return;
     if (e.shiftKey && (e.code === "Digit1" || e.key === "!")) { e.preventDefault(); ajuster(); return; }
+    // Maj H, Maj V : retourner en miroir — la position de la touche, pour l'AZERTY comme le QWERTY
+    if (e.shiftKey && selection.size && (e.code === "KeyH" || e.code === "KeyV")) {
+      e.preventDefault(); transformerSelection(e.code === "KeyH" ? "miroirH" : "miroirV"); return;
+    }
     if (e.key === " ") { e.preventDefault(); if (!espace) { espace = true; majCurseur(); } return; }
     if (e.key === "Escape") {
       if (geste) { annulerGeste(); return; }
@@ -2364,8 +2553,12 @@
             + '">' + ech(l) + "</tspan>").join("") + "</text>";
       } else if (el.type === "image") {
         const f = fichiers[el.fileId];
+        const s = Array.isArray(el.scale) ? el.scale : [1, 1];
+        const miroir = s[0] < 0 || s[1] < 0
+          ? ' transform="translate(' + (s[0] < 0 ? el.width.toFixed(2) : 0) + " " + (s[1] < 0 ? el.height.toFixed(2) : 0)
+            + ") scale(" + (s[0] < 0 ? -1 : 1) + " " + (s[1] < 0 ? -1 : 1) + ')"' : "";
         if (f) t += '<image href="' + f.dataURL + '" width="' + el.width.toFixed(2) + '" height="' + el.height.toFixed(2)
-          + '" preserveAspectRatio="none"/>';
+          + '" preserveAspectRatio="none"' + miroir + "/>";
       } else {
         const effet = el.type === "freedraw" && el.customData && el.customData.effet;
         cheminsDe(el).forEach((o) => {
@@ -3425,17 +3618,26 @@
 
   /* ── la barre d'actions de la sélection ── */
   const contexte = $("#tb-contexte");
+  const menuTourner = $("#tb-tourner");
+  function fermerTourner() {
+    menuTourner.hidden = true;
+    $('[data-ctx="tourner"]').setAttribute("aria-expanded", "false");
+  }
+  document.addEventListener("pointerdown", (e) => {
+    if (!menuTourner.hidden && !contexte.contains(e.target)) fermerTourner();
+  });
   function placerContexte() {
     const sel = selectionnes();
-    if (!sel.length || geste || edition) { contexte.hidden = true; return; }
-    const b = boiteDe(sel);
+    if (!sel.length || geste || edition) { contexte.hidden = true; fermerTourner(); return; }
+    const b = boiteVue(sel);
     const a = versEcran(b.x, b.y), z = versEcran(b.x + b.w, b.y + b.h);
     contexte.hidden = false;
     $('[data-ctx="lire"]').hidden = !traitsLisibles().length;
     const bw = contexte.offsetWidth, bh = contexte.offsetHeight;
     const W = scene.clientWidth, H = scene.clientHeight;
     let y = a.y - bh - 18;
-    if (y < 52) y = z.y + 18;
+    // dessous, elle laisse la place de la poignée ronde
+    if (y < 52) y = z.y + 54;
     if (y + bh > H - 52) y = Math.max(52, Math.min(H - bh - 52, a.y + 8));
     const x = Math.max(8, Math.min(W - bw - 8, (a.x + z.x) / 2 - bw / 2));
     contexte.style.transform = "translate(" + Math.round(x) + "px," + Math.round(y) + "px)";
@@ -3446,6 +3648,19 @@
     if (!b) return;
     const a = b.dataset.ctx;
     if (a === "lire") { lireSelection(); return; }
+    if (a === "tourner") {
+      const ouvrir = menuTourner.hidden;
+      menuTourner.hidden = !ouvrir;
+      b.setAttribute("aria-expanded", String(ouvrir));
+      if (ouvrir) {
+        // le menu s'ouvre vers le bas, ou vers le haut s'il n'a pas la place
+        menuTourner.classList.remove("tb-en-haut");
+        const r = menuTourner.getBoundingClientRect(), s = scene.getBoundingClientRect();
+        if (r.bottom > s.bottom - 8) menuTourner.classList.add("tb-en-haut");
+      }
+      return;
+    }
+    if (b.dataset.tourne) { transformerSelection(b.dataset.tourne); return; }
     if (a === "format") { etat.format = !etat.format; majPanneau(); demander(); }
     else if (a === "copier") copier(false);
     else if (a === "dupliquer") dupliquer();

@@ -2017,6 +2017,312 @@
     });
   }
 
+  /* ══ la coquille du téléphone ══════════════════════════════════════════
+     Demandé le 2 novembre 2026 : un site pensé pour le téléphone de bout en
+     bout, avec l'ergonomie des applis de livraison qu'on a dans la poche —
+     une barre flottante en bas avec une recherche en pilule, des catégories
+     en icônes, des rangées de cartes qu'on fait glisser.
+
+     Avant, chaque sorte de page avait sa navigation : l'en-tête à quatre
+     onglets, la barre du lanceur en haut ET en bas, la barre d'outils des
+     fiches, le sommaire déroulant. Sous 760 px, tout cela s'efface pour UNE
+     coquille, la même partout :
+       · en haut, d'où l'on vient (‹) et où l'on est, et la cloche des
+         devoirs avec leur nombre ;
+       · en bas, au pouce : les réglages, la recherche, les outils.
+     Elle est bâtie ici, par le script, et la feuille de style ne la montre
+     que si elle existe (« html.coquille ») : sans JavaScript, la page garde
+     sa navigation d'avant au lieu de n'en avoir aucune. */
+  var ICONE_CLOCHE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M6 9.5a6 6 0 0 1 12 0c0 6.2 2.6 8 2.6 8H3.4S6 15.7 6 9.5"/>' +
+    '<path d="M10.2 20.6a2 2 0 0 0 3.6 0"/></svg>';
+  var ICONE_OUTILS =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/>' +
+    '<rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/>' +
+    '<rect x="13.5" y="13.5" width="7" height="7" rx="3.5"/></svg>';
+  var ICONE_SOMMAIRE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11"/>' +
+    '<circle cx="4.6" cy="6.5" r=".9" fill="currentColor"/><circle cx="4.6" cy="12" r=".9" fill="currentColor"/>' +
+    '<circle cx="4.6" cy="17.5" r=".9" fill="currentColor"/></svg>';
+
+  var feuilleTel = null;
+  /* Le volet qui monte du bas : le geste des applis de poche pour ce qui
+     ne mérite pas une page — un sommaire, un choix. Il se ferme au voile,
+     à Échap, et en le tirant vers le bas par sa poignée. */
+  function ouvrirVolet(titre, contenu) {
+    fermerVolet();
+    var voile = document.createElement("div");
+    voile.className = "tel-voile";
+    var volet = document.createElement("div");
+    volet.className = "tel-volet";
+    volet.setAttribute("role", "dialog");
+    volet.setAttribute("aria-modal", "true");
+    volet.setAttribute("aria-label", titre);
+    volet.innerHTML = '<div class="tel-poignee" aria-hidden="true"></div>'
+      + '<div class="tel-volet-tete"><h2>' + echapper(titre) + '</h2>'
+      + '<button type="button" class="tel-fermer" aria-label="Fermer">'
+      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+      + 'stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>';
+    var corps = document.createElement("div");
+    corps.className = "tel-volet-corps";
+    corps.appendChild(contenu);
+    volet.appendChild(corps);
+    document.body.appendChild(voile);
+    document.body.appendChild(volet);
+    document.documentElement.classList.add("tel-volet-ouvert");
+    voile.addEventListener("click", fermerVolet);
+    volet.querySelector(".tel-fermer").addEventListener("click", fermerVolet);
+    // tirer la poignée vers le bas referme, comme sur un téléphone
+    var y0 = null;
+    volet.querySelector(".tel-poignee").addEventListener("pointerdown", function (e) { y0 = e.clientY; });
+    volet.addEventListener("pointerup", function (e) {
+      if (y0 !== null && e.clientY - y0 > 60) fermerVolet();
+      y0 = null;
+    });
+    feuilleTel = { voile: voile, volet: volet, retour: document.activeElement };
+    requestAnimationFrame(function () { volet.classList.add("ouvert"); voile.classList.add("ouvert"); });
+    var premier = volet.querySelector(".tel-volet-corps a, .tel-volet-corps button");
+    if (premier) premier.focus({ preventScroll: true });
+  }
+  function fermerVolet() {
+    if (!feuilleTel) return;
+    var f = feuilleTel;
+    feuilleTel = null;
+    f.volet.remove(); f.voile.remove();
+    document.documentElement.classList.remove("tel-volet-ouvert");
+    if (f.retour && f.retour.focus) f.retour.focus({ preventScroll: true });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && feuilleTel) { e.stopPropagation(); fermerVolet(); }
+  }, true);
+
+  function typeDePage() {
+    var p = location.pathname;
+    if (/\/(monde|ile)\//.test(p)) return null;          // le village 3D a son propre écran
+    if (document.body.dataset.accueil) return "accueil";
+    if (document.querySelector("main.corps")) return "fiche";
+    if (/\/outils\/[^\/]+\.html$/.test(p) && !/\/outils\/index\.html$/.test(p)) return "outil";
+    return "page";
+  }
+
+  /* Les devoirs qui viennent : l'accueil les connaît (il les embarque), les
+     autres pages non. L'accueil laisse donc leurs dates dans la mémoire du
+     navigateur, et la cloche les compte partout. */
+  function echeancesProches() {
+    var brut = document.getElementById("pd-donnees");
+    if (brut) {
+      try {
+        S.echeances = JSON.parse(brut.textContent).map(function (d) { return d[0]; });
+        enregistrer();
+      } catch (e) { /* données illisibles : on garde les précédentes */ }
+    }
+    var auj = new Date(), cle = auj.getFullYear() + "-" + ("0" + (auj.getMonth() + 1)).slice(-2)
+      + "-" + ("0" + auj.getDate()).slice(-2);
+    var limite = new Date(auj.getTime() + 14 * 864e5).toISOString().slice(0, 10);
+    return (S.echeances || []).filter(function (d) { return d >= cle && d <= limite; }).length;
+  }
+
+  function coquilleTelephone() {
+    var type = typeDePage();
+    if (!type) return;
+    var base = racine();
+    var tete = document.createElement("header");
+    tete.className = "tel-tete";
+    var gauche;
+    if (type === "accueil") {
+      var logo = document.querySelector(".app-marque .sigle");
+      gauche = '<a class="tel-marque" href="' + base + 'index.html" aria-label="Accueil">'
+        + (logo ? logo.innerHTML : "") + '</a>'
+        + '<a class="tel-lieu" id="tel-lieu" href="' + base + 'planning.html">'
+        + '<b>BTS CIEL</b><span id="tel-prochain">Le planning</span></a>';
+    } else {
+      var retour = base + "index.html", ou = "Accueil";
+      var mat = document.querySelector(".fil a.matiere");
+      if (type === "fiche" && mat) { retour = mat.getAttribute("href"); ou = mat.textContent.trim(); }
+      else if (type === "outil") { retour = base + "outils/index.html"; ou = "Outils"; }
+      var h1 = document.querySelector("h1");
+      var titre = (h1 ? h1.textContent : document.title.split(/ [|—] /)[0]).replace(/\s+/g, " ").trim();
+      var genre = type === "fiche"
+        ? ({ "cours.html": "Cours", "exercices.html": "Exercices", "fiche-revision.html": "Fiche de révision",
+             "qcm.html": "QCM" }[location.pathname.split("/").pop()] || "") : "";
+      gauche = '<a class="tel-retour" href="' + retour + '" aria-label="Retour : ' + echapper(ou) + '">'
+        + ICONE_PREC + '</a><div class="tel-titre"><b>' + echapper(titre) + '</b>'
+        + (genre ? '<span>' + echapper(genre) + ' · ' + echapper(ou) + '</span>' : '') + '</div>';
+    }
+    var n = echeancesProches();
+    var droite = '<a class="tel-rond tel-cloche" href="' + base + 'devoirs.html" aria-label="Devoirs à rendre'
+      + (n ? " : " + n : "") + '">' + ICONE_CLOCHE + (n ? '<span class="tel-badge">' + n + '</span>' : '') + '</a>';
+    var som = type === "fiche" && document.querySelector(".sommaire ol");
+    if (som) droite = '<button type="button" class="tel-rond" id="tel-sommaire" aria-label="Sommaire">'
+      + ICONE_SOMMAIRE + '</button>' + droite;
+    tete.innerHTML = '<div class="tel-g">' + gauche + '</div><div class="tel-d">' + droite + '</div>'
+      + (type === "fiche" ? '<span class="tel-lecture" aria-hidden="true"><i></i></span>' : '');
+    /* La couleur de la matière suit la page jusque dans la barre : le
+       filet de lecture, le segment de la fiche en cours. Les teintes sont
+       celles du lanceur (« data-mat »), mesurées en clair et en sombre. */
+    var matiere = document.body.dataset.matiere;
+    if (matiere && type !== "accueil") {
+      tete.setAttribute("data-mat", matiere);
+      var segs = document.querySelector(".tel-segments");
+      if (segs) segs.setAttribute("data-mat", matiere);
+    }
+    document.body.insertBefore(tete, document.body.firstChild);
+
+    var barre = document.createElement("nav");
+    barre.className = "tel-barre";
+    barre.setAttribute("aria-label", "Navigation");
+    barre.appendChild(outil("tel-rond tel-gros", "Réglages", ICONE_REGLAGES, ouvrir));
+    var pilule = outil("tel-pilule", "Rechercher", ICONE_LOUPE + "<span>Rechercher</span>", chercherMaintenant);
+    barre.appendChild(pilule);
+    var vers = lien("tel-rond tel-gros", "Outils", ICONE_OUTILS, base + "outils/index.html");
+    if (type === "outil" || /\/outils\/index\.html$/.test(location.pathname)) vers.setAttribute("aria-current", "page");
+    barre.appendChild(vers);
+    document.body.appendChild(barre);
+
+    if (som) document.getElementById("tel-sommaire").addEventListener("click", function () {
+      var liste = som.cloneNode(true);
+      liste.className = "tel-som";
+      // la section en cours, d'après ce qui est à l'écran
+      var ancres = Array.prototype.slice.call(som.querySelectorAll("a[href^='#']"));
+      var courante = null;
+      ancres.forEach(function (a) {
+        var cible = document.getElementById(a.getAttribute("href").slice(1));
+        if (cible && cible.getBoundingClientRect().top < 140) courante = a.getAttribute("href");
+      });
+      Array.prototype.forEach.call(liste.querySelectorAll("a"), function (a) {
+        if (a.getAttribute("href") === courante) a.setAttribute("aria-current", "location");
+        a.addEventListener("click", fermerVolet);
+      });
+      var boite = document.createElement("div");
+      boite.appendChild(liste);
+      var v = document.querySelector(".voisins");
+      if (v) { var vv = v.cloneNode(true); vv.classList.add("tel-som-voisins"); boite.appendChild(vv); }
+      ouvrirVolet("Sommaire", boite);
+    });
+
+    /* En défilant : un filet sous la barre du haut dès qu'on a quitté le
+       haut de la page ; sur une fiche, la part lue, d'un trait de la couleur
+       de la matière ; et la barre du bas qui se RÉDUIT quand on descend dans
+       un texte, puis revient dès qu'on remonte — le geste des barres
+       flottantes des téléphones depuis 2025 : on lit, la commande se fait
+       petite ; on cherche, elle revient. */
+    var trait = tete.querySelector(".tel-lecture i");
+    var dernierY = window.pageYOffset, attente = false;
+    var marquer = function () {
+      attente = false;
+      var y = window.pageYOffset;
+      tete.classList.toggle("tel-defile", y > 4);
+      if (trait) {
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        trait.style.transform = "scaleX(" + (max > 0 ? Math.min(1, y / max) : 0).toFixed(4) + ")";
+      }
+      if (Math.abs(y - dernierY) > 6) {
+        barre.classList.toggle("tel-mini", y > dernierY && y > 160 && !feuilleTel);
+        dernierY = y;
+      }
+    };
+    window.addEventListener("scroll", function () {
+      if (!attente) { attente = true; requestAnimationFrame(marquer); }
+    }, { passive: true });
+    marquer();
+    if (type === "accueil") accueilTelephone();
+    document.documentElement.classList.add("coquille");
+  }
+
+  /* ── l'accueil au pouce ────────────────────────────────────────────────
+     Les rangées « fixes » — matières, outils, chapitres — sont écrites par
+     publier.py et se lisent sans script. Celles qui dépendent du JOUR ou de
+     ce navigateur se remplissent ici : le prochain cours (en haut, à la
+     place de l'adresse d'une appli de livraison), ce qui est à rendre, la
+     semaine, et ce qu'on lisait. */
+  function accueilTelephone() {
+    var auj = new Date();
+    var iso = function (d) {
+      return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+    };
+    var JOURS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+    var jourDe = function (s) {
+      var d = new Date(s.slice(0, 10) + "T12:00");
+      var ecart = Math.round((d - new Date(iso(auj) + "T12:00")) / 864e5);
+      return ecart === 0 ? "aujourd'hui" : ecart === 1 ? "demain" : ecart < 7 ? JOURS[d.getDay()] + " " + d.getDate()
+        : "dans " + ecart + " j";
+    };
+    var lire = function (id) {
+      var b = document.getElementById(id);
+      try { return b ? JSON.parse(b.textContent) : []; } catch (e) { return []; }
+    };
+    var remplir = function (id, cartes) {
+      var bloc = document.getElementById(id);
+      if (!bloc || !cartes.length) return;
+      bloc.querySelector(".tel-rail").innerHTML = cartes.join("");
+      bloc.hidden = false;
+    };
+    var ico = function (m) {
+      var tuile = document.querySelector('.tel-cat[data-mat="' + m + '"] svg');
+      return tuile ? tuile.outerHTML : "";
+    };
+    var maintenant = iso(auj) + "T" + ("0" + auj.getHours()).slice(-2) + ":" + ("0" + auj.getMinutes()).slice(-2);
+
+    // le prochain cours, ou celui qui a lieu
+    var cours = lire("pj-donnees").filter(function (c) { return c[0].slice(0, 10) + "T" + c[1] >= maintenant; });
+    var lieu = document.getElementById("tel-prochain");
+    if (lieu && cours.length) {
+      var c0 = cours[0], encours = c0[0] <= maintenant;
+      lieu.textContent = (encours ? "En cours · " : jourDe(c0[0]) + " " + c0[0].slice(11, 16) + " · ")
+        + (c0[3] || "").split(":")[0].trim() + " — " + c0[2].charAt(0) + c0[2].slice(1).toLowerCase();
+    }
+    remplir("tel-semaine", cours.slice(0, 8).map(function (c) {
+      return '<a class="tel-carte tel-carte-cours" data-mat="' + c[4] + '" href="planning.html">'
+        + '<span class="tel-quand"><b>' + c[0].slice(11, 16) + '</b>' + echapper(jourDe(c[0])) + '</span>'
+        + '<span class="tel-ct">' + echapper(c[2].charAt(0) + c[2].slice(1).toLowerCase()) + '</span>'
+        + '<span class="tel-cm">' + ico(c[4]) + echapper((c[3] || "").replace(/\s*:\s*/, " · ")) + '</span></a>';
+    }));
+
+    remplir("tel-rendre", lire("pd-donnees").filter(function (d) { return d[0] >= iso(auj); }).slice(0, 8)
+      .map(function (d) {
+        return '<a class="tel-carte tel-carte-devoir" data-mat="' + d[1] + '" href="devoirs.html">'
+          + '<span class="tel-date">' + echapper(jourDe(d[0])) + '</span>'
+          + '<span class="tel-ct">' + echapper(d[2]) + '</span>'
+          + '<span class="tel-cm">' + ico(d[1]) + '</span></a>';
+      }));
+
+    remplir("tel-reprendre", (S.recents || []).filter(function (r) { return r && r.u && r.t; }).slice(0, 6)
+      .map(function (r) {
+        return '<a class="tel-carte tel-carte-reprise" data-mat="' + (r.m || "reseau") + '" href="'
+          + echapper(r.u) + '"><span class="tel-cm">' + ico(r.m) + '</span>'
+          + '<span class="tel-ct">' + echapper(r.t) + '</span></a>';
+      }));
+
+    var n = echeancesProches(), pastille = document.getElementById("tel-p-rendre");
+    if (pastille && n) { pastille.hidden = false; pastille.querySelector("b").textContent = n; }
+
+    /* Ce qu'on a déjà ouvert, matière par matière : la barre de progression
+       des applis de budget, sur une donnée que le navigateur connaît vraiment
+       (un chapitre dont on a ouvert une page). Le chapitre ouvert reçoit sa
+       marque, pour qu'on voie d'un coup d'œil ce qui reste. */
+    var vus = Object.keys(S.vus || {});
+    Array.prototype.forEach.call(document.querySelectorAll(".tel-rangee[data-pole]"), function (r) {
+      var pole = r.getAttribute("data-pole"), cartes = r.querySelectorAll(".tel-carte-ch"), ouverts = 0;
+      Array.prototype.forEach.call(cartes, function (c) {
+        var dossier = c.getAttribute("href").replace(/\/[^\/]+$/, "");
+        var vu = vus.some(function (k) { return k.slice(-dossier.length) === dossier; });
+        if (vu) { ouverts++; c.classList.add("tel-vu"); }
+      });
+      var h2 = r.querySelector(".tel-rtete h2");
+      if (!h2 || !cartes.length) return;
+      var p = document.createElement("span");
+      p.className = "tel-prog";
+      p.innerHTML = '<span class="tel-barre-prog"><i style="width:' + Math.round(100 * ouverts / cartes.length)
+        + '%"></i></span><small>' + ouverts + " / " + cartes.length + " ouverts</small>";
+      h2.parentNode.insertBefore(p, h2.nextSibling);
+      r.classList.add("tel-avec-prog");
+    });
+  }
+
   function init() {
     appliquer();
     poserBoutons();
@@ -2027,6 +2333,7 @@
     memoriser();
     proposerReprise();
     anneaux();
+    coquilleTelephone();
     brancherHasard();
     raccourcis();
     apparitions();
