@@ -2426,7 +2426,9 @@
     if (ouvrir) majMenu();
   });
   document.addEventListener("pointerdown", (e) => {
-    if (!menu.hidden && !menu.contains(e.target) && e.target !== bMenu) fermerMenu();
+    /* « contains » et non « === » : un toucher sur l'icône du bouton vise le
+       dessin, pas le bouton — le menu se fermait, puis le clic le rouvrait. */
+    if (!menu.hidden && !menu.contains(e.target) && !bMenu.contains(e.target)) fermerMenu();
   });
   function majMenu() {
     $("#tb-fonds").innerHTML = FONDS_TABLEAU.map(([c, t]) => pastille("fond", c, etat.fond, t)).join("");

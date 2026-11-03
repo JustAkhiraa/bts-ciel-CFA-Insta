@@ -755,9 +755,9 @@ function lire(src) {
       jetons.push({ t: "num", v: brut, exact: EX.depuisTexte(brut) });
       i = j; continue;
     }
-    if (/[a-zA-Zα-ωΑ-Ωéèêàçûôî_]/.test(c)) {
+    if (/[a-zA-Zα-ωΑ-Ωéèêàçûôî_µ]/.test(c)) {
       let j = i;
-      while (j < n && /[a-zA-Z0-9α-ωΑ-Ωéèêàçûôî_]/.test(src[j])) j++;
+      while (j < n && /[a-zA-Z0-9α-ωΑ-Ωéèêàçûôî_µ]/.test(src[j])) j++;
       jetons.push({ t: "nom", v: src.slice(i, j) });
       i = j; continue;
     }
@@ -812,6 +812,9 @@ const ALIAS = {
   "moyenne": "moyenne", "mean": "moyenne",
   "ecarttype": "ecartType", "écarttype": "ecartType", "stddev": "ecartType",
   "variance": "variance", "median": "mediane", "mediane": "mediane",
+  "ecarttypeech": "ecartTypeEch", "écarttypeéch": "ecartTypeEch", "samplestddev": "ecartTypeEch",
+  "ecarttypeechantillon": "ecartTypeEch", "varianceech": "varianceEch", "samplevar": "varianceEch",
+  "var": "variance", "med": "mediane",
   "binomialepdf": "binomialePdf", "binompdf": "binomialePdf",
   "binomfdp": "binomialePdf", "binomialecdf": "binomialeCdf",
   "binomcdf": "binomialeCdf", "binomfrép": "binomialeCdf",
@@ -854,7 +857,7 @@ const N_FONCTIONS = new Set([
   "argsh", "argch", "argth", "sec", "csc", "cot", "arcsec", "arccsc", "arccot",
   "combinaison", "arrangement", "pgcd", "ppcm", "mod", "quotient",
   "derivee", "integrale", "somme", "produit", "min", "max", "signe",
-  "moyenne", "ecartType", "variance", "mediane",
+  "moyenne", "ecartType", "variance", "mediane", "ecartTypeEch", "varianceEch",
   "binomialePdf", "binomialeCdf", "invBinomiale",
   "normalePdf", "normaleCdf", "invNormale",
   "poissonPdf", "poissonCdf", "geomPdf", "geomCdf", "hyperPdf", "hyperCdf",
@@ -870,6 +873,11 @@ const N_FONCTIONS = new Set([
 const MAT_FONCTIONS = new Set(["inverse", "det", "transposee", "trace", "identite",
                                "dim", "ref", "rref", "dot", "cross", "norme",
                                "tri", "aleaUniques", "facteurs"]);
+/* Celles-ci prennent une LISTE en entier — « moyenne(L1) » — quand on la
+   leur donne ; avec des nombres, elles restent dans les deux couches. */
+const LISTE_FONCTIONS = new Set(["moyenne", "ecartType", "variance", "mediane",
+                                 "ecartTypeEch", "varianceEch", "min", "max",
+                                 "somme", "produit"]);
 /* Celles-ci sont aux NOMBRES COMPLEXES (section 8 ter). */
 const CPLX_FONCTIONS = new Set(["re", "im", "arg", "conj"]);
 /* Les quatre formes SPÉCIALES : leur deuxième argument est un NOM de
@@ -946,7 +954,19 @@ function analyser(src) {
 
   function atome() {
     const j = avancer();
-    if (j.t === "num") return { t: "num", v: parseFloat(j.v), exact: j.exact, brut: j.v };
+    if (j.t === "num") {
+      const nb = { t: "num", v: parseFloat(j.v), exact: j.exact, brut: j.v };
+      /* « 4_mA » est UNE grandeur : l'unité colle au nombre qui la précède,
+         avec son exposant — « 4_m² » vaut 4 m², pas (4 m)². Sans cela, la
+         multiplication implicite passait après la division, et 12_V/4_mA
+         valait 3 mW au lieu de 3 kΩ. */
+      if (voir().t === "nom" && UNITES.connait(voir().v)) {
+        let u = { t: "unite", n: avancer().v };
+        if (voir().t === "op" && voir().v === "^") { avancer(); u = { t: "op", o: "^", a: u, b: atome() }; }
+        return { t: "op", o: "*", a: nb, b: u, implicite: true };
+      }
+      return nb;
+    }
     if (j.t === "[") return matrice();
     if (j.t === "(") {
       const e = expr(0);
@@ -1021,9 +1041,11 @@ function analyser(src) {
         return { t: "var", n: brut };
       }
       if (bas === "e") return { t: "var", n: "e" };
+      if (UNITES.connait(brut)) return { t: "unite", n: brut };
       if (brut[0] === "_") {
-        return rater("« " + brut + " » n'est pas une constante connue. Les constantes "
-                     + "sont " + Object.keys(CONSTANTES).join(", ") + ".");
+        return rater("« " + brut + " » n'est ni une unité ni une constante connue. Les constantes "
+                     + "sont " + Object.keys(CONSTANTES).join(", ") + " ; une unité s'écrit "
+                     + "« _km », « _mA », « _kΩ »…");
       }
       return rater("« " + brut + " » : je ne connais pas ce nom. "
                    + "Les fonctions s'écrivent avec des parenthèses, et les variables "
@@ -1136,6 +1158,8 @@ function evaluer(noeud, ctx) {
       break;
     }
     case "lettre": boum("« " + noeud.n + " » est ici un nom de variable, pas une valeur.");
+      break;
+    case "unite": boum("Les unités se calculent dans l'application Calculs : « 3_km→_m ».");
       break;
     case "neg": return -ev(noeud.a);
     case "fac": {
@@ -1385,15 +1409,19 @@ function appeler(noeud, ctx, R) {
       const v = A.map(ev);
       return noeud.n === "min" ? Math.min(...v) : Math.max(...v);
     }
-    case "moyenne": case "ecartType": case "variance": case "mediane": {
+    case "moyenne": case "ecartType": case "variance": case "mediane":
+    case "ecartTypeEch": case "varianceEch": {
       if (!A.length) boum("Il faut au moins un nombre.");
       const v = A.map(ev).slice().sort((a, b) => a - b);
       const n = v.length, m = v.reduce((a, b) => a + b, 0) / n;
       if (noeud.n === "moyenne") return m;
       if (noeud.n === "mediane")
         return n % 2 ? v[(n - 1) / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
-      const V = v.reduce((a, x) => a + (x - m) * (x - m), 0) / n;
-      return noeud.n === "variance" ? V : Math.sqrt(V);
+      /* σ divise par n, s par n − 1 : la population, puis l'échantillon. */
+      const ech = noeud.n === "ecartTypeEch" || noeud.n === "varianceEch";
+      if (ech && n < 2) boum("Avec un seul nombre, l'écart type d'échantillon n'existe pas.");
+      const V = v.reduce((a, x) => a + (x - m) * (x - m), 0) / (ech ? n - 1 : n);
+      return noeud.n === "variance" || noeud.n === "varianceEch" ? V : Math.sqrt(V);
     }
     case "somme": case "produit": {
       nbArgs(noeud.n === "somme" ? "Une somme" : "Un produit", 4, 4);
@@ -1863,6 +1891,7 @@ const MAT = (function () {
     if (n.t === "mat") return true;
     if (n.t === "appel" && MAT_FONCTIONS.has(n.n)) return true;
     if (n.t === "var" && ctx.mats && ctx.mats.has(n.n)) return true;
+    if (n.t === "appelUtil" && ctx.mats && ctx.mats.has(n.n)) return true;
     for (const x of [n.a, n.b]) if (contient(x, ctx)) return true;
     if (n.args) for (const x of n.args) if (contient(x, ctx)) return true;
     if (n.lignes) for (const l of n.lignes) for (const x of l) if (contient(x, ctx)) return true;
@@ -2040,6 +2069,91 @@ const MAT = (function () {
       A.q && B.q ? A.q.map((r, i) => r.map((x, j) => (signe > 0 ? fAdd : fSub)(x, B.q[i][j]))) : null);
   }
 
+  /* ── Les listes ────────────────────────────────────────────────────
+     Une liste EST une matrice d'une ligne : « [12;15;9] ». Rangée sous
+     « L1 », elle se relit dans n'importe quel calcul, et les fonctions de
+     statistiques la prennent en entier : moyenne(L1), max(L1). Avec une
+     seconde liste de même taille, la seconde donne les EFFECTIFS —
+     moyenne(V1;N1) est la moyenne de l'application Statistiques. Le calcul
+     reste en fractions tant que les termes le sont. */
+  function surListe(n, ctx) {
+    const listes = n.args.map((a) => ev(a, ctx));
+    if (!listes.every((v) => v.k === "m"))
+      boum("« " + n.n + " » prend des nombres séparés par « ; », ou une liste, "
+           + "pas un mélange des deux.");
+    if (listes.length > 2) boum("« " + n.n + " » prend une liste, et au plus une liste d'effectifs.");
+    const x = vecteur(listes[0], "« " + n.n + " »");
+    const p = listes[1] ? vecteur(listes[1], "La liste des effectifs") : null;
+    if (p && p.f.length !== x.f.length)
+      boum("Les deux listes n'ont pas la même taille : " + x.f.length + " valeurs pour "
+           + p.f.length + " effectifs.");
+    if (p && p.f.some((e) => !(e >= 0))) boum("Un effectif est un nombre positif ou nul.");
+    const nx = x.f.length;
+    if (!nx) boum("La liste est vide.");
+    const exact = !!(x.q && (!p || p.q));
+    const poids = (i) => (p ? p.f[i] : 1), poidsQ = (i) => (p ? p.q[i] : F1());
+    const N = x.f.reduce((s, _, i) => s + poids(i), 0);
+    let NQ = F0(); if (exact) for (let i = 0; i < nx; i++) NQ = fAdd(NQ, poidsQ(i));
+    if (!(N > 0)) boum("L'effectif total est nul.");
+    const sx = () => {
+      let s = 0, q = exact ? F0() : null;
+      for (let i = 0; i < nx; i++) { s += x.f[i] * poids(i); if (q) q = fAdd(q, fMul(x.q[i], poidsQ(i))); }
+      return { f: q ? fVal(q) : s, q };
+    };
+    switch (n.n) {
+      case "somme": {
+        if (p) boum("somme(L1) additionne une liste ; pour une somme pondérée, écrivez « somme(L1*… ) » terme à terme ou moyenne(L1;N1)×n.");
+        const s = sx(); return scal(s.f, s.q);
+      }
+      case "produit": {
+        if (p) boum("produit(L1) multiplie les termes d'une seule liste.");
+        let f = 1, q = exact ? F1() : null;
+        for (let i = 0; i < nx; i++) { f *= x.f[i]; if (q) q = fMul(q, x.q[i]); }
+        return scal(q ? fVal(q) : f, q);
+      }
+      case "min": case "max": {
+        if (p) boum(n.n + "(L1) prend une seule liste.");
+        let k = 0;
+        for (let i = 1; i < nx; i++) if (n.n === "min" ? x.f[i] < x.f[k] : x.f[i] > x.f[k]) k = i;
+        return scal(x.f[k], x.q ? x.q[k] : null);
+      }
+      case "mediane": {
+        /* Comme l'application Statistiques : la médiane des valeurs RANGÉES,
+           chaque valeur comptée autant de fois que son effectif. */
+        const ordre = x.f.map((f, i) => i).sort((a, b) => x.f[a] - x.f[b]);
+        let cumul = 0;
+        const rangDe = (r) => { cumul = 0; for (const i of ordre) { cumul += poids(i); if (cumul >= r) return i; } return ordre[ordre.length - 1]; };
+        if (p && p.f.some((e) => !Number.isInteger(e)))
+          boum("La médiane pondérée veut des effectifs entiers.");
+        const a = rangDe(Math.floor((N + 1) / 2)), b = rangDe(Math.ceil((N + 1) / 2));
+        if (a === b || x.f[a] === x.f[b]) return scal(x.f[a], x.q ? x.q[a] : null);
+        return scal((x.f[a] + x.f[b]) / 2, x.q ? fDiv(fAdd(x.q[a], x.q[b]), fr(2, 1)) : null);
+      }
+    }
+    const s = sx();
+    const moy = { f: s.f / N, q: exact ? fDiv(s.q, NQ) : null };
+    if (n.n === "moyenne") return scal(moy.f, moy.q);
+    /* La variance : Σ nᵢ(xᵢ − x̄)² / N pour la population (σ²), divisée
+       par N − 1 pour l'échantillon (s²) — la différence que l'application
+       Statistiques nomme « σ » et « s ». */
+    const ech = n.n === "ecartTypeEch" || n.n === "varianceEch";
+    if (ech && !(N > 1)) boum("Avec un seul individu, l'écart type d'échantillon n'existe pas.");
+    let v = 0, vq = exact ? F0() : null;
+    for (let i = 0; i < nx; i++) {
+      const d = x.f[i] - moy.f;
+      v += poids(i) * d * d;
+      if (vq) { const dq = fSub(x.q[i], moy.q); vq = fAdd(vq, fMul(poidsQ(i), fMul(dq, dq))); }
+    }
+    const div = ech ? N - 1 : N;
+    const varF = v / div, varQ = vq ? fDiv(vq, exact ? fSub(NQ, ech ? F1() : F0()) : null) : null;
+    if (n.n === "variance" || n.n === "varianceEch") return scal(varQ ? fVal(varQ) : varF, varQ);
+    /* L'écart type : √(p/q) = √(p·q) / q, et la forme exacte sort les carrés. */
+    const f = Math.sqrt(varQ ? fVal(varQ) : varF);
+    if (!varQ) return scal(f, null);
+    const e = ex(UN, varQ[1], varQ[0] * varQ[1]);
+    return { k: "s", f, q: e && estRationnel(e) ? [e.p, e.q] : null, ex: e };
+  }
+
   function ev(n, ctx) {
     if (!contient(n, ctx)) return nombre(n, ctx);
     switch (n.t) {
@@ -2067,8 +2181,16 @@ const MAT = (function () {
         if (n.o === "->") {
           const v = ev(n.a, ctx);
           const cible = n.b.t === "var" ? n.b.n : null;
-          if (!cible || !/^[A-Za-z]$/.test(cible))
-            boum("Après « → » il faut une lettre : « [[1;2];[3;4]]→A ».");
+          if (!cible || !/^[A-Za-z][0-9]?$/.test(cible))
+            boum("Après « → » il faut une lettre, ou une lettre et un chiffre : "
+                 + "« [[1;2];[3;4]]→A », « [12;15;9]→L1 ».");
+          /* V1, N1, X1… Y3 sont les colonnes des applications Statistiques et
+             Régressions : on les lit ici, on les modifie là-bas. Les écraser
+             d'ici ferait diverger le tableau et le calcul. */
+          if (ctx.reserves && ctx.reserves.has(cible))
+            boum("« " + cible + " » est une colonne de l'application "
+                 + (/^[VN]/.test(cible) ? "Statistiques" : "Régressions")
+                 + " : elle se lit ici et se modifie là-bas. Rangez plutôt dans L1, L2…");
           if (v.k === "m") { ctx.mats.set(cible, v); ctx.vars.delete(cible); ctx.exacts.delete(cible); }
           else { ctx.vars.set(cible, v.f); ctx.exacts.set(cible, v.ex); ctx.mats.delete(cible); }
           ctx.dernierStockage = cible;
@@ -2102,6 +2224,7 @@ const MAT = (function () {
         break;
       }
       case "appel": {
+        if (LISTE_FONCTIONS.has(n.n)) return surListe(n, ctx);
         if (!MAT_FONCTIONS.has(n.n))
           boum("« " + n.n + " » s'applique à un nombre, pas à une matrice.");
         if (n.n === "tri") {
@@ -2210,9 +2333,30 @@ const MAT = (function () {
         }
         break;
       }
-      case "appelUtil":
-        boum("Une fonction définie dans l'application Fonctions s'applique à un nombre.");
+      case "appelUtil": {
+        const m = ctx.mats.get(n.n);
+        if (!m) boum("Une fonction définie dans l'application Fonctions s'applique à un nombre.");
+        /* Les rangs commencent à 1, comme sur la machine et dans un énoncé :
+           « le deuxième terme de la liste » est L1(2). */
+        const rang = (x, borne, quoi) => {
+          const v = ev(x, ctx);
+          if (v.k !== "s" || !Number.isInteger(v.f) || v.f < 1 || v.f > borne)
+            boum(quoi + " va de 1 à " + borne + " ; « " + formater(v.f, ctx.reglages) + " » n'y est pas.");
+          return v.f - 1;
+        };
+        if (n.args.length === 1 && (m.l === 1 || m.c === 1)) {
+          const u = vecteur(m, "Un rang");
+          const k = rang(n.args[0], u.f.length, "Le rang dans " + n.n);
+          return scal(u.f[k], u.q ? u.q[k] : null);
+        }
+        if (n.args.length === 2) {
+          const i = rang(n.args[0], m.l, "La ligne de " + n.n), j = rang(n.args[1], m.c, "La colonne de " + n.n);
+          return scal(m.f[i][j], m.q ? m.q[i][j] : null);
+        }
+        boum("« " + n.n + "(k) » lit le terme de rang k d'une liste ; « " + n.n
+             + "(i;j) » la case d'une matrice.");
         break;
+      }
       case "fac":
         boum("La factorielle ne s'applique pas à une matrice.");
         break;
@@ -2515,6 +2659,246 @@ const CPLX = (function () {
   return { contient, calculer, versJSON, depuisJSON };
 })();
 
+/* ═════════════════════ 8 quater. Les unités ═════════════════════════════
+   Demandé avec le reste de la boîte à outils de la machine : « 3_km→_m ».
+   C'est de l'électricité qu'on fait en BTS CIEL — des kΩ, des mA, des µF,
+   des kWh — et une conversion fausse d'un facteur mille est LA faute
+   d'un contrôle de physique.
+
+   Une grandeur est { v, d } : sa valeur dans le Système international, et
+   sa DIMENSION, les sept exposants (m, kg, s, A, K, mol, cd). « _kV » vaut
+   1000 et a la dimension kg·m²·s⁻³·A⁻¹. Multiplier ajoute les exposants,
+   diviser les retranche ; additionner exige les mêmes — on n'ajoute pas
+   des mètres à des secondes, et la machine le dit. Les noms sont ceux de
+   la machine : le souligné les distingue des lettres de l'utilisateur.
+
+   Deux noms ont changé pour cela : la gravité normale est « _g0 » (« _g »
+   est le gramme) et la constante de Planck « _hplanck » (« _h » est
+   l'heure) — l'écriture de la machine, qui avait rencontré le même
+   conflit. Les degrés Celsius ne sont pas pris : 20 °C n'est pas
+   20 fois « 1 °C », la conversion n'est pas un produit. */
+const UNITES = (function () {
+  const D = (m = 0, kg = 0, s = 0, A = 0, K = 0, mol = 0, cd = 0) => [m, kg, s, A, K, mol, cd];
+  const SANS = D();
+  /* nom : [facteur vers le SI, dimension, accepte un préfixe] */
+  const TABLE = {
+    m: [1, D(1), true], g: [1e-3, D(0, 1), true], s: [1, D(0, 0, 1), true],
+    A: [1, D(0, 0, 0, 1), true], K: [1, D(0, 0, 0, 0, 1), true],
+    mol: [1, D(0, 0, 0, 0, 0, 1), true], cd: [1, D(0, 0, 0, 0, 0, 0, 1), true],
+    Hz: [1, D(0, 0, -1), true], N: [1, D(1, 1, -2), true], Pa: [1, D(-1, 1, -2), true],
+    J: [1, D(2, 1, -2), true], W: [1, D(2, 1, -3), true], C: [1, D(0, 0, 1, 1), true],
+    V: [1, D(2, 1, -3, -1), true], "Ω": [1, D(2, 1, -3, -2), true], ohm: [1, D(2, 1, -3, -2), true],
+    F: [1, D(-2, -1, 4, 2), true], S: [1, D(-2, -1, 3, 2), true], Wb: [1, D(2, 1, -2, -1), true],
+    T: [1, D(0, 1, -2, -1), true], H: [1, D(2, 1, -2, -2), true],
+    L: [1e-3, D(3), true], eV: [1.602176634e-19, D(2, 1, -2), true],
+    Wh: [3600, D(2, 1, -2), true], Ah: [3600, D(0, 0, 1, 1), true],
+    cal: [4.184, D(2, 1, -2), true], bar: [1e5, D(-1, 1, -2), true],
+    min: [60, D(0, 0, 1), false], h: [3600, D(0, 0, 1), false], day: [86400, D(0, 0, 1), false],
+    week: [604800, D(0, 0, 1), false], year: [31557600, D(0, 0, 1), false],
+    t: [1000, D(0, 1), false], ha: [1e4, D(2), false], atm: [101325, D(-1, 1, -2), false],
+    "in": [0.0254, D(1), false], ft: [0.3048, D(1), false], yd: [0.9144, D(1), false],
+    mi: [1609.344, D(1), false], au: [149597870700, D(1), false],
+    ly: [9460730472580800, D(1), false],
+    lb: [0.45359237, D(0, 1), false], oz: [0.028349523125, D(0, 1), false],
+  };
+  const PREFIXES = [["da", 1e1], ["Y", 1e24], ["Z", 1e21], ["E", 1e18], ["P", 1e15],
+    ["T", 1e12], ["G", 1e9], ["M", 1e6], ["k", 1e3], ["h", 1e2], ["d", 1e-1],
+    ["c", 1e-2], ["m", 1e-3], ["µ", 1e-6], ["μ", 1e-6], ["u", 1e-6], ["n", 1e-9],
+    ["p", 1e-12], ["f", 1e-15], ["a", 1e-18]];
+  /* Les constantes physiques, avec leur dimension : dès qu'une unité est
+     dans le calcul, « _c » est une vitesse et non plus un nombre. */
+  const DIM_CONSTANTES = {
+    _c: D(1, 0, -1), _e: D(0, 0, 1, 1), _G: D(3, -1, -2), _g0: D(1, 0, -2),
+    _k: D(2, 1, -2, 0, -1), _ke: D(3, 1, -4, -2), _me: D(0, 1), _mn: D(0, 1), _mp: D(0, 1),
+    _Na: D(0, 0, 0, 0, 0, -1), _R: D(2, 1, -2, 0, -1, -1), _eps0: D(-3, -1, 4, 2),
+    _mu0: D(1, 1, -2, -2), _hplanck: D(2, 1, -1),
+  };
+
+  /* « _kΩ » : un nom exact d'abord — « _min » est la minute, pas un
+     milli-pouce —, puis un préfixe devant une unité qui en accepte. */
+  function lire(nom) {
+    const s = nom.slice(1);
+    if (Object.prototype.hasOwnProperty.call(TABLE, s)) return { v: TABLE[s][0], d: TABLE[s][1].slice() };
+    for (const [p, f] of PREFIXES) {
+      if (!s.startsWith(p)) continue;
+      const u = TABLE[s.slice(p.length)];
+      if (u && u[2]) return { v: f * u[0], d: u[1].slice() };
+    }
+    return null;
+  }
+  const connait = (nom) => typeof nom === "string" && nom[0] === "_" && lire(nom) !== null;
+
+  function contient(n) {
+    if (!n || typeof n !== "object") return false;
+    if (n.t === "unite") return true;
+    for (const x of [n.a, n.b]) if (contient(x)) return true;
+    if (n.args) for (const x of n.args) if (contient(x)) return true;
+    if (n.lignes) for (const l of n.lignes) for (const x of l) if (contient(x)) return true;
+    return false;
+  }
+
+  const memeDim = (a, b) => a.every((x, i) => x === b[i]);
+  const sans = (d) => d.every((x) => x === 0);
+  const BASES = ["_m", "_kg", "_s", "_A", "_K", "_mol", "_cd"];
+  const NOMMEES = [["_N", D(1, 1, -2)], ["_J", D(2, 1, -2)], ["_W", D(2, 1, -3)],
+    ["_Pa", D(-1, 1, -2)], ["_Hz", D(0, 0, -1)], ["_C", D(0, 0, 1, 1)], ["_V", D(2, 1, -3, -1)],
+    ["_Ω", D(2, 1, -3, -2)], ["_F", D(-2, -1, 4, 2)], ["_S", D(-2, -1, 3, 2)],
+    ["_Wb", D(2, 1, -2, -1)], ["_T", D(0, 1, -2, -1)], ["_H", D(2, 1, -2, -2)]];
+  const SUP = (k) => (k === 1 ? "" : String(k).replace(/-/g, "⁻").replace(/[0-9]/g, (c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]));
+  /* Le nom SI d'une dimension : une unité dérivée si elle existe (des
+     kg·m²·s⁻³·A⁻¹ sont des volts), sinon le produit des unités de base —
+     écrit de façon à se retaper tel quel. */
+  function nomSI(d) {
+    for (const [nom, dd] of NOMMEES) if (memeDim(d, dd)) return nom;
+    const parts = [];
+    d.forEach((k, i) => { if (k) parts.push(BASES[i] + SUP(k)); });
+    return parts.join("·");
+  }
+
+  /* Une constante physique porte une dimension, elle aussi — mais
+     seulement dans un calcul qui a déjà une unité (contient). */
+  function dimensionne(n) {
+    if (!n || typeof n !== "object") return false;
+    if (n.t === "unite" || (n.t === "var" && DIM_CONSTANTES[n.n])) return true;
+    for (const x of [n.a, n.b]) if (dimensionne(x)) return true;
+    if (n.args) for (const x of n.args) if (dimensionne(x)) return true;
+    return false;
+  }
+  function ev(n, ctx) {
+    if (!dimensionne(n)) return { v: evaluer(n, ctx), d: SANS.slice() };
+    switch (n.t) {
+      case "unite": return lire(n.n);
+      case "var": return { v: CONSTANTES[n.n], d: DIM_CONSTANTES[n.n].slice() };
+      case "neg": { const a = ev(n.a, ctx); return { v: -a.v, d: a.d }; }
+      case "op": {
+        if (n.o === "->") return convertir(n, ctx);
+        if (["=", "<", ">", "<=", ">="].includes(n.o)) boum("On ne compare pas des grandeurs avec « " + n.o + " » ici.");
+        const a = ev(n.a, ctx), b = ev(n.b, ctx);
+        switch (n.o) {
+          case "+": case "-":
+            if (!memeDim(a.d, b.d))
+              boum("On n'additionne pas des " + (nomSI(a.d) || "nombres sans unité") + " et des "
+                   + (nomSI(b.d) || "nombres sans unité") + " : les deux termes doivent avoir la même unité.");
+            return { v: n.o === "+" ? a.v + b.v : a.v - b.v, d: a.d };
+          case "*": return { v: a.v * b.v, d: a.d.map((x, i) => x + b.d[i]) };
+          case "/":
+            if (b.v === 0) boum("Division par zéro.");
+            return { v: a.v / b.v, d: a.d.map((x, i) => x - b.d[i]) };
+          case "^": {
+            if (!sans(b.d)) boum("Un exposant est un nombre sans unité.");
+            const d = a.d.map((x) => x * b.v);
+            if (!d.every(Number.isInteger))
+              boum("Cette puissance donne une unité à exposant non entier.");
+            return { v: Math.pow(a.v, b.v), d };
+          }
+        }
+        break;
+      }
+      case "appel": {
+        const args = n.args.map((x) => ev(x, ctx));
+        if (n.n === "sqrt") {
+          if (!args[0].d.every((x) => x % 2 === 0)) boum("La racine de cette unité n'est pas une unité.");
+          if (args[0].v < 0) boum("La racine carrée n'accepte pas un nombre négatif ici.");
+          return { v: Math.sqrt(args[0].v), d: args[0].d.map((x) => x / 2) };
+        }
+        if (n.n === "abs") return { v: Math.abs(args[0].v), d: args[0].d };
+        if ((n.n === "min" || n.n === "max") && args.length) {
+          if (!args.every((x) => memeDim(x.d, args[0].d))) boum(n.n + " compare des grandeurs de même unité.");
+          const v = args.map((x) => x.v);
+          return { v: n.n === "min" ? Math.min(...v) : Math.max(...v), d: args[0].d };
+        }
+        if (!args.every((x) => sans(x.d)))
+          boum("« " + n.n + " » s'applique à un nombre sans unité. Pour un rapport de deux "
+               + "grandeurs de même unité, divisez-les d'abord.");
+        return { v: evaluer({ t: "appel", n: n.n, args: args.map((x) => ({ t: "num", v: x.v })) }, ctx), d: SANS.slice() };
+      }
+      case "fac": case "appelUtil":
+        boum("Cette écriture ne s'applique pas à une grandeur avec unité.");
+        break;
+      case "mat":
+        boum("Les unités ne se mettent pas dans une matrice ici.");
+        break;
+    }
+    boum("Ce calcul mélange les unités d'une façon que je ne sais pas faire.");
+  }
+
+  /* L'écriture d'une unité cible, à partir de ce qu'on a tapé après « → ». */
+  function ecrireCible(n) {
+    if (n.t === "unite") return n.n;
+    if (n.t === "num") return String(n.brut || n.v);
+    if (n.t === "op" && n.o === "*") return ecrireCible(n.a) + "·" + ecrireCible(n.b);
+    if (n.t === "op" && n.o === "/") {
+      const b = ecrireCible(n.b);
+      return ecrireCible(n.a) + "/" + (n.b.t === "op" && n.b.o !== "^" ? "(" + b + ")" : b);
+    }
+    if (n.t === "op" && n.o === "^" && n.b.t === "num") return ecrireCible(n.a) + SUP(n.b.v);
+    if (n.t === "neg") return "−" + ecrireCible(n.a);
+    return "?";
+  }
+
+  function convertir(n, ctx) {
+    const a = ev(n.a, ctx);
+    if (!contient(n.b)) {
+      boum("Une grandeur avec unité ne se range pas dans une lettre : convertissez-la, "
+           + "« 3_km→_m », puis rangez le nombre, « ans→A ».");
+    }
+    const cible = ev(n.b, ctx);
+    if (!memeDim(a.d, cible.d))
+      boum("Conversion impossible : on ne convertit pas des " + (nomSI(a.d) || "nombres sans unité")
+           + " en " + ecrireCible(n.b) + " (des " + (nomSI(cible.d) || "nombres sans unité") + ").");
+    return { v: a.v / cible.v, d: cible.d, etiquette: ecrireCible(n.b), facteur: cible.v };
+  }
+
+  /* L'écriture d'une grandeur : la valeur, puis l'unité. Une unité seule
+     prend le préfixe qui ramène la valeur entre 1 et 1000 — 0,0005 A
+     s'écrit 500 _µA, et 3 000 m s'écrit 3 _km. Le temps ne monte pas au-
+     dessus de la seconde par préfixe (7 200 s ne sont pas « 7,2 ks ») ; la
+     masse s'écrit en grammes préfixés, puisque le kilogramme en est déjà
+     un. */
+  const ECRITS = [["G", 1e9], ["M", 1e6], ["k", 1e3], ["", 1], ["m", 1e-3], ["µ", 1e-6],
+                  ["n", 1e-9], ["p", 1e-12]];
+  function ecrire(q, R) {
+    if (q.etiquette) return formater(q.v, R) + " " + q.etiquette;
+    if (sans(q.d)) return formater(q.v, R);
+    let nom = nomSI(q.d), v = q.v;
+    const simple = /^_[A-Za-zΩ]+$/.test(nom);
+    if (nom === "_kg") { nom = "_g"; v = v * 1000; }
+    if (simple && v !== 0 && Number.isFinite(v)) {
+      const a = Math.abs(v);
+      for (const [p, f] of ECRITS) {
+        if (nom === "_s" && f > 1) continue;
+        if (a >= f * (1 - 1e-12) || f === 1e-12) {
+          return formater(v / f, R) + " " + "_" + p + nom.slice(1);
+        }
+      }
+    }
+    return formater(v, R) + " " + nom;
+  }
+
+  function calculer(a, entree, ctx) {
+    let q;
+    try { q = ev(a.arbre, ctx); }
+    catch (e) {
+      if (e instanceof ErreurCalc) return { ok: false, entree, erreur: e.message };
+      throw e;
+    }
+    if (!Number.isFinite(q.v)) return { ok: false, entree, erreur: "Résultat qui n'est pas un nombre fini." };
+    const R = ctx.reglages;
+    const texte = ecrire(q, R);
+    /* La valeur en unités SI, en complément — sauf quand la conversion
+       demandée EST déjà en SI (« →_m/_s »), où elle ne dirait rien de plus. */
+    const si = sans(q.d) || (q.etiquette && Math.abs(q.facteur - 1) < 1e-12) ? null
+      : formater(q.etiquette ? q.v * q.facteur : q.v, R) + " " + nomSI(q.d);
+    ctx.vars.set("ans", q.v);
+    ctx.exacts.set("ans", null);
+    return { ok: true, entree, valeur: q.v, exact: null, approx: texte, montrerLesDeux: false,
+             unite: q.etiquette || (sans(q.d) ? null : nomSI(q.d)), stocke: null, desaccord: null,
+             complements: si && si !== texte ? [["En unités SI", si]] : [] };
+  }
+
+  return { contient, connait, calculer, lire, nomSI, TABLE, PREFIXES };
+})();
+
 /* ═════════════════════ 8. L'entrée publique ════════════════════════════ */
 function contexte(reglages) {
   return { vars: new Map(), exacts: new Map(), mats: new Map(), cplx: new Map(),
@@ -2530,6 +2914,7 @@ function calculer(src, ctx) {
   ctx.dernierStockage = null;
   if (!ctx.mats) ctx.mats = new Map();
   if (!ctx.cplx) ctx.cplx = new Map();
+  if (UNITES.contient(a.arbre)) return UNITES.calculer(a, texte, ctx);
   if (MAT.contient(a.arbre, ctx)) return MAT.calculer(a, texte, ctx);
   if (CPLX.contient(a.arbre, ctx)) return CPLX.calculer(a, texte, ctx);
   let valeur, exactVal = null;
@@ -2814,7 +3199,7 @@ const CONSTANTES = {
   _c:  299792458,             // vitesse de la lumière dans le vide (m/s, exacte)
   _e:  1.602176634e-19,       // charge élémentaire (C, exacte)
   _G:  6.6743e-11,            // constante gravitationnelle (m³/kg/s²)
-  _g:  9.80665,               // accélération de la pesanteur (m/s², conventionnelle)
+  _g0: 9.80665,               // accélération de la pesanteur (m/s², conventionnelle) — « _g » est le gramme
   _k:  1.380649e-23,          // constante de Boltzmann (J/K, exacte)
   _ke: 8.9875517923e9,        // constante de Coulomb (N·m²/C²)
   _me: 9.1093837015e-31,      // masse de l'électron (kg)
@@ -2824,7 +3209,7 @@ const CONSTANTES = {
   _R:  8.314462618,           // constante des gaz parfaits (J/mol/K)
   _eps0: 8.8541878128e-12,    // permittivité du vide (F/m)
   _mu0: 1.25663706212e-6,     // perméabilité du vide (N/A²)
-  _h:  6.62607015e-34,        // constante de Planck (J·s, exacte)
+  _hplanck: 6.62607015e-34,   // constante de Planck (J·s, exacte) — « _h » est l'heure
 };
 
 const MODELES = {
@@ -3154,7 +3539,7 @@ const ALGEBRE = {
 /* ═════════════════════ 11. Ce qui sort d'ici ═══════════════════════════ */
 return {
   REGLAGES, contexte, calculer, analyser, evaluer, exacte, formater, fonction, suite,
-  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES, MAT, CPLX,
+  EX, LOIS, STATS, MODELES, ajuster, ALGEBRE, CONSTANTES, MAT, CPLX, UNITES,
   /* La liste des fonctions, exportée pour que le banc puisse vérifier
      qu'AUCUNE ne manque au catalogue — et que le catalogue n'en annonce
      aucune qui n'existe pas. */

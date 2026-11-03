@@ -9589,7 +9589,10 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 }
 .tb-coin { display: flex; align-items: center; gap: .25rem; padding: .25rem; }
 .tb-hg { top: 10px; left: 10px; max-width: calc(100% - 20px); }
-.tb-hd { top: 10px; right: 10px; }
+/* Le coin droit porte le menu : il passe au-dessus de la barre d'outils.
+   Au même niveau qu'elle, et écrit avant elle dans la page, il était
+   dessiné DESSOUS — sur téléphone, la barre mangeait le début des lignes. */
+.tb-hd { top: 10px; right: 10px; z-index: 5; }
 .tb-bd { bottom: 10px; right: 10px; }
 .tb-groupe { display: flex; align-items: center; }
 .tb-zoom { min-width: 58px; font-variant-numeric: tabular-nums; font-size: .82rem; }
@@ -9782,7 +9785,13 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-props input[type="range"] { width: 100%; }
 
 /* le menu des réglages */
-.tb-menu { top: calc(100% + 8px); right: 0; width: 17rem; padding: .5rem; display: flex; flex-direction: column; }
+.tb-menu { top: calc(100% + 8px); right: 0; width: 17rem; padding: .5rem; display: flex; flex-direction: column;
+           max-height: min(75vh, 34rem); overflow-y: auto; overscroll-behavior: contain; }
+/* Sans clavier — un téléphone, une tablette au doigt —, les raccourcis ne
+   servent à rien et prennent la place du texte. */
+@media (hover: none) and (pointer: coarse) {
+  .tb-menu kbd { display: none; }
+}
 .tb-menu > button {
   display: flex; justify-content: space-between; align-items: center; gap: .6rem;
   padding: .5rem .55rem; border: 0; border-radius: 6px; background: none;
@@ -9833,11 +9842,33 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-dialogue h2 { margin: 0 0 .7rem; font-size: 1.15rem; }
 .tb-dialogue .tb-ligne { justify-content: flex-start; }
 .tb-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; justify-content: flex-end; }
-.tb-aide-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr)); gap: .4rem 1.2rem; }
-.tb-aide table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-.tb-aide caption { text-align: left; font-weight: 700; padding: .5rem 0 .3rem; }
-.tb-aide th { text-align: left; font-weight: 500; color: var(--encre-douce); padding: .18rem .4rem .18rem 0; }
-.tb-aide td { text-align: right; white-space: nowrap; padding: .18rem 0; }
+/* L'aide : trois tableaux de raccourcis côte à côte. Les tableaux du COURS
+   ont des en-têtes en capitales, sur fond, sans retour à la ligne et avec
+   de larges marges : appliqués ici, ils rendaient chaque tableau plus large
+   que sa colonne. Mesuré : 952 px de contenu dans une fenêtre de 724, le
+   deuxième tableau posé 143 px sur le troisième, et la fenêtre qui défilait
+   de côté — d'où les lignes coupées à gauche. Tout est donc remis à plat
+   ici, et un texte peut revenir à la ligne ; seule une touche ne se coupe
+   pas. */
+.tb-dialogue { overflow: auto; overscroll-behavior: contain; }
+.tb-aide { width: min(60rem, calc(100vw - 2rem)); }
+.tb-aide-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr));
+                gap: .2rem 1.6rem; align-items: start; }
+.tb-aide-cols > table { min-width: 0; }
+.tb-aide table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.tb-aide caption { text-align: left; font-weight: 700; font-size: .92rem; padding: .7rem 0 .35rem;
+                   color: var(--encre); }
+.tb-aide th, .tb-aide td {
+  background: none; text-transform: none; letter-spacing: normal; font-size: inherit;
+  white-space: normal; vertical-align: middle; border-bottom: 1px solid var(--bord);
+  padding: .32rem .5rem .32rem 0;
+}
+.tb-aide tbody tr:last-child th, .tb-aide tbody tr:last-child td { border-bottom: 0; }
+.tb-aide tbody tr:hover { background: none; }
+.tb-aide th { text-align: left; font-weight: 500; color: var(--encre-douce); }
+.tb-aide td { text-align: right; padding-right: 0; color: var(--encre); }
+.tb-aide kbd { white-space: nowrap; }
+.tb-aide .tb-note { margin: .9rem 0 0; color: var(--encre-douce); font-size: .86rem; }
 
 /* agrandi : tout l'écran au tableau, Échap pour sortir */
 .outil.tb.tb-grand {
