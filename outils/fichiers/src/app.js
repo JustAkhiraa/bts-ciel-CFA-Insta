@@ -14,6 +14,7 @@
 import { DocumentPdf } from "./pdf/lecture.js";
 import { creerZip } from "./zip.js";
 import { OUTILS as PDF } from "./outils/pdf.js";
+import { OUTILS as CONVERTIR } from "./outils/convertir.js";
 import { OUTILS as IMAGES } from "./outils/images.js";
 import { OUTILS as DIVERS } from "./outils/divers.js";
 import { icone } from "./icones.js";
@@ -23,6 +24,8 @@ import { esc, taille, typeDe, IMAGES as TYPES_IMAGE, decoderImage, octetsDe } fr
 const FAMILLES = [
   { id: "pdf", titre: "PDF", outils: PDF,
     resume: "Assembler, découper, réordonner, signer, protéger — le travail des services en ligne, sans envoyer le fichier nulle part." },
+  { id: "convertir", titre: "Convertir un PDF", outils: CONVERTIR,
+    resume: "Retrouver un document modifiable : traitement de texte, tableur, diaporama, livre numérique, page web, Markdown, LaTeX — titres, listes, tableaux et images compris." },
   { id: "images", titre: "Images et photos", outils: IMAGES,
     resume: "Convertir, alléger, redimensionner, recadrer, et effacer ce qu'une photo dit de vous (GPS, téléphone)." },
   { id: "divers", titre: "Utilitaires", outils: DIVERS,
@@ -31,12 +34,12 @@ const FAMILLES = [
 const TOUS = new Map(FAMILLES.flatMap((f) => f.outils.map((o) => [o.id, { ...o, famille: f.id }])));
 
 const NON = [
-  ["PDF ↔ Word, Excel, PowerPoint", "recomposer une mise en page demande un moteur énorme. Dans Word ou LibreOffice : Fichier → Exporter en PDF. Pour modifier un PDF : LibreOffice Draw ou Word l'ouvrent directement."],
-  ["Reconnaître le texte d'un scan (OCR)", "il faut un modèle de reconnaissance de plusieurs dizaines de Mo. L'appareil photo du téléphone le fait déjà : Google Lens, ou « Texte en direct » sur iPhone."],
-  ["Modifier le texte déjà écrit dans un PDF", "la police embarquée ne contient souvent que les lettres utilisées. On peut AJOUTER du texte par-dessus (outil « Ajouter du texte »)."],
+  ["Refaire À L'IDENTIQUE la mise en page d'un PDF dans un document modifiable", "la conversion retrouve titres, paragraphes, listes, tableaux et images, pas les zones flottantes, les formules ni les dessins vectoriels. Pour un aspect exact, choisissez « Pages en images »."],
+  ["Reconnaître le texte d'un scan (OCR)", "il faut un modèle de reconnaissance de plusieurs dizaines de Mo. Un scan qui a déjà sa couche de texte se convertit très bien ici ; sinon, l'appareil photo des téléphones récents sait copier le texte d'une photo."],
+  ["Modifier le texte déjà écrit dans un PDF", "la police embarquée ne contient souvent que les lettres utilisées. On peut AJOUTER du texte par-dessus (outil « Ajouter du texte »), ou convertir le PDF en .docx / .odt."],
   ["Signature électronique à valeur légale", "la signature dessinée ici est une image, comme une signature scannée. Un contrat qui exige une signature « qualifiée » passe par un service de signature certifié."],
-  ["Vidéo et son", "convertir ou compresser une vidéo demande ffmpeg (plusieurs dizaines de Mo)."],
-  ["Archives RAR, 7z", "seul le ZIP est pris en charge ; 7-Zip (gratuit) ouvre les autres."],
+  ["Vidéo et son", "convertir ou compresser une vidéo demande un moteur de plusieurs dizaines de Mo."],
+  ["Archives RAR, 7z", "seul le ZIP est pris en charge ; un logiciel d'archives libre ouvre les autres."],
 ];
 
 const accueil = document.getElementById("af-accueil");
@@ -332,13 +335,19 @@ class Etabli {
     if (liste.length > 12) {
       h += liste.slice(0, 5).map(ligne).join("") + "<details><summary>Voir les " + (liste.length - 5) + " autres fichiers</summary>" + liste.slice(5).map(ligne).join("") + "</details>";
     } else h += liste.map(ligne).join("");
-    // l'aperçu : le lecteur PDF du navigateur, ou l'image
+    // l'aperçu : le lecteur PDF du navigateur, l'image, ou le début d'un texte
     const seul = liste.length === 1 ? liste[0] : null;
+    const texte = liste.length && /^(text\/(plain|markdown|csv|tab-separated-values)|application\/(json|x-tex|rtf))/.test(liste[0].blob.type) ? liste[0] : null;
     if (seul && seul.blob.type === "application/pdf" && navigator.pdfViewerEnabled) {
       h += '<iframe class="af-apercu" title="Aperçu de ' + esc(seul.nom) + '" src="' + this.urls[0] + '"></iframe>';
     } else if (seul && seul.blob.type === "application/pdf") {
       // pas de lecteur PDF intégré (Android) : les pages, dessinées par l'atelier
       h += '<div class="af-pages af-apercu-pages" aria-label="Aperçu des pages"></div>';
+    } else if (seul && /^text\/html/.test(seul.blob.type)) {
+      // une page web produite : montrée sans ses scripts (elle n'en a pas, et le bac à sable l'interdit)
+      h += '<iframe class="af-apercu" sandbox title="Aperçu de ' + esc(seul.nom) + '" src="' + this.urls[0] + '"></iframe>';
+    } else if (texte) {
+      h += '<pre class="af-texte-apercu" aria-label="Aperçu du texte"></pre>';
     } else if (seul && /^image\//.test(seul.blob.type)) {
       h += '<img class="af-image-apercu" alt="Aperçu de ' + esc(seul.nom) + '" src="' + this.urls[0] + '">';
     } else if (liste.length > 1 && liste.length <= 24 && liste.every((x) => /^image\//.test(x.blob.type))) {
@@ -362,6 +371,8 @@ class Etabli {
         this.grilleResultat = new Grille(ap, { items: Array.from({ length: Math.min(n, 24) }, (_, i) => ({ doc, index: i, rotation: 0 })) });
       }).catch(() => ap.remove());                       // protégé par mot de passe : pas d'aperçu
     }
+    const pre = this.resultatsEl.querySelector(".af-texte-apercu");
+    if (pre) texte.blob.slice(0, 12000).text().then((t) => { pre.textContent = t.replace(/^\ufeff/, "") + (texte.blob.size > 12000 ? "\n…" : ""); });
     const z = this.resultatsEl.querySelector(".af-zip");
     if (z) z.onclick = async () => {
       z.disabled = true;
@@ -384,7 +395,7 @@ class Etabli {
 
 function refus(types, type) {
   const quoi = types.map((t) => ({ pdf: "un PDF", image: "une image", zip: "une archive ZIP" })[t] || t).join(" ou ");
-  if (type === "bureautique") return "c'est un document Word/Excel/PowerPoint : exportez-le d'abord en PDF (Fichier → Exporter)";
+  if (type === "bureautique") return "c'est un document de traitement de texte, de tableur ou de diaporama : exportez-le d'abord en PDF depuis son logiciel (Fichier → Exporter)";
   return "ce fichier n'est pas " + quoi + (type && type !== "autre" ? " (c'est un fichier " + type.toUpperCase() + ")" : "");
 }
 

@@ -48,7 +48,8 @@ function espaceLab(blanc) {
 }
 
 /* ── le moteur ── */
-class Peintre {
+/* Exporté pour texte.js, qui le fait tourner sur un canevas fantôme. */
+export class Peintre {
   constructor(doc, ctx, caches) {
     this.doc = doc;
     this.ctx = ctx;
@@ -766,7 +767,7 @@ function poserAlpha(rgba, w, h, a, aw, ah, pochoir) {
 
 /* ── ce qu'on appelle du dehors ── */
 const cachesParDoc = new WeakMap();
-async function cachesDe(doc) {
+export async function cachesDe(doc) {
   let c = cachesParDoc.get(doc);
   if (c) return c;
   const masques = new Set();
@@ -780,6 +781,22 @@ async function cachesDe(doc) {
   c = { polices: new Map(), images: new Map(), espaces: new Map(), mesures: new Map(), calquesMasques: masques, operateurs: 0 };
   cachesParDoc.set(doc, c);
   return c;
+}
+
+/* Le contenu d'une page : ses flux /Contents mis bout à bout. */
+export async function contenuPage(doc, p) {
+  let contenu = await doc.resoudre(p.dict.get("Contents"));
+  if (!Array.isArray(contenu)) contenu = contenu ? [contenu] : [];
+  const morceaux = [];
+  for (const x of contenu) {
+    const f = await doc.resoudre(x);
+    if (f instanceof Flux) { try { morceaux.push(await doc.decode(f)); } catch (e) { /* flux abîmé */ } }
+  }
+  const total = morceaux.reduce((n, m) => n + m.length + 1, 0);
+  const octets = new Uint8Array(total);
+  let k = 0;
+  for (const m of morceaux) { octets.set(m, k); k += m.length; octets[k++] = 10; }
+  return octets;
 }
 
 /* Dessiner la page « index » : un canevas de (largeur × échelle) pixels,
@@ -813,17 +830,7 @@ export async function rendrePage(doc, index, { echelle = 1, canevas = null, fond
   ctx.clip();
   ctx.beginPath();
   const res = await doc.resoudre(p.herite.Resources);
-  let contenu = await doc.resoudre(p.dict.get("Contents"));
-  if (!Array.isArray(contenu)) contenu = contenu ? [contenu] : [];
-  const morceaux = [];
-  for (const x of contenu) {
-    const f = await doc.resoudre(x);
-    if (f instanceof Flux) { try { morceaux.push(await doc.decode(f)); } catch (e) { /* flux abîmé */ } }
-  }
-  const total = morceaux.reduce((n, m) => n + m.length + 1, 0);
-  const octets = new Uint8Array(total);
-  let k = 0;
-  for (const m of morceaux) { octets.set(m, k); k += m.length; octets[k++] = 10; }
+  const octets = await contenuPage(doc, p);
   ctx.save();
   try { await peintre.executer(octets, res); } catch (e) { /* page trop complexe : ce qui est dessiné reste */ }
   ctx.restore();

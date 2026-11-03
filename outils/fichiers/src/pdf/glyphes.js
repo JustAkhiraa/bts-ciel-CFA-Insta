@@ -44,7 +44,7 @@ Object.entries({ 0x22: "∀", 0x24: "∃", 0x27: "∋", 0x2a: "∗", 0x2d: "−"
 // Unicode des Dingbats a été calqué sur elle, à quelques exceptions près
 const DINGBATS_HORS = { 0x20: " ", 0x25: "☎", 0x2a: "☛", 0x2b: "☞", 0x48: "★", 0x6c: "●", 0x6e: "■", 0x73: "▲", 0x74: "▼", 0x75: "◆", 0x77: "◗", 0xa8: "♣", 0xa9: "♦", 0xaa: "♥", 0xab: "♠" };
 const dingbat = (c) => DINGBATS_HORS[c] || (c > 0x20 && c < 0x7f ? String.fromCharCode(0x2700 + c - 0x20) : c >= 0xa1 && c <= 0xfe ? String.fromCharCode(0x2761 + c - 0xa1) : "");
-// Wingdings, la police des puces de Word : les quelques codes qui servent
+// Wingdings, la police de puces des traitements de texte : les quelques codes qui servent
 const WINGDINGS = { 0x6c: "●", 0x6e: "■", 0x6f: "□", 0x71: "❑", 0x76: "❖", 0xa7: "▪", 0xa8: "◻", 0xd8: "➢", 0xe0: "→", 0xe8: "➔", 0xef: "⇦", 0xf0: "⇨", 0xfb: "✗", 0xfc: "✓", 0xfe: "☑" };
 
 /* ── les noms de glyphes ── */

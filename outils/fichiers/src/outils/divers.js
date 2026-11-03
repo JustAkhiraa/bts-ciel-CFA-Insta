@@ -157,7 +157,7 @@ const zipCreer = {
 const zipOuvrir = {
   id: "zip-ouvrir", titre: "Ouvrir un ZIP", resume: "Voir ce que contient une archive et en sortir un fichier — même sur un téléphone.",
   mots: "dezipper decompresser extraire archive zip ouvrir word docx images",
-  description: "Astuce : un document Word (.docx) ou PowerPoint (.pptx) est un ZIP — on y retrouve ses images d'origine, dans le dossier « media ».",
+  description: "Astuce : un document .docx, .xlsx, .pptx ou .odt est un ZIP — on y retrouve ses images d'origine, dans le dossier « media ».",
   entree: { types: ["zip", "bureautique"], multiple: false, min: 1, libelle: "Choisir une archive ZIP" },
   sansBouton: true,
   surFichiers(ctx) {
