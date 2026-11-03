@@ -2159,7 +2159,17 @@
     var som = type === "fiche" && document.querySelector(".sommaire ol");
     if (som) droite = '<button type="button" class="tel-rond" id="tel-sommaire" aria-label="Sommaire">'
       + ICONE_SOMMAIRE + '</button>' + droite;
-    tete.innerHTML = '<div class="tel-g">' + gauche + '</div><div class="tel-d">' + droite + '</div>';
+    tete.innerHTML = '<div class="tel-g">' + gauche + '</div><div class="tel-d">' + droite + '</div>'
+      + (type === "fiche" ? '<span class="tel-lecture" aria-hidden="true"><i></i></span>' : '');
+    /* La couleur de la matière suit la page jusque dans la barre : le
+       filet de lecture, le segment de la fiche en cours. Les teintes sont
+       celles du lanceur (« data-mat »), mesurées en clair et en sombre. */
+    var matiere = document.body.dataset.matiere;
+    if (matiere && type !== "accueil") {
+      tete.setAttribute("data-mat", matiere);
+      var segs = document.querySelector(".tel-segments");
+      if (segs) segs.setAttribute("data-mat", matiere);
+    }
     document.body.insertBefore(tete, document.body.firstChild);
 
     var barre = document.createElement("nav");
@@ -2194,9 +2204,30 @@
       ouvrirVolet("Sommaire", boite);
     });
 
-    // un filet sous la barre du haut dès qu'on a quitté le haut de la page
-    var marquer = function () { tete.classList.toggle("tel-defile", window.pageYOffset > 4); };
-    window.addEventListener("scroll", marquer, { passive: true });
+    /* En défilant : un filet sous la barre du haut dès qu'on a quitté le
+       haut de la page ; sur une fiche, la part lue, d'un trait de la couleur
+       de la matière ; et la barre du bas qui se RÉDUIT quand on descend dans
+       un texte, puis revient dès qu'on remonte — le geste des barres
+       flottantes des téléphones depuis 2025 : on lit, la commande se fait
+       petite ; on cherche, elle revient. */
+    var trait = tete.querySelector(".tel-lecture i");
+    var dernierY = window.pageYOffset, attente = false;
+    var marquer = function () {
+      attente = false;
+      var y = window.pageYOffset;
+      tete.classList.toggle("tel-defile", y > 4);
+      if (trait) {
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        trait.style.transform = "scaleX(" + (max > 0 ? Math.min(1, y / max) : 0).toFixed(4) + ")";
+      }
+      if (Math.abs(y - dernierY) > 6) {
+        barre.classList.toggle("tel-mini", y > dernierY && y > 160 && !feuilleTel);
+        dernierY = y;
+      }
+    };
+    window.addEventListener("scroll", function () {
+      if (!attente) { attente = true; requestAnimationFrame(marquer); }
+    }, { passive: true });
     marquer();
     if (type === "accueil") accueilTelephone();
     document.documentElement.classList.add("coquille");
@@ -2268,6 +2299,28 @@
 
     var n = echeancesProches(), pastille = document.getElementById("tel-p-rendre");
     if (pastille && n) { pastille.hidden = false; pastille.querySelector("b").textContent = n; }
+
+    /* Ce qu'on a déjà ouvert, matière par matière : la barre de progression
+       des applis de budget, sur une donnée que le navigateur connaît vraiment
+       (un chapitre dont on a ouvert une page). Le chapitre ouvert reçoit sa
+       marque, pour qu'on voie d'un coup d'œil ce qui reste. */
+    var vus = Object.keys(S.vus || {});
+    Array.prototype.forEach.call(document.querySelectorAll(".tel-rangee[data-pole]"), function (r) {
+      var pole = r.getAttribute("data-pole"), cartes = r.querySelectorAll(".tel-carte-ch"), ouverts = 0;
+      Array.prototype.forEach.call(cartes, function (c) {
+        var dossier = c.getAttribute("href").replace(/\/[^\/]+$/, "");
+        var vu = vus.some(function (k) { return k.slice(-dossier.length) === dossier; });
+        if (vu) { ouverts++; c.classList.add("tel-vu"); }
+      });
+      var h2 = r.querySelector(".tel-rtete h2");
+      if (!h2 || !cartes.length) return;
+      var p = document.createElement("span");
+      p.className = "tel-prog";
+      p.innerHTML = '<span class="tel-barre-prog"><i style="width:' + Math.round(100 * ouverts / cartes.length)
+        + '%"></i></span><small>' + ouverts + " / " + cartes.length + " ouverts</small>";
+      h2.parentNode.insertBefore(p, h2.nextSibling);
+      r.classList.add("tel-avec-prog");
+    });
   }
 
   function init() {

@@ -10091,6 +10091,7 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tel-tete, .tel-barre, .tel-accueil { display: none; }
 
 .carte-outil .nom-court { display: none; }
+.tel-segments { display: none; }
 
 /* le volet qui monte du bas — il ne s'ouvre que depuis la coquille */
 .tel-voile {
@@ -10128,7 +10129,10 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tel-som-voisins { margin-top: 12px; }
 html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
 
-@media (max-width: 760px) {
+/* Un téléphone tenu en PAYSAGE fait 670 à 930 px de large : sans la
+   seconde condition, il retombait sur la page d'ordinateur, en-tête à
+   onglets compris. Ce qui le reconnaît, c'est sa hauteur, sous 500 px. */
+@media (max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape) {
   /* ── l'ancien mobilier se retire ── */
   html.coquille .app-tete, html.coquille .lan-scene, html.coquille .accueil-classique,
   html.coquille .lan-actions, html.coquille .barre-outils, html.coquille .page > .sommaire,
@@ -10145,6 +10149,23 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
     background: var(--papier); border-bottom: 1px solid transparent;
     transition: border-color .2s ease-out;
   }
+  /* La navigation flotte AU-DESSUS du texte, dans un matériau translucide
+     qui laisse deviner ce qui défile dessous — la couche de navigation
+     seulement, jamais le contenu. Assez opaque (88 %) pour que le titre
+     garde son contraste sur n'importe quel bloc qui passe derrière. */
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .tel-tete {
+      background: color-mix(in srgb, var(--papier) 88%, transparent);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+    }
+    .tel-gros, .tel-pilule {
+      background: color-mix(in srgb, var(--carte) 90%, transparent);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+    }
+  }
+  .tel-lecture { position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; pointer-events: none; }
+  .tel-lecture i { display: block; height: 100%; background: var(--mat, var(--accent));
+                   transform: scaleX(0); transform-origin: left center; }
   .tel-tete.tel-defile { border-bottom-color: var(--bord); }
   .tel-g { display: flex; align-items: center; gap: .5rem; min-width: 0; flex: 1; }
   .tel-d { display: flex; align-items: center; gap: .2rem; flex: none; }
@@ -10183,6 +10204,10 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
     z-index: 45; align-items: center; gap: 10px; pointer-events: none;
   }
   .tel-barre > * { pointer-events: auto; }
+  .tel-barre { justify-content: center; }
+  .tel-pilule { max-width: 100%; transition: max-width .32s cubic-bezier(.2, .8, .2, 1); }
+  .tel-barre.tel-mini .tel-pilule { max-width: 58px; padding: 0; }
+  .tel-barre.tel-mini .tel-pilule span { display: none; }
   .tel-gros { width: 58px; height: 58px; background: var(--carte); box-shadow: var(--ombre-haut); }
   .tel-gros svg { width: 25px; height: 25px; }
   .tel-gros[aria-current="page"] { background: var(--encre); color: var(--papier); }
@@ -10208,9 +10233,13 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
     color: var(--encre); text-decoration: none; font-size: .86rem; font-weight: 650;
     scroll-snap-align: start; text-align: center; line-height: 1.2;
   }
+  /* La couleur PLEINE de la matière, le dessin dans la couleur de la carte :
+     en clair, du blanc sur la teinte foncée ; en sombre, du foncé sur la
+     teinte claire — la même paire marche dans les deux sens. */
   .tel-cat-ic {
     width: 66px; height: 66px; display: grid; place-items: center; border-radius: 21px;
-    background: color-mix(in srgb, var(--mat) 14%, var(--carte)); color: var(--mat);
+    background: var(--mat); color: var(--carte);
+    box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--mat) 70%, transparent);
     transition: transform .15s ease-out;
   }
   .tel-cat-ic svg { width: 32px; height: 32px; }
@@ -10233,6 +10262,13 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
                padding: 0 12px 0 16px; margin-bottom: 10px; }
   .tel-rtete h2 { margin: 0; font-size: 1.32rem; font-weight: 790; letter-spacing: -.022em;
                   line-height: 1.2; color: var(--encre); text-wrap: balance; }
+  .tel-avec-prog .tel-rtete { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .tel-avec-prog .tel-voir { grid-row: 1 / 3; grid-column: 2; }
+  .tel-prog { display: flex; align-items: center; gap: 8px; }
+  .tel-barre-prog { flex: none; width: 96px; height: 6px; overflow: hidden; border-radius: 3px;
+                    background: color-mix(in srgb, var(--mat) 18%, var(--carte)); }
+  .tel-barre-prog i { display: block; height: 100%; min-width: 0; border-radius: 3px; background: var(--mat); }
+  .tel-prog small { font-size: .8rem; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
   .tel-voir { flex: none; width: 44px; height: 44px; display: grid; place-items: center;
               border-radius: 50%; background: var(--carte-creuse); color: var(--encre); }
   .tel-voir svg { width: 22px; height: 22px; }
@@ -10251,11 +10287,21 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   .tel-vignette {
     position: relative; height: 132px; display: flex; align-items: flex-end;
     justify-content: space-between; padding: 12px 14px; margin-bottom: 6px; overflow: hidden;
-    border-radius: 16px; background: color-mix(in srgb, var(--mat) 13%, var(--carte));
+    border-radius: 16px; color: var(--carte);
+    background: linear-gradient(150deg, var(--mat), color-mix(in srgb, var(--mat) 86%, var(--encre)));
   }
   .tel-vignette b { font-size: 3.6rem; font-weight: 820; line-height: .86; letter-spacing: -.04em;
-                    color: var(--mat-t); font-variant-numeric: tabular-nums; }
-  .tel-vignette svg { align-self: flex-start; width: 34px; height: 34px; color: var(--mat); }
+                    color: var(--carte); font-variant-numeric: tabular-nums; }
+  .tel-vignette svg { align-self: flex-start; width: 34px; height: 34px; color: var(--carte); opacity: .92; }
+  /* le chapitre déjà ouvert : une coche dans une pastille, en bas à droite */
+  .tel-vu .tel-vignette::after {
+    content: ""; position: absolute; right: 12px; bottom: 12px; width: 26px; height: 26px;
+    border-radius: 50%; background: var(--carte);
+  }
+  .tel-vu .tel-vignette::before {
+    content: ""; position: absolute; z-index: 1; right: 21px; bottom: 20px; width: 6px; height: 11px;
+    border: solid var(--mat-t); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+  }
   .tel-vignette i { position: absolute; top: 11px; left: 12px; padding: 3px 9px; border-radius: 999px;
                     background: var(--carte); color: var(--mat-t); font-style: normal; font-size: .74rem;
                     font-weight: 720; }
@@ -10266,7 +10312,7 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   }
   .tel-carte-outil { width: 156px; min-height: 162px; }
   .tel-oic { width: 46px; height: 46px; display: grid; place-items: center; margin-bottom: 8px;
-             border-radius: 14px; background: color-mix(in srgb, var(--mat) 14%, var(--carte)); color: var(--mat); }
+             border-radius: 14px; background: var(--mat); color: var(--carte); }
   .tel-oic svg { width: 24px; height: 24px; }
   .tel-carte-cours { width: 214px; }
   .tel-quand { display: flex; align-items: baseline; gap: .45rem; margin-bottom: 2px; color: var(--encre-douce);
@@ -10287,6 +10333,27 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   /* Un outil passé en plein écran — le tableau, la calculatrice, le
      compilateur — garde tout l'écran : la coquille se retire avec lui. */
   html.coquille body:has(.tb-grand, .nw-grand, .at-grand) :is(.tel-tete, .tel-barre) { display: none; }
+
+  /* Cours · Exercices · Fiche · QCM : une commande segmentée, celle des
+     applis de banque (« semaine · mois · année »). Le segment de la fiche
+     qu'on lit prend la couleur pleine de sa matière. */
+  html.coquille .tel-segments {
+    display: flex; gap: 4px; margin: 6px 0 12px; padding: 4px; border-radius: 15px;
+    background: var(--carte-creuse);
+  }
+  html.coquille .tel-segments a {
+    flex: 1; min-width: 0; min-height: 40px; display: grid; place-items: center; padding: 0 6px;
+    border-radius: 11px; color: var(--encre-douce); font-size: .9rem; font-weight: 680;
+    text-decoration: none; white-space: nowrap;
+  }
+  /* Du PETIT texte sur la couleur : le ton « texte » de la matière, pas
+     celui des surfaces. Mesuré sur les 60 faces de thème réelles : la
+     teinte de surface tombait à 4,27:1 (Androïde clair, anglais), la
+     teinte de texte ne descend sous 4,5 nulle part. */
+  html.coquille .tel-segments a[aria-current="page"] {
+    background: var(--mat-t, var(--accent-sombre)); color: var(--carte);
+    box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--mat, var(--accent)) 80%, transparent);
+  }
 
   /* ── une fiche : le texte prend la largeur, sans cadre autour ── */
   html.coquille .page { display: block; max-width: none; margin: 0; padding: 0 0 1rem; }
@@ -10318,7 +10385,8 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
   }
   html.coquille body:not([data-accueil]):has(.cat-outils) .contenu {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(160px, 45%), 1fr)); gap: 10px;
+    align-content: start;
     padding-top: 10px;
   }
   html.coquille body:has(.cat-outils) .contenu > :not(.cat-outils) { grid-column: 1 / -1; }
@@ -10335,6 +10403,7 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   html.coquille body:not([data-accueil]) .cat-outils .carte-outil .ic {
     flex: none; width: 40px; height: 40px; margin: 0; display: grid; place-items: center;
     border-radius: 12px; font-size: 1rem; transform: none;
+    background: var(--mat); color: var(--carte); border: 0;
   }
   html.coquille body:not([data-accueil]) .cat-outils .carte-outil h3 {
     margin: 0; font-size: .95rem; line-height: 1.22; letter-spacing: -.01em;
@@ -10350,6 +10419,28 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   }
 }
 html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: none; }
+
+/* ── un téléphone tenu en paysage ────────────────────────────────────────
+   375 px de haut : une barre en haut et une en bas en prendraient le tiers.
+   La barre du bas devient un RAIL sur le côté droit — ce que les systèmes
+   d'Android et d'Apple font quand la hauteur manque — et la barre du haut
+   se resserre. Le texte d'un cours garde une largeur de lecture. */
+@media (max-height: 500px) and (max-width: 1000px) and (orientation: landscape) {
+  html.coquille body { padding-bottom: 16px; padding-right: 84px; }
+  html.coquille .tel-tete { min-height: 50px; padding-top: 3px; padding-bottom: 3px; }
+  html.coquille .tel-barre {
+    left: auto; right: 12px; top: 50%; bottom: auto; transform: translateY(-50%);
+    flex-direction: column; gap: 10px;
+  }
+  html.coquille .tel-pilule, html.coquille .tel-barre.tel-mini .tel-pilule {
+    flex: none; width: 58px; max-width: 58px; padding: 0;
+  }
+  html.coquille .tel-pilule span { display: none; }
+  html.coquille body:not([data-accueil]) .corps { max-width: 72ch; margin: 0 auto; }
+  .tel-volet { left: 50%; right: auto; width: min(560px, 92vw); max-height: 94vh;
+               transform: translate(-50%, 104%); }
+  .tel-volet.ouvert { transform: translate(-50%, 0); }
+}
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
