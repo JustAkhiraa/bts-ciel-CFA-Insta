@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docker Lab 1 — monter le laboratoire pas à pas | BTS CIEL</title>
+<meta name="description" content="Le TP Lab 1, pas à pas : installer Docker sur une machine Linux (dépôt officiel, clé GPG, moteur et plugins), puis lever le laboratoire des quatre machines avec le script de gestion, vérifier que chacune répond, comprendre les trois adresses du client, se connecter depuis l'hôte ou d'ailleurs, et distinguer « stopper » de « supprimer » côté volumes.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=b7459df7">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#machines">Les machines du lab</a></li>
+    <li><a href="#install">1 · Installer Docker sur Linux</a></li>
+    <li><a href="#lever">2 · Lever le laboratoire</a></li>
+    <li><a href="#verif">3 · Les quatre machines</a></li>
+    <li><a href="#acces">4 · Depuis l'hôte, ou d'ailleurs</a></li>
+    <li><a href="#cycle">5 · Stopper, ou supprimer</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="tp.html" aria-current="page">TP</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux, Systèmes &amp; Cybersécurité</a>
+    <span class="sep">/</span><span>Chapitre 18</span>
+    <span class="sep">/</span><span class="badge">TP · Lab 1</span>
+  </div>
+
+  <h1>Docker Lab 1 — monter le laboratoire</h1>
+  <p class="chapeau">Le montage du laboratoire du TP, pas à pas : d'abord
+     <strong>installer Docker</strong> sur une machine Linux, puis <strong>lever les quatre
+     machines</strong> (client, serveur, attaquant, routeur) avec le script de gestion. C'est
+     cette maquette qui sert aux TP de réseau et de cybersécurité — dont
+     <a href="../20-securite-ssh-mitm/tp.html">l'attaque MITM sur SSH</a>. Cochez les actions au
+     fur et à mesure ; les commandes se copient d'un clic.</p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Avant de commencer</div>
+    <p>Le laboratoire tourne sur <strong>votre</strong> machine Linux (physique ou virtuelle) :
+       Docker y crée un réseau <code>192.168.56.0/24</code> et quatre conteneurs. Tout reste
+       <strong>sur l'hôte</strong>. Pour l'installation, il faut les droits d'administrateur
+       (<code>sudo</code> devant chaque commande, ou une session <code>root</code>).</p>
+    <p class="rap">Le détail des adresses et des rôles est au
+       <a href="cours.html#lab1">chapitre 10 du cours</a> ; les autres systèmes (Debian, Fedora,
+       macOS, Windows) sont au <a href="cours.html#installer">chapitre 2</a>.</p>
+  </div>
+
+  <div class="tp-progression">
+    <span class="tp-compte">0 étape</span>
+    <div class="tp-barre"><div class="tp-jauge"></div></div>
+  </div>
+</header>
+
+<section id="machines">
+  <h2><span class="num">00</span>Les machines du lab</h2>
+  <p>Quatre conteneurs sur le réseau <code>192.168.56.0/24</code> que Docker crée sur l'hôte.</p>
+  <div class="tp-topo">
+    <div class="tp-hote">
+      <span class="tp-role">Client</span>
+      <h3>clissh</h3>
+      <p class="tp-ip">192.168.56.11 · etuciel</p>
+    </div>
+    <div class="tp-hote" data-role="serveur">
+      <span class="tp-role">Serveur · DNS</span>
+      <h3>srvssh · exemple.fr</h3>
+      <p class="tp-ip">192.168.56.10</p>
+    </div>
+    <div class="tp-hote" data-role="kali">
+      <span class="tp-role">Attaquant</span>
+      <h3>kali</h3>
+      <p class="tp-ip">192.168.56.12</p>
+    </div>
+    <div class="tp-hote" data-role="routeur">
+      <span class="tp-role">Passerelle</span>
+      <h3>routeur du lab</h3>
+      <p class="tp-ip">192.168.56.254</p>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <h2><span class="num">01</span>Installer Docker sur Linux</h2>
+  <p>Sur Linux, on ajoute le <strong>dépôt officiel Docker</strong> aux sources du système, puis
+     on installe le moteur. L'exemple suit Ubuntu ; Debian est quasi identique.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Installer les paquets qui permettent d'utiliser un dépôt en HTTPS.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:38"><span class="langue">hôte · root</span><pre><code><span class="j-fn">apt</span> update
+<span class="j-fn">apt</span> install ca-certificates curl gnupg</code></pre></div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Importer la clé GPG officielle de Docker dans <code>/etc/apt/keyrings</code>.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:103"><span class="langue">hôte · root</span><pre><code><span class="j-fn">install</span> <span class="j-att">-m</span> <span class="j-num">0755</span> <span class="j-att">-d</span> /etc/apt/keyrings
+<span class="j-fn">curl</span> <span class="j-att">-fsSL</span> https://download.docker.com/linux/ubuntu/gpg | gpg <span class="j-att">--dearmor</span> <span class="j-att">-o</span> /etc/apt/keyrings/docker.gpg
+<span class="j-fn">chmod</span> a+r /etc/apt/keyrings/docker.gpg</code></pre></div>
+  <div class="encart outils">
+    <div class="titre">💡 Ce que fait cette série</div>
+    <p><code>curl</code> télécharge la clé, <code>--dearmor</code> la convertit au format binaire
+       attendu par <code>apt</code>, et <code>chmod a+r</code> la rend lisible. La clé sert ensuite
+       à <strong>vérifier la signature</strong> des paquets Docker : on n'installe que ce qui vient
+       bien de Docker.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Ajouter le dépôt Docker aux sources, puis mettre à jour la liste des paquets.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:124"><span class="langue">hôte · root</span><pre><code><span class="j-fn">echo</span> \
+  <span class="j-txt">"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release &amp;&amp; echo "</span><span class="j-var">$VERSION_CODENAME</span><span class="j-txt">") stable"</span> | \
+<span class="j-fn">  tee</span> /etc/apt/sources.list.d/docker.list &gt; /dev/null
+
+<span class="j-fn">apt</span> update</code></pre></div>
+  <div class="encart outils">
+    <div class="titre">💡 Les deux variables</div>
+    <p><code>$(dpkg --print-architecture)</code> donne l'architecture du processeur (souvent
+       <code>amd64</code>), et <code>$(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME")</code> le
+       nom de code de la version d'Ubuntu (<code>jammy</code>, <code>noble</code>…). Le dépôt est
+       ainsi choisi automatiquement pour votre machine.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Installer le moteur Docker, son client en ligne de commande et les plugins.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:92"><span class="langue">hôte · root</span><pre><code><span class="j-fn">apt</span> install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin</code></pre></div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier que le service Docker est démarré et actif.</span></label>
+  </div>
+  <div class="bloc-code" style="--car:23"><span class="langue">hôte · root</span><pre><code>systemctl status docker</code></pre></div>
+  <div class="bloc-code" data-machine="sortie" style="--car:80"><span class="langue">sortie attendue</span><pre><code>docker.service - Docker Application Container Engine
+   Loaded: loaded (/lib/systemd/system/docker.service; enabled; preset: enabled)
+   Active: active (running) since ...</code></pre></div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">(Recommandé) Se passer de <code>sudo</code> pour <code>docker</code> en s'ajoutant au groupe <code>docker</code>.</span></label>
+  </div>
+  <div class="bloc-code" style="--car:25"><span class="langue">hôte · root</span><pre><code>gpasswd -a etuciel docker</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Il faut se reconnecter</div>
+    <p>L'appartenance à un groupe n'est lue qu'à l'ouverture de session : <strong>déconnectez-vous
+       puis reconnectez-vous</strong> (ou redémarrez la session) pour que <code>docker</code>
+       fonctionne sans <code>sudo</code>. Et rappelez-vous que le groupe <code>docker</code> donne,
+       de fait, les droits <code>root</code> sur l'hôte.</p>
+  </div>
+</section>
+
+<section id="lever">
+  <h2><span class="num">02</span>Lever le laboratoire</h2>
+  <p>Le laboratoire est fourni comme un <strong>script de gestion</strong>,
+     <code>gestion_lab1.sh</code>, qui crée le réseau, les volumes et les quatre conteneurs d'un
+     seul geste.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis l'hôte, créer le laboratoire avec l'option <code>-c</code>.</span></label>
+  </div>
+  <div class="bloc-code" style="--car:23"><span class="langue">hôte</span><pre><code>bash gestion_lab1.sh -c</code></pre></div>
+  <div class="encart outils">
+    <div class="titre">💡 Les options du script</div>
+    <p><code>-c</code> crée (le réseau, les volumes, les conteneurs), <code>-s</code> stoppe,
+       <code>-l</code> relance ce qui a été stoppé, <code>-d</code> détruit tout (conteneurs
+       <strong>et</strong> volumes). On y revient à la partie 5.</p>
+  </div>
+</section>
+
+<section id="verif">
+  <h2><span class="num">03</span>Les quatre machines, et qui parle à qui</h2>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier que les quatre conteneurs tournent, puis que chacun répond depuis l'hôte.</span></label>
+  </div>
+  <div class="bloc-code" style="--car:71"><span class="langue">hôte</span><pre><code>docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+for ip in 10 11 12 254; do ping -c 1 -W 1 192.168.56.$ip &gt; /dev/null \
+    &amp;&amp; echo "192.168.56.$ip repond" || echo "192.168.56.$ip MUET"; done</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Les trois adresses du client <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Le client est en <code>192.168.56.11</code>, sa passerelle est
+         <code>192.168.56.254</code>, son DNS est <code>192.168.56.10</code>. Expliquer pourquoi
+         ces trois adresses ne désignent pas la même machine, et ce que chacune fait.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p>Les trois adresses du client jouent trois rôles différents, et c'est tout le plan
+           d'adressage d'un réseau :</p>
+        <ul>
+          <li><code>192.168.56.11</code> — <strong>la sienne</strong>. C'est à elle qu'on s'adresse
+              pour le joindre.</li>
+          <li><code>192.168.56.254</code> — <strong>sa passerelle</strong>, le routeur. Tout paquet
+              destiné à une adresse qui n'est PAS dans <code>192.168.56.0/24</code> part chez lui.
+              Sans elle, le client ne sort pas de son réseau.</li>
+          <li><code>192.168.56.10</code> — <strong>son DNS</strong>, le serveur. C'est lui qui
+              traduit <code>srvssh.exemple.fr</code> en adresse. Sans lui, les adresses numériques
+              marchent encore et les noms ne marchent plus — le symptôme le plus courant, et le
+              plus mal diagnostiqué, de tout le programme.</li>
+        </ul>
+        <div class="encart methode">
+          <div class="titre">🛠️ Le test qui sépare les trois</div>
+          <p><code>ping 192.168.56.10</code> réussit et <code>ping srvssh.exemple.fr</code> échoue :
+             le réseau va bien, c'est le DNS qui ne répond pas. Les deux échouent : c'est le réseau.
+             Ce couple de commandes est le premier geste d'un diagnostic, et il tient en dix
+             secondes.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="acces">
+  <h2><span class="num">04</span>Depuis l'hôte, ou depuis ailleurs</h2>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Se connecter en SSH au serveur depuis l'hôte, puis depuis une autre machine du réseau de la salle.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:25"><span class="langue">depuis l'hôte</span><pre><code><span class="j-fn">ssh</span> etuciel@<span class="j-num">192.168</span>.<span class="j-num">56.10</span></code></pre></div>
+  <div class="bloc-code" data-fam="bash" style="--car:40"><span class="langue">depuis une autre machine</span><pre><code><span class="j-com"># l'adresse de l'HOTE, et le port publie</span>
+<span class="j-fn">ssh</span> etuciel@<span class="j-num">192.168</span>.<span class="j-num">1.42</span> <span class="j-att">-p</span> <span class="j-num">12222</span></code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Pourquoi deux commandes différentes <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pourquoi <code>ssh etuciel@192.168.56.10</code> ne marche-t-il <em>pas</em> depuis le poste
+         du voisin ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p>Parce que <code>192.168.56.0/24</code> <strong>n'existe pas en dehors de l'hôte</strong>.
+           C'est un réseau que Docker a créé sur cette machine-là ; aucun routeur de la salle n'en
+           a entendu parler, et un paquet envoyé à <code>192.168.56.10</code> depuis le poste du
+           voisin part chez sa propre passerelle, qui ne sait qu'en faire.</p>
+        <p>D'où les <strong>ports publiés</strong>. <code>-p 12222:22</code> dit à l'hôte : « ce qui
+           arrive sur TON port 12222, passe-le au port 22 de ce conteneur ». Le voisin parle donc à
+           l'hôte, qu'il sait joindre, et c'est l'hôte qui fait suivre. C'est le mécanisme des
+           <a href="cours.html#ports">ports publiés</a>, à l'échelle de quatre machines.</p>
+        <div class="encart piege">
+          <div class="titre">⚠️ Un port publié ouvre une porte sur le réseau</div>
+          <p>Un port publié est joignable par <strong>toute la salle</strong>, pas seulement par
+             vous. Quatre machines avec SSH, c'est autant de portes — dont une sur un Kali Linux.
+             Sur un réseau partagé, on vérifie ce qu'on expose, et on <strong>arrête la maquette</strong>
+             quand on a fini.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="cycle">
+  <h2><span class="num">05</span>Stopper, ou supprimer</h2>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Créer un fichier dans le client, stopper puis relancer le lab, et vérifier s'il est encore là.</span></label>
+  </div>
+  <div class="bloc-code" data-fam="bash" style="--car:53"><span class="langue">hôte</span><pre><code><span class="j-fn">ssh</span> etuciel@<span class="j-num">192.168</span>.<span class="j-num">56.11</span> <span class="j-txt">"echo essai &gt; ~/preuve.txt"</span>
+
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-s</span>     <span class="j-com"># stoppe</span>
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-l</span>     <span class="j-com"># relance</span>
+<span class="j-fn">ssh</span> etuciel@<span class="j-num">192.168</span>.<span class="j-num">56.11</span> <span class="j-txt">"cat ~/preuve.txt"</span></code></pre></div>
+  <div class="bloc-code" data-machine="sortie" style="--car:5"><span class="langue">sortie</span><pre><code>essai</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">3</span>Stopper n'est pas supprimer <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le fichier a survécu au <code>-s</code> / <code>-l</code>. Même question après un
+         <code>bash gestion_lab1.sh -d</code> suivi d'un <code>-c</code>. Expliquer la différence
+         avec ce que montre <code>docker volume ls</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <p>Après <code>-s</code> puis <code>-l</code>, le fichier est là. Il n'était pas dans le
+           conteneur : il était dans un <strong>volume</strong>, monté sur
+           <code>/home/etuciel</code>. Un conteneur stoppé, puis relancé, retrouve son volume.</p>
+        <div class="bloc-code" style="--car:16"><span class="langue">hôte</span><pre><code>docker volume ls</code></pre></div>
+        <div class="bloc-code" data-machine="sortie" style="--car:27"><span class="langue">sortie</span><pre><code>DRIVER    VOLUME NAME
+local     home_client_lab1
+local     home_kali_lab1
+local     home_routeur_lab1
+local     home_serveur_lab1</code></pre></div>
+        <p>Après <code>-d</code>, cette liste est <strong>vide</strong> : le script supprime les
+           volumes en même temps que les conteneurs. Un <code>-c</code> qui suit recrée tout à
+           neuf, et <code>preuve.txt</code> n'existe plus nulle part (voir
+           <a href="cours.html#volumes">les volumes</a>).</p>
+        <div class="encart methode">
+          <div class="titre">🛠️ La règle, en une phrase</div>
+          <p>Entre deux séances : <code>-s</code>. En fin de TP, et seulement après avoir récupéré
+             ce qu'on veut garder : <code>-d</code>. Ici, se tromper coûte une séance de travail.</p>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Le Lab 1 en cinq gestes</h2>
+    <ul>
+      <li><strong>Installer</strong> : dépôt officiel, clé GPG, moteur et plugins, puis
+          <code>systemctl status docker</code>.</li>
+      <li><strong>Lever</strong> : <code>gestion_lab1.sh -c</code> crée réseau, volumes et quatre
+          conteneurs.</li>
+      <li><strong>Vérifier</strong> : <code>docker ps</code> et un balayage <code>ping</code> ; les
+          trois adresses du client (la sienne, la passerelle, le DNS).</li>
+      <li><strong>Accéder</strong> : depuis l'hôte par l'IP du conteneur, d'ailleurs par l'IP de
+          l'hôte et un port publié.</li>
+      <li><strong>Ranger</strong> : <code>-s</code> stoppe sans rien perdre, <code>-d</code>
+          supprime volumes compris.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Lab 1 — installation de Docker sous Linux » et « Lab 1 — mise en place du
+          laboratoire », Réseaux &amp; Systèmes.</li>
+    </ul>
+    <p class="rap">Les commandes d'installation suivent la procédure officielle de Docker pour
+       Ubuntu. Le montage du laboratoire reprend le script du TP, exécuté sur une machine isolée.
+       Les noms de comptes et de domaines sont ceux, neutres, du reste du chapitre.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/cours.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/cours.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=b7459df7"></script>
+<script src="../../assets/app.js?v=b7459df7"></script>
+</body>
+</html>
