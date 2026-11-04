@@ -66,7 +66,7 @@ export async function decoderImage(octets, type) {
     return { source: img, largeur: w, hauteur: h, fermer: () => URL.revokeObjectURL(url) };
   } catch (e) {
     URL.revokeObjectURL(url);
-    if (type === "heic") throw new Error("ce navigateur ne lit pas le format HEIC des iPhone — sur l'iPhone : Réglages → Appareil photo → Formats → « Le plus compatible », ou partagez la photo « en JPEG »");
+    if (type === "heic") throw new Error("ce navigateur ne lit pas le format HEIC — dans les réglages de l'appareil photo du téléphone, choisissez le format « le plus compatible », ou partagez la photo en JPEG");
     if (type === "tiff") throw new Error("ce navigateur ne lit pas le format TIFF (Safari le lit) — convertissez-le d'abord en PNG ou JPEG");
     throw new Error("image illisible ou abîmée");
   }

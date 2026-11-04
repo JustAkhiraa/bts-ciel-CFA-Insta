@@ -581,6 +581,39 @@
     placer();
   }
 
+  /* --- 9. TP : cases à cocher, avec mémoire et progression -------------
+     Une fiche « TP » (le pas-à-pas d'un lab) a des actions à faire. La case
+     se coche toute seule sans JavaScript ; ici on ajoute la MÉMOIRE (l'état
+     survit à un rechargement) et la jauge d'avancement. Guardée : rien ne
+     tourne sur une fiche sans étape. */
+  function tpEtapes() {
+    var cases = document.querySelectorAll(".tp-etape input[type=checkbox]");
+    if (!cases.length) return;
+    var CLE = "bts-ciel-tp", chemin = location.pathname;
+    var etat = {};
+    try { etat = JSON.parse(localStorage.getItem(CLE) || "{}") || {}; } catch (e) { etat = {}; }
+    var faits = Array.isArray(etat[chemin]) ? etat[chemin] : [];
+    var jauge = document.querySelector(".tp-jauge");
+    var compte = document.querySelector(".tp-compte");
+    function majProgres() {
+      var n = 0;
+      cases.forEach(function (c) { if (c.checked) n++; });
+      if (jauge) jauge.style.width = Math.round(n / cases.length * 100) + "%";
+      if (compte) compte.textContent = n + " / " + cases.length + " étapes";
+    }
+    cases.forEach(function (c, i) {
+      if (faits.indexOf(i) >= 0) c.checked = true;
+      c.addEventListener("change", function () {
+        var liste = [];
+        cases.forEach(function (x, j) { if (x.checked) liste.push(j); });
+        etat[chemin] = liste;
+        try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) { /* mode privé */ }
+        majProgres();
+      });
+    });
+    majProgres();
+  }
+
   function init() {
     tableauxDefilables();
     construireSommaire();
@@ -588,6 +621,7 @@
     apercus();
     boutonsCopier();
     quiz();
+    tpEtapes();
     suivreLecture();
     railDeSection();
   }

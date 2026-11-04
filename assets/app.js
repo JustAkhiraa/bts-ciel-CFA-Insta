@@ -1239,12 +1239,19 @@
     if (sel) sel.value = S.theme;
   }
 
-  var btnJour;
+  /* Deux boutons pour le même geste : celui de l'en-tête de bureau, et celui
+     de la barre du haut du téléphone. Signalé : sur téléphone, on ne pouvait
+     plus passer en nuit — la coquille masque l'en-tête de bureau, et le bouton
+     partait avec lui. Il ne restait que la liste des quarante thèmes, dans les
+     réglages. */
+  var btnJour, btnJourTel;
   function peindreBascule() {
-    if (!btnJour) return;
     var sombre = document.documentElement.dataset.sombre === "1";
-    btnJour.innerHTML = sombre ? ICONE_SOLEIL : ICONE_LUNE;
-    btnJour.setAttribute("aria-label", sombre ? "Passer en clair" : "Passer en sombre");
+    [btnJour, btnJourTel].forEach(function (b) {
+      if (!b) return;
+      b.innerHTML = sombre ? ICONE_SOLEIL : ICONE_LUNE;
+      b.setAttribute("aria-label", sombre ? "Passer en clair" : "Passer en sombre");
+    });
   }
 
   var ICONE_PREC =
@@ -2154,7 +2161,8 @@
         + (genre ? '<span>' + echapper(genre) + ' · ' + echapper(ou) + '</span>' : '') + '</div>';
     }
     var n = echeancesProches();
-    var droite = '<a class="tel-rond tel-cloche" href="' + base + 'devoirs.html" aria-label="Devoirs à rendre'
+    var droite = '<button type="button" class="tel-rond" id="tel-jour"></button>'
+      + '<a class="tel-rond tel-cloche" href="' + base + 'devoirs.html" aria-label="Devoirs à rendre'
       + (n ? " : " + n : "") + '">' + ICONE_CLOCHE + (n ? '<span class="tel-badge">' + n + '</span>' : '') + '</a>';
     var som = type === "fiche" && document.querySelector(".sommaire ol");
     if (som) droite = '<button type="button" class="tel-rond" id="tel-sommaire" aria-label="Sommaire">'
@@ -2171,6 +2179,9 @@
       if (segs) segs.setAttribute("data-mat", matiere);
     }
     document.body.insertBefore(tete, document.body.firstChild);
+    btnJourTel = tete.querySelector("#tel-jour");
+    btnJourTel.addEventListener("click", basculerClairSombre);
+    peindreBascule();
 
     var barre = document.createElement("nav");
     barre.className = "tel-barre";

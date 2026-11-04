@@ -23,6 +23,12 @@ const D = {
   deverrouiller: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/>',
   reparer: '<path d="M17.2 3.6a4.8 4.8 0 0 0-5.1 7.6L4.6 18.7a1.9 1.9 0 0 0 2.7 2.7l7.5-7.5a4.8 4.8 0 0 0 5.6-6.8l-2.9 2.9-2.6-.7-.7-2.6z"/>',
   convertir: '<path d="M4 7h14l-3-3M20 17H6l3 3"/>',
+  "pdf-docx": '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 11h6M9 14h6M9 17h4"/>',
+  "pdf-odt": '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M9 11h6M9 14h3"/><circle cx="14.5" cy="16.5" r="2"/>',
+  "pdf-texte": '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15V9l2.5 3L12 9v6M16.5 9v6m-2-2 2 2 2-2"/>',
+  "pdf-epub": '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/>',
+  "pdf-tableur": '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M3 14.5h18M9 4v16M15 4v16"/>',
+  "pdf-diaporama": '<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M12 16v4M8.5 20h7"/><path d="m7 12.5 3-3 2 2 3.5-3.5"/>',
   "compresser-image": '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v6H3M15 21v-6h6"/>',
   redimensionner: '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
   "recadrer-image": '<path d="M6 2v16h16"/><path d="M2 6h16v16"/><path d="M10 10h4v4"/>',
@@ -39,6 +45,11 @@ const D = {
   depot: '<path d="M12 15V3m-4.5 4.5L12 3l4.5 4.5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
   cadenas: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   retour: '<path d="M19 12H5m6-6-6 6 6 6"/>',
+  fichier: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/>',
+  fermer: '<path d="M6 6l12 12M18 6 6 18"/>',
+  monter: '<path d="M12 19V5m-6 6 6-6 6 6"/>',
+  descendre: '<path d="M12 5v14m-6-6 6 6 6-6"/>',
+  poignee: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',
 };
 
 export function icone(nom) {

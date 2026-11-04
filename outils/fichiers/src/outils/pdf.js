@@ -16,7 +16,7 @@ const nbPages = async (octets) => (await (await DocumentPdf.ouvrir(octets)).page
 const MM = 72 / 25.4;
 
 /* Le choix « toutes / impaires / paires / certaines » */
-function choixPages(nom = "quelles", titre = "Pages concernées") {
+export function choixPages(nom = "quelles", titre = "Pages concernées") {
   return '<fieldset><legend>' + titre + '</legend><div class="af-choix">' +
     '<label><input type="radio" name="' + nom + '" value="toutes" checked> Toutes</label>' +
     '<label><input type="radio" name="' + nom + '" value="impaires"> Impaires</label>' +
@@ -24,11 +24,11 @@ function choixPages(nom = "quelles", titre = "Pages concernées") {
     '<label><input type="radio" name="' + nom + '" value="plage"> Certaines</label></div>' +
     '<input type="text" name="' + nom + '-plage" class="af-saisie af-plage" placeholder="ex. 1-3, 5, 8-fin" hidden autocomplete="off"></fieldset>';
 }
-function brancherChoix(ctx, nom = "quelles") {
+export function brancherChoix(ctx, nom = "quelles") {
   const champ = ctx.q('[name="' + nom + '-plage"]');
   for (const r of ctx.qa('[name="' + nom + '"]')) r.addEventListener("change", () => { champ.hidden = ctx.val(nom) !== "plage"; if (!champ.hidden) champ.focus(); });
 }
-function lireChoix(ctx, n, nom = "quelles") {
+export function lireChoix(ctx, n, nom = "quelles") {
   const v = ctx.val(nom);
   const tout = [...Array(n).keys()];
   if (v === "impaires") return tout.filter((i) => i % 2 === 0);
@@ -489,11 +489,11 @@ const scanner = {
 
 /* ── PDF → JPG : chaque page en image ── */
 const pdfJpg = {
-  id: "pdf-jpg", titre: "PDF en images", resume: "Chaque page devient une image JPG ou PNG (pour une présentation, un réseau social).",
-  mots: "jpg jpeg png image convertir capture page photo exporter",
+  id: "pdf-jpg", titre: "PDF en images", resume: "Chaque page devient une image JPG, PNG ou WebP — ou une archive .cbz pour liseuse.",
+  mots: "jpg jpeg png webp cbz bd bande dessinee image convertir capture page photo exporter",
   description: "Les pages sont dessinées par le moteur de l'atelier. Il reproduit fidèlement la plupart des documents ; s'il manque une police rare, une police du système la remplace.",
   entree: UN_PDF,
-  options: () => '<div class="af-ligne"><label class="af-champ"><span>Format</span><select name="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG (sans perte)</option></select></label>' +
+  options: () => '<div class="af-ligne"><label class="af-champ"><span>Format</span><select name="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG (sans perte)</option><option value="image/webp">WebP (plus léger)</option><option value="cbz">.cbz (toutes les pages, pour liseuse de BD)</option></select></label>' +
     '<label class="af-champ"><span>Qualité</span><select name="dpi"><option value="96">Écran (96 ppp)</option><option value="150" selected>Bonne (150 ppp)</option><option value="300">Impression (300 ppp)</option></select></label></div>' +
     choixPages(),
   brancher: (ctx) => brancherChoix(ctx),
@@ -501,17 +501,24 @@ const pdfJpg = {
   async executer(ctx) {
     const f = ctx.premier;
     const sel = lireChoix(ctx, f.pages) || [...Array(f.pages).keys()];
-    const type = ctx.val("format"), ext = type === "image/png" ? "png" : "jpg";
+    const cbz = ctx.val("format") === "cbz";
+    const type = cbz ? "image/jpeg" : ctx.val("format"), ext = { "image/png": "png", "image/webp": "webp" }[type] || "jpg";
     const k = +ctx.val("dpi") / 72;
     const out = [];
     for (const [n, i] of sel.entries()) {
       ctx.statut("Page " + (i + 1) + " (" + (n + 1) + " / " + sel.length + ")…");
       const c = await rendrePage(f.doc, i, { echelle: k });
-      out.push({ nom: sansExtension(f.nom) + "-p" + String(i + 1).padStart(String(f.pages).length, "0") + "." + ext, blob: await encoder(c, type, 0.9), note: c.width + " × " + c.height + " px" });
+      const blob = await encoder(c, type, 0.9);
+      // un navigateur qui ne sait pas écrire le WebP rend un PNG sans prévenir
+      if (type === "image/webp" && blob.type !== "image/webp") throw new Error("ce navigateur ne sait pas écrire le WebP : choisissez JPG ou PNG");
+      out.push({ nom: sansExtension(f.nom) + "-p" + String(i + 1).padStart(String(f.pages).length, "0") + "." + ext, blob, note: c.width + " × " + c.height + " px" });
       c.width = c.height = 0;
       await ctx.souffler();
     }
-    return out;
+    if (!cbz) return out;
+    // une archive de BD : les pages en JPEG, dans l'ordre de leur nom, et rien d'autre
+    const zip = await creerZip(await Promise.all(out.map(async (x) => ({ nom: x.nom, octets: await octetsDe(x.blob) }))));
+    return [{ nom: sansExtension(f.nom) + ".cbz", blob: new Blob([zip], { type: "application/vnd.comicbook+zip" }), note: pages(out.length) }];
   },
   nomZip: "pages",
 };

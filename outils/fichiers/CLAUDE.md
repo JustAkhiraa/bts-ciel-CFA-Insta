@@ -1,10 +1,15 @@
 # L'atelier fichiers — architecture
 
-Les outils « à la lovepdf » du site : fusionner, découper, compresser,
-signer, protéger un PDF, photos en PDF, images, ZIP, QR codes, empreintes,
-mots de passe. Une page (`outils/fichiers.html`), des modules ES natifs
-(`outils/fichiers/src/`), **aucune dépendance, aucune compilation**.
-Les bancs : `node outils/fichiers/tests/tout.mjs`.
+Les outils PDF du site : fusionner, découper, compresser, signer, protéger
+un PDF, le CONVERTIR en document modifiable (.docx, .odt, .xlsx, .ods, .csv,
+.pptx, .odp, .epub, .html, .md, .rtf, .tex, .txt, .json), photos en PDF,
+images, ZIP, QR codes, empreintes, mots de passe. Une page
+(`outils/fichiers.html`), des modules ES natifs (`outils/fichiers/src/`),
+**aucune dépendance, aucune compilation**.
+Les bancs : `node outils/fichiers/tests/tout.mjs`, lancé dans la disposition
+PUBLIÉE (le QR code vient de `outils/salon/`) : recopier `outil-fichiers/` en
+`x/outils/fichiers/` et `outil-salon/` en `x/outils/salon/`, puis lancer
+depuis `x/`.
 
 Ce fichier est la référence. Une règle qui change ici change dans le code.
 
@@ -12,7 +17,7 @@ Ce fichier est la référence. Une règle qui change ici change dans le code.
 
 ## 1. La promesse : rien ne sort de l'appareil
 
-Les sites du genre iLovePDF **envoient le fichier sur leurs serveurs**. Ici,
+Les services en ligne du genre **envoient le fichier sur leurs serveurs**. Ici,
 tout se fait dans le navigateur, et hors ligne une fois la page visitée
 (le service worker garde les modules). Un relevé de notes, une convention de
 stage, une pièce d'identité ne quittent pas le téléphone. Aucun `fetch` vers
@@ -28,10 +33,11 @@ n'en copie rien.
 ## 2. Arborescence
 
 ```
-outils/fichiers.html              la page (coquille du site, data-matiere="projets")
+outils/fichiers.html              la page (coquille du site, data-matiere="reseau" : l'or de « projets » ne tient pas le blanc)
 outils/fichiers/fichiers.css      le style, sur les jetons de couleur du site (les 40 thèmes)
 outils/fichiers/src/
-  app.js                          l'accueil (tuiles, filtre) et l'ÉTABLI commun à tous les outils
+  app.js                          l'accueil (zone de dépôt, liste, filtre) et l'ÉTABLI commun à tous les outils
+  rangement.js                    les huit groupes de l'accueil, leur couleur, la phrase courte de chaque outil
   aides.js                        type d'un fichier par ses octets, décodage / encodage d'images
   apercu.js                       vignettes de pages (Grille), placeur de boîtes, ardoise de signature
   icones.js                       les pictogrammes
@@ -48,13 +54,22 @@ outils/fichiers/src/
     operations.js                 copier des pages, fusionner, pivoter, tamponner, images → PDF…
     police.js                     Helvetica (métriques AFM) pour écrire numéros et filigranes
     rendu.js                      DESSINER une page sur un canevas
+    texte.js                      RELEVER une page : chaque lettre à sa place, images, traits, liens
     glyphes.js                    polices pour le rendu : encodages, CMap, TrueType (glyf)
     fonctions.js                  fonctions PDF 0, 2, 3, 4 (dégradés, encres)
+  conversion/
+    structure.js                  lettres placées → MODÈLE (titres, paragraphes, listes, tableaux, code, images)
+    commun.js                     XML, unités, images du modèle, encodeur PNG, Base64, feuilles de tableur
+    textes.js                     .txt (deux sortes), .md, .html, .rtf, .tex, .json, .csv / .tsv
+    ooxml.js                      .docx, .xlsx, .pptx
+    odf.js                        .odt, .ods, .odp
+    epub.js                       .epub (texte redistribuable ou pages fixes)
   outils/
     pdf.js                        20 outils PDF
+    convertir.js                  6 conversions (PDF en .docx, .odt, texte…, livre, tableur, diaporama)
     images.js                     6 outils d'images
     divers.js                     8 utilitaires
-outils/fichiers/tests/            bancs node + fichiers d'autres producteurs (reportlab, qpdf, LibreOffice)
+outils/fichiers/tests/            bancs node + fichiers d'autres producteurs (reportlab, qpdf, MuPDF…)
 ```
 
 Le QR code vient du salon (`outils/salon/src/qr.js`, `camera.js`) : un seul
@@ -81,6 +96,16 @@ Le type d'un fichier se lit dans ses **octets**, pas dans son extension.
 
 L'adresse `fichiers.html#fusionner` ouvre l'outil directement : c'est ce
 que vise la recherche du site (`assets/recherche.js`, une entrée par outil).
+
+Un outil neuf se range AUSSI dans `src/rangement.js` : sept outils au plus par
+groupe, une phrase de 38 signes au plus. Le banc refuse un outil rangé deux
+fois, oublié ou inconnu. À l'exécution, un oublié va dans « Autres » : il ne
+disparaît jamais.
+
+**L'accueil reçoit un fichier.** Lâché n'importe où, choisi ou collé, il reste
+en attente : son type se lit dans ses octets, la liste se réduit aux outils qui
+le prennent (type, et `multiple` s'il y en a plusieurs), et celui qu'on ouvre le
+reçoit par `transfert`, comme « continuer avec ce résultat ».
 
 ---
 
@@ -140,13 +165,85 @@ l'anticrénelage et la ligne de base des polices du système (± 1 px).
 
 ---
 
-## 6. Ce que l'atelier ne fait pas (écrit aussi dans la page)
+## 6. Convertir un PDF (texte.js, conversion/)
 
-PDF ↔ Word/Excel/PowerPoint (recomposer une mise en page), OCR, modifier le
-texte existant d'un PDF, signature électronique qualifiée (la signature
-dessinée est une image : c'est dit), vidéo et son, RAR/7z.
+**Relever.** `texte.js` fait tourner le moteur du rendu (`Peintre`) sur un
+canevas FANTÔME qui ne peint rien et suit les matrices : `montrer` relève
+chaque lettre (caractère, origine sur la ligne de base, avance, taille,
+police, gras, italique, couleur, texte invisible d'un scan), `peindre` les
+segments droits (bordures, soulignements) et les rectangles pleins (aplats),
+`dessinerImage` le cadre de chaque image. Repère : la page VUE, origine en
+haut à gauche, y vers le bas, en points. Une police composite sans
+`/ToUnicode` est lue par la cmap de sa TrueType, à l'envers.
 
-## 7. Pièges connus
+**Recomposer** (`structure.js`) — dans cet ordre :
+1. ligatures dépliées, puces de police privée rendues lisibles, faux gras
+   (la même lettre deux fois à moins de 1,4 pt) fondu en gras ;
+2. BANDES (même ligne de base) ; une petite bande collée à une grande, à
+   hauteur d'exposant ou d'indice, la rejoint (2³², H₂O) ;
+3. SEGMENTS : un blanc plus grand que 0,9 em ET que 2,2 fois l'espace
+   ordinaire de la ligne la coupe (une espace réellement écrite et étirée,
+   celle d'un texte justifié, résiste jusqu'à 2 em). Une puce ou un numéro
+   seuls suivis d'une tabulation rejoignent leur texte ;
+4. TABLEAUX À BORDURES : les traits qui se croisent (union-find), leurs
+   positions regroupées en lignes et colonnes ; deux cases sans trait entre
+   elles sont fusionnées ; un simple cadre (une case) ou un quadrillage
+   presque vide n'en est pas un ;
+5. EN-TÊTES ET PIEDS : un texte des 13 % du haut ou des 12 % du bas, pas plus
+   grand que le texte courant, qui revient (chiffres mis à part) sur 40 % des
+   pages ; un numéro de page seul ; un même logo en haut ou en bas ;
+6. ORDRE DE LECTURE, découpe XY : on coupe par le plus large couloir blanc —
+   vertical s'il fait 0,9 em et qu'aucun couloir horizontal ne dépasse
+   2,5 em (deux colonnes se lisent l'une après l'autre), horizontal sinon.
+   Des tranches verticales dont les lignes se répondent (60 % de lignes de
+   base communes) et qui ne remplissent pas leur largeur (≤ 72 %, ≤ 12 mots)
+   sont un TABLEAU SANS BORDURES ;
+7. PARAGRAPHES : la ligne suivante, même taille, dans l'interligne mesuré
+   pour cette taille (× 1,28), qui recouvre la précédente ; un retrait, une
+   phrase finie avant le bord d'un texte justifié, une ligne toute en gras,
+   une puce, un changement de police à chasse fixe ouvrent un nouveau
+   paragraphe. Un paragraphe coupé par un changement de colonne ou de page
+   (pas de ponctuation finale, une minuscule ensuite) se recolle ;
+8. TITRES : court (≤ 3 lignes, ≤ 180 signes) et ≥ 1,12 × le texte courant
+   — les tailles rangées donnent les niveaux ; ou une ligne seule en gras à
+   la taille du texte. LISTES : puce (•, –, ➢, ✓…, ou « o » dans une autre
+   police : le 2ᵉ niveau des traitements de texte) ou numéro (1., a), iv.) ;
+   le niveau vient du retrait de la puce, la numérotation reprend au numéro
+   écrit. CODE : une police à chasse fixe, ligne par ligne, retraits gardés.
+
+**Écrire.** Chaque format a son écrivain ; tous lisent le même modèle.
+Pièges : l'ordre des éléments OOXML compte (`w:b` avant `w:sz`…) ; une
+entrée `mimetype` NON compressée en tête des .odt/.ods/.odp/.epub ; les
+bordures d'un tableau .docx sont écrites sur le tableau, pas seulement dans
+son style (certains lecteurs ignorent le style) ; le genre de la police
+(`swiss`, `roman`, `modern`) est déclaré pour qu'un logiciel qui ne l'a pas
+en prenne une semblable ; le .csv porte un BOM (sinon un tableur lit
+l'UTF-8 comme du Latin-1) ; « 192.168.1.1 », « 045 », une date restent du
+texte dans un tableur.
+
+**Pages en images.** Le mode fidèle dessine chaque page (`rendrePage`) en
+JPEG et la pose seule sur sa page (.docx, .odt), sa diapositive (.pptx,
+.odp) ou sa page fixe (.epub « pre-paginated »).
+
+### Valider une conversion
+
+Hors du dépôt, avec les outils du système : son convertisseur de texte en
+ligne de commande relit .docx, .odt, .rtf, .html ; son aperçu rapide dessine
+.docx, .odt, .rtf ; ses logiciels de présentation et de tableur ouvrent
+.pptx et .xlsx et les exportent en PDF ; un lecteur en Python ouvre l'.epub.
+Relevé du 3 novembre 2026 sur `tests/pdf/cours-structure.pdf` et douze cours
+réels : tout s'ouvre, texte, titres, listes, tableaux, exposant, lien et
+image à leur place ; 195 pages converties en 0,7 s.
+
+## 7. Ce que l'atelier ne fait pas (écrit aussi dans la page)
+
+Refaire à l'identique une mise en page libre dans un document modifiable
+(zones flottantes, formules, dessins vectoriels : « Pages en images » le
+fait en image), OCR, modifier le texte existant d'un PDF, signature
+électronique qualifiée (la signature dessinée est une image : c'est dit),
+vidéo et son, RAR/7z.
+
+## 8. Pièges connus
 
 - `TextDecoder("windows-1252")` de node rend 0x80–0x9F comme Latin-1 : la
   table WinAnsi de `glyphes.js` est écrite à la main.

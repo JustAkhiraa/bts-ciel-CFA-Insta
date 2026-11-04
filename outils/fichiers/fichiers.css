@@ -1,74 +1,123 @@
 /* L'atelier fichiers — sur les jetons de couleur du site (--carte, --bord,
    --accent…) : les quarante thèmes s'y appliquent sans rien de plus. */
 
-/* ── l'accueil : les outils en tuiles, par famille ── */
-.af-accueil { margin-top: 1.4rem; }
-.af-famille { margin-top: 1.8rem; }
-.af-famille > h2 { display: flex; align-items: baseline; gap: .6rem; margin: 0 0 .25rem; font-size: 1.1rem; font-weight: 740; color: var(--encre); }
-.af-famille > p { margin: 0 0 .8rem; color: var(--encre-douce); font-size: .9rem; }
-.af-tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: .7rem; }
-.af-tuile {
-  display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: .15rem .7rem; align-items: start;
-  padding: .85rem .9rem; border-radius: var(--r); text-align: left; cursor: pointer;
-  background: var(--carte); border: 1px solid var(--bord); box-shadow: var(--ombre); color: var(--encre);
-  text-decoration: none; transition: border-color .15s, transform .12s;
+/* ── l'en-tête : le titre, la promesse, le filtre ──
+   La règle du lanceur (filet, marges) est défaite : la zone de dépôt qui suit
+   sépare mieux que lui. */
+html[data-style] body:not([data-accueil]) .tete-matiere.af-tete {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .8rem 2.5rem;
+  padding: .2rem 0 0; margin: 0; border: 0;
 }
-.af-tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
-.af-tuile .af-ic { grid-row: 1 / 3; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-pale); color: var(--accent-sombre); }
-.af-tuile .af-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.af-tuile b { font-size: .97rem; font-weight: 700; }
-.af-tuile span { font-size: .82rem; color: var(--encre-douce); line-height: 1.4; }
-.af-non { margin-top: 2rem; padding: 1rem 1.2rem; border-radius: var(--r-l); background: var(--carte-creuse); border: 1px dashed var(--bord-fort); }
-.af-non h2 { margin: 0 0 .5rem; font-size: 1rem; }
-.af-non ul { margin: 0; padding-left: 1.2rem; color: var(--encre-douce); font-size: .9rem; line-height: 1.6; }
-.af-confiance { display: inline-flex; align-items: center; gap: .4rem; margin-top: .6rem; padding: .3rem .7rem; border-radius: 99px; background: var(--vert-pale); color: var(--vert); font-size: .82rem; font-weight: 650; border: 1px solid var(--vert-bord); }
+.af-tete > div { flex: 1 1 20rem; min-width: 0; }
+html[data-style] body:not([data-accueil]) .af-tete h1 { margin: .3rem 0 .15rem; }
+html[data-style] body:not([data-accueil]) .af-tete p { max-width: none; font-size: .95rem; }
+.af-filtre { position: relative; display: block; flex: 0 1 21rem; min-width: min(16rem, 100%); }
+.af-filtre svg { position: absolute; left: .8rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--encre-douce); stroke-width: 1.9; stroke-linecap: round; pointer-events: none; }
+.af-filtre input {
+  width: 100%; box-sizing: border-box; min-height: 44px; padding: .5rem .8rem .5rem 2.45rem; font: inherit; font-size: .95rem;
+  color: var(--encre); background: var(--carte); border: 1px solid var(--bord-fort); border-radius: var(--r); appearance: none;
+}
+.af-filtre input::placeholder { color: var(--encre-douce); opacity: 1; }
+.af-filtre input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-pale); }
 
-/* ── un outil ouvert ── */
-body.af-ouvert .tete-matiere p { display: none; }
-.af-carte [hidden] { display: none !important; }
-.af-outil { margin-top: 1.4rem; }
-.af-retour { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .8rem; padding: .35rem .7rem; border-radius: 99px; border: 1px solid var(--bord-fort); background: var(--carte); color: var(--encre-douce); cursor: pointer; font: inherit; font-size: .88rem; }
-.af-retour:hover { color: var(--encre); border-color: var(--accent); }
-.af-carte { background: var(--carte); border: 1px solid var(--bord); border-top: 3px solid var(--accent); border-radius: var(--r-l); box-shadow: var(--ombre); padding: 1.3rem 1.4rem 1.5rem; }
-.af-carte > h2 { display: flex; align-items: center; gap: .6rem; margin: 0 0 .35rem; font-size: 1.24rem; font-weight: 740; color: var(--encre); }
-.af-carte > h2 .af-ic { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--accent-pale); color: var(--accent-sombre); }
-.af-carte > h2 .af-ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.af-carte > .af-desc { margin: 0 0 1rem; color: var(--encre-douce); line-height: 1.6; }
-
+/* ── la zone de dépôt : la même sur l'accueil et dans un outil ──
+   Elle s'allume dès qu'un fichier passe au-dessus de la page (html.af-glisse),
+   puisque toute la page le reçoit. */
+.af-cache { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .af-depot {
-  display: grid; place-items: center; gap: .4rem; padding: 1.6rem 1rem; border-radius: var(--r-l); text-align: center; cursor: pointer;
-  border: 2px dashed var(--bord-fort); background: var(--carte-creuse); color: var(--encre-douce); transition: border-color .15s, background .15s;
+  position: relative; display: flex; align-items: center; gap: 1rem; padding: 1rem 1.2rem; border-radius: var(--r-l); text-align: left; cursor: pointer;
+  border: 1.5px dashed var(--bord-fort); background: var(--carte); color: var(--encre-douce); transition: border-color .15s, background .15s;
 }
-.af-depot:hover, .af-depot.survol { border-color: var(--accent); background: var(--accent-pale); color: var(--encre); }
-.af-depot b { font-size: 1.02rem; color: var(--encre); }
-.af-depot svg { width: 30px; height: 30px; fill: none; stroke: var(--accent-sombre); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.af-depot:hover, html.af-glisse .af-depot { border-color: var(--accent); background: var(--accent-pale); }
+.af-depot:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+.af-depot-ic { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--accent); transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+html.af-glisse .af-depot-ic { transform: translateY(-3px) scale(1.08); }
+.af-depot-ic svg { width: 24px; height: 24px; fill: none; stroke: var(--sur-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.af-depot-texte { flex: 1; min-width: 0; display: grid; gap: .1rem; }
+.af-depot-texte b { font-size: 1.04rem; font-weight: 720; color: var(--encre); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.af-depot-texte > span { font-size: .9rem; line-height: 1.4; color: var(--encre-douce); }
+.af-depot-cadre { position: relative; margin-top: 1.1rem; }
+.af-depot-accueil { padding: 1.5rem 1.6rem; gap: 1.2rem; }
+.af-depot-accueil .af-depot-ic { width: 56px; height: 56px; }
+.af-depot-accueil .af-depot-ic svg { width: 28px; height: 28px; }
+.af-depot-accueil .af-depot-texte b { font-size: 1.28rem; letter-spacing: -.01em; }
+.af-depot-accueil .af-bouton { flex: none; }
+.af-pose .af-depot-accueil { border-style: solid; border-color: var(--accent); padding-right: 4.2rem; }
+.af-oublier { position: absolute; top: 50%; right: 1.2rem; transform: translateY(-50%); }
 
-.af-liste { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; }
+/* ── les outils : une liste rangée, pas un mur de cartes ──
+   Colonnes de lignes, huit groupes de sept au plus. Le carré plein porte la
+   couleur de la famille (--mat, à pleine force : la diluer la tue, cf. app.css). */
+.af-accueil [hidden] { display: none !important; }
+.af-groupes { margin-top: 1.9rem; columns: 17.5rem 3; column-gap: 2.2rem; }
+.af-groupe { break-inside: avoid; margin: 0 0 1.6rem; }
+.af-groupe > h2 { margin: 0 0 .3rem; padding: 0 .5rem; font-size: 1.02rem; font-weight: 760; letter-spacing: -.005em; color: var(--encre); }
+.af-liens { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.af-ic { display: grid; place-items: center; background: var(--mat); color: var(--carte); border-radius: clamp(0px, calc(var(--r) * 3), 12px); }
+.af-ic svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.af-lien {
+  display: grid; grid-template-columns: 38px minmax(0, 1fr); column-gap: .75rem; align-items: center; min-height: 52px; padding: .35rem .5rem;
+  border-radius: clamp(0px, calc(var(--r) * 3), 12px); color: var(--encre); text-decoration: none; transition: background .12s;
+}
+.af-lien:hover { background: color-mix(in srgb, var(--mat) 10%, transparent); }
+.af-lien:focus-visible { outline: 2px solid var(--mat); outline-offset: 1px; }
+.af-lien .af-ic { grid-row: 1 / 3; width: 38px; height: 38px; }
+.af-lien .af-ic svg { width: 21px; height: 21px; }
+.af-lien b { align-self: end; font-size: .96rem; font-weight: 680; line-height: 1.25; }
+.af-lien small { align-self: start; font-size: .8rem; line-height: 1.3; color: var(--encre-douce); }
+.af-vide { margin-top: 1.5rem; color: var(--encre-douce); }
+.af-non { margin-top: .4rem; padding-top: .5rem; border-top: 1px solid var(--bord); }
+.af-non > summary { display: flex; align-items: center; gap: .4rem; min-height: 38px; cursor: pointer; font-size: .92rem; color: var(--encre-douce); }
+.af-non > summary::before { content: ""; width: .45em; height: .45em; border-right: 1.5px solid; border-bottom: 1.5px solid; transform: rotate(-45deg); transition: transform .15s; }
+.af-non[open] > summary::before { transform: rotate(45deg); }
+.af-non ul { margin: .4rem 0 0; padding-left: 1.2rem; max-width: 75ch; color: var(--encre-douce); font-size: .9rem; line-height: 1.6; }
+.af-non li + li { margin-top: .35rem; }
+
+/* ── un outil ouvert : son nom, puis le travail ──
+   Le titre de la page reste pour les lecteurs d'écran ; à l'œil, il redirait
+   ce que le fil d'Ariane et le titre de l'outil disent déjà. */
+body.af-ouvert .af-filtre { display: none; }
+html[data-style] body.af-ouvert:not([data-accueil]) .tete-matiere.af-tete { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.af-carte [hidden] { display: none !important; }
+.af-outil { margin-top: .5rem; }
+.af-retour { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; margin-bottom: .5rem; padding: 0 .1rem; border: 0; background: none; color: var(--encre-douce); cursor: pointer; font: inherit; font-size: .9rem; font-weight: 600; }
+.af-retour:hover { color: var(--encre); }
+.af-carte { max-width: 60rem; }
+.af-carte > h2 { display: flex; align-items: center; gap: .8rem; margin: 0 0 .4rem; font-size: clamp(1.5rem, 3.4vw, 2rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; color: var(--encre); }
+.af-carte > h2 .af-ic { flex: none; width: 46px; height: 46px; }
+.af-carte > h2 .af-ic svg { width: 25px; height: 25px; }
+.af-carte > .af-desc { margin: 0 0 1.1rem; max-width: 65ch; color: var(--encre-douce); line-height: 1.55; }
+
+.af-liste { list-style: none; margin: .8rem 0 0; padding: 0; display: grid; gap: .45rem; }
+.af-liste:empty { display: none; }
 .af-fichier {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .2rem .7rem; align-items: center;
-  padding: .55rem .7rem; border-radius: var(--r); background: var(--carte-creuse); border: 1px solid var(--bord);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .1rem .7rem; align-items: center;
+  padding: .55rem .7rem; border-radius: var(--r); background: var(--carte); border: 1px solid var(--bord);
 }
 .af-fichier.glisse { opacity: .45; }
 .af-fichier.cible { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-pale); }
-.af-poignee { cursor: grab; color: var(--encre-tenue); font-size: 1.1rem; line-height: 1; padding: .2rem; user-select: none; }
+.af-poignee { display: grid; cursor: grab; color: var(--encre-douce); user-select: none; }
+.af-poignee svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 .af-nom { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.af-info { grid-column: 2; font-size: .82rem; color: var(--encre-tenue); }
+.af-info { grid-column: 2; font-size: .82rem; color: var(--encre-douce); }
 .af-info.erreur { color: var(--rouge); }
 .af-actions-f { display: flex; gap: .25rem; grid-row: 1 / 3; grid-column: 3; }
-.af-mini { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--bord-fort); background: var(--carte); color: var(--encre-douce); cursor: pointer; font: inherit; font-size: .95rem; line-height: 1; display: grid; place-items: center; }
-.af-mini:hover { color: var(--encre); border-color: var(--accent); }
+.af-mini { width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid var(--bord-fort); background: var(--carte); color: var(--encre-douce); cursor: pointer; font: inherit; font-size: .95rem; line-height: 1; display: grid; place-items: center; }
+.af-mini:hover:not(:disabled) { color: var(--encre); border-color: var(--accent); }
+.af-mini:disabled { opacity: .4; cursor: default; }
+.af-mini svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .af-mdp { grid-column: 2 / 4; display: flex; gap: .4rem; margin-top: .3rem; }
 .af-mdp input { flex: 1; min-width: 0; }
 
 /* les réglages */
-.af-reglages { margin-top: 1.1rem; display: grid; gap: .85rem; }
+.af-reglages { margin-top: 1rem; display: grid; gap: .95rem; padding: 1.05rem 1.15rem; border-radius: var(--r-l); background: var(--carte); border: 1px solid var(--bord); }
 .af-reglages fieldset { border: 0; padding: 0; margin: 0; }
-.af-reglages legend, .af-champ > span { display: block; margin-bottom: .35rem; font-size: .697rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue); }
+.af-reglages legend, .af-champ > span { display: block; margin-bottom: .35rem; padding: 0; font-size: .88rem; font-weight: 680; color: var(--encre); }
 .af-champ { display: block; }
 .af-ligne { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
 .af-ligne > * { flex: 1 1 10rem; min-width: 0; }
 .af-reglages input[type=text], .af-reglages input[type=number], .af-reglages input[type=password], .af-reglages select, .af-reglages textarea, .af-mdp input, .af-saisie {
-  width: 100%; box-sizing: border-box; min-height: 42px; padding: .5rem .7rem; font: inherit; font-family: var(--mono); font-size: .95rem;
+  width: 100%; box-sizing: border-box; min-height: 42px; padding: .5rem .7rem; font: inherit; font-size: .95rem;
   color: var(--encre); background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: var(--r);
 }
 .af-reglages textarea, textarea.af-saisie { min-height: 7rem; resize: vertical; line-height: 1.5; }
@@ -80,12 +129,12 @@ body.af-ouvert .tete-matiere p { display: none; }
 .af-choix label:has(input:checked) { border-color: var(--accent); background: var(--accent-pale); color: var(--accent-sombre); font-weight: 650; }
 .af-case { display: flex; align-items: center; gap: .5rem; font-size: .92rem; cursor: pointer; }
 .af-case input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
-.af-aide { margin: .3rem 0 0; font-size: .82rem; color: var(--encre-tenue); line-height: 1.5; }
+.af-aide { margin: .3rem 0 0; font-size: .84rem; color: var(--encre-douce); line-height: 1.5; }
 
-.af-go { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin-top: 1.2rem; }
+.af-go { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; margin-top: 1.1rem; }
 .af-bouton {
-  display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: 0 1.2rem; border-radius: var(--r);
-  border: 1px solid var(--accent); background: var(--accent); color: var(--sur-accent); font: inherit; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: 0 1.25rem; border-radius: var(--r);
+  border: 1px solid var(--accent); background: var(--accent); color: var(--sur-accent); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .af-bouton:disabled { opacity: .45; cursor: default; }
 .af-bouton.af-second { background: var(--carte); color: var(--accent-sombre); }
@@ -99,6 +148,12 @@ body.af-ouvert .tete-matiere p { display: none; }
 .af-resultat small { color: var(--encre-douce); }
 .af-resultat a { font-weight: 700; }
 .af-apercu { width: 100%; height: 70vh; min-height: 360px; border: 1px solid var(--bord); border-radius: var(--r); background: var(--carte-creuse); }
+.af-texte-apercu { margin: 0; max-height: 50vh; overflow: auto; padding: .8rem .9rem; border-radius: var(--r); border: 1px solid var(--bord); background: var(--carte-creuse);
+  color: var(--encre); font: .8rem/1.5 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* les réglages rares, repliés */
+.af-plus { margin-top: .9rem; border-top: 1px solid var(--bord); padding-top: .6rem; }
+.af-plus > summary { cursor: pointer; color: var(--encre-douce); font-size: .9rem; min-height: 32px; display: flex; align-items: center; }
+.af-plus > label { margin-top: .6rem; }
 .af-image-apercu { max-width: 100%; max-height: 50vh; border-radius: var(--r); border: 1px solid var(--bord); background: repeating-conic-gradient(var(--carte-creuse) 0 25%, var(--carte) 0 50%) 0 0 / 16px 16px; display: block; }
 
 /* les pages d'un PDF : des vignettes */
@@ -187,13 +242,6 @@ body.af-ouvert .tete-matiere p { display: none; }
 .af-recadre .af-cadre { position: absolute; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45); cursor: move; }
 .af-recadre .af-cadre i { position: absolute; width: 14px; height: 14px; background: var(--accent); border: 2px solid #fff; border-radius: 50%; }
 
-/* l'accueil : le filtre */
-.af-filtre { display: block; max-width: 30rem; margin-top: 1rem; }
-.af-filtre > span { display: block; margin-bottom: .35rem; font-size: .697rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue); }
-.af-compte { font-size: .78rem; font-weight: 600; color: var(--encre-tenue); }
-.af-vide { margin-top: 1.5rem; color: var(--encre-douce); }
-.af-tuile[hidden], .af-famille[hidden] { display: none; }
-
 /* divers */
 .af-gauche { justify-content: flex-start; }
 .af-gauche > * { flex: 0 0 auto; }
@@ -207,7 +255,6 @@ body.af-ouvert .tete-matiere p { display: none; }
 .af-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; }
 .af-meta-avant { margin-top: .2rem; }
 .af-suite { margin-top: .6rem; max-width: 24rem; }
-.af-suite > span { display: block; margin-bottom: .35rem; font-size: .697rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--encre-tenue); }
 .af-suite select { width: 100%; min-height: 42px; padding: .4rem .6rem; font: inherit; color: var(--encre); background: var(--carte-creuse); border: 1px solid var(--bord-fort); border-radius: var(--r); }
 .af-resultats details summary { cursor: pointer; padding: .4rem .2rem; color: var(--encre-douce); }
 .af-resultats details .af-resultat { margin-top: .5rem; }
@@ -216,10 +263,39 @@ body.af-ouvert .tete-matiere p { display: none; }
 .af-mdp-gen div .af-copier { flex: 0 0 auto; }
 
 @media (max-width: 560px) {
-  .af-carte { padding: 1rem .9rem 1.2rem; }
-  .af-tuiles { grid-template-columns: minmax(0, 1fr); }
+  /* Le filtre, la zone de dépôt en une ligne, puis deux colonnes de noms : pas
+     de phrase sous chaque outil, comme le sommaire des outils sur téléphone. */
+  .af-filtre { flex-basis: 100%; }
+  .af-depot-cadre { margin-top: .8rem; }
+  .af-depot-accueil { padding: .85rem .95rem; gap: .8rem; }
+  .af-depot-accueil .af-depot-ic { width: 44px; height: 44px; }
+  .af-depot-accueil .af-depot-ic svg { width: 23px; height: 23px; }
+  .af-depot-accueil .af-depot-texte b { font-size: 1.05rem; }
+  .af-depot-accueil .af-depot-texte > span { font-size: .84rem; }
+  .af-depot-accueil .af-bouton { display: none; }
+  .af-pose .af-depot-accueil { padding-right: 3.4rem; }
+  .af-oublier { right: .7rem; }
+  .af-groupes { margin-top: 1.3rem; columns: auto; }
+  .af-groupe { margin-bottom: 1.2rem; }
+  .af-groupe > h2 { padding: 0 .1rem; margin-bottom: .45rem; }
+  .af-liens { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .af-lien { grid-template-columns: 34px minmax(0, 1fr); column-gap: .6rem; min-height: 60px; padding: 9px 10px; height: 100%; box-sizing: border-box; background: var(--carte); border: 1px solid var(--bord); }
+  .af-lien .af-ic { width: 34px; height: 34px; grid-row: auto; }
+  .af-lien .af-ic svg { width: 19px; height: 19px; }
+  .af-lien b { align-self: center; font-size: .88rem; line-height: 1.2; }
+  .af-lien small { display: none; }
+  .af-reglages { padding: .9rem .9rem; }
   .af-apercu { height: 60vh; }
   .af-pages { grid-template-columns: repeat(auto-fill, minmax(6.6rem, 1fr)); }
   .af-pages:has(.af-coupure) { grid-template-columns: repeat(auto-fill, minmax(6.6rem, 1fr) 1.1rem); }
   .af-signature { height: 150px; }
 }
+
+/* Sur téléphone, la barre du haut porte déjà le nom de la page : le titre reste
+   pour les lecteurs d'écran, comme sur le sommaire des outils. */
+@media (max-width: 760px) {
+  html.coquille body:not([data-accueil]) .af-tete h1 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+@media (prefers-reduced-motion: reduce) { .af-depot-ic { transition: none; } }
+html[data-anim="0"] .af-depot-ic { transition: none; }
