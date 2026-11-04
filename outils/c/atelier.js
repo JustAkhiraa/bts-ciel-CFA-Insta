@@ -4394,6 +4394,24 @@
       if (estWeb(langue)) poserLangue("c");
       editeur.valeur = x.code;
       poserLangue(l0);
+      semerDisque(x);
+    }
+    /* Les fichiers qu'un énoncé dit déjà là (« on dispose de etudiants.txt »).
+       Un fichier que l'étudiant a produit ou retouché reste le sien : relire ce
+       qu'on vient d'écrire est tout l'objet du TP. Seul un fichier encore tel
+       qu'un exemple l'a posé est remplacé, car deux pages du cours donnent à
+       notes.txt deux contenus différents. */
+    function semerDisque(x) {
+      if (!x || !x.disque) return;
+      lesExemples().then((ex) => {
+        const poses = new Set(ex.flatMap((e) => Object.values(e.disque || {})));
+        const neufs = Object.keys(x.disque).filter((n) => disque[n] !== x.disque[n] && (!(n in disque) || poses.has(disque[n])));
+        if (!neufs.length) return;
+        for (const n of neufs) disque[n] = x.disque[n];
+        disqueNeufs = neufs;
+        sauverDisque();
+        dessinerDisque();
+      });
     }
     /* Un texte venu d'un lien (« Essayer » d'une fiche, partage) : son
        langage est dans l'adresse (« l= »), sinon deviné. Un projet Web
@@ -4421,6 +4439,7 @@
       }
       editeur.valeur = txt;
       poserLangue(l);
+      lesExemples().then((ex) => semerDisque(ex.find((e) => e.disque && e.code.trimEnd() === txt.trimEnd())));
     }
     const devine = (s) =>
       /^\s*(?:(?:--[ \t][^\n]*|#[^\n]*)\n\s*)*(?:select|insert\s+into|update|delete\s+from|create\s+(?:table|database)|drop|alter\s+table|show|use|describe)\b/i.test(s)

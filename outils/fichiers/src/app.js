@@ -18,20 +18,16 @@ import { OUTILS as CONVERTIR } from "./outils/convertir.js";
 import { OUTILS as IMAGES } from "./outils/images.js";
 import { OUTILS as DIVERS } from "./outils/divers.js";
 import { icone } from "./icones.js";
+import { GROUPES } from "./rangement.js";
 import { Grille } from "./apercu.js";
 import { esc, taille, typeDe, IMAGES as TYPES_IMAGE, decoderImage, octetsDe } from "./aides.js";
 
-const FAMILLES = [
-  { id: "pdf", titre: "PDF", outils: PDF,
-    resume: "Assembler, découper, réordonner, signer, protéger — le travail des services en ligne, sans envoyer le fichier nulle part." },
-  { id: "convertir", titre: "Convertir un PDF", outils: CONVERTIR,
-    resume: "Retrouver un document modifiable : traitement de texte, tableur, diaporama, livre numérique, page web, Markdown, LaTeX — titres, listes, tableaux et images compris." },
-  { id: "images", titre: "Images et photos", outils: IMAGES,
-    resume: "Convertir, alléger, redimensionner, recadrer, et effacer ce qu'une photo dit de vous (GPS, téléphone)." },
-  { id: "divers", titre: "Utilitaires", outils: DIVERS,
-    resume: "QR codes, archives ZIP, empreintes de fichiers, mots de passe, texte copié d'un PDF." },
-];
-const TOUS = new Map(FAMILLES.flatMap((f) => f.outils.map((o) => [o.id, { ...o, famille: f.id }])));
+const TOUS = new Map([...PDF, ...CONVERTIR, ...IMAGES, ...DIVERS].map((o) => [o.id, o]));
+/* Un outil qu'on aurait oublié de ranger ne disparaît pas : il va à la fin. */
+const RANGES = new Set(GROUPES.flatMap((g) => Object.keys(g.outils)));
+const OUBLIES = [...TOUS.keys()].filter((id) => !RANGES.has(id));
+const RANGEMENT = OUBLIES.length ? [...GROUPES, { titre: "Autres", mat: "projets", outils: Object.fromEntries(OUBLIES.map((id) => [id, ""])) }] : GROUPES;
+const matDe = (id) => (RANGEMENT.find((g) => id in g.outils) || {}).mat || "projets";
 
 const NON = [
   ["Refaire À L'IDENTIQUE la mise en page d'un PDF dans un document modifiable", "la conversion retrouve titres, paragraphes, listes, tableaux et images, pas les zones flottantes, les formules ni les dessins vectoriels. Pour un aspect exact, choisissez « Pages en images »."],
@@ -52,39 +48,99 @@ let transfert = null;              // des fichiers passés d'un outil au suivant
 
 const sansAccents = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/* ── l'accueil ── */
+/* ── l'accueil ──
+   Un fichier posé ici (lâché n'importe où sur la page, choisi, ou collé) ne
+   part encore nulle part : la liste se réduit aux outils qui le prennent, et
+   celui qu'on ouvre le reçoit tout prêt. Le type se lit dans les octets. */
+let attente = [];                  // [{ fichier, type }]
+const COARSE = matchMedia("(pointer: coarse)").matches;
+const familleDe = (type) => (TYPES_IMAGE.has(type) ? "image" : type);
+const prend = (o) => !attente.length || (!!o.entree && (attente.length === 1 || !!o.entree.multiple) &&
+  attente.every(({ type }) => { const t = o.entree.types || ["tout"]; return t.includes("tout") || t.includes(familleDe(type)); }));
+const filtre = document.querySelector(".af-filtre input");
+
 function dessinerAccueil() {
-  let h = '<p class="af-confiance">' + icone("cadenas").replace("<svg", '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"') +
-    " Vos fichiers ne quittent jamais cet appareil — l'atelier marche aussi hors ligne.</p>";
-  h += '<label class="af-champ af-filtre"><span>Chercher un outil</span><input class="af-saisie" type="search" placeholder="fusionner, jpg, mot de passe, signature…" autocomplete="off"></label>';
-  for (const f of FAMILLES) {
-    h += '<section class="af-famille" data-famille="' + f.id + '"><h2>' + esc(f.titre) + ' <small class="af-compte">' + f.outils.length + " outils</small></h2><p>" + esc(f.resume) + '</p><div class="af-tuiles">';
-    for (const o of f.outils) {
-      h += '<a class="af-tuile" href="#' + o.id + '" data-mots="' + esc(sansAccents(o.titre + " " + o.resume + " " + (o.mots || ""))) + '">' +
-        '<span class="af-ic">' + icone(o.id) + "</span><b>" + esc(o.titre) + "</b><span>" + esc(o.resume) + "</span></a>";
+  let h = '<div class="af-depot-cadre"></div><div class="af-groupes">';
+  for (const g of RANGEMENT) {
+    h += '<section class="af-groupe" data-mat="' + g.mat + '"><h2>' + esc(g.titre) + '</h2><ul class="af-liens">';
+    for (const [id, court] of Object.entries(g.outils)) {
+      const o = TOUS.get(id);
+      if (!o) continue;
+      h += '<li><a class="af-lien" href="#' + id + '" title="' + esc(o.resume) + '" data-id="' + id + '" data-mots="' + esc(sansAccents(o.titre + " " + o.resume + " " + court + " " + (o.mots || ""))) + '">' +
+        '<span class="af-ic">' + icone(id) + "</span><b>" + esc(o.titre) + "</b><small>" + esc(court || o.resume) + "</small></a></li>";
     }
-    h += "</div></section>";
+    h += "</ul></section>";
   }
-  h += '<p class="af-vide" hidden>Aucun outil ne correspond. Essayez « pdf », « image », « zip »…</p>';
-  h += '<aside class="af-non"><h2>Ce que l\'atelier ne fait pas — et quoi faire à la place</h2><ul>' +
-    NON.map(([t, d]) => "<li><b>" + esc(t) + "</b> : " + esc(d) + "</li>").join("") + "</ul></aside>";
+  h += '</div><p class="af-vide" hidden></p>';
+  h += '<details class="af-non"><summary>Ce que l\'atelier ne fait pas, et quoi faire à la place</summary><ul>' +
+    NON.map(([t, d]) => "<li><b>" + esc(t) + "</b> : " + esc(d) + "</li>").join("") + "</ul></details>";
   accueil.innerHTML = h;
-  const filtre = accueil.querySelector(".af-filtre input");
-  filtre.addEventListener("input", () => {
-    const mots = sansAccents(filtre.value).split(/\s+/).filter(Boolean);
-    let total = 0;
-    for (const s of accueil.querySelectorAll(".af-famille")) {
-      let n = 0;
-      for (const t of s.querySelectorAll(".af-tuile")) {
-        const ok = mots.every((m) => t.dataset.mots.includes(m));
-        t.hidden = !ok;
-        if (ok) n++;
-      }
-      s.hidden = n === 0;
-      total += n;
-    }
-    accueil.querySelector(".af-vide").hidden = total > 0;
+  filtre.addEventListener("input", filtrer);
+  accueil.addEventListener("click", (ev) => {
+    if (ev.target.closest(".af-oublier")) { attente = []; dessinerDepot(); filtrer(); }
+    else if (ev.target.closest(".af-lien") && attente.length) transfert = attente.map((x) => x.fichier);
   });
+  accueil.addEventListener("change", (ev) => {
+    if (!ev.target.matches(".af-depot input")) return;
+    poser([...ev.target.files]);
+    ev.target.value = "";
+  });
+  dessinerDepot();
+}
+
+function dessinerDepot() {
+  const cadre = accueil.querySelector(".af-depot-cadre");
+  const n = attente.length;
+  const titre = !n ? (COARSE ? "Choisir un fichier" : "Déposez un fichier ici")
+    : n === 1 ? attente[0].fichier.name || "fichier" : n + " fichiers";
+  cadre.classList.toggle("af-pose", n > 0);
+  cadre.innerHTML = '<label class="af-depot af-depot-accueil"><input class="af-cache" type="file" multiple>' +
+    '<span class="af-depot-ic">' + icone(n ? "fichier" : "depot") + "</span>" +
+    '<span class="af-depot-texte"><b>' + esc(titre) + '</b><span role="status"></span></span>' +
+    '<span class="af-bouton' + (n ? " af-second" : "") + '">' + (n ? "Changer" : "Choisir un fichier") + "</span></label>" +
+    (n ? '<button type="button" class="af-mini af-oublier" aria-label="Oublier ' + (n > 1 ? "ces fichiers" : "ce fichier") + '">' + icone("fermer") + "</button>" : "");
+  ecrireDepot(0);
+}
+
+/* La ligne sous le titre : l'invitation, ou ce qu'on a compris du fichier. */
+function ecrireDepot(total) {
+  const n = attente.length;
+  const el = accueil.querySelector(".af-depot-texte > span");
+  if (!n) { el.textContent = "PDF, photo, archive… L'atelier vous montre ce qu'il peut en faire."; return; }
+  const poids = taille(attente.reduce((s, x) => s + x.fichier.size, 0));
+  const NOMS = { pdf: "PDF", image: "Image", zip: "Archive ZIP", bureautique: "Document bureautique" };
+  const sorte = n === 1 ? (NOMS[familleDe(attente[0].type)] || "Fichier") + " · " + poids : poids;
+  el.textContent = sorte + (attente.some((x) => x.type === "bureautique")
+    ? " — pour le transformer, exportez-le d'abord en PDF depuis son logiciel."
+    : " — " + total + " outil" + (total > 1 ? "s peuvent" : " peut") + " " + (n > 1 ? "les" : "le") + " prendre.");
+}
+
+async function poser(fichiers) {
+  if (!fichiers.length) return;
+  attente = await Promise.all(fichiers.map(async (f) => ({
+    fichier: f, type: typeDe(new Uint8Array(await f.slice(0, 1024).arrayBuffer()), f.name),
+  })));
+  dessinerDepot();
+  filtrer();
+}
+
+function filtrer() {
+  const mots = sansAccents(filtre.value).split(/\s+/).filter(Boolean);
+  let total = 0;
+  for (const s of accueil.querySelectorAll(".af-groupe")) {
+    let n = 0;
+    for (const a of s.querySelectorAll(".af-lien")) {
+      const ok = prend(TOUS.get(a.dataset.id)) && mots.every((m) => a.dataset.mots.includes(m));
+      a.parentElement.hidden = !ok;
+      if (ok) n++;
+    }
+    s.hidden = n === 0;
+    total += n;
+  }
+  const vide = accueil.querySelector(".af-vide");
+  vide.hidden = total > 0;
+  vide.textContent = mots.length ? "Aucun outil ne correspond. Essayez « pdf », « image », « zip »…" : "Aucun outil ne prend ce fichier.";
+  ecrireDepot(total);
 }
 
 /* ── l'établi d'un outil ── */
@@ -100,11 +156,11 @@ class Etabli {
     const e = outil.entree;
     racine.innerHTML =
       '<button type="button" class="af-retour">' + icone("retour").replace("<svg", '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"') + " Tous les outils</button>" +
-      '<div class="af-carte"><h2><span class="af-ic">' + icone(outil.id) + "</span>" + esc(outil.titre) + "</h2>" +
+      '<div class="af-carte" data-mat="' + matDe(outil.id) + '"><h2><span class="af-ic">' + icone(outil.id) + "</span>" + esc(outil.titre) + "</h2>" +
       '<p class="af-desc">' + (outil.description || esc(outil.resume)) + "</p>" +
-      (e ? '<label class="af-depot"><input type="file" hidden' + (e.multiple ? " multiple" : "") + (e.accepte ? ' accept="' + e.accepte + '"' : "") + ">" +
-        icone("depot") + "<b>" + esc(e.libelle || (e.multiple ? "Choisir des fichiers" : "Choisir un fichier")) + "</b>" +
-        "<span>ou glissez-les ici" + (e.types && e.types.includes("image") ? " — ou collez une capture (Ctrl+V)" : "") + "</span></label>" +
+      (e ? '<label class="af-depot"><input type="file" class="af-cache"' + (e.multiple ? " multiple" : "") + (e.accepte ? ' accept="' + e.accepte + '"' : "") + ">" +
+        '<span class="af-depot-ic">' + icone("depot") + '</span><span class="af-depot-texte"><b>' + esc(e.libelle || (e.multiple ? "Choisir des fichiers" : "Choisir un fichier")) + "</b>" +
+        (COARSE ? "" : "<span>ou glissez-" + (e.multiple ? "les" : "le") + " ici" + (e.types && e.types.includes("image") ? ", ou collez une capture (Ctrl+V)" : "") + "</span>") + "</span></label>" +
         '<ul class="af-liste"></ul>' : "") +
       '<div class="af-reglages"></div><div class="af-zone"></div>' +
       '<div class="af-go"><button type="button" class="af-bouton af-lancer">' + esc(outil.bouton || "Lancer") + '</button><span class="af-statut" role="status"></span></div>' +
@@ -120,10 +176,6 @@ class Etabli {
     if (e) {
       const input = this.q(".af-depot input");
       input.addEventListener("change", () => { this.ajouter([...input.files]); input.value = ""; });
-      const depot = this.q(".af-depot");
-      depot.addEventListener("dragenter", () => depot.classList.add("survol"));
-      depot.addEventListener("dragleave", () => depot.classList.remove("survol"));
-      depot.addEventListener("drop", () => depot.classList.remove("survol"));
     }
     this.reglages.innerHTML = outil.options ? outil.options(this) : "";
     if (!this.reglages.innerHTML) this.reglages.hidden = true;
@@ -181,7 +233,7 @@ class Etabli {
       f.octets = new Uint8Array(await f.fichier.arrayBuffer());
       f.type = typeDe(f.octets, f.nom);
       const types = this.outil.entree.types || ["tout"];
-      const famille = f.type === "pdf" ? "pdf" : TYPES_IMAGE.has(f.type) ? "image" : f.type;
+      const famille = familleDe(f.type);
       if (!types.includes("tout") && !types.includes(famille)) throw new Error(refus(types, f.type));
       if (f.type === "pdf" && types.includes("pdf")) await this.ouvrirPdf(f);
       else if (famille === "image" && types.includes("image")) {
@@ -239,12 +291,12 @@ class Etabli {
     const multiple = this.outil.entree.multiple && this.fichiers.length > 1;
     this.liste.innerHTML = this.fichiers.map((f, i) =>
       '<li class="af-fichier" data-id="' + f.id + '"' + (multiple ? ' draggable="true"' : "") + ">" +
-      (multiple ? '<span class="af-poignee" title="Glisser pour ranger" aria-hidden="true">⠿</span>' : "<span></span>") +
+      (multiple ? '<span class="af-poignee" title="Glisser pour ranger" aria-hidden="true">' + icone("poignee") + "</span>" : "<span></span>") +
       '<span class="af-nom" title="' + esc(f.nom) + '">' + esc(f.nom) + "</span>" +
       '<span class="af-actions-f">' +
-      (multiple ? '<button type="button" class="af-mini" data-a="haut" aria-label="Monter"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
-        '<button type="button" class="af-mini" data-a="bas" aria-label="Descendre"' + (i === this.fichiers.length - 1 ? " disabled" : "") + ">↓</button>" : "") +
-      '<button type="button" class="af-mini" data-a="retirer" aria-label="Retirer ' + esc(f.nom) + '">✕</button></span>' +
+      (multiple ? '<button type="button" class="af-mini" data-a="haut" aria-label="Monter"' + (i === 0 ? " disabled" : "") + ">" + icone("monter") + "</button>" +
+        '<button type="button" class="af-mini" data-a="bas" aria-label="Descendre"' + (i === this.fichiers.length - 1 ? " disabled" : "") + ">" + icone("descendre") + "</button>" : "") +
+      '<button type="button" class="af-mini" data-a="retirer" aria-label="Retirer ' + esc(f.nom) + '">' + icone("fermer") + "</button></span>" +
       '<span class="af-info' + (f.erreur ? " erreur" : "") + '">' + esc(f.erreur ? (f.verrouille ? f.info + " — " : "") + f.erreur : f.info) + "</span>" +
       (f.verrouille ? '<form class="af-mdp"><input type="password" autocomplete="off" placeholder="Mot de passe du PDF" aria-label="Mot de passe de ' + esc(f.nom) + '"><button class="af-bouton af-second">Ouvrir</button></form>' : "") +
       "</li>").join("");
@@ -422,21 +474,32 @@ function route() {
   }
 }
 
-/* Un fichier lâché à côté de la zone ne doit pas faire quitter la page
-   (le navigateur l'ouvrirait à la place de l'atelier). */
-addEventListener("dragover", (ev) => { if (ev.dataTransfer && ev.dataTransfer.types.includes("Files")) ev.preventDefault(); });
+/* Un fichier lâché à côté de la zone ne doit pas faire quitter la page (le
+   navigateur l'ouvrirait à la place de l'atelier) : toute la page le reçoit,
+   et la zone de dépôt s'allume dès qu'un fichier arrive au-dessus. */
+const avecFichiers = (ev) => !!ev.dataTransfer && [...ev.dataTransfer.types].includes("Files");
+let survols = 0;
+const eteindre = () => { survols = 0; document.documentElement.classList.remove("af-glisse"); };
+addEventListener("dragenter", (ev) => { if (avecFichiers(ev)) { survols++; document.documentElement.classList.add("af-glisse"); } });
+addEventListener("dragleave", (ev) => { if (avecFichiers(ev) && --survols <= 0) eteindre(); });
+addEventListener("dragover", (ev) => { if (avecFichiers(ev)) ev.preventDefault(); });
 addEventListener("drop", (ev) => {
+  eteindre();
   if (!ev.dataTransfer || !ev.dataTransfer.files.length) return;
   ev.preventDefault();
-  if (courant && courant.outil.entree) courant.ajouter([...ev.dataTransfer.files]);
+  const fichiers = [...ev.dataTransfer.files];
+  if (!courant) poser(fichiers);
+  else if (courant.outil.entree) courant.ajouter(fichiers);
 });
-/* Coller une capture d'écran (Ctrl+V) dans un outil qui prend des images. */
+/* Coller une capture d'écran (Ctrl+V) : dans un outil qui prend des fichiers, ou sur l'accueil. */
 addEventListener("paste", (ev) => {
-  if (!courant || !courant.outil.entree || !ev.clipboardData) return;
+  if ((courant && !courant.outil.entree) || !ev.clipboardData) return;
   const f = [...ev.clipboardData.files];
   if (!f.length) return;
   ev.preventDefault();
-  courant.ajouter(f.map((x, i) => (x.name && x.name !== "image.png" ? x : new File([x], "capture-" + (i + 1) + "." + (x.type.split("/")[1] || "png"), { type: x.type }))));
+  const nommes = f.map((x, i) => (x.name && x.name !== "image.png" ? x : new File([x], "capture-" + (i + 1) + "." + (x.type.split("/")[1] || "png"), { type: x.type })));
+  if (courant) courant.ajouter(nommes);
+  else poser(nommes);
 });
 
 dessinerAccueil();

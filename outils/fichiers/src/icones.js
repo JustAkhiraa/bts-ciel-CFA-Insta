@@ -45,6 +45,11 @@ const D = {
   depot: '<path d="M12 15V3m-4.5 4.5L12 3l4.5 4.5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>',
   cadenas: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   retour: '<path d="M19 12H5m6-6-6 6 6 6"/>',
+  fichier: '<path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/>',
+  fermer: '<path d="M6 6l12 12M18 6 6 18"/>',
+  monter: '<path d="M12 19V5m-6 6 6-6 6 6"/>',
+  descendre: '<path d="M12 5v14m-6-6 6 6 6-6"/>',
+  poignee: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',
 };
 
 export function icone(nom) {

@@ -33,10 +33,11 @@ n'en copie rien.
 ## 2. Arborescence
 
 ```
-outils/fichiers.html              la page (coquille du site, data-matiere="projets")
+outils/fichiers.html              la page (coquille du site, data-matiere="reseau" : l'or de « projets » ne tient pas le blanc)
 outils/fichiers/fichiers.css      le style, sur les jetons de couleur du site (les 40 thèmes)
 outils/fichiers/src/
-  app.js                          l'accueil (tuiles, filtre) et l'ÉTABLI commun à tous les outils
+  app.js                          l'accueil (zone de dépôt, liste, filtre) et l'ÉTABLI commun à tous les outils
+  rangement.js                    les huit groupes de l'accueil, leur couleur, la phrase courte de chaque outil
   aides.js                        type d'un fichier par ses octets, décodage / encodage d'images
   apercu.js                       vignettes de pages (Grille), placeur de boîtes, ardoise de signature
   icones.js                       les pictogrammes
@@ -95,6 +96,16 @@ Le type d'un fichier se lit dans ses **octets**, pas dans son extension.
 
 L'adresse `fichiers.html#fusionner` ouvre l'outil directement : c'est ce
 que vise la recherche du site (`assets/recherche.js`, une entrée par outil).
+
+Un outil neuf se range AUSSI dans `src/rangement.js` : sept outils au plus par
+groupe, une phrase de 38 signes au plus. Le banc refuse un outil rangé deux
+fois, oublié ou inconnu. À l'exécution, un oublié va dans « Autres » : il ne
+disparaît jamais.
+
+**L'accueil reçoit un fichier.** Lâché n'importe où, choisi ou collé, il reste
+en attente : son type se lit dans ses octets, la liste se réduit aux outils qui
+le prennent (type, et `multiple` s'il y en a plusieurs), et celui qu'on ouvre le
+reçoit par `transfert`, comme « continuer avec ce résultat ».
 
 ---
 
