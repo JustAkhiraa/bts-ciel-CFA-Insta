@@ -690,7 +690,7 @@
     return '<div class="nw-accueil" id="nw-grille-apps">'
       + ORDRE.map((c, i) => '<button type="button" class="nw-tuile'
         + (APPS[c].aVenir ? " nw-tuile-avenir" : "") + '" data-app="' + c + '"'
-        + (APPS[c].aVenir ? ' title="Pas encore écrite — ouvrez pour savoir ce '
+        + (APPS[c].aVenir ? ' title="Pas encore écrite : ouvrez pour savoir ce '
             + 'qu\'elle fera"' : "")
         + ' aria-current="' + (i === choisi) + '">'
         + '<span class="nw-tuile-ic" aria-hidden="true">'
@@ -754,7 +754,7 @@
       for (const e of gardees) {
         n++;
         bouts.push('<button type="button" class="nw-boite-item" data-ins="' + ech(e.insere) + '">'
-          + '<b>' + ech(e.syntaxe) + '</b> — ' + ech(e.nom)
+          + '<b>' + ech(e.syntaxe) + '</b> : ' + ech(e.nom)
           + '<i>' + ech(e.aide) + '</i></button>');
       }
     }
@@ -919,7 +919,7 @@
            votre place supprime le seul obstacle qui reste — savoir quoi
            taper d'abord. La première réussite arrive en un clic, et
            c'est elle qui décide si on revient. */
-        : '<p class="nw-vide">Tapez un calcul et validez — ou prenez un de '
+        : '<p class="nw-vide">Tapez un calcul et validez : ou prenez un de '
           + 'ceux-ci : '
           + ESSAIS.map((e) => '<button type="button" class="nw-essai" data-essai="'
               + ech(e) + '">' + ech(e) + '</button>').join(" ")
@@ -1011,7 +1011,7 @@
         c.value = l.entree;
         c.focus();
         try { c.setSelectionRange(c.value.length, c.value.length); } catch (e) {}
-        dire("Calcul repris — corrigez-le et validez.", "e-ok");
+        dire("Calcul repris : corrigez-le et validez.", "e-ok");
       }));
     },
   };
@@ -1514,7 +1514,7 @@
         corps += '<tr><td>' + ech(fmt(x)) + '</td>'
           + colonnes.map((c) => {
             const y = c.f(x);
-            return '<td>' + ech(Number.isFinite(y) ? fmt(y) : "—") + '</td>';
+            return '<td>' + ech(Number.isFinite(y) ? fmt(y) : "-") + '</td>';
           }).join("") + '</tr>';
       }
       return onglets
@@ -1528,7 +1528,7 @@
         + colonnes.map((c) => '<th>' + ech(c.nom) + '(x)</th>').join("")
         + '</tr></thead><tbody>' + corps + '</tbody></table></div>'
         + '<p class="nw-sous">Un tiret signifie que la fonction n\'existe pas en ce point '
-        + '— une division par zéro, un logarithme de nombre négatif.</p>';
+        + 'une division par zéro, un logarithme de nombre négatif.</p>';
     },
     apres() {
       brancherOnglets();
@@ -1908,7 +1908,7 @@
             + '<p class="nw-sous">L\'escalier ne vaut que pour une suite '
             + '<strong>récurrente</strong> : il trace y = x et la courbe de la fonction de '
             + 'récurrence, puis saute de l\'une à l\'autre. C\'est ce qui montre la '
-            + 'convergence — ou son absence.</p></div>';
+            + 'convergence : ou son absence.</p></div>';
         } else if (pan === "naviguer") {
           panneau = '<div class="nw-panneau"><div class="nw-rangee">'
             + '<button type="button" class="nw-bouton" data-sterme="-1">◀ terme précédent</button>'
@@ -1994,7 +1994,7 @@
             + '<input type="text" class="nw-petit nw-court" id="nw-s-a" data-ssomme="sommeA" '
             + 'value="' + ech(V.sommeA) + '"></div>'
             + '<dl class="nw-valeurs"><dt>Σ</dt><dd>'
-            + ech(somme === null ? "—" : fmt(somme)) + '</dd>'
+            + ech(somme === null ? "-" : fmt(somme)) + '</dd>'
             + '<dt>termes additionnés</dt><dd>' + termes + '</dd></dl></div>';
         }
 
@@ -2014,7 +2014,7 @@
              : "")
           + (dependDeN ? '<p class="nw-sous">La récurrence dépend du rang <code>n</code> : '
                + 'il n\'y a donc pas UNE courbe y = f(x), mais une par rang. L\'escalier '
-               + 'est tracé, la courbe est écartée — la dessiner serait affirmer une '
+               + 'est tracé, la courbe est écartée : la dessiner serait affirmer une '
                + 'relation qui change à chaque pas.</p>' : "")
           + calcul;
       }
@@ -2023,9 +2023,9 @@
         const r = rang0 + k;
         corps += '<tr><td>' + r + '</td>'
           + suites.map((s) => {
-            if (!s || s.erreur) return '<td>—</td>';
+            if (!s || s.erreur) return '<td> : </td>';
             const y = s.terme(r);
-            return '<td>' + ech(Number.isFinite(y) ? fmt(y) : "—") + '</td>';
+            return '<td>' + ech(Number.isFinite(y) ? fmt(y) : "-") + '</td>';
           }).join("") + '</tr>';
       }
       const sommes = suites.map((s) => {
@@ -2042,7 +2042,7 @@
         + NOMS_U.map((nom) => '<th>' + nom + '(n)</th>').join("")
         + '</tr></thead><tbody>' + corps + '</tbody></table></div>'
         + '<dl class="nw-valeurs">' + sommes.map((s, i) => '<dt>Σ des 25 premiers termes de '
-          + NOMS_U[i] + '</dt><dd>' + ech(s === null ? "—" : fmt(s)) + '</dd>').join("")
+          + NOMS_U[i] + '</dt><dd>' + ech(s === null ? "-" : fmt(s)) + '</dd>').join("")
         + '</dl>';
     },
     apres() {
@@ -2148,7 +2148,7 @@
                   + '</td><td>' + ech(fmt(cum / aperçu.N)) + '</td></tr>';
               }).join("")
             + '</tbody></table></div>'
-            + '<p class="nw-sous"><b>ECC</b> : effectifs cumulés croissants — combien '
+            + '<p class="nw-sous"><b>ECC</b> : effectifs cumulés croissants, combien '
             + 'd\'individus ont une valeur inférieure ou égale. <b>FCC</b> : la même '
             + 'chose en fréquence. Les valeurs sont triées : un cumul sur des valeurs '
             + 'en désordre ne veut rien dire.</p>';
@@ -2208,7 +2208,7 @@
           + 'seul son nom change. Avec un seul individu, s n\'existe pas.</p>'
           + '<p class="nw-sous"><b>Convention française des quartiles</b> : Q1 est la plus '
           + 'petite valeur telle qu\'au moins un quart de l\'effectif lui est inférieur ou '
-          + 'égal — la valeur de rang ⌈n/4⌉. Un tableur interpole et ne donne donc pas '
+          + 'égal : la valeur de rang ⌈n/4⌉. Un tableur interpole et ne donne donc pas '
           + 'toujours le même Q1.</p>';
       }
       const mode = ETAT.stats.graphe || "histogramme";
@@ -2259,7 +2259,7 @@
           + '</div><p class="nw-sous">'
           + (manuel ? 'Réglages saisis : les valeurs sont groupées en classes [a ; b[ de cette '
               + 'largeur à partir de ce début. « Auto » revient au calcul.'
-            : '« Auto » : une barre par valeur — la largeur est le plus petit écart entre '
+            : '« Auto » : une barre par valeur, la largeur est le plus petit écart entre '
               + 'deux valeurs, le début la première valeur. Changez l\'un des '
               + 'deux pour grouper en classes, comme le demande un énoncé.')
           + '</p></div>';
@@ -2380,11 +2380,11 @@
         const haut2 = R.q3 + 1.5 * R.interquartile;
         const hors = R.paires.filter((pr) => pr[0] < bas || pr[0] > haut2).map((pr) => pr[0]);
         apres = '<p class="nw-sous">Les moustaches vont jusqu\'aux valeurs '
-          + 'EXTRÊMES, convention du lycée — et non à 1,5 écart interquartile. Le seuil '
+          + 'EXTRÊMES, convention du lycée : et non à 1,5 écart interquartile. Le seuil '
           + 'de 1,5 sert à NOMMER les valeurs aberrantes, pas à couper le dessin.</p>'
           + '<dl class="nw-valeurs">'
-          + '<dt>seuil bas — Q1 − 1,5 × EIQ</dt><dd>' + ech(fmt(bas)) + '</dd>'
-          + '<dt>seuil haut — Q3 + 1,5 × EIQ</dt><dd>' + ech(fmt(haut2)) + '</dd>'
+          + '<dt>seuil bas : Q1 − 1,5 × EIQ</dt><dd>' + ech(fmt(bas)) + '</dd>'
+          + '<dt>seuil haut : Q3 + 1,5 × EIQ</dt><dd>' + ech(fmt(haut2)) + '</dd>'
           + '<dt>valeurs aberrantes</dt><dd>'
           + (hors.length ? ech(hors.map((v) => fmt(v)).join(" · ")) : "aucune") + '</dd>'
           + '</dl>';
@@ -2396,7 +2396,7 @@
           + 'rangés : en abscisse leur valeur, en ordonnée la valeur z qu\'ils auraient à la '
           + 'même place dans la loi normale centrée réduite, z = Φ⁻¹((k − ½) / N). '
           + 'Le trait en tirets est z = (x − μ) / σ. Plus les points s\'alignent dessus, '
-          + 'plus la série ressemble à une loi normale — c\'est une lecture, pas un test.</p>'
+          + 'plus la série ressemble à une loi normale : c\'est une lecture, pas un test.</p>'
           + (R.N > 2000 ? '<p class="nw-sous">Seuls les 2 000 premiers individus sont '
               + 'placés.</p>' : '');
       }
@@ -2652,7 +2652,7 @@
             + '<select class="nw-petit" id="nw-modele">'
             + Object.keys(CALC.MODELES).map((k) => '<option value="' + k + '"'
               + (G.series[j].modele === k ? " selected" : "") + '>'
-              + ech(CALC.MODELES[k].titre) + ' — ' + ech(CALC.MODELES[k].forme)
+              + ech(CALC.MODELES[k].titre) + ' · ' + ech(CALC.MODELES[k].forme)
               + '</option>').join("")
             + '</select>'
             + '<label class="nw-case"><input type="checkbox" id="nw-moyen"'
@@ -2676,9 +2676,9 @@
 
         return onglets + barre + panneau + svg
           + '<p class="nw-equation">' + (r.erreur
-              ? '<b>Les données ne conviennent pas</b> — ' + ech(r.erreur)
+              ? '<b>Les données ne conviennent pas</b> : ' + ech(r.erreur)
               : (G.residus ? 'Résidus de X' + (j + 1) + '/Y' + (j + 1)
-                             + ' — y = ' + ech(r.forme)
+                             + ', y = ' + ech(r.forme)
                            : 'X' + (j + 1) + '/Y' + (j + 1) + ' : y = ' + ech(r.forme)))
           + '</p>'
           + bandeau
@@ -2688,7 +2688,7 @@
           + '<span class="nw-resultat" style="text-align:left">'
           + (G.pred !== undefined && G.pred !== "" && !r.erreur
               ? (() => { const x = nombreSaisi(G.pred);
-                         return x === null ? "—" : "y = " + ech(fmt(r.f(x))); })()
+                         return x === null ? "-" : "y = " + ech(fmt(r.f(x))); })()
               : "") + '</span></div>'
           + '<div class="nw-rangee">'
           + '<label for="nw-predy">prédiction sachant Y</label>'
@@ -2697,7 +2697,7 @@
           + (G.predY !== undefined && G.predY !== "" && !r.erreur
               ? (() => {
                   const y = nombreSaisi(G.predY);
-                  if (y === null) return "—";
+                  if (y === null) return "-";
                   /* On cherche x tel que f(x) = y en balayant la fenêtre puis en
                      coupant en deux. Sans monotonie garantie — la trigonométrique
                      n'en a pas — c'est le PREMIER x trouvé, et la machine dit la
@@ -2727,23 +2727,23 @@
       const lettres = "abcde".split("");
       const maxP = Math.max(...ajust.map((r) => r.erreur ? 0 : r.params.length));
       const rangs = [
-        ["nombre de points", (d) => d ? String(d.n) : "—"],
-        ["moyenne x̄", (d) => d ? fmt(d.moyenneX) : "—"],
-        ["moyenne ȳ", (d) => d ? fmt(d.moyenneY) : "—"],
-        ["écart type σx", (d) => d ? fmt(d.ecartTypeX) : "—"],
-        ["écart type σy", (d) => d ? fmt(d.ecartTypeY) : "—"],
-        ["somme Σx", (d) => d ? fmt(d.sommeX) : "—"],
-        ["somme Σy", (d) => d ? fmt(d.sommeY) : "—"],
-        ["somme des produits Σxy", (d) => d ? fmt(d.sommeXY) : "—"],
-        ["covariance", (d) => d ? fmt(d.covariance) : "—"],
+        ["nombre de points", (d) => d ? String(d.n) : "-"],
+        ["moyenne x̄", (d) => d ? fmt(d.moyenneX) : "-"],
+        ["moyenne ȳ", (d) => d ? fmt(d.moyenneY) : "-"],
+        ["écart type σx", (d) => d ? fmt(d.ecartTypeX) : "-"],
+        ["écart type σy", (d) => d ? fmt(d.ecartTypeY) : "-"],
+        ["somme Σx", (d) => d ? fmt(d.sommeX) : "-"],
+        ["somme Σy", (d) => d ? fmt(d.sommeY) : "-"],
+        ["somme des produits Σxy", (d) => d ? fmt(d.sommeXY) : "-"],
+        ["covariance", (d) => d ? fmt(d.covariance) : "-"],
       ];
       let corps = '<tr><th scope="row">modèle</th>'
-        + ajust.map((r) => '<td>' + (r.erreur ? "—" : "y = " + ech(r.forme)) + '</td>').join("")
+        + ajust.map((r) => '<td>' + (r.erreur ? "-" : "y = " + ech(r.forme)) + '</td>').join("")
         + '</tr>';
       for (let k = 0; k < maxP; k++) {
         corps += '<tr><th scope="row">' + lettres[k] + '</th>'
           + ajust.map((r) => '<td>' + (r.erreur || r.params[k] === undefined
-              ? "—" : ech(fmt(r.params[k]))) + '</td>').join("") + '</tr>';
+              ? "-" : ech(fmt(r.params[k]))) + '</td>').join("") + '</tr>';
       }
       /* L'écart-type résiduel : la machine l'affiche, et c'est lui qui dit
          en UNITÉS DE Y ce que r² dit sans unité. Un r² de 0,98 sur des prix
@@ -2751,16 +2751,16 @@
       corps += '<tr><th scope="row">écart-type résiduel</th>'
         + ajust.map((r, j) => {
             const d2 = deux[j];
-            if (r.erreur || !d2) return '<td>—</td>';
+            if (r.erreur || !d2) return '<td> : </td>';
             let sse = 0;
             for (let i = 0; i < d2.X.length; i++) sse += (d2.Y[i] - r.f(d2.X[i])) ** 2;
             return '<td>' + ech(fmt(Math.sqrt(sse / d2.n))) + '</td>';
           }).join("") + '</tr>';
       corps += '<tr><th scope="row">coeff. corrélation r</th>'
-        + ajust.map((r) => '<td>' + (r.erreur || r.r === undefined ? "—"
+        + ajust.map((r) => '<td>' + (r.erreur || r.r === undefined ? "-"
             : ech(fmt(r.r))) + '</td>').join("") + '</tr>'
         + '<tr><th scope="row">coeff. détermination r²</th>'
-        + ajust.map((r) => '<td>' + (r.erreur ? "—" : ech(fmt(r.r2))) + '</td>').join("")
+        + ajust.map((r) => '<td>' + (r.erreur ? "-" : ech(fmt(r.r2))) + '</td>').join("")
         + '</tr>';
       rangs.forEach(([lib, f]) => {
         corps += '<tr><th scope="row">' + lib + '</th>'
@@ -3021,7 +3021,7 @@
     binomiale: { n: "Nombre de répétitions", p: "Probabilité de succès" },
     normale: { mu: "Moyenne", sigma: "Écart type" },
     uniforme: { a: "Borne inférieure", b: "Borne supérieure" },
-    exponentielle: { lambda: "Taux — l'inverse de la durée moyenne" },
+    exponentielle: { lambda: "Taux : l'inverse de la durée moyenne" },
     poisson: { lambda: "Nombre moyen d'événements sur la période" },
     geometrique: { p: "Probabilité de succès à chaque essai" },
     hypergeometrique: { N: "Taille de la population", K: "Nombre d'individus favorables",
@@ -3140,7 +3140,7 @@
       const inversable = q === "inf" || q === "sup";
       const champRes = '<input type="text" class="nw-petit nw-res" data-pres '
         + (inversable ? "" : "readonly ") + 'value="'
-        + ech(Number.isFinite(valeur) ? fmt(valeur) : "—") + '" inputmode="decimal" '
+        + ech(Number.isFinite(valeur) ? fmt(valeur) : "-") + '" inputmode="decimal" '
         + 'autocomplete="off" aria-label="probabilité">';
       const V = discret ? "X" : "X";
       const equation = '<div class="nw-equation">' + choix
@@ -3163,7 +3163,7 @@
         + (Number.isFinite(S) ? '<dt>écart type σ(X)</dt><dd>' + ech(fmt(S)) + '</dd>' : "")
         + '</dl>'
         + '<p class="nw-sous">' + ech(formule)
-        + (inversable ? ' — et le champ du résultat se remplit aussi : '
+        + (inversable ? ', et le champ du résultat se remplit aussi : '
             + 'écrivez une probabilité, la borne se calcule.' : "")
         + (!discret ? ' Pour une loi continue, la probabilité d\'une valeur EXACTE est '
             + 'nulle : seules les probabilités d\'intervalles ont un sens.' : "")
@@ -3293,7 +3293,7 @@
           + '<p class="nw-sous">Les solutions sont <b>approchées</b> : elles viennent d\'un '
           + 'changement de signe de f − g, puis d\'une dichotomie. Deux solutions très '
           + 'proches peuvent n\'en faire qu\'une à l\'écran, et une solution hors de '
-          + 'l\'intervalle n\'est pas cherchée — c\'est pour cela que l\'intervalle se '
+          + 'l\'intervalle n\'est pas cherchée : c\'est pour cela que l\'intervalle se '
           + 'saisit.</p>';
       }
       if (E.mode === "polynome") {
@@ -3319,7 +3319,7 @@
             const complexes = r.racines.filter((z) => z.im !== 0);
             bloc = '<dl class="nw-valeurs">'
               + (r.delta !== undefined
-                  ? '<dt>discriminant Δ</dt><dd>' + ech(fmt(r.delta)) + ' — '
+                  ? '<dt>discriminant Δ</dt><dd>' + ech(fmt(r.delta)) + ' · '
                     + (r.delta > 0 ? "deux racines" : r.delta === 0 ? "une racine double"
                        : "aucune racine réelle") + '</dd>' : "")
               + (reelles.length
@@ -3378,9 +3378,9 @@
           ? '<dl class="nw-valeurs">' + S.x.map((v, i) => '<dt>' + noms[i] + '</dt><dd>'
               + ech(fmt(v)) + '</dd>').join("") + '</dl>'
           : S.type === "aucune"
-            ? '<p class="nw-resultat" style="text-align:left">Aucune solution — '
+            ? '<p class="nw-resultat" style="text-align:left">Aucune solution : '
               + 'les équations se contredisent.</p>'
-            : '<p class="nw-resultat" style="text-align:left">Une infinité de solutions — '
+            : '<p class="nw-resultat" style="text-align:left">Une infinité de solutions : '
               + 'rang ' + S.rang + ' pour ' + S.inconnues + ' inconnues.</p>';
       }
       return choix + '<div class="nw-rangee">'
@@ -3498,7 +3498,7 @@
           + '<p class="nw-moyenne">' + (quoi ? ech(quoi) + " = " : "") + ech(reponse) + '</p>'
           + '<p class="nw-sous">Laissez <b>un seul champ vide</b> : c\'est celui-là qui est '
           + 'calculé. La base de 360 jours est la convention bancaire, 365 la convention '
-          + 'civile — sur 5 000 € à 4 % pendant 90 jours, l\'écart est de 68 centimes.</p>';
+          + 'civile : sur 5 000 € à 4 % pendant 90 jours, l\'écart est de 68 centimes.</p>';
       }
 
       /* ── Intérêts composés : l'équation du solveur ─────────────────
@@ -3642,9 +3642,9 @@
         if (Number.isFinite(f) && Number.isFinite(n)) {
           const c1 = n >= 30, c2 = n * f >= 5, c3 = n * (1 - f) >= 5;
           conditions = '<dl class="nw-valeurs">'
-            + '<dt>n ⩾ 30</dt><dd>' + (c1 ? "oui — " : "NON — ") + ech(fmt(n)) + '</dd>'
-            + '<dt>n·f ⩾ 5</dt><dd>' + (c2 ? "oui — " : "NON — ") + ech(fmt(n * f)) + '</dd>'
-            + '<dt>n(1−f) ⩾ 5</dt><dd>' + (c3 ? "oui — " : "NON — ")
+            + '<dt>n ⩾ 30</dt><dd>' + (c1 ? "oui : " : "NON : ") + ech(fmt(n)) + '</dd>'
+            + '<dt>n·f ⩾ 5</dt><dd>' + (c2 ? "oui : " : "NON : ") + ech(fmt(n * f)) + '</dd>'
+            + '<dt>n(1−f) ⩾ 5</dt><dd>' + (c3 ? "oui : " : "NON : ")
             + ech(fmt(n * (1 - f))) + '</dd></dl>'
             + (c1 && c2 && c3 ? ""
                : '<p class="nw-sous"><b>Une condition n’est pas remplie.</b> '
@@ -3659,7 +3659,7 @@
         saisie += '<div class="nw-rangee">' + champ("niveau", "Seuil de confiance")
           + '</div>';
         if (!(niv > 0 && niv < 1)) {
-          bloc = '<p class="nw-erreur">Le niveau de confiance est entre 0 et 1 — 0,95 pour 95 %.</p>';
+          bloc = '<p class="nw-erreur">Le niveau de confiance est entre 0 et 1 : 0,95 pour 95 %.</p>';
         } else if (!Number.isFinite(n) || n < 2) {
           bloc = '<p class="nw-erreur">Il faut un effectif n d’au moins 2.</p>';
         } else if (I.grandeur === "moyenne") {
@@ -3717,7 +3717,7 @@
           + '<div class="nw-rangee"><label>hypothèse H₁</label>'
           + seg("cote", [["bilateral", "≠"], ["gauche", "<"], ["droite", ">"]]) + '</div>';
         if (!(alpha > 0 && alpha < 1)) {
-          bloc = '<p class="nw-erreur">Le risque α est entre 0 et 1 — 0,05 pour 5 %.</p>';
+          bloc = '<p class="nw-erreur">Le risque α est entre 0 et 1 : 0,05 pour 5 %.</p>';
         } else if (!Number.isFinite(n) || n < 2) {
           bloc = '<p class="nw-erreur">Il faut un effectif n d’au moins 2.</p>';
         } else {
@@ -3887,7 +3887,7 @@
         + l("fusion", choisi.fus, "K")
         + l("ébullition", choisi.eb, "K")
         + l("période · groupe · bloc",
-            choisi.p + " · " + (choisi.g ? choisi.g : "—") + " · " + (choisi.b || "—"))
+            choisi.p + " · " + (choisi.g ? choisi.g : "-") + " · " + (choisi.b || "-"))
         + '</dl></div>';
 
       const legende = colorer === "famille"
@@ -3960,7 +3960,7 @@
         + '<pre class="nw-py-console">' + (sortie.length ? ech(sortie.join("\n")) : "")
         + (err ? (sortie.length ? "\n" : "")
                  + '<span class="nw-py-err">Erreur'
-                 + (err.ligne ? " ligne " + err.ligne : "") + " — " + ech(err.message)
+                 + (err.ligne ? " ligne " + err.ligne : "") + " · " + ech(err.message)
                  + '</span>' : "")
         + (!sortie.length && !err ? '<span class="nw-py-vide">rien pour l’instant</span>' : "")
         + '</pre>'
@@ -3969,7 +3969,7 @@
         + PYMINI.MANQUES.map((m) => '<dt>' + ech(m[0]) + '</dt><dd>' + ech(m[1]) + '</dd>').join("")
         + '</dl>'
         + '<p class="nw-sous">Un programme qui emploie l’une de ces constructions reçoit '
-        + 'une phrase qui la nomme — jamais un résultat faux. Le reste du Python de '
+        + 'une phrase qui la nomme : jamais un résultat faux. Le reste du Python de '
         + 'première année est là : variables, calcul, chaînes, listes, conditions, '
         + 'boucles, fonctions, et la récursivité.</p></details>';
     },
@@ -4075,10 +4075,10 @@
         + 'ℂ : <code>√(−4)</code> répond « hors domaine » plutôt que <code>2i</code>. Le '
         + 'réglage est posé à sa place pour que la liste soit juste, et il le dit au lieu '
         + 'de faire semblant. Ce qu\'il faudrait : une arithmétique complexe dans le '
-        + 'moteur, et les fonctions usuelles qui la suivent — c\'est un chantier, pas un '
+        + 'moteur, et les fonctions usuelles qui la suivent : c\'est un chantier, pas un '
         + 'réglage.</p>'
-        + '<p class="nw-sous"><b>Le mode examen efface les mémoires</b> — les variables, '
-        + 'les fonctions, les suites, les listes — et l\'affiche en haut de l\'écran, comme '
+        + '<p class="nw-sous"><b>Le mode examen efface les mémoires</b> : les variables, '
+        + 'les fonctions, les suites, les listes : et l\'affiche en haut de l\'écran, comme '
         + 'la machine. Mais il faut être honnête : une page web ne se scelle pas. C\'est un '
         + 'outil d\'entraînement, pas une attestation ; le jour de l\'épreuve, c\'est la '
         + 'vraie machine et son voyant rouge.</p>'
@@ -4098,7 +4098,7 @@
         + '</dd>'
         + '<dt>à venir</dt><dd>' + ORDRE.filter((c) => APPS[c] && APPS[c].aVenir)
             .map((c) => APPS[c].nom).join(" · ") + '</dd>'
-        + '<dt>fonctions du moteur</dt><dd>' + (CALC.FONCTIONS ? CALC.FONCTIONS.length : "—")
+        + '<dt>fonctions du moteur</dt><dd>' + (CALC.FONCTIONS ? CALC.FONCTIONS.length : "-")
         + '</dd>'
         + '</dl>'
         + '<p class="nw-sous">Tout est calculé ici, dans la page : aucun serveur, aucune '

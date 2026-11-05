@@ -7,7 +7,7 @@
 <meta name="description" content="Cours : pourquoi SSH, OpenSSH et ses trois garanties, cryptographie asymétrique, échange Diffie-Hellman, la confiance au premier usage (TOFU) et known_hosts, la faille d'ARP, l'ARP spoofing, l'attaque de l'homme du milieu, comment SSH la détecte et les contre-mesures.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=65865a88">
+<link rel="stylesheet" href="../../assets/fiche.css?v=363d9801">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -43,7 +43,7 @@
   <p class="chapeau">Comprendre une attaque pour savoir s'en défendre. Ce chapitre suit une
      activité de lab : un attaquant tente d'intercepter une connexion SSH par
      <strong>ARP spoofing</strong> et <strong>homme du milieu</strong>. On y voit comment SSH
-     protège une connexion — chiffrement, échange de clés, identité du serveur —, par où
+     protège une connexion, chiffrement, échange de clés, identité du serveur, par où
      l'attaque passe, <strong>comment SSH la détecte</strong>, et les contre-mesures à mettre
      en place.</p>
 
@@ -53,8 +53,9 @@
       <h2>Résumé flash</h2>
       <p>SSH garantit <strong>chiffrement</strong>, <strong>authentification</strong> et
          <strong>intégrité</strong>. La clé de session se négocie par
-         <strong>Diffie-Hellman</strong> — secrète, mais qui ne dit pas <em>à qui</em> on
-         parle. L'identité du serveur repose sur son <strong>empreinte de clé</strong>,
+         <strong>Diffie-Hellman</strong> : secrète, mais qui ne dit pas <em>à qui</em> on
+         parle.</p>
+      <p>L'identité du serveur repose sur son <strong>empreinte de clé</strong>,
          enregistrée au premier usage (<strong>TOFU</strong>) dans
          <code>known_hosts</code>.</p>
       <p>L'<strong>ARP spoofing</strong> exploite qu'une réponse ARP n'est pas authentifiée
@@ -79,21 +80,21 @@
 <section id="pourquoi">
   <h2><span class="num">01</span>Pourquoi SSH existe</h2>
 
-  <p>Les premiers protocoles pour se connecter à une machine distante — <strong>Telnet</strong>,
-     <strong>FTP</strong>, <strong>RSH</strong> — datent d'une époque où le réseau était
+  <p>Les premiers protocoles pour se connecter à une machine distante, <strong>Telnet</strong>,
+     <strong>FTP</strong>, <strong>RSH</strong>, datent d'une époque où le réseau était
      considéré comme un lieu de confiance. Ils n'ont <strong>pas été conçus pour être
      sécurisés</strong> : ils transmettent tout <strong>en clair</strong>, mot de passe
      compris. Quiconque écoute le réseau lit la session.</p>
 
-  <p>D'où le besoin d'un protocole qui fasse le même travail — ouvrir un terminal distant,
-     transférer un fichier — mais <strong>à l'abri des oreilles indiscrètes</strong>. C'est
+  <p>D'où le besoin d'un protocole qui fasse le même travail, ouvrir un terminal distant,
+     transférer un fichier, mais <strong>à l'abri des oreilles indiscrètes</strong>. C'est
      <strong>SSH</strong> (<em>Secure Shell</em>). Dans un TP, <code>ssh</code> remplace
      Telnet, et <code>scp</code>/<code>sftp</code> remplacent FTP.</p>
 
   <div class="encart analogie">
     <div class="titre">🧠 La carte postale et l'enveloppe</div>
     <p>Telnet, c'est une carte postale : tout facteur qui la touche lit le message. SSH, c'est
-       une enveloppe scellée — et mieux : une enveloppe que seul le destinataire peut ouvrir,
+       une enveloppe scellée, et mieux : une enveloppe que seul le destinataire peut ouvrir,
        et dont il peut vérifier qu'elle n'a pas été décachetée en route.</p>
   </div>
 </section>
@@ -117,7 +118,7 @@
   </div>
   <p class="rap">L'attaque de ce chapitre vise la deuxième garantie,
      l'<strong>authentification du serveur</strong> : si l'attaquant arrive à se faire passer
-     pour le serveur, le chiffrement ne protège plus de rien — on chiffre pour lui.</p>
+     pour le serveur, le chiffrement ne protège plus de rien, on chiffre pour lui.</p>
 </section>
 <section id="asym">
   <h2><span class="num">03</span>Clé publique, clé privée</h2>
@@ -130,24 +131,25 @@
   </ul>
   <p>Ce qui est chiffré avec l'une ne se déchiffre qu'avec l'autre. Le serveur garde ses clés
      d'hôte dans <code>/etc/ssh/</code> (par exemple <code>ssh_host_ed25519_key</code> pour la
-     privée, <code>.pub</code> pour la publique), avec des permissions strictes — la clé privée
+     privée, <code>.pub</code> pour la publique), avec des permissions strictes : la clé privée
      n'est lisible que par root.</p>
 
   <div class="encart savoir">
     <div class="titre">💡 L'empreinte, version courte de la clé publique</div>
-    <p>Une clé publique fait plusieurs centaines de caractères — illisible à l'œil. On en
+    <p>Une clé publique fait plusieurs centaines de caractères : illisible à l'œil. On en
        calcule donc une <strong>empreinte</strong> (<em>fingerprint</em>), un condensé court
-       et unique, du genre <code>SHA256:lPIxEKxsYHPP3i7iMiZZXLYUoW9viLwSfF39MNoWlM4</code>.
-       Deux clés différentes donnent deux empreintes différentes : c'est ce qu'on compare pour
+       et unique, du genre <code>SHA256:lPIxEKxsYHPP3i7iMiZZXLYUoW9viLwSfF39MNoWlM4</code>.</p>
+    <p>Deux clés différentes donnent deux empreintes différentes : c'est ce qu'on compare pour
        vérifier qu'on parle au bon serveur.</p>
   </div>
 </section>
 <section id="diffie">
   <h2><span class="num">04</span>L'échange Diffie-Hellman</h2>
 
-  <p>Le chiffrement proprement dit utilise une clé <strong>symétrique</strong> — la même des
+  <p>Le chiffrement proprement dit utilise une clé <strong>symétrique</strong> : la même des
      deux côtés, rapide. Mais comment client et serveur se mettent-ils d'accord sur une clé
-     secrète commune <strong>sans jamais la faire transiter</strong> sur le réseau ? Par
+     secrète commune <strong>sans jamais la faire transiter</strong> sur le réseau ?</p>
+  <p>Par
      l'<strong>échange de clés Diffie-Hellman</strong>. L'image classique est celle des
      couleurs :</p>
 
@@ -173,10 +175,10 @@
       <text class="dh-s" x="280" y="158">couleurs publiques, échangées</text>
       <text class="dh-s" x="280" y="188">(orange et vert d'eau transitent sur le réseau)</text>
       <circle cx="280" cy="216" r="18" fill="#6B4A2E" stroke="var(--bord-fort)"/>
-      <text class="dh-t" x="280" y="246" style="fill:var(--encre)">même secret partagé — jamais transmis</text>
+      <text class="dh-t" x="280" y="246" style="fill:var(--encre)">même secret partagé, jamais transmis</text>
     </svg>
     <figcaption>Chacun mélange sa couleur secrète à la base commune, échange le résultat, puis
-      y remélange son secret. Les deux obtiennent la même couleur finale — qu'aucun espion n'a
+      y remélange son secret. Les deux obtiennent la même couleur finale · qu'aucun espion n'a
       vue passer, car seuls les mélanges intermédiaires ont circulé.</figcaption>
   </figure>
 
@@ -199,22 +201,25 @@
 
   <p>Contrairement à HTTPS, SSH n'utilise pas, par défaut, d'autorité centrale qui garantirait
      l'identité des serveurs. Il emploie une approche plus simple :
-     <strong>TOFU</strong> — <em>Trust On First Use</em>, « faire confiance au premier
-     usage ». La toute première fois qu'on se connecte à un serveur, le client affiche :</p>
+     <strong>TOFU</strong>, <em>Trust On First Use</em>, « faire confiance au premier
+     usage ».</p>
+  <p>La toute première fois qu'on se connecte à un serveur, le client affiche :</p>
 <div class="bloc-code" data-fam="bash" style="--car:80"><span class="langue">terminal</span><pre><code><span class="j-fn">etuciel</span>@clissh:~$ ssh etuciel@exemple.fr
 The authenticity of host <span class="j-txt">'exemple.fr (192.168.56.10)'</span> can't be established.
 ED25519 key fingerprint is SHA256:ehuFqeaDT90nXN8dY1a6HYuOoDouws5z693TOfU1dXs.
 Are you sure you want to continue connecting (yes/no)? yes
 Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) to the list of known hosts.</code></pre></div>
   <p>Le client dit : « je ne connais pas encore ce serveur ; voici son empreinte, est-ce bien
-     lui ? ». En répondant <code>yes</code>, on <strong>enregistre l'empreinte</strong>. C'est
+     lui ? ».</p>
+  <p>En répondant <code>yes</code>, on <strong>enregistre l'empreinte</strong>. C'est
      l'acte de foi : on parie que, cette première fois, personne ne s'interpose.</p>
 
   <div class="encart piege">
     <div class="titre">⚠️ Le maillon faible, c'est l'habitude de dire « yes »</div>
     <p>TOFU ne tient que si l'utilisateur <strong>vérifie réellement</strong> l'empreinte la
-       première fois — en la comparant à celle que l'administrateur lui a communiquée par un
-       autre canal. En pratique, beaucoup tapent <code>yes</code> sans regarder. Un attaquant
+       première fois : en la comparant à celle que l'administrateur lui a communiquée par un
+       autre canal.</p>
+    <p>En pratique, beaucoup tapent <code>yes</code> sans regarder. Un attaquant
        déjà en place <em>à ce moment-là</em> fait accepter sa propre empreinte, et le piège
        est posé pour toutes les connexions suivantes.</p>
   </div>
@@ -233,7 +238,7 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
       <caption>Les fichiers SSH côté client, dans <code>~/.ssh/</code></caption>
       <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
       <tbody>
-        <tr><td><code>known_hosts</code></td><td>les clés des serveurs déjà visités — sert à les reconnaître</td></tr>
+        <tr><td><code>known_hosts</code></td><td>les clés des serveurs déjà visités : sert à les reconnaître</td></tr>
         <tr><td><code>id_ed25519</code> / <code>id_rsa</code></td><td>la clé <strong>privée</strong> de l'utilisateur</td></tr>
         <tr><td><code>id_ed25519.pub</code></td><td>sa clé <strong>publique</strong></td></tr>
         <tr><td><code>authorized_keys</code></td><td>(côté serveur) les clés publiques autorisées à se connecter</td></tr>
@@ -248,7 +253,7 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
 
   <div class="encart savoir">
     <div class="titre">💡 Vider <code>known_hosts</code> pour « oublier » un serveur</div>
-    <p>Dans le TP, on repart de zéro avec <code>echo &gt; ~/.ssh/known_hosts</code> — qui
+    <p>Dans le TP, on repart de zéro avec <code>echo &gt; ~/.ssh/known_hosts</code>, qui
        <strong>vide</strong> le fichier sans le supprimer. Le serveur redevient alors un
        inconnu, et la prochaine connexion repose à nouveau la question TOFU. Pour retirer une
        seule entrée, on utilise plutôt
@@ -266,15 +271,16 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
 <span class="j-num">192.168</span>.<span class="j-num">56.10</span> dev eth0 lladdr <span class="j-num">08</span>:<span class="j-num">00</span>:<span class="j-num">27</span>:aa:bb:<span class="j-num">10</span> REACHABLE
 <span class="j-num">192.168</span>.<span class="j-num">56.254</span> dev eth0 lladdr <span class="j-num">08</span>:<span class="j-num">00</span>:<span class="j-num">27</span>:aa:bb:fe REACHABLE</code></pre></div>
   <p>ARP a été conçu en 1982, dans le même esprit de confiance que Telnet. Sa faille est
-     structurelle : <strong>une réponse ARP n'est pas authentifiée</strong>. N'importe quelle
-     machine peut affirmer « l'IP 192.168.56.10, c'est MOI » — et les autres la croient, en
+     structurelle : <strong>une réponse ARP n'est pas authentifiée</strong>.</p>
+  <p>N'importe quelle
+     machine peut affirmer « l'IP 192.168.56.10, c'est MOI », et les autres la croient, en
      mettant à jour leur cache. Personne ne vérifie.</p>
 
   <div class="encart piege">
     <div class="titre">⚠️ Le cache accepte même une réponse jamais demandée</div>
     <p>La plupart des systèmes acceptent une réponse ARP <strong>gratuite</strong>
        (<em>gratuitous ARP</em>) : une annonce non sollicitée. Un attaquant n'a donc même pas
-       besoin d'attendre une question — il envoie ses fausses associations en boucle, et les
+       besoin d'attendre une question : il envoie ses fausses associations en boucle, et les
        caches se laissent empoisonner.</p>
   </div>
 </section>
@@ -292,7 +298,7 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
   <p>Résultat : les deux victimes croient se parler, mais <strong>envoient tout à
      l'attaquant</strong>. On le constate en comparant les caches ARP avant et après : deux IP
      différentes se mettent à pointer vers la <strong>même</strong> MAC, celle de
-     l'attaquant — une incohérence qui est la signature de l'attaque.</p>
+     l'attaquant, une incohérence qui est la signature de l'attaque.</p>
 
   <figure class="schema">
     <svg viewBox="0 0 520 210" role="img" aria-label="Avant l'attaque, client et serveur se parlent directement ; après, tout passe par l'attaquant">
@@ -336,7 +342,7 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
       <thead><tr><th>Mécanisme</th><th>Pourquoi il est indispensable à l'attaque</th></tr></thead>
       <tbody>
         <tr><td><strong>Routage activé</strong> sur la machine de l'attaquant (<code>ip_forward</code>)</td>
-            <td>sans lui, les paquets reçus pour le serveur seraient abandonnés : la communication serait coupée, et l'attaque trahie. Avec lui, l'attaquant <strong>relaie</strong> vers le vrai serveur — la victime ne voit rien.</td></tr>
+            <td>sans lui, les paquets reçus pour le serveur seraient abandonnés : la communication serait coupée, et l'attaque trahie. Avec lui, l'attaquant <strong>relaie</strong> vers le vrai serveur : la victime ne voit rien.</td></tr>
         <tr><td><strong>Redirection de port</strong> (le flux SSH détourné vers un outil d'interception)</td>
             <td>pour que le trafic ne soit pas seulement <em>transmis</em>, mais <em>traité</em> par l'outil de l'attaquant, qui joue le rôle du serveur côté client et du client côté serveur.</td></tr>
       </tbody>
@@ -344,15 +350,15 @@ Warning: Permanently added <span class="j-txt">'192.168.56.10'</span> (ED25519) 
   </div>
 
   <p>Face au client, l'attaquant présente <strong>sa propre</strong> clé de serveur SSH. Un
-     échange Diffie-Hellman a lieu — parfaitement chiffré — <strong>avec l'attaquant</strong>.
-     Le chiffrement fonctionne ; c'est l'identité qui est fausse. Tout repose alors sur une
+     échange Diffie-Hellman a lieu, parfaitement chiffré, <strong>avec l'attaquant</strong>.</p>
+  <p>Le chiffrement fonctionne ; c'est l'identité qui est fausse. Tout repose alors sur une
      seule question : le client va-t-il <strong>remarquer</strong> que la clé n'est pas celle
      qu'il connaît ?</p>
 
   <div class="encart savoir">
     <div class="titre">💡 Pourquoi viser SSH, qui est chiffré ?</div>
     <p>Justement parce qu'on ne peut pas le lire de l'extérieur. L'attaquant ne casse pas le
-       chiffrement — c'est hors de portée. Il se met à un endroit où les données sont
+       chiffrement, c'est hors de portée. Il se met à un endroit où les données sont
        <strong>en clair</strong> : à l'intérieur de la session, là où lui-même tient le rôle
        du serveur. Le chiffrement, il le refait lui-même de l'autre côté.</p>
   </div>
@@ -372,7 +378,8 @@ Someone could be eavesdropping on you right now (man-in-the-middle attack)!
 ...
 Host key verification failed.</code></pre></div>
   <p>Le message est explicite : <em>REMOTE HOST IDENTIFICATION HAS CHANGED</em>, et même
-     <em>Someone could be eavesdropping on you right now (man-in-the-middle attack)</em>. SSH
+     <em>Someone could be eavesdropping on you right now (man-in-the-middle attack)</em>.</p>
+  <p>SSH
      refuse carrément la connexion (<em>Host key verification failed</em>). C'est
      <strong>l'authentification du serveur qui fait son travail</strong> : l'empreinte reçue
      ne correspond pas à l'empreinte connue, donc l'interlocuteur n'est pas le bon.</p>
@@ -381,20 +388,22 @@ Host key verification failed.</code></pre></div>
     <div class="titre">⚠️ L'attaque n'a réussi que parce que le cache avait été vidé</div>
     <p>Dans le TP, la première connexion piégée passe <strong>parce qu'on a d'abord vidé
        <code>known_hosts</code></strong> : le serveur était redevenu un inconnu, et TOFU a fait
-       accepter la clé de l'attaquant. Sur un client qui avait <strong>déjà</strong> la vraie
+       accepter la clé de l'attaquant.</p>
+    <p>Sur un client qui avait <strong>déjà</strong> la vraie
        clé, l'attaque aurait buté dès la première tentative sur le gros avertissement
-       ci-dessus. La leçon : <code>known_hosts</code> est une protection — à condition de ne
+       ci-dessus.</p>
+    <p>La leçon : <code>known_hosts</code> est une protection, à condition de ne
        pas l'effacer, et de ne pas ignorer ses alertes.</p>
   </div>
 </section>
 <section id="contremesures">
   <h2><span class="num">11</span>Les contre-mesures</h2>
 
-  <p>L'attaque touche deux niveaux — la couche 2 (ARP) et l'application (SSH). On se défend aux
+  <p>L'attaque touche deux niveaux : la couche 2 (ARP) et l'application (SSH). On se défend aux
      deux.</p>
 
   <div class="encart outils">
-    <div class="titre">🛠️ Contre l'ARP spoofing — sur le réseau</div>
+    <div class="titre">🛠️ Contre l'ARP spoofing · sur le réseau</div>
     <ul>
       <li><strong>Entrées ARP statiques</strong> pour les machines sensibles : une association
           IP-MAC figée que le cache ne met plus à jour.</li>
@@ -407,7 +416,7 @@ Host key verification failed.</code></pre></div>
   </div>
 
   <div class="encart outils">
-    <div class="titre">🛠️ Contre le MITM sur SSH — côté utilisateur et serveur</div>
+    <div class="titre">🛠️ Contre le MITM sur SSH · côté utilisateur et serveur</div>
     <ul>
       <li><strong>Ne jamais ignorer l'avertissement de changement de clé.</strong> C'est la
           dernière ligne de défense, et elle est efficace.</li>
@@ -439,7 +448,7 @@ Host key verification failed.</code></pre></div>
       <li><strong>Clé privée / clé publique</strong> : la privée ne sort jamais ; on compare
           l'<strong>empreinte</strong> de la publique.</li>
       <li><strong>Diffie-Hellman</strong> fabrique une clé de session secrète sans la
-          transmettre — mais ne prouve pas l'identité.</li>
+          transmettre, mais ne prouve pas l'identité.</li>
       <li><strong>TOFU</strong> : l'empreinte est acceptée au premier usage et rangée dans
           <code>known_hosts</code>. À chaque reconnexion, elle est revérifiée.</li>
     </ul>
@@ -447,7 +456,7 @@ Host key verification failed.</code></pre></div>
     <ul>
       <li><strong>ARP n'authentifie rien</strong> : une machine peut usurper l'IP d'une
           autre.</li>
-      <li><strong>ARP spoofing</strong> : deux IP pointent vers la MAC de l'attaquant — il est
+      <li><strong>ARP spoofing</strong> : deux IP pointent vers la MAC de l'attaquant, il est
           au milieu.</li>
       <li><strong>MITM</strong> : routage activé + redirection de port → il relaie et présente
           <strong>sa</strong> clé SSH.</li>
@@ -468,7 +477,7 @@ Host key verification failed.</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>« Activité 1 — attaque MITM d'un service SSH et mise en place de contre-mesures »,
+      <li>« Activité 1 : attaque MITM d'un service SSH et mise en place de contre-mesures »,
           Réseau Certa (ressource pédagogique du BTS SIO/CIEL), 11 pages et 6 annexes :
           rappels historiques, OpenSSH, TOFU, configuration SSH, Diffie-Hellman et les types
           d'attaque</li>
@@ -484,7 +493,7 @@ Host key verification failed.</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/cours.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=65865a88"></script>
-<script src="../../assets/app.js?v=65865a88"></script>
+<script src="../../assets/fiche.js?v=363d9801"></script>
+<script src="../../assets/app.js?v=363d9801"></script>
 </body>
 </html>

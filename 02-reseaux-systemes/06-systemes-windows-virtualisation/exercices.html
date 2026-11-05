@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Virtualisation et installation — exercices corrigés | BTS CIEL</title>
+<title>Virtualisation et installation · exercices corrigés | BTS CIEL</title>
 <meta name="description" content="Exercices corrigés : dimensionner une VM, dérouler l'installation de Debian 12, prérequis Windows 11, configuration de Windows Server et diagnostic.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=65865a88">
+<link rel="stylesheet" href="../../assets/fiche.css?v=363d9801">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -33,7 +33,7 @@
     <span class="sep">/</span><span>Chapitre 06</span>
     <span class="sep">/</span><span class="badge">Exercices corrigés</span>
   </div>
-  <h1>Virtualisation et installation — exercices</h1>
+  <h1>Virtualisation et installation · exercices</h1>
   <p class="chapeau">Des situations concrètes de TP : dimensionner, installer, configurer,
      et surtout diagnostiquer quand ça ne marche pas.</p>
 
@@ -42,8 +42,8 @@
     <div>
       <h2>Ce qui est évalué ici</h2>
       <p>Personne ne vous demandera de réciter une suite de clics. Ce qui compte, c'est de
-         <strong>justifier chaque choix</strong> — pourquoi ce mode réseau, pourquoi cette taille
-         de disque, pourquoi une IP statique — et de savoir <strong>retrouver la panne</strong>
+         <strong>justifier chaque choix</strong>, pourquoi ce mode réseau, pourquoi cette taille
+         de disque, pourquoi une IP statique, et de savoir <strong>retrouver la panne</strong>
          quand l'installation ne se comporte pas comme prévu.</p>
     </div>
   </div>
@@ -95,10 +95,10 @@
           <div class="titre">⚠️ Les deux erreurs de dimensionnement</div>
           <ul>
             <li><strong>Tout allouer.</strong> Attribuer 5 + 5 + 5 Go sur 16 laisse 1 Go à l'hôte :
-                celui-ci se met à utiliser le fichier d'échange, et <em>tout</em> devient lent — VM
+                celui-ci se met à utiliser le fichier d'échange, et <em>tout</em> devient lent, VM
                 comprises. Gardez toujours <strong>au moins 4 Go</strong> à la machine hôte.</li>
             <li><strong>Additionner les cœurs sans réfléchir.</strong> On peut allouer plus de vCPU
-                que de cœurs physiques — l'hyperviseur les partage dans le temps —, mais si toutes
+                que de cœurs physiques, l'hyperviseur les partage dans le temps, mais si toutes
                 les VM travaillent simultanément, chacune ralentit. Sur 8 cœurs, 5 vCPU répartis
                 est raisonnable.</li>
           </ul>
@@ -120,7 +120,7 @@
   <article class="exo">
     <h3><span class="no">2</span>Choisir le mode réseau <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Pour chacune de ces situations, quel mode réseau VirtualBox choisir — <strong>NAT</strong>,
+      <p>Pour chacune de ces situations, quel mode réseau VirtualBox choisir : <strong>NAT</strong>,
          <strong>accès par pont</strong> ou <strong>réseau privé hôte</strong> ?</p>
       <ol>
         <li>Une VM Debian qui doit seulement télécharger des paquets avec <code>apt</code>.</li>
@@ -139,26 +139,27 @@
         <table>
           <thead><tr><th>Situation</th><th>Mode</th><th>Pourquoi</th></tr></thead>
           <tbody>
-            <tr><td>1 — <code>apt</code> seulement</td><td><strong>NAT</strong></td>
+            <tr><td>1 : <code>apt</code> seulement</td><td><strong>NAT</strong></td>
                 <td>La VM sort vers Internet, c'est tout ce qu'on demande. Aucune configuration,
                     aucun risque de conflit d'adresses</td></tr>
-            <tr><td>2 — serveur web consulté depuis l'hôte</td><td><strong>Accès par pont</strong></td>
+            <tr><td>2 : serveur web consulté depuis l'hôte</td><td><strong>Accès par pont</strong></td>
                 <td>Il faut que la VM soit <em>joignable</em>. En NAT, elle est invisible depuis
                     l'hôte</td></tr>
-            <tr><td>3 — maquette DHCP isolée</td><td><strong>Réseau privé hôte</strong></td>
+            <tr><td>3 : maquette DHCP isolée</td><td><strong>Réseau privé hôte</strong></td>
                 <td>Les VM se voient entre elles, et le serveur DHCP ne peut pas distribuer
                     d'adresses sur le réseau du lycée</td></tr>
-            <tr><td>4 — serveur joignable par la salle</td><td><strong>Accès par pont</strong></td>
+            <tr><td>4 : serveur joignable par la salle</td><td><strong>Accès par pont</strong></td>
                 <td>La VM reçoit une adresse sur le réseau physique et se comporte comme une vraie
                     machine</td></tr>
           </tbody>
         </table>
         </div>
         <div class="encart piege">
-          <div class="titre">⚠️ Le DHCP « sauvage » — la faute qui fâche</div>
+          <div class="titre">⚠️ Le DHCP « sauvage » · la faute qui fâche</div>
           <p>La situation 3 n'est pas un caprice pédagogique. Un serveur DHCP en mode
              <strong>pont</strong> se met à répondre aux demandes de <em>toutes</em> les machines
-             du réseau, avant le vrai serveur. Résultat : des postes qui reçoivent une mauvaise
+             du réseau, avant le vrai serveur.</p>
+          <p>Résultat : des postes qui reçoivent une mauvaise
              adresse, une mauvaise passerelle, et une salle entière déconnectée.</p>
           <p>C'est l'incident classique du TP DHCP. Un serveur DHCP en test se monte
              <strong>toujours</strong> sur un réseau isolé.</p>
@@ -167,9 +168,9 @@
           <div class="titre">🌍 Pourquoi le NAT rend la VM invisible</div>
           <p>En NAT, VirtualBox joue le rôle d'un petit routeur : la VM est dans un réseau privé
              interne (souvent <code>10.0.2.x</code>) et ses paquets sortants sont traduits avec
-             l'adresse de l'hôte. Vers l'extérieur, tout passe. Mais dans l'autre sens, aucune
-             règle ne dit où rediriger une connexion entrante : elle est simplement abandonnée.
-             C'est exactement le comportement du NAT de votre box — et c'est pourquoi il faut
+             l'adresse de l'hôte.</p>
+          <p>Vers l'extérieur, tout passe. Mais dans l'autre sens, aucune
+             règle ne dit où rediriger une connexion entrante : elle est simplement abandonnée. C'est exactement le comportement du NAT de votre box, et c'est pourquoi il faut
              configurer une redirection de port pour héberger un service chez soi.</p>
         </div>
       </div>
@@ -203,19 +204,19 @@
         <table>
           <thead><tr><th>Écran</th><th>Choix</th><th>Justification</th></tr></thead>
           <tbody>
-            <tr><td>1 — Mode</td><td><strong><code>Install</code></strong></td>
+            <tr><td>1 : Mode</td><td><strong><code>Install</code></strong></td>
                 <td>Mode console : plus simple et plus rapide. On n'installera pas d'interface
                     graphique, qui alourdirait le système inutilement</td></tr>
-            <tr><td>2 — Domaine</td><td><strong>Laissé vide</strong></td>
+            <tr><td>2 : Domaine</td><td><strong>Laissé vide</strong></td>
                 <td>Non obligatoire, et inutile pour une machine de TP isolée</td></tr>
-            <tr><td>3 — Partitionnement</td><td><strong>Assisté — utiliser un disque entier</strong></td>
+            <tr><td>3 : Partitionnement</td><td><strong>Assisté : utiliser un disque entier</strong></td>
                 <td>Le disque de 10 Go de la VM ne contient rien d'autre à préserver</td></tr>
-            <tr><td>4 — Schéma</td><td><strong>Tout dans une seule partition</strong></td>
+            <tr><td>4 : Schéma</td><td><strong>Tout dans une seule partition</strong></td>
                 <td>Recommandé pour les débutants ; suffisant pour une VM jetable</td></tr>
-            <tr><td>5 — Logiciels</td><td><strong>Utilitaires usuels du système uniquement</strong></td>
+            <tr><td>5 : Logiciels</td><td><strong>Utilitaires usuels du système uniquement</strong></td>
                 <td><strong>Décocher « Environnement de bureau Debian » et « GNOME »</strong>, qui
                     sont cochés par défaut</td></tr>
-            <tr><td>6 — GRUB</td><td><strong>Sur le disque principal</strong></td>
+            <tr><td>6 : GRUB</td><td><strong>Sur le disque principal</strong></td>
                 <td>Sans programme d'amorçage, la machine ne démarrera pas, même si le système est
                     parfaitement installé</td></tr>
           </tbody>
@@ -266,7 +267,7 @@
            gigaoctets.</p>
         <ul>
           <li><strong>Avec une partition unique :</strong> le disque entier se remplit. Plus aucun
-              fichier ne peut être écrit — ni par le système, ni par les utilisateurs. La machine
+              fichier ne peut être écrit, ni par le système, ni par les utilisateurs. La machine
               ne peut souvent même plus se connecter, car la session a besoin d'écrire. Vous
               découvrez la panne quand tout est déjà bloqué.</li>
           <li><strong>Avec <code>/var</code> séparé :</strong> seule cette partition sature. Le
@@ -275,8 +276,8 @@
         </ul>
         <div class="encart savoir">
           <div class="titre">🌍 La règle en une phrase</div>
-          <p>On sépare ce qui <strong>grossit de façon imprévisible</strong> — journaux, données
-             utilisateurs, fichiers temporaires — de ce qui doit <strong>rester
+          <p>On sépare ce qui <strong>grossit de façon imprévisible</strong>, journaux, données
+             utilisateurs, fichiers temporaires, de ce qui doit <strong>rester
              fonctionnel</strong> : le système. C'est du cloisonnement, exactement comme les
              compartiments étanches d'un navire.</p>
         </div>
@@ -324,12 +325,12 @@ Système        : carte mère → UEFI décoché, TPM : aucun</code></pre></div>
         </table>
         </div>
         <h4>Les corrections, dans la configuration de la VM</h4>
-<div class="bloc-code" style="--car:70"><span class="langue">VirtualBox — mode Expert</span><pre><code>Système → Carte mère → cocher « Activer UEFI (OS spéciaux seulement) »
+<div class="bloc-code" style="--car:70"><span class="langue">VirtualBox · mode Expert</span><pre><code>Système → Carte mère → cocher « Activer UEFI (OS spéciaux seulement) »
 Système → Carte mère → TPM : v2.0
 Système → Processeur → Nombre de processeurs virtuels : 2</code></pre></div>
         <div class="encart piege">
           <div class="titre">⚠️ Ces réglages se font AVANT le premier démarrage</div>
-          <p>Passer de BIOS hérité à UEFI change la façon dont le disque est partitionné — MBR
+          <p>Passer de BIOS hérité à UEFI change la façon dont le disque est partitionné : MBR
              contre GPT. Si l'installation a déjà commencé, le disque est au mauvais format :
              il faut <strong>supprimer la VM et recommencer</strong>.</p>
           <p>D'où le réflexe : on <strong>termine entièrement la configuration</strong> de la VM
@@ -339,7 +340,7 @@ Système → Processeur → Nombre de processeurs virtuels : 2</code></pre></div
           <div class="titre">🧰 Le quatrième réglage à ne pas oublier</div>
           <p>Le TP demande aussi de <strong>décocher <em>Proceed with Unattended Installation</em></strong>
              à la création de la VM. Cette option laisse VirtualBox installer Windows tout seul, en
-             créant un compte de son choix — vous ne verriez alors aucun des écrans d'installation,
+             créant un compte de son choix : vous ne verriez alors aucun des écrans d'installation,
              et l'objectif du TP (« créer un utilisateur local ») serait manqué.</p>
         </div>
       </div>
@@ -387,10 +388,11 @@ DNS                   127.0.0.1          ← le serveur est son propre serveur D
         <div class="encart piege">
           <div class="titre">⚠️ Le piège du DNS à <code>127.0.0.1</code></div>
           <p>Ce réglage n'est correct que <strong>parce que ce serveur héberge lui-même le service
-             DNS</strong> — ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
+             DNS</strong>, ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
           <p>Sur un serveur qui ne rend pas ce service, indiquer <code>127.0.0.1</code> en DNS le
              priverait de toute résolution de noms : il s'interrogerait lui-même et n'obtiendrait
-             rien. Si on vous demande de justifier, la réponse est <em>« parce qu'il est
+             rien.</p>
+          <p>Si on vous demande de justifier, la réponse est <em>« parce qu'il est
              lui-même serveur DNS »</em>, pas <em>« parce que c'est un serveur »</em>.</p>
         </div>
       </div>
@@ -436,14 +438,14 @@ ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></p
         <h4>2. La VM sort, mais on ne la joint pas</h4>
         <p><strong>Cause : le mode réseau NAT.</strong> C'est le mode par défaut de VirtualBox. La
            VM est derrière un routeur virtuel : elle sort, mais rien ne peut entrer.</p>
-        <p><strong>Correction :</strong> passer en <strong>accès par pont</strong> — la VM reçoit
-           alors une adresse sur le réseau physique — ou, si l'on veut rester en NAT, configurer
+        <p><strong>Correction :</strong> passer en <strong>accès par pont</strong>, la VM reçoit
+           alors une adresse sur le réseau physique, ou, si l'on veut rester en NAT, configurer
            une <strong>redirection de port</strong>.</p>
 
         <h4>3. <code>No bootable device</code></h4>
         <p><strong>Cause : GRUB.</strong> Deux possibilités :</p>
         <ul>
-          <li>le programme d'amorçage n'a pas été installé sur le disque principal — on a répondu
+          <li>le programme d'amorçage n'a pas été installé sur le disque principal : on a répondu
               « non » à l'écran GRUB, ou choisi le mauvais disque ;</li>
           <li>l'<strong>ISO est resté monté</strong> et la VM tente encore de démarrer dessus, ou
               inversement l'ordre de démarrage pointe sur le lecteur optique vide.</li>
@@ -455,21 +457,22 @@ ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></p
           <div class="titre">🌍 Le message est trompeur</div>
           <p><code>No bootable device</code> ne veut pas dire que le disque est vide ou que
              l'installation a échoué. Le système est parfaitement là : c'est seulement le
-             <em>panneau indicateur</em> — les quelques centaines d'octets du secteur d'amorçage —
+             <em>panneau indicateur</em>, les quelques centaines d'octets du secteur d'amorçage, 
              qui manque. D'où l'importance de l'écran GRUB, qu'on a tendance à valider machinalement.</p>
         </div>
 
         <h4>4. Tout rame, hôte compris</h4>
         <p><strong>Cause : sur-allocation de mémoire.</strong> On a attribué à la VM une part trop
            importante des 16 Go, et la machine hôte n'a plus assez de RAM : elle se met à utiliser
-           le fichier d'échange sur disque, ce qui ralentit <em>tout</em> — y compris la VM
+           le fichier d'échange sur disque, ce qui ralentit <em>tout</em>, y compris la VM
            elle-même.</p>
         <p><strong>Correction :</strong> réduire la mémoire allouée à la VM. Une Debian en console
            n'a besoin que de <strong>1 Go</strong>. Conservez toujours au moins 4 Go à l'hôte.</p>
         <div class="encart piege">
           <div class="titre">⚠️ Le contre-sens du « plus j'en donne, mieux c'est »</div>
           <p>Allouer 12 Go sur 16 à une VM ne la rend pas plus rapide : cela rend l'hôte
-             inutilisable, et l'hôte est <em>précisément</em> ce qui fait tourner la VM. Le
+             inutilisable, et l'hôte est <em>précisément</em> ce qui fait tourner la VM.</p>
+          <p>Le
              dimensionnement d'une VM se pense <strong>en fonction de ce qui reste à l'hôte</strong>,
              pas de ce qu'on aimerait donner à la VM.</p>
         </div>
@@ -482,13 +485,13 @@ ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></p
   <div class="recap">
     <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
     <ul>
-      <li><strong>Oublier UEFI et les 2 vCPU</strong> pour Windows 11 — et devoir tout
+      <li><strong>Oublier UEFI et les 2 vCPU</strong> pour Windows 11, et devoir tout
           recommencer.</li>
       <li><strong>Laisser GNOME coché</strong> à l'installation de Debian.</li>
       <li><strong>Rester en NAT</strong> quand on veut joindre la VM depuis l'hôte.</li>
-      <li><strong>Monter un serveur DHCP en mode pont</strong> — et déconnecter toute la salle.</li>
+      <li><strong>Monter un serveur DHCP en mode pont</strong>, et déconnecter toute la salle.</li>
       <li><strong>Sur-allouer la mémoire</strong> et étouffer la machine hôte.</li>
-      <li><strong>Justifier le DNS <code>127.0.0.1</code> par « c'est un serveur »</strong> — c'est
+      <li><strong>Justifier le DNS <code>127.0.0.1</code> par « c'est un serveur »</strong>, c'est
           parce qu'il est <em>lui-même</em> serveur DNS.</li>
     </ul>
   </div>
@@ -496,9 +499,9 @@ ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></p
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>1-TP-Installation_Debian12.pdf — tutos-info.fr</li>
+      <li>1-TP-Installation_Debian12.pdf : tutos-info.fr</li>
       <li>4-TP-Installer Windows 11 avec VirtualBox.pdf</li>
-      <li>6-1-Installation_WinServer.pdf — projet TechShop</li>
+      <li>6-1-Installation_WinServer.pdf : projet TechShop</li>
     </ul>
   </div>
 </footer>
@@ -507,7 +510,7 @@ ping www.google.fr    échoue   → le problème est FORCÉMENT le DNS</code></p
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-administration-linux/exercices.html"><span>Chapitre précédent</span><b>Administration Linux</b></a><a class="suiv" href="../07-configuration-cisco/exercices.html"><span>Chapitre suivant</span><b>Configuration Cisco</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=65865a88"></script>
-<script src="../../assets/app.js?v=65865a88"></script>
+<script src="../../assets/fiche.js?v=363d9801"></script>
+<script src="../../assets/app.js?v=363d9801"></script>
 </body>
 </html>

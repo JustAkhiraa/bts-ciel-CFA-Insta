@@ -243,7 +243,7 @@ export class InteractionManager {
         this.rappels.toast(app.nom + " n'a aucun port pour ce câble" + (type === "serie" ? " : seuls les routeurs ont des ports série." : "."), true);
         return;
       }
-      el.innerHTML = "<p>" + app.nom + " — choisir un port</p>" + ports.map((p, i) => {
+      el.innerHTML = "<p>" + app.nom + ", choisir un port</p>" + ports.map((p, i) => {
         const occ = p.cable ? "→ " + p.cable.autre(p).appareil.nom : type === "fibre" && !p.fibre ? "pas de fibre" : "libre";
         return '<button type="button" data-i="' + i + '"' + (p.cable || (type === "fibre" && !p.fibre) ? " disabled" : "") + ">"
           + p.nom + "<small>" + occ + "</small></button>";

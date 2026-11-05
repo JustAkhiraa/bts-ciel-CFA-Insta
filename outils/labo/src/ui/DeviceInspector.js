@@ -95,7 +95,7 @@ export class DeviceInspector {
     const onglets = [["config", "Configuration"], ["ports", "Ports"], ["tables", "Tables"]];
     let h = '<div class="lb-insp-tete"><canvas data-icone="' + a.type + '" aria-hidden="true"></canvas>'
       + '<div class="lb-insp-nom"><input type="text" value="' + ech(a.nom) + '" data-champ="nom" aria-label="Nom de l\'équipement" spellcheck="false">'
-      + "<small>" + MODELES[a.type] + (a.allume ? "" : " — éteint") + "</small></div>"
+      + "<small>" + MODELES[a.type] + (a.allume ? "" : ", éteint") + "</small></div>"
       + '<button type="button" class="lb-b lb-icone" data-act="terminal" title="Ouvrir le terminal" aria-label="Ouvrir le terminal">'
       + '<svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M6 8l2 2-2 2M10 12h4"/></svg></button>'
       + '<button type="button" class="lb-b lb-icone" data-act="alim" title="' + (a.allume ? "Éteindre" : "Allumer") + '" aria-label="Interrupteur"'
@@ -112,7 +112,7 @@ export class DeviceInspector {
   rendreConfigHote(a) {
     const c = a.config, p = a.carte;
     const v = (x) => (x ? x.toString() : "");
-    let h = '<section class="lb-section"><h3>Configuration IP — FastEthernet0</h3>'
+    let h = '<section class="lb-section"><h3>Configuration IP : FastEthernet0</h3>'
       + '<div class="lb-segment" role="group" aria-label="Mode d\'adressage"><button type="button" data-mode-ip="statique" aria-pressed="' + !c.dhcp + '">Statique</button>'
       + '<button type="button" data-mode-ip="dhcp" aria-pressed="' + !!c.dhcp + '">DHCP</button></div>';
     const ro = c.dhcp ? " readonly" : "";
@@ -168,12 +168,12 @@ export class DeviceInspector {
     let h = '<table class="lb-tableau"><thead><tr><th>Port</th><th>État</th><th>Relié à</th><th>' + (sw ? "VLAN" : "IP") + "</th></tr></thead><tbody>";
     for (const p of ports) {
       const e = p.etat();
-      const relie = p.cable ? p.cable.autre(p).appareil.nom + " " + p.cable.autre(p).court : p.parent ? "(sous-interface)" : p.type === "vlan" ? "(interface VLAN)" : "—";
+      const relie = p.cable ? p.cable.autre(p).appareil.nom + " " + p.cable.autre(p).court : p.parent ? "(sous-interface)" : p.type === "vlan" ? "(interface VLAN)" : "-";
       const ios = a.type === "routeur" || sw ? etatInterface(a, p) : null;
       const etatTxt = ios ? ios.statut + " / " + ios.protocole : e.texte;
       const col = p.type === "vlan" || p.parent ? (p.estUp() ? "vert" : "rouge") : e.couleur;
-      const vl = sw ? (p.type === "vlan" ? p.ip ? p.ip + "/" + p.masque.prefixe() : "—" : p.mode === "trunk" ? "trunk " + (p.allowed === "all" ? "tous" : ecrireListeVlan(p.allowed)) : p.accessVlan)
-        : p.ip ? p.ip + "/" + p.masque.prefixe() + (p.dot1q !== null ? " · dot1Q " + p.dot1q : "") : p.dot1q !== null ? "dot1Q " + p.dot1q : "—";
+      const vl = sw ? (p.type === "vlan" ? p.ip ? p.ip + "/" + p.masque.prefixe() : "-" : p.mode === "trunk" ? "trunk " + (p.allowed === "all" ? "tous" : ecrireListeVlan(p.allowed)) : p.accessVlan)
+        : p.ip ? p.ip + "/" + p.masque.prefixe() + (p.dot1q !== null ? " · dot1Q " + p.dot1q : "") : p.dot1q !== null ? "dot1Q " + p.dot1q : "-";
       h += "<tr><td>" + p.court + '</td><td class="sans" title="' + ech(e.texte) + '">' + pastille(col) + ech(etatTxt) + '</td><td class="sans">' + ech(relie) + "</td><td>" + ech(vl) + "</td></tr>";
     }
     return h + "</tbody></table>";
@@ -202,14 +202,14 @@ export class DeviceInspector {
         : '<p class="lb-vide">Vide : aucune interface active n\'a d\'adresse. <code>no shutdown</code> ?</p>') + "</section>";
       const nat = a.nat.entrees();
       if (a.nat.configure() || nat.length) {
-        const ap = (x) => (x ? x.ip + (x.port != null ? ":" + x.port : "") : "—");
+        const ap = (x) => (x ? x.ip + (x.port != null ? ":" + x.port : "") : "-");
         h += '<section class="lb-section"><h3>Traductions NAT</h3>' + (nat.length ? '<table class="lb-tableau"><thead><tr><th>Proto</th><th>Inside global</th><th>Inside local</th><th>Outside</th></tr></thead><tbody>'
-          + nat.map((e) => "<tr><td>" + (e.proto || "—") + "</td><td>" + ap(e.ig) + "</td><td>" + ap(e.il) + "</td><td>" + ap(e.og) + "</td></tr>").join("") + "</tbody></table>"
+          + nat.map((e) => "<tr><td>" + (e.proto || "-") + "</td><td>" + ap(e.ig) + "</td><td>" + ap(e.il) + "</td><td>" + ap(e.og) + "</td></tr>").join("") + "</tbody></table>"
           : '<p class="lb-vide">Aucune traduction : rien n\'est encore sorti par l\'interface « ip nat outside ».</p>') + "</section>";
       }
     }
     if (a.cdp) {
-      const v = a.cdp.liste().map((x) => "<tr><td>" + ech(x.nom) + "</td><td>" + x.local.court + "</td><td>" + ech(x.port.replace(/^GigabitEthernet/, "Gi").replace(/^FastEthernet/, "Fa")) + "</td><td>" + (x.adresse || "—") + "</td></tr>").join("");
+      const v = a.cdp.liste().map((x) => "<tr><td>" + ech(x.nom) + "</td><td>" + x.local.court + "</td><td>" + ech(x.port.replace(/^GigabitEthernet/, "Gi").replace(/^FastEthernet/, "Fa")) + "</td><td>" + (x.adresse || "-") + "</td></tr>").join("");
       h += '<section class="lb-section"><h3>Voisins CDP</h3>' + (v ? '<table class="lb-tableau"><thead><tr><th>Voisin</th><th>Ici</th><th>Chez lui</th><th>Adresse</th></tr></thead><tbody>' + v + "</tbody></table>"
         : '<p class="lb-vide">' + (a.cdp.actif ? "Aucun voisin Cisco annoncé (les PC ne parlent pas CDP)." : "CDP est désactivé (no cdp run).") + "</p>") + "</section>";
     }
@@ -226,7 +226,7 @@ export class DeviceInspector {
       + '<p class="lb-texte">' + (v.ok ? pastille("vert") + "<b>Le câble convient.</b>" : pastille("rouge") + "<b>Ce câble ne peut pas marcher.</b> " + ech(v.raison)) + "</p>"
       + '<div class="lb-champ"><label>Type</label><select data-champ="type-cable">' + Object.entries(TYPES_CABLE).map(([k, t]) => '<option value="' + k + '"' + (k === c.type ? " selected" : "") + ">" + t.nom + "</option>").join("") + "</select></div>"
       + [c.a, c.b].map((p) => '<p class="lb-texte">' + pastille(p.etat().couleur) + "<b>" + ech(p.appareil.nom) + " " + p.nom + "</b>"
-        + (c.type === "serie" ? (p.estDce() ? " (DCE ◷)" : " (DTE)") : "") + " — " + ech(p.etat().texte) + "</p>").join("")
+        + (c.type === "serie" ? (p.estDce() ? " (DCE ◷)" : " (DTE)") : "") + " · " + ech(p.etat().texte) + "</p>").join("")
       + (c.type === "serie" ? '<p class="lb-texte">Le bout <b>DCE</b> donne l\'horloge : c\'est sur lui qu\'on tape <code>clock rate 64000</code>. Sans elle, la ligne est « up » mais le protocole reste « down ».</p>'
         + '<div class="lb-rangee"><button type="button" class="lb-b" data-act="inverser-dce">Inverser DCE et DTE</button></div>' : "")
       + "</div>";
@@ -250,10 +250,10 @@ export class DeviceInspector {
           + lab.objectifs.map((o, i) => {
             const etat = v ? (v[i].ok ? "ok" : "ko") : "";
             return '<li data-etat="' + etat + '"><span class="lb-coche" aria-hidden="true">' + (etat === "ok" ? "✓" : etat === "ko" ? "✗" : "○") + "</span>"
-              + ech(o.texte) + (etat ? '<span class="lb-hors">' + (etat === "ok" ? " — atteint" : " — pas encore") + "</span>" : "") + "</li>";
+              + ech(o.texte) + (etat ? '<span class="lb-hors">' + (etat === "ok" ? ", atteint" : ", pas encore") + "</span>" : "") + "</li>";
           }).join("") + "</ul>"
           + '<div class="lb-rangee"><button type="button" class="lb-b" data-act="verifier-lab">Vérifier</button>'
-          + (v ? '<span class="lb-bilan" role="status">' + faits + " / " + v.length + (faits === v.length ? " — tout est atteint" : "") + "</span>" : "")
+          + (v ? '<span class="lb-bilan" role="status">' + faits + " / " + v.length + (faits === v.length ? ", tout est atteint" : "") + "</span>" : "")
           + "</div>"
           + '<p class="lb-note">Le labo vérifie sur une copie de votre réseau : rien de ce qu\'il essaie n\'apparaît dans le journal ni la simulation.</p>'
           + (lab.solution ? '<details class="lb-solution"><summary>Voir la solution</summary><p class="lb-texte">' + lab.solution + "</p></details>" : "")

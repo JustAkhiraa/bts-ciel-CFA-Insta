@@ -53,8 +53,8 @@ export class TerminalTabs {
       t = { app, console: console_, el, occupe: false, histo: -1, brouillon: "" };
       t.sortie = this.sortiePour(t);
       this.terms.push(t);
-      const type = console_ instanceof IOSConsole ? "Console de " + app.nom + " — IOS. « ? » pour l'aide, Tab pour compléter."
-        : app.nom + " — invite de commande. « ? » pour la liste des commandes.";
+      const type = console_ instanceof IOSConsole ? "Console de " + app.nom + ", IOS. « ? » pour l'aide, Tab pour compléter."
+        : app.nom + ", invite de commande. « ? » pour la liste des commandes.";
       t.sortie.ligne(type, "sys");
       (this.enAttente.get(app) || []).forEach((m) => t.sortie.ligne(m, "sys"));
       this.enAttente.delete(app);

@@ -70,7 +70,7 @@ export class ServiceCdp {
     const nouveau = !this.voisins.has(port.nom);
     this.voisins.set(port.nom, { ...msg, local: port, vu: this.app.reseau.horloge.t });
     this.app.noter(this.app.nom + " note son voisin CDP : " + msg.nom + " (" + msg.plateforme + "), vu sur " + port.court
-      + " par son port " + msg.port + (nouveau ? "." : " — entrée rafraîchie."));
+      + " par son port " + msg.port + (nouveau ? "." : ", entrée rafraîchie."));
     // le VLAN natif des deux bouts d'un lien de commutateurs doit être le même
     if (this.app.type === "switch" && msg.vlanNatif !== null) {
       const local = port.mode === "trunk" ? port.native : port.accessVlan;

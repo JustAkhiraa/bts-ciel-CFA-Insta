@@ -2404,7 +2404,7 @@ var MOTEUR_SQL = (function () {
   S.dump = function (nomBase) {
     var b = this.base(nomBase || this.courante);
     var self = this;
-    var out = ["-- Base « " + b.nom + " » — exportée par l'atelier BTS CIEL", "CREATE DATABASE IF NOT EXISTS `" + b.nom + "`;", "USE `" + b.nom + "`;", ""];
+    var out = ["-- Base « " + b.nom + " » : exportée par l'atelier BTS CIEL", "CREATE DATABASE IF NOT EXISTS `" + b.nom + "`;", "USE `" + b.nom + "`;", ""];
     // les tables parents d'abord
     var ordre = [], vues = new Set();
     var poser = function (t) {

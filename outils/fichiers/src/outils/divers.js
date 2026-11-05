@@ -59,7 +59,7 @@ const qrCreer = {
       if (!m) { z.innerHTML = ""; ctx.verifier(); return; }
       try {
         ctx.qr = encoderQr(m, { niveau: ctx.val("niveau") });
-        z.innerHTML = '<div class="af-qr">' + versSvg(ctx.qr) + '</div><p class="af-aide">Version ' + ctx.qr.version + " — " + ctx.qr.taille + " × " + ctx.qr.taille + " modules, " + new TextEncoder().encode(m).length + " octets.</p>";
+        z.innerHTML = '<div class="af-qr">' + versSvg(ctx.qr) + '</div><p class="af-aide">Version ' + ctx.qr.version + " · " + ctx.qr.taille + " × " + ctx.qr.taille + " modules, " + new TextEncoder().encode(m).length + " octets.</p>";
         ctx.statut("");
       } catch (e) { z.innerHTML = ""; ctx.statut(e.message, true); }
       ctx.verifier();
@@ -86,7 +86,7 @@ const qrCreer = {
 function decrireQr(texte) {
   let h = '<div class="af-info-boite"><b>Contenu lu :</b><pre class="af-code af-pre">' + esc(texte) + "</pre>" + boutonCopier(texte);
   const wifi = /^WIFI:/i.test(texte) ? Object.fromEntries((texte.slice(5).match(/([A-Z]):((?:\\.|[^;])*)/gi) || []).map((p) => [p[0].toUpperCase(), p.slice(2).replace(/\\(.)/g, "$1")])) : null;
-  if (wifi) h += "<p>Réseau Wi-Fi <b>" + esc(wifi.S || "?") + "</b>" + (wifi.P ? " — mot de passe : <code>" + esc(wifi.P) + "</code> " + boutonCopier(wifi.P, "Copier le mot de passe") : " (ouvert)") + "</p>";
+  if (wifi) h += "<p>Réseau Wi-Fi <b>" + esc(wifi.S || "?") + "</b>" + (wifi.P ? ", mot de passe : <code>" + esc(wifi.P) + "</code> " + boutonCopier(wifi.P, "Copier le mot de passe") : " (ouvert)") + "</p>";
   else if (/^https?:\/\//i.test(texte)) {
     let hote = "";
     try { hote = new URL(texte).hostname; } catch (e) { hote = "?"; }
@@ -96,7 +96,7 @@ function decrireQr(texte) {
   return h + "</div>";
 }
 const qrLire = {
-  id: "qr-lire", titre: "Lire un QR code", resume: "Avec la caméra, ou dans une photo / capture d'écran — sans application.",
+  id: "qr-lire", titre: "Lire un QR code", resume: "Avec la caméra, ou dans une photo / capture d'écran : sans application.",
   mots: "scanner flasher qrcode camera decoder lire",
   description: "Le décodage se fait ici même : l'image de la caméra ne sort pas de l'appareil. Un QR code dans une capture d'écran se lit aussi (choisissez l'image).",
   entree: null,
@@ -155,9 +155,9 @@ const zipCreer = {
   },
 };
 const zipOuvrir = {
-  id: "zip-ouvrir", titre: "Ouvrir un ZIP", resume: "Voir ce que contient une archive et en sortir un fichier — même sur un téléphone.",
+  id: "zip-ouvrir", titre: "Ouvrir un ZIP", resume: "Voir ce que contient une archive et en sortir un fichier : même sur un téléphone.",
   mots: "dezipper decompresser extraire archive zip ouvrir word docx images",
-  description: "Astuce : un document .docx, .xlsx, .pptx ou .odt est un ZIP — on y retrouve ses images d'origine, dans le dossier « media ».",
+  description: "Astuce : un document .docx, .xlsx, .pptx ou .odt est un ZIP, on y retrouve ses images d'origine, dans le dossier « media ».",
   entree: { types: ["zip", "bureautique"], multiple: false, min: 1, libelle: "Choisir une archive ZIP" },
   sansBouton: true,
   surFichiers(ctx) {
@@ -166,7 +166,7 @@ const zipOuvrir = {
     let entrees;
     try { entrees = lireZip(f.octets).filter((e) => !e.dossier); }
     catch (e) { ctx.zone.innerHTML = '<p class="af-alerte">' + esc(e.message) + "</p>"; return; }
-    ctx.zone.innerHTML = '<p class="af-aide">' + entrees.length + " fichier(s) — " + taille(entrees.reduce((s, e) => s + e.taille, 0)) + " une fois décompressés.</p>" +
+    ctx.zone.innerHTML = '<p class="af-aide">' + entrees.length + " fichier(s) : " + taille(entrees.reduce((s, e) => s + e.taille, 0)) + " une fois décompressés.</p>" +
       '<table class="af-tableau"><tr><th>Fichier</th><th>Taille</th><th></th></tr>' +
       entrees.map((e, i) => "<tr><td><code>" + esc(e.nom) + "</code>" + (e.chiffre ? ' <span class="af-ko">🔒</span>' : "") + "</td><td>" + taille(e.taille) + '</td><td><button type="button" class="af-mini" data-i="' + i + '" aria-label="Télécharger ' + esc(e.nom) + '">⤓</button></td></tr>').join("") + "</table>";
     ctx.zone.onclick = async (ev) => {
@@ -196,7 +196,7 @@ const empreinte = {
       ctx.statut("Calcul pour « " + f.nom + " »…");
       const r = { "MD5": hex(md5(f.octets)) };
       for (const a of ["SHA-1", "SHA-256", "SHA-512"]) r[a] = hex(new Uint8Array(await crypto.subtle.digest(a, f.octets)));
-      h += '<table class="af-tableau"><tr><th colspan="3">' + esc(f.nom) + " — " + taille(f.taille) + "</th></tr>" +
+      h += '<table class="af-tableau"><tr><th colspan="3">' + esc(f.nom) + " · " + taille(f.taille) + "</th></tr>" +
         Object.entries(r).map(([a, v]) => {
           const ok = attendue && v === attendue;
           if (ok) trouve = true;
@@ -291,7 +291,7 @@ const motsDePasse = {
       if (!liste.length) { sortie.innerHTML = '<p class="af-alerte">Cochez au moins une sorte de caractères.</p>'; return; }
       const bits = liste[0].bits;
       sortie.innerHTML = liste.map((r) => "<div><code>" + esc(r.mdp) + "</code>" + boutonCopier(r.mdp) + "</div>").join("") +
-        '<p class="af-aide"><b>' + Math.round(bits) + " bits</b> d'entropie — " + (bits >= 70 ? '<span class="af-ok">très solide</span>' : bits >= 50 ? "solide" : '<span class="af-ko">faible</span>') +
+        '<p class="af-aide"><b>' + Math.round(bits) + " bits</b> d'entropie : " + (bits >= 70 ? '<span class="af-ok">très solide</span>' : bits >= 50 ? "solide" : '<span class="af-ko">faible</span>') +
         ". À 10 milliards d'essais par seconde, il faudrait en moyenne " + duree(bits) + " pour le trouver.</p>";
     };
     ctx.reglages.addEventListener("input", (ev) => { if (ev.target.name !== "test") generer(); });
@@ -299,7 +299,7 @@ const motsDePasse = {
     ctx.q('[data-m="encore"]').addEventListener("click", generer);
     ctx.q('[name="test"]').addEventListener("input", () => {
       const r = estimer(ctx.val("test"));
-      ctx.q(".af-test-resultat").innerHTML = !r ? "" : '<p class="af-aide"><b>≈ ' + Math.round(r.bits) + " bits</b> — trouvé en " + duree(r.bits) + " environ." +
+      ctx.q(".af-test-resultat").innerHTML = !r ? "" : '<p class="af-aide"><b>≈ ' + Math.round(r.bits) + " bits</b> : trouvé en " + duree(r.bits) + " environ." +
         (r.notes.length ? " Points faibles : " + esc(r.notes.join(" ; ")) + "." : "") + " (Estimation grossière : un vrai pirate essaie d'abord les mots du dictionnaire et les fuites connues.)</p>";
     });
     generer();
@@ -356,7 +356,7 @@ const textePropre = {
 
 /* ── Base64 ── */
 const base64 = {
-  id: "base64", titre: "Base64", resume: "Encoder, décoder du Base64 — texte, ou fichier en adresse « data: » pour une page web.",
+  id: "base64", titre: "Base64", resume: "Encoder, décoder du Base64 : texte, ou fichier en adresse « data: » pour une page web.",
   mots: "encoder decoder base64 data uri developpeur web image",
   description: "Le Base64 écrit des octets avec 64 caractères sûrs (A-Z, a-z, 0-9, +, /) : 3 octets deviennent 4 caractères, d'où un tiers de plus.",
   entree: null,

@@ -1028,7 +1028,7 @@
           '<span class="interrupteur"></span></button></div>' +
 
         '<div class="reglage"><h3>Fond sonore</h3>' +
-        '<p>Trois ambiances calculées par la page — rien à télécharger, et aucune boucle : ' +
+        '<p>Trois ambiances calculées par la page : rien à télécharger, et aucune boucle : ' +
         'le son ne se répète jamais puisqu\'il n\'est pas enregistré.</p>' +
         '<div class="pastilles" data-champ="son">' + pastilles(FONDS, S.son || "") + "</div>" +
         '<label class="curseur-reglage"><span>Volume</span>' +
@@ -1568,7 +1568,7 @@
     var a = document.createElement("a");
     a.className = "bouton-3d";
     a.href = url;
-    a.setAttribute("aria-label", "Le village 3D — les mêmes fiches, en trois dimensions");
+    a.setAttribute("aria-label", "Le village 3D : les mêmes fiches, en trois dimensions");
     a.innerHTML = '<span class="b3d-face">3D</span>' +
                   '<span class="b3d-lueur" aria-hidden="true"></span>';
     tete.appendChild(a);
@@ -1949,7 +1949,7 @@
         '<span class="lan-ic">' + FLECHE_REPRISE + "</span>" +
         '<span class="lan-bloc"><span class="lan-l1"><span class="lan-nom">' +
         '<span class="lan-t">' + echapper(x.t) + "</span>" +
-        (i ? '<i>— vu récemment</i>' : "") +
+        (i ? '<i> : vu récemment</i>' : "") +
         "</span></span></span>" +
         '<span class="lan-entree">&#9166;</span></a></li>';
     }).join("");
@@ -2284,7 +2284,7 @@
     if (lieu && cours.length) {
       var c0 = cours[0], encours = c0[0] <= maintenant;
       lieu.textContent = (encours ? "En cours · " : jourDe(c0[0]) + " " + c0[0].slice(11, 16) + " · ")
-        + (c0[3] || "").split(":")[0].trim() + " — " + c0[2].charAt(0) + c0[2].slice(1).toLowerCase();
+        + (c0[3] || "").split(":")[0].trim() + " · " + c0[2].charAt(0) + c0[2].slice(1).toLowerCase();
     }
     remplir("tel-semaine", cours.slice(0, 8).map(function (c) {
       return '<a class="tel-carte tel-carte-cours" data-mat="' + c[4] + '" href="planning.html">'

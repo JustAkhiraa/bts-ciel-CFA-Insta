@@ -25,12 +25,12 @@ export function rendrePDU(s) {
     + '<button type="button" class="lb-b lb-icone" data-fermer-pdu title="Fermer" aria-label="Fermer l\'inspecteur de PDU">×</button></div>'
     + '<div class="lb-insp-corps">';
 
-  h += '<p class="lb-texte"><b>' + ech(f.resume()) + "</b> — " + (s.livre
+  h += '<p class="lb-texte"><b>' + ech(f.resume()) + "</b> : " + (s.livre
     ? '<span class="lb-issue ' + s.issue + '">' + ({ recue: "reçue et traitée", jetee: "jetée", ignoree: "ignorée", filtree: "filtrée" }[s.issue] || s.issue) + "</span>"
     : '<span class="lb-issue vol">encore sur le câble</span>') + "</p>";
 
   // Couche 1
-  h += couche("Couche 1 — Physique", "le câble", "<dl>"
+  h += couche("Couche 1 : Physique", "le câble", "<dl>"
     + ligne("Sortie", s.de.app.nom + " · " + s.de.port.nom)
     + ligne("Entrée", s.vers.app.nom + " · " + s.vers.port.nom)
     + ligne("Support", TYPES_CABLE[s.cable.type] || s.cable.type) + "</dl>");
@@ -38,14 +38,14 @@ export function rendrePDU(s) {
   // Couche 2
   if (f.l2 === "hdlc" || f.l2 === "ppp") {
     const ppp = f.l2 === "ppp";
-    h += couche("Couche 2 — " + (ppp ? "PPP" : "HDLC Cisco"), "liaison série point à point", "<dl>"
+    h += couche("Couche 2 : " + (ppp ? "PPP" : "HDLC Cisco"), "liaison série point à point", "<dl>"
       + ligne("Adresse", ppp ? "0xFF (toutes les stations : il n'y en a qu'une)" : "0x0F (unicast)")
       + ligne("Contrôle", ppp ? "0x03" : "0x00")
       + ligne("Protocole", f.etherType === ETHERTYPE_CDP ? (ppp ? "0x0207 (CDP)" : "0x2000 (CDP)") : ppp ? "0x0021 (IPv4)" : "0x0800 (IPv4)")
       + ligne("Adresses MAC", "aucune : un seul voisin au bout du câble, pas d'ARP")
       + "</dl>");
   } else {
-    h += couche("Couche 2 — Ethernet II", f.vlan !== null ? "trame étiquetée 802.1Q" : "trame non étiquetée", "<dl>"
+    h += couche("Couche 2 : Ethernet II", f.vlan !== null ? "trame étiquetée 802.1Q" : "trame non étiquetée", "<dl>"
       + ligne("MAC destination", f.dst.cisco() + (f.dst.estDiffusion() ? "  (diffusion)" : ""))
       + ligne("MAC source", f.src.cisco())
       + ligne("Étiquette 802.1Q", f.vlan !== null ? "VLAN " + f.vlan + " (TPID 0x8100)" : "aucune")
@@ -63,24 +63,24 @@ export function rendrePDU(s) {
   } else if (f.etherType === ETHERTYPE.ARP) {
     const a = f.payload;
     h += couche("ARP", a.op === 1 ? "requête (op 1)" : "réponse (op 2)", "<dl>"
-      + ligne("Opération", a.op === 1 ? "1 — requête : « qui a " + a.targetIp + " ? »" : "2 — réponse")
+      + ligne("Opération", a.op === 1 ? "1 : requête : « qui a " + a.targetIp + " ? »" : "2 : réponse")
       + ligne("MAC émetteur", a.senderMac.cisco()) + ligne("IP émetteur", a.senderIp)
       + ligne("MAC cible", a.targetMac.cisco() + (a.op === 1 ? "  (inconnue : c'est la question)" : ""))
       + ligne("IP cible", a.targetIp) + "</dl>");
   } else {
     const p = f.payload;
-    h += couche("Couche 3 — IPv4", "paquet n° " + p.id, "<dl>"
+    h += couche("Couche 3 : IPv4", "paquet n° " + p.id, "<dl>"
       + ligne("IP source", p.src) + ligne("IP destination", p.dst + (p.dst.estDiffusionLimitee() ? "  (diffusion)" : ""))
-      + ligne("TTL", p.ttl) + ligne("Protocole", p.protocol + " — " + ({ 1: "ICMP", 6: "TCP", 17: "UDP" }[p.protocol] || "?"))
+      + ligne("TTL", p.ttl) + ligne("Protocole", p.protocol + " · " + ({ 1: "ICMP", 6: "TCP", 17: "UDP" }[p.protocol] || "?"))
       + "</dl>");
     const q = p.payload;
     if (p.protocol === PROTO.ICMP) {
-      let corps = ligne("Type", q.type + " — " + q.nom()) + ligne("Code", q.code);
+      let corps = ligne("Type", q.type + " · " + q.nom()) + ligne("Code", q.code);
       if (q.type === ICMP.ECHO_REQUEST || q.type === ICMP.ECHO_REPLY) corps += ligne("Identifiant", q.id) + ligne("Séquence", q.seq);
       if (q.origine) corps += ligne("Paquet en cause", q.origine.src + " → " + q.origine.dst);
       h += couche("ICMP", "message de contrôle", "<dl>" + corps + "</dl>");
     } else if (p.protocol === PROTO.UDP) {
-      h += couche("Couche 4 — UDP", "datagramme", "<dl>" + ligne("Port source", q.srcPort) + ligne("Port destination", q.dstPort) + "</dl>");
+      h += couche("Couche 4 : UDP", "datagramme", "<dl>" + ligne("Port source", q.srcPort) + ligne("Port destination", q.dstPort) + "</dl>");
       const d = q.data;
       if (d instanceof DhcpMessage) {
         h += couche("DHCP", d.op, "<dl>" + ligne("Message", d.op) + ligne("Transaction (xid)", "0x" + d.xid.toString(16))
@@ -94,9 +94,9 @@ export function rendrePDU(s) {
           + (d.reponses ? ligne("Réponse", d.reponses.length ? d.reponses.map((r) => r.type + " " + r.ip).join(", ") : "NXDOMAIN (nom inconnu)") : "") + "</dl>");
       }
     } else if (p.protocol === PROTO.TCP) {
-      h += couche("Couche 4 — TCP", "segment", "<dl>" + ligne("Port source", q.srcPort) + ligne("Port destination", q.dstPort)
+      h += couche("Couche 4 : TCP", "segment", "<dl>" + ligne("Port source", q.srcPort) + ligne("Port destination", q.dstPort)
         + ligne("Drapeaux", q.flags) + ligne("Séquence", q.seq) + ligne("Acquittement", q.ack) + "</dl>");
-      if (q.data) h += couche("Couche 7 — HTTP", "données", '<dl style="grid-template-columns:1fr"><dd style="white-space:pre-wrap">' + ech(q.data) + "</dd></dl>");
+      if (q.data) h += couche("Couche 7 : HTTP", "données", '<dl style="grid-template-columns:1fr"><dd style="white-space:pre-wrap">' + ech(q.data) + "</dd></dl>");
     }
   }
 

@@ -171,7 +171,7 @@ const pdfTexte = {
 const pdfEpub = {
   id: "pdf-epub", titre: "PDF en livre numérique", resume: "Un .epub pour liseuse ou téléphone : le texte s'adapte à l'écran, ou les pages restent fixes.",
   mots: "epub livre numerique liseuse ebook lecture telephone tablette bd bande dessinee convertir",
-  description: "En texte redistribuable, la liseuse choisit la taille des lettres et le PDF est découpé en chapitres à ses titres (avec un sommaire). En pages fixes, chaque page reste une image — le bon choix pour un scan ou une bande dessinée.",
+  description: "En texte redistribuable, la liseuse choisit la taille des lettres et le PDF est découpé en chapitres à ses titres (avec un sommaire). En pages fixes, chaque page reste une image : le bon choix pour un scan ou une bande dessinée.",
   entree: UN_PDF,
   options: () => MODES("Pages fixes : chaque page devient une image, à l'identique (scan, bande dessinée)") + choixPages() + FINESSES(false),
   brancher: brancherModes,
@@ -215,7 +215,7 @@ const pdfTableur = {
 
 /* ── PDF en diaporama ── */
 const pdfDiaporama = {
-  id: "pdf-diaporama", titre: "PDF en diaporama", resume: "Une diapositive par page, en .pptx ou .odp — à l'identique, ou en zones de texte modifiables.",
+  id: "pdf-diaporama", titre: "PDF en diaporama", resume: "Une diapositive par page, en .pptx ou .odp : à l'identique, ou en zones de texte modifiables.",
   mots: "pptx odp diaporama presentation diapositive slides projeter expose oral convertir",
   description: "« Pages en images » garde l'aspect exact de chaque page (idéal pour projeter un support). « Texte modifiable » pose chaque bloc à sa place dans une zone de texte, avec ses tableaux et ses images.",
   entree: UN_PDF,

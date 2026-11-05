@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Commutation et VLAN — exercices corrigés | BTS CIEL</title>
+<title>Commutation et VLAN · exercices corrigés | BTS CIEL</title>
 <meta name="description" content="Exercices corrigés : table MAC, création de VLAN, Exolab CAVELAN, trunk 802.1Q, VLAN natif, router-on-a-stick et dépannage.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=65865a88">
+<link rel="stylesheet" href="../../assets/fiche.css?v=363d9801">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -16,7 +16,7 @@
   <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
   <h2>Sommaire</h2>
   <ol>
-    <li><a href="#concepts">1 · Commutation — les concepts</a></li>
+    <li><a href="#concepts">1 · Commutation : les concepts</a></li>
     <li><a href="#creation">2 · Créer et affecter des VLAN</a></li>
     <li><a href="#cavelan">3 · Exolab CAVELAN</a></li>
     <li><a href="#trunk-exo">4 · Trunk et VLAN natif</a></li>
@@ -34,7 +34,7 @@
     <span class="sep">/</span><span>Chapitre 08</span>
     <span class="sep">/</span><span class="badge">Exercices corrigés</span>
   </div>
-  <h1>Commutation et VLAN — exercices</h1>
+  <h1>Commutation et VLAN · exercices</h1>
   <p class="chapeau">Les Exolabs et les TP du chapitre, avec les configurations complètes et la
      méthode de dépannage.</p>
 
@@ -44,7 +44,8 @@
       <h2>La question à se poser en permanence</h2>
       <p>Devant n'importe quel problème VLAN : <strong>« est-ce un problème de couche 2 ou de
          couche 3 ? »</strong> Si deux postes du <em>même</em> VLAN ne se parlent pas, c'est la
-         couche 2. S'ils se parlent mais que deux VLAN différents ne communiquent pas, c'est la
+         couche 2.</p>
+      <p>S'ils se parlent mais que deux VLAN différents ne communiquent pas, c'est la
          couche 3. Cette seule question élimine la moitié des pistes.</p>
     </div>
   </div>
@@ -52,7 +53,7 @@
 
 <!-- ================================================================= 1 -->
 <section id="concepts">
-  <h2><span class="num">01</span>Commutation — les concepts</h2>
+  <h2><span class="num">01</span>Commutation · les concepts</h2>
 
   <article class="exo">
     <h3><span class="no">1</span>Comment le commutateur décide <span class="niveau n1">Facile</span></h3>
@@ -73,21 +74,21 @@
         <h4>1. Première trame, table vide</h4>
         <p><strong>Étape « apprendre » :</strong> il lit l'adresse MAC <strong>source</strong>
            (celle de PC-A) et l'enregistre dans sa table, associée au port d'arrivée.</p>
-        <p><strong>Étape « transférer » :</strong> il cherche la MAC de destination (PC-B) — elle
+        <p><strong>Étape « transférer » :</strong> il cherche la MAC de destination (PC-B), elle
            n'est pas dans la table. Il <strong>inonde</strong> la trame sur
            <strong>toutes les interfaces sauf celle par laquelle il l'a reçue</strong>.</p>
         <p>Il a donc appris <strong>une seule chose</strong> : où se trouve PC-A.</p>
 
         <h4>2. La réponse de PC-B</h4>
-        <p>Il apprend la MAC de PC-B et son port. Puis il cherche la destination — PC-A, qu'il
-           <strong>connaît maintenant</strong> — et transfère la trame sur le
+        <p>Il apprend la MAC de PC-B et son port. Puis il cherche la destination, PC-A, qu'il
+           <strong>connaît maintenant</strong>, et transfère la trame sur le
            <strong>seul port concerné</strong>. Plus d'inondation.</p>
         <p>C'est ainsi qu'un commutateur se « remplit » : deux trames suffisent pour qu'une
            conversation devienne parfaitement dirigée.</p>
 
         <h4>3. Le délai</h4>
         <p><strong>5 minutes.</strong> Chaque nouvelle trame venant d'une adresse déjà connue
-           réinitialise ce délai. Passé ce temps sans activité, l'entrée est supprimée — et la
+           réinitialise ce délai. Passé ce temps sans activité, l'entrée est supprimée, et la
            prochaine trame vers cet hôte provoquera à nouveau une inondation.</p>
 
         <h4>4. Les deux méthodes</h4>
@@ -97,7 +98,7 @@
           <tbody>
             <tr><td>Attend</td><td>La <strong>trame entière</strong></td><td>Juste la MAC de
                 destination</td></tr>
-            <tr><td>Vérifie</td><td class="rep-ok">Oui — le FCS, donc la validité</td>
+            <tr><td>Vérifie</td><td class="rep-ok">Oui : le FCS, donc la validité</td>
                 <td class="rep-non">Non</td></tr>
             <tr><td>Latence</td><td>Plus élevée</td><td class="rep-ok">Minimale</td></tr>
             <tr><td>Trames corrompues</td><td class="rep-ok">Arrêtées</td>
@@ -105,7 +106,7 @@
           </tbody>
         </table>
         </div>
-        <p><strong>Cisco privilégie <em>store and forward</em></strong> — c'est « la méthode de
+        <p><strong>Cisco privilégie <em>store and forward</em></strong>, c'est « la méthode de
            commutation LAN principale de Cisco ». Le gain de latence du cut-through ne compense pas
            le fait de propager des trames abîmées à travers tout le réseau.</p>
         <div class="encart piege">
@@ -129,8 +130,8 @@
     <div class="enonce">
       <p>Sur le commutateur S1, écrivez la configuration complète pour :</p>
       <ul>
-        <li>créer <strong>VLAN 10 — Enseignants</strong>, <strong>VLAN 20 — Student</strong>,
-            <strong>VLAN 99 — Gestion</strong> ;</li>
+        <li>créer <strong>VLAN 10, Enseignants</strong>, <strong>VLAN 20, Student</strong>,
+            <strong>VLAN 99 : Gestion</strong> ;</li>
         <li>affecter les ports <code>fa0/4</code> à <code>fa0/17</code> au VLAN 20 ;</li>
         <li>affecter le port <code>fa0/18</code> au VLAN 20 ;</li>
         <li>configurer l'interface de gestion avec <code>172.17.99.11/24</code> et la passerelle
@@ -142,7 +143,7 @@
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="cisco" style="--car:59"><span class="langue">Cisco IOS — S1</span><pre><code><span class="j-var">S1#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
+<div class="bloc-code" data-fam="cisco" style="--car:59"><span class="langue">Cisco IOS · S1</span><pre><code><span class="j-var">S1#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
 
 <span class="j-com">! ─── création des VLAN ───────────────────────────────────</span>
 <span class="j-var">S1(config)#</span><span class="j-mc"> vlan</span> <span class="j-num">10</span>
@@ -176,7 +177,7 @@
 <span class="j-var">S1#</span><span class="j-mc"> show</span> interfaces <span class="j-typ">fa0/18</span> <span class="j-att">switchport</span>     ← le détail d'un port
 <span class="j-var">S1#</span><span class="j-mc"> show</span> <span class="j-att">ip</span> <span class="j-att">interface</span> brief               ← l'état du SVI</code></pre></div>
         <div class="encart outils">
-          <div class="titre">🧰 <code>interface range</code> — l'économie de temps</div>
+          <div class="titre">🧰 <code>interface range</code> l'économie de temps</div>
           <p><code>interface range fa0/4 - 18</code> applique les commandes suivantes aux
              15 ports d'un coup. Les espaces autour du tiret sont <strong>obligatoires</strong> dans
              la syntaxe Cisco.</p>
@@ -185,7 +186,7 @@
         </div>
         <div class="encart piege">
           <div class="titre">⚠️ Le SVI est sur le VLAN 99, pas sur le VLAN 1</div>
-          <p><code>interface vlan 99</code> — pas <code>interface vlan 1</code>. C'est tout l'objet
+          <p><code>interface vlan 99</code>, pas <code>interface vlan 1</code>. C'est tout l'objet
              de la recommandation de sécurité : le trafic de gestion doit être séparé du trafic
              utilisateur, et surtout ne pas rester sur le VLAN par défaut.</p>
           <p>Corollaire : le VLAN 99 doit <strong>exister</strong> (créé plus haut) et être
@@ -237,7 +238,7 @@
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="cisco" style="--car:66"><span class="langue">Cisco IOS — configuration identique sur chaque switch</span><pre><code><span class="j-var">Switch#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
+<div class="bloc-code" data-fam="cisco" style="--car:66"><span class="langue">Cisco IOS · configuration identique sur chaque switch</span><pre><code><span class="j-var">Switch#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
 <span class="j-var">Switch(config)#</span><span class="j-mc"> hostname</span><span class="j-txt"> SW1</span>
 
 <span class="j-com">! ─── création des VLAN — noms en MAJUSCULES (auto-correction) ───</span>
@@ -281,8 +282,8 @@
         <h4>Vérifier l'étanchéité des VLAN</h4>
         <p>Deux méthodes, complémentaires :</p>
         <ol>
-          <li><strong>Par le ping.</strong> Un poste ADMIN doit joindre les autres postes ADMIN —
-              y compris sur un autre étage, grâce aux trunks — et
+          <li><strong>Par le ping.</strong> Un poste ADMIN doit joindre les autres postes ADMIN, 
+              y compris sur un autre étage, grâce aux trunks, et
               <strong>ne doit joindre aucun poste DEV ni COMMERCIAL</strong>. L'échec est ici le
               résultat attendu.</li>
           <li><strong>Par le mode simulation de Packet Tracer.</strong> On observe la diffusion des
@@ -304,7 +305,7 @@
         <div class="encart piege">
           <div class="titre">⚠️ Trois détails qui font échouer l'auto-correction</div>
           <ul>
-            <li><strong>Les noms de VLAN en MAJUSCULES</strong> — l'énoncé le précise
+            <li><strong>Les noms de VLAN en MAJUSCULES</strong> : l'énoncé le précise
                 explicitement.</li>
             <li><strong>Le raccordement des postes aux <em>premiers</em> ports de chaque VLAN</strong> :
                 serveur ADMIN sur le port 1, serveur DEV sur le port 7, ADM11 sur le port 1 de
@@ -316,13 +317,14 @@
         </div>
         <div class="encart savoir">
           <div class="titre">🌍 Pourquoi ce cahier des charges est réaliste</div>
-          <p>« Les bureaux sont dispersés sur les 3 étages, sans réel regroupement géographique » —
-             c'est exactement la situation qui justifie les VLAN. Sans eux, il faudrait un réseau
+          <p>« Les bureaux sont dispersés sur les 3 étages, sans réel regroupement géographique », 
+             c'est exactement la situation qui justifie les VLAN.</p>
+          <p>Sans eux, il faudrait un réseau
              physique par service, donc un câblage par service dans chaque étage.</p>
           <p>Avec des VLAN par port, on garde <strong>un seul câblage</strong> et l'on rattache
-             chaque prise au bon service par configuration. Quand un développeur déménage au
-             3<sup>e</sup> étage, on change une ligne dans le switch au lieu de tirer un câble.
-             C'est la « flexibilité par rapport à l'emplacement géographique » demandée par
+             chaque prise au bon service par configuration.</p>
+          <p>Quand un développeur déménage au
+             3<sup>e</sup> étage, on change une ligne dans le switch au lieu de tirer un câble. C'est la « flexibilité par rapport à l'emplacement géographique » demandée par
              l'énoncé.</p>
         </div>
       </div>
@@ -359,21 +361,22 @@
         <ul>
           <li>à l'<strong>ajout</strong> de l'étiquette, en entrant sur le trunk ;</li>
           <li>à la <strong>suppression</strong> de l'étiquette, en sortant vers un périphérique
-              terminal — pour que le FCS retrouve sa valeur d'origine.</li>
+              terminal : pour que le FCS retrouve sa valeur d'origine.</li>
         </ul>
         <p>Un PC ordinaire ne comprend pas les trames étiquetées : l'étiquette n'existe
            <strong>que sur le trunk</strong>.</p>
 
         <h4>2. Le VID</h4>
         <p><strong>12 bits</strong>, soit 2<sup>12</sup> = <strong>4096 valeurs</strong> codables
-           (0 à 4095). Mais deux sont réservées — le <strong>0</strong> (priorité sans VLAN) et le
+           (0 à 4095). Mais deux sont réservées : le <strong>0</strong> (priorité sans VLAN) et le
            <strong>4095</strong> (réservé à l'implémentation).</p>
         <p>Le nombre de VLAN <strong>réellement utilisables est donc 4094</strong>, de 1 à 4094.</p>
         <div class="encart corrige">
           <div class="titre">🔧 Nuance par rapport au cours</div>
           <p>Le diaporama annonce « jusqu'à 4096 ID de VLAN ». C'est exact pour le nombre de valeurs
              que le champ peut coder, mais si la question porte sur le nombre de VLAN
-             <em>créables</em>, la réponse attendue est <strong>4094</strong>. Précisez la
+             <em>créables</em>, la réponse attendue est <strong>4094</strong>.</p>
+          <p>Précisez la
              distinction : cela montre que vous savez d'où vient le chiffre.</p>
         </div>
 
@@ -382,7 +385,7 @@
            est le 1, reçoit ces trames non étiquetées et les considère comme appartenant au
            <strong>VLAN 1</strong>.</p>
         <p><strong>Conséquence :</strong> le trafic <em>change de VLAN</em> en traversant le câble.
-           Les deux domaines de diffusion fusionnent partiellement — c'est une fuite, et une faille
+           Les deux domaines de diffusion fusionnent partiellement, c'est une fuite, et une faille
            de sécurité.</p>
         <p>Cisco détecte l'incohérence via CDP et affiche
            <code>%CDP-4-NATIVE_VLAN_MISMATCH</code>. Si ce message apparaît en TP, c'est
@@ -391,8 +394,9 @@
         <h4>4. Pourquoi éviter le VLAN 1 comme VLAN natif</h4>
         <p>Parce que c'est la valeur <strong>par défaut, donc connue de tous</strong>. Cela ouvre la
            voie à l'attaque dite du <strong>double étiquetage</strong> : l'attaquant place deux
-           étiquettes dans sa trame, la première correspondant au VLAN natif. Le premier commutateur
-           retire cette étiquette — puisque le VLAN natif n'est pas étiqueté — et la trame poursuit
+           étiquettes dans sa trame, la première correspondant au VLAN natif.</p>
+        <p>Le premier commutateur
+           retire cette étiquette, puisque le VLAN natif n'est pas étiqueté, et la trame poursuit
            sa route avec la seconde, vers un VLAN auquel l'attaquant n'a pas accès.</p>
         <p>Déplacer le VLAN natif vers un VLAN <strong>inutilisé</strong> supprime cette
            possibilité, puisque aucun port d'accès n'y est rattaché.</p>
@@ -406,7 +410,7 @@
   <h2><span class="num">05</span>Router-on-a-stick</h2>
 
   <article class="exo">
-    <h3><span class="no">5</span>Exolab — découverte du routage inter-VLAN <span class="niveau n3">Exigeant</span></h3>
+    <h3><span class="no">5</span>Exolab · découverte du routage inter-VLAN <span class="niveau n3">Exigeant</span></h3>
     <div class="enonce">
       <p>Une maquette comporte 9 PC et 2 serveurs répartis sur <strong>trois VLAN</strong> :
          <strong>Invité (10)</strong>, <strong>Administratif (20)</strong>,
@@ -424,14 +428,14 @@
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-        <h4>Côté commutateur — le port vers le routeur</h4>
-<div class="bloc-code" data-fam="cisco" style="--car:76"><span class="langue">Cisco IOS — SW</span><pre><code><span class="j-var">SW(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">fa0/24</span>                      ← le port relié au routeur
+        <h4>Côté commutateur · le port vers le routeur</h4>
+<div class="bloc-code" data-fam="cisco" style="--car:76"><span class="langue">Cisco IOS · SW</span><pre><code><span class="j-var">SW(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">fa0/24</span>                      ← le port relié au routeur
 <span class="j-var">SW(config-if)#</span><span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
 <span class="j-var">SW(config-if)#</span><span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 10</span>,<span class="j-num">20,30</span>
 <span class="j-var">SW(config-if)#</span><span class="j-mc"> end</span></code></pre></div>
 
-        <h4>Côté routeur — une sous-interface par VLAN</h4>
-<div class="bloc-code" data-fam="cisco" style="--car:58"><span class="langue">Cisco IOS — R1</span><pre><code><span class="j-var">R1#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
+        <h4>Côté routeur · une sous-interface par VLAN</h4>
+<div class="bloc-code" data-fam="cisco" style="--car:58"><span class="langue">Cisco IOS · R1</span><pre><code><span class="j-var">R1#</span><span class="j-mc"> configure</span> <span class="j-att">terminal</span>
 
 <span class="j-var">R1(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.10</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> encapsulation</span> <span class="j-fn">dot1q</span> <span class="j-num">10</span>
@@ -473,8 +477,8 @@
                 est éteint, rien ne passe. Sur un routeur, <strong>toutes les interfaces sont
                 éteintes par défaut</strong>.</li>
             <li><strong>Numéro de sous-interface ≠ numéro de VLAN.</strong> Ce n'est pas une
-                obligation technique — <code>g0/0.1</code> avec
-                <code>encapsulation dot1q 10</code> fonctionnerait — mais c'est une convention
+                obligation technique, <code>g0/0.1</code> avec
+                <code>encapsulation dot1q 10</code> fonctionnerait, mais c'est une convention
                 universelle. S'en écarter rend la configuration illisible, et les grilles
                 d'auto-correction s'y attendent.</li>
             <li><strong>VLAN manquant dans <code>allowed vlan</code></strong> sur le trunk : le
@@ -494,17 +498,19 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
              que le montage fonctionne : le routeur considère les trois réseaux comme directement
              connectés, il peut donc router entre eux <strong>sans aucune route
              supplémentaire</strong>.</p>
-          <p>Si une ligne manque, la sous-interface correspondante est <code>down</code> — presque
+          <p>Si une ligne manque, la sous-interface correspondante est <code>down</code> : presque
              toujours à cause du <code>no shutdown</code> oublié sur l'interface physique.</p>
         </div>
 
         <div class="encart savoir">
-          <div class="titre">🌍 « Le routeur n'est pas du tout configuré » — et c'est voulu</div>
+          <div class="titre">🌍 « Le routeur n'est pas du tout configuré » · et c'est voulu</div>
           <p>L'énoncé précise que le routeur est présent physiquement mais vierge, « pour permettre
-             l'autocorrection de l'activité, qui se base sur le nom de ce routeur ». Ne le renommez
+             l'autocorrection de l'activité, qui se base sur le nom de ce routeur ».</p>
+          <p>Ne le renommez
              donc pas : la grille d'évaluation l'identifie par son nom d'usine.</p>
           <p>L'énoncé signale aussi que « la maquette comporte des parties variables aléatoires dans
-             le plan d'adressage, d'où le X ». Relevez les adresses <strong>réelles</strong> sur
+             le plan d'adressage, d'où le X ».</p>
+          <p>Relevez les adresses <strong>réelles</strong> sur
              votre maquette avec <code>ipconfig</code> sur les postes avant d'écrire quoi que ce
              soit : les valeurs données ici sont un exemple.</p>
         </div>
@@ -545,7 +551,7 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
           <tbody>
             <tr><td>1</td><td><strong>Pare-feu Windows</strong> bloquant l'ICMP, ou un port mal
                 affecté malgré les apparences</td>
-                <td><code>show vlan brief</code> — puis tester le ping <strong>dans l'autre
+                <td><code>show vlan brief</code>, puis tester le ping <strong>dans l'autre
                     sens</strong></td></tr>
             <tr><td>2</td><td>Le <strong>trunk</strong> entre S1 et S2 n'existe pas, ou le VLAN 20
                 n'est pas dans <code>allowed vlan</code></td>
@@ -558,7 +564,7 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
                 <td><code>delete vlan.dat</code> puis <code>reload</code></td></tr>
             <tr><td>5</td><td>Un port dont le VLAN a été supprimé devient
                 <strong>inactif</strong></td>
-                <td><code>show vlan brief</code> — le port n'apparaît dans aucun VLAN</td></tr>
+                <td><code>show vlan brief</code> : le port n'apparaît dans aucun VLAN</td></tr>
           </tbody>
         </table>
         </div>
@@ -568,7 +574,7 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
           <p>Deux postes du même VLAN, même sous-réseau, même commutateur : la couche 2 et la
              couche 3 sont hors de cause. Le suspect principal est le <strong>pare-feu</strong>.</p>
           <p><strong>Le test qui tranche :</strong> pinguer <em>dans l'autre sens</em>. Si B ping A
-             alors que A ne ping pas B, c'est le pare-feu de A qui bloque l'ICMP entrant — comportement
+             alors que A ne ping pas B, c'est le pare-feu de A qui bloque l'ICMP entrant : comportement
              par défaut de Windows. Aucun problème réseau ne produit cette asymétrie.</p>
         </div>
 
@@ -601,13 +607,13 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
   <div class="recap">
     <h2>⚡ Les erreurs qui coûtent le plus de points</h2>
     <ul>
-      <li><strong>Oublier <code>switchport mode access</code></strong> — le port reste en
+      <li><strong>Oublier <code>switchport mode access</code></strong> : le port reste en
           négociation dynamique.</li>
       <li><strong>Oublier <code>no shutdown</code></strong> sur l'interface physique du routeur.</li>
       <li><strong>Oublier <code>native</code></strong> sur la sous-interface du VLAN natif.</li>
       <li><strong>Oublier la passerelle par défaut</strong> sur les postes.</li>
       <li><strong>Supprimer un VLAN sans réaffecter ses ports.</strong></li>
-      <li><strong>Croire que <code>erase startup-config</code> efface les VLAN</strong> — ils sont
+      <li><strong>Croire que <code>erase startup-config</code> efface les VLAN</strong> : ils sont
           dans <code>vlan.dat</code>.</li>
     </ul>
   </div>
@@ -615,11 +621,11 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>Exolab_Exercice_VLAN-01.pdf — entreprise CAVELAN</li>
-      <li>Exolab_Decouverte_InterVlan.pdf — routage inter-VLAN et sous-interfaces</li>
-      <li>2-1 et 2-2 Cours-Commutation_vlan.pdf — le professeur</li>
+      <li>Exolab_Exercice_VLAN-01.pdf : entreprise CAVELAN</li>
+      <li>Exolab_Decouverte_InterVlan.pdf : routage inter-VLAN et sous-interfaces</li>
+      <li>2-1 et 2-2 Cours-Commutation_vlan.pdf : le professeur</li>
       <li>9-Atelier_Configuring VLANs and Trunking.pdf</li>
-      <li>2-2 Lab — Implement Inter-VLAN Routing.pdf</li>
+      <li>2-2 Lab : Implement Inter-VLAN Routing.pdf</li>
     </ul>
   </div>
 </footer>
@@ -628,7 +634,7 @@ C    172.27.30.0/24 is directly connected, GigabitEthernet0/0.30</code></pre></d
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../07-configuration-cisco/exercices.html"><span>Chapitre précédent</span><b>Configuration Cisco</b></a><a class="suiv" href="../09-routage-statique/exercices.html"><span>Chapitre suivant</span><b>Routage statique</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=65865a88"></script>
-<script src="../../assets/app.js?v=65865a88"></script>
+<script src="../../assets/fiche.js?v=363d9801"></script>
+<script src="../../assets/app.js?v=363d9801"></script>
 </body>
 </html>

@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Virtualisation et installation de systèmes — Debian, Windows 11, Windows Server | BTS CIEL</title>
+<title>Virtualisation et installation de systèmes · Debian, Windows 11, Windows Server | BTS CIEL</title>
 <meta name="description" content="Cours complet : principes de la virtualisation, installation de Debian 12 en console, Windows 11 sous VirtualBox et Windows Server 2019.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=65865a88">
+<link rel="stylesheet" href="../../assets/fiche.css?v=363d9801">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -35,16 +35,17 @@
   </div>
 
   <h1>Virtualisation et installation de systèmes</h1>
-  <p class="chapeau">Monter un parc entier — client Linux, client Windows, serveur — sur une seule
+  <p class="chapeau">Monter un parc entier, client Linux, client Windows, serveur, sur une seule
      machine, sans acheter un seul câble.</p>
 
   <div class="flash">
     <span class="pastille">📌</span>
     <div>
       <h2>Résumé flash</h2>
-      <p>Un <strong>hyperviseur</strong> — VirtualBox, Proxmox — fait tourner plusieurs
+      <p>Un <strong>hyperviseur</strong>, VirtualBox, Proxmox, fait tourner plusieurs
          <strong>machines virtuelles</strong> sur un seul matériel physique. Chaque VM démarre sur
-         une <strong>image ISO</strong> et se comporte comme un vrai ordinateur. Debian s'installe
+         une <strong>image ISO</strong> et se comporte comme un vrai ordinateur.</p>
+      <p>Debian s'installe
          <strong>en mode console</strong>, sans interface graphique, parce qu'un serveur n'en a pas
          besoin. Windows 11 exige <strong>UEFI et deux processeurs virtuels</strong>. Un serveur se
          configure toujours en <strong>IP statique</strong>.</p>
@@ -98,7 +99,7 @@
         .s  {font:10.5px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
       </style>
       <g>
-        <text class="t" x="140" y="18">Type 1 — « bare metal »</text>
+        <text class="t" x="140" y="18">Type 1, « bare metal »</text>
         <text class="s" x="140" y="34">Proxmox, ESXi, Hyper-V</text>
         <rect class="vm"  x="30"  y="44" width="66" height="34" rx="5"/><text class="l" x="63"  y="65">VM 1</text>
         <rect class="vm"  x="104" y="44" width="66" height="34" rx="5"/><text class="l" x="137" y="65">VM 2</text>
@@ -109,7 +110,7 @@
         <text class="s" x="137" y="200">→ performances maximales, en production</text>
       </g>
       <g transform="translate(300,0)">
-        <text class="t" x="140" y="18">Type 2 — « hébergé »</text>
+        <text class="t" x="140" y="18">Type 2, « hébergé »</text>
         <text class="s" x="140" y="34">VirtualBox, VMware Workstation</text>
         <rect class="vm"  x="30"  y="44" width="100" height="34" rx="5"/><text class="l" x="80"  y="65">VM 1</text>
         <rect class="vm"  x="138" y="44" width="100" height="34" rx="5"/><text class="l" x="188" y="65">VM 2</text>
@@ -126,7 +127,8 @@
   <div class="encart analogie">
     <div class="titre">💡 Analogie</div>
     <p>Un hyperviseur de <strong>type 1</strong>, c'est un immeuble construit dès l'origine en
-       appartements : chaque locataire a ses murs, tout est optimisé pour ça. Un hyperviseur de
+       appartements : chaque locataire a ses murs, tout est optimisé pour ça.</p>
+    <p>Un hyperviseur de
        <strong>type 2</strong>, c'est une grande maison où l'on a aménagé des chambres d'hôtes :
        ça marche très bien, mais tout le monde passe par le couloir du propriétaire.</p>
   </div>
@@ -134,9 +136,10 @@
   <div class="encart savoir">
     <div class="titre">🌍 Pourquoi tout est virtualisé aujourd'hui</div>
     <p>Un serveur physique dédié à un seul service utilise en moyenne 10 à 15 % de son processeur :
-       le reste est payé, refroidi et alimenté pour rien. La virtualisation permet d'en faire
-       tourner dix sur la même machine. S'y ajoutent l'<strong>instantané</strong> — revenir en
-       arrière après une manipulation ratée — et la <strong>migration à chaud</strong>, qui déplace
+       le reste est payé, refroidi et alimenté pour rien.</p>
+    <p>La virtualisation permet d'en faire
+       tourner dix sur la même machine. S'y ajoutent l'<strong>instantané</strong>, revenir en
+       arrière après une manipulation ratée, et la <strong>migration à chaud</strong>, qui déplace
        une VM d'un serveur à l'autre sans l'éteindre. C'est ce qui rend les centres de données
        modernes possibles.</p>
   </div>
@@ -183,13 +186,13 @@
   <div class="encart piege">
     <div class="titre">⚠️ Les trois modes réseau de VirtualBox</div>
     <ul>
-      <li><strong>NAT</strong> — la VM sort vers Internet, mais <strong>personne ne peut la
+      <li><strong>NAT</strong> : la VM sort vers Internet, mais <strong>personne ne peut la
           joindre</strong>, pas même l'hôte. C'est le mode par défaut, et c'est celui qui fait
           échouer la moitié des maquettes.</li>
-      <li><strong>Accès par pont</strong> (<em>bridge</em>) — la VM reçoit une adresse
+      <li><strong>Accès par pont</strong> (<em>bridge</em>) : la VM reçoit une adresse
           <strong>sur le réseau physique</strong>, comme une vraie machine. C'est le mode à choisir
           pour un serveur que l'on veut atteindre.</li>
-      <li><strong>Réseau privé hôte</strong> — un réseau isolé entre l'hôte et ses VM, sans accès
+      <li><strong>Réseau privé hôte</strong> : un réseau isolé entre l'hôte et ses VM, sans accès
           Internet. Parfait pour une maquette de laboratoire.</li>
     </ul>
     <p>Symptôme typique : « je ping Internet depuis la VM, mais je n'arrive pas à joindre la VM
@@ -222,13 +225,13 @@
     <tbody>
       <tr><td>1</td><td>Mode d'installation</td><td><strong><code>Install</code></strong> (console)</td></tr>
       <tr><td>2</td><td>Langue du système</td><td>French</td></tr>
-      <tr><td>3</td><td>Situation géographique</td><td>France — détermine le <strong>fuseau horaire</strong></td></tr>
+      <tr><td>3</td><td>Situation géographique</td><td>France : détermine le <strong>fuseau horaire</strong></td></tr>
       <tr><td>4</td><td>Disposition du clavier</td><td>Français (AZERTY)</td></tr>
       <tr><td>5</td><td>Nom de la machine</td><td><code>debian</code></td></tr>
-      <tr><td>6</td><td>Nom de domaine</td><td>Laissé <strong>vide</strong> — non obligatoire</td></tr>
+      <tr><td>6</td><td>Nom de domaine</td><td>Laissé <strong>vide</strong> : non obligatoire</td></tr>
       <tr><td>7</td><td>Mot de passe <strong>root</strong></td><td>Saisi deux fois pour confirmation</td></tr>
       <tr><td>8</td><td>Création d'un utilisateur</td><td>Nom, puis mot de passe confirmé</td></tr>
-      <tr><td>9</td><td>Partitionnement</td><td><strong>Assisté — utiliser un disque entier</strong></td></tr>
+      <tr><td>9</td><td>Partitionnement</td><td><strong>Assisté : utiliser un disque entier</strong></td></tr>
       <tr><td>10</td><td>Schéma de partitions</td><td><strong>Tout dans une seule partition</strong>
           (recommandé pour les débutants)</td></tr>
       <tr><td>11</td><td>Miroir réseau</td><td>France, puis <code>deb.debian.org</code> par défaut</td></tr>
@@ -247,7 +250,7 @@
        Debian » et « GNOME »</strong>. Ils sont sélectionnés par défaut, et beaucoup passent
        l'écran sans regarder : on se retrouve alors avec une interface graphique complète, inutile
        et lourde, sur un serveur censé être minimal.</p>
-    <p>On ne conserve que les <strong>utilitaires usuels du système</strong> — et le
+    <p>On ne conserve que les <strong>utilitaires usuels du système</strong>, et le
        <strong>serveur SSH</strong> si l'on veut administrer la machine à distance, ce qui est
        presque toujours souhaitable.</p>
   </div>
@@ -264,10 +267,10 @@
       <tr><td><strong>Tout dans une partition</strong></td><td>Une seule partition pour
           <code>/</code>, plus le <em>swap</em></td><td>Débutants, maquette, VM jetable</td></tr>
       <tr><td>Partition <code>/home</code> séparée</td><td>Les données des utilisateurs isolées du
-          système</td><td>Poste de travail — permet de réinstaller sans perdre les données</td></tr>
+          système</td><td>Poste de travail : permet de réinstaller sans perdre les données</td></tr>
       <tr><td><code>/home</code>, <code>/var</code> et <code>/tmp</code> séparés</td>
           <td>Les journaux et fichiers temporaires isolés</td>
-          <td>Serveur — un <code>/var</code> saturé n'empêche plus le système de démarrer</td></tr>
+          <td>Serveur : un <code>/var</code> saturé n'empêche plus le système de démarrer</td></tr>
     </tbody>
   </table>
   </div>
@@ -275,10 +278,10 @@
   <div class="encart savoir">
     <div class="titre">🌍 GRUB, le programme d'amorçage</div>
     <p><strong>GRUB</strong> (<em>GRand Unified Bootloader</em>) est le premier programme lancé au
-       démarrage : il affiche le menu, charge le noyau Linux en mémoire et lui passe la main.
-       L'installer « sur le disque principal » signifie l'écrire dans le secteur d'amorçage. Un
+       démarrage : il affiche le menu, charge le noyau Linux en mémoire et lui passe la main.</p>
+    <p>L'installer « sur le disque principal » signifie l'écrire dans le secteur d'amorçage. Un
        GRUB manquant ou abîmé donne le message d'erreur le plus décourageant qui soit :
-       <code>No bootable device</code> — alors que le système est parfaitement installé sur le
+       <code>No bootable device</code>, alors que le système est parfaitement installé sur le
        disque.</p>
   </div>
 </section>
@@ -306,7 +309,7 @@
   <h3>La procédure</h3>
   <ol>
     <li><strong>Télécharger l'ISO</strong> de Windows 11.</li>
-    <li><strong>Installer VirtualBox</strong> — en s'assurant de disposer d'une version à jour.</li>
+    <li><strong>Installer VirtualBox</strong> : en s'assurant de disposer d'une version à jour.</li>
     <li><strong>Créer la VM</strong> : menu <em>Machine</em> → <em>Nouvelle</em>.</li>
     <li><strong>Renseigner</strong> : nom de la VM, dossier de stockage, image ISO téléchargée,
         type <em>Microsoft Windows</em>, version <em>Windows 11 (64 bits)</em>.
@@ -337,8 +340,9 @@
     <div class="titre">🌍 Et le TPM 2.0 ?</div>
     <p>Windows 11 exige aussi une puce <strong>TPM 2.0</strong> (module de plateforme sécurisée)
        pour le chiffrement. VirtualBox sait l'émuler : dans <em>Système</em> → <em>Carte mère</em>,
-       réglez <em>TPM</em> sur <strong>v2.0</strong>. Si l'ISO refuse malgré tout, c'est
-       généralement ce paramètre qui manque — pensez-y avant de chercher des contournements
+       réglez <em>TPM</em> sur <strong>v2.0</strong>.</p>
+    <p>Si l'ISO refuse malgré tout, c'est
+       généralement ce paramètre qui manque : pensez-y avant de chercher des contournements
        hasardeux.</p>
   </div>
 </section>
@@ -369,7 +373,7 @@ DNS                  127.0.0.1           ← le serveur est SON PROPRE serveur D
     <div class="titre">🧰 Pourquoi <code>127.0.0.1</code> en DNS</div>
     <p><code>127.0.0.1</code> est l'adresse de <strong>bouclage</strong> : le serveur se désigne
        lui-même. Ce réglage n'a de sens que parce que <code>SRVTECH</code> héberge lui-même le
-       service DNS — ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
+       service DNS, ce qui est le cas d'un contrôleur de domaine Active Directory.</p>
     <p>Sur un serveur <em>quelconque</em>, indiquer <code>127.0.0.1</code> en DNS le priverait de
        toute résolution de noms. Ce n'est donc pas une règle générale : c'est la conséquence du
        rôle joué par cette machine.</p>
@@ -386,7 +390,7 @@ DNS                  127.0.0.1           ← le serveur est SON PROPRE serveur D
        fonctionner. C'est commode <strong>dans une maquette isolée</strong>, le temps de vérifier
        que le reste de la configuration est correct.</p>
     <p><strong>En production, c'est une faute grave.</strong> La bonne pratique est d'<em>ouvrir
-       les ports nécessaires</em> — et uniquement ceux-là. Si la question tombe à l'oral, dites que
+       les ports nécessaires</em>, et uniquement ceux-là. Si la question tombe à l'oral, dites que
        vous savez pourquoi on le fait en maquette, et ce qu'il faudrait faire à la place :</p>
 <div class="bloc-code" data-fam="bash" style="--car:70"><span class="langue">PowerShell</span><pre><code><span class="j-com"># au lieu de tout désactiver, ouvrir précisément ce qui est nécessaire</span>
 New-NetFirewallRule <span class="j-att">-DisplayName</span> <span class="j-txt">"HTTP entrant"</span> <span class="j-att">-Direction</span> Inbound `
@@ -403,7 +407,8 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
   <div class="encart analogie">
     <div class="titre">💡 Pourquoi une IP statique sur un serveur</div>
     <p>Un serveur, c'est une boutique : ses clients doivent la retrouver à la même adresse tous les
-       jours. Un poste de travail, c'est un client : peu importe où il se gare. Le DHCP est
+       jours. Un poste de travail, c'est un client : peu importe où il se gare.</p>
+    <p>Le DHCP est
        parfait pour les clients, catastrophique pour une boutique qui déménagerait chaque
        matin.</p>
   </div>
@@ -416,14 +421,14 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
        <code>ping www.google.fr</code> échoue avec « hôte inconnu ». D'où vient le problème ?</p>
     <button type="button">Afficher la réponse</button>
     <div class="reponse">
-      <p><strong>Le DNS.</strong> Le message « hôte inconnu » — et non « délai d'attente dépassé » —
+      <p><strong>Le DNS.</strong> Le message « hôte inconnu », et non « délai d'attente dépassé », 
          indique que la machine n'arrive pas à <em>traduire le nom</em> en adresse IP. La couche
          réseau fonctionne : la passerelle répond.</p>
       <p><strong>La cause :</strong> le serveur est configuré avec <code>DNS : 127.0.0.1</code>,
          c'est-à-dire lui-même. Or le rôle <strong>Serveur DNS</strong> n'a pas encore été installé
          et configuré. Il s'interroge lui-même et n'obtient rien.</p>
-      <p><strong>Deux solutions :</strong> installer et configurer le rôle DNS — ce qui est prévu
-         puisque ce serveur doit le rendre —, ou indiquer temporairement un DNS externe
+      <p><strong>Deux solutions :</strong> installer et configurer le rôle DNS, ce qui est prévu
+         puisque ce serveur doit le rendre, ou indiquer temporairement un DNS externe
          (<code>8.8.8.8</code>) le temps de télécharger ce qui est nécessaire.</p>
       <p><strong>Le réflexe de diagnostic :</strong> <code>ping 8.8.8.8</code> répond mais
          <code>ping google.fr</code> échoue → le problème est <strong>toujours</strong> le DNS,
@@ -443,13 +448,13 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
   <table>
     <thead><tr><th>#</th><th>Vérification</th><th>Pourquoi</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td><strong>Adressage réseau</strong> — statique sur un serveur, DHCP sur un
+      <tr><td>1</td><td><strong>Adressage réseau</strong> : statique sur un serveur, DHCP sur un
           poste</td><td>Sans cela, rien d'autre ne peut être testé</td></tr>
       <tr><td>2</td><td><strong>Nom de machine</strong> explicite</td>
           <td>Indispensable dès qu'il y a plus de trois machines</td></tr>
       <tr><td>3</td><td><strong>Mises à jour</strong> du système</td>
           <td>Une machine fraîchement installée est une machine en retard de correctifs</td></tr>
-      <tr><td>4</td><td><strong>Accès distant</strong> — SSH sous Linux, RDP sous Windows</td>
+      <tr><td>4</td><td><strong>Accès distant</strong> : SSH sous Linux, RDP sous Windows</td>
           <td>Pour ne plus avoir à s'asseoir devant la machine</td></tr>
       <tr><td>5</td><td><strong>Instantané</strong> de la VM</td>
           <td>Pour revenir à un état sain après une manipulation ratée</td></tr>
@@ -466,7 +471,8 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
   <div class="encart outils">
     <div class="titre">🧰 Prenez l'instantané au bon moment</div>
     <p>Le meilleur moment pour créer un <em>snapshot</em> est <strong>juste après l'installation
-       propre et les mises à jour</strong>, avant de commencer à configurer les services. Vous
+       propre et les mises à jour</strong>, avant de commencer à configurer les services.</p>
+    <p>Vous
        disposez alors d'un point de retour « système sain » auquel revenir en quelques secondes,
        au lieu de tout réinstaller.</p>
     <p>C'est le principal avantage pratique de la virtualisation quand on apprend : on peut se permettre de
@@ -516,16 +522,16 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
           nécessaires.</li>
       <li><strong>NAT ≠ accès par pont.</strong> Pour joindre une VM depuis l'hôte, il faut le
           mode pont.</li>
-      <li><strong>Snapshot après installation propre</strong> — c'est votre filet.</li>
+      <li><strong>Snapshot après installation propre</strong>, c'est votre filet.</li>
     </ul>
   </div>
 
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>1-TP-Installation_Debian12.pdf — tutos-info.fr, Debian 12.1 Bookworm</li>
+      <li>1-TP-Installation_Debian12.pdf : tutos-info.fr, Debian 12.1 Bookworm</li>
       <li>4-TP-Installer Windows 11 avec VirtualBox.pdf</li>
-      <li>6-1-Installation_WinServer.pdf — Windows Server 2019, projet TechShop</li>
+      <li>6-1-Installation_WinServer.pdf : Windows Server 2019, projet TechShop</li>
       <li>lien_iso.docx</li>
     </ul>
   </div>
@@ -535,7 +541,7 @@ Get-NetFirewallProfile | Select-Object Name, Enabled</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-administration-linux/cours.html"><span>Chapitre précédent</span><b>Administration Linux</b></a><a class="suiv" href="../07-configuration-cisco/cours.html"><span>Chapitre suivant</span><b>Configuration Cisco</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=65865a88"></script>
-<script src="../../assets/app.js?v=65865a88"></script>
+<script src="../../assets/fiche.js?v=363d9801"></script>
+<script src="../../assets/app.js?v=363d9801"></script>
 </body>
 </html>

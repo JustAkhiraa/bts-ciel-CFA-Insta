@@ -111,8 +111,8 @@ function ecrireDepot(total) {
   const NOMS = { pdf: "PDF", image: "Image", zip: "Archive ZIP", bureautique: "Document bureautique" };
   const sorte = n === 1 ? (NOMS[familleDe(attente[0].type)] || "Fichier") + " · " + poids : poids;
   el.textContent = sorte + (attente.some((x) => x.type === "bureautique")
-    ? " — pour le transformer, exportez-le d'abord en PDF depuis son logiciel."
-    : " — " + total + " outil" + (total > 1 ? "s peuvent" : " peut") + " " + (n > 1 ? "les" : "le") + " prendre.");
+    ? ", pour le transformer, exportez-le d'abord en PDF depuis son logiciel."
+    : " · " + total + " outil" + (total > 1 ? "s peuvent" : " peut") + " " + (n > 1 ? "les" : "le") + " prendre.");
 }
 
 async function poser(fichiers) {
@@ -297,7 +297,7 @@ class Etabli {
       (multiple ? '<button type="button" class="af-mini" data-a="haut" aria-label="Monter"' + (i === 0 ? " disabled" : "") + ">" + icone("monter") + "</button>" +
         '<button type="button" class="af-mini" data-a="bas" aria-label="Descendre"' + (i === this.fichiers.length - 1 ? " disabled" : "") + ">" + icone("descendre") + "</button>" : "") +
       '<button type="button" class="af-mini" data-a="retirer" aria-label="Retirer ' + esc(f.nom) + '">' + icone("fermer") + "</button></span>" +
-      '<span class="af-info' + (f.erreur ? " erreur" : "") + '">' + esc(f.erreur ? (f.verrouille ? f.info + " — " : "") + f.erreur : f.info) + "</span>" +
+      '<span class="af-info' + (f.erreur ? " erreur" : "") + '">' + esc(f.erreur ? (f.verrouille ? f.info + " · " : "") + f.erreur : f.info) + "</span>" +
       (f.verrouille ? '<form class="af-mdp"><input type="password" autocomplete="off" placeholder="Mot de passe du PDF" aria-label="Mot de passe de ' + esc(f.nom) + '"><button class="af-bouton af-second">Ouvrir</button></form>' : "") +
       "</li>").join("");
     for (const li of this.liste.children) {
@@ -410,7 +410,7 @@ class Etabli {
       const famille = seul.blob.type === "application/pdf" ? "pdf" : /^image\//.test(seul.blob.type) ? "image" : null;
       const suites = famille ? [...TOUS.values()].filter((o) => o.id !== this.outil.id && o.entree && o.entree.types && o.entree.types.includes(famille)) : [];
       if (suites.length) {
-        h += '<label class="af-champ af-suite"><span>Continuer avec ce résultat</span><select><option value="">— choisir un outil —</option>' +
+        h += '<label class="af-champ af-suite"><span>Continuer avec ce résultat</span><select><option value="">, choisir un outil, </option>' +
           suites.map((o) => '<option value="' + o.id + '">' + esc(o.titre) + "</option>").join("") + "</select></label>";
       }
     }
@@ -462,7 +462,7 @@ function route() {
     section.hidden = false;
     courant = new Etabli(o, section);
     if (transfert) { courant.ajouter(transfert); transfert = null; }
-    document.title = o.titre + " — Atelier fichiers — BTS CIEL";
+    document.title = o.titre + ", Atelier fichiers : BTS CIEL";
     if (fil) fil.innerHTML = filOrigine.replace(/<span>Atelier fichiers<\/span>/, '<a href="#">Atelier fichiers</a> <span>/</span> <span>' + esc(o.titre) + "</span>");
     section.scrollIntoView({ block: "start" });
   } else {

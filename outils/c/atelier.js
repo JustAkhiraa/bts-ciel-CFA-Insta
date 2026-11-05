@@ -555,7 +555,7 @@
       if (multi.length > 1) {
         peindreMulti();
         direEtat("", -1, 0);
-        if (etat) etat.textContent = multi.length + " sélections — tapez pour les changer toutes";
+        if (etat) etat.textContent = multi.length + " sélections : tapez pour les changer toutes";
       } else {
         if (typeof motCourant === "string" && motCourant) {
           surlignerOccurrences(motCourant, posCourante);
@@ -1435,7 +1435,7 @@
         const n = renommerPartout(formRenom.dataset.mot, neuf);
         if (n === -1) {
           champRenom.setAttribute("aria-invalid", "true");
-          if (etat) etat.textContent = "Un nom de C : lettres, chiffres, souligné — jamais de chiffre en tête.";
+          if (etat) etat.textContent = "Un nom de C : lettres, chiffres, souligné, jamais de chiffre en tête.";
           champRenom.focus();
           return;
         }
@@ -2468,10 +2468,10 @@
        session, une déconnexion. De quoi voir tourner tout de suite ce que
        le cours décrit, sans installer XAMPP. */
     const PROJET_PHP_DEPART = () => ({
-      "index.php": '<?php\nsession_start();\n\n// Déjà connecté ? on va directement à l\'espace membre.\nif (isset($_SESSION["admin"])) {\n    header("Location: accueil.php");\n    exit();\n}\n\nrequire "db.php";\n$erreur = "";\n\nif ($_SERVER["REQUEST_METHOD"] === "POST") {\n    $login = trim($_POST["login"] ?? "");\n    $mdp   = $_POST["mot_de_passe"] ?? "";\n\n    $req = $pdo->prepare("SELECT * FROM administrateurs WHERE login = :login");\n    $req->execute([":login" => $login]);\n    $admin = $req->fetch();\n\n    if ($admin && password_verify($mdp, $admin["mot_de_passe"])) {\n        $_SESSION["admin"] = $admin["login"];\n        header("Location: accueil.php");\n        exit();\n    }\n    $erreur = "Identifiants incorrects.";\n}\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Connexion</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Connexion</h1>\n    <p class="aide">Essayez <b>admin</b> / <b>admin</b> — le mot de passe est haché dans la base.</p>\n\n    <?php if ($erreur !== ""): ?>\n        <p class="erreur"><?php echo htmlspecialchars($erreur); ?></p>\n    <?php endif; ?>\n\n    <form method="post" action="index.php">\n        <label>Identifiant : <input type="text" name="login" required></label>\n        <label>Mot de passe : <input type="password" name="mot_de_passe" required></label>\n        <button type="submit">Se connecter</button>\n    </form>\n</body>\n</html>\n',
+      "index.php": '<?php\nsession_start();\n\n// Déjà connecté ? on va directement à l\'espace membre.\nif (isset($_SESSION["admin"])) {\n    header("Location: accueil.php");\n    exit();\n}\n\nrequire "db.php";\n$erreur = "";\n\nif ($_SERVER["REQUEST_METHOD"] === "POST") {\n    $login = trim($_POST["login"] ?? "");\n    $mdp   = $_POST["mot_de_passe"] ?? "";\n\n    $req = $pdo->prepare("SELECT * FROM administrateurs WHERE login = :login");\n    $req->execute([":login" => $login]);\n    $admin = $req->fetch();\n\n    if ($admin && password_verify($mdp, $admin["mot_de_passe"])) {\n        $_SESSION["admin"] = $admin["login"];\n        header("Location: accueil.php");\n        exit();\n    }\n    $erreur = "Identifiants incorrects.";\n}\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Connexion</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Connexion</h1>\n    <p class="aide">Essayez <b>admin</b> / <b>admin</b>, le mot de passe est haché dans la base.</p>\n\n    <?php if ($erreur !== ""): ?>\n        <p class="erreur"><?php echo htmlspecialchars($erreur); ?></p>\n    <?php endif; ?>\n\n    <form method="post" action="index.php">\n        <label>Identifiant : <input type="text" name="login" required></label>\n        <label>Mot de passe : <input type="password" name="mot_de_passe" required></label>\n        <button type="submit">Se connecter</button>\n    </form>\n</body>\n</html>\n',
       "accueil.php": '<?php\nsession_start();\n\n// Le garde : pas de session, pas d\'accès.\nif (!isset($_SESSION["admin"])) {\n    header("Location: index.php");\n    exit();\n}\n\nrequire "db.php";\n$_SESSION["visites"] = ($_SESSION["visites"] ?? 0) + 1;\n\n$nb = $pdo->query("SELECT COUNT(*) FROM etudiants")->fetchColumn();\n$absences = $pdo->query("SELECT COUNT(*) FROM presences WHERE statut = \'absent\'")->fetchColumn();\n?>\n<!DOCTYPE html>\n<html lang="fr">\n<head>\n    <meta charset="utf-8">\n    <title>Espace membre</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Bonjour <?php echo htmlspecialchars($_SESSION["admin"]); ?> !</h1>\n    <p>Vous avez vu cette page <?php echo $_SESSION["visites"]; ?> fois.</p>\n\n    <h2>Tableau de bord</h2>\n    <ul>\n        <li><?php echo $nb; ?> étudiants</li>\n        <li><?php echo $absences; ?> absences enregistrées</li>\n    </ul>\n\n    <h2>Les étudiants</h2>\n    <table border="1" cellpadding="4">\n        <tr><th>Nom</th><th>Prénom</th><th>Classe</th></tr>\n        <?php\n        $req = $pdo->query("SELECT nom, prenom, classe FROM etudiants ORDER BY nom LIMIT 10");\n        foreach ($req as $e) {\n            echo "<tr>";\n            echo "<td>" . htmlspecialchars($e["nom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["prenom"]) . "</td>";\n            echo "<td>" . htmlspecialchars($e["classe"]) . "</td>";\n            echo "</tr>";\n        }\n        ?>\n    </table>\n\n    <p><a href="logout.php">Déconnexion</a></p>\n</body>\n</html>\n',
       "logout.php": '<?php\nsession_start();\n$_SESSION = [];\nsession_destroy();\nheader("Location: index.php");\nexit();\n',
-      "db.php": '<?php\n// La connexion à MariaDB. Dans l\'atelier, la base « gestion_presence »\n// du cours est déjà chargée — pas besoin de XAMPP.\n$pdo = new PDO(\n    "mysql:host=localhost;dbname=gestion_presence;charset=utf8mb4",\n    "root",\n    "root"\n);\n$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n',
+      "db.php": '<?php\n// La connexion à MariaDB. Dans l\'atelier, la base « gestion_presence »\n// du cours est déjà chargée : pas besoin de XAMPP.\n$pdo = new PDO(\n    "mysql:host=localhost;dbname=gestion_presence;charset=utf8mb4",\n    "root",\n    "root"\n);\n$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n',
       "style.css": 'body { font-family: system-ui, sans-serif; margin: 2rem; background: #fdf5e6; color: #2d2a26; }\nh1 { color: #1b4965; }\nlabel { display: block; margin: .6rem 0; }\ninput { padding: .3rem; }\nbutton { padding: .5rem 1rem; border: 0; border-radius: 6px; background: #1b4965; color: white; cursor: pointer; }\n.erreur { color: #b00020; font-weight: bold; }\n.aide { color: #666; font-size: .9rem; }\ntable { border-collapse: collapse; }\n',
     });
     let projet = null, fichierActif = "index.html", pageApercu = "index.html";
@@ -2623,8 +2623,8 @@
       montrerSortie("apercu");
       // ce qu'aucune page ne relie : dit, avec la ligne à écrire
       for (const r of ATELIER_WEB.nonRelies(projet)) carteNonRelie(r);
-      const quoi = projetContientPhp() ? "Page servie par PHP — session, base du cours et fichiers, comme sur XAMPP" : "la page tourne isolée, sans accès au reste du site";
-      dirEtat("Aperçu de " + pageApercu + " — " + quoi, "ok");
+      const quoi = projetContientPhp() ? "Page servie par PHP : session, base du cours et fichiers, comme sur XAMPP" : "la page tourne isolée, sans accès au reste du site";
+      dirEtat("Aperçu de " + pageApercu + " · " + quoi, "ok");
     }
     const estPhp = (n) => /\.php$/i.test(n);
     const projetContientPhp = () => projet && Object.keys(projet).some((n) => estPhp(n) && typeof projet[n] === "string");
@@ -2799,7 +2799,7 @@
         if (estPhp(cible) && typeof projet[cible] === "string") {
           const donnees = {};
           m.champs.forEach(([k, v]) => { donnees[k] = typeof v === "string" ? v : String(v); });
-          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + cible + " » — reçu par PHP.", "info");
+          console2.note("Formulaire envoyé (" + m.methode + ") vers « " + cible + " » : reçu par PHP.", "info");
           afficherPage(cible, m.methode === "POST" ? "POST" : "GET", donnees);
         } else {
           const lignes = m.champs.length ? m.champs.map(([k, v]) => "    " + k + " = " + JSON.stringify(v)).join("\n") : "    (aucun champ nommé : il manque les attributs name)";
@@ -2809,7 +2809,7 @@
           montrerSortie("console");
         }
       } else if (m.t === "lien") {
-        console2.note("Lien vers " + m.url + " : non ouvert — l'aperçu reste isolé, hors ligne.", "info");
+        console2.note("Lien vers " + m.url + " : non ouvert, l'aperçu reste isolé, hors ligne.", "info");
         signalerConsole(false);
       } else if (m.t === "introuvable") {
         console2.note("⚠ Lien vers « " + m.url + " » : ce fichier n'est pas dans le projet.", "garde");
@@ -3005,7 +3005,7 @@
         return;
       }
       if (r.ok) {
-        dirEtat("Terminé en " + ms + " ms — " + (r.operations || 0) + " opérations", "ok");
+        dirEtat("Terminé en " + ms + " ms : " + (r.operations || 0) + " opérations", "ok");
       } else {
         const g = r.erreur || {};
         if (g.ligne) {
@@ -3053,11 +3053,11 @@
       const n = r.affectees || 0;
       if (/^(INSERT|REPLACE)/.test(verbe))
         return pluriel(n, "ligne insérée", "lignes insérées")
-          + (r.insertId ? (n > 1 ? " — ids générés à partir de " : " — id généré : ") + r.insertId : "")
+          + (r.insertId ? (n > 1 ? ", ids générés à partir de " : ", id généré : ") + r.insertId : "")
           + (r.avertissements ? " (" + pluriel(r.avertissements, "doublon ignoré", "doublons ignorés") + ")" : "");
       if (/^UPDATE/.test(verbe))
         return pluriel(n, "ligne modifiée", "lignes modifiées")
-          + (r.trouvees !== undefined && r.trouvees !== n ? " sur " + pluriel(r.trouvees, "trouvée", "trouvées") + " — les autres avaient déjà cette valeur" : "");
+          + (r.trouvees !== undefined && r.trouvees !== n ? " sur " + pluriel(r.trouvees, "trouvée", "trouvées") + ", les autres avaient déjà cette valeur" : "");
       if (/^DELETE/.test(verbe)) return pluriel(n, "ligne supprimée", "lignes supprimées");
       if (/^CREATE (DATABASE|SCHEMA)/.test(verbe)) return r.avertissements ? "La base existait déjà : rien n'a changé (IF NOT EXISTS)" : "Base créée";
       if (/^CREATE/.test(verbe)) return r.avertissements ? "La table existait déjà : rien n'a changé (IF NOT EXISTS)" : verbe === "CREATE INDEX" ? "Index créé (il ne change rien aux résultats)" : "Table créée";
@@ -3090,7 +3090,7 @@
       if (r.type === "select") {
         const n = r.lignes.length;
         corps = (n ? tableauSql(r) : "") + '<p class="at-sql-bilan">'
-          + (n ? pluriel(n, "ligne", "lignes") + (n > MAX_LIGNES_SQL ? " — les " + MAX_LIGNES_SQL + " premières sont affichées" : "")
+          + (n ? pluriel(n, "ligne", "lignes") + (n > MAX_LIGNES_SQL ? ", les " + MAX_LIGNES_SQL + " premières sont affichées" : "")
                : "Aucune ligne (<i>Empty set</i>)") + "</p>";
       } else corps = '<p class="at-sql-bilan ok">✓ ' + ech(r.type === "modif" ? bilanSql(r) : (r.message || "OK")) + "</p>";
       return '<section class="at-sql-carte"><div class="at-sql-req"><button type="button" class="at-aller" data-ligne="'
@@ -3103,7 +3103,7 @@
       if (!serveur.courante) {
         const n = serveur.bases.size;
         return '<p class="at-sql-schema-vide">Aucune base sélectionnée'
-          + (n ? " — " + pluriel(n, "base existe", "bases existent") + " : écrivez <code>USE nom_de_la_base;</code>" : "") + ".</p>";
+          + (n ? " · " + pluriel(n, "base existe", "bases existent") + " : écrivez <code>USE nom_de_la_base;</code>" : "") + ".</p>";
       }
       let tables;
       try { tables = serveur.requete("SHOW TABLES").lignes.map((l) => l[0]); }
@@ -3119,7 +3119,7 @@
             + ech(c[1] + (c[2] === "NO" ? ", NOT NULL" : "") + (c[5] ? ", " + c[5] : "")) + '">' + ech(c[0])
             + " <i>" + ech(c[1]) + "</i></span>").join(" ") + "</li>";
       });
-      return '<details class="at-sql-schema" open><summary>Base <b>' + ech(serveur.courante) + "</b> à la fin du script — "
+      return '<details class="at-sql-schema" open><summary>Base <b>' + ech(serveur.courante) + "</b> à la fin du script : "
         + pluriel(tables.length, "table", "tables") + '</summary><ul>' + lignes.join("") + "</ul>"
         + '<p class="at-sql-legende"><span class="at-sql-col cle">clé primaire</span> <span class="at-sql-col etr">clé étrangère</span></p></details>';
     }
@@ -3154,8 +3154,8 @@
         + '<option value="vide"' + (departSql === "vide" ? " selected" : "") + ">aucune (serveur vide)</option>"
         + "</select></label><span>" + (depart === "cours"
           ? "<b>gestion_presence</b>, la base du cours : 33 étudiants, leurs présences"
-            + (departSql === "auto" ? " — votre script ne crée rien, il interroge" : "")
-          : "un serveur vide" + (departSql === "auto" ? " — votre script crée ses tables" : "")) + "</span></div>";
+            + (departSql === "auto" ? ", votre script ne crée rien, il interroge" : "")
+          : "un serveur vide" + (departSql === "auto" ? ", votre script crée ses tables" : "")) + "</span></div>";
       let html = choix + r.resultats.map(carteSql).join("");
       const diag = [];
       if (r.erreur) {
@@ -3177,7 +3177,7 @@
       boiteSql.scrollTop = 0;
       afficherDiagnostics(diag);
       const n = r.resultats.length;
-      if (r.erreur) dirEtat("Erreur " + r.erreur.code + (r.erreur.ligne ? " à la ligne " + r.erreur.ligne : "") + (n ? " — " + pluriel(n, "instruction exécutée", "instructions exécutées") + " avant" : ""), "erreur");
+      if (r.erreur) dirEtat("Erreur " + r.erreur.code + (r.erreur.ligne ? " à la ligne " + r.erreur.ligne : "") + (n ? " · " + pluriel(n, "instruction exécutée", "instructions exécutées") + " avant" : ""), "erreur");
       else dirEtat(pluriel(n, "instruction exécutée", "instructions exécutées") + " en " + ms + " ms", "ok");
     }
     if (boiteSql) {
@@ -3266,8 +3266,8 @@
         bEx.querySelector(".lib").textContent = "Exécuter";
         bArret.hidden = true;
         const n = (r.diagnostics || []).filter((d) => d.niveau !== "warning" && d.niveau !== "note").length;
-        dirEtat(n > 1 ? n + " erreurs — le programme n'a pas pu être construit"
-                      : "Une erreur — le programme n'a pas pu être construit", "erreur");
+        dirEtat(n > 1 ? n + " erreurs : le programme n'a pas pu être construit"
+                      : "Une erreur : le programme n'a pas pu être construit", "erreur");
         console2.note("Rien n'a été exécuté : le programme ne compile pas.", "stop");
         return;
       }
@@ -3332,8 +3332,8 @@
       signaturePattern();
       if (m.interrompu) { dirEtat("Interrompu", "erreur"); return; }
       const bilan = "compilé en " + msC + " ms, exécuté en " + msE + " ms";
-      if (m.code === 0) dirEtat("Terminé — " + bilan, "ok");
-      else dirEtat("Terminé avec le code " + m.code + " — " + bilan, "avert");
+      if (m.code === 0) dirEtat("Terminé : " + bilan, "ok");
+      else dirEtat("Terminé avec le code " + m.code + " · " + bilan, "avert");
       listerFichiers();
     }
 
@@ -3387,7 +3387,7 @@
       finSaisie = true;
       attendEntree = false;
       zoneEntree.hidden = true;
-      console2.note("— fin de saisie —", "info");
+      console2.note("fin de saisie : ", "info");
       tourne = true; bEx.disabled = true; bArret.hidden = false;
       arreterExec();
       dirEtat("Reprise…", "charge");
@@ -3451,7 +3451,7 @@
         const fr = TRADUCTIONS.traduire(d.message);
         dirEtat((d.ligne ? "Ligne " + d.ligne + " · " : "")
                 + (fr ? fr.titre : d.message)
-                + (erreurs.length > 1 ? " — et " + (erreurs.length - 1) + " autre"
+                + (erreurs.length > 1 ? ", et " + (erreurs.length - 1) + " autre"
                    + (erreurs.length > 2 ? "s" : "") : ""), "erreur");
       } else {
         dirEtat("Pas de faute de syntaxe", "ok");
@@ -3511,7 +3511,7 @@
         (d.notes && d.notes.length
           ? '<ul class="at-notes">' + d.notes.map((n) => {
               const t = TRADUCTIONS.traduire(n.message);
-              return "<li>" + ech(t ? t.titre + " — " + t.remede : n.message) + "</li>";
+              return "<li>" + ech(t ? t.titre + " · " + t.remede : n.message) + "</li>";
             }).join("") + "</ul>"
           : "") +
         (fr ? '<details class="at-vo"><summary>Message d\'origine</summary><code>'
@@ -3550,7 +3550,7 @@
         (g.ligne ? extraitSource({ ligne: g.ligne, colonne: g.colonne, etendues: [] }) : "") +
         '<p class="at-pourquoi">' + ech(fr.explication) + "</p>" +
         (fr.remede ? '<p class="at-remede"><b>À faire :</b> ' + ech(fr.remede) + "</p>" : "") +
-        '<p class="at-source">Détecté pendant l\'exécution — un compilateur ordinaire ' +
+        '<p class="at-source">Détecté pendant l\'exécution : un compilateur ordinaire ' +
         "ne le signale pas.</p>";
       diags.appendChild(c);
       $("#at-diag-tete").hidden = false;
@@ -3588,7 +3588,7 @@
         '<p class="at-pourquoi">La valeur <code>' + v + "</code> affichée par votre programme " +
         "n'est pas un hasard : c'est le motif que cet atelier écrit dans toute variable à " +
         "laquelle vous n'avez pas donné de valeur de départ. Sur votre PC, vous auriez eu un " +
-        "nombre différent à chaque exécution — d'où les programmes qui « marchent une fois " +
+        "nombre différent à chaque exécution : d'où les programmes qui « marchent une fois " +
         "sur deux ».</p>" +
         '<p class="at-remede"><b>À faire :</b> cherchez la variable et donnez-lui une valeur ' +
         "à sa déclaration : <code>int somme = 0;</code></p>";
@@ -3691,12 +3691,12 @@
           const neuf = disqueNeufs.indexOf(n) >= 0;
           return '<span class="at-fic' + (n === ficC ? " actif" : "") + (neuf ? " neuf" : "") + '">' +
             '<button type="button" role="tab" data-ficc="' + attr(n) + '" aria-selected="' + (n === ficC) + '"' +
-            ' title="' + (neuf ? "Écrit par le programme — " : "") + 'clic droit pour renommer">' + ech(n) + "</button>" +
+            ' title="' + (neuf ? "Écrit par le programme : " : "") + 'clic droit pour renommer">' + ech(n) + "</button>" +
             '<button type="button" class="at-fic-x" data-supprc="' + attr(n) + '" aria-label="Supprimer ' +
             attr(n) + '" title="Supprimer ' + attr(n) + '">×</button></span>';
         }).join("") +
         '<button type="button" class="at-fic-plus" data-ajoutc="1" aria-label="Créer un fichier" ' +
-        'title="Créer un fichier — par exemple celui qu\'un programme lit avec fopen(…, &quot;r&quot;)">+</button>' +
+        'title="Créer un fichier : par exemple celui qu\'un programme lit avec fopen(…, &quot;r&quot;)">+</button>' +
         '<form class="at-fic-form" hidden><input type="text" spellcheck="false" autocomplete="off" ' +
         'autocapitalize="off" aria-label="Nom du nouveau fichier" placeholder="etudiants.txt">' +
         '<button type="submit">Créer</button><button type="button" data-annulerc="1">Annuler</button></form>';
@@ -4294,7 +4294,7 @@
         chargerLien().then(async (dico) => {
           const txt = dico ? await LIEN.relire(zz[1], zz[2], dico) : null;
           if (txt == null) {
-            dirEtat("Ce lien n'a pas pu être lu — il est peut-être tronqué", "ko");
+            dirEtat("Ce lien n'a pas pu être lu : il est peut-être tronqué", "ko");
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
@@ -4307,7 +4307,7 @@
       if (z) {
         decomprimer(z[1]).then((txt) => {
           if (txt == null) {
-            dirEtat("Ce lien n'a pas pu être lu — il est peut-être tronqué", "ko");
+            dirEtat("Ce lien n'a pas pu être lu : il est peut-être tronqué", "ko");
             editeur.valeur = DEPART.c; poserLangue("c");
             return;
           }
@@ -4883,7 +4883,7 @@
     const COMMANDES = [
       ["Exécuter le programme",              [CMD, "⏎"]],
       ["Enregistrer le brouillon",           [CMD, "S"]],
-      ["Partager — copier le lien",          []],
+      ["Partager : copier le lien",          []],
       ["Plein écran / réduire",              []],
       ["Fermer un panneau, sortir du plein écran", ["Échap"]],
 
@@ -4921,7 +4921,7 @@
          n'est perdu : tout ce qu'il disait est ici, dans la liste qu'on
          ouvre d'une touche. */
       ["Cliquer un mot encadre ses jumeaux", []],
-      ["Se poser contre une accolade montre celle qui ferme — en rouge si rien ne la ferme", []],
+      ["Se poser contre une accolade montre celle qui ferme : en rouge si rien ne la ferme", []],
       ["Sélectionner autre chose, un « ; » par exemple, allume toutes ses occurrences", []],
       ["Agrandir un cadre en hauteur : tirer son coin inférieur droit", []],
       ["Afficher cette liste",               ["F1"]],
@@ -4939,7 +4939,7 @@
         '<h3>Les commandes</h3>' +
         '<button type="button" class="at-creux" data-fermer>Fermer</button>' +
       '</div>' +
-      '<input type="search" class="at-palette-filtre" placeholder="Filtrer — « ligne », « alinéa »…" ' +
+      '<input type="search" class="at-palette-filtre" placeholder="Filtrer : « ligne », « alinéa »…" ' +
              'aria-label="Filtrer les commandes">' +
       '<ul class="at-palette-liste"></ul>' +
       '<p class="at-palette-pied"></p>';
@@ -5054,7 +5054,7 @@
 
     if (differe) {
       bEx.disabled = false;
-      dirEtat(enCadre ? "Compilateur en attente — appuyez sur Exécuter"
+      dirEtat(enCadre ? "Compilateur en attente : appuyez sur Exécuter"
                       : "Économie de données : le compilateur (60 Mo) se charge "
                         + "au premier Exécuter", "avert");
     }
