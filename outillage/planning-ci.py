@@ -138,8 +138,19 @@ def main(semaines=SEMAINES, sec=True):
     # ── le service worker, en dernier : il dépend de tout le reste ──────
     if sec:
         sw = lire("sw.js")
-        neuf = re.sub(r'VERSION\s*=\s*"[^"]*"', 'VERSION = "' + version_du_site() + '"',
-                      sw, count=1)
+        # Signalé le 5 novembre : ce motif cherchait des guillemets DOUBLES, et
+        # publier.py écrit « const VERSION='…' » avec des apostrophes. Aucune
+        # correspondance, donc « neuf == sw », donc rien d'écrit et rien de dit :
+        # depuis l'installation de l'Action, pas une mise à jour du planning
+        # n'avait renouvelé le service worker. Les deux guillemets sont acceptés,
+        # et ne rien trouver ARRÊTE le script — un garde-fou qui ne trouve pas sa
+        # cible ne doit pas se taire.
+        neuf, n = re.subn(r"""VERSION\s*=\s*(['"])[^'"]*\1""",
+                          lambda m: "VERSION=" + m.group(1) + version_du_site() + m.group(1),
+                          sw, count=1)
+        if n != 1:
+            raise SystemExit("sw.js : ligne VERSION introuvable — le service worker "
+                             "ne serait jamais renouvelé. Vérifier ce qu'écrit publier.py.")
         if neuf != sw:
             open(os.path.join(RACINE, "sw.js"), "w", encoding="utf-8").write(neuf)
             faits.append("    sw.js : empreinte du site mise à jour")
