@@ -1,4 +1,7 @@
-# Met à jour le planning publié, tout seul, une fois par semaine.
+je vais mettre a jours le fichier regarde
+
+
+# Met à jour le planning publié, tout seul, régulièrement.
 #
 # Pourquoi ici et pas sur la machine : le site doit rester juste même quand
 # l'ordinateur est éteint. Et pourquoi seulement le planning : le générateur
@@ -7,16 +10,21 @@
 #
 # L'API visée est l'affichage public du hall du CFA
 # (https://connect.cfa-insta.fr/planning/) : son chemin contient « /public/ »
-# et elle répond sans authentification. Un jour par requête, week-ends sautés,
-# une fois par semaine : ce n'est pas une API qu'on martèle.
+# et elle répond sans authentification.
 name: Planning
 
 on:
   schedule:
-    # Lundi 5 h 17 UTC. Une heure creuse, et une minute qui n'est pas ronde
-    # pour ne pas tomber dans la même rafale que tout le monde.
-    - cron: "17 5 * * 1"
-  workflow_dispatch:        # et à la demande, depuis l'onglet Actions
+    # Une minute qui n'est pas ronde (17) pour ne pas tomber dans la même rafale que tout le monde.
+    
+    # 1. Tous les jeudis et vendredis : toutes les 2 heures (à 00h17, 02h17, 04h17, etc. UTC)
+    - cron: "17 */2 * * 4,5"
+    
+    # 2. Les autres jours (Lun, Mar, Mer, Sam, Dim) : toutes les 4 heures (à 00h17, 04h17, 08h17, etc. UTC)
+    # (On exclut explicitement le jeudi 4 et le vendredi 5 pour éviter les doublons)
+    - cron: "17 */4 * * 0,1,2,3,6"
+
+  workflow_dispatch:        # Toujours disponible à la demande, depuis l'onglet Actions
 
 permissions:
   contents: write           # le seul droit nécessaire : committer la mise à jour
