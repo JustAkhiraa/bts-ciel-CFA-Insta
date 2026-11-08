@@ -7,7 +7,7 @@
 <meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, la détection du changement de clé, puis la partie 2 : connexion par clé ECDSA, agent SSH, échec du MITM et empreintes publiées dans le DNS (SSHFP). Les 28 questions corrigées à leur place.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=d9b46cf6">
+<link rel="stylesheet" href="../../assets/fiche.css?v=925831b9">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -108,7 +108,7 @@ docker ps                   # doit en montrer 4</code></pre></div>
     </div>
     <div class="tp-hote" data-role="serveur">
       <span class="tp-role">Victime · serveur</span>
-      <h3>srvssh · local.sio.fr</h3>
+      <h3>srvssh · local.ciel.fr</h3>
       <p class="tp-ip">192.168.56.10 · port 22/TCP</p>
     </div>
     <div class="tp-hote" data-role="kali">
@@ -202,9 +202,9 @@ ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></d
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, lancer une première connexion SSH vers le serveur et lire l'avertissement.</span></label>
   </div>
 
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
-  <div class="bloc-code" data-machine="sortie" style="--car:84"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'srvssh.local.sio.fr (192.168.56.10)' can't be established.
+  <div class="bloc-code" data-machine="sortie" style="--car:85"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'srvssh.local.ciel.fr (192.168.56.10)' can't be established.
 ED25519 key fingerprint is SHA256:IPIxEKxsYHPP3i7iMiZZXLYUoW9viLwSfF39MNoWIM4.
 Are you sure you want to continue connecting (yes/no)?</code></pre></div>
 
@@ -561,7 +561,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, se connecter en SSH, accepter l'empreinte, et taper quelques commandes (session interceptée).</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@srvssh.local.sio.fr
+  <div class="bloc-code" data-machine="client" style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@srvssh.local.ciel.fr
 # repondre "yes" puis saisir le mot de passe
 sudo cat /etc/shadow
 sudo iptables -L</code></pre></div>
@@ -598,8 +598,8 @@ sudo cat /home/ssh-mitm/shell_session_0.txt</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, vider le cache ARP et retenter la connexion SSH.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>sudo ip neigh flush all
-ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>sudo ip neigh flush all
+ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
   <div class="bloc-code" data-machine="sortie" style="--car:75"><span class="langue">sortie observée · alerte SSH</span><pre><code>@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
@@ -635,7 +635,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:71"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.sio.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
+        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:72"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.ciel.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
       </div>
     </div>
   </article>
@@ -753,8 +753,8 @@ cat ~/.ssh/id_ecdsa.pub</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, copier la clé publique dans <code>authorized_keys</code> sur le serveur, puis se reconnecter : c'est la <strong>phrase de passe</strong> qui est demandée, plus le mot de passe.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:62"><span class="langue">client · clissh</span><pre><code>ssh-copy-id -i ~/.ssh/id_ecdsa.pub etuciel@srvssh.local.sio.fr
-ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:63"><span class="langue">client · clissh</span><pre><code>ssh-copy-id -i ~/.ssh/id_ecdsa.pub etuciel@srvssh.local.ciel.fr
+ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
   <div class="encart piege">
     <div class="titre">⚠️ Tester la clé AVANT de couper le mot de passe</div>
@@ -775,9 +775,9 @@ PasswordAuthentication no</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, ouvrir la clé privée à tout le monde (644), tenter la connexion, puis remettre 600.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>chmod 644 ~/.ssh/id_ecdsa
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>chmod 644 ~/.ssh/id_ecdsa
 # que se passe-t-il ?
-ssh etuciel@srvssh.local.sio.fr
+ssh etuciel@srvssh.local.ciel.fr
 # remettre les droits
 chmod 600 ~/.ssh/id_ecdsa</code></pre></div>
 
@@ -834,8 +834,8 @@ This private key will be ignored.</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, ouvrir <code>authorized_keys</code> en écriture à tous (666). Depuis le <strong>client</strong>, ouvrir une <strong>nouvelle</strong> connexion. Puis remettre 600.</span></label>
   </div>
   <div class="bloc-code" data-machine="serveur" style="--car:32"><span class="langue">serveur · srvssh</span><pre><code>chmod 666 ~/.ssh/authorized_keys</code></pre></div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code># dans un 2e terminal
-ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code># dans un 2e terminal
+ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
   <div class="bloc-code" data-machine="serveur" style="--car:32"><span class="langue">serveur · srvssh</span><pre><code>chmod 600 ~/.ssh/authorized_keys</code></pre></div>
 
   <article class="exo">
@@ -878,10 +878,10 @@ ssh etuciel@srvssh.local.sio.fr</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, lancer l'agent dans le shell courant, puis lui confier la clé (la phrase de passe est demandée une seule fois).</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>exec ssh-agent $SHELL
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>exec ssh-agent $SHELL
 ssh-add
 # plus de phrase a taper
-ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
   <p><code>$SHELL</code> relance le shell que tu utilises déjà, avec l'agent attaché. Si
      l'agent s'arrête, il faudra retaper la phrase.</p>
 
@@ -896,8 +896,8 @@ ssh etuciel@srvssh.local.sio.fr</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Relancer l'attaque comme aux parties <a href="#p2">3</a> et <a href="#p3">4</a> : sur <strong>kali</strong>, <code>start.sh</code> puis ettercap.</span></label>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, vider <code>known_hosts</code> comme à la partie 1, puis se connecter.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>echo > ~/.ssh/known_hosts
-ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>echo > ~/.ssh/known_hosts
+ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
   <article class="exo">
     <h3><span class="no">27</span>Partie 2 · Q8 <span class="niveau n3">Analyse</span></h3>
@@ -940,7 +940,7 @@ sudo ./stop.sh</code></pre></div>
   </div>
   <div class="bloc-code" data-machine="serveur" style="--car:50"><span class="langue">serveur · srvssh</span><pre><code>ssh-keygen -l -f /etc/ssh/ssh_host_ecdsa_key.pub
 ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub</code></pre></div>
-  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
   <div class="encart piege">
     <div class="titre">⚠️ Compare des clés du même type</div>
     <p>Le sujet compare la clé <strong>ECDSA</strong>. Mais ton client présente souvent une clé
@@ -966,7 +966,7 @@ ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub</code></pre></div>
   </article>
 
   <h3 class="tp-soustitre">9.1 · Publier les empreintes dans la zone DNS</h3>
-  <p>Le serveur <code>srvssh</code> porte aussi le DNS du domaine <code>local.sio.fr</code>
+  <p>Le serveur <code>srvssh</code> porte aussi le DNS du domaine <code>local.ciel.fr</code>
      (Bind9). Tout se passe donc sur lui.</p>
 
   <div class="tp-etapes">
@@ -995,14 +995,14 @@ srvssh IN SSHFP 4 2 88efa67b...</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Retrouver le fichier de zone, y coller les six lignes <strong>à la fin</strong>, et augmenter le numéro de série (<code>serial</code>) de la zone.</span></label>
   </div>
   <div class="bloc-code" data-machine="serveur" style="--car:42"><span class="langue">serveur · srvssh</span><pre><code>grep -rn "file" /etc/bind/named.conf.local
-sudoedit /var/named/db.local.sio.fr</code></pre></div>
+sudoedit /var/named/db.local.ciel.fr</code></pre></div>
   <p>Le <code>grep</code> montre le chemin du fichier de zone déclaré. Le sujet le met dans
      <code>/var/named/</code> : si ton lab le range ailleurs, prends le chemin affiché.</p>
 
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier la zone, puis recharger le DNS.</span></label>
   </div>
-  <div class="bloc-code" data-machine="serveur" style="--car:60"><span class="langue">serveur · srvssh</span><pre><code>sudo named-checkzone local.sio.fr /var/named/db.local.sio.fr
+  <div class="bloc-code" data-machine="serveur" style="--car:62"><span class="langue">serveur · srvssh</span><pre><code>sudo named-checkzone local.ciel.fr /var/named/db.local.ciel.fr
 sudo rndc reload</code></pre></div>
   <p><code>named-checkzone</code> doit répondre <code>OK</code>. Une erreur dans la zone, et
      c'est tout le domaine qui ne répond plus.</p>
@@ -1011,7 +1011,7 @@ sudo rndc reload</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, se connecter en demandant la vérification par le DNS.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:55"><span class="langue">client · clissh</span><pre><code>ssh -o VerifyHostKeyDNS=yes etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:56"><span class="langue">client · clissh</span><pre><code>ssh -o VerifyHostKeyDNS=yes etuciel@srvssh.local.ciel.fr</code></pre></div>
   <div class="bloc-code" data-machine="sortie" style="--car:43"><span class="langue">sortie attendue</span><pre><code>Matching host key fingerprint found in DNS.</code></pre></div>
 
   <div class="tp-etapes">
@@ -1060,7 +1060,7 @@ sudo rndc reload</code></pre></div>
     </ul>
     <p class="rap">Le pas-à-pas reprend les commandes de l'activité, exécutées dans l'environnement de
        lab <strong>isolé</strong> qu'il décrit. Le compte et le domaine sont ceux de la
-       maquette Docker du lab, <code>etuciel</code> et <code>local.sio.fr</code>, pour que
+       maquette Docker du lab, <code>etuciel</code> et <code>local.ciel.fr</code>, pour que
        chaque commande marche telle quelle. Les corrigés reformulent les concepts de l'activité et de
        ses annexes.</p>
   </div>
@@ -1070,7 +1070,7 @@ sudo rndc reload</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/cours.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=d9b46cf6"></script>
-<script src="../../assets/app.js?v=d9b46cf6"></script>
+<script src="../../assets/fiche.js?v=925831b9"></script>
+<script src="../../assets/app.js?v=925831b9"></script>
 </body>
 </html>
