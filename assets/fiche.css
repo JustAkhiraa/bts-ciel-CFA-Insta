@@ -9739,6 +9739,15 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-effet[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--accent); }
 .tb-effet i { flex: none; width: 18px; height: 6px; border-radius: 3px; background: var(--c); }
 .tb-effet i.tb-neon { box-shadow: 0 0 5px 1px var(--c); }
+/* les pointes : trois colonnes, l'aperçu tracé par le moteur au-dessus du nom */
+.tb-pointes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .2rem; }
+.tb-reglage-stylo .tb-b.tb-pointe { flex-direction: column; gap: .15rem; height: auto; min-height: 46px;
+  padding: .3rem .15rem; background: var(--carte-creuse); font-size: .72rem; line-height: 1.1; }
+.tb-reglage-stylo .tb-b.tb-pointe[aria-pressed="true"] { background: var(--accent-pale); color: var(--accent-sombre);
+  box-shadow: inset 0 0 0 1px var(--accent); }
+.tb-pointe svg { width: 36px; height: 16px; stroke: none; }
+/* la baguette : la tolérance, sur toute la largeur du réglage */
+.tb-tolerance { width: 100%; height: 34px; accent-color: var(--accent); }
 
 /* les options du stylet : un interrupteur par ligne, la phrase dit ce qu'il fait */
 .tb-options { display: flex; flex-direction: column; gap: .1rem; }
@@ -10539,6 +10548,384 @@ html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: non
                transform: translate(-50%, 104%); }
   .tel-volet.ouvert { transform: translate(-50%, 0); }
 }
+
+/* ═══════════════ Les jeux du jour (outils/jeux.html) ═══════════════
+   Refait le 8 nov. 2026. Signalé : la page faisait amateur. Ce qui ne
+   marchait pas, et ce qui le remplace :
+   · le jeu était une carte DANS la carte de l'outil, sous l'en-tête, le
+     fil d'Ariane, quatre pastilles et un paragraphe de consigne : il
+     fallait défiler pour voir la grille. Un jeu ouvert prend maintenant
+     la page (l'en-tête est masqué à l'œil, gardé pour la lecture vocale),
+     les règles se replient, et grille plus clavier tiennent dans un écran
+     de téléphone ;
+   · les cases colorées étaient des fonds pâles à liseré : on les lisait
+     mal d'un coup d'œil. Elles sont PLEINES, et leur couleur ne sort pas
+     des couples déjà mesurés sur les 40 thèmes, simplement retournés : le
+     contraste est symétrique, « --vert-pale sur --vert » vaut exactement
+     « --vert sur --vert-pale ». Idem ambre, et « --carte sur
+     --encre-douce » pour une lettre absente ;
+   · la couleur seule ne suffit pas : une lettre mal placée porte aussi un
+     anneau en pointillés ;
+   · les pictogrammes étaient des caractères (« Aa », « ▒ », « >_ ») : ils
+     sont dessinés, au trait du site, et l'accueil montre la partie du
+     jour EN MINIATURE plutôt qu'une icône.
+   Le terminal garde le fond des blocs de code, #23211E, qu'aucun thème ne
+   redéfinit ; ses quatre couleurs y tiennent toutes plus de 6:1. */
+.outil.jx { margin-top: 1.2rem; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+html.jx-en-partie .tete-matiere { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; margin: 0; padding: 0; }
+html.jx-en-partie .fil-app, html.jx-en-partie .voisins { display: none; }
+html.jx-en-partie .outil.jx { margin-top: .4rem; }
+/* une partie ouverte sur téléphone : la barre flottante du bas couvrait la
+   dernière rangée du clavier. Elle s'efface le temps du jeu ; l'en-tête et
+   le lien « Jeux » restent pour repartir. */
+html.coquille.jx-en-partie .tel-barre { display: none; }
+html.coquille.jx-en-partie body { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+.jx-ico { width: 1.15rem; height: 1.15rem; flex: none; }
+.jx-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.jx-vide { color: var(--encre-douce); }
+
+/* les boutons */
+.jx-b { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: .5rem 1rem;
+  border: 1px solid var(--bord-fort); border-radius: var(--r); background: var(--carte); color: var(--encre);
+  font: 600 .95rem/1.2 var(--sans); text-decoration: none; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .15s; }
+.jx-b:hover { border-color: var(--encre-douce); color: var(--encre); box-shadow: var(--ombre); }
+.jx-b:active { transform: translateY(1px); box-shadow: none; }
+.jx-b:disabled { border-color: var(--bord); background: var(--carte-creuse); color: var(--encre-douce); box-shadow: none;
+  cursor: default; transform: none; }
+.jx-plein { border-color: var(--accent); background: var(--accent); color: var(--sur-accent); }
+.jx-plein:hover { border-color: var(--accent); color: var(--sur-accent); }
+.jx-discret { border-color: transparent; background: none; color: var(--encre-douce); }
+.jx-discret:hover { border-color: var(--bord); background: var(--carte); color: var(--encre); box-shadow: none; }
+.jx-b.arme { border-color: var(--rouge-bord); background: var(--rouge-pale); color: var(--rouge); }
+.jx-bouton-ico { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--bord);
+  border-radius: 999px; background: var(--carte); color: var(--encre); cursor: pointer; transition: background-color .15s, border-color .15s; }
+.jx-bouton-ico:hover { border-color: var(--bord-fort); }
+.jx-bouton-ico[aria-expanded="true"] { border-color: var(--accent-pale); background: var(--accent-pale); color: var(--accent-sombre); }
+.jx-lien { min-height: 44px; padding: 0 .4rem; border: 0; background: none; color: var(--encre-douce); font: 500 .88rem var(--sans);
+  text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 1px; cursor: pointer; }
+.jx-lien:hover { color: var(--encre); }
+.jx-lien.arme { color: var(--rouge); }
+
+/* l'accueil : la date, puis les quatre jeux et leur partie en miniature */
+.jx-jour { margin: 0 0 1.1rem; }
+.jx-jour-titre { font-size: clamp(1.4rem, 1.15rem + 1.1vw, 1.8rem); font-weight: 760; letter-spacing: -.025em; color: var(--encre); }
+.jx-jour-meta { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; margin: .4rem 0 0; color: var(--encre-douce); font-size: .9rem; }
+.jx-jour-meta b { color: var(--encre); font-variant-numeric: tabular-nums; }
+.jx-compte { display: inline-flex; align-items: center; gap: .35rem; }
+.jx-compte .jx-ico { width: 1rem; height: 1rem; }
+.jx-liste { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+.jx-tuile { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; gap: 1rem; height: 100%;
+  padding: .75rem; border: 1px solid var(--bord); border-radius: var(--r-l); background: var(--carte); color: var(--encre);
+  text-decoration: none; transition: border-color .15s, box-shadow .2s, transform .2s; }
+.jx-tuile:hover { border-color: var(--bord-fort); box-shadow: var(--ombre-haut); color: var(--encre); transform: translateY(-2px); }
+.jx-tuile:active { transform: translateY(0); }
+.jx-apercu { display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--carte-creuse); }
+.jx-apercu.sombre { background: #23211E; }
+.jx-tuile-texte { min-width: 0; }
+.jx-tuile-nom { display: block; font-size: 1.06rem; font-weight: 720; letter-spacing: -.015em; }
+.jx-tuile-dit { display: block; margin-top: .2rem; color: var(--encre-douce); font-size: .875rem; line-height: 1.45; }
+.jx-tuile-pied { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; margin-top: .6rem; }
+.jx-statut { padding: .2rem .6rem; border-radius: 999px; background: var(--accent-pale); color: var(--accent-sombre);
+  font-size: .78rem; font-weight: 650; }
+.jx-statut.en-cours { background: var(--ambre-pale); color: var(--ambre-sombre); }
+.jx-statut.reussi { background: var(--vert-pale); color: var(--vert); }
+.jx-statut.rate { background: var(--carte-creuse); color: var(--encre); }
+.jx-serie { color: var(--encre-douce); font-size: .8rem; font-weight: 600; }
+@media (min-width: 40rem) {
+  .jx-liste { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .jx-tuile { grid-template-columns: minmax(0, 1fr); align-items: stretch; align-content: start; padding: .9rem; }
+  .jx-apercu { aspect-ratio: auto; height: 8rem; }
+  .jx-ap-mot { width: min(70%, calc(var(--n) * 17px)); gap: 3px; }
+  .jx-ap-notion { width: 86%; }
+}
+/* les miniatures : de la géométrie, pas un dessin */
+.jx-ap { display: grid; }
+.jx-ap i, .jx-ap b { display: block; }
+.jx-ap-mot { grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; width: min(82%, calc(var(--n) * 13px)); }
+.jx-ap-mot i { aspect-ratio: 1; border: 1px solid var(--bord-fort); border-radius: 2px; }
+.jx-ap-mot i.juste { border-color: var(--vert); background: var(--vert); }
+.jx-ap-mot i.ailleurs { border-color: var(--ambre-sombre); background: var(--ambre-sombre); }
+.jx-ap-mot i.absente { border-color: var(--encre-douce); background: var(--encre-douce); }
+.jx-ap-notion { display: flex; flex-wrap: wrap; align-content: center; gap: 4px 3px; width: 82%; height: 76%; overflow: hidden; }
+.jx-ap-notion i { width: calc(var(--n) * 3px); height: 5px; border-radius: 2px; background: var(--bord-fort); }
+.jx-ap-notion i.t { height: 8px; background: var(--encre-douce); }
+.jx-ap-notion i.p { width: calc(var(--n) * 2px); background: var(--bord); }
+.jx-ap-notion i.ok { background: var(--vert); }
+.jx-ap-notion b { flex-basis: 100%; height: 3px; }
+.jx-ap-term { justify-items: start; gap: 6px; width: 76%; }
+.jx-ap-term i { width: var(--l); height: 5px; border-radius: 2px; background: #6E675D; }
+.jx-ap-term i.v { background: #8CE99A; }
+.jx-ap-term i.j { background: #FFD43B; }
+.jx-ap-term b { width: 7px; height: 11px; background: #8CE99A; animation: jx-clignote 1.1s steps(1) infinite; }
+@keyframes jx-clignote { 50% { opacity: 0; } }
+.jx-ap-bin { grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; width: min(76%, 7rem); }
+.jx-ap-bin i { aspect-ratio: 1; border: 1px solid var(--bord); border-radius: 2px; background: var(--carte); }
+.jx-ap-bin i.z { border-color: var(--encre-douce); background: var(--encre-douce); }
+.jx-ap-bin i.u { border-color: var(--accent); background: var(--accent); }
+.jx-ap-bin i.z.j { border-color: var(--encre-douce); background: var(--carte); }
+.jx-ap-bin i.u.j { border-color: var(--accent); background: var(--accent-pale); }
+
+/* la coque d'un jeu : retour, titre, règles */
+.jx-partie { position: relative; max-width: 32rem; margin-inline: auto; }
+.jx-notion { max-width: 46rem; }
+.jx-terminal { max-width: 48rem; }
+.jx-barre { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 5.5rem; align-items: center; gap: .5rem;
+  margin: 0 0 1rem; padding: 0 0 .8rem; border-bottom: 1px solid var(--bord); }
+.jx-retour { display: inline-flex; align-items: center; justify-self: start; gap: .15rem; min-height: 40px; padding: 0 .8rem 0 .35rem;
+  border-radius: 999px; color: var(--encre-douce); font-size: .92rem; font-weight: 600; text-decoration: none; }
+.jx-retour:hover { background: var(--carte); color: var(--encre); }
+.jx-barre-titre { min-width: 0; text-align: center; }
+.jx-barre-titre h2 { overflow: hidden; color: var(--encre); font-size: 1.12rem; font-weight: 750; letter-spacing: -.02em;
+  white-space: nowrap; text-overflow: ellipsis; }
+.jx-barre-titre p { margin: .12rem 0 0; overflow: hidden; color: var(--encre-douce); font-size: .8rem;
+  font-variant-numeric: tabular-nums; white-space: nowrap; text-overflow: ellipsis; }
+.jx-barre .jx-bouton-ico { justify-self: end; }
+.jx-regles { position: relative; margin: 0 0 1.1rem; padding: 1rem 1.1rem 1.05rem; border: 1px solid var(--bord);
+  border-radius: var(--r-l); background: var(--carte); color: var(--encre); font-size: .93rem; line-height: 1.5; }
+.jx-regles h3 { margin: 0 2.6rem .55rem 0; color: var(--encre-douce); font-size: .82rem; font-weight: 650; }
+.jx-regles .jx-fermer { position: absolute; top: .5rem; right: .5rem; width: 36px; height: 36px; border-color: transparent; }
+/* une règle par ligne : l'exemple dessiné à gauche, la phrase à droite */
+.jx-intro { margin: 0; color: var(--encre); font-size: 1.04rem; font-weight: 600; line-height: 1.45; }
+.jx-intro-2 { margin-top: 1.1rem; padding-top: .9rem; border-top: 1px solid var(--bord); font-size: .95rem; }
+.jx-pas { display: grid; gap: .65rem; margin: .8rem 0 0; padding: 0; list-style: none; }
+.jx-pas > li { display: grid; grid-template-columns: var(--vis, 6.4rem) minmax(0, 1fr); align-items: center; gap: .85rem; margin: 0; }
+/* la colonne d'exemples prend la largeur de ses exemples, pas plus */
+.jx-mot .jx-pas { --vis: 2.1rem; }
+.jx-notion .jx-pas, .jx-terminal .jx-pas { --vis: 5.2rem; }
+.jx-pas b { font-weight: 700; }
+.jx-vis { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-width: 0; }
+.jx-vis-lignes { display: grid; gap: 3px; }
+.jx-vis-lignes > span { display: flex; gap: 3px; }
+.jx-pas .jx-case { width: 2.1rem; font-size: 1.05rem; }
+.jx-pas .jx-masque { font-size: .78rem; }
+.jx-regles .jx-vies { color: var(--rouge); }
+.jx-ico-mini { width: .85rem; height: .85rem; color: var(--encre-douce); }
+.jx-cle { padding: .04rem .42rem; border-radius: 6px; background: var(--accent-pale); color: var(--accent-sombre); font-weight: 700;
+  white-space: nowrap; }
+.jx-cle.ok { background: var(--vert-pale); color: var(--vert); }
+.jx-kbd { display: inline-grid; place-items: center; min-width: 1.75rem; min-height: 1.6rem; padding: 0 .4rem; box-sizing: border-box;
+  border: 1px solid var(--bord-fort); border-bottom-width: 2px; border-radius: 6px; background: var(--carte); color: var(--encre);
+  font: 600 .8rem/1 var(--sans); vertical-align: .05em; }
+.jx-kbd .jx-ico { width: .95rem; height: .95rem; }
+.jx-mini { display: inline-grid; place-items: center; width: 1.3rem; height: 1.3rem; box-sizing: border-box; flex: none;
+  border: 1.5px solid var(--encre-douce); border-radius: 4px; background: var(--carte); color: var(--encre);
+  font: 700 .72rem/1 var(--sans); font-style: normal; }
+.jx-mini.un { border-color: var(--accent); background: var(--accent-pale); color: var(--accent-sombre); }
+.jx-mini.fixe { border-color: var(--accent); background: var(--accent); color: var(--sur-accent); }
+.jx-mini.faute { border: 1.5px dashed var(--rouge); background: var(--rouge-pale); color: var(--rouge); }
+.jx-temps-mini { display: block; width: 5rem; height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--rouge) 0 22%, var(--ambre) 22% 45%, var(--vert) 45%); }
+.jx-note { margin: .95rem 0 0; color: var(--encre-douce); font-size: .86rem; line-height: 1.55; }
+.jx-toast { position: absolute; z-index: 5; top: 4.6rem; left: 50%; max-width: calc(100% - 2rem); margin: 0; padding: .6rem 1rem;
+  border-radius: var(--r); background: var(--encre); color: var(--papier); box-shadow: var(--ombre-haut);
+  font-size: .92rem; font-weight: 650; text-align: center; opacity: 0; pointer-events: none; visibility: hidden;
+  transform: translate(-50%, -6px); transition: opacity .18s, transform .18s, visibility 0s .18s; }
+.jx-toast.vu { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
+.jx-toast:empty { display: none; }
+/* la notion : sous le champ, pour ne pas cacher ce qu'on tape */
+.jx-notion .jx-toast { top: 9.2rem; }
+
+/* le bilan d'une partie */
+.jx-bilan { margin: 1.1rem 0 0; padding: 1.25rem 1.2rem 1.1rem; border: 1px solid var(--bord); border-radius: var(--r-l);
+  background: var(--carte); color: var(--encre); }
+.jx-bilan-titre { margin: 0; font-size: 1.32rem; font-weight: 770; letter-spacing: -.022em; line-height: 1.25; }
+.jx-bilan-corps { margin: .55rem 0 0; line-height: 1.55; }
+.jx-bilan-corps p { margin: 0 0 .35rem; }
+.jx-bilan-corps a { font-weight: 650; }
+.jx-chiffres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .45rem; margin: 1rem 0 0; }
+.jx-chiffres div { display: flex; flex-direction: column-reverse; align-items: center; padding: .6rem .2rem .5rem;
+  border-radius: var(--r); background: var(--carte-creuse); }
+.jx-chiffres dd { margin: 0; color: var(--encre); font-size: 1.35rem; font-weight: 760; line-height: 1.15;
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jx-chiffres dt { margin-top: .15rem; color: var(--encre-douce); font-size: .74rem; text-align: center; }
+.jx-repartition { display: grid; gap: 5px; margin: 1rem 0 0; }
+.jx-repartition p { margin: 0 0 .25rem; color: var(--encre-douce); font-size: .8rem; }
+.jx-rep { display: grid; grid-template-columns: .8rem minmax(0, 1fr); align-items: center; gap: .55rem; font-size: .82rem; }
+.jx-rep span { color: var(--encre-douce); font-variant-numeric: tabular-nums; text-align: right; }
+.jx-rep b { box-sizing: border-box; width: var(--l); min-width: 1.9rem; padding: .14rem .5rem; border-radius: 4px;
+  background: var(--carte-creuse); color: var(--encre); font-weight: 680; text-align: right; font-variant-numeric: tabular-nums; }
+.jx-rep.jour b { background: var(--accent); color: var(--sur-accent); }
+.jx-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.15rem 0 0; }
+.jx-actions .jx-b { flex: 1 1 13rem; }
+.jx-bilan-pied { margin: .9rem 0 0; color: var(--encre-douce); font-size: .85rem; text-align: center; }
+.jx-bilan-pied b { color: var(--encre); font-variant-numeric: tabular-nums; }
+
+/* le mot du jour : la grille et le clavier tiennent dans un écran */
+.jx-grille-mot { --cmax: clamp(2rem, calc((100vh - 24.5rem) / 6 - 6px), 3.6rem);
+  display: grid; gap: 6px; width: min(100%, calc(var(--n) * var(--cmax) + (var(--n) - 1) * 6px)); margin: 0 auto;
+  container-type: inline-size; }
+@supports (height: 100svh) {
+  .jx-grille-mot { --cmax: clamp(2rem, calc((100svh - 24.5rem) / 6 - 6px), 3.6rem); }
+}
+.jx-ligne { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.jx-case { --f: var(--carte); --t: var(--encre); --b: var(--bord-fort);
+  display: grid; place-items: center; aspect-ratio: 1; box-sizing: border-box; border: 2px solid var(--b); border-radius: 8px;
+  background: var(--f); color: var(--t); font: 760 clamp(1rem, 5vw, 1.55rem)/1 var(--sans); text-transform: uppercase;
+  user-select: none; -webkit-user-select: none; }
+@supports (font-size: 1cqi) {
+  .jx-grille-mot .jx-case { font-size: min(1.65rem, calc(100cqi / var(--n) * .48)); }
+}
+.jx-case.tapee { --b: var(--encre-douce); }
+.jx-case.juste { --f: var(--vert); --t: var(--vert-pale); --b: var(--vert); }
+.jx-case.ailleurs { --f: var(--ambre-sombre); --t: var(--ambre-pale); --b: var(--ambre-sombre);
+  outline: 2px dashed var(--ambre-pale); outline-offset: -6px; }
+.jx-case.absente { --f: var(--encre-douce); --t: var(--carte); --b: var(--encre-douce); }
+.jx-case.pop { animation: jx-pop .12s ease-out; }
+.jx-case.revele { animation: jx-retourne .52s ease-in-out both; animation-delay: calc(var(--i) * 120ms); }
+.jx-ligne.secoue { animation: jx-secoue .4s; }
+.jx-ligne.gagne .jx-case { animation: jx-saut .45s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--i) * 75ms); }
+@keyframes jx-pop { from { transform: scale(.86); } to { transform: scale(1); } }
+/* la case se retourne : sa couleur change quand elle est de profil, donc
+   on ne la voit jamais avant que le tour soit fait */
+@keyframes jx-retourne {
+  0% { transform: rotateX(0); background: var(--carte); color: var(--encre); border-color: var(--encre-douce); outline-color: transparent; }
+  49.9% { background: var(--carte); color: var(--encre); border-color: var(--encre-douce); outline-color: transparent; }
+  50% { transform: rotateX(90deg); background: var(--f); color: var(--t); border-color: var(--b); }
+  100% { transform: rotateX(0); background: var(--f); color: var(--t); border-color: var(--b); }
+}
+@keyframes jx-secoue { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes jx-saut { 40% { transform: translateY(-12px); } 70% { transform: translateY(2px); } }
+.jx-sous-grille { display: flex; justify-content: center; min-height: 44px; margin: .55rem 0 0; }
+.jx-indice { margin: 0; padding: .65rem .9rem; border-radius: var(--r); background: var(--ambre-pale); color: var(--ambre-sombre);
+  font-size: .92rem; line-height: 1.5; }
+.jx-indice b { margin-right: .5rem; }
+.jx-clavier { display: grid; gap: 7px; max-width: 31rem; margin: .7rem auto 0; touch-action: manipulation; user-select: none;
+  -webkit-user-select: none; }
+.jx-rangee { display: flex; justify-content: center; gap: 5px; }
+.jx-touche { --f: var(--carte); --t: var(--encre); --b: var(--bord-fort);
+  display: grid; place-items: center; flex: 1 1 0; min-width: 0; height: 52px; padding: 0; border: 1px solid var(--b);
+  border-radius: 8px; background: var(--f); color: var(--t); box-shadow: 0 1px 0 var(--bord-fort);
+  font: 650 1.02rem/1 var(--sans); cursor: pointer; transition: background-color .2s, color .2s; }
+.jx-touche:active { transform: translateY(1px); box-shadow: none; }
+.jx-touche.large { flex-grow: 1.55; font-size: .8rem; }
+.jx-touche .jx-ico { width: 1.35rem; height: 1.35rem; }
+.jx-touche.juste { --f: var(--vert); --t: var(--vert-pale); --b: var(--vert); }
+.jx-touche.ailleurs { --f: var(--ambre-sombre); --t: var(--ambre-pale); --b: var(--ambre-sombre);
+  outline: 2px dashed var(--ambre-pale); outline-offset: -5px; }
+.jx-touche.absente { --f: var(--encre-douce); --t: var(--carte); --b: var(--encre-douce); }
+
+/* la notion cachée */
+.jx-proposer { display: flex; gap: .5rem; }
+.jx-champ { flex: 1; min-width: 0; min-height: 48px; padding: 0 1rem; border: 1.5px solid var(--bord-fort); border-radius: var(--r);
+  background: var(--carte); color: var(--encre); font: 500 1rem var(--sans); caret-color: var(--accent); }
+.jx-champ::placeholder { color: var(--encre-douce); opacity: 1; }
+.jx-champ:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-pale); }
+.jx-proposer .jx-b { min-height: 48px; }
+.jx-progres { margin: .7rem 0 0; color: var(--encre-douce); font-size: .88rem; font-variant-numeric: tabular-nums; }
+.jx-progres b { color: var(--encre); }
+.jx-doc { margin: .9rem 0 0; padding: 1.2rem 1.25rem 1.3rem; border: 1px solid var(--bord); border-radius: var(--r-l);
+  background: var(--carte); color: var(--encre); }
+.jx-doc-titre { margin: 0 0 .75rem; color: var(--encre); font-size: 1.3rem; font-weight: 760; line-height: 1.7; letter-spacing: -.01em; }
+.jx-doc-texte { margin: 0; font-size: 1rem; line-height: 2.05; overflow-wrap: anywhere; }
+.jx-masque { display: inline-block; min-width: calc(var(--n) * .8em); height: 1.8em; padding: 0 .25em; box-sizing: border-box;
+  border-radius: 4px; background: var(--encre-douce); color: var(--carte); font: 600 .7em/1.8em var(--sans);
+  font-variant-numeric: tabular-nums; text-align: center; vertical-align: .08em; user-select: none; -webkit-user-select: none; }
+.jx-doc-titre .jx-masque { vertical-align: .12em; }
+mark.jx-neuf { padding: 0 .12em; border-radius: 3px; background: var(--accent-pale); color: var(--accent-sombre);
+  box-shadow: 0 0 0 2px var(--accent-pale); }
+/* les mots proposés : deux colonnes et un trait, à gauche ce qui est dans
+   le passage, à droite ce qui n'y est pas */
+.jx-essais { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin: 1rem 0 0; }
+.jx-col { min-width: 0; padding: 0 1rem 0 0; }
+.jx-col.absents { padding: 0 0 0 1rem; border-left: 1px solid var(--bord-fort); }
+.jx-col-titre { display: flex; align-items: baseline; gap: .4rem; margin: 0 0 .5rem; color: var(--encre-douce); font-size: .8rem;
+  font-weight: 650; }
+.jx-col-titre b { color: var(--encre); font-variant-numeric: tabular-nums; }
+.jx-col ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.jx-col li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-width: 0; padding: .3rem .55rem;
+  border-radius: 6px; font-size: .9rem; }
+.jx-col li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jx-col:not(.absents) li { background: var(--vert-pale); color: var(--vert); font-weight: 600; }
+.jx-col li b { flex: none; color: var(--vert); font-variant-numeric: tabular-nums; }
+.jx-col.absents li { color: var(--encre-douce); }
+.jx-col li.dernier { box-shadow: inset 0 0 0 1.5px currentColor; }
+.jx-abandon { margin: 1.1rem 0 0; text-align: center; }
+/* sur grand écran, les mots proposés passent à droite du passage et
+   suivent le défilement : plus besoin de descendre pour les relire */
+@media (min-width: 64rem) {
+  .jx-notion { max-width: 68rem; }
+  .jx-notion .jx-zone { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; column-gap: 1.75rem; align-items: start; }
+  .jx-notion .jx-zone > * { grid-column: 1; }
+  .jx-notion .jx-zone > .jx-essais { position: sticky; top: 1rem; grid-column: 2; grid-row: 1 / span 5; margin: 0;
+    padding: 1rem; border: 1px solid var(--bord); border-radius: var(--r-l); background: var(--carte); }
+  .jx-notion .jx-toast { left: calc(50% - 11rem); }
+}
+
+/* le terminal */
+.jx-term { overflow: hidden; border-radius: var(--r-l); background: #23211E; color: #EDE7DC; box-shadow: var(--ombre-haut); }
+.jx-term.ok { animation: jx-eclair-ok .5s; }
+.jx-term.aie { animation: jx-eclair-aie .5s; }
+@keyframes jx-eclair-ok { from { box-shadow: 0 0 0 2px #8CE99A, var(--ombre-haut); } }
+@keyframes jx-eclair-aie { from { box-shadow: 0 0 0 3px #FFA8A8, var(--ombre-haut); } }
+.jx-term-barre { display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap;
+  padding: .65rem 1rem; border-bottom: 1px solid #3A3631; color: #BDB5A8; font: .8rem var(--mono); }
+.jx-term-hud { display: flex; align-items: center; gap: 1rem; margin-left: auto; }
+.jx-term-hud b { color: #EDE7DC; font-weight: 700; }
+.jx-vies { display: inline-flex; gap: 3px; color: #FFA8A8; }
+.jx-vies .jx-ico { width: 15px; height: 15px; }
+.jx-vies .plein { fill: currentColor; }
+.jx-vies .perdu { opacity: .45; }
+.jx-temps { height: 3px; background: #3A3631; }
+.jx-temps span { display: block; width: 100%; height: 100%; background: #8CE99A; transition: background-color .3s; }
+.jx-term .jx-ecran { height: 15rem; margin: 0; padding: .85rem 1rem; overflow-y: auto; border: 0; border-radius: 0; box-shadow: none;
+  font-size: .82rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.jx-ecran .jx-vert { color: #8CE99A; }
+.jx-ecran .jx-rouge { color: #FFA8A8; }
+.jx-ecran .jx-gris { color: #BDB5A8; }
+.jx-ecran .jx-tache { color: #FFD43B; }
+.jx-mission { margin: 0; padding: .65rem 1rem; border-top: 1px solid #3A3631; color: #EDE7DC; font: .86rem/1.45 var(--mono); }
+.jx-mission span { margin-right: .6rem; color: #FFD43B; font-weight: 700; }
+.jx-invite { display: flex; align-items: center; gap: .55rem; padding: .5rem 1rem .7rem; border-top: 1px solid #3A3631; }
+.jx-invite:focus-within { box-shadow: inset 0 2px 0 #8CE99A; }
+.jx-invite-lib { flex: none; max-width: 55%; overflow: hidden; color: #8CE99A; font: .82rem var(--mono); white-space: nowrap;
+  text-overflow: ellipsis; }
+.jx-cmd { flex: 1; min-width: 0; min-height: 38px; padding: 0; border: 0; background: transparent; color: #EDE7DC;
+  font: .92rem var(--mono); caret-color: #8CE99A; outline: none; }
+.jx-cmd:disabled { cursor: default; }
+.jx-term .jx-cmd:focus, .jx-term .jx-cmd:focus-visible { outline: none; box-shadow: none; }
+.jx-go { display: flex; width: 100%; margin: 1rem 0 0; }
+@media (max-width: 30rem) { .jx-term-hote { display: none; } }
+
+/* la grille binaire : pleines, les cases données ; claires, les tiennes */
+.jx-plateau { --g: 5px; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: var(--g);
+  width: min(100%, calc(var(--n) * 3.7rem)); margin: 0 auto; padding: var(--g); box-sizing: border-box;
+  border: 1px solid var(--bord); border-radius: var(--r-l); background: var(--carte-creuse); container-type: inline-size; }
+.jx-cellule { display: grid; place-items: center; aspect-ratio: 1; min-width: 0; padding: 0; box-sizing: border-box;
+  border: 1.5px solid var(--bord-fort); border-radius: 8px; background: var(--carte); color: var(--encre);
+  font: 720 clamp(1rem, 4.6vw, 1.45rem)/1 var(--sans); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: background-color .12s, border-color .12s; }
+@supports (font-size: 1cqi) { .jx-cellule { font-size: min(1.5rem, calc(100cqi / var(--n) * .4)); } }
+.jx-cellule:hover { border-color: var(--encre-douce); }
+.jx-cellule.zero { border-color: var(--encre-douce); background: var(--carte); color: var(--encre); }
+.jx-cellule.un { border-color: var(--accent); background: var(--accent-pale); color: var(--accent-sombre); }
+.jx-cellule.fixe { border-color: transparent; cursor: default; }
+.jx-cellule.fixe.zero { background: var(--encre-douce); color: var(--carte); }
+.jx-cellule.fixe.un { background: var(--accent); color: var(--sur-accent); }
+.jx-cellule.faute:not(.fixe) { border: 2px dashed var(--rouge); background: var(--rouge-pale); color: var(--rouge); }
+.jx-cellule.fixe.faute { outline: 2.5px dashed var(--rouge); outline-offset: 1px; }
+.jx-plateau.resolu .jx-cellule { animation: jx-vague .5s ease-out both; animation-delay: calc(var(--i) * 45ms); }
+@keyframes jx-vague { 45% { transform: scale(.82); } }
+.jx-etat-grille { margin: .85rem 0 0; color: var(--encre-douce); font-size: .9rem; text-align: center; font-variant-numeric: tabular-nums; }
+.jx-etat-grille.mal { display: table; margin-inline: auto; padding: .35rem .8rem; border-radius: 999px; background: var(--rouge-pale);
+  color: var(--rouge); }
+.jx-commandes { display: flex; justify-content: center; gap: .5rem; margin: .9rem 0 0; }
+
+/* le mouvement : coupé pour qui l'a demandé, et quand le site l'éteint */
+@media (prefers-reduced-motion: reduce) {
+  .jx-case.pop, .jx-case.revele, .jx-ligne.secoue, .jx-ligne.gagne .jx-case, .jx-plateau.resolu .jx-cellule,
+  .jx-term.ok, .jx-term.aie, .jx-ap-term b { animation: none; }
+  .jx-tuile:hover { transform: none; }
+}
+[data-anim="0"] .jx-case.pop, [data-anim="0"] .jx-case.revele, [data-anim="0"] .jx-ligne.secoue,
+[data-anim="0"] .jx-ligne.gagne .jx-case, [data-anim="0"] .jx-plateau.resolu .jx-cellule,
+[data-anim="0"] .jx-term.ok, [data-anim="0"] .jx-term.aie, [data-anim="0"] .jx-ap-term b { animation: none; }
+/* « hidden » doit cacher, même un élément qui déclare son « display »
+   (le clavier en fin de partie, les commandes d'une grille résolue) : une
+   règle de classe l'emporte sur celle du navigateur, et l'élément restait
+   affiché sans rien dire. Placée en dernier, et plus forte que toutes. */
+.outil.jx [hidden][hidden] { display: none; }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
