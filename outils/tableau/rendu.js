@@ -258,9 +258,18 @@
      lentement, il s'épaissit, comme l'encre qui a le temps de couler.
      L'idée est connue ; la manière de la calculer est la
      nôtre. */
-  function contourLibre(points, pressions, simuler, epaisseur, pointe) {
-    if (!points.length) return [];
+  /* La LIGNE que le trait suit vraiment, et la pression de chacun de ses
+     points : les étapes 1 et 2 du contour, mises à part parce que la gomme
+     en a besoin. Un morceau coupé reprend cette ligne-là telle quelle
+     (« lisse » : déjà lissée, pressions déjà calculées). Sans cela, il
+     recommençait un trait : lissage reparti du point brut, pression
+     simulée repartie de 0,6, et l'encre restante bougeait sous la gomme. */
+  function ligneLibre(points, pressions, simuler, epaisseur, lisse) {
     const base = Math.max(0.6, epaisseur) * 1.9;            // demi-largeur moyenne
+    if (lisse) {
+      return { base, L: points.map((q) => [q[0], q[1]]),
+               P: points.map((q, i) => (pressions && pressions[i] != null ? pressions[i] : 0.5)) };
+    }
     // 1. lisser l'entrée : chaque point ne fait que 60 % du chemin vers le
     //    point brut — le tremblement de la main s'efface, pas la forme
     const L = [];
@@ -282,13 +291,29 @@
       }
       return p;
     });
-    // 3. la direction de marche en chaque point, puis la demi-largeur, qui
-    //    dépend de la POINTE choisie
-    const dir = L.map((q, i) => {
-      const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)];
-      return Math.atan2(b[1] - a[1], b[0] - a[0]);
-    });
-    const R = demiLargeurs(pointe, base, P, dir);
+    return { base, L: L.map((q) => [q[0], q[1]]), P };
+  }
+  // la direction de marche en chaque point
+  const directions = (L) => L.map((q, i) => {
+    const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)];
+    return Math.atan2(b[1] - a[1], b[0] - a[0]);
+  });
+  /* Un tracé libre tel qu'il est peint, dans son repère : la ligne, la
+     pression et la demi-largeur de chaque point. C'est ce que la gomme
+     coupe. */
+  function trace(el) {
+    const cd = el.customData || {};
+    const pts = el.points || [];
+    if (!pts.length) return { L: [], P: [], R: [] };
+    const { base, L, P } = ligneLibre(pts, el.pressures, el.simulatePressure !== false, el.strokeWidth || 1, cd.lisse);
+    return { L, P, R: demiLargeurs(cd.pointe, base, P, directions(L)) };
+  }
+  function contourLibre(points, pressions, simuler, epaisseur, pointe, lisse) {
+    if (!points.length) return [];
+    const { base, L, P } = ligneLibre(points, pressions, simuler, epaisseur, lisse);
+    // 3. la demi-largeur, qui dépend de la direction de marche et de la
+    //    POINTE choisie
+    const R = demiLargeurs(pointe, base, P, directions(L));
     // un point seul est un rond
     if (L.length === 1 || L.every((q) => Math.hypot(q[0] - L[0][0], q[1] - L[0][1]) < 0.5)) {
       return contourEllipse(R[0] * 2, R[0] * 2, 14).map((q) => [q[0] + L[0][0] - R[0], q[1] + L[0][1] - R[0]]);
@@ -503,7 +528,8 @@
         ops.push({ d: "M" + P.map((p) => n(p[0]) + " " + n(p[1])).join("L") + "Z", mode: "fond",
                    couleur: el.backgroundColor });
       }
-      const contour = contourLibre(P, el.pressures, el.simulatePressure !== false, sw, pointe);
+      const contour = contourLibre(P, el.pressures, el.simulatePressure !== false, sw, pointe,
+                                   el.customData && el.customData.lisse);
       ops.push({ d: cheminLisse(contour), mode: "fond", couleur: el.strokeColor });
     }
     return ops;
@@ -597,7 +623,7 @@
     return lx >= 0 && ly >= 0 && lx <= w && ly <= h;
   }
 
-  const API = { aleas, chemins, boite, touche, contourLibre, cheminLisse, distanceSegment,
+  const API = { aleas, chemins, boite, touche, contourLibre, trace, cheminLisse, distanceSegment,
                 dansPolygone, rayonAngle };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_RENDU = API;

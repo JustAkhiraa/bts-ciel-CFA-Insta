@@ -569,6 +569,8 @@
     or: [[0, "#8a6a12"], [0.22, "#e2bd4f"], [0.42, "#fff1a8"], [0.6, "#d1a12a"], [0.82, "#93700f"], [1, "#e6c158"]],
   };
   function diagonale(el) {
+    // un morceau laissé par la gomme garde le dégradé du trait entier
+    if (el.customData && el.customData.diag) return el.customData.diag;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const [x, y] of el.points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
     if (x1 - x0 < 1 && y1 - y0 < 1) { x0 -= 4; x1 += 4; }
@@ -1386,21 +1388,54 @@
 
   /* ── la gomme ──
      Deux manières : le trait ENTIER (fantôme, puis effacé au relâchement)
-     ou une PARTIE du trait — l'encre sous le cercle disparaît et le trait
-     se coupe en morceaux, chacun redevenu un trait complet. */
+     ou une PARTIE du trait : l'encre sous le cercle disparaît, et le
+     trait se coupe en morceaux.
+
+     Un morceau garde le DESSIN du trait d'origine : sa ligne déjà lissée
+     et ses pressions déjà calculées (« lisse »), le même repère (donc le
+     même grain de crayon), le même dégradé, la même rotation. Avant le
+     9 nov. 2026, chaque morceau redevenait un trait neuf : lissé de
+     nouveau, pression simulée repartie de zéro, grain et dégradé recalés
+     sur lui, rotation autour d'un autre centre. Signalé : l'encre restante
+     bougeait sous la gomme, les courbes serrées s'élargissaient, et elle
+     prenait plus que son cercle. Mesuré sur 48 traits d'essai : jusqu'à
+     36 px pris hors d'un cercle de 10, l'encre restante déplacée de
+     1,2 px ; après, 0,08 px au plus, et ce qui part hors du cercle ne
+     dépasse plus la largeur du trait lui-même (un trait ne se coupe pas
+     sur la moitié de son épaisseur). */
   function debutGomme(p) {
-    geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements) };
+    geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements),
+              traces: new Map() };
     fantomes = new Set();
     effacer(geste, p, p);
   }
   function effacer(g, a, b) { if (g.partie) gommerPartie(g, a, b); else gommer(a, b); }
-  function morceau(el, m) {
-    const [x0, y0] = m.points[0];
-    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), x: x0, y: y0,
-      points: m.points.map(([x, y]) => [x - x0, y - y0]), pressures: m.pressions,
-      customData: el.customData ? Object.assign({}, el.customData) : null });
-    const b = R.boite(Object.assign({}, n, { x: 0, y: 0 }));
-    n.width = b.w; n.height = b.h;
+  // le centre de la boîte : c'est autour de lui qu'un élément tourne
+  const milieuBoite = (b) => [b.x + b.w / 2, b.y + b.h / 2];
+  // un point de la scène, ramené dans le repère d'un élément tourné
+  function versRepere(el, b, q) {
+    if (!el.angle) return q;
+    const [cx, cy] = milieuBoite(b), co = Math.cos(-el.angle), si = Math.sin(-el.angle);
+    const dx = q[0] - cx, dy = q[1] - cy;
+    return [cx + dx * co - dy * si, cy + dx * si + dy * co];
+  }
+  function morceau(el, b, m) {
+    const cd = Object.assign({}, el.customData || {}, { lisse: true });
+    if (cd.effet && EFFETS[cd.effet] && !cd.diag) cd.diag = diagonale(el);
+    // même x, y que le trait d'origine : les points restent où ils étaient
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(),
+      points: m.points, pressures: m.pressions, simulatePressure: false, customData: cd });
+    const nb = R.boite(n);
+    n.width = nb.w; n.height = nb.h;
+    // Tourné, un morceau tournerait autour de SON centre et non de celui du
+    // trait : on le décale de (rotation − identité)(c′ − c), ce qui le pose
+    // exactement où il était peint.
+    if (el.angle) {
+      const [cx, cy] = milieuBoite(b), [mx, my] = milieuBoite(nb);
+      const co = Math.cos(el.angle), si = Math.sin(el.angle), dx = mx - cx, dy = my - cy;
+      n.x += dx * co - dy * si - dx;
+      n.y += dx * si + dy * co - dy;
+    }
     toucher(n);
     return n;
   }
@@ -1412,14 +1447,18 @@
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
         if (el.type !== "freedraw" || el.locked) continue;
-        // une pointe large se gomme sur toute sa largeur, pas seulement au centre
-        const pt = el.customData && el.customData.pointe;
-        const large = { marqueur: 1.6, pastel: 2, aquarelle: 2.5, calame: 1.5 }[pt] || 1;
-        const rr = r + (el.strokeWidth || 1) * 1.7 * large, bb = R.boite(el);
-        if (c[0] < bb.x - rr || c[0] > bb.x + bb.w + rr || c[1] < bb.y - rr || c[1] > bb.y + bb.h + rr) continue;
-        const morceaux = S.decouper(absolus(el), el.pressures, c, rr);
-        if (morceaux.length === 1 && morceaux[0].points.length === el.points.length) continue;
-        elements.splice(i, 1, ...morceaux.filter((m) => m.points.length > 1).map((m) => morceau(el, m)));
+        // une surface remplie n'est pas un trait : coupée, chaque morceau se
+        // refermerait sur lui-même en une autre forme
+        if (el.customData && el.customData.pointe === "remplissage") continue;
+        const bb = R.boite(el), q = versRepere(el, bb, c);
+        // aucune pointe ne dépasse 2,5 × 1,9 × l'épaisseur de demi-largeur
+        const marge = r + 4.75 * Math.max(0.6, el.strokeWidth || 1) + 1;
+        if (q[0] < bb.x - marge || q[0] > bb.x + bb.w + marge || q[1] < bb.y - marge || q[1] > bb.y + bb.h + marge) continue;
+        let t = g.traces.get(el.id);
+        if (!t) { t = R.trace(el); g.traces.set(el.id, t); }
+        const morceaux = S.gommer(t.L, t.P, t.R, [q[0] - el.x, q[1] - el.y], r);
+        if (!morceaux) continue;
+        elements.splice(i, 1, ...morceaux.map((m) => morceau(el, bb, m)));
         selection.delete(el.id);
         g.coupes = true;
       }

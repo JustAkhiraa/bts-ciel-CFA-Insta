@@ -204,6 +204,75 @@
     return morceaux;
   }
 
+  /* La gomme qui suit le DESSIN, et qui coupe où il faut.
+     Le trait arrive tel qu'il est peint : sa ligne L, la pression P et la
+     demi-largeur R de chaque point (TB_RENDU.trace). L'encre d'un point
+     est un disque de rayon R ; elle touche le cercle de la gomme (centre
+     c, rayon r) quand le point est à moins de r + R du centre. On retire
+     cette partie de la ligne, et la coupure tombe EXACTEMENT à r + R,
+     interpolée sur le segment : le bout neuf, un rond de rayon R, effleure
+     le cercle sans y entrer ni rien prendre au-delà.
+     L'ancienne coupe (« decouper », gardée pour les anciens appels)
+     retirait des points entiers : sur un trait tracé vite, aux points
+     espacés, elle emportait le segment jusqu'au point suivant.
+     Rend les morceaux restants, ou null si la gomme ne touche pas. */
+  function gommer(L, P, R, c, r) {
+    const n = L.length;
+    if (!n) return null;
+    const suiv = (i) => Math.min(n - 1, i + 1);
+    const au = (i, t) => {
+      const a = L[i], b = L[suiv(i)], j = suiv(i);
+      return { x: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t],
+               p: P[i] + (P[j] - P[i]) * t, r: R[i] + (R[j] - R[i]) * t };
+    };
+    // positif dehors, négatif quand l'encre touche le cercle ; CONVEXE en t
+    // (une distance à un point, moins une fonction affine) : une seule
+    // racine entre deux signes contraires, au plus deux sur un segment
+    const g = (i, t) => { const q = au(i, t); return dist(q.x, c) - (r + q.r); };
+    const racine = (i, t0, t1) => {
+      const dehors0 = g(i, t0) >= 0;
+      for (let k = 0; k < 32; k++) {
+        const tm = (t0 + t1) / 2;
+        if ((g(i, tm) >= 0) === dehors0) t0 = tm; else t1 = tm;
+      }
+      return dehors0 ? t0 : t1;          // toujours le côté DEHORS
+    };
+    const morceaux = [];
+    let cour = null, touche = false;
+    const ouvrir = () => { cour = { points: [], pressions: [] }; };
+    const pousser = (q) => { cour.points.push(q.x); cour.pressions.push(q.p); };
+    const fermer = () => { if (cour && cour.points.length) morceaux.push(cour); cour = null; };
+    // invariant : si le point i est dehors, un morceau est ouvert et il
+    // finit par ce point
+    if (g(0, 0) >= 0) { ouvrir(); pousser(au(0, 0)); } else touche = true;
+    for (let i = 0; i < n - 1; i++) {
+      const da = g(i, 0) >= 0, db = g(i, 1) >= 0;
+      if (da && db) {
+        // les deux bouts dehors : le segment peut tout de même passer dedans
+        if (distanceSegment(c, L[i], L[i + 1]) < r + Math.max(R[i], R[i + 1])) {
+          let t0 = 0, t1 = 1;
+          for (let k = 0; k < 40; k++) {     // le creux d'une fonction convexe
+            const a = t0 + (t1 - t0) / 3, b = t1 - (t1 - t0) / 3;
+            if (g(i, a) < g(i, b)) t1 = b; else t0 = a;
+          }
+          const tm = (t0 + t1) / 2;
+          if (g(i, tm) < 0) {
+            touche = true;
+            pousser(au(i, racine(i, 0, tm))); fermer();
+            ouvrir(); pousser(au(i, racine(i, 1, tm)));
+          }
+        }
+        pousser(au(i, 1));
+      } else if (da) {
+        touche = true; pousser(au(i, racine(i, 0, 1))); fermer();
+      } else if (db) {
+        touche = true; ouvrir(); pousser(au(i, racine(i, 1, 0))); pousser(au(i, 1));
+      } else touche = true;
+    }
+    fermer();
+    return touche ? morceaux : null;
+  }
+
   /* ═══════════════ 5. Lire un symbole : l'algorithme $P ═════════════════════
      « $P Point-Cloud Recognizer » (Vatavu, Anthony et Wobbrock, 2012) : un
      symbole est un NUAGE de points, ré-échantillonné, centré et mis à
@@ -407,7 +476,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, decouper, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, decouper, gommer, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;
