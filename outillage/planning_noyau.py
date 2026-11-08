@@ -16,6 +16,7 @@ C'est ce qui permet de le publier tel quel dans le dépôt public.
 """
 import datetime
 import hashlib
+import re
 
 
 # ── Les champs attendus ──────────────────────────────────────────────────
@@ -37,6 +38,30 @@ CHAMPS_PROMO   = {"name", "diplomaName", "major", "option", "_id", "__v"}
 # couvrir ; on l'acquitte ici, on ne le publie pas.
 CHAMPS_CAMPUS  = {"_id", "name", "__v", "address", "googleMapsLink", "phone"}
 CHAMPS_SALLE   = {"_id", "__v", "name", "capacity", "campus"}
+
+
+# ── Pas de tiret long dans un libellé ────────────────────────────────────
+# Le tiret long (U+2014) n'a pas sa place dans ce que le lecteur voit
+# (BTS-CIEL-1/CLAUDE.md § 51). Les libellés viennent de l'API : on les
+# nettoie ICI, à l'entrée de normaliser(), pour que le .ics, les blocs de
+# semaines, le bandeau d'accueil et planning.json en soient tous exempts.
+# C'est surtout vrai quand le ROBOT publie : il ne passe pas par tirets.py.
+# Le module reste autonome (publié seul) : la règle est celle de
+# tirets.etiquette, recopiée, et l'autotest de tirets.py la compare.
+TIRET_LONG = "—"
+
+
+def sans_tiret(t):
+    """« A <tiret> B » → « A · B » ; entre deux chiffres → « - » ; seul → « - »."""
+    t = str(t)
+    if TIRET_LONG not in t:
+        return t
+    if t.strip() == TIRET_LONG:
+        return t.replace(TIRET_LONG, "-")
+    t = re.sub(r"(?<=\d)" + TIRET_LONG + r"(?=\d)", "-", t)
+    t = re.sub(r"^(\s*)" + TIRET_LONG + r"\s*", r"\1", t)
+    t = re.sub(r"\s*" + TIRET_LONG + r"\s*([.,;:!?)»])", r"\1", t)
+    return re.sub(r"\s*" + TIRET_LONG + r"\s*", " · ", t)
 
 
 # ══════════════════════════════════════════════ le fuseau, à la main
@@ -284,8 +309,10 @@ def normaliser(bruts, source="api"):
         verifier_champs(cours, CHAMPS_COURS, f"{ou} → courseId", pbs)
         verifier_champs(promo, CHAMPS_PROMO, f"{ou} → promoId", pbs)
         id_salle, nom_salle, capacite, campus = salle_de(c, pbs, ou)
+        nom_salle = sans_tiret(nom_salle)
         if campus:
             verifier_champs(campus, CHAMPS_CAMPUS, f"{ou} → campus", pbs)
+        nom_campus = sans_tiret(campus.get("name", ""))
         try:
             debut_utc, debut = utc_vers_paris(c["start"])
             fin_utc, fin = utc_vers_paris(c["end"])
@@ -301,21 +328,21 @@ def normaliser(bruts, source="api"):
                 pbs.append(f"{ou} : la salle {id_salle} s'appelait "
                            f"« {ancien['nom']} », maintenant « {nom_salle} »")
             salles[id_salle] = {"nom": nom_salle, "capacite": capacite,
-                                "campus": campus.get("name", "")}
+                                "campus": nom_campus}
         creneaux[(promo.get("name", ""), debut.isoformat(timespec="minutes"),
                   fin.isoformat(timespec="minutes"),
                   cours.get("name", ""), nom_salle)] = {
             "promo": promo.get("name", ""),
-            "diplome": (promo.get("diplomaName") or "").strip(),
-            "option": promo.get("option") or "",
-            "cours": (cours.get("name") or "").strip(),
+            "diplome": sans_tiret((promo.get("diplomaName") or "").strip()),
+            "option": sans_tiret(promo.get("option") or ""),
+            "cours": sans_tiret((cours.get("name") or "").strip()),
             "annee": cours.get("yearNumber"),
             "debut": debut.isoformat(timespec="minutes"),
             "fin": fin.isoformat(timespec="minutes"),
             "debut_utc": debut_utc.isoformat(timespec="seconds") + "Z",
             "fin_utc": fin_utc.isoformat(timespec="seconds") + "Z",
             "salle": nom_salle,
-            "campus": campus.get("name", ""),
+            "campus": nom_campus,
             "presence": c.get("attendanceType", ""),
         }
     return (sorted(creneaux.values(), key=lambda c: (c["debut"], c["salle"])),
