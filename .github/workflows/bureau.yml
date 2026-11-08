@@ -1,0 +1,148 @@
+# Fabrique l'application de bureau BTS CIEL pour Mac, Windows et Linux, et
+# la dépose dans les « Releases » du dépôt, prête à télécharger :
+#   https://github.com/JustAkhiraa/bts-ciel-CFA-Insta/releases/latest
+#
+# Une application se compile sur son propre système : un Mac ne sait pas
+# fabriquer celle de Windows. D'où trois machines, qui font la même chose :
+# recopier le site publié dans bureau/site, puis compiler l'enveloppe
+# (bureau/src-tauri) autour de lui. Le site y est EMBARQUÉ : l'application
+# marche hors ligne, avec le planning du jour de la fabrication.
+#
+# Trois étapes, dans cet ordre, pour que les trois machines déposent dans
+# la MÊME version sans se marcher dessus :
+#   1. ouvrir   : crée la version en brouillon, une seule fois ;
+#   2. fabriquer: les trois machines y déposent leurs fichiers ;
+#   3. publier  : le brouillon devient public, seulement si les trois ont
+#                 réussi (une version à moitié vide ne sort pas).
+#
+# Elle se lance à la main : onglet Actions, « Appli de bureau », « Run
+# workflow ». Chaque passage publie la version 1.0.N (N, le numéro du
+# passage) : un nombre simple, que Windows accepte dans un .msi.
+#
+# Source : _pilotage/publication/ci/bureau.yml dans le dépôt privé, recopiée
+# par publier.py. Le jeton de publication n'a pas la portée « workflow » :
+# ce fichier se colle à la main dans l'interface GitHub.
+name: Appli de bureau
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write          # le seul droit nécessaire : créer la version et y déposer les fichiers
+
+concurrency:
+  group: bureau
+  cancel-in-progress: false
+
+env:
+  VERSION: 1.0.${{ github.run_number }}
+
+jobs:
+  ouvrir:
+    name: Ouvrir la version
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.brouillon.outputs.id }}
+    steps:
+      - id: brouillon
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Les fiches, les outils et les jeux du site BTS CIEL, dans une application qui marche hors ligne.
+
+          **Quel fichier prendre**
+
+          - **Mac** (Apple Silicon et Intel) : le `.dmg`. Ouvre-le, glisse BTS CIEL dans Applications.
+          - **Windows** : le `.exe` (installation en un clic) ou le `.msi`.
+          - **Linux** : le `.AppImage` (le rendre exécutable, puis le lancer), le `.deb` (Debian, Ubuntu) ou le `.rpm` (Fedora).
+
+          **À la première ouverture**
+
+          L'application n'est pas signée par un éditeur payant, d'où un avertissement la première fois :
+
+          - Mac : clic droit sur l'application, puis Ouvrir. Si macOS refuse encore : Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».
+          - Windows : « Informations complémentaires », puis « Exécuter quand même ».
+
+          Le planning embarqué est celui du jour de la fabrication ; le site en ligne, lui, se met à jour tout seul.
+          NOTES
+          gh release create "bureau-v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --draft --title "Appli de bureau $VERSION" --notes-file notes.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"bureau-v$VERSION\") | .id")
+          test -n "$id" || { echo "le brouillon de la version est introuvable"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  fabriquer:
+    name: ${{ matrix.nom }}
+    needs: ouvrir
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nom: Mac
+            systeme: macos-latest
+            options: --target universal-apple-darwin
+          - nom: Windows
+            systeme: windows-latest
+            options: ""
+          - nom: Linux
+            systeme: ubuntu-22.04
+            options: ""
+    runs-on: ${{ matrix.systeme }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Les bibliothèques du moteur web (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Garder la compilation d'une fois sur l'autre
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: bureau/src-tauri -> target
+
+      - name: L'outil de fabrication
+        run: npm install -g @tauri-apps/cli@2
+
+      - name: Le site à embarquer, et le numéro de version
+        shell: bash
+        run: |
+          mkdir -p bureau/site
+          # tout le site publié, sauf son historique, son outillage et l'application elle-même
+          tar --exclude=./.git --exclude=./.github --exclude=./bureau --exclude=./verification \
+              --exclude=./outillage -cf - . | tar -xf - -C bureau/site
+          test -f bureau/site/index.html || { echo "le site n'a pas été recopié"; exit 1; }
+          echo "$(find bureau/site -type f | wc -l) fichiers embarqués"
+          sed -i.avant "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" bureau/src-tauri/tauri.conf.json
+          grep -q "\"version\": \"$VERSION\"" bureau/src-tauri/tauri.conf.json || { echo "numéro de version non posé"; exit 1; }
+
+      - name: Compiler, puis déposer dans la version
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: bureau
+          tauriScript: tauri
+          args: ${{ matrix.options }}
+          releaseId: ${{ needs.ouvrir.outputs.id }}
+
+  publier:
+    name: Publier la version
+    needs: [ouvrir, fabriquer]
+    runs-on: ubuntu-latest
+    steps:
+      # Par son numéro, pas par son étiquette : un brouillon n'a pas encore
+      # d'étiquette, et la chercher par son nom ne le trouve pas.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.ouvrir.outputs.id }}
+        run: |
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$ID" -F draft=false -f make_latest=true --jq '.html_url'
+          gh api "repos/$GITHUB_REPOSITORY/releases/$ID" --jq '.assets[].name'
