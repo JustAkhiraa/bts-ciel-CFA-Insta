@@ -443,7 +443,8 @@
   function cleForme(el) {
     let s = el.type + "|" + el.width + "|" + el.height + "|" + el.seed + "|" + el.strokeColor + "|"
       + el.backgroundColor + "|" + el.fillStyle + "|" + el.strokeWidth + "|" + el.strokeStyle + "|"
-      + el.roughness + "|" + JSON.stringify(el.roundness) + "|" + el.startArrowhead + "|" + el.endArrowhead;
+      + el.roughness + "|" + JSON.stringify(el.roundness) + "|" + el.startArrowhead + "|" + el.endArrowhead
+      + "|" + ((el.customData && el.customData.pointe) || "");
     if (el.points) {
       let somme = 0;
       for (const p of el.points) somme += p[0] * 3.1 + p[1] * 7.7;
@@ -476,6 +477,7 @@
       c.shadowColor = "rgba(0,0,0,.18)"; c.shadowBlur = 10; c.shadowOffsetY = 3;
     }
     const effet = el.type === "freedraw" && el.customData && el.customData.effet;
+    const matiere = el.type === "freedraw" && el.customData && MATIERES[el.customData.pointe];
     if (el.type === "text") {
       dessinerTexte(c, el);
     } else if (el.type === "image") {
@@ -484,7 +486,8 @@
       cheminsDe(el).forEach((op) => {
         if (!op.couleur || op.couleur === "transparent") return;
         if (!op.p) op.p = new Path2D(op.d);
-        if (op.mode === "fond" && effet && op.couleur === el.strokeColor) peindreEffet(c, el, effet, op.p);
+        if (op.mode === "fond" && matiere && op.couleur === el.strokeColor) peindreMatiere(c, el, matiere, op.p);
+        else if (op.mode === "fond" && effet && op.couleur === el.strokeColor) peindreEffet(c, el, effet, op.p);
         else if (op.mode === "fond") { c.fillStyle = op.couleur; c.fill(op.p); }
         else {
           c.strokeStyle = op.couleur; c.lineWidth = op.largeur || 1;
@@ -497,6 +500,58 @@
     }
     c.restore();
   }
+  /* ── les matières de pointe ──
+     Le crayon et le pastel déposent l'encre en GRAIN : un motif de la
+     couleur du trait, criblé de trous, calculé une fois par couleur avec
+     une graine fixe (le même grain à chaque rendu), et posé dans le repère
+     de l'élément : il le suit quand on le déplace. Le marqueur et
+     l'aquarelle laissent voir ce qu'il y a dessous ; l'aquarelle diffuse
+     au bord, et son pigment s'y accumule en un liseré à peine plus foncé.
+     Une matière remplace un effet : on ne peint pas un pastel en néon. */
+  const MATIERES = {
+    crayon: { grain: "fin", alpha: 0.92, svg: 0.8 },
+    pastel: { grain: "gros", alpha: 0.95, svg: 0.85 },
+    marqueur: { alpha: 0.85, svg: 0.85 },
+    aquarelle: { alpha: 0.42, flou: 7, svg: 0.42 },
+  };
+  const toiles = new Map();
+  function toileGrain(couleur, sorte) {
+    const cle = couleur + "|" + sorte;
+    if (toiles.has(cle)) return toiles.get(cle);
+    const fin = sorte === "fin", t = fin ? 32 : 48, pas = fin ? 1 : 2;
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = t;
+    const g = cv.getContext("2d");
+    let s = 20261108;
+    const hasard = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    g.fillStyle = couleur;
+    for (let y = 0; y < t; y += pas) {
+      for (let x = 0; x < t; x += pas) {
+        const v = hasard();
+        // crayon : un grain serré, quelques trous ; pastel : des mottes
+        const a = fin ? (v < 0.18 ? 0.12 : 0.5 + 0.5 * v) : (v < 0.3 ? 0 : 0.3 + 0.7 * v);
+        if (!a) continue;
+        g.globalAlpha = a;
+        g.fillRect(x, y, pas, pas);
+      }
+    }
+    toiles.set(cle, cv);
+    return cv;
+  }
+  function peindreMatiere(c, el, m, p) {
+    c.save();
+    c.globalAlpha *= m.alpha;
+    if (m.flou) { c.shadowColor = el.strokeColor; c.shadowBlur = m.flou; }
+    c.fillStyle = m.grain ? c.createPattern(toileGrain(el.strokeColor, m.grain), "repeat") : el.strokeColor;
+    c.fill(p);
+    if (m.flou) {
+      c.shadowBlur = 0; c.shadowColor = "transparent";
+      c.lineWidth = 1.2; c.strokeStyle = el.strokeColor;
+      c.stroke(p);
+    }
+    c.restore();
+  }
+
   /* ── les effets de pointe ──
      L'encre reste un contour plein ; seul son REMPLISSAGE change. Le
      dégradé suit la diagonale du trait, dans le repère de l'élément : il
@@ -1108,8 +1163,12 @@
         customData: src.customData ? Object.assign({}, src.customData) : null });
       return droite(copie, f.points[0], f.points[1]);
     }
+    // la pointe qui remplit donne une forme pleine, de la couleur du trait
+    const plein = src.customData && src.customData.pointe === "remplissage";
     const st = { strokeColor: src.strokeColor, strokeWidth: Math.max(1, Math.round(src.strokeWidth * 5) / 2),
-                 backgroundColor: "transparent", strokeStyle: "solid", roughness: 0, opacity: src.opacity };
+                 backgroundColor: plein ? src.strokeColor : "transparent",
+                 strokeStyle: "solid", roughness: 0, opacity: src.opacity };
+    if (plein) st.fillStyle = "solid";
     if (f.type === "triangle" || f.type === "polygone") {
       const [x0, y0] = f.points[0];
       const pts = f.points.concat([f.points[0]]).map(([x, y]) => [x - x0, y - y0]);
@@ -1507,7 +1566,10 @@
     } else {
       const st = etat.stylos[etat.stylo];
       Object.assign(el, { strokeColor: st.c, strokeWidth: st.w, opacity: 100 });
-      if (st.effet) el.customData = { effet: st.effet };
+      const cd = {};
+      if (st.effet && !MATIERES[st.pointe]) cd.effet = st.effet;
+      if (st.pointe) cd.pointe = st.pointe;
+      if (cd.effet || cd.pointe) el.customData = cd;
     }
     elements.push(el);
     geste = { mode: "dessin", el, regle };
@@ -2561,8 +2623,14 @@
           + '" preserveAspectRatio="none"' + miroir + "/>";
       } else {
         const effet = el.type === "freedraw" && el.customData && el.customData.effet;
+        const matiere = el.type === "freedraw" && el.customData && MATIERES[el.customData.pointe];
         cheminsDe(el).forEach((o) => {
           if (!o.couleur || o.couleur === "transparent") return;
+          // une matière garde sa forme et sa transparence ; son grain ne
+          // passe pas dans un SVG (l'export PNG, lui, le garde)
+          if (matiere && o.mode === "fond" && o.couleur === el.strokeColor) {
+            t += '<path d="' + o.d + '" fill="' + o.couleur + '" fill-opacity="' + matiere.svg + '"/>'; return;
+          }
           if (effet && o.mode === "fond" && o.couleur === el.strokeColor && (effet === "neon" || EFFETS[effet])) {
             t += svgEffet(el, effet, o.d); return;
           }
@@ -3530,6 +3598,29 @@
     arcenciel: "linear-gradient(90deg,#e03131,#f08c00,#f2c200,#2f9e44,#1c7ed6,#6741d9)",
     or: "linear-gradient(90deg,#8a6a12,#e2bd4f,#fff1a8,#d1a12a,#93700f)",
   };
+  /* Les pointes, dans l'ordre du panneau. L'aperçu de chacune est tracé
+     par le moteur de rendu lui-même, sur une même vague : ce qu'on voit
+     dans le bouton est ce que le stylo dessinera. */
+  const POINTES_NOMS = [["", "Stylo"], ["monoligne", "Monoligne"], ["marqueur", "Marqueur"],
+    ["crayon", "Crayon"], ["pastel", "Pastel"], ["plume", "Stylo-plume"], ["calame", "Calame"],
+    ["aquarelle", "Aquarelle"], ["remplissage", "Remplissage"]];
+  const apercusPointe = {};
+  function apercuPointe(v) {
+    if (apercusPointe[v] != null) return apercusPointe[v];
+    const vague = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      vague.push(v === "remplissage"
+        ? [20 + 15 * Math.cos(t * 2 * Math.PI), 9 + 6 * Math.sin(t * 2 * Math.PI)]
+        : [5 + t * 30, 9 - 5 * Math.sin(t * 2 * Math.PI)]);
+    }
+    const el = { type: "freedraw", points: vague, pressures: vague.map(() => 0.5), simulatePressure: false,
+                 strokeWidth: 0.8, strokeColor: "#000", seed: 1, customData: v ? { pointe: v } : null };
+    const op = MATIERES[v] ? MATIERES[v].svg : 1;
+    apercusPointe[v] = '<svg viewBox="0 0 40 18" aria-hidden="true">' + R.chemins(el).map((o) =>
+      '<path d="' + o.d + '" fill="currentColor" fill-opacity="' + op + '" stroke="none"/>').join("") + "</svg>";
+    return apercusPointe[v];
+  }
   const TAILLES_GOMME = [6, 12, 20, 32];
   const option = (opt, libelle) => '<button type="button" class="tb-option" data-ropt="' + opt
     + '" aria-pressed="' + !!etat[opt] + '">' + libelle + "</button>";
@@ -3557,6 +3648,10 @@
     reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : "Stylo " + (quoi + 1)) + "</p>"
       + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
         + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
+        + POINTES_NOMS.map(([v, t]) => '<button type="button" class="tb-b tb-petit tb-pointe" data-rpt="' + v
+          + '" aria-pressed="' + ((st.pointe || "") === v) + '">' + apercuPointe(v) + "<span>" + t + "</span></button>").join("")
+        + "</div>")
       + '<p class="tb-menu-titre">Épaisseur</p><div class="tb-calibres">'
       + calibres.map((w, i) => '<button type="button" class="tb-b tb-petit tb-calibre" data-rw="' + w + '" aria-pressed="'
         + (w === st.w) + '" title="Épaisseur ' + (i + 1) + '" aria-label="Épaisseur ' + (i + 1) + '"><i style="--w:'
@@ -3584,7 +3679,18 @@
     const surl = q === "surligneur";
     if (b.dataset.rc) { if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc; }
     if (b.dataset.rw) { if (surl) etat.courant.surligneurW = Number(b.dataset.rw); else etat.stylos[Number(q)].w = Number(b.dataset.rw); }
-    if (b.dataset.reff !== undefined) etat.stylos[Number(q)].effet = b.dataset.reff || null;
+    // une matière (crayon, pastel, marqueur, aquarelle) et un effet ne
+    // vont pas ensemble : choisir l'un retire l'autre
+    if (b.dataset.rpt !== undefined) {
+      const s = etat.stylos[Number(q)];
+      s.pointe = b.dataset.rpt || null;
+      if (MATIERES[s.pointe]) s.effet = null;
+    }
+    if (b.dataset.reff !== undefined) {
+      const s = etat.stylos[Number(q)];
+      s.effet = b.dataset.reff || null;
+      if (s.effet && MATIERES[s.pointe]) s.pointe = null;
+    }
     if (b.dataset.ropt) { etat[b.dataset.ropt] = !etat[b.dataset.ropt]; majBascules(); }
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));

@@ -258,7 +258,7 @@
      lentement, il s'épaissit, comme l'encre qui a le temps de couler.
      L'idée est connue ; la manière de la calculer est la
      nôtre. */
-  function contourLibre(points, pressions, simuler, epaisseur) {
+  function contourLibre(points, pressions, simuler, epaisseur, pointe) {
     if (!points.length) return [];
     const base = Math.max(0.6, epaisseur) * 1.9;            // demi-largeur moyenne
     // 1. lisser l'entrée : chaque point ne fait que 60 % du chemin vers le
@@ -271,17 +271,24 @@
     }
     const der = points[points.length - 1];
     if (points.length > 1) L.push([der[0], der[1], L[L.length - 1][2]]);
-    // 2. la pression de chaque point, puis sa demi-largeur
+    // 2. la pression de chaque point
     let p = 0.6;
-    const R = L.map((q, i) => {
+    const P = L.map((q, i) => {
       if (q[2] != null) p = q[2];
       else if (i) {
         const v = Math.hypot(q[0] - L[i - 1][0], q[1] - L[i - 1][1]);
         const cible = Math.max(0.15, Math.min(1, 1 - v / (base * 7)));
         p += (cible - p) * 0.3;
       }
-      return base * (0.4 + 0.9 * p);
+      return p;
     });
+    // 3. la direction de marche en chaque point, puis la demi-largeur, qui
+    //    dépend de la POINTE choisie
+    const dir = L.map((q, i) => {
+      const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)];
+      return Math.atan2(b[1] - a[1], b[0] - a[0]);
+    });
+    const R = demiLargeurs(pointe, base, P, dir);
     // un point seul est un rond
     if (L.length === 1 || L.every((q) => Math.hypot(q[0] - L[0][0], q[1] - L[0][1]) < 0.5)) {
       return contourEllipse(R[0] * 2, R[0] * 2, 14).map((q) => [q[0] + L[0][0] - R[0], q[1] + L[0][1] - R[0]]);
@@ -308,6 +315,40 @@
     const f = L[L.length - 1], fp = L[L.length - 2], d0 = L[0], d1 = L[1];
     return g.concat(demiRond(f, R[R.length - 1], f[0] - fp[0], f[1] - fp[1]),
                     d.reverse(), demiRond(d0, R[0], d0[0] - d1[0], d0[1] - d1[1]));
+  }
+
+  /* ── Les pointes ──
+     La largeur du trait selon l'outil qu'on a en main. « stylo » (ou rien)
+     est le trait d'origine, au calcul près : un dessin fait avant que les
+     pointes existent se relit exactement comme avant.
+       monoligne  : la même largeur partout, ni pression ni vitesse
+       marqueur   : large et régulier
+       crayon     : fin, la pression joue un peu (le grain vient de la page)
+       pastel     : large, la pression joue (le grain vient de la page)
+       aquarelle  : très large et doux (la transparence vient de la page)
+       plume      : la largeur suit l'ANGLE du trait et la pression
+       calame     : bec plat : la largeur ne suit que l'angle
+     Un bec incliné à 45° : un trait qui monte vers la droite est fin, un
+     trait qui descend vers la droite est plein. C'est ce qui donne à
+     l'écriture à la plume ses pleins et ses déliés. */
+  const BEC = -Math.PI / 4;
+  const POINTES = {
+    monoligne: (b) => b * 0.8,
+    marqueur: (b) => b * 1.6,
+    crayon: (b, p) => b * (0.45 + 0.3 * p),
+    pastel: (b, p) => b * (1.5 + 0.5 * p),
+    aquarelle: (b, p) => b * (1.9 + 0.6 * p),
+    plume: (b, p, a) => b * (0.25 + 0.95 * Math.abs(Math.sin(a - BEC))) * (0.7 + 0.5 * p),
+    calame: (b, p, a) => b * 1.5 * (0.12 + 0.88 * Math.abs(Math.sin(a - BEC))),
+  };
+  function demiLargeurs(pointe, base, P, dir) {
+    const f = POINTES[pointe];
+    if (!f) return P.map((p) => base * (0.4 + 0.9 * p));
+    const R = P.map((p, i) => f(base, p, dir[i]));
+    if (pointe !== "plume" && pointe !== "calame") return R;
+    // un bec suit l'angle : sans lissage, chaque tremblement de la main
+    // ferait battre la largeur
+    return R.map((r, i) => (R[Math.max(0, i - 1)] + 2 * r + R[Math.min(R.length - 1, i + 1)]) / 4);
   }
 
   /* Le contour devient un chemin doux : une courbe du second degré qui
@@ -450,12 +491,19 @@
       }
     } else if (el.type === "freedraw") {
       const P = el.points || [];
+      const pointe = el.customData && el.customData.pointe;
+      // La pointe qui REMPLIT : le geste devient une surface, refermée
+      // d'elle-même entre le dernier point et le premier.
+      if (pointe === "remplissage" && P.length > 2) {
+        ops.push({ d: cheminLisse(P), mode: "fond", couleur: el.strokeColor });
+        return ops;
+      }
       const ferme = P.length > 2 && Math.hypot(P[0][0] - P[P.length - 1][0], P[0][1] - P[P.length - 1][1]) < 8;
       if (ferme && el.backgroundColor && el.backgroundColor !== "transparent") {
         ops.push({ d: "M" + P.map((p) => n(p[0]) + " " + n(p[1])).join("L") + "Z", mode: "fond",
                    couleur: el.backgroundColor });
       }
-      const contour = contourLibre(P, el.pressures, el.simulatePressure !== false, sw);
+      const contour = contourLibre(P, el.pressures, el.simulatePressure !== false, sw, pointe);
       ops.push({ d: cheminLisse(contour), mode: "fond", couleur: el.strokeColor });
     }
     return ops;
@@ -534,12 +582,16 @@
     }
     if (el.points) {
       const P = el.points;
-      const t = el.type === "freedraw" ? tol + (el.strokeWidth || 1) * 2 : tol;
+      // une pointe large se touche sur toute sa largeur, une pointe qui
+      // remplit se touche dans toute sa surface
+      const pointe = el.customData && el.customData.pointe;
+      const large = { marqueur: 1.6, pastel: 2, aquarelle: 2.5, calame: 1.5 }[pointe] || 1;
+      const t = el.type === "freedraw" ? tol + (el.strokeWidth || 1) * 2 * large : tol;
       if (P.length === 1) return Math.hypot(lx - P[0][0], ly - P[0][1]) <= t;
       for (let i = 0; i + 1 < P.length; i++) {
         if (distanceSegment(lx, ly, P[i][0], P[i][1], P[i + 1][0], P[i + 1][1]) <= t) return true;
       }
-      if (rempli && P.length > 2 && dansPolygone(lx, ly, P)) return true;
+      if ((rempli || pointe === "remplissage") && P.length > 2 && dansPolygone(lx, ly, P)) return true;
       return false;
     }
     return lx >= 0 && ly >= 0 && lx <= w && ly <= h;
