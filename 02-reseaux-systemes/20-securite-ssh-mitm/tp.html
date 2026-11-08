@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sécurité SSH et MITM · le TP pas à pas | BTS CIEL</title>
-<meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, puis la détection du changement de clé et la remise en état, avec les 19 questions corrigées à leur place.">
+<meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, la détection du changement de clé, puis la partie 2 : connexion par clé ECDSA, agent SSH, échec du MITM et empreintes publiées dans le DNS (SSHFP). Les 28 questions corrigées à leur place.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=7b6f5663">
+<link rel="stylesheet" href="../../assets/fiche.css?v=d9b46cf6">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -23,6 +23,9 @@
     <li><a href="#p3">4 · L'ARP spoofing en action</a></li>
     <li><a href="#p3b">5 · Exploiter le milieu</a></li>
     <li><a href="#p4">6 · Détection et contre-mesures</a></li>
+    <li><a href="#p5">7 · Partie 2 · se connecter avec une clé</a></li>
+    <li><a href="#p6">8 · L'agent SSH, puis le MITM contre une clé</a></li>
+    <li><a href="#p7">9 · Vérifier le serveur : SSHFP</a></li>
   </ol>
 </nav>
 
@@ -41,7 +44,8 @@
      on découvre SSH, on observe le réseau, puis on <strong>monte l'attaque</strong>, routage,
      redirection, ARP spoofing, pour enfin la <strong>détecter</strong> et remettre la
      connexion en état. Les commandes se copient d'un clic ; cochez les actions au fur et à
-     mesure. Les <strong>19 questions</strong> sont posées à leur place, réponse repliable.</p>
+     mesure. Les <strong>28 questions</strong> (19 en partie 1, 9 en partie 2) sont posées à leur
+     place, réponse repliable.</p>
 
   <div class="encart methode">
     <div class="titre">🎯 Avant de commencer</div>
@@ -104,7 +108,7 @@ docker ps                   # doit en montrer 4</code></pre></div>
     </div>
     <div class="tp-hote" data-role="serveur">
       <span class="tp-role">Victime · serveur</span>
-      <h3>srvssh · exemple.fr</h3>
+      <h3>srvssh · local.sio.fr</h3>
       <p class="tp-ip">192.168.56.10 · port 22/TCP</p>
     </div>
     <div class="tp-hote" data-role="kali">
@@ -198,9 +202,9 @@ ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></d
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, lancer une première connexion SSH vers le serveur et lire l'avertissement.</span></label>
   </div>
 
-  <div class="bloc-code" data-machine="client" style="--car:22"><span class="langue">client · clissh</span><pre><code>ssh etuciel@exemple.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.sio.fr</code></pre></div>
 
-  <div class="bloc-code" data-machine="sortie" style="--car:78"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'exemple.fr (192.168.56.10)' can't be established.
+  <div class="bloc-code" data-machine="sortie" style="--car:84"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'srvssh.local.sio.fr (192.168.56.10)' can't be established.
 ED25519 key fingerprint is SHA256:IPIxEKxsYHPP3i7iMiZZXLYUoW9viLwSfF39MNoWIM4.
 Are you sure you want to continue connecting (yes/no)?</code></pre></div>
 
@@ -557,7 +561,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, se connecter en SSH, accepter l'empreinte, et taper quelques commandes (session interceptée).</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@exemple.fr
+  <div class="bloc-code" data-machine="client" style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@srvssh.local.sio.fr
 # repondre "yes" puis saisir le mot de passe
 sudo cat /etc/shadow
 sudo iptables -L</code></pre></div>
@@ -594,8 +598,8 @@ sudo cat /home/ssh-mitm/shell_session_0.txt</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, vider le cache ARP et retenter la connexion SSH.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:23"><span class="langue">client · clissh</span><pre><code>sudo ip neigh flush all
-ssh etuciel@exemple.fr</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>sudo ip neigh flush all
+ssh etuciel@srvssh.local.sio.fr</code></pre></div>
 
   <div class="bloc-code" data-machine="sortie" style="--car:75"><span class="langue">sortie observée · alerte SSH</span><pre><code>@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
@@ -631,7 +635,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:62"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"exemple.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
+        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:71"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.sio.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
       </div>
     </div>
   </article>
@@ -640,9 +644,391 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
 <p>Les <a href="cours.html#contremesures">contre-mesures</a> agissent sur les deux plans : le réseau (surveillance ARP, tables statiques) et la vigilance (vérifier l'empreinte, ne jamais passer outre l'avertissement).</p></div>
 </section>
 
+<section id="p5">
+  <h2><span class="num">07</span>Partie 2 · se connecter avec une clé</h2>
+  <p>Le mot de passe est le point faible : il se devine, il se force, et le MITM l'a lu en
+     clair. La partie 2 le remplace par une <strong>paire de clés</strong>.</p>
+  <p>Les questions de cette partie reprennent la numérotation du sujet : Q1 à Q9.</p>
+
+  <div class="encart savoir">
+    <div class="titre">🎲 Une clé doit être imprévisible : l'entropie</div>
+    <p>Une clé est tirée au hasard. L'<strong>entropie</strong> mesure à quel point ce hasard
+       est imprévisible : plus elle est haute, plus la clé est dure à deviner.</p>
+    <p>En entreprise, on génère les clés sur une <strong>machine physique</strong>, qui a
+       plusieurs sources de hasard indépendantes. Une machine virtuelle en a moins.</p>
+    <div class="bloc-code" data-fam="bash" style="--car:41"><span class="langue">bash</span><pre><code><span class="j-fn">cat</span> /proc/sys/kernel/random/entropy_avail
+<span class="j-fn">uname</span> <span class="j-att">-r</span>     <span class="j-com"># la version du noyau</span></code></pre></div>
+    <p class="rap">Le sujet dit qu'en dessous de 1000, le hasard manque. Sur un noyau récent
+       (5.18 et plus), la valeur affichée reste <strong>256</strong> en permanence : le
+       noyau ne compte plus l'entropie de cette façon. Ce n'est pas un manque.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, autoriser la connexion par clé dans la configuration, puis redémarrer SSH.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:29"><span class="langue">serveur · srvssh</span><pre><code>sudoedit /etc/ssh/sshd_config</code></pre></div>
+  <div class="bloc-code" data-machine="serveur" style="--car:39"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code>PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys</code></pre></div>
+  <div class="bloc-code" data-machine="serveur" style="--car:24"><span class="langue">serveur · srvssh</span><pre><code>sudo service ssh restart</code></pre></div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, générer la paire de clés. <strong>Entrée</strong> pour garder l'emplacement proposé, puis la phrase de passe <code>TPMITMcerta</code>, deux fois.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:26"><span class="langue">client · clissh</span><pre><code>ssh-keygen -b 256 -t ecdsa</code></pre></div>
+  <div class="bloc-code" data-machine="sortie" style="--car:66"><span class="langue">sortie observée · ssh-keygen</span><pre><code>Generating public/private ecdsa key pair.
+Enter file in which to save the key (/home/etuciel/.ssh/id_ecdsa):
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/etuciel/.ssh/id_ecdsa
+Your public key has been saved in /home/etuciel/.ssh/id_ecdsa.pub
+The key fingerprint is:
+SHA256:... etuciel@clissh</code></pre></div>
+  <p>Deux fichiers sont nés : <code>id_ecdsa</code>, la clé <strong>privée</strong>, à toi
+     seul ; et <code>id_ecdsa.pub</code>, la clé <strong>publique</strong>, que tout le monde
+     peut connaître.</p>
+
+  <article class="exo">
+    <h3><span class="no">20</span>Partie 2 · Q1 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q1.</strong> Pourquoi l'algorithme ECDSA a-t-il été préféré à RSA pour générer la paire de clés ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>ECDSA repose sur les <strong>courbes elliptiques</strong>. Il offre la même sécurité que RSA avec des clés <strong>bien plus courtes</strong> : 256 bits en ECDSA valent environ 3 072 bits en RSA.</p>
+        <p>Des clés courtes, c'est une génération, une signature et une vérification plus rapides, pour la même résistance.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">21</span>Partie 2 · Q2 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q2.</strong> Pourquoi la phrase de passe qui protège la clé privée est-elle extrêmement importante ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Elle <strong>chiffre</strong> la clé privée sur le disque. Si le fichier est volé (PC perdu, sauvegarde copiée, logiciel malveillant), il est inutilisable sans la phrase.</p>
+        <p>Sans phrase, quiconque copie <code>id_ecdsa</code> entre sur <strong>tous</strong> les serveurs qui font confiance à cette clé. Avec elle, il faut ce que l'on <strong>a</strong> (le fichier) et ce que l'on <strong>sait</strong> (la phrase).</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, lister le dossier <code>~/.ssh</code> et afficher la clé publique.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:23"><span class="langue">client · clissh</span><pre><code># ton dossier personnel
+echo $HOME
+ls -l ~/.ssh/
+cat ~/.ssh/id_ecdsa.pub</code></pre></div>
+  <div class="encart outils">
+    <div class="titre">🔎 <code>$HOME</code> et <code>~</code></div>
+    <p><code>$HOME</code> est une <strong>variable d'environnement</strong> : elle indique aux
+       programmes ton dossier personnel, ici <code>/home/etuciel</code>.</p>
+    <p><code>~</code> en est le raccourci : <code>~/.ssh</code> veut dire
+       <code>/home/etuciel/.ssh</code>.</p>
+  </div>
+
+  <article class="exo">
+    <h3><span class="no">22</span>Partie 2 · Q3 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q3.</strong> Lister le contenu du répertoire <code>$HOME/.ssh/</code>, puis afficher le contenu du fichier <code>id_ecdsa.pub</code>.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Le dossier contient <code>id_ecdsa</code> (droits <code>-rw-------</code>, soit 600 : toi seul), <code>id_ecdsa.pub</code> (<code>-rw-r--r--</code>, 644 : lisible par tous) et <code>known_hosts</code>.</p>
+        <p>La clé publique tient sur <strong>une ligne</strong>, en trois morceaux :</p>
+        <div class="bloc-code" style="--car:46"><span class="langue">sortie</span><pre><code>ecdsa-sha2-nistp256 AAAAE2Vj... etuciel@clissh</code></pre></div>
+        <p>Le type de clé, la clé elle-même en base 64, puis un commentaire : le compte et la machine qui l'ont créée.</p>
+      </div>
+    </div>
+  </article>
+
+  <h3 class="tp-soustitre">7.1 · Donner la clé publique au serveur</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, copier la clé publique dans <code>authorized_keys</code> sur le serveur, puis se reconnecter : c'est la <strong>phrase de passe</strong> qui est demandée, plus le mot de passe.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:62"><span class="langue">client · clissh</span><pre><code>ssh-copy-id -i ~/.ssh/id_ecdsa.pub etuciel@srvssh.local.sio.fr
+ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Tester la clé AVANT de couper le mot de passe</div>
+    <p>Si tu coupes le mot de passe alors que la clé ne marche pas, plus personne n'entre sur
+       le serveur.</p>
+    <p>Vérifie d'abord que la connexion par clé fonctionne. Puis garde une
+       <strong>session ouverte</strong> sur le serveur pendant que tu redémarres SSH.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, désactiver la connexion par mot de passe : décommenter la directive, la passer à <code>no</code>, puis redémarrer SSH.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:44"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code># Autorisation de connexion par mot de passe
+PasswordAuthentication no</code></pre></div>
+  <div class="bloc-code" data-machine="serveur" style="--car:24"><span class="langue">serveur · srvssh</span><pre><code>sudo service ssh restart</code></pre></div>
+
+  <h3 class="tp-soustitre">7.2 · SSH surveille les droits de tes clés</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, ouvrir la clé privée à tout le monde (644), tenter la connexion, puis remettre 600.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>chmod 644 ~/.ssh/id_ecdsa
+# que se passe-t-il ?
+ssh etuciel@srvssh.local.sio.fr
+# remettre les droits
+chmod 600 ~/.ssh/id_ecdsa</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">23</span>Partie 2 · Q4 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q4.</strong> Les droits de <code>~/.ssh/id_ecdsa</code> passent de 600 à 644. On se connecte au serveur. Que se passe-t-il ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Le client <strong>refuse d'utiliser</strong> la clé :</p>
+        <div class="bloc-code" style="--car:50"><span class="langue">sortie</span><pre><code>WARNING: UNPROTECTED PRIVATE KEY FILE!
+Permissions 0644 for '/home/etuciel/.ssh/id_ecdsa'
+are too open.
+This private key will be ignored.</code></pre></div>
+        <p>Le mot de passe étant coupé, la connexion échoue : <code>Permission denied (publickey)</code>.</p>
+        <p>Pourquoi : une clé privée lisible par d'autres comptes est considérée comme <strong>compromise</strong>. SSH préfère ne pas s'en servir.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, afficher les droits de <code>authorized_keys</code>.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:28"><span class="langue">serveur · srvssh</span><pre><code>ls -l ~/.ssh/authorized_keys</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">24</span>Partie 2 · Q5 <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p><strong>Q5.</strong> Une fois les droits de <code>id_ecdsa</code> rétablis, afficher les droits d'accès du fichier <code>~/.ssh/authorized_keys</code> sur le serveur.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p><code>-rw-------</code>, soit <strong>600</strong> : lecture et écriture pour <code>etuciel</code> seul. C'est <code>ssh-copy-id</code> qui l'a créé ainsi, avec le dossier <code>~/.ssh</code> en 700.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ La Q6 peut te fermer la porte</div>
+    <p>Après le <code>chmod 666</code>, le serveur refuse ta clé, et le mot de passe est coupé.
+       Garde donc <strong>la session actuelle ouverte</strong> pour remettre 600 depuis elle.</p>
+    <p>Si elle s'est fermée, passe par l'hôte : <code>docker ps</code> pour trouver le nom du
+       conteneur du serveur, puis :</p>
+    <div class="bloc-code" data-fam="bash" style="--car:46"><span class="langue">hôte</span><pre><code><span class="j-fn">docker</span> exec <span class="j-att">-it</span> NOM_DU_CONTENEUR \
+<span class="j-fn">  chmod</span> <span class="j-num">600</span> /home/etuciel/.ssh/authorized_keys</code></pre></div>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, ouvrir <code>authorized_keys</code> en écriture à tous (666). Depuis le <strong>client</strong>, ouvrir une <strong>nouvelle</strong> connexion. Puis remettre 600.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:32"><span class="langue">serveur · srvssh</span><pre><code>chmod 666 ~/.ssh/authorized_keys</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code># dans un 2e terminal
+ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="serveur" style="--car:32"><span class="langue">serveur · srvssh</span><pre><code>chmod 600 ~/.ssh/authorized_keys</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">25</span>Partie 2 · Q6 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q6.</strong> Les droits de <code>~/.ssh/authorized_keys</code> passent en 666. Se déconnecter, puis se reconnecter. Un changement est-il apparu ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Oui : la connexion par clé est <strong>refusée</strong>, et comme le mot de passe est coupé, on n'entre plus (<code>Permission denied (publickey)</code>).</p>
+        <p>Pourquoi : le serveur vérifie les droits avant de lire le fichier (option <code>StrictModes</code>, active par défaut). Un <code>authorized_keys</code> modifiable par tous permettrait à n'importe quel compte d'y <strong>ajouter sa propre clé</strong>, donc d'entrer à ta place.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">26</span>Partie 2 · Q7 <span class="niveau n3">Analyse</span></h3>
+    <div class="enonce">
+      <p><strong>Q7.</strong> Proposer une hypothèse de fonctionnement de l'authentification par clés. Qu'est-ce qui la distingue d'une connexion par mot de passe ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>Le serveur garde la clé <strong>publique</strong>. À la connexion, le client prouve qu'il possède la clé <strong>privée</strong> : il <strong>signe</strong> une donnée propre à cette session, et le serveur vérifie la signature avec la clé publique.</p>
+        <p>La clé privée ne quitte <strong>jamais</strong> le client. Ce qui circule, c'est une signature, valable pour cette session seulement.</p>
+        <p>Avec un mot de passe, au contraire, le secret lui-même est envoyé au serveur (chiffré dans le tunnel, mais lisible par celui qui est au bout). Si ce bout est un attaquant, il le récupère, et peut le réutiliser.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="p6">
+  <h2><span class="num">08</span>L'agent SSH, puis le MITM contre une clé</h2>
+  <p>L'<strong>agent</strong> garde la clé déverrouillée en mémoire : on tape la phrase de passe
+     une fois, puis on se connecte sans la retaper. Pratique, mais à manier avec soin.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, lancer l'agent dans le shell courant, puis lui confier la clé (la phrase de passe est demandée une seule fois).</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>exec ssh-agent $SHELL
+ssh-add
+# plus de phrase a taper
+ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <p><code>$SHELL</code> relance le shell que tu utilises déjà, avec l'agent attaché. Si
+     l'agent s'arrête, il faudra retaper la phrase.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Ne jamais prêter son agent à un serveur douteux</div>
+    <p>L'option <code>ssh -A</code> fait suivre l'agent jusqu'au serveur. Si ce serveur est un
+       attaquant, il peut s'en servir pour s'authentifier <strong>à ta place</strong> tant que
+       la session dure. Ne l'utilise que vers un serveur dont tu as vérifié l'identité.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Relancer l'attaque comme aux parties <a href="#p2">3</a> et <a href="#p3">4</a> : sur <strong>kali</strong>, <code>start.sh</code> puis ettercap.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, vider <code>known_hosts</code> comme à la partie 1, puis se connecter.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>echo > ~/.ssh/known_hosts
+ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+
+  <article class="exo">
+    <h3><span class="no">27</span>Partie 2 · Q8 <span class="niveau n3">Analyse</span></h3>
+    <div class="enonce">
+      <p><strong>Q8.</strong> Avec l'authentification par clés en place, tenter à nouveau l'attaque MITM entre le client et le serveur. Quel résultat obtient-on ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>L'interception <strong>échoue</strong> : l'attaquant n'obtient pas de session sur le serveur, et n'a plus de mot de passe à lire.</p>
+        <p>Pourquoi : pour parler au vrai serveur, l'outil doit s'authentifier à la place du client. Il n'a pas la clé privée, qui n'a jamais quitté le client. Et la signature du client est liée à <strong>sa</strong> session avec l'attaquant : elle ne vaut rien pour une autre session.</p>
+        <p class="rap">Le seul moyen pour lui serait que le client lui prête son agent (<code>ssh -A</code>). D'où le piège ci-dessus.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Arrêter l'attaque sur <strong>kali</strong> (<code>q</code> dans ettercap, puis <code>stop.sh</code>), et vider à nouveau <code>known_hosts</code> sur le client.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="kali" style="--car:14"><span class="langue">attaquant · kali</span><pre><code>cd ~/ssh-mitm
+sudo ./stop.sh</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:25"><span class="langue">client · clissh</span><pre><code>echo > ~/.ssh/known_hosts</code></pre></div>
+</section>
+
+<section id="p7">
+  <h2><span class="num">09</span>Vérifier le serveur dès la 1ʳᵉ connexion : SSHFP</h2>
+  <p>Par défaut, SSH fait confiance au <strong>premier</strong> contact (le modèle TOFU) : c'est
+     toi qui valides l'empreinte. Deux façons de bien le faire :</p>
+  <ul>
+    <li>comparer l'empreinte présentée à celle du serveur (<code>ssh-keygen -l</code>) ;</li>
+    <li>ajouter la clé du serveur à la main dans <code>known_hosts</code>, avant de se
+        connecter.</li>
+  </ul>
+  <p>Les deux deviennent lourdes avec beaucoup de serveurs. <strong>SSHFP</strong> publie les
+     empreintes dans le <strong>DNS</strong>, et le client vérifie seul.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">D'abord à la main : afficher l'empreinte de la clé d'hôte sur le <strong>serveur</strong>, et la comparer à celle que le <strong>client</strong> affiche à la première connexion.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:50"><span class="langue">serveur · srvssh</span><pre><code>ssh-keygen -l -f /etc/ssh/ssh_host_ecdsa_key.pub
+ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub</code></pre></div>
+  <div class="bloc-code" data-machine="client" style="--car:31"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Compare des clés du même type</div>
+    <p>Le sujet compare la clé <strong>ECDSA</strong>. Mais ton client présente souvent une clé
+       <strong>ED25519</strong> (regarde la ligne « ... key fingerprint is »). Compare alors avec
+       <code>ssh_host_ed25519_key.pub</code> : deux types différents ne donnent jamais la même
+       empreinte.</p>
+  </div>
+
+  <article class="exo">
+    <h3><span class="no">28</span>Partie 2 · Q9 <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p><strong>Q9.</strong> Expliquer l'intérêt de publier les empreintes des clés du serveur SSH dans la zone DNS de l'entreprise.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+        <p>À la première connexion, le client compare <strong>automatiquement</strong> la clé présentée aux empreintes publiées dans le DNS. Si elles concordent, l'identité du serveur est confirmée, sans comparaison à l'œil.</p>
+        <p>C'est la faiblesse du TOFU qui disparaît : un MITM qui présente sa propre clé ne correspond pas à l'empreinte publiée. Et un seul endroit à tenir à jour, même avec des dizaines de serveurs.</p>
+        <p class="rap">À une condition : que la réponse du DNS soit elle-même fiable. Sans DNSSEC, un attaquant pourrait aussi falsifier le DNS. SSH affiche alors la concordance, mais demande quand même de confirmer.</p>
+      </div>
+    </div>
+  </article>
+
+  <h3 class="tp-soustitre">9.1 · Publier les empreintes dans la zone DNS</h3>
+  <p>Le serveur <code>srvssh</code> porte aussi le DNS du domaine <code>local.sio.fr</code>
+     (Bind9). Tout se passe donc sur lui.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, fabriquer les enregistrements SSHFP. C'est le <strong>nom d'hôte</strong> du serveur qui se tape, pas le nom complet.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:25"><span class="langue">serveur · srvssh</span><pre><code>sudo ssh-keygen -r srvssh</code></pre></div>
+  <div class="bloc-code" data-machine="sortie" style="--car:31"><span class="langue">sortie observée · six lignes</span><pre><code>srvssh IN SSHFP 1 1 6fa8aeb8...
+srvssh IN SSHFP 1 2 ef3c9989...
+srvssh IN SSHFP 3 1 4c16f0e9...
+srvssh IN SSHFP 3 2 94f23110...
+srvssh IN SSHFP 4 1 7ef6631a...
+srvssh IN SSHFP 4 2 88efa67b...</code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Lire un enregistrement SSHFP</div>
+    <div class="bloc-code" style="--car:31"><span class="langue">zone DNS</span><pre><code>srvssh IN SSHFP 3 2 94f23110...</code></pre></div>
+    <p>Le <strong>premier</strong> chiffre est le type de clé : <code>1</code> RSA,
+       <code>2</code> DSA, <code>3</code> ECDSA, <code>4</code> Ed25519.</p>
+    <p>Le <strong>second</strong> est le type d'empreinte : <code>1</code> SHA-1,
+       <code>2</code> SHA-256.</p>
+    <p class="rap">Ici, <code>3 2</code> : l'empreinte SHA-256 de la clé ECDSA. Trois types de
+       clé, deux empreintes chacun : six lignes.</p>
+  </div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Retrouver le fichier de zone, y coller les six lignes <strong>à la fin</strong>, et augmenter le numéro de série (<code>serial</code>) de la zone.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:42"><span class="langue">serveur · srvssh</span><pre><code>grep -rn "file" /etc/bind/named.conf.local
+sudoedit /var/named/db.local.sio.fr</code></pre></div>
+  <p>Le <code>grep</code> montre le chemin du fichier de zone déclaré. Le sujet le met dans
+     <code>/var/named/</code> : si ton lab le range ailleurs, prends le chemin affiché.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier la zone, puis recharger le DNS.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="serveur" style="--car:60"><span class="langue">serveur · srvssh</span><pre><code>sudo named-checkzone local.sio.fr /var/named/db.local.sio.fr
+sudo rndc reload</code></pre></div>
+  <p><code>named-checkzone</code> doit répondre <code>OK</code>. Une erreur dans la zone, et
+     c'est tout le domaine qui ne répond plus.</p>
+
+  <h3 class="tp-soustitre">9.2 · Faire vérifier le client</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, se connecter en demandant la vérification par le DNS.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:55"><span class="langue">client · clissh</span><pre><code>ssh -o VerifyHostKeyDNS=yes etuciel@srvssh.local.sio.fr</code></pre></div>
+  <div class="bloc-code" data-machine="sortie" style="--car:43"><span class="langue">sortie attendue</span><pre><code>Matching host key fingerprint found in DNS.</code></pre></div>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Pour que la vérification se fasse à <strong>chaque</strong> connexion, l'écrire dans la configuration du client.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:20"><span class="langue">client · /etc/ssh/ssh_config</span><pre><code>VerifyHostKeyDNS yes</code></pre></div>
+
+  <div class="encart savoir"><div class="titre">💡 Ce que la partie 2 démontre</div>
+    <p>Avec une <strong>clé</strong>, il n'y a plus de secret à voler en route : le MITM échoue.</p>
+    <p>Avec <strong>SSHFP</strong>, le client sait reconnaître le vrai serveur dès le premier
+       contact : le MITM est repéré avant même d'avoir commencé.</p>
+  </div>
+</section>
+
 <footer>
   <div class="recap">
-    <h2>⚡ Le TP en six gestes</h2>
+    <h2>⚡ Le TP en neuf gestes</h2>
     <ul>
       <li><strong>Découvrir</strong> : vérifier le service SSH, établir la première connexion
           (TOFU), comprendre <code>known_hosts</code>.</li>
@@ -655,6 +1041,12 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
       <li><strong>Exploiter</strong> : intercepter la session et lire le journal en clair.</li>
       <li><strong>Détecter et réparer</strong> : SSH bloque sur le changement de clé ; on traite
           l'attaque <em>avant</em> de retirer l'ancienne clé.</li>
+      <li><strong>Passer aux clés</strong> : <code>ssh-keygen</code>, <code>ssh-copy-id</code>,
+          puis couper le mot de passe, une fois la clé testée.</li>
+      <li><strong>Constater l'échec du MITM</strong> : la clé privée ne voyage jamais, il n'y a
+          plus rien à voler.</li>
+      <li><strong>Publier l'empreinte</strong> : SSHFP dans la zone DNS, et
+          <code>VerifyHostKeyDNS</code> côté client.</li>
     </ul>
   </div>
 
@@ -663,10 +1055,13 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
     <ul>
       <li>« Activité 1, attaque MITM d'un service SSH et mise en place de contre-mesures »,
           Réseau Certa, 3 parties, 19 questions, 6 annexes.</li>
+      <li>Sa partie 2, « mise en place de contre-mesures » : 9 questions, annexes sur
+          l'entropie et le protocole SSHFP.</li>
     </ul>
     <p class="rap">Le pas-à-pas reprend les commandes de l'activité, exécutées dans l'environnement de
-       lab <strong>isolé</strong> qu'il décrit. Les noms de comptes et de domaines sont ceux,
-       neutres, du reste du chapitre. Les corrigés reformulent les concepts de l'activité et de
+       lab <strong>isolé</strong> qu'il décrit. Le compte et le domaine sont ceux de la
+       maquette Docker du lab, <code>etuciel</code> et <code>local.sio.fr</code>, pour que
+       chaque commande marche telle quelle. Les corrigés reformulent les concepts de l'activité et de
        ses annexes.</p>
   </div>
 </footer>
@@ -675,7 +1070,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/cours.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=7b6f5663"></script>
-<script src="../../assets/app.js?v=7b6f5663"></script>
+<script src="../../assets/fiche.js?v=d9b46cf6"></script>
+<script src="../../assets/app.js?v=d9b46cf6"></script>
 </body>
 </html>

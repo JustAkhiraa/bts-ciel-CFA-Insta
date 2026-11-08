@@ -71,6 +71,9 @@ TOLERES = {
     "m.blanchett@spinbrands.co.uk",           # personnage d'un sujet d'anglais
     "dylan.rbsn@corporatehappiness.com",      # personnage d'un sujet d'anglais
     "06 12 34 56 78",                         # placeholder d'un champ de formulaire
+    "etuciel@srvssh.local.sio.fr",            # pas un e-mail : « compte@machine » de
+                                              # SSH, compte de lab de la maquette Docker
+                                              # (TP des chapitres 18 et 20)
 }
 
 # « verification » n'est plus ignoré : c'est de là que venait la fuite. Un
