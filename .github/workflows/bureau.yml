@@ -3,17 +3,27 @@
 #   https://github.com/JustAkhiraa/bts-ciel-CFA-Insta/releases/latest
 #
 # Une application se compile sur son propre système : un Mac ne sait pas
-# fabriquer celle de Windows. D'où trois machines, qui font la même chose :
-# recopier le site publié dans bureau/site, puis compiler l'enveloppe
-# (bureau/src-tauri) autour de lui. Le site y est EMBARQUÉ : l'application
-# marche hors ligne, avec le planning du jour de la fabrication.
+# fabriquer celle de Windows. D'où une machine par système, qui recopie le
+# site publié dans bureau/site puis compile l'enveloppe (bureau/src-tauri)
+# autour de lui. Le site y est EMBARQUÉ : l'application marche hors ligne,
+# avec le planning du jour de la fabrication.
 #
-# Trois étapes, dans cet ordre, pour que les trois machines déposent dans
-# la MÊME version sans se marcher dessus :
-#   1. ouvrir   : crée la version en brouillon, une seule fois ;
-#   2. fabriquer: les trois machines y déposent leurs fichiers ;
-#   3. publier  : le brouillon devient public, seulement si les trois ont
-#                 réussi (une version à moitié vide ne sort pas).
+# Linux, demandé « pour tout » : un format par famille de distributions.
+#   .deb          Debian, Ubuntu, Linux Mint, Kali, Pop!_OS
+#   .rpm          Fedora, openSUSE, RHEL
+#   .pkg.tar.zst  Arch, Manjaro, EndeavourOS (refait à partir du .deb)
+#   .flatpak      toute distribution qui a Flatpak (refait à partir du .deb)
+#   .AppImage     toutes les autres, sans rien installer
+#   NixOS         une recette Nix (bureau/flake.nix), vérifiée ici à chaque
+#                 passage : elle recompile depuis les sources, rien à déposer
+#
+# L'ordre, pour que les machines déposent dans la MÊME version sans se
+# marcher dessus :
+#   1. ouvrir    : crée la version en brouillon, une seule fois ;
+#   2. fabriquer : Mac, Windows et Linux y déposent leurs fichiers ;
+#   3. publier   : le brouillon devient public si les trois ont réussi ;
+#   en même temps que 3, Arch et Flatpak ajoutent les leurs. Un échec de
+#   l'un des deux n'empêche pas la version de sortir : il se voit ici.
 #
 # Elle se lance à la main : onglet Actions, « Appli de bureau », « Run
 # workflow ». Chaque passage publie la version 1.0.N (N, le numéro du
@@ -21,7 +31,7 @@
 #
 # Source : _pilotage/publication/ci/bureau.yml dans le dépôt privé, recopiée
 # par publier.py. Le jeton de publication n'a pas la portée « workflow » :
-# ce fichier se colle à la main dans l'interface GitHub.
+# ce fichier se colle à la main dans l'interface GitHub la première fois.
 name: Appli de bureau
 
 on:
@@ -51,13 +61,24 @@ jobs:
           cat > notes.md <<'NOTES'
           Les fiches, les outils et les jeux du site BTS CIEL, dans une application qui marche hors ligne.
 
-          **Quel fichier prendre**
+          ## Quel fichier prendre
 
-          - **Mac** (Apple Silicon et Intel) : le `.dmg`. Ouvre-le, glisse BTS CIEL dans Applications.
-          - **Windows** : le `.exe` (installation en un clic) ou le `.msi`.
-          - **Linux** : le `.AppImage` (le rendre exécutable, puis le lancer), le `.deb` (Debian, Ubuntu) ou le `.rpm` (Fedora).
+          **Mac** (Apple Silicon et Intel) : le `.dmg`. Ouvre-le, glisse BTS CIEL dans Applications.
 
-          **À la première ouverture**
+          **Windows** : le `.exe` (installation en un clic) ou le `.msi`.
+
+          **Linux**, selon ta distribution :
+
+          | Distribution | Fichier | Installer |
+          |---|---|---|
+          | Debian, Ubuntu, Linux Mint, Kali, Pop!_OS | `.deb` | `sudo apt install ./BTS.CIEL_*_amd64.deb` |
+          | Fedora, openSUSE, RHEL | `.rpm` | `sudo dnf install ./BTS.CIEL-*.x86_64.rpm` |
+          | Arch, Manjaro, EndeavourOS | `.pkg.tar.zst` | `sudo pacman -U bts-ciel-*.pkg.tar.zst` |
+          | NixOS | aucun fichier | `nix run "github:JustAkhiraa/bts-ciel-CFA-Insta?dir=bureau"` |
+          | Toute distribution avec Flatpak | `.flatpak` | `flatpak install --user BTS.CIEL_*.flatpak` |
+          | Toutes les autres | `.AppImage` | le rendre exécutable, puis le lancer, sans rien installer |
+
+          ## À la première ouverture
 
           L'application n'est pas signée par un éditeur payant, d'où un avertissement la première fois :
 
@@ -85,7 +106,9 @@ jobs:
           - nom: Windows
             systeme: windows-latest
             options: ""
-          - nom: Linux
+          # Ubuntu 22.04 et non la dernière : un programme compilé sur une
+          # bibliothèque C plus ancienne tourne sur plus de distributions
+          - nom: Linux (deb, rpm, AppImage)
             systeme: ubuntu-22.04
             options: ""
     runs-on: ${{ matrix.systeme }}
@@ -132,6 +155,83 @@ jobs:
           tauriScript: tauri
           args: ${{ matrix.options }}
           releaseId: ${{ needs.ouvrir.outputs.id }}
+
+      # le .deb sert ensuite à fabriquer le paquet Arch et le Flatpak
+      - name: Passer le .deb aux paquets Arch et Flatpak
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: paquet-deb
+          path: bureau/src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+  arch:
+    name: Linux (Arch)
+    needs: [ouvrir, fabriquer]
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquet-deb
+          path: arch
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.ouvrir.outputs.id }}
+        run: |
+          pacman -Syu --noconfirm --needed base-devel
+          useradd -m fabrique
+          cp bureau/linux/arch/PKGBUILD arch/
+          mv arch/*.deb arch/bts-ciel.deb
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" arch/PKGBUILD
+          chown -R fabrique arch
+          # makepkg refuse de tourner en administrateur ; les dépendances ne
+          # servent qu'à l'installation, pas à la fabrication du paquet
+          su fabrique -c "cd arch && makepkg --nodeps --noconfirm"
+          for f in arch/*.pkg.tar.zst; do
+            curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
+              --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=$(basename "$f")" > /dev/null
+            echo "déposé : $(basename "$f")"
+          done
+
+  flatpak:
+    name: Linux (Flatpak)
+    needs: [ouvrir, fabriquer]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: paquet-deb
+          path: flatpak
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.ouvrir.outputs.id }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          cp bureau/linux/flatpak/fr.btsciel.revisions.yml flatpak/
+          mv flatpak/*.deb flatpak/bts-ciel.deb
+          cd flatpak
+          flatpak-builder --user --install-deps-from=flathub --repo=depot --force-clean construction fr.btsciel.revisions.yml
+          f="BTS.CIEL_${VERSION}_x86_64.flatpak"
+          flatpak build-bundle depot "$f" fr.btsciel.revisions --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
+            --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=$f" > /dev/null
+          echo "déposé : $f"
+
+  # NixOS recompile depuis les sources : rien à déposer, mais la recette est
+  # vérifiée à chaque passage, pour qu'elle ne se casse pas en silence
+  nix:
+    name: Linux (NixOS, vérification)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - run: nix build ./bureau -L
+      - run: test -x result/bin/bts-ciel
 
   publier:
     name: Publier la version
