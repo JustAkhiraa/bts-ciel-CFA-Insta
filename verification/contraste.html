@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste · BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=7d37e231">
+<link rel="stylesheet" href="../assets/fiche.css?v=ccd83c71">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -534,7 +534,12 @@ function charger(url) {
       confronterRegistre(f.contentWindow);
       res(f);
     };
-    f.src = url + "?m=" + Date.now();
+    /* Le paramètre anti-cache se place AVANT l'ancre. Écrit après,
+       « jeux.html#mot » devenait « #mot?m=… » : la page ne reconnaissait
+       plus son ancre et affichait son accueil. Les trois jeux que ce banc
+       annonçait mesurer étaient l'accueil, trois fois, sans un mot. */
+    const [chemin, ancre] = url.split("#");
+    f.src = chemin + "?m=" + Date.now() + (ancre ? "#" + ancre : "");
   });
 }
 
@@ -597,6 +602,7 @@ document.getElementById("go").addEventListener("click", async () => {
                     terminal (le fond des blocs de code et ses couleurs). */
                  "../outils/jeux.html", "../outils/jeux.html#mot",
                  "../outils/jeux.html#notion", "../outils/jeux.html#terminal",
+                 "../outils/jeux.html#binaire",
                  "../03-mathematiques/index.html",
                  "../03-mathematiques/12-integrales-primitives/cours.html",
                  // L'étiquette « hors programme » se pose sur un fil d'Ariane,
@@ -658,6 +664,9 @@ document.getElementById("go").addEventListener("click", async () => {
        banc qui ne sait pas ouvrir ce qu'il contrôle annonce un succès sur
        ce qu'il a vu, pas sur ce qui existe. */
     for (const dt of doc.querySelectorAll("details")) dt.open = true;
+    /* Les règles d'un jeu se replient après la première visite : le banc
+       les rouvre, leurs exemples de couleur sont du texte comme un autre. */
+    for (const r of doc.querySelectorAll(".jx-regles")) r.hidden = false;
     for (const a of AMB) {
       for (const face of faces(a)) {
       d.dataset.theme = a; d.dataset.sombre = face;
