@@ -10549,6 +10549,105 @@ html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: non
   .tel-volet.ouvert { transform: translate(-50%, 0); }
 }
 
+/* ═══════════════ Les jeux du jour (outils/jeux.html) ═══════════════
+   Couleurs : uniquement les couples déjà mesurés sur les 40 thèmes
+   (vert sur vert pâle, ambre sombre sur ambre pâle, rouge sur rouge pâle,
+   accent sombre sur accent pâle). Le terminal reprend le fond des blocs
+   de code, #23211E, qu'aucun thème ne redéfinit ; ses quatre couleurs y
+   tiennent toutes plus de 6:1. Une case de couleur porte aussi une FORME
+   (barre pleine, pointillés) : la couleur seule ne suffit pas. */
+.jx-tete { margin-bottom: 1rem; }
+.jx-date { margin: 0; font-weight: 700; color: var(--encre); }
+.jx-prochain, .jx-note { margin: .2rem 0 0; color: var(--encre-douce); font-size: .9rem; }
+.jx-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: .6rem; margin-bottom: 1.4rem; }
+.jx-carte { display: grid; grid-template-columns: auto 1fr; column-gap: .75rem; align-items: center; padding: .8rem .9rem;
+  border: 1px solid var(--bord); border-radius: var(--r); background: var(--carte); color: var(--encre); text-decoration: none; }
+.jx-carte:hover { border-color: var(--accent); }
+.jx-carte[aria-current] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.jx-ico { grid-row: span 3; width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: 10px;
+  background: var(--accent-pale); color: var(--accent-sombre); font: 700 .95rem var(--mono); }
+.jx-nom { font-weight: 700; }
+.jx-cartes.jx-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.jx-compact .jx-carte { grid-template-columns: 1fr; justify-items: center; text-align: center; row-gap: .25rem; padding: .5rem .3rem; }
+.jx-compact .jx-ico { grid-row: auto; width: 2.2rem; height: 2.2rem; }
+.jx-compact .jx-nom { font-size: .78rem; line-height: 1.2; }
+.jx-compact .jx-dit, .jx-compact .jx-etat { display: none; }
+.jx-dit { color: var(--encre-douce); font-size: .85rem; }
+.jx-etat { color: var(--accent-sombre); font-size: .8rem; font-weight: 600; }
+.jx-jeu { max-width: 40rem; margin-inline: auto; }
+.jx-consigne { color: var(--encre); }
+.jx-b { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: .4rem .9rem;
+  border: 1px solid var(--bord); border-radius: 8px; background: var(--carte); color: var(--encre); font: inherit; cursor: pointer; }
+.jx-b:hover { border-color: var(--accent); }
+.jx-b:disabled { cursor: default; background: var(--carte-creuse); text-align: left; }
+.jx-plein { background: var(--accent); color: var(--sur-accent); border-color: var(--accent); }
+.jx-champ { min-height: 38px; padding: .4rem .7rem; border: 1px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre); font: inherit; min-width: 0; flex: 1; }
+.jx-pied { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.jx-fin { flex-basis: 100%; padding: .9rem 1rem; border: 1px solid var(--vert-bord); border-radius: var(--r);
+  background: var(--vert-pale); color: var(--vert); }
+.jx-fin p { margin: 0 0 .5rem; }
+.jx-fin a { color: var(--vert); font-weight: 700; }
+.jx-fin .jx-b { margin: .2rem .4rem 0 0; }
+.jx-stats { font-size: .9rem; }
+.jx-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* le mot du jour */
+.jx-grille-mot { display: grid; gap: .35rem; max-width: calc(var(--n) * 3.4rem); margin: 1rem auto; }
+.jx-ligne { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: .35rem; }
+.jx-case { aspect-ratio: 1; display: grid; place-items: center; border: 2px solid var(--bord); border-radius: 8px;
+  background: var(--carte); color: var(--encre); font: 700 clamp(.9rem, 4vw, 1.3rem) var(--mono); }
+.jx-case.tapee { border-color: var(--encre-douce); }
+.jx-case.juste, .jx-touche.juste, .jx-l.juste { background: var(--vert-pale); color: var(--vert); border-color: var(--vert);
+  box-shadow: inset 0 -4px 0 var(--vert); }
+.jx-case.ailleurs, .jx-touche.ailleurs, .jx-l.ailleurs { background: var(--ambre-pale); color: var(--ambre-sombre);
+  border: 2px dashed var(--ambre-sombre); }
+.jx-case.absente, .jx-touche.absente, .jx-l.absente { background: var(--carte-creuse); color: var(--encre-douce); border-color: var(--bord); }
+.jx-l { display: inline-block; padding: 0 .3rem; border: 2px solid transparent; border-radius: 5px; }
+.jx-clavier { display: grid; gap: .3rem; margin: 1rem auto 0; max-width: 32rem; }
+.jx-rangee { display: flex; gap: .25rem; justify-content: center; }
+.jx-touche { flex: 1; min-width: 0; height: 44px; border: 1px solid var(--bord); border-radius: 6px; background: var(--carte);
+  color: var(--encre); font: 700 .9rem var(--mono); cursor: pointer; padding: 0; }
+.jx-touche.large { flex: 1.6; }
+.jx-secoue { animation: jx-secoue .35s; }
+@keyframes jx-secoue { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .jx-secoue { animation: none; } }
+[data-anim="0"] .jx-secoue { animation: none; }
+/* la notion cachée */
+.jx-texte { line-height: 2.1; color: var(--encre); }
+.jx-titre { font-size: 1.2rem; }
+.jx-masque { display: inline-block; min-width: calc(var(--n) * .58em); padding: 0 .2em; border-radius: 4px; line-height: 1.5;
+  background: var(--carte-creuse); color: var(--encre-douce); font-size: .7em; text-align: center; vertical-align: .1em; }
+.jx-trouve { background: var(--vert-pale); color: var(--vert); border-radius: 3px; }
+.jx-proposer { display: flex; gap: .5rem; margin: 1rem 0 0; }
+.jx-historique { list-style: none; padding: 0; margin: .8rem 0 0; display: flex; flex-wrap: wrap; gap: .3rem .9rem;
+  color: var(--encre-douce); font-size: .85rem; }
+/* le terminal */
+.jx-hud { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; align-items: center; color: var(--encre); font-size: .9rem; }
+.jx-vies { color: var(--rouge); font-size: 1.1rem; letter-spacing: .15em; }
+.jx-temps { height: 6px; margin: .6rem 0; border-radius: 3px; background: var(--carte-creuse); overflow: hidden; }
+.jx-temps span { display: block; height: 100%; width: 100%; background: var(--accent); }
+.jx-ecran { min-height: 12rem; max-height: 20rem; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.jx-ecran .jx-vert { color: #8CE99A; }
+.jx-ecran .jx-rouge { color: #FFA8A8; }
+.jx-ecran .jx-gris { color: #BDB5A8; }
+.jx-ecran .jx-tache { color: #FFD43B; }
+.jx-invite { display: flex; align-items: center; gap: .5rem; margin-top: .4rem; padding: .45rem .8rem; border-radius: var(--r);
+  background: #23211E; }
+.jx-invite:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.jx-invite-lib { flex: none; color: #8CE99A; font: .8rem var(--mono); }
+.jx-cmd { min-height: 34px; padding: 0; border: 0; background: transparent; color: #EDE7DC; font: .85rem var(--mono);
+  caret-color: #8CE99A; outline: none; }
+/* la grille binaire */
+.jx-plateau { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4px;
+  max-width: min(100%, calc(var(--n) * 3.3rem)); margin: 1rem auto 0; }
+.jx-cellule { aspect-ratio: 1; min-height: 34px; padding: 0; border: 1px solid var(--bord); border-radius: 6px;
+  background: var(--carte); color: var(--encre); font: 700 clamp(.95rem, 4.5vw, 1.3rem) var(--mono); cursor: pointer; }
+.jx-cellule.zero { background: var(--carte-creuse); }
+.jx-cellule.un { background: var(--accent-pale); color: var(--accent-sombre); }
+.jx-cellule.fixe { border: 2px solid var(--encre-douce); cursor: default; }
+.jx-cellule:disabled { opacity: 1; }
+.jx-cellule.faute { background: var(--rouge-pale); color: var(--rouge); border: 2px dashed var(--rouge); }
+
 
 /* ── Curseurs de thème — engendré par publier.py ────────────
    Source : les jeux déposés dans _depots-bruts/Curseur/_zips/, convertis en
