@@ -113,7 +113,9 @@
     stylo: 0,
     /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
        ce qu'on fait du doigt quand un stylet a été vu. */
-    formes: false, gommeMode: "objet", gommeTaille: 12,
+    /* La gomme efface sous le curseur, comme une vraie gomme : c'est le
+       défaut depuis le 8 nov. 2026. « Trait entier » reste à un clic. */
+    formes: false, gommeMode: "partie", gommeChoisie: false, gommeTaille: 12,
     styletSeul: false, inclinaison: true, regle: null,
   };
   /* Les douze encres, et les six calibres. */
@@ -137,6 +139,7 @@
 
   /* ── l'historique : une photographie de la scène par action ── */
   let pile = [], curseurPile = -1;
+  let baguette = null;               // la zone choisie à la baguette magique
   function memoriser() {
     const photo = JSON.stringify(elements);
     if (pile[curseurPile] === photo) return;
@@ -179,7 +182,7 @@
           elements, fond: etat.fond, grille: etat.grille, theme: etat.theme,
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
-          formes: etat.formes, gommeMode: etat.gommeMode, gommeTaille: etat.gommeTaille,
+          formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
@@ -203,9 +206,13 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeTaille", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
+      // un « trait entier » enregistré AVANT le changement de défaut n'était
+      // pas un choix, seulement l'ancien défaut : on ne le garde que s'il a
+      // été choisi
+      if (!lu.gommeChoisie) etat.gommeMode = "partie";
       if (lu.courant) Object.assign(etat.courant, lu.courant);
       if (Array.isArray(lu.stylos) && lu.stylos.length === 3) etat.stylos = lu.stylos;
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
@@ -851,6 +858,8 @@
       ctx.setLineDash([6 / z, 5 / z]); ctx.lineWidth = 1.5 / z; ctx.strokeStyle = BLEU_SEL; ctx.stroke();
       ctx.setLineDash([]);
     }
+    // la baguette : la zone choisie, posée sur l'image même
+    if (baguette && baguette.voile) dessinerVoile();
     // la gomme partielle montre ce qu'elle va prendre
     if (etat.outil === "gomme" && etat.gommeMode === "partie" && dernierePos) {
       ctx.beginPath(); ctx.arc(dernierePos.x, dernierePos.y, etat.gommeTaille / z, 0, Math.PI * 2);
@@ -1064,12 +1073,13 @@
   /* ═══════════════ 8. Les outils ══════════════════════════════════════ */
   const OUTILS_FORME = ["rectangle", "diamond", "ellipse", "postit"];
   const OUTILS_DESSIN = ["freedraw", "surligneur"];
-  const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser"];
+  const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser", "baguette"];
   function choisirOutil(o) {
     if (edition) finirEdition();
     etat.outil = o;
     lienDebut = null;
     if (o !== "selection") selection.clear();
+    if (o !== "baguette") baguette = null;
     $$("[data-outil]").forEach((b) => {
       if (b.dataset.outil !== "verrou") b.setAttribute("aria-pressed", String(b.dataset.outil === o));
     });
@@ -1402,7 +1412,10 @@
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
         if (el.type !== "freedraw" || el.locked) continue;
-        const rr = r + (el.strokeWidth || 1) * 1.7, bb = R.boite(el);
+        // une pointe large se gomme sur toute sa largeur, pas seulement au centre
+        const pt = el.customData && el.customData.pointe;
+        const large = { marqueur: 1.6, pastel: 2, aquarelle: 2.5, calame: 1.5 }[pt] || 1;
+        const rr = r + (el.strokeWidth || 1) * 1.7 * large, bb = R.boite(el);
         if (c[0] < bb.x - rr || c[0] > bb.x + bb.w + rr || c[1] < bb.y - rr || c[1] > bb.y + bb.h + rr) continue;
         const morceaux = S.decouper(absolus(el), el.pressures, c, rr);
         if (morceaux.length === 1 && morceaux[0].points.length === el.points.length) continue;
@@ -1460,6 +1473,7 @@
     if (o === "texte") return debutTexte(e, p);
     if (o === "gomme") { debutGomme(p); return; }
     if (o === "lasso") return debutLasso(e, p);
+    if (o === "baguette") return clicBaguette(e, p);
     if (o === "lien") return debutLien(e, p);
     if (o === "laser") {
       geste = { mode: "laser" };
@@ -2416,7 +2430,7 @@
   const TOUCHES = { v: "selection", 1: "selection", r: "rectangle", 2: "rectangle", d: "diamond", 3: "diamond",
                     o: "ellipse", 4: "ellipse", a: "arrow", 5: "arrow", l: "line", 6: "line", p: "freedraw",
                     7: "freedraw", t: "texte", 8: "texte", e: "gomme", 0: "gomme", h: "main", k: "laser",
-                    n: "postit", m: "surligneur", s: "lasso" };
+                    n: "postit", m: "surligneur", s: "lasso", w: "baguette" };
   scene.addEventListener("keydown", (e) => {
     if (e.target !== scene) return;
     const k = e.key.toLowerCase();
@@ -2457,6 +2471,7 @@
     if (e.key === " ") { e.preventDefault(); if (!espace) { espace = true; majCurseur(); } return; }
     if (e.key === "Escape") {
       if (geste) { annulerGeste(); return; }
+      if (baguette) { baguette = null; reglage.hidden = true; demander(); return; }
       if (selection.size) { selection.clear(); majPanneau(); demander(); return; }
       if (section.classList.contains("tb-grand")) basculerPlein(false);
       else if (etat.outil !== "selection") choisirOutil("selection");
@@ -2662,7 +2677,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -3627,7 +3642,7 @@
   function ouvrirReglageGomme() {
     const partie = etat.gommeMode === "partie";
     reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p><div class="tb-choix">'
-      + [["objet", "Trait entier"], ["partie", "Partie du trait"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rg="'
+      + [["partie", "Sous le curseur"], ["objet", "Trait entier"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rg="'
         + v + '" aria-pressed="' + (etat.gommeMode === v) + '">' + t + "</button>").join("") + "</div>"
       + (partie ? '<p class="tb-menu-titre">Taille</p><div class="tb-calibres">'
         + TAILLES_GOMME.map((t, i) => '<button type="button" class="tb-b tb-petit tb-calibre tb-calibre-gomme" data-rgt="' + t
@@ -3641,6 +3656,7 @@
   }
   function ouvrirReglage(quoi) {
     if (quoi === "gomme") return ouvrirReglageGomme();
+    if (quoi === "baguette") return ouvrirReglageBaguette();
     const surl = quoi === "surligneur";
     const st = surl ? { c: etat.courant.surligneur, w: etat.courant.surligneurW } : etat.stylos[quoi];
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
@@ -3670,8 +3686,9 @@
     const b = e.target.closest("button");
     if (!b) return;
     const q = reglage.dataset.quoi;
+    if (q === "baguette") { cliquerReglageBaguette(b); return; }
     if (q === "gomme") {
-      if (b.dataset.rg) etat.gommeMode = b.dataset.rg;
+      if (b.dataset.rg) { etat.gommeMode = b.dataset.rg; etat.gommeChoisie = true; }
       if (b.dataset.rgt) etat.gommeTaille = Number(b.dataset.rgt);
       garder(); demander(); ouvrirReglageGomme();
       return;
@@ -3707,10 +3724,260 @@
     scene.focus({ preventScroll: true });
   }));
   document.addEventListener("pointerdown", (e) => {
+    // un clic de baguette dans l'image OUVRE le réglage : ne pas le refermer aussitôt
+    if (etat.outil === "baguette" && e.target === toile) return;
     if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil]")) {
       reglage.hidden = true;
     }
   });
+  /* ── la baguette magique ──
+     Elle agit dans une IMAGE posée au tableau. Un clic prend la couleur du
+     pixel touché et choisit la zone de couleur voisine (« zone touchée »),
+     ou cette couleur partout dans l'image (« toute la couleur »), à une
+     tolérance près. Maj + clic ajoute une zone. Puis : effacer la zone (le
+     détourage d'un fond), ne garder qu'elle, la remplir de l'encre du
+     stylo, l'inverser, ou l'extraire en nouvelle image.
+     Le calcul se fait sur les pixels d'ORIGINE, pas sur l'écran. Chaque
+     action fabrique un nouveau fichier : l'annulation retrouve l'image
+     d'avant, qui reste dans le tableau.
+     La tolérance est une fraction de la plus grande différence possible
+     entre deux couleurs (rouge, vert, bleu et opacité) : 0 % ne prend que
+     la couleur exacte, 100 % prend toute l'image. */
+  const BAGUETTE = { tolerance: 30, mode: "contigu" };
+  function imageSous(p) {
+    const tol = 2 / etat.zoom;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const x = elements[i];
+      if (x.type === "image" && R.touche(x, p.x, p.y, tol)) return x;
+    }
+    return null;
+  }
+  function versPixel(el, img, p) {
+    const b = R.boite(el);
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, a = -(el.angle || 0);
+    let lx = cx + (p.x - cx) * Math.cos(a) - (p.y - cy) * Math.sin(a) - el.x;
+    let ly = cy + (p.x - cx) * Math.sin(a) + (p.y - cy) * Math.cos(a) - el.y;
+    const s = Array.isArray(el.scale) ? el.scale : [1, 1];
+    if (s[0] < 0) lx = el.width - lx;
+    if (s[1] < 0) ly = el.height - ly;
+    return [Math.floor(lx / el.width * img.naturalWidth), Math.floor(ly / el.height * img.naturalHeight)];
+  }
+  function lirePixels(el, img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    return { id: el.id, fichier: el.fileId, w, h, px: g.getImageData(0, 0, w, h).data, clics: [], masque: null, voile: null };
+  }
+  // une zone : les pixels proches de la couleur touchée, voisins de proche
+  // en proche (une pile, chaque pixel n'y entre qu'une fois), ou partout
+  function zoneDe(B, u, v) {
+    const { w, h, px } = B, n = w * h, zone = new Uint8Array(n);
+    const j0 = (v * w + u) * 4, r0 = px[j0], g0 = px[j0 + 1], b0 = px[j0 + 2], a0 = px[j0 + 3];
+    const t = BAGUETTE.tolerance / 100, lim = t * t * 4 * 255 * 255;
+    const proche = (k) => {
+      const j = k * 4;
+      if (a0 === 0 && px[j + 3] === 0) return true;          // deux transparences se valent
+      const dr = px[j] - r0, dg = px[j + 1] - g0, db = px[j + 2] - b0, da = px[j + 3] - a0;
+      return dr * dr + dg * dg + db * db + da * da <= lim;
+    };
+    if (BAGUETTE.mode === "partout") {
+      for (let k = 0; k < n; k++) if (proche(k)) zone[k] = 1;
+      return zone;
+    }
+    const pile = new Int32Array(n);
+    let sp = 0;
+    zone[v * w + u] = 1; pile[sp++] = v * w + u;
+    while (sp) {
+      const k = pile[--sp], x = k % w, y = (k - x) / w;
+      if (x > 0 && !zone[k - 1] && proche(k - 1)) { zone[k - 1] = 1; pile[sp++] = k - 1; }
+      if (x < w - 1 && !zone[k + 1] && proche(k + 1)) { zone[k + 1] = 1; pile[sp++] = k + 1; }
+      if (y > 0 && !zone[k - w] && proche(k - w)) { zone[k - w] = 1; pile[sp++] = k - w; }
+      if (y < h - 1 && !zone[k + w] && proche(k + w)) { zone[k + w] = 1; pile[sp++] = k + w; }
+    }
+    return zone;
+  }
+  function recalculerBaguette() {
+    const B = baguette;
+    B.masque = null;
+    for (const [u, v] of B.clics) {
+      const z = zoneDe(B, u, v);
+      if (!B.masque) B.masque = z; else for (let k = 0; k < z.length; k++) B.masque[k] |= z[k];
+    }
+    B.voile = B.masque ? voileDe(B) : null;
+    demander();
+  }
+  /* Le voile : la zone teintée, et son bord en pointillés noirs et blancs.
+     Le bord est épaissi à environ 1,5 pixel d'ÉCRAN : une image réduite à
+     l'affichage ferait disparaître un bord d'un seul pixel d'image. On le
+     trouve en deux passes (lignes puis colonnes) : un pixel choisi est au
+     bord s'il a un pixel non choisi à moins de « r » de lui. */
+  function voileDe(B) {
+    const { w, h, masque } = B, el = parId(B.id);
+    const r = el ? Math.max(1, Math.round(1.5 * w / Math.max(1, el.width * etat.zoom))) : 1;
+    const hors = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      let dernier = -1e9;
+      for (let x = 0; x < w; x++) { if (!masque[y * w + x]) dernier = x; if (x - dernier <= r) hors[y * w + x] = 1; }
+      dernier = 1e9;
+      for (let x = w - 1; x >= 0; x--) { if (!masque[y * w + x]) dernier = x; if (dernier - x <= r) hors[y * w + x] = 1; }
+    }
+    const pres = new Uint8Array(w * h);
+    for (let x = 0; x < w; x++) {
+      let dernier = -1e9;
+      for (let y = 0; y < h; y++) { if (hors[y * w + x]) dernier = y; if (y - dernier <= r) pres[y * w + x] = 1; }
+      dernier = 1e9;
+      for (let y = h - 1; y >= 0; y--) { if (hors[y * w + x]) dernier = y; if (dernier - y <= r) pres[y * w + x] = 1; }
+    }
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const g = cv.getContext("2d"), im = g.createImageData(w, h), d = im.data;
+    const pas = Math.max(2, r * 3);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const k = y * w + x;
+        if (!masque[k]) continue;
+        const j = k * 4;
+        const bord = pres[k] || x < r || y < r || x >= w - r || y >= h - r;
+        if (bord) { const c = Math.floor((x + y) / pas) % 2 ? 255 : 0; d[j] = d[j + 1] = d[j + 2] = c; d[j + 3] = 255; }
+        else { d[j] = 28; d[j + 1] = 126; d[j + 2] = 214; d[j + 3] = 90; }
+      }
+    }
+    g.putImageData(im, 0, 0);
+    return cv;
+  }
+  function dessinerVoile() {
+    const el = parId(baguette.id);
+    if (!el || el.fileId !== baguette.fichier) return;
+    ctx.save();
+    const b = R.boite(el);
+    if (el.angle) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      ctx.translate(cx, cy); ctx.rotate(el.angle); ctx.translate(-cx, -cy);
+    }
+    ctx.translate(el.x, el.y);
+    const s = Array.isArray(el.scale) ? el.scale : [1, 1];
+    if (s[0] < 0 || s[1] < 0) {
+      ctx.translate(s[0] < 0 ? el.width : 0, s[1] < 0 ? el.height : 0);
+      ctx.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1);
+    }
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(baguette.voile, 0, 0, el.width, el.height);
+    ctx.restore();
+  }
+  function clicBaguette(e, p) {
+    const el = imageSous(p);
+    if (!el) { dire("La baguette agit dans une image : clique sur une couleur de l'image.", true); return; }
+    const img = imageDe(el.fileId);
+    if (!img || !img.complete || !img.naturalWidth) { dire("L'image n'est pas encore chargée.", true); return; }
+    const [u, v] = versPixel(el, img, p);
+    if (u < 0 || v < 0 || u >= img.naturalWidth || v >= img.naturalHeight) return;
+    if (!baguette || baguette.id !== el.id || baguette.fichier !== el.fileId) baguette = lirePixels(el, img);
+    if (!e.shiftKey) baguette.clics = [];
+    baguette.clics.push([u, v]);
+    recalculerBaguette();
+    ouvrirReglageBaguette();
+  }
+  function ouvrirReglageBaguette() {
+    const B = baguette && baguette.masque ? baguette : null;
+    let n = 0;
+    if (B) for (let k = 0; k < B.masque.length; k++) n += B.masque[k];
+    const part = B ? Math.round(n / B.masque.length * 1000) / 10 : 0;
+    const bouton = (a, t) => '<button type="button" class="tb-b tb-petit tb-effet" data-rb="' + a + '"'
+      + (B ? "" : " disabled") + ">" + t + "</button>";
+    reglage.innerHTML = '<p class="tb-menu-titre">Baguette magique</p>'
+      + '<div class="tb-choix">' + [["contigu", "Zone touchée"], ["partout", "Toute la couleur"]].map(([v, t]) =>
+        '<button type="button" class="tb-b tb-petit" data-rbm="' + v + '" aria-pressed="' + (BAGUETTE.mode === v) + '">' + t + "</button>").join("")
+      + "</div>"
+      + '<p class="tb-menu-titre">Tolérance : <span id="tb-bg-val">' + BAGUETTE.tolerance + ' %</span></p>'
+      + '<input type="range" class="tb-tolerance" id="tb-bg-tol" min="0" max="100" step="1" value="' + BAGUETTE.tolerance
+      + '" aria-label="Tolérance de la baguette">'
+      + '<p class="tb-menu-titre">' + (B ? "La zone : " + String(part).replace(".", ",") + " % de l'image" : "Aucune zone") + "</p>"
+      + '<div class="tb-effets">' + bouton("effacer", "Effacer la zone") + bouton("garder", "Garder la zone")
+      + bouton("remplir", "Remplir (encre)") + bouton("extraire", "Extraire en image")
+      + bouton("inverser", "Inverser") + "</div>"
+      + '<p class="tb-note">Clique une couleur dans une image. Maj + clic ajoute une zone, Échap annule. '
+      + "Chaque action se défait (Cmd ou Ctrl + Z).</p>";
+    reglage.dataset.quoi = "baguette";
+    reglage.hidden = false;
+  }
+  function cliquerReglageBaguette(b) {
+    if (b.dataset.rbm) {
+      BAGUETTE.mode = b.dataset.rbm;
+      if (baguette && baguette.clics.length) recalculerBaguette();
+      ouvrirReglageBaguette();
+      return;
+    }
+    if (b.dataset.rb) appliquerBaguette(b.dataset.rb);
+  }
+  reglage.addEventListener("input", (e) => {
+    if (e.target.id !== "tb-bg-tol") return;
+    BAGUETTE.tolerance = Number(e.target.value);
+    $("#tb-bg-val").textContent = BAGUETTE.tolerance + " %";
+    clearTimeout(reglage.attente);
+    reglage.attente = setTimeout(() => {
+      if (baguette && baguette.clics.length) { recalculerBaguette(); ouvrirReglageBaguette(); $("#tb-bg-tol").focus(); }
+    }, 120);
+  });
+  function enFichier(px, w, h) {
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    cv.getContext("2d").putImageData(new ImageData(px, w, h), 0, 0);
+    // PNG, pour garder la transparence ; WebP s'il est plus léger
+    let data = cv.toDataURL("image/png"), type = "image/png";
+    if (data.length > 400000) {
+      const w2 = cv.toDataURL("image/webp", 0.92);
+      if (w2.startsWith("data:image/webp") && w2.length < data.length) { data = w2; type = "image/webp"; }
+    }
+    const id = empreinte(data);
+    if (!fichiers[id]) fichiers[id] = { id, mimeType: type, dataURL: data, created: Date.now() };
+    return id;
+  }
+  function appliquerBaguette(action) {
+    const B = baguette, el = B && parId(B.id);
+    if (!el || !B.masque) return;
+    const { w, h, px, masque } = B, n = w * h;
+    if (action === "inverser") {
+      for (let k = 0; k < n; k++) masque[k] ^= 1;
+      B.voile = voileDe(B);
+      ouvrirReglageBaguette(); demander();
+      return;
+    }
+    const out = new Uint8ClampedArray(px);
+    if (action === "effacer") for (let k = 0; k < n; k++) { if (masque[k]) out[k * 4 + 3] = 0; }
+    if (action === "garder" || action === "extraire") for (let k = 0; k < n; k++) { if (!masque[k]) out[k * 4 + 3] = 0; }
+    if (action === "remplir") {
+      const c = document.createElement("canvas").getContext("2d");
+      c.fillStyle = etat.stylos[etat.stylo].c; c.fillRect(0, 0, 1, 1);
+      const [r, g, bl] = c.getImageData(0, 0, 1, 1).data;
+      for (let k = 0; k < n; k++) if (masque[k]) { const j = k * 4; out[j] = r; out[j + 1] = g; out[j + 2] = bl; out[j + 3] = 255; }
+    }
+    if (action === "extraire") {
+      // la zone seule, recadrée sur ce qu'elle occupe, posée à droite de l'image
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (masque[y * w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      const cw = x1 - x0 + 1, ch = y1 - y0 + 1, morceau = new Uint8ClampedArray(cw * ch * 4);
+      for (let y = 0; y < ch; y++) morceau.set(out.subarray(((y + y0) * w + x0) * 4, ((y + y0) * w + x1 + 1) * 4), y * cw * 4);
+      const id = enFichier(morceau, cw, ch), k = el.width / w;
+      inserer(nouvelElement("image", el.x + el.width + 24 / etat.zoom, el.y + y0 * k, {
+        width: cw * k, height: ch * k, fileId: id, status: "saved", scale: [1, 1], crop: null,
+        strokeColor: "transparent", backgroundColor: "transparent", roundness: null, opacity: 100 }));
+      baguette = null; reglage.hidden = true;
+      dire("Zone extraite en nouvelle image, à droite de l'originale.");
+      demander();
+      return;
+    }
+    el.fileId = enFichier(out, w, h);
+    toucher(el);
+    baguette = null; reglage.hidden = true;
+    memoriser(); demander();
+    dire({ effacer: "Zone effacée : elle est devenue transparente.", garder: "Seule la zone est gardée.",
+           remplir: "Zone remplie de l'encre du stylo." }[action] + " Cmd ou Ctrl + Z pour revenir.");
+  }
+
   const bEncre = $("#tb-encre-b");
   function majEncre() {
     $("#tb-encrage").hidden = !etat.encre;
