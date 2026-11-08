@@ -15,7 +15,7 @@ Les notes d'un étudiant, remises au propre. Pour chaque chapitre :
 | `exercices.html` | les exercices, énoncé et correction repliable |
 | `fiche-revision.html` | recto-verso dense, à imprimer, à relire la veille |
 
-**66 chapitres · 265 fiches · 5 matières.**
+**66 chapitres · 266 fiches · 5 matières.**
 
 ## Ce que ce n'est pas
 
