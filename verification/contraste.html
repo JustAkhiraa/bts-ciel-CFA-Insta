@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contrôle du contraste — BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=06acf86e">
+<title>Contrôle du contraste · BTS CIEL</title>
+<link rel="stylesheet" href="../assets/fiche.css?v=a77ccb9c">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -30,17 +30,17 @@
 
 <h1>Contrôle du contraste</h1>
 <p class="chapeau">Chaque texte du site est mesuré contre son fond réel, sur
-   <strong>les <span id="nb-themes">…</span> thèmes</strong> — sur 17 pages.
+   <strong>les <span id="nb-themes">…</span> thèmes</strong> : sur 17 pages.
    Seuil AA : 4,5:1, ramené à 3:1 pour le grand texte.</p>
 <p class="chapeau">Le <strong>village 3D</strong> a sa propre campagne, plus bas :
    son axe n'est pas les thèmes mais les deux heures, et sous son texte il n'y a
-   pas une couleur de feuille de style — il y a un rendu, dont on lit les pixels.</p>
+   pas une couleur de feuille de style, il y a un rendu, dont on lit les pixels.</p>
 
 <div class="encart outils">
   <div class="titre">🧰 Pourquoi un outil plutôt qu'un coup d'œil</div>
   <p>Un thème sombre ne se juge pas à l'œil : une couleur écrite en dur dans la
      feuille de style reste invisible jusqu'au jour où quelqu'un change de fond.
-     Ici, c'est mesuré — et la mesure compose les fonds semi-transparents, ce
+     Ici, c'est mesuré, et la mesure compose les fonds semi-transparents, ce
      qu'un contrôle naïf oublie.</p>
   <p class="rap">Le site doit être servi en HTTP : <code>python3 -m http.server 8000</code>,
      puis ouvrir <code>/verification/contraste.html</code>.</p>
@@ -55,15 +55,15 @@
 
 <h2>Le village en trois dimensions</h2>
 <p>Le village ne se mesure pas comme une fiche : son texte n'existe pas au
-   chargement — les cartes de chapitre sont bâties quand on entre sur un
+   chargement, les cartes de chapitre sont bâties quand on entre sur un
    parvis, l'enseigne quand on est dans l'allée, le sous-titre quand on vise un
    bâtiment. Le banc les fait donc <strong>apparaître</strong>, puis il lit les
    pixels du rendu sous chacun d'eux.</p>
 <p>Un fond qui est une image ne se juge pas comme un fond qui est une couleur :
    la boîte d'un titre couvre du ciel, un toit et de la pierre, donc elle
    contient forcément un pixel de la luminance exacte de l'encre. Le verdict
-   porte donc sur le <strong>cinquième centile</strong> — le rapport que 95 % de
-   la surface du texte tient au moins — et la part de surface qui échoue est
+   porte donc sur le <strong>cinquième centile</strong>, le rapport que 95 % de
+   la surface du texte tient au moins, et la part de surface qui échoue est
    dite à côté. S'y ajoute une mesure qui n'est dans aucune norme : la
    <strong>taille vue</strong>. Une carte de chapitre est un élément HTML
    projeté en trois dimensions ; ce que l'œil reçoit n'est pas ce qu'écrit la
@@ -503,7 +503,7 @@ function confronterRegistre(win) {
     const d = document.getElementById("journal") || document.body;
     const p = document.createElement("p");
     p.className = "ko";
-    p.textContent = "⚠️ la liste de ce banc ne correspond plus au site — "
+    p.textContent = "⚠️ la liste de ce banc ne correspond plus au site : "
                   + ecarts.join(" · ");
     d.prepend(p);
   }
@@ -673,21 +673,21 @@ document.getElementById("go").addEventListener("click", async () => {
         let duCode = [];
         if (!codeFait) { duCode = mesurerCode(doc, vue); codeFait = true; }
         for (const x of mesurer(doc, vue).concat(duCode)) {
-          const k = p.replace("../","") + " · " + x.sig + " — " + x.txt;
+          const k = p.replace("../","") + " · " + x.sig + " · " + x.txt;
           const ou = a + (face === "1" ? " (nuit)" : " (jour)") + "/" + lg;
           if (!pire[k] || x.r < pire[k].r) pire[k] = { r: x.r, seuil: x.seuil, ou: ou };
         }
       }
       }
     }
-    e.textContent = p.replace("../","") + " — " + n + " combinaisons mesurées";
+    e.textContent = p.replace("../","") + " · " + n + " combinaisons mesurées";
   }
   const echecs = Object.entries(pire).sort((a,b) => a[1].r - b[1].r);
   const alerteFond = fondsCode.size
-    ? "<p class=\"ko\">⚠️ le fond des blocs de code n'est PAS le même partout — "
+    ? "<p class=\"ko\">⚠️ le fond des blocs de code n'est PAS le même partout : "
       + "une seule palette de coloration ne suffit plus : "
       + [...fondsCode].slice(0, 4).join(" · ") + "</p>"
-    : "<p>fond des blocs de code : " + fondRef + " sur les " + AMB.length + " thèmes — "
+    : "<p>fond des blocs de code : " + fondRef + " sur les " + AMB.length + " thèmes : "
       + "une palette suffit.</p>";
   /* Un banc qui ne mesure rien annonce « OK ». Le nombre de teintes
      réellement rencontrées est donc affiché, et zéro est signalé comme une
@@ -695,14 +695,14 @@ document.getElementById("go").addEventListener("click", async () => {
   const alerteJetons = JETONS.size
     ? "<p>" + JETONS.size + " teintes de code mesurées : "
       + [...JETONS].sort().join(" ") + "</p>"
-    : "<p class=\"ko\">⚠️ AUCUNE teinte de code mesurée — le banc n'a rencontré "
+    : "<p class=\"ko\">⚠️ AUCUNE teinte de code mesurée : le banc n'a rencontré "
       + "aucun bloc coloré. Ce n'est pas une réussite, c'est un angle mort.</p>";
   j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>" +
     "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons +
     (echecs.length
       ? '<p class="ko">' + echecs.length + " élément(s) sous le seuil :</p>" +
         echecs.map(([k,v]) => "<p>" + v.r + " &lt; " + v.seuil + "  (" + v.ou + ")  " + k + "</p>").join("")
-      : '<p class="ok">OK — aucun texte sous le seuil AA, sur aucune combinaison.</p>');
+      : '<p class="ok">OK : aucun texte sous le seuil AA, sur aucune combinaison.</p>');
   bouton.disabled = false;
 });
 
@@ -742,7 +742,7 @@ const attendre = ms => new Promise(r => setTimeout(r, ms));
 async function attendreQue(test, quoi, max = 25000) {
   const t0 = performance.now();
   while (!test()) {
-    if (performance.now() - t0 > max) throw new Error("délai dépassé — " + quoi);
+    if (performance.now() - t0 > max) throw new Error("délai dépassé : " + quoi);
     await attendre(60);
   }
 }
@@ -795,7 +795,7 @@ async function patienter(test, quoi, journal, vue, imagesMax = 900, msMax = 9000
       res(ok);
     };
     const chien = setTimeout(() => finir(false, images + " images en "
-      + Math.round(msMax / 1000) + " s — le cadre ne peint plus"), msMax);
+      + Math.round(msMax / 1000) + " s : le cadre ne peint plus"), msMax);
     const sonde = setInterval(() => { if (test()) finir(true); }, 60);
     const tic = () => {
       if (fini) return;
@@ -1031,7 +1031,7 @@ function mesurerVillage(f, sonde, ou, pire, compte) {
     const sig = el.tagName.toLowerCase() +
       (typeof el.className === "string" && el.className
         ? "." + el.className.split(" ").filter(Boolean).slice(0, 2).join(".") : "");
-    const cle = sig + " — " + t.slice(0, 26);
+    const cle = sig + " · " + t.slice(0, 26);
     const x = pire[cle] || (pire[cle] = { r: Infinity, seuil: seuil, ou: "",
                                           part: 0, px: Infinity, ouPx: "",
                                           encadre: false });
@@ -1088,7 +1088,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
     j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>";
     for (const [L, H] of ECRANS) {
       f.style.width = L + "px"; f.style.height = H + "px";
-      dire(L + "×" + H + " — on bâtit le village…");
+      dire(L + "×" + H + ", on bâtit le village…");
       await new Promise(res => { f.onload = res;
                                  f.src = "../monde/index.html?m=" + Date.now(); });
       const vue = f.contentWindow, doc = f.contentDocument;
@@ -1137,7 +1137,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
         doc.body.classList.remove("titre-parti");
         C.taireSousTitre(); await attendre(480);
         C.sousTitrer(4); await attendre(300);
-        dire(h + " " + L + "×" + H + " — allée");
+        dire(h + " " + L + "×" + H + ", allée");
         releve(h + "/" + L + "×" + H + " · allée");
         const aide = doc.getElementById("aide");
         if (!aide.hidden) { doc.getElementById("aide-ok").click(); await attendre(200); }
@@ -1148,7 +1148,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
           await patienter(() => doc.body.classList.contains("entre"),
                           h + "/" + L + "×" + H + " · " + nom, retards, vue);
           await attendre(1000);
-          dire(h + " " + L + "×" + H + " — " + nom + " · " + compte.n + " textes");
+          dire(h + " " + L + "×" + H + " · " + nom + " · " + compte.n + " textes");
           releve(h + "/" + L + "×" + H + " · " + nom);
         }
 
@@ -1163,7 +1163,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
                                 && corps.textContent.trim().length > 40,
                           h + "/" + L + "×" + H + " · lecture", retards, vue);
           await attendre(800);
-          dire(h + " " + L + "×" + H + " — fenêtre de lecture");
+          dire(h + " " + L + "×" + H + ", fenêtre de lecture");
           releve(h + "/" + L + "×" + H + " · lecture");
           doc.getElementById("lecture-fermer").click();
           await attendre(400);
@@ -1185,7 +1185,7 @@ document.getElementById("go-monde").addEventListener("click", async () => {
             doc.querySelectorAll("#inv-onglets button")[k].click();
             await attendre(320);
             const nom = ["matières", "échoppes", "carnet"][k] || ("page " + (k + 1));
-            dire(h + " " + L + "×" + H + " — inventaire · " + nom);
+            dire(h + " " + L + "×" + H + ", inventaire · " + nom);
             releve(h + "/" + L + "×" + H + " · inventaire " + nom);
           }
           doc.getElementById("inv-fermer").click();
@@ -1220,9 +1220,9 @@ document.getElementById("go-monde").addEventListener("click", async () => {
      phrase périmée. D'où le décompte attendu, juste en dessous : il se
      plaint tout seul si l'énumération cesse de correspondre. */
   const PAR_PASSE = 10;   // allée + 5 parvis + lecture + 3 pages d'inventaire
-  l.push("<p>" + compte.etats + " états mesurés — deux écrans, deux heures,"
+  l.push("<p>" + compte.etats + " états mesurés : deux écrans, deux heures,"
     + " l'allée, les cinq parvis, la fenêtre de lecture et les trois pages"
-    + " de l'inventaire — " + compte.n
+    + " de l'inventaire : " + compte.n
     + " textes, " + bilan.lus + " pixels de rendu lus sous eux"
     + (bilan.vides ? " (dont " + bilan.vides + " vides)" : "") + ".</p>");
   if (!souci && compte.etats && compte.etats !== ECRANS.length * 2 * PAR_PASSE)
@@ -1231,21 +1231,21 @@ document.getElementById("go-monde").addEventListener("click", async () => {
       + " ne décrit plus ce que le banc parcourt.</p>");
   if (souci) l.push('<p class="ko">⚠️ campagne interrompue : ' + souci + "</p>");
   if (!compte.n)
-    l.push('<p class="ko">⚠️ AUCUN texte mesuré — le banc n\'a pas vu le village.'
+    l.push('<p class="ko">⚠️ AUCUN texte mesuré : le banc n\'a pas vu le village.'
       + " Ce n'est pas une réussite, c'est une panne du banc.</p>");
   else if (bilan.lus && bilan.vides === bilan.lus)
-    l.push('<p class="ko">⚠️ tous les pixels lus sont vides — le rendu n\'a pas été'
+    l.push('<p class="ko">⚠️ tous les pixels lus sont vides : le rendu n\'a pas été'
       + " capté, donc aucun fond mesuré ne vaut rien.</p>");
   if (retards.length)
     l.push('<p class="ko">⚠️ ' + retards.length + " état(s) mesurés avant d'être"
       + " prêts. Chaque note dit LAQUELLE des deux causes : « l'état n'est pas"
       + " venu » est un défaut du village, à corriger ; « le cadre ne peint"
-      + " plus » est un défaut de la mesure — laisser le volet visible et"
+      + " plus » est un défaut de la mesure : laisser le volet visible et"
       + " refaire la campagne, le relevé ne vaut rien. " 
       + retards.slice(0, 6).join(" · ") + "</p>");
   if (compte.encadres)
     l.push("<p>" + compte.encadres + " texte(s) sans pixel de rendu lisible :"
-      + " <b>encadrés</b> plutôt qu'écartés — la pile des calques composée sur"
+      + " <b>encadrés</b> plutôt qu'écartés : la pile des calques composée sur"
       + " un rendu entièrement noir puis entièrement blanc, et le pire des deux"
       + " retenu. Le verdict vaut alors pour tous les rendus possibles.</p>");
   if (compte.sansSocle)
@@ -1271,14 +1271,14 @@ document.getElementById("go-monde").addEventListener("click", async () => {
                           : x[1].part + " % de la surface)")
           + (x[1].encadre ? ")" : "") + "  (" + x[1].ou + ")  "
           + x[0] + "</p>").join("")
-    : '<p class="ok">OK — aucun texte du village sous le seuil AA sur 95 % de'
+    : '<p class="ok">OK : aucun texte du village sous le seuil AA sur 95 % de'
       + " sa surface, ni de jour ni de nuit, ni sur portable.</p>");
   l.push(menus.length
     ? '<p class="ko">' + menus.length + " texte(s) sous " + PLANCHER_PX
       + " pixels à l'écran (hors norme, mais illisible) :</p>"
       + menus.map(x => "<p>" + x[1].px + " px  (" + x[1].ouPx + ")  " + x[0]
           + "</p>").join("")
-    : '<p class="ok">OK — aucun texte plus petit que ' + PLANCHER_PX
+    : '<p class="ok">OK : aucun texte plus petit que ' + PLANCHER_PX
       + " pixels à l'écran.</p>");
   j.innerHTML = l.join("");
   dire("");

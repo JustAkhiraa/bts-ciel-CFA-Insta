@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sécurité SSH et MITM — le TP pas à pas | BTS CIEL</title>
-<meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, puis la détection du changement de clé et la remise en état — avec les 19 questions corrigées à leur place.">
+<title>Sécurité SSH et MITM · le TP pas à pas | BTS CIEL</title>
+<meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, puis la détection du changement de clé et la remise en état, avec les 19 questions corrigées à leur place.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -16,7 +16,7 @@
   <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
   <h2>Sommaire</h2>
   <ol>
-    <li><a href="#machines">Les machines du lab</a></li>
+    <li><a href="#machines">Rallumer le lab, et les machines</a></li>
     <li><a href="#p1">1 · Découverte du service SSH</a></li>
     <li><a href="#p1b">2 · Reconnaissance du réseau</a></li>
     <li><a href="#p2">3 · Préparer l'interception</a></li>
@@ -36,18 +36,19 @@
     <span class="sep">/</span><span class="badge">TP · pas à pas</span>
   </div>
 
-  <h1>Sécurité SSH et MITM — le TP</h1>
+  <h1>Sécurité SSH et MITM · le TP</h1>
   <p class="chapeau">Le pas-à-pas de l'activité, dans l'ordre où on le fait sur les machines :
-     on découvre SSH, on observe le réseau, puis on <strong>monte l'attaque</strong> — routage,
-     redirection, ARP spoofing — pour enfin la <strong>détecter</strong> et remettre la
+     on découvre SSH, on observe le réseau, puis on <strong>monte l'attaque</strong>, routage,
+     redirection, ARP spoofing, pour enfin la <strong>détecter</strong> et remettre la
      connexion en état. Les commandes se copient d'un clic ; cochez les actions au fur et à
      mesure. Les <strong>19 questions</strong> sont posées à leur place, réponse repliable.</p>
 
   <div class="encart methode">
     <div class="titre">🎯 Avant de commencer</div>
     <p>Tout se passe dans l'<strong>environnement de lab du TP</strong> : des machines virtuelles
-       <strong>isolées</strong>, sur un réseau qui n'appartient qu'à vous. On apprend à mener une
-       attaque <strong>pour savoir s'en défendre</strong> — jamais sur un réseau tiers, où ce
+       <strong>isolées</strong>, sur un réseau qui n'appartient qu'à vous.</p>
+    <p>On apprend à mener une
+       attaque <strong>pour savoir s'en défendre</strong>, jamais sur un réseau tiers, où ce
        serait illégal.</p>
     <p class="rap">Le compte de travail est <code>etuciel</code> ; on devient administrateur avec
        <code>sudo</code>, au cas par cas, jamais en <code>root</code> permanent.</p>
@@ -60,9 +61,41 @@
 </header>
 
 <section id="machines">
-  <h2><span class="num">00</span>Les machines du lab</h2>
-  <p>Quatre machines sur le même réseau local <code>192.168.56.0/24</code>. Chaque bloc de
-     commande, plus bas, est <strong>coloré selon la machine</strong> où il faut le taper.</p>
+  <h2><span class="num">00</span>Rallumer le lab, et les machines</h2>
+
+  <p>Quand tu rallumes ton PC, les conteneurs du lab sont <strong>arrêtés</strong>, pas perdus.
+     Pas besoin de les relancer un par un (<code>docker start</code> sur chacun) : le script
+     les relance <strong>tous d'un coup</strong>.</p>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Relancer les quatre machines du lab, puis vérifier qu'elles tournent.</span></label>
+  </div>
+  <div class="bloc-code" style="--car:62"><span class="langue">hôte · dossier du script</span><pre><code>bash gestion_lab1.sh -l     # relance les 4 conteneurs arretes
+docker ps                   # doit en montrer 4</code></pre></div>
+
+  <div class="encart outils">
+    <div class="titre">🔌 Les commandes de base, quand on les oublie</div>
+    <div class="bloc-code" data-fam="bash" style="--car:74"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps                      <span class="j-com"># les conteneurs qui TOURNENT</span>
+<span class="j-fn">docker</span> ps <span class="j-att">-a</span>                   <span class="j-com"># TOUS, meme ceux qui sont arretes</span>
+<span class="j-fn">docker</span> start $(docker ps <span class="j-att">-aq</span>)  <span class="j-com"># relancer TOUS les conteneurs arretes</span>
+<span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-l</span>        <span class="j-com"># ou, propre : relancer tout le lab</span>
+<span class="j-fn">ssh</span> etuciel@<span class="j-num">192.168</span>.<span class="j-num">56.10</span>      <span class="j-com"># entrer dans une machine (ou .11 .12 .254)</span></code></pre></div>
+    <p><code>docker start $(docker ps -aq)</code> fait en une ligne ce que
+       <code>docker ps -a</code> puis un <code>docker start</code> par conteneur font à la main.
+       Le reste (installer Docker, créer ou supprimer le lab) est au
+       <a href="../18-docker-conteneurs/tp.html">TP Docker Lab 1</a>.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Relancer, ce n'est pas recréer</div>
+    <p><code>-l</code> <strong>relance</strong> ce qui existait : ton travail est gardé.
+       <code>-c</code> <strong>crée à neuf</strong>, <code>-d</code> <strong>supprime</strong>
+       tout (volumes compris). Après un simple redémarrage, c'est <code>-l</code>.</p>
+  </div>
+
+  <h3 class="tp-soustitre">Les quatre machines</h3>
+  <p>Même réseau local <code>192.168.56.0/24</code>. Chaque bloc de commande, plus bas, est
+     <strong>coloré selon la machine</strong> où il faut le taper.</p>
   <div class="tp-topo">
     <div class="tp-hote">
       <span class="tp-role">Victime · client</span>
@@ -101,7 +134,8 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Par sécurité, la connexion directe en <code>root</code> est <strong>désactivée</strong> : un attaquant qui devine le mot de passe de <code>root</code> aurait aussitôt tous les droits, et les actions faites en <code>root</code> ne sont rattachées à aucun utilisateur nommé — donc <strong>non traçables</strong>. On se connecte avec un compte ordinaire, puis on élève ses droits ponctuellement.</p>
+        <p>Par sécurité, la connexion directe en <code>root</code> est <strong>désactivée</strong> : un attaquant qui devine le mot de passe de <code>root</code> aurait aussitôt tous les droits, et les actions faites en <code>root</code> ne sont rattachées à aucun utilisateur nommé, donc <strong>non traçables</strong>.</p>
+        <p>On se connecte avec un compte ordinaire, puis on élève ses droits ponctuellement.</p>
       </div>
     </div>
   </article>
@@ -115,7 +149,8 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p><code>sudo</code> exécute <strong>une seule commande</strong> avec les droits d'administrateur, après avoir demandé le mot de passe de <strong>l'utilisateur</strong> (pas celui de root). Avantages sur <code>su -</code>, qui ouvre une session root entière : chaque action élevée est <strong>journalisée</strong> (qui, quand, quoi), les droits sont accordés <strong>au cas par cas</strong>, et le mot de passe de root n'a pas besoin d'être connu ni même défini.</p>
+        <p><code>sudo</code> exécute <strong>une seule commande</strong> avec les droits d'administrateur, après avoir demandé le mot de passe de <strong>l'utilisateur</strong> (pas celui de root).</p>
+        <p>Avantages sur <code>su -</code>, qui ouvre une session root entière : chaque action élevée est <strong>journalisée</strong> (qui, quand, quoi), les droits sont accordés <strong>au cas par cas</strong>, et le mot de passe de root n'a pas besoin d'être connu ni même défini.</p>
       </div>
     </div>
   </article>
@@ -152,7 +187,8 @@ ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></d
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Les <strong>clés d'hôte</strong> du serveur sont dans <code>/etc/ssh/</code> : par exemple <code>ssh_host_ed25519_key</code> (privée, permissions <code>600</code>, lisible par <code>root</code> seul) et <code>ssh_host_ed25519_key.pub</code> (publique, <code>644</code>). Le fichier de configuration du démon est <strong><code>/etc/ssh/sshd_config</code></strong>. (À ne pas confondre avec <code>ssh_config</code>, qui configure le <em>client</em>.)</p>
+        <p>Les <strong>clés d'hôte</strong> du serveur sont dans <code>/etc/ssh/</code> : par exemple <code>ssh_host_ed25519_key</code> (privée, permissions <code>600</code>, lisible par <code>root</code> seul) et <code>ssh_host_ed25519_key.pub</code> (publique, <code>644</code>).</p>
+        <p>Le fichier de configuration du démon est <strong><code>/etc/ssh/sshd_config</code></strong>. (À ne pas confondre avec <code>ssh_config</code>, qui configure le <em>client</em>.)</p>
       </div>
     </div>
   </article>
@@ -177,7 +213,8 @@ Are you sure you want to continue connecting (yes/no)?</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>C'est la question <strong>TOFU</strong> du premier usage : le client n'a <strong>jamais vu</strong> ce serveur, il ne peut donc pas garantir son identité et affiche son empreinte de clé. On ne continue (<code>yes</code>) <strong>qu'après avoir vérifié</strong> que l'empreinte affichée est bien celle que l'administrateur a communiquée. Sinon, on refuse : accepter les yeux fermés, c'est accepter un éventuel imposteur.</p>
+        <p>C'est la question <strong>TOFU</strong> du premier usage : le client n'a <strong>jamais vu</strong> ce serveur, il ne peut donc pas garantir son identité et affiche son empreinte de clé.</p>
+        <p>On ne continue (<code>yes</code>) <strong>qu'après avoir vérifié</strong> que l'empreinte affichée est bien celle que l'administrateur a communiquée. Sinon, on refuse : accepter les yeux fermés, c'est accepter un éventuel imposteur.</p>
       </div>
     </div>
   </article>
@@ -191,7 +228,8 @@ Are you sure you want to continue connecting (yes/no)?</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p><strong>Non.</strong> En répondant <code>yes</code>, l'empreinte a été enregistrée dans <code>~/.ssh/known_hosts</code>. Aux connexions suivantes, le client y retrouve la clé, la compare à celle présentée : elles correspondent, donc <strong>aucune question</strong>. Le message ne reviendrait que si la clé du serveur changeait — ou si quelqu'un se faisait passer pour lui.</p>
+        <p><strong>Non.</strong> En répondant <code>yes</code>, l'empreinte a été enregistrée dans <code>~/.ssh/known_hosts</code>. Aux connexions suivantes, le client y retrouve la clé, la compare à celle présentée : elles correspondent, donc <strong>aucune question</strong>.</p>
+        <p>Le message ne reviendrait que si la clé du serveur changeait, ou si quelqu'un se faisait passer pour lui.</p>
       </div>
     </div>
   </article>
@@ -213,8 +251,8 @@ Are you sure you want to continue connecting (yes/no)?</code></pre></div>
   <div class="encart piege">
     <div class="titre">⚠️ Pourquoi on vide <code>known_hosts</code> maintenant</div>
     <p>Pour la suite, on veut rejouer le comportement d'un utilisateur qui se connecte <em>pour la
-       première fois</em> (ou qui ignore les avertissements) pendant que l'attaquant intercepte.
-       On vide donc le fichier — sans le supprimer — pour effacer la clé déjà apprise.</p>
+       première fois</em> (ou qui ignore les avertissements) pendant que l'attaquant intercepte.</p>
+    <p>On vide donc le fichier, sans le supprimer, pour effacer la clé déjà apprise.</p>
   </div>
 
   <div class="tp-etapes">
@@ -259,7 +297,8 @@ Service Info: OS: Linux</code></pre></div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
         <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
-<span class="j-fn">nmap</span> <span class="j-att">-sV</span> <span class="j-num">192.168</span>.<span class="j-num">56.10</span>       <span class="j-com"># quels ports, quels services, quelles versions</span></code></pre></div><p>Le premier scan dresse la <strong>liste des machines actives</strong> sur le réseau (découverte d'hôtes). Le second révèle, pour une machine, les <strong>ports ouverts</strong>, les <strong>services</strong> qui écoutent et souvent leur <strong>version précise</strong> (par exemple <code>OpenSSH 9.2p1</code>). L'attaquant sait alors quoi viser — ici, le port 22/SSH — et peut chercher des failles connues de cette version.</p>
+<span class="j-fn">nmap</span> <span class="j-att">-sV</span> <span class="j-num">192.168</span>.<span class="j-num">56.10</span>       <span class="j-com"># quels ports, quels services, quelles versions</span></code></pre></div><p>Le premier scan dresse la <strong>liste des machines actives</strong> sur le réseau (découverte d'hôtes). Le second révèle, pour une machine, les <strong>ports ouverts</strong>, les <strong>services</strong> qui écoutent et souvent leur <strong>version précise</strong> (par exemple <code>OpenSSH 9.2p1</code>).</p>
+<p>L'attaquant sait alors quoi viser, ici, le port 22/SSH, et peut chercher des failles connues de cette version.</p>
       </div>
     </div>
   </article>
@@ -281,7 +320,7 @@ Service Info: OS: Linux</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>L'attaquant se place <strong>entre</strong> deux correspondants et relaie leurs échanges, de sorte que chacun croit parler directement à l'autre. Comme tout passe par lui, il peut <strong>lire</strong>, et souvent <strong>modifier</strong>, les messages — sans que les victimes sachent que le canal est compromis (<a href="cours.html#mitm">cours, section 9</a>).</p>
+        <p>L'attaquant se place <strong>entre</strong> deux correspondants et relaie leurs échanges, de sorte que chacun croit parler directement à l'autre. Comme tout passe par lui, il peut <strong>lire</strong>, et souvent <strong>modifier</strong>, les messages, sans que les victimes sachent que le canal est compromis (<a href="cours.html#mitm">cours, section 9</a>).</p>
       </div>
     </div>
   </article>
@@ -308,7 +347,7 @@ Service Info: OS: Linux</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Avant l'attaque, <strong>oui</strong> : chaque IP pointe vers la MAC de la bonne machine, et les deux caches concordent. C'est l'état de référence — celui auquel on comparera après l'empoisonnement pour prouver l'attaque.</p>
+        <p>Avant l'attaque, <strong>oui</strong> : chaque IP pointe vers la MAC de la bonne machine, et les deux caches concordent. C'est l'état de référence : celui auquel on comparera après l'empoisonnement pour prouver l'attaque.</p>
       </div>
     </div>
   </article>
@@ -317,8 +356,8 @@ Service Info: OS: Linux</code></pre></div>
   <div class="encart outils">
     <div class="titre">⚙️ Ce que préparent les scripts</div>
     <p><code>start.sh</code> active le <strong>routage IP</strong>, redirige le port 22 vers le port
-       <strong>10022</strong> où écoute <code>ssh-mitm</code>, et journalise la session.
-       <code>stop.sh</code> arrête l'outil, vide les règles <code>iptables</code> et coupe le
+       <strong>10022</strong> où écoute <code>ssh-mitm</code>, et journalise la session.</p>
+    <p><code>stop.sh</code> arrête l'outil, vide les règles <code>iptables</code> et coupe le
        routage. L'option <code>--break-system-packages</code> autorise <code>pip</code> à installer
        le paquet globalement sur les Debian/Kali récentes.</p>
   </div>
@@ -362,7 +401,8 @@ sudo ./start.sh</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:31"><span class="langue">terminal</span><pre><code><span class="j-fn">sysctl</span> <span class="j-att">-w</span> net.ipv4.ip_forward=<span class="j-num">1</span></code></pre></div><p>Une fois le trafic détourné vers lui, l'attaquant doit le <strong>faire suivre</strong> au vrai destinataire, sinon la communication est coupée et l'attaque immédiatement repérée. Le routage (<code>ip_forward</code>) lui permet de <strong>relayer</strong> les paquets : la victime continue de recevoir ses réponses, et ne remarque rien.</p>
+        <div class="bloc-code" data-fam="bash" style="--car:31"><span class="langue">terminal</span><pre><code><span class="j-fn">sysctl</span> <span class="j-att">-w</span> net.ipv4.ip_forward=<span class="j-num">1</span></code></pre></div><p>Une fois le trafic détourné vers lui, l'attaquant doit le <strong>faire suivre</strong> au vrai destinataire, sinon la communication est coupée et l'attaque immédiatement repérée.</p>
+<p>Le routage (<code>ip_forward</code>) lui permet de <strong>relayer</strong> les paquets : la victime continue de recevoir ses réponses, et ne remarque rien.</p>
       </div>
     </div>
   </article>
@@ -372,12 +412,6 @@ sudo ./start.sh</code></pre></div>
   </div>
   <div class="bloc-code" data-machine="kali" style="--car:65"><span class="langue">kali · 2ᵉ terminal</span><pre><code>ss -ltnp                         # (un L minuscule : "listening")
 sudo iptables -t nat -L -n -v</code></pre></div>
-  <div class="encart piege">
-    <div class="titre">⚠️ Un piège de lecture du sujet</div>
-    <p>Le PDF affiche <code>ss -Itnp</code> avec un <strong>i majuscule</strong> à cause de la
-       police : l'option correcte est <code>-ltnp</code>, avec un <strong>L minuscule</strong>.</p>
-  </div>
-
   <article class="exo">
     <h3><span class="no">12</span>Q12 <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
@@ -387,7 +421,8 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit que le flux passe par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client. La redirection envoie tout ce qui arrive sur le port 22 vers le port local où cet outil écoute (10022). Sans elle, les paquets seraient simplement transmis, jamais déchiffrés par l'attaquant.</p>
+        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit que le flux passe par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client.</p>
+<p>La redirection envoie tout ce qui arrive sur le port 22 vers le port local où cet outil écoute (10022). Sans elle, les paquets seraient simplement transmis, jamais déchiffrés par l'attaquant.</p>
       </div>
     </div>
   </article>
@@ -409,7 +444,8 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>C'est le moyen de <strong>se placer au milieu</strong>. En empoisonnant les caches ARP, l'attaquant fait croire au client qu'il est le serveur, et au serveur qu'il est le client. Le trafic, qui irait normalement en droite ligne, est <strong>forcé de transiter par lui</strong> — condition préalable au MITM (<a href="cours.html#spoofing">cours, section 8</a>).</p>
+        <p>C'est le moyen de <strong>se placer au milieu</strong>. En empoisonnant les caches ARP, l'attaquant fait croire au client qu'il est le serveur, et au serveur qu'il est le client.</p>
+        <p>Le trafic, qui irait normalement en droite ligne, est <strong>forcé de transiter par lui</strong> : condition préalable au MITM (<a href="cours.html#spoofing">cours, section 8</a>).</p>
       </div>
     </div>
   </article>
@@ -440,7 +476,8 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Après l'empoisonnement, l'IP du serveur (et celle du client) pointe désormais vers la <strong>MAC de l'attaquant</strong>. Deux IP différentes partagent la même MAC : c'est <strong>incohérent</strong>, et c'est la <strong>signature</strong> de l'ARP spoofing. On conclut que le cache a été empoisonné et que le trafic passe par un tiers.</p>
+        <p>Après l'empoisonnement, l'IP du serveur (et celle du client) pointe désormais vers la <strong>MAC de l'attaquant</strong>. Deux IP différentes partagent la même MAC : c'est <strong>incohérent</strong>, et c'est la <strong>signature</strong> de l'ARP spoofing.</p>
+        <p>On conclut que le cache a été empoisonné et que le trafic passe par un tiers.</p>
       </div>
     </div>
   </article>
@@ -454,20 +491,38 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>ARP associe une IP à une MAC, et <strong>n'authentifie pas</strong> les réponses. L'attaquant en abuse : il envoie en boucle de <strong>fausses réponses ARP</strong> (même non sollicitées) affirmant « l'IP X, c'est ma MAC ». Les victimes mettent à jour leur cache et lui envoient désormais ce qu'elles croyaient destiner à l'autre. Comme le routage est activé, il relaie — l'attaque reste invisible côté utilisateur (<a href="cours.html#arp">cours, section 7</a>).</p>
+        <p>ARP associe une IP à une MAC, et <strong>n'authentifie pas</strong> les réponses. L'attaquant en abuse : il envoie en boucle de <strong>fausses réponses ARP</strong> (même non sollicitées) affirmant « l'IP X, c'est ma MAC ».</p>
+        <p>Les victimes mettent à jour leur cache et lui envoient désormais ce qu'elles croyaient destiner à l'autre. Comme le routage est activé, il relaie : l'attaque reste invisible côté utilisateur (<a href="cours.html#arp">cours, section 7</a>).</p>
       </div>
     </div>
   </article>
 
   <div class="tp-etapes">
-    <label class="tp-etape"><input type="checkbox"><span class="lib">Lancer <strong>Wireshark</strong> sur kali (interface <code>eth0</code>), puis envoyer un ping du client vers le serveur et observer les trames.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong> <em>et</em> sur <strong>kali</strong>, lancer Wireshark et capturer une vingtaine de secondes. Enregistrer les captures.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Pendant la capture, envoyer un ping du client vers le serveur, puis analyser les trames <strong>ARP</strong> émises et reçues.</span></label>
   </div>
+
+  <div class="encart outils">
+    <div class="titre">🛠️ Lancer Wireshark</div>
+    <p>Dans le menu, <strong>Applications</strong> puis <strong>Internet</strong> puis
+       <strong>Wireshark</strong> ; choisir l'interface <code>eth0</code>.</p>
+    <p>Si la capture est refusée (il faut être administrateur pour écouter la carte), autoriser
+       une fois pour toutes les comptes ordinaires :</p>
+    <div class="bloc-code" data-fam="bash" style="--car:70"><span class="langue">bash</span><pre><code><span class="j-fn">sudo dpkg-reconfigure</span> wireshark-common
+<span class="j-com"># repondre "Yes" a : Should non-superusers be able to capture packets?</span></code></pre></div>
+  </div>
+
   <div class="bloc-code" data-machine="client" style="--car:23"><span class="langue">client · clissh</span><pre><code>ping -c 4 192.168.56.10</code></pre></div>
+
   <div class="encart savoir">
     <div class="titre">💡 Lire la capture</div>
-    <p>Pour chaque ping, kali voit <strong>deux</strong> trames : une entrant vers elle
-       (MAC source = client, MAC dest = kali), puis une repartant vers le serveur (MAC source =
-       kali), avec le <strong>TTL décrémenté de 1</strong> (64 → 63). C'est la preuve du relais.</p>
+    <p>Dans les trames <strong>ARP</strong>, on voit l'attaquant répondre en boucle « cette IP,
+       c'est ma MAC » pour le serveur comme pour le client : c'est l'empoisonnement, pris sur le
+       fait.</p>
+    <p>Et sur les <strong>ICMP</strong>, pour chaque ping, kali voit <strong>deux</strong> trames :
+       une entrant vers elle (MAC source = client, MAC dest = kali), puis une repartant vers le
+       serveur (MAC source = kali), avec le <strong>TTL décrémenté de 1</strong> (64 passe à 63).
+       C'est la preuve du relais.</p>
   </div>
 
   <article class="exo">
@@ -479,7 +534,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Sur la capture (Wireshark) faite <strong>sur la machine de l'attaquant</strong>, on voit apparaître les trames <strong>ICMP écho</strong> échangées entre le client et le serveur — alors qu'elles ne devraient pas y transiter. Leur <strong>présence</strong> sur cette machine démontre que le trafic est bien détourné par elle : l'attaque fonctionne.</p>
+        <p>Sur la capture (Wireshark) faite <strong>sur la machine de l'attaquant</strong>, on voit apparaître les trames <strong>ICMP écho</strong> échangées entre le client et le serveur, alors qu'elles ne devraient pas y transiter. Leur <strong>présence</strong> sur cette machine démontre que le trafic est bien détourné par elle : l'attaque fonctionne.</p>
       </div>
     </div>
   </article>
@@ -488,7 +543,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
 <section id="p3b">
   <h2><span class="num">05</span>Exploiter le milieu</h2>
   <p>Le client se connecte en SSH en croyant parler au serveur. Sa connexion arrive en réalité sur
-     <code>ssh-mitm</code>, qui présente <strong>sa propre</strong> clé — et comme
+     <code>ssh-mitm</code>, qui présente <strong>sa propre</strong> clé, et comme
      <code>known_hosts</code> a été vidé, le client ne voit qu'un simple avertissement de première
      connexion.</p>
 
@@ -523,7 +578,7 @@ sudo cat /home/ssh-mitm/shell_session_0.txt</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Le <strong>journal de la session interceptée</strong> : tout ce que le client a transmis en pensant parler au serveur, enregistré en clair par l'outil d'interception — commandes tapées, et éventuellement identifiants. C'est le but de l'attaque, et la preuve concrète de sa réussite.</p>
+        <p>Le <strong>journal de la session interceptée</strong> : tout ce que le client a transmis en pensant parler au serveur, enregistré en clair par l'outil d'interception, commandes tapées, et éventuellement identifiants. C'est le but de l'attaque, et la preuve concrète de sa réussite.</p>
       </div>
     </div>
   </article>
@@ -561,7 +616,8 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>À la reconnexion, le serveur présenté est en réalité l'attaquant, avec <strong>sa</strong> clé d'hôte. Le client compare cette clé à celle rangée dans <code>known_hosts</code> : elles <strong>diffèrent</strong>. SSH en déduit que l'identité du serveur a changé — ce qui peut signaler un MITM — affiche l'avertissement et <strong>refuse</strong> la connexion (<a href="cours.html#detection">cours, section 10</a>).</p>
+        <p>À la reconnexion, le serveur présenté est en réalité l'attaquant, avec <strong>sa</strong> clé d'hôte. Le client compare cette clé à celle rangée dans <code>known_hosts</code> : elles <strong>diffèrent</strong>.</p>
+        <p>SSH en déduit que l'identité du serveur a changé, ce qui peut signaler un MITM, affiche l'avertissement et <strong>refuse</strong> la connexion (<a href="cours.html#detection">cours, section 10</a>).</p>
       </div>
     </div>
   </article>
@@ -580,7 +636,8 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
     </div>
   </article>
 
-  <div class="encart savoir"><div class="titre">💡 Ce que le TP démontre vraiment</div><p>L'attaque a été <strong>détectée et bloquée</strong> par SSH. Le point faible n'était pas le protocole, mais le geste humain — vider <code>known_hosts</code>, ignorer l'alerte. Les <a href="cours.html#contremesures">contre-mesures</a> agissent sur les deux plans : le réseau (surveillance ARP, tables statiques) et la vigilance (vérifier l'empreinte, ne jamais passer outre l'avertissement).</p></div>
+  <div class="encart savoir"><div class="titre">💡 Ce que le TP démontre vraiment</div><p>L'attaque a été <strong>détectée et bloquée</strong> par SSH. Le point faible n'était pas le protocole, mais le geste humain : vider <code>known_hosts</code>, ignorer l'alerte.</p>
+<p>Les <a href="cours.html#contremesures">contre-mesures</a> agissent sur les deux plans : le réseau (surveillance ARP, tables statiques) et la vigilance (vérifier l'empreinte, ne jamais passer outre l'avertissement).</p></div>
 </section>
 
 <footer>
@@ -589,7 +646,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
     <ul>
       <li><strong>Découvrir</strong> : vérifier le service SSH, établir la première connexion
           (TOFU), comprendre <code>known_hosts</code>.</li>
-      <li><strong>Reconnaître</strong> : <code>nmap</code> pour trouver la cible — et savoir que
+      <li><strong>Reconnaître</strong> : <code>nmap</code> pour trouver la cible, et savoir que
           le scan se voit.</li>
       <li><strong>Préparer</strong> : relever les caches ARP sains, installer <code>ssh-mitm</code>,
           activer routage et redirection.</li>
@@ -604,10 +661,10 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>« Activité 1 — attaque MITM d'un service SSH et mise en place de contre-mesures »,
-          Réseau Certa — 3 parties, 19 questions, 6 annexes.</li>
+      <li>« Activité 1, attaque MITM d'un service SSH et mise en place de contre-mesures »,
+          Réseau Certa, 3 parties, 19 questions, 6 annexes.</li>
     </ul>
-    <p class="rap">Le pas-à-pas reprend les commandes du sujet, exécutées dans l'environnement de
+    <p class="rap">Le pas-à-pas reprend les commandes de l'activité, exécutées dans l'environnement de
        lab <strong>isolé</strong> qu'il décrit. Les noms de comptes et de domaines sont ceux,
        neutres, du reste du chapitre. Les corrigés reformulent les concepts de l'activité et de
        ses annexes.</p>
@@ -618,7 +675,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/cours.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

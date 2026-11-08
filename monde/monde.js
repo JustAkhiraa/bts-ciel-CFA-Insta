@@ -1340,7 +1340,7 @@ const eauLacMat = new THREE.ShaderMaterial({
         -(ca * 0.42 * 0.42 + cb * 1.00 * 0.34 + cc * 0.31 * 0.24) * PENTE));
       vec3 Vd = normalize(cameraPosition - vW);
 
-      /* Fresnel de Schlick. 2 % de face — on voit le fond —, jusqu'à 1 au
+      /* Fresnel de Schlick. 2 % de face : on voit le fond, jusqu'à 1 au
          ras : c'est tout l'écart entre une flaque et un miroir. */
       float f = 0.02 + 0.98 * pow(1.0 - clamp(dot(N, Vd), 0.0, 1.0), 5.0);
       col = mix(col, cielCoul, f * 0.90);
@@ -2364,7 +2364,7 @@ const BOUTIQUES = [
   { nom: "L'Atelier du C", enseigne: "{;}", couleur: 0x62E88A,
     outil: "outils/langage-c.html", cote: -1, z: 262,
     tenancier: "Maître Clang",
-    bonjour: "Bonjour ! Vous voulez coder en C ? Entrez, la forge est chaude — "
+    bonjour: "Bonjour ! Vous voulez coder en C ? Entrez, la forge est chaude : "
            + "et ici le compilateur vous dit ce qui cloche, avec la ligne." },
   { nom: "Le Bureau des Masques", enseigne: "/24", couleur: 0x54BEF8,
     outil: "outils/sous-reseau.html", ancre: [-406, 182], cote: 1, z: 246,
@@ -2374,7 +2374,7 @@ const BOUTIQUES = [
   { nom: "La Table de Conversion", enseigne: "0b", couleur: 0xFFB05A,
     outil: "outils/convertisseur.html", ancre: [702, -92], cote: -1, z: 214,
     tenancier: "Le changeur",
-    bonjour: "Binaire, hexadécimal, décimal — je change tout, et je montre "
+    bonjour: "Binaire, hexadécimal, décimal : je change tout, et je montre "
            + "les quatre octets de couleurs différentes." },
   { nom: "Le Comptoir des Ports", enseigne: "22", couleur: 0xCE96FF,
     outil: "outils/ports.html", ancre: [286, 372], cote: 1, z: 198,
@@ -2417,7 +2417,7 @@ const BOUTIQUES = [
     outil: "outils/calculatrice.html", ancre: [332, 268], cote: 1, z: 118,
     tenancier: "Dame Sigma",
     bonjour: "Calculs, fonctions, suites, statistiques, régressions, "
-           + "probabilités, équations — et dix lois, de la binomiale "
+           + "probabilités, équations : et dix lois, de la binomiale "
            + "à Fisher." },
   /* Le neuvième outil, le tableau blanc, a sa neuvième échoppe : la règle
      posée plus haut — aucun outil que le village ignore — vaut pour lui
@@ -2428,7 +2428,7 @@ const BOUTIQUES = [
   { nom: "L'Ardoise", enseigne: "✎", couleur: 0xA9C8F5,
     outil: "outils/tableau.html", ancre: [-520, 60], cote: -1, z: 102,
     tenancier: "Le dessinateur",
-    bonjour: "Un schéma à poser ? Prenez un stylo, une note, une flèche — "
+    bonjour: "Un schéma à poser ? Prenez un stylo, une note, une flèche : "
            + "le tableau est infini, et rien ne sort d'ici." },
   /* Le dixième, le labo réseau, s'installe près de la Halle aux Câbles :
      on y prend ses blocs de commandes, on va les essayer à côté. Même règle
@@ -2459,7 +2459,7 @@ const BOUTIQUES = [
     outil: "outils/fichiers.html", ancre: [-720, 260], cote: 1, z: 54,
     tenancier: "Le relieur",
     bonjour: "Assembler, couper, signer, alléger vos PDF et vos photos : "
-           + "tout se fait ici, sur votre comptoir — rien ne part ailleurs." },
+           + "tout se fait ici, sur votre comptoir : rien ne part ailleurs." },
 ];
 /* La largeur d'une échoppe et son recul par rapport au pavé. La façade
    s'aligne sur le premier rang de maisons : une boutique en retrait passerait
@@ -5468,7 +5468,7 @@ function batirEnseignes() {
         `<i>${m.pole.chapitres.length} chapitres · ${nf} fiches</i></span>` +
       `</span>`;
     e.setAttribute("aria-label",
-      `${m.pole.titre} — ${m.pole.chapitres.length} chapitres, ${nf} fiches. ` +
+      `${m.pole.titre} · ${m.pole.chapitres.length} chapitres, ${nf} fiches. ` +
       `${m.L.lieu} : ${m.L.quoi}.`);
     e.addEventListener("click", () => allerA(m.i));
     e.addEventListener("pointerenter", () => marquerSurvol(m.i, true));
@@ -5961,7 +5961,7 @@ function allerA(i) {
     $("pont-tete").innerHTML =
       `<div class="accueil-tete"><h1>Les fiches du BTS,<br><em>dans un village</em></h1>` +
       `<p>Cinq matières, cinq bâtiments, ${nc} chapitres. Cliquez sur celui qui` +
-      ` vous intéresse — ou sur son nom en bas : on vous y emmène, et la fiche` +
+      ` vous intéresse : ou sur son nom en bas : on vous y emmène, et la fiche` +
       ` se lit sur place.</p></div>`;
     /* L'accent de l'allée suit l'heure, comme ceux des matières : un bleu de
        nuit posé sur la plaque claire du jour se lit à 1,6:1. */
@@ -6726,7 +6726,7 @@ function objetsDe(page) {
            rien de plus ; on ne le remet que s'il diffère. */
         dit: t
           ? [t.chap.titre === (v.t || "") ? "" : t.chap.titre, t.chap.sous || ""]
-              .filter(Boolean).join(" — ")
+              .filter(Boolean).join(" · ")
             || "Un chapitre du village."
           : "Cette fiche ne fait pas partie du village.",
         geste: t ? "Reprendre ici" : null,
@@ -6743,7 +6743,7 @@ function objetsDe(page) {
     return {
       glyphe: pole.court.slice(0, 2).toUpperCase(), lib: pole.court,
       compte: `${pole.chapitres.length} chapitres`,
-      dit: `${pole.titre} — ${nf} fiches à lire sur place.`,
+      dit: `${pole.titre} · ${nf} fiches à lire sur place.`,
       geste: "Aller au bâtiment",
       faire: () => { fermerInventaire(); allerA(i); },
     };

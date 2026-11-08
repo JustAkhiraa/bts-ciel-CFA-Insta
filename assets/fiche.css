@@ -210,6 +210,12 @@ img, svg, video { max-width: 100%; height: auto; }
 .page { display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 3rem;
         max-width: var(--large-page, 1220px); margin: 0 auto; padding: 0 2rem 6rem; }
 .corps { min-width: 0; padding-top: 2.6rem; max-width: var(--mesure, 76ch); }
+/* La MESURE du texte : les lignes de prose se coupent vers 66 caractères, pas
+   90. Seuls les paragraphes et les listes sont concernés — jamais les schémas,
+   les tableaux ou les blocs de code, qui gardent toute la colonne. Respecte le
+   réglage « largeur » (--prose en suit les quatre crans). */
+.corps p, .corps li { max-width: var(--prose, 66ch); }
+.corps .bloc-code p, .corps td p, .corps th p { max-width: none; }
 
 /* ---------------------------------------------------------------- sommaire */
 .sommaire { position: sticky; top: 0; align-self: start; max-height: 100vh;
@@ -1418,10 +1424,16 @@ html[data-taille="tres-grand"] { font-size: 20.5px; }
 
 /* Largeur de lecture — une ligne trop longue se relit mal, un écran 27" laissé
    à 76ch gaspille les deux tiers de la surface. Quatre crans, au choix. */
-html[data-largeur="etroit"] { --mesure: 62ch;  --large-page: 980px;  --large-app: 980px;  }
-html[data-largeur="normal"] { --mesure: 76ch;  --large-page: 1220px; --large-app: 1120px; }
-html[data-largeur="large"]  { --mesure: 92ch;  --large-page: 1480px; --large-app: 1400px; }
-html[data-largeur="pleine"] { --mesure: none;  --large-page: 100%;   --large-app: 100%;   }
+/* « --mesure » dimensionne la COLONNE (schémas, tableaux, code compris), en ch
+   d'une police plus grande que le texte courant : à 76ch, une ligne de prose
+   atteignait ~90 caractères, bien au-delà des 65-75 confortables. « --prose »
+   cap la mesure du TEXTE seul — paragraphes et listes — dans sa propre police,
+   pour que les lignes se coupent plus tôt. Les médias gardent toute la colonne.
+   Signalé : « c'est pas lisible, fais des sauts de ligne ». */
+html[data-largeur="etroit"] { --mesure: 62ch;  --prose: 58ch;  --large-page: 980px;  --large-app: 980px;  }
+html[data-largeur="normal"] { --mesure: 76ch;  --prose: 66ch;  --large-page: 1220px; --large-app: 1120px; }
+html[data-largeur="large"]  { --mesure: 92ch;  --prose: 80ch;  --large-page: 1480px; --large-app: 1400px; }
+html[data-largeur="pleine"] { --mesure: none;  --prose: none;  --large-page: 100%;   --large-app: 100%;   }
 
 /* Police du texte — trois familles natives, aucune police téléchargée. */
 html[data-police="serif"] { --sans: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif; }

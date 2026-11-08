@@ -68,7 +68,7 @@ const fusionner = {
   mots: "assembler combiner joindre regrouper merge concatener coller",
   description: "Ajoutez vos fichiers et rangez-les en les glissant (ou avec ↑ ↓) : leurs pages se suivront dans cet ordre. Une photo devient une page A4.",
   entree: { types: ["pdf", "image"], multiple: true, min: 2, accepte: ".pdf,application/pdf,image/*", libelle: "Choisir des PDF ou des images" },
-  options: () => '<label class="af-case"><input type="checkbox" name="recto"> Chaque document commence sur un recto (une page blanche est ajoutée après ceux qui ont un nombre impair de pages — pour imprimer en recto verso)</label>',
+  options: () => '<label class="af-case"><input type="checkbox" name="recto"> Chaque document commence sur un recto (une page blanche est ajoutée après ceux qui ont un nombre impair de pages : pour imprimer en recto verso)</label>',
   bouton: "Fusionner",
   nomZip: "fusion",
   async executer(ctx) {
@@ -93,7 +93,7 @@ const fusionner = {
 const diviser = {
   id: "diviser", titre: "Diviser un PDF", resume: "Couper un PDF en plusieurs fichiers : où vous voulez, page par page, par plages.",
   mots: "decouper separer split scinder couper ciseaux extraire",
-  description: "Cliquez sur les ciseaux ✂ entre deux pages pour couper à cet endroit — ou choisissez une règle. Les morceaux se téléchargent un par un ou en ZIP.",
+  description: "Cliquez sur les ciseaux ✂ entre deux pages pour couper à cet endroit : ou choisissez une règle. Les morceaux se téléchargent un par un ou en ZIP.",
   entree: UN_PDF,
   options: () => '<fieldset><legend>Comment couper</legend><div class="af-choix">' +
     '<label><input type="radio" name="mode" value="ciseaux" checked> Où je clique ✂</label>' +
@@ -174,7 +174,7 @@ const diviser = {
 function outilChoixPages({ id, titre, resume, mots, description, bouton, garder }) {
   return {
     id, titre, resume, mots, description, bouton, entree: UN_PDF,
-    options: () => '<label class="af-champ"><span>Pages ' + (garder ? "à extraire" : "à supprimer") + ' — cliquez sur les vignettes, ou tapez</span><input type="text" name="plage" placeholder="ex. 1-3, 5, 8-fin" autocomplete="off"></label>' +
+    options: () => '<label class="af-champ"><span>Pages ' + (garder ? "à extraire" : "à supprimer") + ', cliquez sur les vignettes, ou tapez</span><input type="text" name="plage" placeholder="ex. 1-3, 5, 8-fin" autocomplete="off"></label>' +
       (garder ? '<label class="af-case"><input type="checkbox" name="separes"> Un fichier par page (téléchargés ensemble en ZIP)</label>' : ""),
     brancher(ctx) {
       ctx.q('[name="plage"]').addEventListener("input", () => {
@@ -229,7 +229,7 @@ const supprimer = outilChoixPages({
 
 /* ── organiser : ranger, pivoter, retirer, mélanger plusieurs PDF ── */
 const organiser = {
-  id: "organiser", titre: "Organiser les pages", resume: "Glisser les pages pour les ranger, les pivoter, en retirer — même venues de plusieurs PDF.",
+  id: "organiser", titre: "Organiser les pages", resume: "Glisser les pages pour les ranger, les pivoter, en retirer : même venues de plusieurs PDF.",
   mots: "ordre reordonner trier deplacer ranger pivoter inverser melanger",
   description: "Glissez les vignettes pour changer l'ordre (sur téléphone : flèches ← →). ↻ pivote une page, ✕ la retire. Ajoutez d'autres PDF : leurs pages rejoignent la grille.",
   entree: { types: ["pdf"], multiple: true, min: 1, accepte: ".pdf,application/pdf", libelle: "Choisir un ou plusieurs PDF" },
@@ -346,7 +346,7 @@ const imagesPdf = {
     '<label class="af-champ"><span>Format de page</span><select name="format"><option value="A4">A4</option><option value="Lettre">Lettre US</option><option value="A5">A5</option><option value="A3">A3</option><option value="ajuste">À la taille de l\'image</option></select></label>' +
     '<label class="af-champ"><span>Orientation</span><select name="orientation"><option value="auto">Selon l\'image</option><option value="portrait">Portrait</option><option value="paysage">Paysage</option></select></label>' +
     '<label class="af-champ"><span>Marges</span><select name="marge"><option value="0">Aucune</option><option value="20" selected>Petites</option><option value="45">Grandes</option></select></label></div>' +
-    '<label class="af-case"><input type="checkbox" name="alleger"> Alléger (images réduites à 2000 px, en JPEG) — pour un envoi par mail ou une plateforme limitée en taille</label>',
+    '<label class="af-case"><input type="checkbox" name="alleger"> Alléger (images réduites à 2000 px, en JPEG) : pour un envoi par mail ou une plateforme limitée en taille</label>',
   bouton: "Créer le PDF",
   async executer(ctx) {
     const images = [];
@@ -489,7 +489,7 @@ const scanner = {
 
 /* ── PDF → JPG : chaque page en image ── */
 const pdfJpg = {
-  id: "pdf-jpg", titre: "PDF en images", resume: "Chaque page devient une image JPG, PNG ou WebP — ou une archive .cbz pour liseuse.",
+  id: "pdf-jpg", titre: "PDF en images", resume: "Chaque page devient une image JPG, PNG ou WebP : ou une archive .cbz pour liseuse.",
   mots: "jpg jpeg png webp cbz bd bande dessinee image convertir capture page photo exporter",
   description: "Les pages sont dessinées par le moteur de l'atelier. Il reproduit fidèlement la plupart des documents ; s'il manque une police rare, une police du système la remplace.",
   entree: UN_PDF,
@@ -622,7 +622,7 @@ const texte = {
   mots: "ecrire remplir formulaire annoter date nom champ ajouter",
   description: "Tapez votre texte, cliquez « Poser sur la page », puis glissez-le où il faut (le coin ◢ l'agrandit). Une boîte par endroit à remplir.",
   entree: UN_PDF,
-  options: () => '<label class="af-champ"><span>Texte</span><textarea name="texte" rows="2" placeholder="ex. Zoé Martin — 23/10/2026"></textarea></label><div class="af-ligne">' +
+  options: () => '<label class="af-champ"><span>Texte</span><textarea name="texte" rows="2" placeholder="ex. Zoé Martin : 23/10/2026"></textarea></label><div class="af-ligne">' +
     '<label class="af-champ"><span>Taille</span><input type="number" name="corps" value="12" min="5" max="72"></label>' +
     '<label class="af-champ"><span>Couleur</span><input type="color" name="couleur" value="#0b2a6f"></label>' +
     '<span><button type="button" class="af-bouton af-second" data-t="poser">Poser sur la page</button></span></div>',
@@ -667,7 +667,7 @@ const texte = {
 const signer = {
   id: "signer", titre: "Signer un PDF", resume: "Dessiner sa signature au doigt (ou importer une image) et la poser sur le document.",
   mots: "signature parapher tampon approuver contrat convention stage",
-  description: "Signez dans le cadre, puis « Poser la signature » et glissez-la au bon endroit. C'est une signature <b>dessinée</b> (une image), comme une signature scannée — pas une signature électronique certifiée.",
+  description: "Signez dans le cadre, puis « Poser la signature » et glissez-la au bon endroit. C'est une signature <b>dessinée</b> (une image), comme une signature scannée : pas une signature électronique certifiée.",
   entree: UN_PDF,
   options: () => '<div class="af-signature-zone"><canvas class="af-signature" aria-label="Zone de signature : dessinez au doigt ou à la souris"></canvas>' +
     '<div class="af-ligne af-gauche"><button type="button" class="af-bouton af-second" data-s="effacer">Effacer</button><button type="button" class="af-bouton af-second" data-s="annuler">Annuler le dernier trait</button>' +
@@ -816,7 +816,7 @@ const NIVEAUX = { legere: { max: 2400, q: 0.85 }, moyenne: { max: 1600, q: 0.72 
 const compresser = {
   id: "compresser", titre: "Compresser un PDF", resume: "Alléger un PDF trop lourd pour un mail ou une plateforme (Pronote, Parcoursup…).",
   mots: "reduire alleger taille poids mail optimiser compression mo",
-  description: "Ce sont presque toujours les IMAGES qui pèsent : elles sont réenregistrées plus petites. Un PDF de texte seul ne rétrécit guère — il est déjà léger.",
+  description: "Ce sont presque toujours les IMAGES qui pèsent : elles sont réenregistrées plus petites. Un PDF de texte seul ne rétrécit guère : il est déjà léger.",
   entree: UN_PDF,
   options: () => '<fieldset><legend>Niveau</legend><div class="af-choix">' +
     '<label><input type="radio" name="niveau" value="legere"> Légère (qualité intacte)</label>' +

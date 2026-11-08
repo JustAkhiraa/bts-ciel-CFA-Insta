@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PHP — sessions et espace membre | BTS CIEL</title>
+<title>PHP · sessions et espace membre | BTS CIEL</title>
 <meta name="description" content="Cours complet : HTTP sans mémoire, cycle d'une session, GET vs POST, validation serveur, compteur de visites, authentification, page protégée et déconnexion.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -36,7 +36,7 @@
     <span class="sep">/</span><span>Chapitre 06</span>
   </div>
 
-  <h1>PHP — sessions et espace membre</h1>
+  <h1>PHP · sessions et espace membre</h1>
   <p class="chapeau">Comment un site peut vous « reconnaître » d'une page à l'autre, alors que le
      protocole qui le porte n'a aucune mémoire.</p>
 
@@ -45,8 +45,9 @@
     <div>
       <h2>Résumé flash</h2>
       <p><strong>HTTP est sans mémoire</strong> : chaque requête ignore les précédentes. La
-         <strong>session</strong> résout cela — le serveur garde les données, le navigateur ne
-         transporte qu'un <strong>jeton</strong>. Quatre gestes suffisent :
+         <strong>session</strong> résout cela : le serveur garde les données, le navigateur ne
+         transporte qu'un <strong>jeton</strong>.</p>
+      <p>Quatre gestes suffisent :
          <code>session_start()</code> en toute première ligne, écrire dans
          <code>$_SESSION</code>, lire, puis <code>session_destroy()</code>. Un espace membre, c'est
          ça plus un <strong>garde</strong> en tête de chaque page privée.</p>
@@ -67,7 +68,7 @@
 
   <p>Le protocole HTTP est <strong>sans état</strong> (<em>stateless</em>) : chaque requête est
      traitée <strong>indépendamment</strong> des autres. Le serveur qui vous répond à la page 2 n'a
-     aucun souvenir de la page 1 — même si vous venez de vous y connecter.</p>
+     aucun souvenir de la page 1, même si vous venez de vous y connecter.</p>
 
   <div class="encart analogie">
     <div class="titre">💡 Le guichet amnésique</div>
@@ -156,7 +157,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
     <p><strong>Pourquoi ?</strong> La session repose sur un <strong>cookie</strong>, et un cookie
        voyage dans les <em>en-têtes</em> HTTP, qui partent <strong>avant</strong> le contenu. Une
        fois le contenu commencé, les en-têtes sont déjà envoyés : trop tard.</p>
-    <p>La même règle vaut pour <code>header("Location: …")</code> — pour exactement la même
+    <p>La même règle vaut pour <code>header("Location: …")</code> : pour exactement la même
        raison.</p>
   </div>
 
@@ -165,7 +166,8 @@ headers already sent by (output started at login.php:1)</code></pre></div>
     <p>C'est l'oubli n° 1 de tout espace membre : on démarre la session sur
        <code>login.php</code>, on la lit sur
        <code>accueil.php</code>… mais on a oublié <code>session_start()</code> sur cette
-       deuxième page. Résultat : <code>$_SESSION</code> y est <strong>vide</strong>, et
+       deuxième page.</p>
+    <p>Résultat : <code>$_SESSION</code> y est <strong>vide</strong>, et
        l'utilisateur semble déconnecté sans raison.</p>
     <p>La session <em>existe</em> bien côté serveur ; c'est la page qui n'a pas demandé à y
        accéder.</p>
@@ -179,13 +181,13 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   <p>L'exercice qui apprend le plus consiste à faire la <strong>même chose</strong> avec les deux
      méthodes, puis de comparer. Le résultat est le même, la façon dont il voyage ne l'est pas.</p>
 
-<div class="bloc-code" data-fam="html" style="--car:44"><span class="langue">html — en POST</span><pre><code><span class="j-bal">&lt;form</span> <span class="j-att">action</span>=<span class="j-txt">"traitement.php"</span> <span class="j-att">method</span>=<span class="j-txt">"post"</span><span class="j-bal">&gt;</span>
+<div class="bloc-code" data-fam="html" style="--car:44"><span class="langue">html · en POST</span><pre><code><span class="j-bal">&lt;form</span> <span class="j-att">action</span>=<span class="j-txt">"traitement.php"</span> <span class="j-att">method</span>=<span class="j-txt">"post"</span><span class="j-bal">&gt;</span>
     <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"text"</span> <span class="j-att">name</span>=<span class="j-txt">"nom"</span><span class="j-bal">&gt;</span>
     <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"text"</span> <span class="j-att">name</span>=<span class="j-txt">"prenom"</span><span class="j-bal">&gt;</span>
     <span class="j-bal">&lt;input</span> <span class="j-att">type</span>=<span class="j-txt">"submit"</span><span class="j-bal">&gt;</span>
 <span class="j-bal">&lt;/form</span><span class="j-bal">&gt;</span></code></pre></div>
 
-<div class="bloc-code" data-fam="php" style="--car:45"><span class="langue">php — traitement.php</span><pre><code><span class="j-var">$nom</span>    = <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"nom"</span>]);
+<div class="bloc-code" data-fam="php" style="--car:45"><span class="langue">php · traitement.php</span><pre><code><span class="j-var">$nom</span>    = <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"nom"</span>]);
 <span class="j-var">$prenom</span> = <span class="j-typ">htmlspecialchars</span>(<span class="j-var">$_POST</span>[<span class="j-txt">"prenom"</span>]);
 <span class="j-mc">echo</span> <span class="j-txt">"Bonjour $nom $prenom"</span>;</code></pre></div>
 
@@ -200,7 +202,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
       <tr><td>Données</td><td>dans l'<strong>URL</strong></td><td>dans le <strong>corps</strong></td></tr>
       <tr><td>Visibles</td><td>oui</td><td>non</td></tr>
       <tr><td>Dans l'historique / les favoris</td><td class="rep-non">oui</td><td class="rep-ok">non</td></tr>
-      <tr><td>Peut être partagée par lien</td><td>oui — c'est son intérêt</td><td>non</td></tr>
+      <tr><td>Peut être partagée par lien</td><td>oui, c'est son intérêt</td><td>non</td></tr>
       <tr><td>Taille</td><td>limitée</td><td>très large</td></tr>
       <tr><td>Pour</td><td>rechercher, filtrer, paginer</td><td>envoyer, modifier, connecter</td></tr>
     </tbody>
@@ -208,12 +210,12 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   </div>
 
   <div class="encart piege">
-    <div class="titre">⚠️ « POST est sécurisé » — non, il est juste discret</div>
+    <div class="titre">⚠️ « POST est sécurisé » · non, il est juste discret</div>
     <p>POST met les données hors de l'URL : elles n'apparaissent ni dans l'historique, ni dans les
        favoris, ni dans les journaux du serveur. C'est déjà beaucoup. Mais elles circulent en
        <strong>clair</strong> comme le reste.</p>
     <p>Ce qui chiffre, c'est <strong>HTTPS</strong>. Un mot de passe en POST sur du HTTP simple se
-       lit dans Wireshark aussi facilement qu'un mot de passe Telnet — voir le
+       lit dans Wireshark aussi facilement qu'un mot de passe Telnet : voir le
        <a href="../../02-reseaux-systemes/13-depannage-wireshark/cours.html">chapitre
        Dépannage</a>.</p>
   </div>
@@ -251,8 +253,8 @@ headers already sent by (output started at login.php:1)</code></pre></div>
 
   <div class="encart outils">
     <div class="titre">🧰 <code>$_SERVER["REQUEST_METHOD"]</code> : le bon garde-fou</div>
-    <p>Sans ce test, le script se déclenche <strong>au premier affichage</strong> de la page —
-       avant que l'utilisateur ait rien saisi — et affiche toutes les erreurs d'entrée de jeu.</p>
+    <p>Sans ce test, le script se déclenche <strong>au premier affichage</strong> de la page, 
+       avant que l'utilisateur ait rien saisi, et affiche toutes les erreurs d'entrée de jeu.</p>
     <p>Ce test répond à la question : « suis-je là parce qu'on vient de m'envoyer un formulaire, ou
        parce qu'on affiche simplement la page ? »</p>
   </div>
@@ -260,7 +262,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   <div class="encart piege">
     <div class="titre">⚠️ <code>strlen()</code> et non <code>empty()</code> pour un mot de passe</div>
     <p>La longueur se mesure avec <code>strlen()</code>. Et surtout : on n'applique
-       <strong>jamais</strong> <code>trim()</code> à un mot de passe — une espace peut en faire
+       <strong>jamais</strong> <code>trim()</code> à un mot de passe, une espace peut en faire
        légitimement partie, et la retirer changerait silencieusement ce que l'utilisateur a
        tapé.</p>
     <p>Pour le nom et l'email en revanche, <code>trim()</code> est indispensable : sans lui, un
@@ -304,7 +306,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   <p>Identifiants attendus : <code>admin</code> / <code>1234</code>, vérifiés <strong>sans base de
      données</strong>.</p>
 
-<div class="bloc-code" data-fam="php" style="--car:65"><span class="langue">php — login.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:65"><span class="langue">php · login.php</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-typ">session_start</span>();
 <span class="j-var">$erreur</span> = <span class="j-txt">""</span>;
 
@@ -327,7 +329,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
     <div class="titre">⚠️ <code>exit()</code> après <code>header("Location: …")</code></div>
     <p><code>header()</code> se contente d'<strong>ajouter un en-tête</strong> à la réponse : il
        n'interrompt pas le script. Sans <code>exit()</code>, <strong>tout le code qui suit
-       s'exécute quand même</strong> — et peut afficher ou modifier des choses avant que le
+       s'exécute quand même</strong>, et peut afficher ou modifier des choses avant que le
        navigateur ne suive la redirection.</p>
     <p>Sur une page protégée, l'oubli est une <strong>faille</strong> : le contenu privé est envoyé
        au visiteur non connecté, même si son navigateur change ensuite de page. Il lui suffit de
@@ -341,7 +343,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
     <p>Accepter « Admin », « ADMIN » ou « admin » est un confort légitime : un identifiant n'est pas
        censé être sensible à la casse.</p>
     <p>Un <strong>mot de passe</strong>, si. Le passer en minuscules diviserait massivement le
-       nombre de combinaisons possibles — exactement ce qu'on cherche à éviter (voir les calculs de
+       nombre de combinaisons possibles : exactement ce qu'on cherche à éviter (voir les calculs de
        force brute du
        <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
        cybersécurité</a>).</p>
@@ -354,7 +356,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
     <ul>
       <li>les utilisateurs sont en <strong>base de données</strong> ;</li>
       <li>le mot de passe n'est <strong>jamais</strong> stocké en clair mais
-          <strong>haché</strong> — <code>password_hash()</code> pour l'enregistrer,
+          <strong>haché</strong> : <code>password_hash()</code> pour l'enregistrer,
           <code>password_verify()</code> pour le contrôler ;</li>
       <li>même haché, il n'est jamais mis dans <code>$_SESSION</code> : on n'y garde que
           l'identifiant.</li>
@@ -369,7 +371,7 @@ headers already sent by (output started at login.php:1)</code></pre></div>
   <p>Une page réservée doit vérifier, <strong>avant tout affichage</strong>, que l'utilisateur est
      bien connecté. On appelle cela un <strong>garde</strong>.</p>
 
-<div class="bloc-code" data-fam="php" style="--car:70"><span class="langue">php — accueil.php (page privée)</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:70"><span class="langue">php · accueil.php (page privée)</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-typ">session_start</span>();
 
 <span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>])) {          <span class="j-com">// le garde</span>
@@ -383,10 +385,10 @@ headers already sent by (output started at login.php:1)</code></pre></div>
 <span class="j-bal">?&gt;</span></code></pre></div>
 
   <div class="encart piege">
-    <div class="titre">🔧 Corrigé — le garde ne va PAS sur la page de connexion</div>
+    <div class="titre">🔧 Corrigé · le garde ne va PAS sur la page de connexion</div>
     <p>C'est l'erreur la plus instructive du chapitre, et elle est vicieuse. Placer le garde sur
        <code>login.php</code> lui-même donne :</p>
-<div class="bloc-code" data-fam="php" style="--car:67"><span class="langue">login.php — boucle infinie</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:67"><span class="langue">login.php · boucle infinie</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-typ">session_start</span>();
 <span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">"user"</span>])) {
     <span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);   <span class="j-com">// ← on redirige vers SOI-MÊME</span>
@@ -436,7 +438,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
 <section id="deconnexion">
   <h2><span class="num">08</span>La déconnexion</h2>
 
-<div class="bloc-code" data-fam="php" style="--car:63"><span class="langue">php — logout.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:63"><span class="langue">php · logout.php</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-typ">session_start</span>();
 
 <span class="j-var">$_SESSION</span> = [];        <span class="j-com">// 1. on vide le tableau</span>
@@ -452,7 +454,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
        supprime la session <em>stockée sur le serveur</em>, mais le tableau <code>$_SESSION</code>
        <strong>reste rempli jusqu'à la fin du script en cours</strong>.</p>
     <p>Tant qu'on redirige immédiatement, cela ne se voit pas. Mais si la page continue et lit
-       <code>$_SESSION["user"]</code>, elle trouvera encore l'utilisateur — et affichera du contenu
+       <code>$_SESSION["user"]</code>, elle trouvera encore l'utilisateur, et affichera du contenu
        privé à quelqu'un qui vient de se déconnecter. D'où le <code>$_SESSION = [];</code> d'abord,
        par sécurité.</p>
   </div>
@@ -469,8 +471,9 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
   <div class="encart outils">
     <div class="titre">🧰 Nommez vos fichiers avec soin</div>
     <p>Une faute de frappe dans un nom de fichier se paie cher : <code>traintement.php</code> au
-       lieu de <code>traitement.php</code>, et l'<code>include</code> échoue. Le pire, c'est que
-       PHP se contente d'un <em>warning</em> et <strong>continue</strong> — la page s'affiche, mais
+       lieu de <code>traitement.php</code>, et l'<code>include</code> échoue.</p>
+    <p>Le pire, c'est que
+       PHP se contente d'un <em>warning</em> et <strong>continue</strong> : la page s'affiche, mais
        incomplète, sans message clair.</p>
     <p>C'est exactement le cas où <code>require</code> vaut mieux qu'<code>include</code> : il
        s'arrête net et vous dit quel fichier manque.</p>
@@ -489,7 +492,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
          accéder : pour elle, <code>$_SESSION</code> est un tableau <strong>vide</strong>. Le garde
          conclut logiquement que personne n'est connecté.</p>
       <p class="rap"><strong>La règle :</strong> <code>session_start()</code> en première ligne de
-         <em>chaque</em> page qui lit ou écrit la session — pas seulement celle qui l'a
+         <em>chaque</em> page qui lit ou écrit la session, pas seulement celle qui l'a
          ouverte.</p>
     </div>
   </div>
@@ -502,7 +505,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
       <li><strong>HTTP est sans mémoire</strong> : la session ajoute cette mémoire. Le navigateur
           garde un <strong>jeton</strong>, le serveur garde les données.</li>
       <li><strong><code>session_start()</code></strong> en toute première ligne de
-          <strong>chaque</strong> page concernée — avant le moindre caractère affiché.</li>
+          <strong>chaque</strong> page concernée : avant le moindre caractère affiché.</li>
       <li><strong>GET</strong> = dans l'URL, partageable, pour chercher. <strong>POST</strong> = dans
           le corps, discret, pour envoyer. Ni l'un ni l'autre n'est chiffré : c'est HTTPS.</li>
       <li><strong>Valider</strong> : <code>$_SERVER["REQUEST_METHOD"]</code>, <code>isset</code>,
@@ -511,7 +514,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
       <li><strong>Connexion</strong> : écrire dans <code>$_SESSION</code>, rediriger,
           <strong><code>exit()</code></strong>.</li>
       <li><strong>Le garde</strong> va sur les pages <strong>privées</strong>, jamais sur
-          <code>login.php</code> — sinon boucle de redirection infinie.</li>
+          <code>login.php</code>, sinon boucle de redirection infinie.</li>
       <li><strong>Déconnexion</strong> : <code>$_SESSION = [];</code> puis
           <code>session_destroy()</code>, puis redirection.</li>
       <li><strong>Toujours <code>htmlspecialchars()</code></strong> avant d'afficher une donnée de
@@ -522,10 +525,10 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>TP3 — Formulaires, validation et espace membre avec sessions
+      <li>TP3 : Formulaires, validation et espace membre avec sessions
           (le professeur, BTS CIEL 2025-2026)</li>
-      <li>Cours « PHP — Développement côté serveur », partie sessions</li>
-      <li>Fichiers rendus — l'élève : <code>login.php</code>, <code>traitement.php</code>,
+      <li>Cours « PHP : Développement côté serveur », partie sessions</li>
+      <li>Fichiers rendus : l'élève : <code>login.php</code>, <code>traitement.php</code>,
           <code>accueil.php</code>, <code>session.php</code></li>
     </ul>
   </div>
@@ -535,7 +538,7 @@ La page ne cesse de rediriger vers elle-même.</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../05-php/cours.html"><span>Chapitre précédent</span><b>PHP</b></a><a class="suiv" href="../07-python/cours.html"><span>Chapitre suivant</span><b>Python</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

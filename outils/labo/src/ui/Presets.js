@@ -51,7 +51,7 @@ function interVlan(reseau, { pool = "192.168.10.0", tag20 = 20 } = {}) {
   const c = hote(reseau, "portable", "PC-C", 110, 220, { ip: "192.168.20.20", passerelle: "192.168.20.1", dns: "192.168.20.10" });
   const srv = hote(reseau, "serveur", "SRV", 300, 190, { ip: "192.168.20.10", passerelle: "192.168.20.1", dns: "192.168.20.10" });
   srv.dns = { actif: true, enregistrements: [{ nom: "www.ciel.lan", ip: "192.168.20.10" }, { nom: "srv.ciel.lan", ip: "192.168.20.10" }] };
-  srv.web = { actif: true, page: "<h1>BTS CIEL — serveur du labo</h1>\n<p>Si vous lisez ceci, le DNS, le routage inter-VLAN et TCP fonctionnent.</p>" };
+  srv.web = { actif: true, page: "<h1>BTS CIEL : serveur du labo</h1>\n<p>Si vous lisez ceci, le DNS, le routage inter-VLAN et TCP fonctionnent.</p>" };
   cable(reseau, a, "Fa0", s, "Fa0/1");
   cable(reseau, b, "Fa0", s, "Fa0/2");
   cable(reseau, c, "Fa0", s, "Fa0/3");
@@ -86,7 +86,7 @@ function sortieInternet(reseau, { regle = false, passerellePc2 = "192.168.1.1" }
 export const LABS = [
   {
     id: "lab1",
-    titre: "Lab 1 — Un LAN, un commutateur, l'ARP",
+    titre: "Lab 1 : Un LAN, un commutateur, l'ARP",
     court: "LAN simple et ARP",
     resume: "Trois PC sur un commutateur, dans le même réseau 192.168.1.0/24. On regarde l'ARP remplir les tables, et le commutateur apprendre les adresses MAC.",
     etapes: [
@@ -109,15 +109,15 @@ export const LABS = [
   },
   {
     id: "lab2",
-    titre: "Lab 2 — VLAN et trunk 802.1Q",
+    titre: "Lab 2 : VLAN et trunk 802.1Q",
     court: "VLAN et trunk",
     resume: "Deux commutateurs reliés par un trunk, deux VLAN : ADMIN (10) et ELEVES (20). Le trafic d'un VLAN traverse le trunk étiqueté, et ne rencontre jamais l'autre VLAN.",
     etapes: [
-      "Sur <b>PC-A</b> (VLAN 10) : <code>ping 192.168.10.2</code> — PC-C, VLAN 10, de l'autre côté du trunk : ça passe.",
+      "Sur <b>PC-A</b> (VLAN 10) : <code>ping 192.168.10.2</code>, PC-C, VLAN 10, de l'autre côté du trunk : ça passe.",
       "Sur <b>SW1</b> : <code>en</code>, <code>show vlan brief</code> puis <code>show interfaces trunk</code>.",
       "En <b>Simulation</b>, refaites le ping et cliquez une trame sur le câble entre SW1 et SW2 : la couche 2 montre l'étiquette <b>VLAN 10</b>. La même trame, entre SW2 et PC-C, n'en a plus.",
-      "Sur PC-A : <code>ping 192.168.20.1</code> (PC-B, VLAN 20) — échec : deux VLAN sont deux réseaux, il faut un routeur. C'est le lab 3.",
-      "Bonus : sur SW1, <code>conf t</code>, <code>int gi0/1</code>, <code>switchport trunk allowed vlan 20</code> — et le ping du VLAN 10 ne passe plus.",
+      "Sur PC-A : <code>ping 192.168.20.1</code> (PC-B, VLAN 20), échec : deux VLAN sont deux réseaux, il faut un routeur. C'est le lab 3.",
+      "Bonus : sur SW1, <code>conf t</code>, <code>int gi0/1</code>, <code>switchport trunk allowed vlan 20</code>, et le ping du VLAN 10 ne passe plus.",
     ],
     construire(reseau) {
       const s1 = creer(reseau, "switch", { nom: "SW1", x: -200, y: 0 });
@@ -141,30 +141,30 @@ export const LABS = [
   },
   {
     id: "lab3",
-    titre: "Lab 3 — Routage inter-VLAN (router-on-a-stick), DHCP, DNS",
+    titre: "Lab 3 : Routage inter-VLAN (router-on-a-stick), DHCP, DNS",
     court: "Router-on-a-stick",
     resume: "Un routeur, un seul câble vers le commutateur, deux sous-interfaces dot1Q : les VLAN 10 et 20 se parlent. R1 distribue les adresses du VLAN 10 par DHCP ; le serveur du VLAN 20 répond au DNS et au web.",
     etapes: [
-      "Sur <b>PC-A</b> (en DHCP) : <code>ipconfig /renew</code> — Discover, Offer, Request, Ack : il reçoit 192.168.10.10.",
-      "Toujours sur PC-A : <code>ping 192.168.20.10</code> — le serveur, dans l'autre VLAN : le TTL reçu est 127, il y a eu un routeur.",
+      "Sur <b>PC-A</b> (en DHCP) : <code>ipconfig /renew</code>, Discover, Offer, Request, Ack : il reçoit 192.168.10.10.",
+      "Toujours sur PC-A : <code>ping 192.168.20.10</code>, le serveur, dans l'autre VLAN : le TTL reçu est 127, il y a eu un routeur.",
       "<code>tracert 192.168.20.20</code> : le premier saut est la sous-interface Gi0/0.10 de R1.",
       "<code>nslookup www.ciel.lan</code> puis <code>curl http://www.ciel.lan</code> : DNS, puis poignée de main TCP et page web.",
       "Sur <b>R1</b> : <code>en</code>, <code>show ip route</code>, <code>show ip interface brief</code>, <code>show ip dhcp binding</code>.",
-      "En <b>Simulation</b> : un ping de PC-A vers PC-C monte vers R1 étiqueté VLAN 10, et redescend étiqueté VLAN 20 — sur le MÊME câble.",
+      "En <b>Simulation</b> : un ping de PC-A vers PC-C monte vers R1 étiqueté VLAN 10, et redescend étiqueté VLAN 20, sur le MÊME câble.",
     ],
     construire(reseau) { interVlan(reseau); },
   },
   {
     id: "lab4",
-    titre: "Lab 4 — Deux sites, une liaison série, RIP v2",
+    titre: "Lab 4 : Deux sites, une liaison série, RIP v2",
     court: "Série et RIP",
     resume: "Deux routeurs reliés par une liaison série (R1 côté DCE, horloge à 64 000). R1 annonce déjà ses réseaux en RIP v2 ; R2 ne fait encore rien. Tant que R2 se tait, les deux LAN ne se voient pas.",
     etapes: [
-      "Sur <b>PC1</b> : <code>ping 192.168.2.10</code> — échec : R1 n'a aucune route vers le LAN de R2.",
+      "Sur <b>PC1</b> : <code>ping 192.168.2.10</code>, échec : R1 n'a aucune route vers le LAN de R2.",
       "Sur <b>R1</b> : <code>en</code>, <code>show ip interface brief</code> (Serial0/0/0 up / up), <code>show controllers serial 0/0/0</code> (R1 est le DCE), <code>show ip route</code>.",
       "Sur <b>R2</b>, faites-le parler : <code>en</code>, <code>conf t</code>, <code>router rip</code>, <code>version 2</code>, <code>no auto-summary</code>, <code>network 192.168.2.0</code>, <code>network 10.0.0.0</code>, <code>end</code>.",
-      "Sur R1 : <code>show ip route</code> — la ligne <code>R 192.168.2.0/24 [120/1] via 10.0.0.2</code> est apparue. <code>show ip protocols</code> dit d'où elle vient.",
-      "Sur PC1 : <code>ping 192.168.2.10</code> — ça passe, avec un TTL de 126 : deux routeurs traversés.",
+      "Sur R1 : <code>show ip route</code>, la ligne <code>R 192.168.2.0/24 [120/1] via 10.0.0.2</code> est apparue. <code>show ip protocols</code> dit d'où elle vient.",
+      "Sur PC1 : <code>ping 192.168.2.10</code>, ça passe, avec un TTL de 126 : deux routeurs traversés.",
       "Bonus : sur R1, <code>debug ip rip</code>, puis éteignez la liaison sur R2 (<code>int s0/0/0</code>, <code>shutdown</code>) : la route disparaît. En <b>Simulation</b>, cochez RIP et regardez les mises à jour passer.",
     ],
     objectifs: [
@@ -197,16 +197,16 @@ export const LABS = [
   },
   {
     id: "lab5",
-    titre: "Lab 5 — Sortir sur Internet : le PAT",
+    titre: "Lab 5 : Sortir sur Internet : le PAT",
     court: "NAT et PAT",
     resume: "Un LAN privé (192.168.1.0/24) derrière R1, une liaison série vers le FAI, et un serveur web « sur Internet » (8.8.8.8). Le FAI ne connaît pas les adresses privées : sans traduction, les réponses ne reviennent pas.",
     etapes: [
-      "Sur <b>PC1</b> : <code>ping 8.8.8.8</code> — <i>Request timed out</i>. Le paquet part, mais le FAI ne sait pas où renvoyer une réponse à 192.168.1.10.",
-      "Sur <b>R1</b> : <code>en</code>, <code>show run</code> — <code>ip nat inside</code> et <code>ip nat outside</code> sont déjà posés. Il manque la règle.",
+      "Sur <b>PC1</b> : <code>ping 8.8.8.8</code>, <i>Request timed out</i>. Le paquet part, mais le FAI ne sait pas où renvoyer une réponse à 192.168.1.10.",
+      "Sur <b>R1</b> : <code>en</code>, <code>show run</code>, <code>ip nat inside</code> et <code>ip nat outside</code> sont déjà posés. Il manque la règle.",
       "Ajoutez-la : <code>conf t</code>, <code>access-list 1 permit 192.168.1.0 0.0.0.255</code>, <code>ip nat inside source list 1 interface s0/0/0 overload</code>, <code>end</code>.",
-      "Sur PC1 puis PC2 : <code>ping 8.8.8.8</code> — ça passe. Sur R1 : <code>show ip nat translations</code> — deux PC, une seule adresse publique, deux numéros.",
+      "Sur PC1 puis PC2 : <code>ping 8.8.8.8</code>, ça passe. Sur R1 : <code>show ip nat translations</code>, deux PC, une seule adresse publique, deux numéros.",
       "Sur PC1 : <code>curl http://8.8.8.8</code>, puis sur R1 <code>show ip nat statistics</code> : les Hits et Misses.",
-      "En <b>Simulation</b> : cliquez le même écho avant R1 puis après — l'adresse source a changé (inside local → inside global).",
+      "En <b>Simulation</b> : cliquez le même écho avant R1 puis après, l'adresse source a changé (inside local → inside global).",
     ],
     objectifs: [
       { texte: "PC1 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC1", "8.8.8.8") },
@@ -217,9 +217,9 @@ export const LABS = [
   {
     id: "panne1",
     panne: true,
-    titre: "Panne 1 — Le DHCP ne répond pas",
+    titre: "Panne 1 : Le DHCP ne répond pas",
     court: "DHCP en panne",
-    resume: "La maquette du lab 3, à une ligne près. PC-A est en DHCP et n'obtient aucune adresse. Le routeur R1 est bien branché, son pool existe — et pourtant il ne répond pas. Trouvez pourquoi.",
+    resume: "La maquette du lab 3, à une ligne près. PC-A est en DHCP et n'obtient aucune adresse. Le routeur R1 est bien branché, son pool existe : et pourtant il ne répond pas. Trouvez pourquoi.",
     etapes: [
       "Sur <b>PC-A</b> : <code>ipconfig /renew</code>. Il ne reçoit qu'une adresse en <code>169.254</code> : c'est le signe qu'<b>aucun</b> serveur DHCP n'a répondu.",
       "Passez en <b>Simulation</b> et recommencez : le <i>DHCP Discover</i> arrive bien jusqu'à R1. Cliquez l'enveloppe à son arrivée : R1 dit ce qu'il en fait.",
@@ -237,12 +237,12 @@ export const LABS = [
   {
     id: "panne2",
     panne: true,
-    titre: "Panne 2 — Le VLAN 20 est coupé du reste",
+    titre: "Panne 2 : Le VLAN 20 est coupé du reste",
     court: "Inter-VLAN en panne",
     resume: "Toujours la maquette du lab 3. Le VLAN 10 fonctionne, mais rien ne sort du VLAN 20 : PC-C ne joint même pas sa passerelle. Les câbles sont bons, les adresses aussi. Trouvez la ligne fautive.",
     etapes: [
-      "Sur <b>PC-B</b> (VLAN 10) : <code>ping 192.168.10.1</code> — sa passerelle répond.",
-      "Sur <b>PC-C</b> (VLAN 20) : <code>ping 192.168.20.1</code> — la sienne se tait.",
+      "Sur <b>PC-B</b> (VLAN 10) : <code>ping 192.168.10.1</code>, sa passerelle répond.",
+      "Sur <b>PC-C</b> (VLAN 20) : <code>ping 192.168.20.1</code>, la sienne se tait.",
       "Sur <b>SW1</b> : <code>en</code>, <code>show vlan brief</code> puis <code>show interfaces trunk</code>. Le commutateur est-il en cause ?",
       "En <b>Simulation</b>, refaites le ping de PC-C et cliquez la trame à son arrivée sur R1 : quelle étiquette VLAN porte-t-elle, et que dit R1 ?",
       "Sur <b>R1</b> : <code>show running-config</code>, et lisez les deux sous-interfaces. Corrigez, puis <b>Vérifier</b>.",
@@ -258,12 +258,12 @@ export const LABS = [
   {
     id: "panne3",
     panne: true,
-    titre: "Panne 3 — Un seul poste ne sort pas",
+    titre: "Panne 3 : Un seul poste ne sort pas",
     court: "Poste isolé",
     resume: "La maquette du lab 5, PAT déjà en place. PC1 sort sur Internet ; PC2, branché sur le même commutateur, dans le même réseau, ne sort pas. Rien n'est cassé côté routeur.",
     etapes: [
-      "Sur <b>PC1</b> : <code>ping 8.8.8.8</code> — ça passe : le PAT de R1 fonctionne.",
-      "Sur <b>PC2</b> : <code>ping 8.8.8.8</code> — rien. Puis <code>ping 192.168.1.10</code> : PC1 répond, le réseau local n'est pas en cause.",
+      "Sur <b>PC1</b> : <code>ping 8.8.8.8</code>, ça passe : le PAT de R1 fonctionne.",
+      "Sur <b>PC2</b> : <code>ping 8.8.8.8</code>, rien. Puis <code>ping 192.168.1.10</code> : PC1 répond, le réseau local n'est pas en cause.",
       "Sur PC2 puis sur PC1 : <code>ipconfig /all</code>. Comparez les deux, ligne par ligne.",
       "Corrigez dans l'inspecteur de <b>PC2</b> (cliquez-le), puis <b>Vérifier</b>.",
     ],

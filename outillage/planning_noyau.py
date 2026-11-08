@@ -147,7 +147,7 @@ def fichier_ics(plan):
               "PRODID:-//BTS CIEL CFA INSTA//planning//FR",
               "CALSCALE:GREGORIAN",
               "METHOD:PUBLISH",
-              f"X-WR-CALNAME:BTS CIEL — promo {plan['promo']}",
+              f"X-WR-CALNAME:BTS CIEL · promo {plan['promo']}",
               "X-WR-TIMEZONE:Europe/Paris",
               "X-PUBLISHED-TTL:PT12H"]
     for c in plan["creneaux"]:

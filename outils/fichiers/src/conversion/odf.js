@@ -28,7 +28,7 @@ async function empaqueter(genre, parties, images) {
     { nom: "META-INF/manifest.xml", octets: utf8(manifeste) }, ...images.map((d) => ({ nom: "Pictures/" + d.nom, octets: d.octets }))];
   return new Uint8Array(await (await creerZip(fichiers)).arrayBuffer());
 }
-const meta = (modele) => ENTETE_XML + "<office:document-meta " + NS + "><office:meta><meta:generator>BTS CIEL — atelier fichiers</meta:generator>" +
+const meta = (modele) => ENTETE_XML + "<office:document-meta " + NS + "><office:meta><meta:generator>BTS CIEL, atelier fichiers</meta:generator>" +
   (modele.titre ? "<dc:title>" + xml(modele.titre) + "</dc:title>" : "") + (modele.sujet ? "<dc:subject>" + xml(modele.sujet) + "</dc:subject>" : "") +
   (modele.auteur ? "<meta:initial-creator>" + xml(modele.auteur) + "</meta:initial-creator>" : "") + "<meta:creation-date>" + dateIso().replace("Z", "") + "</meta:creation-date></office:meta></office:document-meta>";
 

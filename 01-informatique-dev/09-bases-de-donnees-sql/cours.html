@@ -7,7 +7,7 @@
 <meta name="description" content="Cours complet : SGBD, modèle relationnel, clés primaires et étrangères, MCD/MLD, CREATE, INSERT/UPDATE/DELETE, SELECT, jointures, agrégats, PDO et injections SQL.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -42,7 +42,7 @@
   </div>
 
   <h1>Bases de données &amp; SQL</h1>
-  <p class="chapeau">Stocker des données <em>reliées entre elles</em>, les interroger — et ne pas
+  <p class="chapeau">Stocker des données <em>reliées entre elles</em>, les interroger, et ne pas
      laisser un visiteur les lire toutes.</p>
 
   <div class="flash">
@@ -51,10 +51,11 @@
       <h2>Résumé flash</h2>
       <p>Une base <strong>relationnelle</strong> range les données dans des <strong>tables</strong>
          reliées par des <strong>clés</strong> : une <strong>clé primaire</strong> identifie chaque
-         ligne, une <strong>clé étrangère</strong> pointe vers une autre table. Le langage
+         ligne, une <strong>clé étrangère</strong> pointe vers une autre table.</p>
+      <p>Le langage
          <strong>SQL</strong> crée (<code>CREATE</code>), modifie (<code>INSERT</code>,
          <code>UPDATE</code>, <code>DELETE</code>) et interroge (<code>SELECT</code>). Depuis PHP on
-         s'y connecte en <strong>PDO</strong> — et l'on utilise des <strong>requêtes
+         s'y connecte en <strong>PDO</strong>, et l'on utilise des <strong>requêtes
          préparées</strong>, sous peine d'injection SQL.</p>
     </div>
   </div>
@@ -89,7 +90,7 @@
 
   <p>Le <strong>SGBD</strong> (Système de Gestion de Base de Données) est le logiciel qui gère tout
      cela : création des tables, manipulation des données, gestion des droits, et
-     <strong>intégrité référentielle</strong> — la garantie que les relations entre tables restent
+     <strong>intégrité référentielle</strong>, la garantie que les relations entre tables restent
      cohérentes.</p>
 
   <figure class="schema">
@@ -156,7 +157,7 @@
        <strong>clé étrangère</strong> : au lieu de recopier « Dupont Alice BTS1 » dans chaque ligne
        de présence, on écrit juste son <strong>numéro</strong>.</p>
     <p>Résultat : si Alice change de classe, on modifie <strong>une seule ligne</strong>. Sans clé,
-       il faudrait corriger les 200 lignes de présence — et en oublier une suffirait à rendre la
+       il faudrait corriger les 200 lignes de présence, et en oublier une suffirait à rendre la
        base incohérente.</p>
   </div>
 
@@ -183,14 +184,14 @@
         .rd{font:10px var(--sans);text-anchor:middle;fill:var(--encre-tenue)}
       </style>
       <!-- 1-1 -->
-      <text class="rc" x="100" y="16">1 — 1</text>
+      <text class="rc" x="100" y="16">1, 1</text>
       <rect class="rt" x="16" y="26" width="80" height="28" rx="5"/><text class="rn" x="56" y="45">Utilisateur</text>
       <rect class="rt" x="104" y="26" width="80" height="28" rx="5"/><text class="rn" x="144" y="45">Compte</text>
       <path class="rl" d="M96,40 H104"/>
       <text class="rd" x="100" y="72">un pour un</text>
 
       <!-- 1-N -->
-      <text class="rc" x="300" y="16">1 — N</text>
+      <text class="rc" x="300" y="16">1, N</text>
       <rect class="rt" x="256" y="26" width="70" height="28" rx="5"/><text class="rn" x="291" y="45">Client</text>
       <rect class="rt" x="350" y="12" width="80" height="24" rx="5"/><text class="rn" x="390" y="28">Commande</text>
       <rect class="rt" x="350" y="42" width="80" height="24" rx="5"/><text class="rn" x="390" y="58">Commande</text>
@@ -199,7 +200,7 @@
       <text class="rd" x="330" y="80">un client, plusieurs commandes</text>
 
       <!-- N-N -->
-      <text class="rc" x="300" y="116">N — N</text>
+      <text class="rc" x="300" y="116">N : N</text>
       <rect class="rt" x="140" y="128" width="80" height="28" rx="5"/><text class="rn" x="180" y="147">Etudiant</text>
       <rect class="rt" x="264" y="128" width="90" height="28" rx="5" style="fill:var(--accent-pale)"/>
       <text class="rn" x="309" y="147">Inscription</text>
@@ -215,11 +216,11 @@
   <table>
     <thead><tr><th>Relation</th><th>Exemple</th><th>Traduction en tables</th></tr></thead>
     <tbody>
-      <tr><td><strong>1 — 1</strong></td><td>un utilisateur a un compte bancaire</td>
+      <tr><td><strong>1 : 1</strong></td><td>un utilisateur a un compte bancaire</td>
           <td>une clé étrangère dans l'une des deux tables</td></tr>
-      <tr><td><strong>1 — N</strong></td><td>un client passe plusieurs commandes</td>
+      <tr><td><strong>1 : N</strong></td><td>un client passe plusieurs commandes</td>
           <td>la clé étrangère va <strong>du côté N</strong></td></tr>
-      <tr><td><strong>N — N</strong></td><td>des étudiants suivent des cours</td>
+      <tr><td><strong>N : N</strong></td><td>des étudiants suivent des cours</td>
           <td><strong>table intermédiaire</strong> avec les deux clés étrangères</td></tr>
     </tbody>
   </table>
@@ -228,7 +229,7 @@
   <div class="encart piege">
     <div class="titre">⚠️ La clé étrangère va toujours du côté « N »</div>
     <p>Dans « un client, plusieurs commandes », c'est la table <strong>commandes</strong> qui porte
-       <code>id_client</code> — jamais l'inverse. Mettre <code>id_commande</code> dans
+       <code>id_client</code>, jamais l'inverse. Mettre <code>id_commande</code> dans
        <code>clients</code> forcerait à créer une ligne client par commande.</p>
     <p>Le repère : <em>quelle ligne a besoin de pointer vers une seule autre ?</em> Une commande
        appartient à <strong>un</strong> client ; un client a <strong>plusieurs</strong> commandes.
@@ -263,7 +264,7 @@
     <li>on choisit le <strong>type de données</strong> de chaque colonne.</li>
   </ol>
 
-  <h3>Les cardinalités — ce qui décide de tout</h3>
+  <h3>Les cardinalités · ce qui décide de tout</h3>
 
   <p>Sur un MCD, chaque branche d'une association porte deux nombres : le
      <strong>minimum</strong> et le <strong>maximum</strong> de fois qu'une occurrence de
@@ -290,14 +291,14 @@
     <div class="titre">🎯 Se lire à voix haute, dans les deux sens</div>
     <p>Une association se lit <strong>deux fois</strong>, une fois par côté, et la cardinalité
        se lit sur le côté <em>opposé</em> à l'entité dont on parle :</p>
-    <div class="formule">USER —(1,N)— <strong>Posséder</strong> —(1,1)— PC</div>
+    <div class="formule">USER, (1,N), <strong>Posséder</strong>, (1,1), PC</div>
     <ul>
       <li>« un <strong>utilisateur</strong> possède <strong>1 à N</strong> PC » ;</li>
       <li>« un <strong>PC</strong> est possédé par <strong>exactement un</strong>
           utilisateur ».</li>
     </ul>
     <p class="rap">Si une des deux phrases sonne faux, la cardinalité est mal placée. C'est le
-       seul contrôle qui existe — et il suffit.</p>
+       seul contrôle qui existe, et il suffit.</p>
   </div>
 
   <div class="tableau">
@@ -308,7 +309,7 @@
           <td><strong>une clé étrangère</strong>, placée dans la table du côté
               <code>1,1</code></td></tr>
       <tr><td><code>N</code> et <code>N</code></td><td><strong>N–N</strong></td>
-          <td><strong>une table intermédiaire</strong> portant les deux clés — et les
+          <td><strong>une table intermédiaire</strong> portant les deux clés, et les
               éventuels attributs de l'association</td></tr>
       <tr><td><code>1</code> et <code>1</code></td><td><strong>1–1</strong></td>
           <td>rare : soit on fusionne les deux entités, soit une clé étrangère
@@ -330,11 +331,11 @@
   </div>
 
   <div class="encart outils">
-    <div class="titre">🧰 L'exemple du tableau — USER, PC, Logiciel</div>
+    <div class="titre">🧰 L'exemple du tableau · USER, PC, Logiciel</div>
 <div class="bloc-code" style="--car:39"><span class="langue">MCD</span><pre><code>USER —(1,N)— Posséder —(1,1)— PC
 PC   —(1,N)— Installer —(1,N)— LOGICIEL</code></pre></div>
     <p>Première association, <strong>1–N</strong> : la clé étrangère part dans
-       <code>PC</code>. Seconde association, <strong>N–N</strong> — un PC porte plusieurs
+       <code>PC</code>. Seconde association, <strong>N–N</strong> : un PC porte plusieurs
        logiciels, un logiciel est installé sur plusieurs PC : il faut une
        <strong>table intermédiaire</strong>.</p>
 <div class="bloc-code" style="--car:66"><span class="langue">MLD</span><pre><code>users      (id_user, nom, email, tel)
@@ -343,7 +344,7 @@ logiciels  (id_app, nom, version, licence)
 installer  (#id_pc, #id_app, date_installation)
             └────── clé primaire composée des deux clés étrangères</code></pre></div>
     <p class="rap">C'est ici que la table intermédiaire prend tout son sens : elle peut porter
-       ses <strong>propres attributs</strong> — la date d'installation n'appartient ni au PC ni
+       ses <strong>propres attributs</strong>, la date d'installation n'appartient ni au PC ni
        au logiciel, mais bien au couple des deux.</p>
   </div>
 
@@ -395,7 +396,7 @@ USE gestion_presence;
   <div class="tableau">
   <table>
     <tbody>
-      <tr><td><code>PRIMARY KEY</code></td><td>identifie la ligne — unique et non nulle</td></tr>
+      <tr><td><code>PRIMARY KEY</code></td><td>identifie la ligne : unique et non nulle</td></tr>
       <tr><td><code>AUTO_INCREMENT</code></td><td>le SGBD numérote tout seul</td></tr>
       <tr><td><code>NOT NULL</code></td><td>la colonne doit être renseignée</td></tr>
       <tr><td><code>UNIQUE</code></td><td>pas deux fois la même valeur</td></tr>
@@ -405,7 +406,7 @@ USE gestion_presence;
   </table>
   </div>
 
-<div class="bloc-code" data-fam="sql" style="--car:54"><span class="langue">sql — la clé étrangère</span><pre><code><span class="j-mc">CREATE TABLE</span> <span class="j-fn">presences</span> (
+<div class="bloc-code" data-fam="sql" style="--car:54"><span class="langue">sql · la clé étrangère</span><pre><code><span class="j-mc">CREATE TABLE</span> <span class="j-fn">presences</span> (
     id            <span class="j-typ">INT</span> <span class="j-mc">AUTO_INCREMENT</span> <span class="j-mc">PRIMARY KEY</span>,
     id_etudiant   <span class="j-typ">INT</span> <span class="j-mc">NOT</span> <span class="j-mc">NULL</span>,
     date_presence <span class="j-typ">DATE</span> <span class="j-mc">NOT</span> <span class="j-mc">NULL</span>,
@@ -430,7 +431,7 @@ USE gestion_presence;
     <p><code>VARCHAR</code> stocke une longueur <em>variable</em> : « Ali » n'occupe pas 50
        caractères. Le nombre est un <strong>maximum</strong>, pas une réservation.</p>
     <p>Le piège est ailleurs : un nom de 60 caractères sera <strong>tronqué</strong> (ou rejeté).
-       Prévoyez large sur les noms et les emails — <code>VARCHAR(100)</code> ne coûte rien de plus
+       Prévoyez large sur les noms et les emails : <code>VARCHAR(100)</code> ne coûte rien de plus
        si les valeurs sont courtes.</p>
   </div>
 </section>
@@ -462,7 +463,7 @@ USE gestion_presence;
 <section id="dml">
   <h2><span class="num">07</span>INSERT, UPDATE, DELETE</h2>
 
-<div class="bloc-code" data-fam="sql" style="--car:50"><span class="langue">sql — ajouter</span><pre><code><span class="j-mc">INSERT INTO</span> <span class="j-fn">etudiants</span> (nom, prenom, classe)
+<div class="bloc-code" data-fam="sql" style="--car:50"><span class="langue">sql · ajouter</span><pre><code><span class="j-mc">INSERT INTO</span> <span class="j-fn">etudiants</span> (nom, prenom, classe)
 <span class="j-mc">VALUES</span> (<span class="j-txt">'Dupont'</span>, <span class="j-txt">'Alice'</span>, <span class="j-txt">'BTS CIEL 1'</span>);
 
 <span class="j-com">-- plusieurs lignes d'un coup</span>
@@ -470,15 +471,15 @@ USE gestion_presence;
     (<span class="j-txt">'Martin'</span>, <span class="j-txt">'Bob'</span>, <span class="j-txt">'BTS CIEL 1'</span>),
     (<span class="j-txt">'Durand'</span>, <span class="j-txt">'Chloe'</span>, <span class="j-txt">'BTS CIEL 2'</span>);</code></pre></div>
 
-<div class="bloc-code" data-fam="sql" style="--car:25"><span class="langue">sql — modifier</span><pre><code><span class="j-mc">UPDATE</span> etudiants
+<div class="bloc-code" data-fam="sql" style="--car:25"><span class="langue">sql · modifier</span><pre><code><span class="j-mc">UPDATE</span> etudiants
 <span class="j-mc">SET</span> classe = <span class="j-txt">'BTS CIEL 2'</span>
 <span class="j-mc">WHERE</span> id = <span class="j-num">1</span>;</code></pre></div>
 
-<div class="bloc-code" data-fam="sql" style="--car:21"><span class="langue">sql — supprimer</span><pre><code><span class="j-mc">DELETE</span> <span class="j-mc">FROM</span> etudiants
+<div class="bloc-code" data-fam="sql" style="--car:21"><span class="langue">sql · supprimer</span><pre><code><span class="j-mc">DELETE</span> <span class="j-mc">FROM</span> etudiants
 <span class="j-mc">WHERE</span> id = <span class="j-num">1</span>;</code></pre></div>
 
   <div class="encart piege">
-    <div class="titre">⚠️ Le <code>WHERE</code> oublié — la catastrophe classique</div>
+    <div class="titre">⚠️ Le <code>WHERE</code> oublié · la catastrophe classique</div>
 <div class="bloc-code" data-fam="sql" style="--car:89"><span class="langue">sql</span><pre><code><span class="j-mc">UPDATE</span> etudiants <span class="j-mc">SET</span> classe = <span class="j-txt">'BTS CIEL 2'</span>;    <span class="j-com">-- ✘ TOUS les étudiants changent de classe</span>
 <span class="j-mc">DELETE</span> <span class="j-mc">FROM</span> etudiants;                          <span class="j-com">-- ✘ la table est VIDÉE</span></code></pre></div>
     <p>SQL exécute sans broncher : il n'y a ni avertissement ni annulation. C'est l'accident le plus
@@ -486,7 +487,7 @@ USE gestion_presence;
     <p><strong>Le réflexe qui sauve :</strong> écrire d'abord la requête en
        <code>SELECT</code> pour voir ce qu'elle touche, puis remplacer par
        <code>UPDATE</code> ou <code>DELETE</code> une fois le résultat vérifié.</p>
-<div class="bloc-code" data-fam="sql" style="--car:79"><span class="langue">sql — la bonne méthode</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> etudiants <span class="j-mc">WHERE</span> id = <span class="j-num">1</span>;      <span class="j-com">-- 1. je vérifie : une seule ligne ?</span>
+<div class="bloc-code" data-fam="sql" style="--car:79"><span class="langue">sql · la bonne méthode</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> etudiants <span class="j-mc">WHERE</span> id = <span class="j-num">1</span>;      <span class="j-com">-- 1. je vérifie : une seule ligne ?</span>
 <span class="j-mc">DELETE</span>  <span class="j-mc">FROM</span> etudiants <span class="j-mc">WHERE</span> id = <span class="j-num">1</span>;       <span class="j-com">-- 2. alors je supprime</span></code></pre></div>
   </div>
 </section>
@@ -517,7 +518,7 @@ USE gestion_presence;
       <tr><td><code>=</code> <code>&lt;&gt;</code> <code>&gt;</code> <code>&lt;</code>
           <code>&gt;=</code> <code>&lt;=</code></td><td>comparaisons</td></tr>
       <tr><td><code>AND</code> · <code>OR</code> · <code>NOT</code></td><td>combinaisons</td></tr>
-      <tr><td><code>LIKE '%dup%'</code></td><td>contient — <code>%</code> remplace n'importe quoi</td></tr>
+      <tr><td><code>LIKE '%dup%'</code></td><td>contient : <code>%</code> remplace n'importe quoi</td></tr>
       <tr><td><code>IN ('BTS1', 'BTS2')</code></td><td>fait partie de la liste</td></tr>
       <tr><td><code>BETWEEN 1 AND 10</code></td><td>dans l'intervalle, bornes comprises</td></tr>
       <tr><td><code>IS NULL</code> · <code>IS NOT NULL</code></td><td>valeur absente ou non</td></tr>
@@ -530,7 +531,7 @@ USE gestion_presence;
 <div class="bloc-code" data-fam="sql" style="--car:79"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> etudiants <span class="j-mc">WHERE</span> classe = <span class="j-mc">NULL</span>;      <span class="j-com">-- ✘ renvoie TOUJOURS 0 ligne</span>
 <span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> etudiants <span class="j-mc">WHERE</span> classe <span class="j-mc">IS</span> <span class="j-mc">NULL</span>;     <span class="j-com">-- ✔</span></code></pre></div>
     <p><code>NULL</code> signifie « valeur inconnue ». Comparer deux inconnues ne donne ni vrai ni
-       faux, mais… inconnu — donc jamais « vrai ». D'où <code>IS NULL</code>, un opérateur à part.</p>
+       faux, mais… inconnu, donc jamais « vrai ». D'où <code>IS NULL</code>, un opérateur à part.</p>
   </div>
 
   <div class="encart outils">
@@ -552,13 +553,13 @@ USE gestion_presence;
   <p>Une <strong>jointure</strong> rassemble les données de plusieurs tables en suivant les clés.
      C'est ce qui rend le modèle relationnel utile.</p>
 
-<div class="bloc-code" data-fam="sql" style="--car:45"><span class="langue">sql — le problème</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> presences;
+<div class="bloc-code" data-fam="sql" style="--car:45"><span class="langue">sql · le problème</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> presences;
 
 <span class="j-com">-- id | id_etudiant | date_presence | statut</span>
 <span class="j-com">--  1 |      3      |  2026-09-13   | present</span>
 <span class="j-com">-- ↑ « 3 », d'accord… mais QUI est 3 ?</span></code></pre></div>
 
-<div class="bloc-code" data-fam="sql" style="--car:81"><span class="langue">sql — la jointure</span><pre><code><span class="j-mc">SELECT</span> etudiants.nom, etudiants.prenom, presences.date_presence, presences.statut
+<div class="bloc-code" data-fam="sql" style="--car:81"><span class="langue">sql · la jointure</span><pre><code><span class="j-mc">SELECT</span> etudiants.nom, etudiants.prenom, presences.date_presence, presences.statut
 <span class="j-mc">FROM</span> presences
 <span class="j-mc">INNER JOIN</span> etudiants <span class="j-mc">ON</span> presences.id_etudiant = etudiants.id;
 
@@ -585,9 +586,9 @@ USE gestion_presence;
     <table>
       <tbody>
         <tr><td>« La liste des présences avec le nom de l'étudiant »</td>
-            <td><code>INNER JOIN</code> — une présence a forcément un étudiant</td></tr>
+            <td><code>INNER JOIN</code> : une présence a forcément un étudiant</td></tr>
         <tr><td>« Tous les étudiants, avec leur nombre d'absences »</td>
-            <td><code>LEFT JOIN</code> — sinon les étudiants <strong>jamais absents</strong>
+            <td><code>LEFT JOIN</code>, sinon les étudiants <strong>jamais absents</strong>
                 disparaîtraient du tableau</td></tr>
       </tbody>
     </table>
@@ -624,11 +625,11 @@ USE gestion_presence;
   </table>
   </div>
 
-<div class="bloc-code" data-fam="sql" style="--car:81"><span class="langue">sql — le tableau de bord du projet</span><pre><code><span class="j-mc">SELECT</span> <span class="j-mc">COUNT</span>(*) <span class="j-mc">FROM</span> etudiants;                                <span class="j-com">-- nb d'étudiants</span>
+<div class="bloc-code" data-fam="sql" style="--car:81"><span class="langue">sql · le tableau de bord du projet</span><pre><code><span class="j-mc">SELECT</span> <span class="j-mc">COUNT</span>(*) <span class="j-mc">FROM</span> etudiants;                                <span class="j-com">-- nb d'étudiants</span>
 <span class="j-mc">SELECT</span> <span class="j-mc">COUNT</span>(*) <span class="j-mc">FROM</span> presences <span class="j-mc">WHERE</span> statut = <span class="j-txt">'present'</span>;       <span class="j-com">-- nb de présences</span>
 <span class="j-mc">SELECT</span> <span class="j-mc">COUNT</span>(*) <span class="j-mc">FROM</span> presences <span class="j-mc">WHERE</span> statut = <span class="j-txt">'absent'</span>;        <span class="j-com">-- nb d'absences</span></code></pre></div>
 
-<div class="bloc-code" data-fam="sql" style="--car:48"><span class="langue">sql — GROUP BY</span><pre><code><span class="j-com">-- combien d'étudiants par classe ?</span>
+<div class="bloc-code" data-fam="sql" style="--car:48"><span class="langue">sql · GROUP BY</span><pre><code><span class="j-com">-- combien d'étudiants par classe ?</span>
 <span class="j-mc">SELECT</span> classe, <span class="j-mc">COUNT</span>(*) <span class="j-mc">AS</span> nombre
 <span class="j-mc">FROM</span> etudiants
 <span class="j-mc">GROUP BY</span> classe;
@@ -657,7 +658,7 @@ USE gestion_presence;
     <p>On ne peut pas écrire <code>WHERE COUNT(*) &gt; 16</code> : au moment du <code>WHERE</code>,
        les groupes n'existent pas encore, donc le compte non plus.</p>
     <div class="formule">FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY</div>
-    <p>Cet ordre d'exécution explique tout le reste — y compris pourquoi un alias défini dans le
+    <p>Cet ordre d'exécution explique tout le reste, y compris pourquoi un alias défini dans le
        <code>SELECT</code> n'est pas utilisable dans le <code>WHERE</code>.</p>
   </div>
 
@@ -665,7 +666,7 @@ USE gestion_presence;
     <div class="titre">🧰 <code>COUNT(*)</code> ou <code>COUNT(colonne)</code> ?</div>
 <div class="bloc-code" data-fam="sql" style="--car:62"><span class="langue">sql</span><pre><code><span class="j-mc">COUNT</span>(*)          <span class="j-com">-- compte TOUTES les lignes</span>
 <span class="j-mc">COUNT</span>(telephone)  <span class="j-com">-- compte celles où telephone n'est PAS NULL</span></code></pre></div>
-    <p>La différence n'apparaît que s'il y a des <code>NULL</code> — mais alors elle est
+    <p>La différence n'apparaît que s'il y a des <code>NULL</code>, mais alors elle est
        importante. Pour « combien d'étudiants ? », c'est <code>COUNT(*)</code>.</p>
   </div>
 </section>
@@ -678,7 +679,7 @@ USE gestion_presence;
      une base. On écrit la connexion <strong>une seule fois</strong>, dans un fichier réutilisé
      partout.</p>
 
-<div class="bloc-code" data-fam="php" style="--car:66"><span class="langue">php — db.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:66"><span class="langue">php · db.php</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-var">$hote</span> = <span class="j-txt">"localhost"</span>;
 <span class="j-var">$base</span> = <span class="j-txt">"gestion_presence"</span>;
 <span class="j-var">$user</span> = <span class="j-txt">"root"</span>;
@@ -696,7 +697,7 @@ USE gestion_presence;
 }
 <span class="j-bal">?&gt;</span></code></pre></div>
 
-<div class="bloc-code" data-fam="php" style="--car:57"><span class="langue">php — lire des données</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:57"><span class="langue">php · lire des données</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-mc">require</span> <span class="j-txt">'db.php'</span>;
 
 <span class="j-var">$resultat</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">query</span>(<span class="j-txt">"SELECT * FROM etudiants"</span>);
@@ -718,7 +719,7 @@ USE gestion_presence;
       </tbody>
     </table>
     </div>
-    <p>Sans le second, une requête fautive renvoie simplement <code>false</code> — et le programme
+    <p>Sans le second, une requête fautive renvoie simplement <code>false</code>, et le programme
        continue comme si de rien n'était, jusqu'à planter beaucoup plus loin, sur une cause
        introuvable.</p>
   </div>
@@ -728,8 +729,8 @@ USE gestion_presence;
     <p>Si <code>db.php</code> crée <code>$pdo</code> mais que les pages écrivent
        <code>$connexion-&gt;query(…)</code>, le résultat est immédiat :</p>
 <div class="bloc-code" style="--car:70"><span class="langue">erreur</span><pre><code>Fatal error: Uncaught Error: Call to a member function query() on null</code></pre></div>
-    <p>« on null » est l'indice : la variable n'existe pas. Choisissez un nom — <code>$pdo</code> ou
-       <code>$connexion</code> — et tenez-vous-y dans tout le projet.</p>
+    <p>« on null » est l'indice : la variable n'existe pas. Choisissez un nom, <code>$pdo</code> ou
+       <code>$connexion</code>, et tenez-vous-y dans tout le projet.</p>
   </div>
 </section>
 
@@ -738,11 +739,11 @@ USE gestion_presence;
   <h2><span class="num">12</span>Les injections SQL</h2>
 
   <div class="encart piege">
-    <div class="titre">🔧 Corrigé — le cours annonce le sujet mais ne donne pas la parade</div>
+    <div class="titre">🔧 Corrigé · le cours annonce le sujet mais ne donne pas la parade</div>
     <p>Le polycopié affiche parmi ses objectifs : « <em>assurer la sécurité basique des données et
        éviter les erreurs courantes (redondances, <strong>injections SQL</strong>)</em> ». Pourtant
        il n'enseigne que <code>$connexion-&gt;query($sql)</code> avec des variables
-       <strong>concaténées dans la chaîne</strong> — c'est-à-dire précisément ce qui rend l'injection
+       <strong>concaténées dans la chaîne</strong>, c'est-à-dire précisément ce qui rend l'injection
        possible. Les <strong>requêtes préparées</strong>, seule vraie parade, n'apparaissent nulle
        part.</p>
     <p>Cette section comble ce manque. C'est le point le plus important du chapitre.</p>
@@ -751,7 +752,7 @@ USE gestion_presence;
   <h3>Le problème, sur du vrai code</h3>
   <p>Voici l'authentification telle qu'elle est écrite dans le projet « Gestion des présences » :</p>
 
-<div class="bloc-code" data-fam="php" style="--car:58"><span class="langue">php — vulnérable</span><pre><code><span class="j-var">$login</span> = <span class="j-var">$_POST</span>[<span class="j-txt">'login'</span>];
+<div class="bloc-code" data-fam="php" style="--car:58"><span class="langue">php · vulnérable</span><pre><code><span class="j-var">$login</span> = <span class="j-var">$_POST</span>[<span class="j-txt">'login'</span>];
 <span class="j-var">$mdp</span>   = <span class="j-var">$_POST</span>[<span class="j-txt">'mot_de_passe'</span>];
 
 <span class="j-var">$sql</span> = "SELECT * FROM administrateurs
@@ -766,7 +767,7 @@ USE gestion_presence;
 <div class="bloc-code" style="--car:14"><span class="langue">ce qu'il tape</span><pre><code>' OR '1'='1' #</code></pre></div>
 
   <p>La requête réellement envoyée à la base devient :</p>
-<div class="bloc-code" data-fam="sql" style="--car:59"><span class="langue">sql — ce que voit MariaDB</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> administrateurs
+<div class="bloc-code" data-fam="sql" style="--car:59"><span class="langue">sql · ce que voit MariaDB</span><pre><code><span class="j-mc">SELECT</span> * <span class="j-mc">FROM</span> administrateurs
 <span class="j-mc">WHERE</span> login = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span> <span class="j-com">#' AND mot_de_passe = ''</span>
                     └─────┘ └──────────────────────┘
                  toujours vrai      un commentaire : ignoré</code></pre></div>
@@ -775,18 +776,21 @@ USE gestion_presence;
      administrateur sans mot de passe</strong>. Il n'a eu besoin d'aucun outil : un clavier a
      suffi.</p>
 
-  <p>Le <code>#</code> compte : il ouvre un commentaire, et MariaDB ignore tout ce qui suit — la
-     vérification du mot de passe avec. Sans lui, l'attaque échouerait, parce que <code>AND</code>
+  <p>Le <code>#</code> compte : il ouvre un commentaire, et MariaDB ignore tout ce qui suit, la
+     vérification du mot de passe avec.</p>
+  <p>Sans lui, l'attaque échouerait, parce que <code>AND</code>
      passe avant <code>OR</code> (comme × avant +) : <code>login = '' OR '1'='1' AND mot_de_passe = ''</code>
      se lit <code>login = '' OR ('1'='1' AND mot_de_passe = '')</code>, et il faudrait encore le bon
-     mot de passe. L'attaquant le sait : il ajoute le commentaire, ou tape la même chaîne dans les
+     mot de passe.</p>
+  <p>L'attaquant le sait : il ajoute le commentaire, ou tape la même chaîne dans les
      <em>deux</em> champs. Le compilateur de l'atelier, en mode SQL, permet de le vérifier sur la
      base du cours.</p>
 
   <div class="encart savoir">
     <div class="titre">🌍 Pourquoi ça marche</div>
     <p>Le serveur SQL ne reçoit pas « une requête <em>et</em> des données » : il reçoit
-       <strong>une seule chaîne de caractères</strong> qu'il analyse entièrement comme du code. Une
+       <strong>une seule chaîne de caractères</strong> qu'il analyse entièrement comme du code.</p>
+    <p>Une
        apostrophe saisie par l'utilisateur <strong>referme</strong> la chaîne SQL, et tout ce qui
        suit devient de la <em>logique</em>.</p>
     <p>C'est la même famille de failles que le <strong>XSS</strong> vu en
@@ -796,9 +800,9 @@ USE gestion_presence;
 
   <h3>La parade : les requêtes préparées</h3>
   <p>Le principe : envoyer <strong>séparément</strong> la requête et les valeurs. Le SQL est analysé
-     d'abord, les données arrivent ensuite — elles ne peuvent donc plus en modifier le sens.</p>
+     d'abord, les données arrivent ensuite : elles ne peuvent donc plus en modifier le sens.</p>
 
-<div class="bloc-code" data-fam="php" style="--car:80"><span class="langue">php — sécurisé</span><pre><code><span class="j-var">$requete</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">prepare</span>(
+<div class="bloc-code" data-fam="php" style="--car:80"><span class="langue">php · sécurisé</span><pre><code><span class="j-var">$requete</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">prepare</span>(
     <span class="j-txt">"SELECT * FROM administrateurs WHERE login = :login"</span>
 );
 <span class="j-var">$requete</span>-&gt;<span class="j-fn">execute</span>([<span class="j-txt">':login'</span> =&gt; <span class="j-var">$_POST</span>[<span class="j-txt">'login'</span>]]);
@@ -837,7 +841,7 @@ USE gestion_presence;
   </div>
 
   <div class="encart piege">
-    <div class="titre">🔧 Corrigé — <code>htmlspecialchars()</code> ne protège PAS des injections SQL</div>
+    <div class="titre">🔧 Corrigé · <code>htmlspecialchars()</code> ne protège PAS des injections SQL</div>
     <p>Le projet contient ce commentaire : « <em>on sécurise les entrées avec
        <code>htmlspecialchars()</code> comme vu en cours</em> ». C'est une confusion entre deux
        protections qui n'ont rien à voir :</p>
@@ -854,17 +858,17 @@ USE gestion_presence;
     </div>
     <p>Pire : <code>htmlspecialchars()</code> avant l'insertion <strong>abîme les données</strong>.
        Un étudiant nommé « O'Brien » sera stocké en base sous la forme
-       <code>O&amp;#039;Brien</code> — et ressortira ainsi dans tous les exports.</p>
+       <code>O&amp;#039;Brien</code>, et ressortira ainsi dans tous les exports.</p>
     <div class="formule">On <strong>prépare</strong> pour écrire en base.<br>
       On <strong>échappe</strong> pour afficher dans la page.</div>
   </div>
 
   <div class="encart piege">
-    <div class="titre">🔧 Corrigé — un mot de passe ne se stocke jamais en clair</div>
+    <div class="titre">🔧 Corrigé · un mot de passe ne se stocke jamais en clair</div>
     <p>Le script de création de la base insère le compte administrateur ainsi :</p>
-<div class="bloc-code" data-fam="sql" style="--car:64"><span class="langue">sql — dans bdd.sql</span><pre><code><span class="j-mc">INSERT INTO</span> <span class="j-fn">administrateurs</span> (login, mot_de_passe)
+<div class="bloc-code" data-fam="sql" style="--car:64"><span class="langue">sql · dans bdd.sql</span><pre><code><span class="j-mc">INSERT INTO</span> <span class="j-fn">administrateurs</span> (login, mot_de_passe)
 <span class="j-mc">VALUES</span> (<span class="j-txt">'admin'</span>, <span class="j-txt">'admin'</span>);           <span class="j-com">-- ✘ en clair dans la table</span></code></pre></div>
-    <p>Quiconque accède à la base — ou récupère une sauvegarde — lit tous les mots de passe. Comme vu
+    <p>Quiconque accède à la base, ou récupère une sauvegarde, lit tous les mots de passe. Comme vu
        au <a href="../../02-reseaux-systemes/14-cybersecurite-cned/cours.html">chapitre
        cybersécurité</a>, on stocke une <strong>empreinte</strong> :</p>
 <div class="bloc-code" data-fam="php" style="--car:55"><span class="langue">php</span><pre><code><span class="j-com">// à l'inscription : on hache</span>
@@ -877,13 +881,13 @@ USE gestion_presence;
 }</code></pre></div>
     <p>C'est aussi pour cela que la colonne est déclarée <code>VARCHAR(255)</code> et non
        <code>VARCHAR(20)</code> : une empreinte est longue. La structure de la base était déjà
-       prête — il ne manquait que le hachage.</p>
+       prête : il ne manquait que le hachage.</p>
   </div>
 
   <div class="quiz">
     <div class="titre">🧠 Auto-évaluation</div>
     <p>Cette page supprime un étudiant. Quelles sont les <strong>deux</strong> failles ?</p>
-<div class="bloc-code" data-fam="php" style="--car:58"><span class="langue">php — supprimer_etudiant.php</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:58"><span class="langue">php · supprimer_etudiant.php</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-mc">require</span> <span class="j-txt">'db.php'</span>;
 <span class="j-var">$id</span> = <span class="j-var">$_GET</span>[<span class="j-txt">'id'</span>];
 <span class="j-var">$connexion</span>-&gt;<span class="j-fn">query</span>(<span class="j-txt">"DELETE FROM etudiants WHERE id = $id"</span>);
@@ -898,7 +902,7 @@ USE gestion_presence;
       <p><strong>2. Aucun contrôle de session.</strong> La page ne vérifie pas que l'utilisateur est
          connecté : <em>n'importe qui</em> peut appeler cette URL, sans même passer par la page de
          connexion.</p>
-<div class="bloc-code" data-fam="php" style="--car:65"><span class="langue">php — corrigé</span><pre><code><span class="j-bal">&lt;?php</span>
+<div class="bloc-code" data-fam="php" style="--car:65"><span class="langue">php · corrigé</span><pre><code><span class="j-bal">&lt;?php</span>
 <span class="j-typ">session_start</span>();
 <span class="j-mc">if</span> (!<span class="j-typ">isset</span>(<span class="j-var">$_SESSION</span>[<span class="j-txt">'admin_connecte'</span>])) {    <span class="j-com">// le garde</span>
     <span class="j-typ">header</span>(<span class="j-txt">"Location: login.php"</span>);
@@ -924,14 +928,14 @@ USE gestion_presence;
   <h2><span class="num">13</span>Installer MariaDB sur son Mac</h2>
 
   <p>Tout ce qui précède suppose un <strong>serveur qui tourne</strong>. En salle il est déjà
-     là ; sur son propre Mac, il faut l'installer — et c'est là que la plupart des gens
+     là ; sur son propre Mac, il faut l'installer, et c'est là que la plupart des gens
      perdent une soirée, sur une erreur d'accès qui n'a rien à voir avec le SQL.</p>
 
   <div class="encart analogie">
     <div class="titre">🗄️ Où se range quoi</div>
     <p><strong>MariaDB</strong> est le classeur. Une <strong>base de données</strong> est un
        cahier rangé dedans, une <strong>table</strong> une page du cahier, une
-       <strong>ligne</strong> une fiche remplie. Installer MariaDB, c'est poser le classeur —
+       <strong>ligne</strong> une fiche remplie. Installer MariaDB, c'est poser le classeur : 
        il arrive vide.</p>
     <p class="rap">MariaDB est le frère libre de MySQL : même langage, mêmes commandes, et les
        deux noms s'emploient l'un pour l'autre dans la quasi-totalité du programme.</p>
@@ -939,7 +943,7 @@ USE gestion_presence;
 
   <h3>Les deux pré-requis</h3>
 
-  <p><strong>Homebrew</strong> est le gestionnaire de paquets de macOS — l'équivalent de
+  <p><strong>Homebrew</strong> est le gestionnaire de paquets de macOS : l'équivalent de
      <code>apt</code> sous Linux. Il a lui-même besoin des outils de développement d'Apple,
      gratuits.</p>
 
@@ -965,7 +969,7 @@ USE gestion_presence;
     <div class="titre">⚠️ Installer ne démarre pas</div>
     <p><code>brew install</code> pose les fichiers, rien de plus. Sans
        <code>brew services start</code>, le client répondra <em>Can't connect to local
-       server</em> — un message qui fait croire à un problème de mot de passe alors que
+       server</em> : un message qui fait croire à un problème de mot de passe alors que
        <strong>rien n'écoute</strong>.</p>
   </div>
 
@@ -983,9 +987,9 @@ USE gestion_presence;
   <div class="encart savoir">
     <div class="titre">🔍 Les deux numéros d'erreur ne disent pas la même chose</div>
     <ul>
-      <li><strong>ERROR 1045</strong> — <em>Access denied … (using password: YES/NO)</em> :
+      <li><strong>ERROR 1045</strong> : <em>Access denied … (using password: YES/NO)</em> :
           le mot de passe fourni ne convient pas.</li>
-      <li><strong>ERROR 1698</strong> — <em>Access denied</em>, sans mention de mot de passe :
+      <li><strong>ERROR 1698</strong> : <em>Access denied</em>, sans mention de mot de passe :
           le compte existe mais <strong>n'accepte pas du tout ce mode d'authentification</strong>.
           Aucun mot de passe ne le fera céder.</li>
     </ul>
@@ -1000,45 +1004,45 @@ USE gestion_presence;
   <div class="bloc-code" data-fam="sql" style="--car:58"><span class="langue">sql</span><pre><code><span class="j-mc">SELECT</span> User, Host, <span class="j-fn">JSON_VALUE</span>(Priv, <span class="j-txt">'$.plugin'</span>) <span class="j-mc">AS</span> methode
 <span class="j-mc">FROM</span>   mysql.global_priv <span class="j-mc">ORDER BY</span> User;</code></pre></div>
 
-  <div class="bloc-code" style="--car:78"><span class="langue">sortie réelle — MariaDB 12.2.2, installation Homebrew</span><pre><code>User          Host        methode
+  <div class="bloc-code" style="--car:78"><span class="langue">sortie réelle · MariaDB 12.2.2, installation Homebrew</span><pre><code>User          Host        methode
 ------------  ----------  ---------------------
 etudiant      localhost   mysql_native_password      ← le compte de la session
 mariadb.sys   localhost   mysql_native_password
 root          localhost   mysql_native_password</code></pre></div>
 
-  <p>Trois lignes identiques en apparence — et pourtant <code>root</code> est le seul à être
+  <p>Trois lignes identiques en apparence, et pourtant <code>root</code> est le seul à être
      refusé. Le détail est ailleurs, dans deux champs que la colonne <code>plugin</code> ne
      montre pas :</p>
 
-  <div class="bloc-code" style="--car:60"><span class="langue">sortie réelle — la configuration complète de root</span><pre><code>plugin                 : mysql_native_password
+  <div class="bloc-code" style="--car:60"><span class="langue">sortie réelle · la configuration complète de root</span><pre><code>plugin                 : mysql_native_password
 authentication_string  : invalid
 auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
 
   <div class="encart outils">
     <div class="titre">🧰 Ce que ces trois lignes veulent dire</div>
     <ul>
-      <li><code>authentication_string: invalid</code> — l'empreinte stockée n'est pas une
+      <li><code>authentication_string: invalid</code> : l'empreinte stockée n'est pas une
           empreinte valide, donc <strong>aucun</strong> mot de passe ne peut y correspondre.
           Ce n'est pas un compte sans mot de passe : c'est un compte dont le mot de passe est
           volontairement impossible.</li>
-      <li><code>auth_or</code> — une <strong>seconde</strong> façon d'entrer est acceptée :
+      <li><code>auth_or</code> : une <strong>seconde</strong> façon d'entrer est acceptée :
           <code>unix_socket</code>, qui ne demande rien et vérifie simplement
           <strong>quel utilisateur du système</strong> lance la commande.</li>
     </ul>
     <p class="rap">D'où le comportement complet : <code>mariadb -u root</code> échoue depuis
-       une session ordinaire, et <code>sudo mariadb -u root</code> passe — parce que
+       une session ordinaire, et <code>sudo mariadb -u root</code> passe, parce que
        <code>sudo</code> fait de l'utilisateur système « root », ce que
        <code>unix_socket</code> reconnaît.</p>
   </div>
 
   <div class="encart corrige">
-    <div class="titre">🔧 Corrigé — « après la remise à zéro, <code>mariadb -u root</code> fonctionne »</div>
+    <div class="titre">🔧 Corrigé · « après la remise à zéro, <code>mariadb -u root</code> fonctionne »</div>
     <p>Le tutoriel d'origine l'annonce deux fois. C'est <strong>faux sur une installation
        Homebrew</strong> : la remise à zéro recrée précisément la configuration ci-dessus,
        <code>invalid</code> comprise, et <code>mariadb -u root</code> rend toujours un
        <strong>1698</strong>. Vérifié sur l'installation de cette machine.</p>
     <p class="rap">Ce qui fonctionne après la remise à zéro, c'est <code>mariadb</code> tout
-       court. La procédure ci-dessous reste utile — mais elle ne « débloque pas root », elle
+       court. La procédure ci-dessous reste utile, mais elle ne « débloque pas root », elle
        répare une structure de données abîmée.</p>
   </div>
 
@@ -1051,7 +1055,7 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
        n'est demandée.</p>
     <p class="rap">Le vrai symptôme qui la justifie :
        <em>Table 'mysql.db' doesn't exist</em>, ou tout message qui désigne une table de la
-       base <code>mysql</code> elle-même. Les tables système sont abîmées — c'est la
+       base <code>mysql</code> elle-même. Les tables système sont abîmées, c'est la
        structure qu'on refait, pas les droits.</p>
   </div>
 
@@ -1072,7 +1076,8 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
 <span class="j-fn">mariadb</span> <span class="j-att">-e</span> <span class="j-txt">"SELECT VERSION();"</span></code></pre></div>
 
   <p><code>--user=$(whoami)</code> n'est pas une formule magique : c'est ce qui crée le compte
-     au nom de la session, celui avec lequel on travaillera ensuite. Les chemins en
+     au nom de la session, celui avec lequel on travaillera ensuite.</p>
+  <p>Les chemins en
      <code>/opt/homebrew</code> sont ceux d'un Mac à puce Apple ; sur un Mac Intel, Homebrew
      s'installe dans <code>/usr/local</code>.</p>
 
@@ -1099,7 +1104,7 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
     <div class="titre">⚠️ L'invite qui passe à <code>-&gt;</code></div>
     <p>Quand <code>MariaDB [(none)]&gt;</code> devient <code>-&gt;</code>, le client n'attend pas
        une nouvelle commande : il attend <strong>la fin de la précédente</strong>. Un
-       point-virgule a été oublié. On le tape, on valide, et tout repart — inutile de
+       point-virgule a été oublié. On le tape, on valide, et tout repart : inutile de
        recommencer la requête.</p>
     <p class="rap">Entre crochets, le client affiche la base active :
        <code>[(none)]</code> signifie qu'aucun <code>USE</code> n'a été fait, et c'est la
@@ -1110,7 +1115,8 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
     <div class="titre">💡 Sécuriser, ou pas</div>
     <p><code>mariadb-secure-installation</code> supprime les comptes anonymes et la base
        <code>test</code>, et interdit la connexion de root à distance. Sur un serveur, c'est
-       obligatoire. Sur un Mac qui n'écoute que lui-même, c'est facultatif — mais
+       obligatoire.</p>
+    <p>Sur un Mac qui n'écoute que lui-même, c'est facultatif, mais
        lancez-la au moins une fois pour voir ce qu'elle propose : ses sept questions sont un
        résumé de ce qu'on laisse ouvert par défaut.</p>
   </div>
@@ -1130,7 +1136,7 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
           <code>VARCHAR</code>, <code>DATE</code>), contraintes (<code>NOT NULL</code>,
           <code>UNIQUE</code>, <code>FOREIGN KEY</code>).</li>
       <li><strong>Manipuler</strong> : <code>INSERT</code> / <code>UPDATE</code> /
-          <code>DELETE</code> — <strong>jamais sans <code>WHERE</code></strong>.</li>
+          <code>DELETE</code>, <strong>jamais sans <code>WHERE</code></strong>.</li>
       <li><strong>Interroger</strong> : <code>SELECT … WHERE … ORDER BY … LIMIT</code>.
           <code>IS NULL</code>, pas <code>= NULL</code>.</li>
       <li><strong>Jointures</strong> : <code>INNER</code> (l'intersection) ·
@@ -1151,22 +1157,22 @@ auth_or                : [ {}, { "plugin": "unix_socket" } ]</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>Cours « Bases de données » (le professeur, BTS CIEL 2025-2026) —
+      <li>Cours « Bases de données » (le professeur, BTS CIEL 2025-2026) : 
           séances du 10/04 au 29/05</li>
-      <li>TP7 et TP8 — requêtes SQL et conception</li>
-      <li>« MariaDB sur Mac », guide d'installation déposé avec le chapitre — refondu au
+      <li>TP7 et TP8 : requêtes SQL et conception</li>
+      <li>« MariaDB sur Mac », guide d'installation déposé avec le chapitre : refondu au
           format de ce cours, et ses affirmations revérifiées sur une installation réelle</li>
-      <li>Photos de tableau — MCD USER / PC / Logiciel avec cardinalités, et son passage
+      <li>Photos de tableau : MCD USER / PC / Logiciel avec cardinalités, et son passage
           au modèle relationnel</li>
-      <li>Projet E6 « Application web de gestion des présences » — sujet et réalisation d'élève (base <code>gestion_presence</code>, PDO, CRUD complet)</li>
+      <li>Projet E6 « Application web de gestion des présences » : sujet et réalisation d'élève (base <code>gestion_presence</code>, PDO, CRUD complet)</li>
     </ul>
   </div>
 </footer>
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/cours.html"><span>Chapitre précédent</span><b>Python — POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/cours.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../08-python-poo/cours.html"><span>Chapitre précédent</span><b>Python : POO</b></a><a class="suiv" href="../10-projet-cv-en-ligne/cours.html"><span>Chapitre suivant</span><b>Projet CV en ligne</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

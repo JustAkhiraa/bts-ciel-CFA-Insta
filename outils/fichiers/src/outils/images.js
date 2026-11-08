@@ -71,7 +71,7 @@ const convertir = {
 
 /* ── compresser ── */
 const compresserImage = {
-  id: "compresser-image", titre: "Compresser des images", resume: "Alléger des photos pour un mail, un site, un dossier en ligne — avant / après affichés.",
+  id: "compresser-image", titre: "Compresser des images", resume: "Alléger des photos pour un mail, un site, un dossier en ligne : avant / après affichés.",
   mots: "reduire alleger poids taille optimiser compression photo mo ko",
   description: "Deux leviers : la taille en pixels (un téléphone fait des photos de 4000 px, un écran en montre 1920) et la qualité JPG. Une image qui grossirait est gardée telle quelle.",
   entree: IMAGES,
@@ -288,10 +288,10 @@ const exif = {
       const e = f.type === "jpeg" ? lireExif(f.octets) || {} : {};
       const gps = e.gps ? '<span class="af-ko">📍 ' + e.gps.lat.toFixed(5) + ", " + e.gps.lon.toFixed(5) + "</span>" : '<span class="af-ok">aucune</span>';
       const app = [e.marque, e.modele].filter(Boolean).join(" ");
-      return "<tr><td>" + esc(f.nom) + "</td><td>" + gps + "</td><td>" + esc(app || "—") + "</td><td>" + esc(e.date || "—") + "</td></tr>";
+      return "<tr><td>" + esc(f.nom) + "</td><td>" + gps + "</td><td>" + esc(app || "-") + "</td><td>" + esc(e.date || "-") + "</td></tr>";
     });
     ctx.zone.innerHTML = lignes.length ? '<table class="af-tableau"><tr><th>Photo</th><th>Position</th><th>Appareil</th><th>Date</th></tr>' + lignes.join("") + "</table>" +
-      (ctx.valides.some((f) => f.type === "jpeg" && (lireExif(f.octets) || {}).gps) ? '<p class="af-alerte">Ces coordonnées situent la prise de vue à quelques mètres près — votre domicile, votre lycée. Retirez-les avant de publier.</p>' : "") : "";
+      (ctx.valides.some((f) => f.type === "jpeg" && (lireExif(f.octets) || {}).gps) ? '<p class="af-alerte">Ces coordonnées situent la prise de vue à quelques mètres près : votre domicile, votre lycée. Retirez-les avant de publier.</p>' : "") : "";
   },
   bouton: "Retirer les métadonnées",
   nomZip: "photos-nettoyees",

@@ -247,7 +247,7 @@
       if (j.t === "MOT" && HORS_COURS[j.v]) {
         throw new ErreurPy("Cet interprète ne connaît pas " + HORS_COURS[j.v]
           + ". Il couvre le Python du cours : variables, calcul, chaînes, listes, "
-          + "conditions, boucles, fonctions et classes — un seul fichier à la fois, "
+          + "conditions, boucles, fonctions et classes : un seul fichier à la fois, "
           + "donc rien à importer.", j.l);
       }
     }
@@ -1337,7 +1337,7 @@
           aide = " Un nom qui commence par deux soulignés est PRIVÉ : Python le "
             + "renomme « " + nomPrive + " » à l'intérieur de la classe, et il "
             + "n'existe pas sous son nom d'origine au dehors. On passe par une "
-            + "méthode — un « getter ».";
+            + "méthode : un « getter ».";
         }
       }
       throw new ErreurPy(quoi + " n'a pas d'attribut « " + brut + " »." + aide, l,
@@ -1477,7 +1477,7 @@
         throw new ErreurPy(f.nom + "() reçoit " + args.length + " argument(s) pour "
           + positionnels.length + " paramètre(s)"
           + (f.classe && positionnels.length && args.length === positionnels.length + 1
-            ? " — une méthode reçoit « self » en premier : l'a-t-on oublié dans sa définition ?"
+            ? ", une méthode reçoit « self » en premier : l'a-t-on oublié dans sa définition ?"
             : ".") , l, "TypeError");
       }
       const restants = Object.assign(Object.create(null), nommes);
@@ -2244,7 +2244,7 @@
           case "sort": case "clear": case "extend": case "reverse":
             throw new ErreurPy("Un tuple ne se modifie pas : « " + nom + "() » "
               + "n'existe pas sur un tuple. Pour le changer, on en fabrique un "
-              + "NOUVEAU — par exemple « t = t[:2] + (\"CentOS\",) + t[3:] » — ou "
+              + "NOUVEAU, par exemple « t = t[:2] + (\"CentOS\",) + t[3:] », ou "
               + "l'on prend une liste à la place.", l, "AttributeError");
         }
       }
@@ -2814,12 +2814,12 @@
       }
       if (cible.t === "tuple") {
         throw new ErreurPy("Un tuple ne se modifie pas : « t[" + ecrire(idx)
-          + "] = … » est impossible. C'est sa raison d'être — pour changer, "
+          + "] = … » est impossible. C'est sa raison d'être : pour changer, "
           + "prenez une liste.", l, "TypeError");
       }
       if (cible.t !== "list") {
         throw new ErreurPy("On ne modifie pas une case d'un " + typeNom(cible)
-          + " — une chaîne ne se change pas sur place.", l, "TypeError");
+          + ", une chaîne ne se change pas sur place.", l, "TypeError");
       }
       let k = num(idx);
       if (k < 0) k += cible.v.length;
@@ -3314,7 +3314,7 @@
           }
           /* « raise ValueError("message") » : l'appel a été évalué
              comme une fonction native portant le nom de la classe. */
-          throw new ErreurPy("On ne lève qu'une exception — ValueError(…), ou une classe "
+          throw new ErreurPy("On ne lève qu'une exception : ValueError(…), ou une classe "
             + "dérivée d'Exception ; pas un " + typeNom(v) + ".", n.l, "TypeError");
         }
         case "retour": throw new Retour(n.e ? evaluer(n.e, env) : Nul);

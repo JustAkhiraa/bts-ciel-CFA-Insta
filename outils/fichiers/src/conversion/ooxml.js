@@ -16,7 +16,7 @@ const NS_P = "http://schemas.openxmlformats.org/presentationml/2006/main";
 const NS_S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const R_IMAGE = NS_REL + "/image", R_LIEN = NS_REL + "/hyperlink";
 const CT = "application/vnd.openxmlformats-officedocument.";
-const APPLI = "BTS CIEL — atelier fichiers";
+const APPLI = "BTS CIEL : atelier fichiers";
 
 const rels = (liste) => ENTETE_XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
   liste.map((r) => '<Relationship Id="' + r.id + '" Type="' + r.type + '" Target="' + xml(r.cible) + '"' + (r.externe ? ' TargetMode="External"' : "") + "/>").join("") + "</Relationships>";

@@ -20,7 +20,7 @@ import { Chiffreur } from "./chiffrement.js";
 import { versWinAnsi, largeurTexte } from "./police.js";
 import { matriceOrientation } from "../exif.js";
 
-export const PRODUCTEUR = "BTS CIEL — boîte à fichiers (dans le navigateur)";
+export const PRODUCTEUR = "BTS CIEL : boîte à fichiers (dans le navigateur)";
 
 /* ── la copie d'objets d'un document vers l'écrivain ── */
 class Copieur {

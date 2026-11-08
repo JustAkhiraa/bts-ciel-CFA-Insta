@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dépannage réseau et Wireshark — ipconfig, ping, tracert | BTS CIEL</title>
+<title>Dépannage réseau et Wireshark · ipconfig, ping, tracert | BTS CIEL</title>
 <meta name="description" content="Cours complet : méthode de dépannage en 5 étapes, ipconfig, ping et TTL, tracert, netstat, nslookup et analyse de trames avec Wireshark.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -36,7 +36,7 @@
   </div>
 
   <h1>Dépannage réseau et Wireshark</h1>
-  <p class="chapeau">Cinq commandes, une méthode — et l'outil qui montre ce qui circule vraiment
+  <p class="chapeau">Cinq commandes, une méthode, et l'outil qui montre ce qui circule vraiment
      sur le câble.</p>
 
   <div class="flash">
@@ -46,7 +46,8 @@
       <p>On dépanne <strong>du plus proche au plus lointain</strong> : câble, puis switch, puis
          routeur, puis Internet, puis DNS. <code>ipconfig</code> montre la configuration,
          <code>ping</code> teste la joignabilité, <code>tracert</code> montre <em>où</em> ça
-         s'arrête. Le <strong>TTL</strong> du ping révèle le nombre de routeurs traversés. Et quand
+         s'arrête.</p>
+      <p>Le <strong>TTL</strong> du ping révèle le nombre de routeurs traversés. Et quand
          les commandes ne suffisent plus, <strong>Wireshark</strong> capture chaque
          <strong>PDU</strong> qui passe sur le fil.</p>
     </div>
@@ -67,7 +68,7 @@
   <div class="encart outils">
     <div class="titre">🧰 Le principe fondamental</div>
     <p>On teste <strong>du plus proche au plus lointain</strong>. Le premier test qui échoue
-       désigne l'endroit exact de la panne — et tous les tests suivants sont inutiles tant que
+       désigne l'endroit exact de la panne, et tous les tests suivants sont inutiles tant que
        celui-là n'est pas réparé.</p>
     <p>Sauter directement au test le plus lointain (« ça ne marche pas, je ping Google ») ne
        renseigne sur rien : l'échec peut venir de n'importe où sur le trajet.</p>
@@ -173,7 +174,7 @@ Adresse physique. . . . . . : 00-1A-2B-3C-4D-5E</code></pre></div>
 
   <p><code>ping</code> teste la connectivité entre deux machines en envoyant des paquets
      <strong>ICMP</strong> (<em>Internet Control Message Protocol</em>). Il mesure également le
-     <strong>temps de réponse</strong> — le temps nécessaire pour que le paquet émis par la machine
+     <strong>temps de réponse</strong> : le temps nécessaire pour que le paquet émis par la machine
      A atteigne la machine B.</p>
 
   <h3>Ce qu'il permet</h3>
@@ -199,7 +200,7 @@ Statistiques : envoyés = 4, reçus = 4, perdus = 0 (perte 0%)
                                                    └── 0 % = aucune interruption</code></pre></div>
 
   <div class="encart outils">
-    <div class="titre">🧰 Le TTL — l'information qu'on n'exploite jamais assez</div>
+    <div class="titre">🧰 Le TTL · l'information qu'on n'exploite jamais assez</div>
     <p><strong>TTL</strong> signifie <em>Time To Live</em> : la durée de vie du paquet avant sa
        destruction. Sa valeur initiale est généralement <strong>64</strong> (Linux) ou
        <strong>128</strong> (Windows), et elle est <strong>réduite de 1 à chaque routeur
@@ -208,8 +209,8 @@ Statistiques : envoyés = 4, reçus = 4, perdus = 0 (perte 0%)
     <p><strong>Exemple :</strong> un <code>TTL=54</code> avec un départ à 64 signifie que le paquet
        a traversé <strong>10 routeurs</strong>. Ce n'est pas étonnant pour
        <code>1.1.1.1</code>, un serveur DNS public sur Internet.</p>
-    <p>À l'inverse, un ping vers un hôte du <strong>même segment</strong> — deux serveurs du même
-       VLAN — revient avec le TTL <strong>intact</strong>, puisqu'aucun routeur n'a été traversé.</p>
+    <p>À l'inverse, un ping vers un hôte du <strong>même segment</strong>, deux serveurs du même
+       VLAN, revient avec le TTL <strong>intact</strong>, puisqu'aucun routeur n'a été traversé.</p>
   </div>
 
   <div class="encart piege">
@@ -217,7 +218,7 @@ Statistiques : envoyés = 4, reçus = 4, perdus = 0 (perte 0%)
     <p>Un TTL reçu de <strong>54</strong> vient probablement d'un départ à 64 → machine
        <strong>Linux/Unix</strong>. Un TTL de <strong>118</strong> vient d'un départ à 128 →
        machine <strong>Windows</strong>.</p>
-    <p>C'est une information de reconnaissance réseau — utile en diagnostic, et c'est aussi la
+    <p>C'est une information de reconnaissance réseau : utile en diagnostic, et c'est aussi la
        raison pour laquelle certains administrateurs modifient le TTL par défaut de leurs
        serveurs.</p>
   </div>
@@ -245,7 +246,7 @@ Statistiques : envoyés = 4, reçus = 4, perdus = 0 (perte 0%)
   <div class="encart piege">
     <div class="titre">⚠️ Le pare-feu Windows bloque l'ICMP entrant par défaut</div>
     <p>Symptôme caractéristique : <strong>A ne ping pas B, mais B ping très bien A</strong>. Cette
-       <em>asymétrie</em> ne peut venir d'aucun problème réseau — seulement d'un pare-feu.</p>
+       <em>asymétrie</em> ne peut venir d'aucun problème réseau : seulement d'un pare-feu.</p>
     <p>Le test qui tranche : pinguer <strong>dans l'autre sens</strong>. Si ça marche, cherchez le
        pare-feu, pas le câble.</p>
   </div>
@@ -255,11 +256,11 @@ Statistiques : envoyés = 4, reçus = 4, perdus = 0 (perte 0%)
 <section id="tracert">
   <h2><span class="num">04</span>tracert</h2>
 
-  <p><code>tracert</code> — <code>traceroute</code> sous Linux et macOS — détermine le
+  <p><code>tracert</code>, <code>traceroute</code> sous Linux et macOS, détermine le
      <strong>chemin emprunté par les paquets</strong> pour atteindre une destination, en listant
      tous les <strong>routeurs intermédiaires</strong>.</p>
   <p>On l'utilise <strong>à la suite d'un ping</strong> pour en savoir plus sur un problème de
-     connexion, et pour vérifier des règles de routage — s'assurer que le trafic est bien acheminé
+     connexion, et pour vérifier des règles de routage : s'assurer que le trafic est bien acheminé
      par le bon chemin.</p>
 
 <div class="bloc-code" style="--car:80"><span class="langue">Windows</span><pre><code>C:\&gt; tracert 8.8.8.8
@@ -275,11 +276,11 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
     <div class="titre">🧰 Lire un <code>tracert</code></div>
     <ul>
       <li><strong>Les astérisques</strong> apparaissent lorsqu'aucune réponse n'est reçue pour l'un
-          des paquets. Cela dépend de la <strong>configuration du routeur</strong> — beaucoup ne
-          répondent pas volontairement — et <strong>n'empêche pas</strong> tracert de poursuivre.
+          des paquets. Cela dépend de la <strong>configuration du routeur</strong>, beaucoup ne
+          répondent pas volontairement, et <strong>n'empêche pas</strong> tracert de poursuivre.
           Une ligne d'astérisques n'est donc <em>pas</em> forcément une panne.</li>
       <li><strong>Un temps qui explose</strong> à un saut donné, puis redevient normal, signale un
-          routeur occupé qui répond lentement — mais qui <em>achemine</em> correctement. Ce n'est
+          routeur occupé qui répond lentement, mais qui <em>achemine</em> correctement. Ce n'est
           pas non plus une panne.</li>
       <li><strong>Le vrai signal d'alarme</strong> : la trace s'arrête définitivement à un saut et
           n'atteint jamais la destination. C'est <em>là</em> que le chemin est coupé.</li>
@@ -303,7 +304,7 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
         <tr><td><strong>Juste après la passerelle</strong></td>
             <td>Problème de <strong>routage sur le routeur</strong>, ou de lien opérateur</td></tr>
         <tr><td><strong>Plus loin, dans Internet</strong></td>
-            <td>Coupure chez le <strong>fournisseur d'accès</strong> ou filtrage extérieur —
+            <td>Coupure chez le <strong>fournisseur d'accès</strong> ou filtrage extérieur : 
                 hors de votre contrôle</td></tr>
       </tbody>
     </table>
@@ -333,10 +334,10 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
 
   <div class="encart outils">
     <div class="titre">🧰 L'usage qui rend service</div>
-    <p>« Le port 80 est déjà utilisé, mon serveur web ne démarre pas. » — <code>netstat -ano</code>
+    <p>« Le port 80 est déjà utilisé, mon serveur web ne démarre pas. » : <code>netstat -ano</code>
        donne le <strong>PID</strong> du coupable, que le gestionnaire des tâches traduit en nom
        d'application.</p>
-    <p>C'est aussi l'outil qui révèle une connexion sortante inattendue vers une adresse inconnue —
+    <p>C'est aussi l'outil qui révèle une connexion sortante inattendue vers une adresse inconnue : 
        le premier indice d'une machine compromise.</p>
   </div>
 
@@ -358,7 +359,7 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
     <p>Ce message signifie que l'adresse IP obtenue <strong>n'a pas été fournie directement par le
        serveur DNS qui gère officiellement la zone</strong> du domaine demandé, mais par un autre
        serveur qui a récupéré et <strong>mis en cache</strong> la réponse.</p>
-    <p>Ce n'est <strong>pas une erreur</strong> — c'est le fonctionnement normal du DNS, et c'est ce
+    <p>Ce n'est <strong>pas une erreur</strong>, c'est le fonctionnement normal du DNS, et c'est ce
        qui le rend rapide. La mention n'apparaît que pour signaler que l'information peut être
        légèrement datée.</p>
   </div>
@@ -377,8 +378,8 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
 <section id="wireshark">
   <h2><span class="num">06</span>Wireshark</h2>
 
-  <p><strong>Wireshark</strong> est un <strong>analyseur de protocoles</strong> — un analyseur de
-     paquets — utilisé pour dépanner les réseaux, effectuer des analyses, développer des logiciels
+  <p><strong>Wireshark</strong> est un <strong>analyseur de protocoles</strong>, un analyseur de
+     paquets, utilisé pour dépanner les réseaux, effectuer des analyses, développer des logiciels
      et des protocoles, et s'informer.</p>
   <p>L'analyseur <strong>capture chaque unité de données de protocole (PDU)</strong> des flux
      circulant sur le réseau, et permet de <strong>décoder et analyser leur contenu</strong>
@@ -391,7 +392,7 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
     <div class="titre">💡 Analogie</div>
     <p><code>ping</code> vous dit si la lettre est arrivée. <code>tracert</code> vous dit par quels
        bureaux de poste elle est passée. <strong>Wireshark ouvre l'enveloppe</strong> et vous montre
-       ce qui est écrit à l'intérieur — en-tête par en-tête, couche par couche.</p>
+       ce qui est écrit à l'intérieur : en-tête par en-tête, couche par couche.</p>
     <p>C'est pourquoi on ne le sort qu'en dernier : c'est l'outil le plus puissant, mais aussi celui
        qui demande le plus de travail d'interprétation.</p>
   </div>
@@ -402,9 +403,9 @@ Chaque ligne = un SAUT vers un routeur intermédiaire, avec son temps de répons
     <thead><tr><th>Terme</th><th>Signification</th></tr></thead>
     <tbody>
       <tr><td><strong>Capture</strong></td><td>L'enregistrement du trafic passant par une interface</td></tr>
-      <tr><td><strong>Filtre de capture</strong></td><td>Ce qu'on enregistre — <em>avant</em>
+      <tr><td><strong>Filtre de capture</strong></td><td>Ce qu'on enregistre : <em>avant</em>
           l'enregistrement. Syntaxe BPF : <code>host 192.168.1.10</code></td></tr>
-      <tr><td><strong>Filtre d'affichage</strong></td><td>Ce qu'on affiche — <em>après</em>. Syntaxe
+      <tr><td><strong>Filtre d'affichage</strong></td><td>Ce qu'on affiche : <em>après</em>. Syntaxe
           Wireshark : <code>ip.addr == 192.168.1.10</code></td></tr>
       <tr><td><strong>Mode promiscuité</strong></td><td>La carte réseau accepte <em>toutes</em> les
           trames, pas seulement celles qui lui sont destinées</td></tr>
@@ -435,11 +436,11 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
   <div class="encart piege">
     <div class="titre">⚠️ Sur un switch, on ne voit que son propre trafic</div>
     <p>Un commutateur envoie chaque trame <strong>uniquement sur le port concerné</strong>. Une
-       capture faite sur un poste ne montre donc que <em>son</em> trafic, plus les diffusions —
+       capture faite sur un poste ne montre donc que <em>son</em> trafic, plus les diffusions, 
        et non celui des voisins.</p>
     <p>Pour capturer le trafic d'un autre poste, il faut configurer un <strong>port miroir</strong>
        (<em>SPAN</em>) sur le commutateur, qui recopie le trafic d'un port vers celui de l'analyseur.
-       C'est aussi ce qui rend l'écoute passive difficile sur un réseau commuté — à la différence
+       C'est aussi ce qui rend l'écoute passive difficile sur un réseau commuté : à la différence
        d'un hub, où tout le monde voyait tout.</p>
   </div>
 
@@ -448,7 +449,7 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
     <li>L'<strong>encapsulation en direct</strong> : les couches Ethernet, IP, TCP et applicative
         d'une même trame, dépliées ;</li>
     <li>le <strong>dialogue DORA</strong> complet d'une attribution DHCP ;</li>
-    <li>une <strong>connexion Telnet</strong> — mot de passe compris, en clair. La démonstration la
+    <li>une <strong>connexion Telnet</strong> : mot de passe compris, en clair. La démonstration la
         plus convaincante de la dangerosité du protocole ;</li>
     <li>les <strong>retransmissions TCP</strong>, signe d'une perte de paquets ;</li>
     <li>les <strong>requêtes ARP</strong>, pour vérifier l'étanchéité des VLAN.</li>
@@ -464,14 +465,14 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
      rencontrent des <strong>problèmes de connexion intermittente</strong> ou une
      <strong>perte totale d'accès</strong>.</p>
 
-  <h3>1 — Vérification physique</h3>
+  <h3>1 · Vérification physique</h3>
   <p>Contrôler l'état des <strong>câbles</strong> (section, usure, mauvaise connexion), des
      <strong>connecteurs</strong> et des <strong>LED d'activité</strong> sur les commutateurs.
      Remplacer tout câble suspect.</p>
   <p><strong>But :</strong> s'assurer que le problème ne provient pas d'un défaut matériel
-     facilement observable — câble coupé, débranché, port endommagé.</p>
+     facilement observable, câble coupé, débranché, port endommagé.</p>
 
-  <h3>2 — Test de connectivité locale : ping du switch</h3>
+  <h3>2 · Test de connectivité locale : ping du switch</h3>
   <p>Depuis un poste client, exécuter <code>ping &lt;adresse_IP_du_commutateur&gt;</code>.</p>
   <p><strong>Réponse négative</strong> → le client n'arrive pas à joindre le switch au niveau IP.
      Trois hypothèses :</p>
@@ -481,7 +482,7 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
     <li>problème de câblage, ou port désactivé sur le switch.</li>
   </ul>
 
-  <h3>3 — Test de connectivité interne : ping du routeur et d'un autre poste</h3>
+  <h3>3 · Test de connectivité interne : ping du routeur et d'un autre poste</h3>
   <div class="tableau">
   <table>
     <thead><tr><th>Résultat</th><th>Interprétation</th></tr></thead>
@@ -500,12 +501,12 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
   </table>
   </div>
 
-  <h3>4 — Test de connectivité externe : ping vers 8.8.8.8</h3>
+  <h3>4 · Test de connectivité externe : ping vers 8.8.8.8</h3>
   <p><strong>Réussi</strong> → la connexion Internet fonctionne.<br>
      <strong>Échec</strong> → effectuer un <code>tracert 8.8.8.8</code> pour voir où le chemin
      s'interrompt, et interpréter selon le tableau de la section 4.</p>
 
-  <h3>5 — Vérification des configurations</h3>
+  <h3>5 · Vérification des configurations</h3>
   <p>Sur le poste client, afficher la configuration IP avec <code>ipconfig</code> ou
      <code>ip a</code>. Vérifier la <strong>cohérence des adresses IP, du masque et de la
      passerelle</strong> avec le plan d'adressage prévu.</p>
@@ -521,8 +522,9 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
     <div class="reponse">
       <p><strong>Le problème est le DNS</strong>, sans aucune ambiguïté possible.</p>
       <p>Le raisonnement : la configuration IP est bonne, la passerelle répond (LAN correct),
-         <code>8.8.8.8</code> répond (routage et sortie Internet corrects). Seule la
-         <strong>résolution de noms</strong> échoue — et le message « hôte introuvable », par
+         <code>8.8.8.8</code> répond (routage et sortie Internet corrects).</p>
+      <p>Seule la
+         <strong>résolution de noms</strong> échoue, et le message « hôte introuvable », par
          opposition à « délai d'attente dépassé », le confirme.</p>
       <p><strong>Les trois commandes :</strong></p>
 <div class="bloc-code" data-fam="bash" style="--car:83"><span class="langue">diagnostic</span><pre><code><span class="j-num">1</span>.  ipconfig /all
@@ -537,7 +539,7 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
       <p><strong>Les trois causes les plus fréquentes</strong>, dans cet ordre : le cache DNS local
          est obsolète (résolu par <code>/flushdns</code>), le serveur DNS configuré est en panne
          (basculer temporairement sur <code>8.8.8.8</code> ou <code>1.1.1.1</code>), ou le DHCP
-         distribue une mauvaise adresse de serveur DNS — auquel cas <em>tous</em> les postes sont
+         distribue une mauvaise adresse de serveur DNS, auquel cas <em>tous</em> les postes sont
          touchés, ce qui se vérifie en une question à un collègue.</p>
     </div>
   </div>
@@ -554,7 +556,7 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
           lisent : 169.254, passerelle vide, DNS vide, serveur DHCP inattendu.</li>
       <li><code>ping</code> = <strong>ICMP</strong>. Le <strong>TTL</strong> révèle le nombre de
           routeurs traversés : <em>TTL initial (64 ou 128) − TTL reçu</em>.</li>
-      <li><strong>Un ping sans réponse ≠ machine éteinte</strong> — souvent un pare-feu. Testez
+      <li><strong>Un ping sans réponse ≠ machine éteinte</strong> : souvent un pare-feu. Testez
           dans l'autre sens.</li>
       <li><code>tracert</code> montre <strong>où</strong> ça s'arrête. Les astérisques ne sont
           <em>pas</em> forcément une panne.</li>
@@ -562,27 +564,27 @@ ip.addr == 192.168.1.10 &amp;&amp; tcp.port == 443</code></pre></div>
           <code>ipconfig /flushdns</code> = vider le cache.</li>
       <li><strong>ping IP OK + ping nom KO = DNS.</strong> Toujours.</li>
       <li><strong>Wireshark</strong> capture chaque <strong>PDU</strong>. Sur un switch, on ne voit
-          que son propre trafic — sauf port miroir.</li>
+          que son propre trafic, sauf port miroir.</li>
     </ul>
   </div>
 
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>6-Depannage_Réseaux.pdf — connectivité et dépannage</li>
-      <li>3-TP_Wireshark.pdf — travaux pratiques Cisco</li>
+      <li>6-Depannage_Réseaux.pdf : connectivité et dépannage</li>
+      <li>3-TP_Wireshark.pdf : travaux pratiques Cisco</li>
       <li>4.Etude_cas.pdf</li>
-      <li>SIMULATION_RESEAU_INFORMATIQUE_2022 — compte rendu l'élève</li>
+      <li>SIMULATION_RESEAU_INFORMATIQUE_2022 : compte rendu l'élève</li>
       <li>6-TP-Depannage_Réseau.pka</li>
     </ul>
   </div>
 </footer>
 
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-nat-pat/cours.html"><span>Chapitre précédent</span><b>NAT &amp; PAT</b></a><a class="suiv" href="../14-cybersecurite-cned/cours.html"><span>Chapitre suivant</span><b>Cybersécurité — CNED</b></a></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-nat-pat/cours.html"><span>Chapitre précédent</span><b>NAT &amp; PAT</b></a><a class="suiv" href="../14-cybersecurite-cned/cours.html"><span>Chapitre suivant</span><b>Cybersécurité : CNED</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

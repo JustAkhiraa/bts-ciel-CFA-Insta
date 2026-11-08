@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DHCP — attribution automatique d'adresses IPv4 | BTS CIEL</title>
+<title>DHCP · attribution automatique d'adresses IPv4 | BTS CIEL</title>
 <meta name="description" content="Cours complet : rôle de DHCPv4, les 4 messages DORA, méthodes d'attribution, configuration Cisco et serveur ISC sous Debian, relais DHCP et dépannage.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -37,8 +37,8 @@
     <span class="sep">/</span><span>Chapitre 11</span>
   </div>
 
-  <h1>DHCP — l'adressage automatique</h1>
-  <p class="chapeau">Comment une machine qui n'a aucune adresse arrive à en demander une —
+  <h1>DHCP · l'adressage automatique</h1>
+  <p class="chapeau">Comment une machine qui n'a aucune adresse arrive à en demander une, 
      et pourquoi ce paradoxe se résout en quatre messages.</p>
 
   <div class="flash">
@@ -46,9 +46,10 @@
     <div>
       <h2>Résumé flash</h2>
       <p><strong>DHCPv4</strong> distribue automatiquement adresse IP, masque, passerelle et DNS,
-         pour une durée limitée appelée <strong>bail</strong>. Le dialogue tient en quatre messages —
+         pour une durée limitée appelée <strong>bail</strong>. Le dialogue tient en quatre messages : 
          <strong>DORA</strong> : <em>Discover, Offer, Request, Ack</em>. Il fonctionne sur
-         <strong>UDP, ports 67 (serveur) et 68 (client)</strong>. Comme les deux premiers messages
+         <strong>UDP, ports 67 (serveur) et 68 (client)</strong>.</p>
+      <p>Comme les deux premiers messages
          sont des <strong>diffusions</strong>, un routeur les bloque : d'où le <strong>relais
          DHCP</strong> quand le serveur est sur un autre réseau.</p>
     </div>
@@ -78,7 +79,7 @@
       <tr><td>Pour</td>
           <td><strong>Serveurs</strong>, imprimantes réseau, équipements qui doivent garder
               toujours la même adresse</td>
-          <td><strong>Postes clients</strong>, smartphones, portables — là où l'on ne veut pas
+          <td><strong>Postes clients</strong>, smartphones, portables : là où l'on ne veut pas
               gérer les adresses une par une</td></tr>
     </tbody>
   </table>
@@ -87,7 +88,8 @@
   <div class="encart analogie">
     <div class="titre">💡 Analogie</div>
     <p>L'adresse statique, c'est une place de parking nominative : elle vous attend, personne
-       d'autre ne la prend, mais il faut la gérer. Le DHCP, c'est le parking en libre-service :
+       d'autre ne la prend, mais il faut la gérer.</p>
+    <p>Le DHCP, c'est le parking en libre-service :
        vous prenez une place au hasard en arrivant, vous la libérez en partant. Parfait pour les
        visiteurs, inacceptable pour l'ambulance de garde.</p>
   </div>
@@ -117,7 +119,7 @@
   <div class="encart savoir">
     <div class="titre">🌍 Pourquoi UDP et non TCP</div>
     <p>TCP exige une connexion établie entre deux adresses IP connues. Or, au moment où le client
-       demande une adresse, <strong>il n'en a pas</strong> — et il ignore celle du serveur. Une
+       demande une adresse, <strong>il n'en a pas</strong>, et il ignore celle du serveur. Une
        poignée de main TCP est donc impossible.</p>
     <p>UDP, sans connexion, permet d'émettre en <strong>diffusion</strong> vers
        <code>255.255.255.255</code> : « quelqu'un ici sait-il me donner une adresse ? ». C'est la
@@ -136,8 +138,8 @@
       <tr><td><strong>Manuelle</strong><br>(par réservation)</td>
           <td>L'administrateur associe une <strong>IP fixe à une adresse MAC</strong> dans le
               serveur. DHCP ne fait que communiquer cette adresse au client</td>
-          <td>—</td>
-          <td>Serveurs, imprimantes — on veut une adresse fixe <em>et</em> la centralisation</td></tr>
+          <td>-</td>
+          <td>Serveurs, imprimantes : on veut une adresse fixe <em>et</em> la centralisation</td></tr>
       <tr><td><strong>Automatique</strong></td>
           <td>Le serveur choisit une adresse libre dans le pool et la <strong>réserve
               définitivement</strong> pour ce client. En pratique, une dynamique qui devient fixe
@@ -158,9 +160,9 @@
     <div class="titre">⚠️ Réservation ≠ adresse statique</div>
     <p>Dans les deux cas la machine a toujours la même adresse. Mais :</p>
     <ul>
-      <li><strong>Adresse statique</strong> — saisie <em>sur la machine</em>. Pour la changer, il
+      <li><strong>Adresse statique</strong> : saisie <em>sur la machine</em>. Pour la changer, il
           faut aller sur chaque poste.</li>
-      <li><strong>Réservation DHCP</strong> — configurée <em>sur le serveur</em>. Le poste reste en
+      <li><strong>Réservation DHCP</strong> : configurée <em>sur le serveur</em>. Le poste reste en
           « obtenir automatiquement » ; on modifie tout depuis un seul endroit.</li>
     </ul>
     <p>La réservation est donc <strong>presque toujours préférable</strong> : même résultat, gestion
@@ -195,7 +197,7 @@
 
       <path class="bc" d="M88 78 L490 78"/>
       <text class="ms" x="150" y="72">1 · DISCOVER</text>
-      <text class="dt" x="290" y="94">diffusion — « y a-t-il un serveur DHCP ? »</text>
+      <text class="dt" x="290" y="94">diffusion : « y a-t-il un serveur DHCP ? »</text>
 
       <path class="ar" d="M492 122 L90 122"/>
       <text class="ms" x="360" y="116">2 · OFFER</text>
@@ -203,13 +205,13 @@
 
       <path class="bc" d="M88 166 L490 166"/>
       <text class="ms" x="150" y="160">3 · REQUEST</text>
-      <text class="dt" x="290" y="182">diffusion — « j'accepte cette offre »</text>
+      <text class="dt" x="290" y="182">diffusion : « j'accepte cette offre »</text>
 
       <path class="ar" d="M492 210 L90 210"/>
       <text class="ms" x="368" y="204">4 · ACK</text>
       <text class="dt" x="290" y="226">« confirmé, bail de 8 jours »</text>
     </svg>
-    <figcaption>En pointillé ambre : les messages émis en diffusion. Le client n'a pas encore d'adresse — il ne peut parler qu'à tout le monde.</figcaption>
+    <figcaption>En pointillé ambre : les messages émis en diffusion. Le client n'a pas encore d'adresse · il ne peut parler qu'à tout le monde.</figcaption>
   </figure>
 
   <div class="tableau">
@@ -218,13 +220,13 @@
     <tbody>
       <tr><td>1</td><td><strong>DHCPDISCOVER</strong></td><td>Client</td>
           <td><strong>Diffusion</strong></td>
-          <td>« Y a-t-il un serveur DHCP ? » — le client n'a aucune adresse, il émet depuis
+          <td>« Y a-t-il un serveur DHCP ? » : le client n'a aucune adresse, il émet depuis
               <code>0.0.0.0</code> vers <code>255.255.255.255</code></td></tr>
       <tr><td>2</td><td><strong>DHCPOFFER</strong></td><td>Serveur</td><td>Unicast ou diffusion</td>
           <td>Une adresse proposée, avec masque, passerelle, DNS et durée de bail</td></tr>
       <tr><td>3</td><td><strong>DHCPREQUEST</strong></td><td>Client</td>
           <td><strong>Diffusion</strong></td>
-          <td>« J'accepte cette offre » — en diffusion, pour prévenir <em>les autres</em>
+          <td>« J'accepte cette offre » : en diffusion, pour prévenir <em>les autres</em>
               serveurs que leur offre est déclinée</td></tr>
       <tr><td>4</td><td><strong>DHCPACK</strong></td><td>Serveur</td><td>Unicast</td>
           <td>Confirmation, et le bail commence</td></tr>
@@ -242,7 +244,7 @@
   <div class="encart piege">
     <div class="titre">⚠️ Pourquoi le REQUEST est en diffusion</div>
     <p>C'est la subtilité que l'on comprend rarement. S'il y a <strong>deux serveurs DHCP</strong>
-       sur le réseau, le client reçoit deux OFFER. Il en choisit une — mais il doit
+       sur le réseau, le client reçoit deux OFFER. Il en choisit une, mais il doit
        <strong>prévenir l'autre serveur</strong> que son offre est refusée, faute de quoi celui-ci
        garderait l'adresse réservée inutilement.</p>
     <p>Le REQUEST est donc émis en diffusion : il porte l'identité du serveur retenu, et les autres
@@ -262,7 +264,7 @@
   <div class="encart savoir">
     <div class="titre">🌍 Et si aucun serveur ne répond : l'APIPA</div>
     <p>Un poste Windows qui n'obtient rien s'attribue lui-même une adresse en
-       <strong><code>169.254.x.x</code></strong> — c'est l'<strong>APIPA</strong>
+       <strong><code>169.254.x.x</code></strong>, c'est l'<strong>APIPA</strong>
        (<em>Automatic Private IP Addressing</em>).</p>
     <p>Voir une adresse en 169.254 est donc un <strong>diagnostic immédiat</strong> : le poste n'a
        pas joint de serveur DHCP. Câble débranché, service arrêté, VLAN incorrect, ou relais
@@ -293,7 +295,7 @@
   </div>
 
   <p>Au niveau du routeur, DHCP peut être configuré de trois façons : en <strong>serveur</strong>,
-     en <strong>relais</strong>, ou en <strong>client</strong> — ce dernier cas quand le routeur
+     en <strong>relais</strong>, ou en <strong>client</strong>, ce dernier cas quand le routeur
      lui-même reçoit son adresse de l'opérateur.</p>
 </section>
 
@@ -304,7 +306,7 @@
   <div class="encart outils">
     <div class="titre">🧰 Les 5 étapes, dans l'ordre</div>
     <ol>
-      <li><strong>Exclure</strong> des adresses du pool — adresse de passerelle, adresses attribuées
+      <li><strong>Exclure</strong> des adresses du pool : adresse de passerelle, adresses attribuées
           statiquement.</li>
       <li><strong>Définir le nom</strong> du pool DHCP.</li>
       <li><strong>Définir la plage</strong> d'adresses et le masque.</li>
@@ -355,7 +357,7 @@
   <div class="encart piege">
     <div class="titre">⚠️ Le problème que le relais résout</div>
     <p>Le DHCPDISCOVER est une <strong>diffusion</strong>. Or un <strong>routeur ne relaie jamais
-       les diffusions</strong> — c'est le principe même de la séparation des domaines de
+       les diffusions</strong>, c'est le principe même de la séparation des domaines de
        diffusion, vu au chapitre 02.</p>
     <p>Conséquence : un serveur DHCP ne sert <strong>que son propre segment</strong>. Avec dix
        VLAN, il faudrait dix serveurs. C'est précisément ce que le relais évite.</p>
@@ -391,7 +393,7 @@
       <text class="s2" x="407" y="102">vers l'adresse du serveur</text>
 
       <text class="s2" x="290" y="122" style="font-weight:700;fill:var(--encre)">ip helper-address 192.168.100.10</text>
-      <text class="s2" x="290" y="142">Le routeur transforme la diffusion en unicast — et fait suivre.</text>
+      <text class="s2" x="290" y="142">Le routeur transforme la diffusion en unicast, et fait suivre.</text>
     </svg>
     <figcaption>Le relais n'ouvre pas les diffusions : il les convertit en messages dirigés vers le serveur.</figcaption>
   </figure>
@@ -405,7 +407,7 @@
     <div class="titre">🧰 Deux points qui font échouer le relais</div>
     <ul>
       <li><strong>La commande va sur l'interface côté CLIENT</strong>, celle qui reçoit les
-          diffusions — pas côté serveur. C'est l'erreur la plus fréquente.</li>
+          diffusions, pas côté serveur. C'est l'erreur la plus fréquente.</li>
       <li><strong>Le serveur doit avoir un pool pour chaque réseau relayé.</strong> Le routeur
           insère son adresse d'interface dans la demande, ce qui permet au serveur de savoir de quel
           sous-réseau vient le client. Sans pool correspondant, il n'a rien à proposer.</li>
@@ -424,7 +426,7 @@
 
   <h3>Les prérequis</h3>
   <ul>
-    <li>Une machine Debian avec une <strong>adresse IP fixe</strong> — <code>192.168.20.2/24</code> ;</li>
+    <li>Une machine Debian avec une <strong>adresse IP fixe</strong> : <code>192.168.20.2/24</code> ;</li>
     <li><strong>aucun autre serveur DHCP actif</strong> sur le réseau, pour éviter les conflits ;</li>
     <li>une machine cliente <strong>sans configuration IP</strong>, pour tester ;</li>
     <li>une connexion Internet sur la Debian, pour télécharger les paquets.</li>
@@ -496,7 +498,7 @@ host station-simul-3 {
       <li><strong>Chaque ligne se termine par un point-virgule.</strong> Un oubli et le service
           refuse de démarrer, avec un message peu explicite.</li>
       <li><strong>Les réservations <code>host</code> se placent en dehors du bloc
-          <code>subnet</code></strong> — c'est explicitement demandé par l'énoncé.</li>
+          <code>subnet</code></strong>, c'est explicitement demandé par l'énoncé.</li>
       <li><strong>La plage <code>range</code> ne doit pas recouvrir les adresses réservées.</strong>
           Ici <code>.100-.200</code> et les réservations en <code>.10-.12</code> : aucun
           chevauchement.</li>
@@ -529,7 +531,7 @@ host station-simul-3 {
     <thead><tr><th>Symptôme</th><th>Cause probable</th><th>Vérification</th></tr></thead>
     <tbody>
       <tr><td>Le client a une adresse en <strong><code>169.254.x.x</code></strong></td>
-          <td><strong>Aucun serveur DHCP joint</strong> — APIPA</td>
+          <td><strong>Aucun serveur DHCP joint</strong> : APIPA</td>
           <td>Câble, VLAN du port, service arrêté, relais manquant</td></tr>
       <tr><td>Le client obtient une adresse du <strong>mauvais réseau</strong></td>
           <td>Un <strong>serveur DHCP pirate</strong> répond avant le bon</td>
@@ -562,19 +564,19 @@ host station-simul-3 {
          routeur : elles n'atteignent jamais le serveur.</p>
       <p>Les postes du VLAN 100 fonctionnent parce qu'ils sont <em>sur le même domaine de
          diffusion</em> que le serveur.</p>
-      <p><strong>La correction — deux volets :</strong></p>
+      <p><strong>La correction : deux volets :</strong></p>
 <div class="bloc-code" data-fam="cisco" style="--car:57"><span class="langue">Cisco IOS</span><pre><code><span class="j-com">! 1 — sur le routeur, côté CLIENT de chaque VLAN concerné</span>
 <span class="j-var">R1(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.20</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-att">helper-address</span> <span class="j-num">192.168.100.10</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> exit</span>
 <span class="j-var">R1(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.30</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-att">helper-address</span> <span class="j-num">192.168.100.10</span></code></pre></div>
-      <p><strong>2 — sur le serveur</strong>, créer un <strong>pool par sous-réseau relayé</strong>.
-         Le routeur insère son adresse d'interface dans la demande relayée : c'est ainsi que le
-         serveur sait de quel VLAN vient le client et choisit le bon pool. Sans pool correspondant,
+      <p><strong>2 : sur le serveur</strong>, créer un <strong>pool par sous-réseau relayé</strong>. Le routeur insère son adresse d'interface dans la demande relayée : c'est ainsi que le
+         serveur sait de quel VLAN vient le client et choisit le bon pool.</p>
+      <p>Sans pool correspondant,
          il ne peut rien proposer, même si le relais fonctionne parfaitement.</p>
       <p><strong>Le piège :</strong> mettre <code>ip helper-address</code> sur l'interface côté
-         serveur. C'est côté <em>client</em> qu'il faut la placer — là où arrivent les
+         serveur. C'est côté <em>client</em> qu'il faut la placer : là où arrivent les
          diffusions.</p>
     </div>
   </div>
@@ -583,9 +585,10 @@ host station-simul-3 {
     <div class="titre">🌍 Le serveur DHCP pirate</div>
     <p>N'importe qui branchant une box personnelle sur le réseau crée un second serveur DHCP.
        Comme le client retient <strong>la première offre reçue</strong>, une partie des postes
-       reçoit alors une mauvaise adresse, une mauvaise passerelle — et perd le réseau.</p>
+       reçoit alors une mauvaise adresse, une mauvaise passerelle, et perd le réseau.</p>
     <p>C'est l'incident classique, et la raison pour laquelle un serveur DHCP de test se monte
-       toujours sur un réseau isolé. La parade en production s'appelle <strong>DHCP
+       toujours sur un réseau isolé.</p>
+    <p>La parade en production s'appelle <strong>DHCP
        snooping</strong> : le commutateur n'accepte les réponses DHCP que sur les ports déclarés de
        confiance.</p>
   </div>
@@ -601,7 +604,7 @@ host station-simul-3 {
       <li><strong>DORA :</strong> Discover, Offer, Request, Ack. Discover et Request sont des
           <strong>diffusions</strong>.</li>
       <li><strong>3 méthodes :</strong> manuelle (réservation MAC), automatique (définitive),
-          <strong>dynamique</strong> (bail — la plus courante).</li>
+          <strong>dynamique</strong> (bail, la plus courante).</li>
       <li><strong>Toujours exclure</strong> la passerelle et les adresses statiques du pool.</li>
       <li><strong>Un routeur bloque les diffusions</strong> → <code>ip helper-address</code> côté
           client, et un pool par sous-réseau sur le serveur.</li>
@@ -614,10 +617,10 @@ host station-simul-3 {
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>5-cours_DHCP_nat-pat.pdf — le professeur</li>
-      <li>Mission1-DHCP-Serveur.pdf — BioVision, Debian 12</li>
+      <li>5-cours_DHCP_nat-pat.pdf : le professeur</li>
+      <li>Mission1-DHCP-Serveur.pdf : BioVision, Debian 12</li>
       <li>TP_DHCP_BioVision.html</li>
-      <li>7-Lab — Implement DHCPv4.docx</li>
+      <li>7-Lab : Implement DHCPv4.docx</li>
     </ul>
   </div>
 </footer>
@@ -626,7 +629,7 @@ host station-simul-3 {
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../10-routage-dynamique-rip/cours.html"><span>Chapitre précédent</span><b>Routage dynamique</b></a><a class="suiv" href="../12-nat-pat/cours.html"><span>Chapitre suivant</span><b>NAT &amp; PAT</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

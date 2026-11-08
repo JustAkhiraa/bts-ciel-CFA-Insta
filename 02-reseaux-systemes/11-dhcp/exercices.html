@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DHCP — exercices corrigés | BTS CIEL</title>
+<title>DHCP · exercices corrigés | BTS CIEL</title>
 <meta name="description" content="Exercices corrigés : méthodes d'attribution, DORA, configuration Cisco, mission BioVision sous Debian, relais DHCP et dépannage.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -34,7 +34,7 @@
     <span class="sep">/</span><span>Chapitre 11</span>
     <span class="sep">/</span><span class="badge">Exercices corrigés</span>
   </div>
-  <h1>DHCP — exercices</h1>
+  <h1>DHCP · exercices</h1>
   <p class="chapeau">La mission BioVision en entier, la configuration Cisco, et les pannes qu'on
      rencontre vraiment.</p>
 
@@ -76,19 +76,19 @@
         <table>
           <thead><tr><th>Équipement</th><th>Choix</th><th>Justification</th></tr></thead>
           <tbody>
-            <tr><td>1 — Routeur</td><td><strong>Statique</strong></td>
+            <tr><td>1 : Routeur</td><td><strong>Statique</strong></td>
                 <td>C'est <em>lui</em> la passerelle annoncée par DHCP. Il ne peut pas dépendre du
                     service qu'il fournit</td></tr>
-            <tr><td>2 — Serveur de fichiers</td><td><strong>Réservation</strong></td>
+            <tr><td>2 : Serveur de fichiers</td><td><strong>Réservation</strong></td>
                 <td>Adresse fixe indispensable, mais gestion centralisée. Statique acceptable si
                     aucun DHCP n'est fiable</td></tr>
-            <tr><td>3 — Portable commercial</td><td><strong>Pool dynamique</strong></td>
+            <tr><td>3 : Portable commercial</td><td><strong>Pool dynamique</strong></td>
                 <td>Se déplace, se connecte partout : l'adresse fixe n'a aucun sens</td></tr>
-            <tr><td>4 — Imprimante</td><td><strong>Réservation</strong></td>
+            <tr><td>4 : Imprimante</td><td><strong>Réservation</strong></td>
                 <td>Les pilotes des postes pointent vers son adresse : elle ne doit pas changer</td></tr>
-            <tr><td>5 — Smartphone visiteur</td><td><strong>Pool dynamique</strong></td>
+            <tr><td>5 : Smartphone visiteur</td><td><strong>Pool dynamique</strong></td>
                 <td>Éphémère par nature, avec un bail court</td></tr>
-            <tr><td>6 — Caméra IP</td><td><strong>Réservation</strong></td>
+            <tr><td>6 : Caméra IP</td><td><strong>Réservation</strong></td>
                 <td>L'enregistreur l'interroge à une adresse précise</td></tr>
           </tbody>
         </table>
@@ -140,7 +140,7 @@
         </table>
         </div>
         <p><strong>2.</strong> L'adresse source est <code>0.0.0.0</code> et la destination
-           <code>255.255.255.255</code>. Le client <strong>n'a aucune adresse</strong> — c'est
+           <code>255.255.255.255</code>. Le client <strong>n'a aucune adresse</strong>, c'est
            précisément ce qu'il vient chercher. Il ne peut donc que crier à la cantonade.</p>
         <p><strong>3.</strong> Pour <strong>prévenir les autres serveurs DHCP</strong> que leur
            offre est déclinée, afin qu'ils libèrent l'adresse qu'ils avaient mise de côté. Le
@@ -148,15 +148,17 @@
         <p><strong>4.</strong> <strong>UDP 67</strong> côté serveur, <strong>UDP 68</strong> côté
            client.</p>
         <p><strong>5.</strong> À <strong>T1 = 50 %</strong>, le client tente de renouveler son bail
-           directement auprès du serveur qui le lui a accordé, en unicast. À
+           directement auprès du serveur qui le lui a accordé, en unicast.</p>
+        <p>À
            <strong>T2 = 87,5 %</strong>, faute de réponse, il repasse en diffusion. À 100 %, il
            abandonne l'adresse et recommence un DORA complet.</p>
         <div class="encart savoir">
           <div class="titre">🌍 Pourquoi renouveler à la moitié du bail</div>
           <p>Pour laisser de la marge. Si le serveur est momentanément indisponible, le client a
              encore <strong>la moitié de son bail</strong> pour réessayer avant de perdre son
-             adresse. Un renouvellement à 95 % ne laisserait aucune chance en cas de panne
-             brève — et tout le réseau tomberait en même temps.</p>
+             adresse.</p>
+          <p>Un renouvellement à 95 % ne laisserait aucune chance en cas de panne
+             brève, et tout le réseau tomberait en même temps.</p>
         </div>
       </div>
     </div>
@@ -185,7 +187,7 @@
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="cisco" style="--car:66"><span class="langue">Cisco IOS — R1</span><pre><code><span class="j-com">! ─── 1. EXCLURE, en configuration globale, AVANT le pool ───</span>
+<div class="bloc-code" data-fam="cisco" style="--car:66"><span class="langue">Cisco IOS · R1</span><pre><code><span class="j-com">! ─── 1. EXCLURE, en configuration globale, AVANT le pool ───</span>
 <span class="j-var">R1(config)#</span><span class="j-mc"> ip</span> <span class="j-att">dhcp</span> <span class="j-att">excluded-address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">192.168.10.20</span>
 <span class="j-var">R1(config)#</span><span class="j-mc"> ip</span> <span class="j-att">dhcp</span> <span class="j-att">excluded-address</span> <span class="j-num">192.168.10.201</span> <span class="j-num">192.168.10.254</span>
 
@@ -243,7 +245,7 @@
       <div class="titre">✅ Correction</div>
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
-<div class="bloc-code" data-fam="bash" style="--car:62"><span class="langue">bash — étapes 1 à 3</span><pre><code><span class="j-com"># 1 — mettre à jour</span>
+<div class="bloc-code" data-fam="bash" style="--car:62"><span class="langue">bash · étapes 1 à 3</span><pre><code><span class="j-com"># 1 — mettre à jour</span>
 <span class="j-fn">apt</span> update &amp;&amp; apt upgrade <span class="j-att">-y</span>
 
 <span class="j-com"># 2 — installer</span>
@@ -292,7 +294,7 @@ host station-simul-3 {
     fixed-address 192.168.20.12;
 }</code></pre></div>
 
-<div class="bloc-code" data-fam="bash" style="--car:75"><span class="langue">bash — étape 6</span><pre><code><span class="j-com"># déclarer l'interface d'écoute</span>
+<div class="bloc-code" data-fam="bash" style="--car:75"><span class="langue">bash · étape 6</span><pre><code><span class="j-com"># déclarer l'interface d'écoute</span>
 <span class="j-fn">nano</span> /etc/default/isc-dhcp-server
     INTERFACESv4=<span class="j-txt">"enp0s3"</span>
 
@@ -309,13 +311,13 @@ host station-simul-3 {
           <ol>
             <li><strong>Le point-virgule</strong> à la fin de chaque ligne. C'est la première cause
                 de « le service refuse de démarrer ».</li>
-            <li><strong>Les blocs <code>host</code> en dehors du <code>subnet</code></strong> —
+            <li><strong>Les blocs <code>host</code> en dehors du <code>subnet</code></strong> : 
                 l'énoncé l'exige explicitement. À l'intérieur, la réservation ne fonctionne pas.</li>
             <li><strong>L'interface non déclarée</strong> dans
                 <code>/etc/default/isc-dhcp-server</code> : le service démarre mais n'écoute
                 nulle part.</li>
             <li><strong>Le serveur pas en adresse fixe.</strong> Un serveur DHCP qui obtiendrait son
-                adresse par DHCP est une absurdité — et un prérequis explicite de la mission.</li>
+                adresse par DHCP est une absurdité, et un prérequis explicite de la mission.</li>
             <li><strong>Un autre serveur DHCP actif</strong> sur le réseau : les deux répondent et
                 les clients obtiennent n'importe quoi. Le prérequis le dit.</li>
           </ol>
@@ -333,16 +335,17 @@ host station-simul-3 {
 <span class="j-com"># depuis le serveur, si la station a déjà obtenu un bail</span>
 <span class="j-fn">cat</span> /var/lib/dhcp/dhcpd.leases | grep <span class="j-att">-A5</span> <span class="j-txt">"lease 192.168.20"</span></code></pre></div>
           <p>L'énoncé le rappelle : <em>« avant de faire ces manipulations, il faut récupérer à
-             partir de la machine cliente son adresse MAC »</em>. Une réservation avec une MAC
-             erronée ne produit aucune erreur — la station reçoit simplement une adresse du pool,
+             partir de la machine cliente son adresse MAC »</em>.</p>
+          <p>Une réservation avec une MAC
+             erronée ne produit aucune erreur : la station reçoit simplement une adresse du pool,
              et on cherche longtemps.</p>
         </div>
 
         <div class="encart savoir">
           <div class="titre">🌍 <code>authoritative</code>, la ligne qu'on ne comprend pas</div>
           <p>Elle déclare que ce serveur <strong>fait autorité</strong> sur les réseaux qu'il gère.
-             Concrètement, il pourra répondre <code>DHCPNAK</code> — « cette adresse n'est pas
-             valide ici » — à un client qui arrive avec un bail obtenu ailleurs, par exemple un
+             Concrètement, il pourra répondre <code>DHCPNAK</code>, « cette adresse n'est pas
+             valide ici », à un client qui arrive avec un bail obtenu ailleurs, par exemple un
              portable revenant de chez lui.</p>
           <p>Sans cette ligne, le serveur reste silencieux dans ce cas, et le client garde une
              adresse inutilisable jusqu'à l'expiration de son bail.</p>
@@ -380,7 +383,7 @@ host station-simul-3 {
            diffusion du serveur.</p>
 
         <p><strong>2.</strong> Sur R1, côté <strong>client</strong> de chaque VLAN :</p>
-<div class="bloc-code" data-fam="cisco" style="--car:50"><span class="langue">Cisco IOS — R1</span><pre><code><span class="j-var">R1(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.10</span>
+<div class="bloc-code" data-fam="cisco" style="--car:50"><span class="langue">Cisco IOS · R1</span><pre><code><span class="j-var">R1(config)#</span><span class="j-mc"> interface</span> <span class="j-typ">g0/0.10</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> ip</span> <span class="j-att">helper-address</span> <span class="j-num">192.168.100.10</span>
 <span class="j-var">R1(config-subif)#</span><span class="j-mc"> exit</span>
 
@@ -421,9 +424,9 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
         <div class="encart piege">
           <div class="titre">⚠️ Les deux erreurs de placement</div>
           <ul>
-            <li><strong>Mettre <code>ip helper-address</code> côté serveur</strong> — inutile : il
+            <li><strong>Mettre <code>ip helper-address</code> côté serveur</strong> : inutile : il
                 n'y a aucune diffusion à convertir de ce côté.</li>
-            <li><strong>Oublier un pool sur le serveur</strong> — le relais fonctionne
+            <li><strong>Oublier un pool sur le serveur</strong> : le relais fonctionne
                 parfaitement, le serveur reçoit bien la demande, mais n'ayant aucun pool pour ce
                 sous-réseau, il ne répond rien. Le symptôme est identique à « le relais ne marche
                 pas », ce qui envoie chercher au mauvais endroit.</li>
@@ -459,7 +462,7 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
         <table>
           <thead><tr><th>#</th><th>Diagnostic</th><th>Cause et correction</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td><strong>APIPA</strong> — aucun serveur joint</td>
+            <tr><td>1</td><td><strong>APIPA</strong> : aucun serveur joint</td>
                 <td>Câble, port dans le mauvais VLAN, service DHCP arrêté, ou
                     <code>ip helper-address</code> manquant</td></tr>
             <tr><td>2</td><td><strong>Serveur DHCP pirate</strong></td>
@@ -496,7 +499,7 @@ SW<span class="j-com"># show mac address-table address 00e0.4c68.1a2b</span></co
           <div class="titre">⚠️ Le cas n° 3 est le plus instructif</div>
           <p><code>ping 8.8.8.8</code> réussit mais aucun site ne s'ouvre : la couche 3 fonctionne
              parfaitement. <strong>Le problème est forcément le DNS.</strong></p>
-          <p>Ce test — pinguer une IP puis un nom — isole le DNS en dix secondes, et il est valable
+          <p>Ce test, pinguer une IP puis un nom, isole le DNS en dix secondes, et il est valable
              bien au-delà du DHCP. C'est le même raisonnement qu'au chapitre 06 avec le serveur
              Windows.</p>
         </div>
@@ -524,10 +527,10 @@ SW<span class="j-com"># show mac address-table address 00e0.4c68.1a2b</span></co
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>Mission1-DHCP-Serveur.pdf — BioVision</li>
+      <li>Mission1-DHCP-Serveur.pdf : BioVision</li>
       <li>TP_DHCP_BioVision.html</li>
-      <li>5-cours_DHCP_nat-pat.pdf — le professeur</li>
-      <li>7-Lab — Implement DHCPv4.docx</li>
+      <li>5-cours_DHCP_nat-pat.pdf : le professeur</li>
+      <li>7-Lab : Implement DHCPv4.docx</li>
     </ul>
   </div>
 </footer>
@@ -536,7 +539,7 @@ SW<span class="j-com"># show mac address-table address 00e0.4c68.1a2b</span></co
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../10-routage-dynamique-rip/exercices.html"><span>Chapitre précédent</span><b>Routage dynamique</b></a><a class="suiv" href="../12-nat-pat/exercices.html"><span>Chapitre suivant</span><b>NAT &amp; PAT</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

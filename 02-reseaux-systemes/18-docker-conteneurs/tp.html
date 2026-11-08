@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docker Lab 1 — monter le laboratoire pas à pas | BTS CIEL</title>
+<title>Docker Lab 1 · monter le laboratoire pas à pas | BTS CIEL</title>
 <meta name="description" content="Le TP Lab 1, pas à pas : installer Docker sur une machine Linux (dépôt officiel, clé GPG, moteur et plugins), puis lever le laboratoire des quatre machines avec le script de gestion, vérifier que chacune répond, comprendre les trois adresses du client, se connecter depuis l'hôte ou d'ailleurs, et distinguer « stopper » de « supprimer » côté volumes.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -35,11 +35,11 @@
     <span class="sep">/</span><span class="badge">TP · Lab 1</span>
   </div>
 
-  <h1>Docker Lab 1 — monter le laboratoire</h1>
+  <h1>Docker Lab 1 · monter le laboratoire</h1>
   <p class="chapeau">Le montage du laboratoire du TP, pas à pas : d'abord
      <strong>installer Docker</strong> sur une machine Linux, puis <strong>lever les quatre
      machines</strong> (client, serveur, attaquant, routeur) avec le script de gestion. C'est
-     cette maquette qui sert aux TP de réseau et de cybersécurité — dont
+     cette maquette qui sert aux TP de réseau et de cybersécurité : dont
      <a href="../20-securite-ssh-mitm/tp.html">l'attaque MITM sur SSH</a>. Cochez les actions au
      fur et à mesure ; les commandes se copient d'un clic.</p>
 
@@ -171,6 +171,16 @@
        <code>-l</code> relance ce qui a été stoppé, <code>-d</code> détruit tout (conteneurs
        <strong>et</strong> volumes). On y revient à la partie 5.</p>
   </div>
+
+  <div class="encart piege">
+    <div class="titre">🔌 Après un redémarrage du PC</div>
+    <p>Les conteneurs sont alors <strong>arrêtés, pas supprimés</strong>. On ne refait pas
+       <code>-c</code> (qui recrée tout à neuf, travail perdu) : on <strong>relance</strong>.</p>
+    <div class="bloc-code" style="--car:65"><span class="langue">hôte</span><pre><code>bash gestion_lab1.sh -l        # relance les 4 machines d'un coup
+# ou, sans le script, tous les conteneurs arretes :
+docker start $(docker ps -aq)
+docker ps                      # verifier : 4 en marche</code></pre></div>
+  </div>
 </section>
 
 <section id="verif">
@@ -197,14 +207,14 @@ for ip in 10 11 12 254; do ping -c 1 -W 1 192.168.56.$ip &gt; /dev/null \
         <p>Les trois adresses du client jouent trois rôles différents, et c'est tout le plan
            d'adressage d'un réseau :</p>
         <ul>
-          <li><code>192.168.56.11</code> — <strong>la sienne</strong>. C'est à elle qu'on s'adresse
+          <li><code>192.168.56.11</code> : <strong>la sienne</strong>. C'est à elle qu'on s'adresse
               pour le joindre.</li>
-          <li><code>192.168.56.254</code> — <strong>sa passerelle</strong>, le routeur. Tout paquet
+          <li><code>192.168.56.254</code> : <strong>sa passerelle</strong>, le routeur. Tout paquet
               destiné à une adresse qui n'est PAS dans <code>192.168.56.0/24</code> part chez lui.
               Sans elle, le client ne sort pas de son réseau.</li>
-          <li><code>192.168.56.10</code> — <strong>son DNS</strong>, le serveur. C'est lui qui
+          <li><code>192.168.56.10</code> : <strong>son DNS</strong>, le serveur. C'est lui qui
               traduit <code>srvssh.exemple.fr</code> en adresse. Sans lui, les adresses numériques
-              marchent encore et les noms ne marchent plus — le symptôme le plus courant, et le
+              marchent encore et les noms ne marchent plus : le symptôme le plus courant, et le
               plus mal diagnostiqué, de tout le programme.</li>
         </ul>
         <div class="encart methode">
@@ -244,14 +254,15 @@ for ip in 10 11 12 254; do ping -c 1 -W 1 192.168.56.$ip &gt; /dev/null \
            a entendu parler, et un paquet envoyé à <code>192.168.56.10</code> depuis le poste du
            voisin part chez sa propre passerelle, qui ne sait qu'en faire.</p>
         <p>D'où les <strong>ports publiés</strong>. <code>-p 12222:22</code> dit à l'hôte : « ce qui
-           arrive sur TON port 12222, passe-le au port 22 de ce conteneur ». Le voisin parle donc à
+           arrive sur TON port 12222, passe-le au port 22 de ce conteneur ».</p>
+        <p>Le voisin parle donc à
            l'hôte, qu'il sait joindre, et c'est l'hôte qui fait suivre. C'est le mécanisme des
            <a href="cours.html#ports">ports publiés</a>, à l'échelle de quatre machines.</p>
         <div class="encart piege">
           <div class="titre">⚠️ Un port publié ouvre une porte sur le réseau</div>
           <p>Un port publié est joignable par <strong>toute la salle</strong>, pas seulement par
-             vous. Quatre machines avec SSH, c'est autant de portes — dont une sur un Kali Linux.
-             Sur un réseau partagé, on vérifie ce qu'on expose, et on <strong>arrête la maquette</strong>
+             vous. Quatre machines avec SSH, c'est autant de portes : dont une sur un Kali Linux.</p>
+          <p>Sur un réseau partagé, on vérifie ce qu'on expose, et on <strong>arrête la maquette</strong>
              quand on a fini.</p>
         </div>
       </div>
@@ -326,7 +337,7 @@ local     home_serveur_lab1</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>« Lab 1 — installation de Docker sous Linux » et « Lab 1 — mise en place du
+      <li>« Lab 1, installation de Docker sous Linux » et « Lab 1, mise en place du
           laboratoire », Réseaux &amp; Systèmes.</li>
     </ul>
     <p class="rap">Les commandes d'installation suivent la procédure officielle de Docker pour
@@ -336,10 +347,10 @@ local     home_serveur_lab1</code></pre></div>
 </footer>
 
 
-<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/cours.html"><span>Chapitre précédent</span><b>Atelier — infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/cours.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../17-atelier-infrastructure/cours.html"><span>Chapitre précédent</span><b>Atelier : infrastructure complète</b></a><a class="suiv" href="../19-wsl-containers/cours.html"><span>Chapitre suivant</span><b>WSL Containers (bonus)</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>

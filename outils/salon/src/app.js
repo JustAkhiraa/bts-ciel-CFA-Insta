@@ -139,7 +139,7 @@ function majEtat() {
 }
 function majTitre() {
   const n = [...etat.nonLus.values()].reduce((s, x) => s + x, 0);
-  document.title = (n ? "(" + n + ") " : "") + "SkyChat — BTS CIEL";
+  document.title = (n ? "(" + n + ") " : "") + "SkyChat : BTS CIEL";
 }
 
 function nomPair(fp) {
@@ -190,7 +190,7 @@ function rendreFil() {
     v.className = "sl-vide";
     v.innerHTML = '<p><b>Personne d\'autre ici pour l\'instant.</b></p>'
       + "<ul><li>Sur un autre appareil du <b>même Wi-Fi</b> : bouton <b>Relier</b>, puis montrez-vous vos QR codes. Pas besoin d'Internet.</li>"
-      + "<li>Pour essayer seul : ouvrez cette page dans un <b>deuxième onglet</b> — chaque onglet est un pair.</li>"
+      + "<li>Pour essayer seul : ouvrez cette page dans un <b>deuxième onglet</b>, chaque onglet est un pair.</li>"
       + "<li>Chaque appareil relie les autres : trois appareils en chaîne se parlent tous, à 2 sauts.</li></ul>";
     el.appendChild(v);
   }
@@ -294,11 +294,11 @@ function ouvrirFil(cle) {
 
 /* ═══════════════ ce qu'on tape ═══════════════ */
 const COMMANDES = {
-  help: "afficher cette aide", join: "#salon [mot de passe] — rejoindre ou créer un salon", part: "[#salon] — quitter un salon",
-  msg: "@pseudo message — message privé chiffré", nick: "pseudo — changer de pseudo", who: "lister les pairs et leur distance",
-  me: "action — une action à la troisième personne", slap: "@pseudo — le classique d'IRC", drop: "note — déposer une note pour ceux qui passeront",
-  notes: "relire les notes déposées", verify: "@pseudo — afficher son empreinte, à comparer avec lui", block: "@pseudo — ne plus voir ses messages",
-  unblock: "@pseudo — le revoir", list: "les salons vus passer", relier: "relier un autre appareil (QR code)", clear: "vider l'écran", wipe: "TOUT effacer, tout de suite (mode panique)",
+  help: "afficher cette aide", join: "#salon [mot de passe] : rejoindre ou créer un salon", part: "[#salon] : quitter un salon",
+  msg: "@pseudo message : message privé chiffré", nick: "pseudo : changer de pseudo", who: "lister les pairs et leur distance",
+  me: "action : une action à la troisième personne", slap: "@pseudo : le classique d'IRC", drop: "note : déposer une note pour ceux qui passeront",
+  notes: "relire les notes déposées", verify: "@pseudo : afficher son empreinte, à comparer avec lui", block: "@pseudo : ne plus voir ses messages",
+  unblock: "@pseudo : le revoir", list: "les salons vus passer", relier: "relier un autre appareil (QR code)", clear: "vider l'écran", wipe: "TOUT effacer, tout de suite (mode panique)",
 };
 
 async function soumettre(texte) {
@@ -351,7 +351,7 @@ async function soumettre(texte) {
     case "who": case "w": {
       const L = [...noeud.pairs.entries()];
       systeme(L.length ? L.length + " pair(s) joignable(s) :" : "Personne. Reliez un appareil (/relier) ou ouvrez un deuxième onglet.");
-      L.sort((a, b) => a[1].sauts - b[1].sauts).forEach(([fp, p]) => systeme("  " + p.nick + "#" + court(fp) + " — "
+      L.sort((a, b) => a[1].sauts - b[1].sauts).forEach(([fp, p]) => systeme("  " + p.nick + "#" + court(fp) + " · "
         + (p.lien ? "direct (" + (p.lien.type === "onglet" ? "onglet" : "WebRTC") + (p.lien.rtt != null ? ", " + p.lien.rtt + " ms" : "") + ")" : p.sauts + " sauts")));
       systeme("(La puissance radio, le « RSSI » d'une messagerie Bluetooth, n'existe pas en WebRTC : on affiche la distance en sauts et le temps d'aller-retour.)");
       return;
@@ -503,7 +503,7 @@ function qrHtml(texte) {
 const DELAI_LIAISON = 20000;
 function messageEchec() {
   return "La liaison n'a pas abouti en " + DELAI_LIAISON / 1000 + " s. Les deux appareils doivent être sur le "
-    + "MÊME réseau. Cause la plus fréquente : le Wi-Fi de l'école isole les appareils les uns des autres — "
+    + "MÊME réseau. Cause la plus fréquente : le Wi-Fi de l'école isole les appareils les uns des autres : "
     + "dans ce cas, aucun code n'y changera rien. Solution : activez le partage de connexion d'un téléphone, "
     + "connectez-y les deux appareils, puis recommencez. Vérifiez aussi qu'aucun n'est en 4G ou derrière un VPN, "
     + "et que la caméra a été autorisée des deux côtés (sans elle, l'adresse reste masquée).";
@@ -548,7 +548,7 @@ function etatLiaison(el) {
   };
 }
 const NOTE_PRESSE_PAPIERS = '<p class="sl-note">Mac et iPhone sur le même compte : « Copier » sur l\'un, '
-  + "collez sur l'autre — pas besoin de scanner.</p>";
+  + "collez sur l'autre : pas besoin de scanner.</p>";
 const limite = () => new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON));
 
 async function inviter(corps) {
@@ -572,7 +572,7 @@ async function inviter(corps) {
       e.className = "sl-texte"; e.textContent = "Réponse lue, connexion directe en cours…";
       const ouvert = await inv.accepter(code);
       await Promise.race([ouvert, limite()]);
-      e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — l'autre appareil fait maintenant partie de SkyChat.";
+      e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ : l'autre appareil fait maintenant partie de SkyChat.";
       libererAdresses();
       setTimeout(fermerRelier, 1400);
     } catch (err) { e.className = "sl-texte sl-erreur"; e.textContent = err.message; }
@@ -608,7 +608,7 @@ async function rejoindre(corps, code = null) {
   Promise.race([rep.ouvert, new Promise((_, ko) => setTimeout(() => ko(new Error(messageEchec())), DELAI_LIAISON + 40000))])
     .then(() => {
       const e = $("#rej-attente");
-      if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ — vous êtes dans SkyChat."; }
+      if (e) { e.className = "sl-texte sl-ok"; e.textContent = "Relié ✓ : vous êtes dans SkyChat."; }
       libererAdresses();
       setTimeout(fermerRelier, 1400);
     })

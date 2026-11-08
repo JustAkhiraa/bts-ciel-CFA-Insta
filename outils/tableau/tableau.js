@@ -2256,8 +2256,8 @@
       if (!types.has("freedraw")) {
         bloc("Style du trait", choix("strokeStyle", [["solid", "Continu", IC.solide], ["dashed", "Tirets", IC.tirets],
           ["dotted", "Pointillés", IC.points]], a.strokeStyle));
-        bloc("Tremblement", choix("roughness", [[0, "Architecte — trait net", IC.r0],
-          [1, "Artiste — légèrement tremblé", IC.r1], [2, "Dessinateur — croquis", IC.r2]], a.roughness));
+        bloc("Tremblement", choix("roughness", [[0, "Architecte : trait net", IC.r0],
+          [1, "Artiste : légèrement tremblé", IC.r1], [2, "Dessinateur : croquis", IC.r2]], a.roughness));
       }
     }
     if (a1((e) => e.type === "rectangle" || e.type === "diamond" || lignes) && !postits) {
@@ -2481,7 +2481,7 @@
     memoriser(); ajuster(); majPanneau(); majFond();
     const nb = elements.length;
     dire(nb + " élément" + (nb > 1 ? "s" : "") + " ouvert" + (nb > 1 ? "s" : "")
-      + (images ? " — " + images + " image(s) sans leur fichier, laissée(s) de côté." : "."));
+      + (images ? " · " + images + " image(s) sans leur fichier, laissée(s) de côté." : "."));
   }
   function lireFichier(f) {
     if (!f) return;
@@ -3019,7 +3019,7 @@
     fermerCreer();
     scene.focus({ preventScroll: true });
     memoriser(); majPanneau(); demander();
-    dire(def[1] + " posé. Double-clic sur son nom pour l'écrire — « R1 », « SW-ADMIN ».");
+    dire(def[1] + " posé. Double-clic sur son nom pour l'écrire : « R1 », « SW-ADMIN ».");
   }
 
   /* ── les gabarits de diagramme ──
@@ -3748,7 +3748,7 @@
     elements.push(el);
     selection = new Set([el.id]);
     memoriser();
-    dire("Écriture remplacée par du texte" + (n ? " — " + n + " symbole" + (n > 1 ? "s" : "") + " appris" : "")
+    dire("Écriture remplacée par du texte" + (n ? " · " + n + " symbole" + (n > 1 ? "s" : "") + " appris" : "")
       + ". Ctrl + Z pour revenir.");
     fermerLecture(); majPanneau(); demander();
   }

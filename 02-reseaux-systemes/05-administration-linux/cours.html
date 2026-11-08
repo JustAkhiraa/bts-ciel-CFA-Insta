@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Administration des systèmes Linux — commandes, droits, processus | BTS CIEL</title>
+<title>Administration des systèmes Linux · commandes, droits, processus | BTS CIEL</title>
 <meta name="description" content="Cours complet : Unix et Linux, shell, arborescence, commandes de base, APT, processus, utilisateurs, groupes, permissions et configuration réseau.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=06acf86e">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a77ccb9c">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -38,20 +38,21 @@
   </div>
 
   <h1>Administration des systèmes Linux</h1>
-  <p class="chapeau">Le système qui fait tourner la quasi-totalité des serveurs du monde —
+  <p class="chapeau">Le système qui fait tourner la quasi-totalité des serveurs du monde, 
      et qu'on administre au clavier, une commande à la fois.</p>
 
   <div class="flash">
     <span class="pastille">📌</span>
     <div>
       <h2>Résumé flash</h2>
-      <p>Sous Linux, <strong>tout est fichier</strong> et tout part de la racine <code>/</code>.
-         Le <strong>shell</strong> traduit vos commandes, écrites toujours de la même façon :
-         <em>commande, options, paramètres</em>. Le système est
+      <p>Sous Linux, <strong>tout est fichier</strong> et tout part de la racine <code>/</code>. Le <strong>shell</strong> traduit vos commandes, écrites toujours de la même façon :
+         <em>commande, options, paramètres</em>.</p>
+      <p>Le système est
          <strong>multi-utilisateurs</strong> : chaque fichier a un propriétaire, un groupe et
          <strong>neuf droits</strong> (<code>rwx</code> × 3) que l'on manipule avec
-         <code>chmod</code>. Seul <code>root</code> — ou un utilisateur passant par
-         <code>sudo</code> — peut tout faire.</p>
+         <code>chmod</code>.</p>
+      <p>Seul <code>root</code>, ou un utilisateur passant par
+         <code>sudo</code>, peut tout faire.</p>
     </div>
   </div>
 
@@ -70,10 +71,10 @@
 
   <h3>D'où vient Unix</h3>
   <ul>
-    <li><strong>1969</strong> — Unix naît aux <strong>laboratoires Bell</strong>, développé par
+    <li><strong>1969</strong> : Unix naît aux <strong>laboratoires Bell</strong>, développé par
         <strong>Ken Thompson</strong> et <strong>Dennis Ritchie</strong>, ce dernier étant aussi le
         créateur du <strong>langage C</strong>.</li>
-    <li><strong>1973</strong> — Unix est réécrit presque entièrement <strong>en C</strong>, pour
+    <li><strong>1973</strong> : Unix est réécrit presque entièrement <strong>en C</strong>, pour
         faciliter la <strong>portabilité</strong>.</li>
     <li>Le code source est vendu à bas prix aux sociétés. IBM, Sun et d'autres reprennent son
         développement pour créer leur propre version : <strong>Solaris</strong> (Sun),
@@ -82,8 +83,9 @@
 
   <div class="encart savoir">
     <div class="titre">🌍 Pourquoi la réécriture en C a tout changé</div>
-    <p>Avant 1973, un système d'exploitation s'écrivait en assembleur — donc pour <em>une</em>
-       machine, et il fallait tout reprendre pour en changer. En le réécrivant en C, langage
+    <p>Avant 1973, un système d'exploitation s'écrivait en assembleur, donc pour <em>une</em>
+       machine, et il fallait tout reprendre pour en changer.</p>
+    <p>En le réécrivant en C, langage
        portable, Thompson et Ritchie ont rendu Unix transportable d'une architecture à l'autre en
        recompilant simplement. C'est ce choix, plus que le système lui-même, qui explique qu'Unix
        et ses descendants tournent aujourd'hui du Raspberry Pi au supercalculateur.</p>
@@ -105,8 +107,9 @@
     <div class="titre">💡 « Tout est fichier », concrètement</div>
     <p>Le disque dur est un fichier (<code>/dev/sda</code>). Le clavier est un fichier. La souris
        est un fichier. Même le générateur de nombres aléatoires est un fichier
-       (<code>/dev/urandom</code>). Conséquence pratique : les <em>mêmes</em> commandes — lire,
-       écrire, copier — fonctionnent sur tout. Vous n'avez pas cinquante outils à apprendre, mais
+       (<code>/dev/urandom</code>).</p>
+    <p>Conséquence pratique : les <em>mêmes</em> commandes, lire,
+       écrire, copier, fonctionnent sur tout. Vous n'avez pas cinquante outils à apprendre, mais
        cinq outils applicables partout.</p>
   </div>
 
@@ -124,7 +127,8 @@
   <h3>Noyau et distributions</h3>
   <p>Le <strong>noyau</strong> (ou <em>kernel</em>), développé par <strong>Linus Torvalds</strong>,
      est l'élément essentiel de toutes les distributions Linux existantes. C'est l'ensemble de
-     programmes qui gère la machine et ses ressources. Chaque <strong>distribution</strong> essaie
+     programmes qui gère la machine et ses ressources.</p>
+  <p>Chaque <strong>distribution</strong> essaie
      d'offrir de la valeur ajoutée sous la forme d'<strong>outils d'installation et
      d'administration</strong>.</p>
 
@@ -133,12 +137,12 @@
     <thead><tr><th>Distribution</th><th>Origine</th><th>Remarque</th></tr></thead>
     <tbody>
       <tr><td><strong>Red Hat Linux</strong></td><td>États-Unis</td><td>Référence en entreprise</td></tr>
-      <tr><td><strong>Fedora</strong></td><td>—</td><td>Version libre de Red Hat</td></tr>
-      <tr><td><strong>Debian</strong></td><td>Internet</td><td>Communautaire — <strong>celle du BTS</strong></td></tr>
-      <tr><td><strong>Ubuntu</strong></td><td>—</td><td>Dérivée de Debian</td></tr>
+      <tr><td><strong>Fedora</strong></td><td>-</td><td>Version libre de Red Hat</td></tr>
+      <tr><td><strong>Debian</strong></td><td>Internet</td><td>Communautaire : <strong>celle du BTS</strong></td></tr>
+      <tr><td><strong>Ubuntu</strong></td><td>-</td><td>Dérivée de Debian</td></tr>
       <tr><td><strong>Mandrake Linux</strong></td><td>France</td><td>Devenue Mandriva</td></tr>
       <tr><td><strong>SuSE Linux</strong></td><td>Allemagne</td><td></td></tr>
-      <tr><td>KNOPPIX, Slackware, Mandriva</td><td>—</td><td></td></tr>
+      <tr><td>KNOPPIX, Slackware, Mandriva</td><td>-</td><td></td></tr>
     </tbody>
   </table>
   </div>
@@ -167,9 +171,9 @@
   <p>Linux étant un système <strong>multi-utilisateurs</strong>, il faut entrer un
      <strong>nom et un mot de passe</strong> pour y accéder.</p>
   <ul>
-    <li><strong>Utilisateur simple</strong> — droits restreints ; chaque utilisateur possède un
+    <li><strong>Utilisateur simple</strong> : droits restreints ; chaque utilisateur possède un
         répertoire de travail.</li>
-    <li><strong>Super-utilisateur</strong> ou administrateur, <code>root</code> — tous les
+    <li><strong>Super-utilisateur</strong> ou administrateur, <code>root</code> : tous les
         droits.</li>
   </ul>
   <p>Les utilisateurs sont organisés en <strong>groupes</strong> : chaque utilisateur doit
@@ -180,7 +184,7 @@
   <h3>Le shell</h3>
   <p>C'est l'<strong>interface entre les utilisateurs et le système</strong>. Le shell est un
      interpréteur qui exécute les commandes <strong>une à une</strong>, après traduction de
-     l'instruction — écrite en langage évolué — en langage interne.</p>
+     l'instruction, écrite en langage évolué, en langage interne.</p>
   <p><strong>Versions :</strong> <code>sh</code>, <code>ksh</code>, <code>bash</code>,
      <code>csh</code>… <code>bash</code> est celui de Debian et d'Ubuntu.</p>
 
@@ -196,7 +200,8 @@
     <div class="titre">⚠️ Le caractère le plus important de l'écran</div>
     <p><code>$</code> ou <code>#</code> ? C'est la première chose à regarder. Un <code>#</code>
        signifie que vous êtes <strong>root</strong> : chaque commande peut détruire le système sans
-       le moindre avertissement. Sous Linux, <em>il n'y a pas de « êtes-vous sûr ? »</em>.</p>
+       le moindre avertissement.</p>
+    <p>Sous Linux, <em>il n'y a pas de « êtes-vous sûr ? »</em>.</p>
   </div>
 
   <h3>La syntaxe d'une commande</h3>
@@ -225,7 +230,7 @@ exemple :   ls  -la  /etc
     <li>les noms des objets sont des séquences de <strong>255 caractères maximum</strong>,
         <strong>sensibles à la casse</strong> ;</li>
     <li>le <strong>point en premier caractère</strong> signifie un <strong>fichier caché</strong> ;</li>
-    <li>le point <strong>ne sépare pas forcément</strong> le nom de son extension — exemples :
+    <li>le point <strong>ne sépare pas forcément</strong> le nom de son extension : exemples :
         <code>rapport.ps.gz</code>, <code>postgresql-2.3.6-src.tar.Z</code>,
         <code>README</code>.</li>
   </ul>
@@ -240,7 +245,7 @@ exemple :   ls  -la  /etc
   </div>
 
   <div class="encart piege">
-    <div class="titre">⚠️ Sensible à la casse — vraiment</div>
+    <div class="titre">⚠️ Sensible à la casse · vraiment</div>
     <p><code>Rapport.txt</code>, <code>rapport.txt</code> et <code>RAPPORT.TXT</code> sont
        <strong>trois fichiers différents</strong> qui peuvent coexister dans le même répertoire.
        Windows ne fait pas cette distinction : c'est la source d'erreur numéro un quand on arrive
@@ -302,15 +307,16 @@ exemple :   ls  -la  /etc
     <div class="titre">⚠️ <code>/root</code> n'est pas <code>/</code></div>
     <p>La <strong>racine</strong> est <code>/</code>. Le <strong>répertoire personnel de
        root</strong> est <code>/root</code>. Deux choses différentes, souvent confondues à l'oral
-       parce qu'on dit « la racine » et « root ». De même, <code>/bin</code> contient les commandes
-       de <em>tout le monde</em>, <code>/sbin</code> celles de l'<em>administrateur</em> — le
+       parce qu'on dit « la racine » et « root ».</p>
+    <p>De même, <code>/bin</code> contient les commandes
+       de <em>tout le monde</em>, <code>/sbin</code> celles de l'<em>administrateur</em> : le
        <strong>s</strong> comme <em>system</em>.</p>
   </div>
 
   <h3>La représentation des disques</h3>
   <p>Selon le type de contrôleur et d'interface sur lesquels les disques sont connectés, Linux
      donne des <strong>noms différents</strong> aux fichiers spéciaux des périphériques. Chaque
-     disque est représenté par un <strong>fichier spécial de type bloc</strong> — et chaque
+     disque est représenté par un <strong>fichier spécial de type bloc</strong>, et chaque
      partition également.</p>
 <div class="bloc-code" data-fam="bash" style="--car:69"><span class="langue">bash</span><pre><code><span class="j-fn">lsblk</span>              <span class="j-com"># liste les disques et partitions, en arborescence</span>
 <span class="j-fn">ls</span> <span class="j-att">-l</span> /dev/sd*     <span class="j-com"># les fichiers spéciaux des disques</span>
@@ -369,16 +375,17 @@ exemple :   ls  -la  /etc
     <div class="titre">🔧 Corrigé pour exactitude technique</div>
     <p>Le mémo indique <code>rm dossier1</code> pour « supprimer un répertoire vide ». Cela
        <strong>échoue</strong> : <code>rm</code> refuse les répertoires et répond
-       <code>rm: impossible de supprimer 'dossier1': est un dossier</code>. La commande correcte
+       <code>rm: impossible de supprimer 'dossier1': est un dossier</code>.</p>
+    <p>La commande correcte
        est <strong><code>rmdir</code></strong> pour un répertoire vide, ou
        <code>rm -r</code> pour un répertoire avec son contenu.</p>
   </div>
 
   <div class="encart piege">
-    <div class="titre">⚠️ <code>rm -rf</code> — la commande qui ne pardonne pas</div>
-    <p>Il n'y a <strong>pas de corbeille</strong> sous Linux : ce qui est supprimé est perdu.
-       <code>rm -rf</code> ne demande aucune confirmation et ne s'arrête sur aucune erreur. Une
-       faute de frappe comme <code>rm -rf / home/bob</code> — avec un espace de trop — détruit le
+    <div class="titre">⚠️ <code>rm -rf</code> la commande qui ne pardonne pas</div>
+    <p>Il n'y a <strong>pas de corbeille</strong> sous Linux : ce qui est supprimé est perdu. <code>rm -rf</code> ne demande aucune confirmation et ne s'arrête sur aucune erreur.</p>
+    <p>Une
+       faute de frappe comme <code>rm -rf / home/bob</code>, avec un espace de trop, détruit le
        système entier au lieu du seul dossier.</p>
     <p><strong>Le réflexe :</strong> lancez d'abord <code>ls</code> avec exactement le même chemin.
        Ce que <code>ls</code> affiche est précisément ce que <code>rm</code> supprimera.</p>
@@ -441,16 +448,16 @@ exemple :   ls  -la  /etc
   <h2><span class="num">05</span>La gestion des paquets</h2>
 
   <p>Contrairement à d'autres systèmes, il n'est pas courant sous Linux de disposer de logiciels
-     fournis avec un programme d'installation interactif — <strong>pas d'<code>install.exe</code></strong>.
-     On dispose des produits, outils et mises à jour sous forme de <strong>paquetages</strong>
+     fournis avec un programme d'installation interactif, <strong>pas d'<code>install.exe</code></strong>.</p>
+  <p>On dispose des produits, outils et mises à jour sous forme de <strong>paquetages</strong>
      (<em>packages</em>). Un package est un fichier, parfois gros, qui contient le produit à
      installer <strong>et des règles</strong> :</p>
   <ul>
-    <li><strong>Gestion des dépendances</strong> — le produit ne pourra être installé que si les
+    <li><strong>Gestion des dépendances</strong> : le produit ne pourra être installé que si les
         produits qu'il utilise sont déjà présents ;</li>
-    <li><strong>Pré-installation</strong> — des actions à prévoir avant l'installation : changer
+    <li><strong>Pré-installation</strong> : des actions à prévoir avant l'installation : changer
         des droits, créer des répertoires ;</li>
-    <li><strong>Post-installation</strong> — des actions après : paramétrer un fichier de
+    <li><strong>Post-installation</strong> : des actions après : paramétrer un fichier de
         configuration, compiler une annexe.</li>
   </ul>
 
@@ -491,7 +498,7 @@ exemple :   ls  -la  /etc
 
   <div class="encart analogie">
     <div class="titre">💡 Analogie</div>
-    <p>Un dépôt APT, c'est un magasin d'applications — vingt ans avant l'App Store. Vous ne
+    <p>Un dépôt APT, c'est un magasin d'applications : vingt ans avant l'App Store. Vous ne
        téléchargez pas un <code>.exe</code> sur un site inconnu : vous demandez au système
        d'installer un paquet <strong>signé et vérifié</strong>, qui apporte automatiquement tout ce
        dont il a besoin. C'est aussi pour cela que les virus sont rares sous Linux : personne ne
@@ -526,14 +533,14 @@ exemple :   ls  -la  /etc
   <table>
     <thead><tr><th>Donnée</th><th>Signification</th></tr></thead>
     <tbody>
-      <tr><td><strong>PID</strong></td><td><em>Process Identifier</em> — numéro <strong>unique</strong> pour chaque processus</td></tr>
-      <tr><td><strong>PPID</strong></td><td><em>Parent PID</em> — le PID du processus « père »</td></tr>
+      <tr><td><strong>PID</strong></td><td><em>Process Identifier</em> : numéro <strong>unique</strong> pour chaque processus</td></tr>
+      <tr><td><strong>PPID</strong></td><td><em>Parent PID</em> : le PID du processus « père »</td></tr>
       <tr><td><strong>État</strong></td><td>Prêt (<em>Ready</em>), Actif, Endormi (<em>Sleep</em>), Attente E/S…</td></tr>
       <tr><td><strong>Terminal</strong></td><td>Le terminal depuis lequel le processus a été lancé</td></tr>
       <tr><td><strong>Priorité</strong></td><td>Liée à son contexte d'exécution</td></tr>
       <tr><td><strong>Taille mémoire</strong></td><td>Occupation en mémoire</td></tr>
-      <tr><td><strong>UID</strong></td><td><em>User Identifier</em> — l'utilisateur qui a lancé le processus</td></tr>
-      <tr><td><strong>GID</strong></td><td><em>Group Identifier</em> — le <strong>groupe</strong> propriétaire du processus</td></tr>
+      <tr><td><strong>UID</strong></td><td><em>User Identifier</em> : l'utilisateur qui a lancé le processus</td></tr>
+      <tr><td><strong>GID</strong></td><td><em>Group Identifier</em> : le <strong>groupe</strong> propriétaire du processus</td></tr>
     </tbody>
   </table>
   </div>
@@ -541,9 +548,11 @@ exemple :   ls  -la  /etc
   <div class="encart corrige">
     <div class="titre">🔧 Précision</div>
     <p>Le polycopié définit le GID comme « le GID du propriétaire du processus,
-       c'est-à-dire de l'utilisateur qui a lancé l'exécution » — reprenant mot pour mot la
-       définition de l'UID. Le <strong>GID désigne le groupe</strong>, pas l'utilisateur : c'est
-       en général le groupe principal de celui qui a lancé le processus. La distinction compte,
+       c'est-à-dire de l'utilisateur qui a lancé l'exécution » : reprenant mot pour mot la
+       définition de l'UID.</p>
+    <p>Le <strong>GID désigne le groupe</strong>, pas l'utilisateur : c'est
+       en général le groupe principal de celui qui a lancé le processus.</p>
+    <p>La distinction compte,
        car les droits d'accès s'appliquent séparément au propriétaire et au groupe.</p>
   </div>
 
@@ -574,7 +583,7 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
        figé, et peut repartir avec <code>fg</code> ou <code>bg</code>.<br>
        <kbd>Ctrl</kbd>+<kbd>C</kbd> et <code>kill</code> le <strong>terminent</strong>.</p>
     <p>« Stopper le processus, <em>ne pas le tuer</em> » : la formulation revient souvent, et
-       elle n'est pas un détail de vocabulaire —
+       elle n'est pas un détail de vocabulaire, 
        c'est <kbd>Ctrl</kbd>+<kbd>Z</kbd> qui est attendu, pas <code>kill</code>.</p>
   </div>
 </section>
@@ -615,7 +624,7 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
        <strong>root</strong> et ouvre une session root <strong>entière</strong>.</p>
     <p><code>sudo</code> est préférable : chaque action est journalisée, l'élévation est limitée
        dans le temps, et on peut accorder des droits <strong>précis</strong> via
-       <code>/etc/sudoers</code> — par exemple le droit de redémarrer un service, et rien d'autre.
+       <code>/etc/sudoers</code>, par exemple le droit de redémarrer un service, et rien d'autre.
        C'est exactement la réponse attendue à la question « comment permettre à un utilisateur
        d'exécuter une commande administrative sans lui donner un shell root complet ».</p>
   </div>
@@ -650,11 +659,12 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
 
   <div class="encart piege">
     <div class="titre">⚠️ L'option <code>-a</code> n'est pas optionnelle</div>
-    <p><code>usermod -G projet bob</code> — sans le <code>-a</code> — <strong>remplace</strong> la
-       liste complète des groupes secondaires de bob par <code>projet</code> seul. S'il était dans
+    <p><code>usermod -G projet bob</code>, sans le <code>-a</code>, <strong>remplace</strong> la
+       liste complète des groupes secondaires de bob par <code>projet</code> seul.</p>
+    <p>S'il était dans
        <code>sudo</code>, il en sort : il perd instantanément ses droits d'administration.</p>
     <p>Retenez : <strong><code>usermod -aG</code></strong>, <em>a</em> comme
-       <em>append</em> — « ajouter ». C'est une question classique de QCM.</p>
+       <em>append</em>, « ajouter ». C'est une question classique de QCM.</p>
   </div>
 
   <h3>Les fichiers du système</h3>
@@ -664,7 +674,7 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
     <tbody>
       <tr><td><code>/etc/passwd</code></td>
           <td>Liste <strong>principale des comptes</strong> : nom, UID, GID principal, répertoire
-              personnel, shell. <strong>Lisible par tous</strong> — malgré son nom, il ne contient
+              personnel, shell. <strong>Lisible par tous</strong> : malgré son nom, il ne contient
               plus de mot de passe</td></tr>
       <tr><td><code>/etc/shadow</code></td>
           <td>Les <strong>mots de passe chiffrés</strong>. Lisible par root seul</td></tr>
@@ -706,11 +716,11 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
   <table>
     <thead><tr><th>Catégorie</th><th>Qui</th><th></th><th>Droit</th><th>Sur un fichier</th><th>Sur un répertoire</th><th>Valeur</th></tr></thead>
     <tbody>
-      <tr><td><code>u</code></td><td><strong>User</strong> — le propriétaire</td><td></td>
+      <tr><td><code>u</code></td><td><strong>User</strong> : le propriétaire</td><td></td>
           <td><code>r</code></td><td>Lire le contenu</td><td><strong>Lister</strong> le contenu</td><td><strong>4</strong></td></tr>
-      <tr><td><code>g</code></td><td><strong>Group</strong> — l'équipe</td><td></td>
+      <tr><td><code>g</code></td><td><strong>Group</strong> : l'équipe</td><td></td>
           <td><code>w</code></td><td>Modifier</td><td>Créer / supprimer des fichiers</td><td><strong>2</strong></td></tr>
-      <tr><td><code>o</code></td><td><strong>Others</strong> — le reste du monde</td><td></td>
+      <tr><td><code>o</code></td><td><strong>Others</strong> : le reste du monde</td><td></td>
           <td><code>x</code></td><td>Exécuter comme programme</td><td><strong>Traverser</strong> (entrer dedans)</td><td><strong>1</strong></td></tr>
     </tbody>
   </table>
@@ -720,22 +730,22 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
   <div class="encart piege">
     <div class="titre">⚠️ Sur un répertoire, les droits ne veulent pas dire la même chose</div>
     <ul>
-      <li><code>r</code> — je peux <strong>lister</strong> les noms des fichiers.</li>
-      <li><code>x</code> — je peux <strong>traverser</strong> le répertoire, donc accéder à un
+      <li><code>r</code> : je peux <strong>lister</strong> les noms des fichiers.</li>
+      <li><code>x</code> : je peux <strong>traverser</strong> le répertoire, donc accéder à un
           fichier dont je connais déjà le nom.</li>
     </ul>
     <p>D'où deux situations déroutantes qui tombent souvent :</p>
     <ul>
-      <li><code>r</code> sans <code>x</code> — je vois les noms mais je ne peux
+      <li><code>r</code> sans <code>x</code> : je vois les noms mais je ne peux
           <strong>rien ouvrir</strong>.</li>
-      <li><code>x</code> sans <code>r</code> — je ne vois rien, mais si je connais le nom exact,
+      <li><code>x</code> sans <code>r</code> : je ne vois rien, mais si je connais le nom exact,
           j'ouvre le fichier.</li>
     </ul>
     <p>C'est pourquoi un répertoire utile porte presque toujours <code>r</code> et <code>x</code>
        ensemble.</p>
   </div>
 
-  <h3>Modifier les droits — la méthode symbolique</h3>
+  <h3>Modifier les droits · la méthode symbolique</h3>
 <div class="bloc-code" data-fam="bash" style="--car:79"><span class="langue">bash</span><pre><code><span class="j-fn">chmod</span> g+w fich       <span class="j-com"># AJOUTE le droit d'écriture au groupe</span>
 <span class="j-fn">chmod</span> o+wx fich      <span class="j-com"># ajoute écriture et exécution aux autres</span>
 <span class="j-fn">chmod</span> u-r fich       <span class="j-com"># RETIRE la lecture au propriétaire</span>
@@ -747,7 +757,7 @@ Ctrl + Z              <span class="j-com"># STOPPE le processus courant (il ne m
 <span class="j-fn">  quoi</span>:  + (ajoute)  - (retire)  = (fixe exactement)
 <span class="j-fn">  koi</span> :  r (<span class="j-num">4</span>)  w (<span class="j-num">2</span>)  x (<span class="j-num">1</span>)</code></pre></div>
 
-  <h3>Modifier les droits — la méthode octale</h3>
+  <h3>Modifier les droits · la méthode octale</h3>
   <p>On utilise <strong>un chiffre par catégorie</strong>, obtenu en additionnant les valeurs des
      droits souhaités.</p>
 <div class="bloc-code" data-fam="calcul" style="--car:80"><span class="langue">calcul</span><pre><code>r <span class="j-op">=</span> <span class="j-num">4</span>     w <span class="j-op">=</span> <span class="j-num">2</span>     x <span class="j-op">=</span> <span class="j-num">1</span>
@@ -776,11 +786,12 @@ chmod <span class="j-num">600</span> fichier    <span class="j-op">→</span>  r
        Les deux valeurs sont fausses, et la seconde découle de la première.</p>
     <p><strong>Étape 3 :</strong> le propriétaire a <code>6</code> (<code>rw-</code>). Lui retirer
        <code>r</code> revient à retrancher <strong>4</strong> : 6 − 4 = <strong>2</strong>
-       (<code>-w-</code>). Le résultat est donc <strong><code>267</code></strong>, pas 367 —
+       (<code>-w-</code>).</p>
+    <p>Le résultat est donc <strong><code>267</code></strong>, pas 367 : 
        <code>3</code> vaudrait <code>-wx</code>, ce qui signifierait qu'on a <em>ajouté</em> le
        droit d'exécution alors qu'on n'a rien fait de tel.</p>
-    <p><strong>Étape 4 :</strong> en repartant de <code>267</code> — groupe 6 − 2 = 4, autres
-       7 − 3 = 4 — on obtient <strong><code>244</code></strong>, et non 344.</p>
+    <p><strong>Étape 4 :</strong> en repartant de <code>267</code>, groupe 6 − 2 = 4, autres
+       7 − 3 = 4, on obtient <strong><code>244</code></strong>, et non 344.</p>
     <p><strong>Le contrôle qui évite l'erreur :</strong> après chaque étape, retraduisez le nombre
        en <code>rwx</code> et relisez l'énoncé. Un chiffre qui augmente alors qu'on a « retiré » un
        droit signale une faute de calcul.</p>
@@ -811,11 +822,13 @@ chmod <span class="j-num">600</span> fichier    <span class="j-op">→</span>  r
 <span class="j-fn">sudo chmod</span> g+s /srv/projet         <span class="j-com"># bonus : les fichiers créés héritent du groupe</span></code></pre></div>
       <p><strong>Pourquoi pas <code>777</code> :</strong> cela donne
          <strong>tous les droits à tout le monde</strong>, y compris à n'importe quel compte de
-         service compromis. Le but était justement de restreindre : <code>777</code> fait
+         service compromis.</p>
+      <p>Le but était justement de restreindre : <code>777</code> fait
          exactement l'inverse. C'est la mauvaise réponse classique du QCM.</p>
       <p><strong>Pourquoi pas non plus un compte partagé ni le mot de passe root :</strong> on perd
-         toute traçabilité — impossible de savoir qui a fait quoi — et on donne bien plus de droits
-         que nécessaire. Le principe est celui du <strong>moindre privilège</strong> : juste ce
+         toute traçabilité, impossible de savoir qui a fait quoi, et on donne bien plus de droits
+         que nécessaire.</p>
+      <p>Le principe est celui du <strong>moindre privilège</strong> : juste ce
          qu'il faut, à la bonne personne.</p>
     </div>
   </div>
@@ -830,7 +843,7 @@ chmod <span class="j-num">600</span> fichier    <span class="j-op">→</span>  r
 <span class="j-fn">ip</span> route      <span class="j-com"># la table de routage, dont la passerelle par défaut</span>
               <span class="j-com"># (ifconfig et route sont les commandes ANCIENNES, souvent absentes)</span></code></pre></div>
   <p>La commande retourne l'interface <code>lo</code>, qui correspond à la <strong>boucle
-     locale</strong> (<em>loopback</em>), ainsi qu'une ou plusieurs autres interfaces —
+     locale</strong> (<em>loopback</em>), ainsi qu'une ou plusieurs autres interfaces : 
      <code>enp0s3</code>, <code>ens33</code>… Il faut <strong>récupérer le nom exact</strong> de
      l'interface connectée au réseau local.</p>
 
@@ -854,15 +867,15 @@ iface enp0s3 inet static
   <div class="encart piege">
     <div class="titre">⚠️ Les quatre lignes qui font tout échouer</div>
     <ul>
-      <li><strong><code>auto enp0s3</code> manquante</strong> — sans elle, l'interface n'est pas
+      <li><strong><code>auto enp0s3</code> manquante</strong>, sans elle, l'interface n'est pas
           activée au démarrage. Tout est juste, et pourtant rien ne marche après un
           redémarrage.</li>
-      <li><strong>Le masque en notation CIDR</strong> — dans ce fichier, on écrit
+      <li><strong>Le masque en notation CIDR</strong> : dans ce fichier, on écrit
           <code>netmask 255.255.255.0</code> sur une ligne séparée, <em>pas</em>
           <code>address 10.0.0.10/24</code>.</li>
-      <li><strong>Le nom de l'interface</strong> — <code>eth0</code> n'existe plus sur Debian
+      <li><strong>Le nom de l'interface</strong> : <code>eth0</code> n'existe plus sur Debian
           récent. Relevez le nom réel avec <code>ip a</code> avant d'écrire quoi que ce soit.</li>
-      <li><strong>La passerelle oubliée</strong> — sans <code>gateway</code>, la machine
+      <li><strong>La passerelle oubliée</strong>, sans <code>gateway</code>, la machine
           communique dans son LAN mais ne sort pas.</li>
     </ul>
   </div>
@@ -872,8 +885,9 @@ iface enp0s3 inet static
     <p>Autrefois, les interfaces étaient numérotées dans l'ordre de détection au démarrage :
        <code>eth0</code>, <code>eth1</code>… Problème : cet ordre pouvait <strong>changer</strong>
        d'un démarrage à l'autre sur une machine à plusieurs cartes, et la configuration se
-       retrouvait appliquée à la mauvaise interface. Les noms actuels — <code>enp0s3</code>,
-       <code>ens33</code> — encodent l'<strong>emplacement physique</strong> de la carte
+       retrouvait appliquée à la mauvaise interface.</p>
+    <p>Les noms actuels, <code>enp0s3</code>,
+       <code>ens33</code>, encodent l'<strong>emplacement physique</strong> de la carte
        (<em>bus</em>, <em>slot</em>) : ils sont laids, mais ils ne bougent jamais.</p>
   </div>
 
@@ -887,7 +901,7 @@ iface enp0s3 inet static
       <tr><td>Avantage</td><td>Adresse <strong>stable et prévisible</strong> : les clients et le
           DNS la retrouvent toujours</td><td>Aucune configuration manuelle, aucun conflit</td></tr>
       <tr><td>Inconvénient</td><td>À documenter, sous peine de conflit d'adresses</td>
-          <td>L'adresse peut changer — inacceptable pour un service</td></tr>
+          <td>L'adresse peut changer : inacceptable pour un service</td></tr>
     </tbody>
   </table>
   </div>
@@ -925,11 +939,11 @@ iface enp0s3 inet static
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>1-Cours-Administration des systèmes Linux.pdf — le professeur</li>
-      <li>1-1-Memo-Commande_base.pdf — tutos-info.fr, Debian 12</li>
+      <li>1-Cours-Administration des systèmes Linux.pdf : le professeur</li>
+      <li>1-1-Memo-Commande_base.pdf : tutos-info.fr, Debian 12</li>
       <li>1-2-TP-Permission.pdf · 1-2-TP_accès_Sécurité_linux.pdf</li>
       <li>Adresse IP statique sur Linux.pdf</li>
-      <li>Test Linux.pdf — évaluation notée</li>
+      <li>Test Linux.pdf : évaluation notée</li>
       <li>Arborescence.docx · Les Commandes.docx · Les Permissions.docx</li>
     </ul>
   </div>
@@ -939,7 +953,7 @@ iface enp0s3 inet static
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../04-adressage-ipv4-vlsm/cours.html"><span>Chapitre précédent</span><b>Adressage IPv4 &amp; VLSM</b></a><a class="suiv" href="../06-systemes-windows-virtualisation/cours.html"><span>Chapitre suivant</span><b>Windows Server &amp; virtualisation</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=06acf86e"></script>
-<script src="../../assets/app.js?v=06acf86e"></script>
+<script src="../../assets/fiche.js?v=a77ccb9c"></script>
+<script src="../../assets/app.js?v=a77ccb9c"></script>
 </body>
 </html>
