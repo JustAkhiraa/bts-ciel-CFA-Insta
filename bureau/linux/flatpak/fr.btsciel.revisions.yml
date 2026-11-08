@@ -1,0 +1,34 @@
+# Le Flatpak de l'application BTS CIEL : un seul fichier pour toutes les
+# distributions qui ont Flatpak (Fedora, Arch, NixOS, Debian, openSUSE,
+# Linux Mint, Pop!_OS, Alpine...).
+#
+# Il ne recompile rien : il reprend le programme du .deb de la même version
+# et le pose sur l'environnement GNOME, que Flathub fournit (le moteur web y
+# est déjà). Il n'a pas accès au réseau ni aux fichiers : le site est
+# embarqué, et un lien vers un autre site s'ouvre dans le navigateur par le
+# portail du système.
+#
+# Installer : flatpak install --user BTS.CIEL_*.flatpak
+id: fr.btsciel.revisions
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+command: bts-ciel
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+modules:
+  - name: bts-ciel
+    buildsystem: simple
+    sources:
+      - type: file
+        path: bts-ciel.deb
+    build-commands:
+      - ar -x bts-ciel.deb
+      - tar -xf data.tar.*
+      - install -Dm755 usr/bin/bts-ciel /app/bin/bts-ciel
+      - install -Dm644 usr/share/applications/*.desktop /app/share/applications/fr.btsciel.revisions.desktop
+      - desktop-file-edit --set-icon=fr.btsciel.revisions /app/share/applications/fr.btsciel.revisions.desktop
+      - for f in usr/share/icons/hicolor/*/apps/*.png; do t=${f#usr/share/icons/hicolor/}; install -Dm644 "$f" "/app/share/icons/hicolor/${t%%/*}/apps/fr.btsciel.revisions.png"; done
