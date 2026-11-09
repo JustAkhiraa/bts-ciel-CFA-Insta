@@ -273,6 +273,47 @@
     return touche ? morceaux : null;
   }
 
+  /* Le lasso qui DÉCOUPE (demandé le 9 nov. 2026) : un trait est coupé là
+     où sa ligne passe le bord du lasso, et chaque morceau dit s'il est
+     dedans. La coupe est interpolée sur le segment, pression comprise :
+     les deux morceaux se touchent au point de coupe, rien ne manque.
+     Rend [{ points, pressions, dedans }], dans l'ordre du trait. */
+  function decouperPolygone(L, P, poly) {
+    const n = L.length, morceaux = [];
+    if (!n || poly.length < 3) return morceaux;
+    const au = (i, t) => {
+      const j = Math.min(n - 1, i + 1), a = L[i], b = L[j];
+      return { x: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], p: P[i] + (P[j] - P[i]) * t };
+    };
+    let cour = null;
+    const ouvrir = (q, dedans) => { cour = { points: [q.x], pressions: [q.p], dedans }; morceaux.push(cour); };
+    if (n === 1) { ouvrir(au(0, 0), dansPolygone(L[0], poly)); return morceaux; }
+    for (let i = 0; i < n - 1; i++) {
+      const a = L[i], b = L[i + 1], dx = b[0] - a[0], dy = b[1] - a[1];
+      // les passages du segment à travers les bords du lasso
+      const ts = [0, 1];
+      for (let k = 0, m = poly.length - 1; k < poly.length; m = k++) {
+        const c = poly[m], d = poly[k], ex = d[0] - c[0], ey = d[1] - c[1];
+        const den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-12) continue;
+        const t = ((c[0] - a[0]) * ey - (c[1] - a[1]) * ex) / den;
+        const u = ((c[0] - a[0]) * dy - (c[1] - a[1]) * dx) / den;
+        if (t > 0 && t < 1 && u >= 0 && u < 1) ts.push(t);
+      }
+      ts.sort((x, y) => x - y);
+      for (let j = 0; j < ts.length - 1; j++) {
+        const t0 = ts[j], t1 = ts[j + 1];
+        if (t1 - t0 < 1e-9) continue;
+        // un bout de segment entre deux passages est tout dedans ou tout dehors
+        const dedans = dansPolygone(au(i, (t0 + t1) / 2).x, poly);
+        if (!cour || cour.dedans !== dedans) ouvrir(au(i, t0), dedans);
+        const q = au(i, t1);
+        cour.points.push(q.x); cour.pressions.push(q.p);
+      }
+    }
+    return morceaux;
+  }
+
   /* ═══════════════ 5. Lire un symbole : l'algorithme $P ═════════════════════
      « $P Point-Cloud Recognizer » (Vatavu, Anthony et Wobbrock, 2012) : un
      symbole est un NUAGE de points, ré-échantillonné, centré et mis à
@@ -476,7 +517,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, decouper, gommer, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;

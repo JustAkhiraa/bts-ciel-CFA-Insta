@@ -171,6 +171,9 @@
     /* La gomme efface sous le curseur, comme une vraie gomme : c'est le
        défaut depuis le 8 nov. 2026. « Trait entier » reste à un clic. */
     formes: false, gommeMode: "partie", gommeChoisie: false, gommeTaille: 12,
+    /* Le lasso prend les éléments ENTIERS, ou découpe ce qu'il entoure
+       (« partie », demandé le 9 nov. 2026) : recliquer le lasso choisit. */
+    lassoMode: "entier",
     styletSeul: false, inclinaison: true, regle: null,
   };
   /* Les douze encres, et les six calibres. */
@@ -238,6 +241,7 @@
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
+          lassoMode: etat.lassoMode,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
@@ -261,7 +265,7 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -1438,12 +1442,115 @@
   }
   function finLasso(g) {
     selection = new Set(g.avant);
+    let coupes = 0;
     if (g.pts.length > 2) {
-      elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+      if (etat.lassoMode === "partie") {
+        const r = couperAuLasso(g.pts);
+        r.pris.forEach((id) => selection.add(id));
+        coupes = r.coupes;
+      } else {
+        elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+      }
     }
+    if (coupes) memoriser();
     const n = selection.size;
-    dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso." : "Rien d'entouré.");
+    dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso"
+      + (coupes ? ", dont " + coupes + " découpé" + (coupes > 1 ? "s" : "") + " au bord. Ctrl + Z pour revenir." : ".")
+      : "Rien d'entouré.");
     majPanneau(); demander();
+  }
+
+  /* ── le lasso qui découpe ──
+     Ce qui est DANS la boucle est pris, ce qui est dehors reste où il était.
+     Un trait est coupé au bord (ses morceaux gardent son dessin, comme pour
+     la gomme). Une image est coupée en deux : l'intérieur devient une image
+     à part, posée exactement à sa place et sélectionnée ; l'originale garde
+     le reste, avec un trou transparent. Formes et textes ne se coupent pas :
+     ils sont pris entiers, à la règle habituelle. */
+  function couperAuLasso(poly) {
+    const pris = new Set();
+    let coupes = 0;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (estLie(el)) continue;
+      const bb = R.boite(el);
+      // la boucle dans le repère de l'élément (rotation défaite)
+      const loc = () => poly.map((q) => { const r = versRepere(el, bb, q); return [r[0] - el.x, r[1] - el.y]; });
+      if (el.type === "freedraw" && !el.locked && !(el.customData && el.customData.pointe === "remplissage")) {
+        const t = R.trace(el), m = S.decouperPolygone(t.L, t.P, loc());
+        if (!m.some((x) => x.dedans)) continue;
+        if (m.every((x) => x.dedans)) { pris.add(el.id); continue; }
+        const nouveaux = m.filter((x) => x.points.length > 1).map((x) => {
+          const n = morceau(el, bb, x);
+          if (x.dedans) pris.add(n.id);
+          return n;
+        });
+        elements.splice(i, 1, ...nouveaux);
+        selection.delete(el.id);
+        coupes++;
+        continue;
+      }
+      if (el.type === "image" && !el.locked) {
+        const r = couperImage(el, bb, loc());
+        if (r === "entier") pris.add(el.id);
+        else if (r) { elements.splice(i + 1, 0, r); pris.add(r.id); coupes++; }
+        continue;
+      }
+      if (S.pris(echantillon(el), poly)) pris.add(el.id);
+    }
+    return { pris, coupes };
+  }
+  /* Rend la nouvelle image (l'intérieur), « entier » si la boucle prend
+     toute l'image, ou rien si elle n'en prend rien. */
+  function couperImage(el, bb, loc) {
+    const img = imageDe(el.fileId);
+    if (!img || !img.complete || !img.naturalWidth || !el.width || !el.height) return null;
+    const W = el.width, H = el.height, s = Array.isArray(el.scale) ? el.scale : [1, 1];
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    loc.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
+    if (x1 - x0 < 1 || y1 - y0 < 1) return null;
+    const chemin = (c, f) => { c.beginPath(); loc.forEach((q, k) => { const [x, y] = f ? f(q) : q; k ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
+    // la résolution de l'image : ses pixels, ou le double de l'écran pour un dessin vectoriel
+    const vect = /svg/.test((fichiers[el.fileId] || {}).mimeType || "");
+    const NW = vect ? Math.min(2048, Math.ceil(W * 2)) : img.naturalWidth;
+    const NH = vect ? Math.min(2048, Math.ceil(H * 2)) : img.naturalHeight;
+    const kx = NW / W, ky = NH / H;
+    // 1. ce qui reste : l'image entière, moins la boucle (dans son sens à elle, miroir compris)
+    const reste = document.createElement("canvas");
+    reste.width = NW; reste.height = NH;
+    const cr = reste.getContext("2d");
+    cr.drawImage(img, 0, 0, NW, NH);
+    cr.setTransform(kx, 0, 0, ky, 0, 0);
+    cr.globalCompositeOperation = "destination-out";
+    chemin(cr, ([x, y]) => [s[0] < 0 ? W - x : x, s[1] < 0 ? H - y : y]);
+    cr.fill();
+    if (toileVide(reste)) return "entier";
+    // 2. l'intérieur, recadré sur la boucle, dans le sens où on le voit
+    const pw = Math.max(1, Math.round((x1 - x0) * kx)), ph = Math.max(1, Math.round((y1 - y0) * ky));
+    const dedans = document.createElement("canvas");
+    dedans.width = pw; dedans.height = ph;
+    const cd = dedans.getContext("2d");
+    cd.setTransform(kx, 0, 0, ky, -x0 * kx, -y0 * ky);
+    chemin(cd);
+    cd.clip();
+    if (s[0] < 0 || s[1] < 0) { cd.translate(s[0] < 0 ? W : 0, s[1] < 0 ? H : 0); cd.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1); }
+    cd.drawImage(img, 0, 0, W, H);
+    if (toileVide(dedans)) return null;
+    // l'originale garde le reste ; la nouvelle se pose exactement où on la voyait
+    el.fileId = enFichierToile(reste);
+    toucher(el);
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), x: el.x + x0, y: el.y + y0,
+      width: x1 - x0, height: y1 - y0, scale: [1, 1], crop: null, fileId: enFichierToile(dedans),
+      boundElements: null, groupIds: [] });
+    if (el.angle) {
+      const [cx, cy] = milieuBoite(bb), mx = n.x + n.width / 2, my = n.y + n.height / 2;
+      const co = Math.cos(el.angle), si = Math.sin(el.angle), dx = mx - cx, dy = my - cy;
+      n.x += dx * co - dy * si - dx;
+      n.y += dx * si + dy * co - dy;
+    }
+    toucher(n);
+    return n;
   }
 
   /* ── la gomme ──
@@ -2847,7 +2954,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -3824,8 +3931,19 @@
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
   }
+  function ouvrirReglageLasso() {
+    reglage.innerHTML = '<p class="tb-menu-titre">Lasso</p><div class="tb-choix">'
+      + [["entier", "Éléments entiers"], ["partie", "Seulement l'intérieur"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rl="'
+        + v + '" aria-pressed="' + (etat.lassoMode === v) + '">' + t + "</button>").join("") + "</div>"
+      + '<p class="tb-note">' + (etat.lassoMode === "partie"
+        ? "Découpe ce qui est dans la boucle : la moitié d'une image devient une image à part, un trait est coupé au bord. Le reste ne bouge pas."
+        : "Prend tout élément dont la plus grande part est dans la boucle, en entier.") + "</p>";
+    reglage.dataset.quoi = "lasso";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
     if (quoi === "gomme") return ouvrirReglageGomme();
+    if (quoi === "lasso") return ouvrirReglageLasso();
     if (quoi === "baguette") return ouvrirReglageBaguette();
     const surl = quoi === "surligneur";
     const st = surl ? { c: etat.courant.surligneur, w: etat.courant.surligneurW } : etat.stylos[quoi];
@@ -3857,6 +3975,11 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "lasso") {
+      if (b.dataset.rl) etat.lassoMode = b.dataset.rl;
+      garder(); ouvrirReglageLasso();
+      return;
+    }
     if (q === "gomme") {
       if (b.dataset.rg) { etat.gommeMode = b.dataset.rg; etat.gommeChoisie = true; }
       if (b.dataset.rgt) etat.gommeTaille = Number(b.dataset.rgt);
