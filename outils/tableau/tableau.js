@@ -184,6 +184,10 @@
     /* Le lasso prend les éléments ENTIERS, ou découpe ce qu'il entoure
        (« partie », demandé le 9 nov. 2026) : recliquer le lasso choisit. */
     lassoMode: "entier",
+    /* La forme de la boucle (demandé le 9 nov. 2026 : plusieurs outils de
+       sélection sous le lasso) : à main levée, rectangle, ellipse, ou
+       polygone posé coin par coin. */
+    lassoForme: "libre",
     /* Le laser se règle (demandé le 9 nov. 2026 : il disparaissait trop
        vite) : combien de temps il reste, sa couleur, son épaisseur, sa
        transparence. Par défaut, le laser d'avant, au réglage près. */
@@ -256,7 +260,7 @@
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
-          lassoMode: etat.lassoMode, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
+          lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
@@ -281,7 +285,7 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -962,7 +966,18 @@
     }
     ctx.shadowBlur = 0;
     if (traineeGomme.length) trace(ctx, traineeGomme, "rgba(120,120,120,.5)", 12, 260);
-    if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
+    if (geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      // les coins posés, le côté qui suit le doigt, et le premier coin à retoucher
+      const pts = geste.survol ? geste.pts.concat([geste.survol]) : geste.pts;
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.setLineDash([6 / z, 5 / z]); ctx.lineWidth = 1.5 / z; ctx.strokeStyle = BLEU_SEL; ctx.stroke();
+      ctx.setLineDash([]);
+      geste.pts.forEach(([x, y], i) => {
+        ctx.beginPath(); ctx.arc(x, y, (i ? 3.5 : 6) / z, 0, Math.PI * 2);
+        ctx.fillStyle = i ? BLEU_SEL : "#fff"; ctx.fill(); ctx.stroke();
+      });
+    } else if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
       ctx.beginPath();
       geste.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
       ctx.closePath();
@@ -1188,6 +1203,7 @@
   const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser", "baguette"];
   function choisirOutil(o) {
     if (edition) finirEdition();
+    if (geste && geste.mode === "lasso") { geste = null; demander(); }
     etat.outil = o;
     lienDebut = null;
     if (o !== "selection") selection.clear();
@@ -1463,6 +1479,17 @@
      dedans. La sélection faite, l'outil reste en main : on saisit ce
      qu'on a pris pour le déplacer, ou on entoure autre chose. */
   function debutLasso(e, p) {
+    // un polygone en cours : chaque appui pose un coin, ou le ferme
+    if (geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      const g = geste, tol = 12 / etat.zoom, [x0, y0] = g.pts[0], der = g.pts[g.pts.length - 1];
+      const maintenant = performance.now();
+      const surPremier = g.pts.length > 2 && Math.hypot(p.x - x0, p.y - y0) <= tol;
+      const double = g.pts.length > 2 && maintenant - (g.dernierAppui || 0) < 350 && Math.hypot(p.x - der[0], p.y - der[1]) <= tol;
+      g.dernierAppui = maintenant;
+      if (surPremier || double) { geste = null; finLasso(g); return; }
+      g.pts.push([p.x, p.y]); g.survol = null; demander();
+      return;
+    }
     const sel = selectionnes();
     if (sel.length) {
       if (poigneeSous(p.x, p.y) || surPoigneeTourner(p.x, p.y)) return debutSelection(e, p);
@@ -1474,8 +1501,19 @@
       }
     }
     if (!e.shiftKey) selection.clear();
-    geste = { mode: "lasso", pts: [[p.x, p.y]], avant: new Set(selection) };
+    const forme = etat.lassoForme || "libre";
+    geste = { mode: "lasso", forme, x0: p.x, y0: p.y, pts: [[p.x, p.y]], avant: new Set(selection),
+              dernierAppui: performance.now() };
+    if (forme === "polygone") dire("Polygone : touchez chaque coin, puis le premier coin (ou deux fois, ou Entrée) pour fermer.");
     majPanneau(); demander();
+  }
+  // la boucle d'un rectangle ou d'une ellipse, tirée du point de départ au doigt
+  function boucleForme(g, p) {
+    const x0 = Math.min(g.x0, p.x), x1 = Math.max(g.x0, p.x), y0 = Math.min(g.y0, p.y), y1 = Math.max(g.y0, p.y);
+    if (g.forme === "rectangle") return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2, out = [];
+    for (let k = 0; k < 48; k++) out.push([cx + rx * Math.cos(k * Math.PI / 24), cy + ry * Math.sin(k * Math.PI / 24)]);
+    return out;
   }
   /* Ce que le lasso regarde d'un élément, là où on le voit (voir « jalons »
      dans stylet.js) : la longueur d'un trait, la surface d'une forme. */
@@ -1558,7 +1596,7 @@
          qui se croise elle-même), on garde l'ancienne règle. */
       if (el.type === "freedraw" && !el.locked && el.customData && el.customData.pointe === "remplissage"
           && el.points && el.points.length > 2) {
-        const r = S.couperSurface(R.contourRemplissage(el), loc());
+        const r = S.couperSurfaceLibre(R.contourRemplissage(el), loc());
         if (r && r.dedans.length && r.dehors.length) {
           const piece = (P) => {
             const n = morceau(el, bb, { points: P, pressions: P.map(() => 0.5) });
@@ -1701,9 +1739,30 @@
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
         if (el.type !== "freedraw" || el.locked) continue;
-        // une surface remplie n'est pas un trait : coupée, chaque morceau se
-        // refermerait sur lui-même en une autre forme
-        if (el.customData && el.customData.pointe === "remplissage") continue;
+        /* Une surface remplie n'est pas un trait : la gomme y découpe un
+           ROND, par la même découpe de surface que le lasso (signalé le
+           9 nov. : elle ne l'effaçait pas). Au milieu, il reste un trou. */
+        if (el.customData && el.customData.pointe === "remplissage") {
+          if (el.locked || !el.points || el.points.length < 3) continue;
+          const bs = R.boite(el), qs = versRepere(el, bs, c);
+          if (qs[0] < bs.x - r || qs[0] > bs.x + bs.w + r || qs[1] < bs.y - r || qs[1] > bs.y + bs.h + r) continue;
+          const rond = [];
+          for (let k2 = 0; k2 < 24; k2++) {
+            const a2 = k2 * Math.PI / 12;
+            rond.push([qs[0] - el.x + r * Math.cos(a2), qs[1] - el.y + r * Math.sin(a2)]);
+          }
+          const res = S.couperSurfaceLibre(R.contourRemplissage(el), rond, 20);
+          if (!res || !res.dedans.length) continue;
+          const restes = res.dehors.map((P) => {
+            const n = morceau(el, bs, { points: P, pressions: P.map(() => 0.5) });
+            n.customData = Object.assign({}, n.customData, { net: true });
+            return n;
+          });
+          elements.splice(i, 1, ...restes);
+          selection.delete(el.id);
+          g.coupes = g.encre = true;
+          continue;
+        }
         const bb = R.boite(el), q = versRepere(el, bb, c);
         // aucune pointe ne dépasse 2,5 × 1,9 × l'épaisseur de demi-largeur
         const marge = r + 4.75 * Math.max(0.6, el.strokeWidth || 1) + 1;
@@ -2008,7 +2067,12 @@
       return;
     }
     if (g.mode === "regle") return bougerRegle(g, sx, sy, e);
-    if (g.mode === "lasso") { g.pts.push([p.x, p.y]); demander(); return; }
+    if (g.mode === "lasso") {
+      if (g.forme === "rectangle" || g.forme === "ellipse") g.pts = boucleForme(g, p);
+      else if (g.forme === "polygone") g.survol = [p.x, p.y];
+      else g.pts.push([p.x, p.y]);
+      demander(); return;
+    }
     if (g.mode === "redresse") return ajusterRedresse(g, p, e);
     if (g.mode === "creer") return tracerForme(g, p, e);
     if (g.mode === "ligne") return tracerLigne(g.el, 1, p, e);
@@ -2173,6 +2237,7 @@
     const g = geste;
     clearTimeout(g.minuterie);
     if (g.mode === "pince") { if (pointeurs.size < 2) { geste = null; garder(); } return; }
+    if (g.mode === "lasso" && g.forme === "polygone") { demander(); return; }
     geste = null;
     if (g.mode === "pan") { garder(); majCurseur(); return; }
     if (g.mode === "deplacer") { if (g.bouge) memoriser(); majPanneau(); demander(); return; }
@@ -2842,6 +2907,10 @@
       return;
     }
     if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); supprimerSelection(); return; }
+    if (e.key === "Enter" && geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      e.preventDefault();
+      const g = geste; geste = null; finLasso(g); return;
+    }
     if (e.key === "Enter" && selection.size === 1) {
       const el = selectionnes()[0];
       e.preventDefault();
@@ -4045,8 +4114,16 @@
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
   }
+  const LASSO_FORMES = [["libre", "Main levée"], ["rectangle", "Rectangle"], ["ellipse", "Ellipse"],
+                        ["polygone", "Polygone"]];
   function ouvrirReglageLasso() {
-    reglage.innerHTML = '<p class="tb-menu-titre">Lasso</p><div class="tb-choix">'
+    reglage.innerHTML = '<p class="tb-menu-titre">Forme de la sélection</p><div class="tb-choix">'
+      + LASSO_FORMES.map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rf="' + v
+        + '" aria-pressed="' + (etat.lassoForme === v) + '">' + t + "</button>").join("") + "</div>"
+      + (etat.lassoForme === "polygone"
+        ? '<p class="tb-note">Touchez pour poser chaque coin. Pour fermer : retouchez le premier coin, '
+          + 'touchez deux fois de suite, ou Entrée. Échap annule.</p>' : "")
+      + '<p class="tb-menu-titre">Ce qu\'elle prend</p><div class="tb-choix">'
       + [["entier", "Éléments entiers"], ["partie", "Seulement l'intérieur"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rl="'
         + v + '" aria-pressed="' + (etat.lassoMode === v) + '">' + t + "</button>").join("") + "</div>"
       + '<p class="tb-note">' + (etat.lassoMode === "partie"
@@ -4123,7 +4200,8 @@
     }
     if (q === "lasso") {
       if (b.dataset.rl) etat.lassoMode = b.dataset.rl;
-      garder(); ouvrirReglageLasso();
+      if (b.dataset.rf) { etat.lassoForme = b.dataset.rf; if (geste && geste.mode === "lasso") geste = null; }
+      garder(); ouvrirReglageLasso(); demander();
       return;
     }
     if (q === "gomme") {

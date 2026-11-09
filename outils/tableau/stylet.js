@@ -271,7 +271,7 @@
     for (let k = 0; k <= T.length; k++) out.push(T[(bj + k) % T.length]);
     return out;
   }
-  function couperSurface(S0, C0) {
+  function couperSurface(S0, C0, precision) {
     const S = nettoyerContour(S0), C = nettoyerContour(C0);
     if (S.length < 3 || C.length < 3) return null;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -352,11 +352,13 @@
     };
     const dedans = parcourir(false), dehors = parcourir(true);
     if (!dedans || !dehors) return null;
-    // la vérification : 48 × 48 points sur la boîte de la forme
+    // la vérification : 48 × 48 points sur la boîte de la forme (moins pour
+    // la gomme, qui coupe à chaque pas du geste)
     let faux = 0, total = 0;
+    const N = precision || 48;
     const dansUn = (q, L) => L.some((P) => dansPolygone(q, P));
-    for (let i = 0; i < 48; i++) for (let j = 0; j < 48; j++) {
-      const q = [x0 + (x1 - x0) * (i + 0.5) / 48, y0 + (y1 - y0) * (j + 0.5) / 48];
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / N, y0 + (y1 - y0) * (j + 0.5) / N];
       const dansS = dansPolygone(q, S);
       if (!dansS && !dansUn(q, dedans) && !dansUn(q, dehors)) continue;
       total++;
@@ -364,6 +366,92 @@
       if (dansUn(q, dedans) !== (dansS && dansC) || dansUn(q, dehors) !== (dansS && !dansC)) faux++;
     }
     if (!total || faux > total * 0.01) return null;
+    return { dedans, dehors };
+  }
+
+  /* ── une forme tracée à la main qui se croise elle-même ──────────────
+     Signalé le 9 nov. 2026 : le lasso ne coupait toujours pas les formes
+     remplies. Mesuré sur la sienne : 56 points, UN croisement. À la main,
+     on referme une forme en dépassant un peu le point de départ, et le
+     contour se croise là. Greiner et Hormann veulent des contours simples,
+     la vérification le voyait, et la découpe était refusée.
+
+     Le contour est donc d'abord défait en boucles simples : à chaque
+     croisement, il se sépare en deux, jusqu'à ce qu'aucune ne se croise
+     plus. Chaque boucle est découpée à part. Puis le TOUT est vérifié
+     contre la règle que le dessin applique vraiment (« nonzero » : un point
+     est peint si le contour tourne autour de lui au moins une fois). */
+  function croisement(P) {
+    const n = P.length;
+    for (let i = 0; i < n; i++) {
+      const a = P[i], b = P[(i + 1) % n];
+      for (let j = i + 2; j < n; j++) {
+        if (i === 0 && j === n - 1) continue;
+        const c = P[j], d = P[(j + 1) % n];
+        const den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+        if (den === 0) continue;
+        const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den;
+        const u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den;
+        if (t > 0 && t < 1 && u > 0 && u < 1) return { i, j, x: a[0] + t * (b[0] - a[0]), y: a[1] + t * (b[1] - a[1]) };
+      }
+    }
+    return null;
+  }
+  function boucles(P0, profondeur) {
+    const P = nettoyerContour(P0);
+    if (P.length < 3) return [];
+    const x = croisement(P);
+    if (!x) return Math.abs(aireSignee(P)) > 0.25 ? [P] : [];
+    if ((profondeur || 0) > 40) return null;
+    const X = [x.x, x.y];
+    const A = boucles([X].concat(P.slice(x.i + 1, x.j + 1)), (profondeur || 0) + 1);
+    const B = boucles([X].concat(P.slice(x.j + 1), P.slice(0, x.i + 1)), (profondeur || 0) + 1);
+    return A && B ? A.concat(B) : null;
+  }
+  // combien de fois le contour tourne autour du point (la règle « nonzero »)
+  function enroulement(q, P) {
+    let w = 0;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xa, ya] = P[j], [xb, yb] = P[i];
+      const c = (xb - xa) * (q[1] - ya) - (q[0] - xa) * (yb - ya);
+      if (ya <= q[1]) { if (yb > q[1] && c > 0) w++; }
+      else if (yb <= q[1] && c < 0) w--;
+    }
+    return w;
+  }
+  function couperSurfaceLibre(S0, C, precision) {
+    const L = boucles(S0, 0), LC = boucles(C, 0);
+    if (!L || !L.length || !LC || !LC.length) return null;
+    if (L.length === 1 && LC.length === 1) return couperSurface(L[0], LC[0], precision);
+    // la boucle du lasso aussi peut se croiser (on la referme en dépassant
+    // le départ) : chacune de ses boucles est coupée tour à tour dans ce
+    // qui reste de la forme
+    const dedans = [];
+    let restes = L;
+    for (const Ci of LC) {
+      const suivants = [];
+      for (const B of restes) {
+        const r = couperSurface(B, Ci, precision);
+        if (!r) return null;
+        dedans.push(...r.dedans); suivants.push(...r.dehors);
+      }
+      restes = suivants;
+    }
+    const dehors = restes;
+    // le tout, contre ce que le dessin peint vraiment
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S0.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    const N = precision || 48, dansUn = (q, M) => M.some((P) => dansPolygone(q, P));
+    let faux = 0, total = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / N, y0 + (y1 - y0) * (j + 0.5) / N];
+      const peint = enroulement(q, S0) !== 0, dd = dansUn(q, dedans), dh = dansUn(q, dehors);
+      if (!peint && !dd && !dh) continue;
+      total++;
+      const dansC = dansPolygone(q, C);
+      if (dd !== (peint && dansC) || dh !== (peint && !dansC)) faux++;
+    }
+    if (!total || faux > total * 0.02) return null;
     return { dedans, dehors };
   }
 
@@ -709,7 +797,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, jalons, grille, tourner, couperSurface, aireSignee, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, jalons, grille, tourner, couperSurface, couperSurfaceLibre, boucles, enroulement, aireSignee, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;
