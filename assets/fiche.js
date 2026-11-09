@@ -121,7 +121,11 @@
   function langueDuBloc(bloc) {
     var e = bloc.querySelector(".langue");
     if (!e) return "";
-    var t = e.textContent.split(/\s+[—–]\s+/)[0].trim().toLowerCase();
+    /* « · » aussi : la publication remplace le tiret long des étiquettes par
+       un point médian (tirets.py). Sans lui, « C++ · tp2-ex3.cpp » restait
+       entier, ne valait ni « c » ni « c++ », et 36 programmes des fiches de
+       C et de C++, dont tous les TP de C++, avaient perdu leur bouton. */
+    var t = e.textContent.split(/\s+[—–·]\s+/)[0].trim().toLowerCase();
     return t.normalize ? t.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : t;
   }
 
