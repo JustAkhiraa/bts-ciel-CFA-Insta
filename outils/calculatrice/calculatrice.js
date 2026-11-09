@@ -4358,32 +4358,65 @@
     + '<circle cx="9" cy="6.5" r="2.3" fill="currentColor"/><circle cx="15.5" cy="12" r="2.3" fill="currentColor"/>'
     + '<circle cx="10.5" cy="17.5" r="2.3" fill="currentColor"/>');
 
-  /* Les huit touches de gauche, par onglet. Un onglet porte deux lignes
-     d'étiquette, pour qu'on lise ce qu'il contient avant de l'ouvrir. */
+  /* Les onglets. « + − × ÷ » garde huit touches à gauche du pavé de
+     chiffres ; les autres prennent TOUTE la grille, comme dans l'appli de
+     maths donnée en modèle (demandé le 9 nov. 2026, captures à l'appui) :
+     une famille de fonctions se lit d'un coup d'œil, sans chiffres au
+     milieu. Chaque touche insère ce que le moteur sait calculer, et rien
+     d'autre (« coth » et les lettres grecques n'y sont pas : il ne les
+     connaît pas). « s2 » est la ligne en petit sous le nom. */
   const TEL_CATS = [
-    { id: "base", l1: "+ −", l2: "× ÷", nom: "Opérations", t: [
+    { id: "base", l1: "+ −", l2: "× ÷", nom: "Opérations", pave: true, t: [
       { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "^2", t: "x²" }, { i: "√(", t: "√" },
       { i: "^", t: "xʸ" }, { i: "x", t: "x" }, { i: "π", t: "π" }, { i: "ans", t: "ans" }] },
-    { id: "fx", l1: "f(x) e", l2: "log ln", nom: "Exponentielles et logarithmes", t: [
-      { i: "exp(", t: "eˣ" }, { i: "ln(", t: "ln" }, { i: "10^", t: "10ˣ" }, { i: "log(", t: "log" },
-      { i: "e", t: "e" }, { i: "abs(", t: "|x|" }, { i: "!", t: "n!" }, { i: ";", t: ";" }] },
-    { id: "trigo", l1: "sin cos", l2: "tan", nom: "Trigonométrie", t: [
-      { i: "sin(", t: "sin" }, { i: "cos(", t: "cos" }, { i: "tan(", t: "tan" }, { i: "π", t: "π" },
-      { i: "arcsin(", t: "sin⁻¹" }, { i: "arccos(", t: "cos⁻¹" }, { i: "arctan(", t: "tan⁻¹" },
-      { i: "^2", t: "x²" }] },
-    { id: "analyse", l1: "∫ Σ", l2: "d/dx", nom: "Intégrales, dérivées, sommes", t: [
-      { i: "integrale(□;x;□;□)", t: "∫", s: "integrale(" },
-      { i: "derivee(□;x;□)", t: "d/dx", s: "derivee(" },
-      { i: "somme(□;k;□;□)", t: "Σ", s: "somme(" },
-      { i: "produit(□;k;□;□)", t: "Π", s: "produit(" },
-      { i: "x", t: "x" }, { i: "k", t: "k" }, { i: ";", t: ";" }, { i: "∞", t: "∞" }] },
-    { id: "lois", l1: "P(X)", l2: "x̄  σ", nom: "Probabilités et statistiques", t: [
-      { i: "binomialePdf(□;□;□)", t: "B(=)", s: "binomialePdf(" },
-      { i: "binomialeCdf(□;□;□)", t: "B(≤)", s: "binomialeCdf(" },
-      { i: "normaleCdf(□;□;□;□)", t: "N(≤)", s: "normaleCdf(" },
-      { i: "invNormale(□;□;□)", t: "N⁻¹", s: "invNormale(" },
-      { i: "moyenne(", t: "x̄" }, { i: "ecartType(", t: "σ" },
-      { i: "combinaison(□;□)", t: "(n k)", s: "combinaison(" }, { i: ";", t: ";" }] },
+    { id: "fx", l1: "f(x) e", l2: "log ln", nom: "Exponentielles, logarithmes, entiers, complexes", cols: 6, t: [
+      { i: "exp(", t: "eˣ" }, { i: "ln(", t: "ln" }, { i: "log(", t: "log₁₀" },
+      { i: "log(□;□)", t: "logₐ", s: "log(", s2: "base a" }, { i: "10^", t: "10ˣ" }, { i: "e", t: "e" },
+      { i: "abs(", t: "|x|" }, { i: "!", t: "n!" }, { i: "√(", t: "√" },
+      { i: "(□)^(1/□)", t: "ⁿ√", s2: "n-ième" }, { i: "^3", t: "x³" }, { i: "^", t: "xʸ" },
+      { i: "pgcd(□;□)", t: "pgcd", s: "pgcd(" }, { i: "ppcm(□;□)", t: "ppcm", s: "ppcm(" },
+      { i: "reste(□;□)", t: "reste", s: "reste(" }, { i: "quotient(□;□)", t: "quot.", s: "quotient(", s2: "euclidien" },
+      { i: "partieEntiere(", t: "⌊x⌋", s2: "partie ent." }, { i: "arrondi(□;□)", t: "arr.", s: "arrondi(", s2: "à n chiffres" },
+      { i: "i", t: "i" }, { i: "re(", t: "Re" }, { i: "im(", t: "Im" }, { i: "arg(", t: "arg" },
+      { i: "conj(", t: "z̄", s2: "conjugué" }, { i: ";", t: ";" }] },
+    { id: "trigo", l1: "sin cos", l2: "tan cot", nom: "Trigonométrie", cols: 6, t: [
+      { a: "angle" }, { i: "sin(", t: "sin" }, { i: "cos(", t: "cos" }, { i: "tan(", t: "tan" },
+      { i: "cot(", t: "cot" }, { i: "sec(", t: "sec" },
+      { i: "π", t: "π" }, { i: "arcsin(", t: "arcsin" }, { i: "arccos(", t: "arccos" },
+      { i: "arctan(", t: "arctan" }, { i: "arccot(", t: "arccot" }, { i: "arcsec(", t: "arcsec" },
+      { i: "(", t: "(" }, { i: "sinh(", t: "sinh" }, { i: "cosh(", t: "cosh" }, { i: "tanh(", t: "tanh" },
+      { i: "csc(", t: "csc" }, { i: "arccsc(", t: "arccsc" },
+      { i: ")", t: ")" }, { i: "argsh(", t: "argsh" }, { i: "argch(", t: "argch" }, { i: "argth(", t: "argth" },
+      { i: "^2", t: "x²" }, { i: ";", t: ";" }] },
+    { id: "analyse", l1: "∫ Σ", l2: "d/dx ∞", nom: "Intégrales, dérivées, sommes", cols: 5, t: [
+      { i: "integrale(□;x;□;□)", t: "∫", s: "integrale(", s2: "de a à b" },
+      { i: "derivee(□;x;□)", t: "d/dx", s: "derivee(", s2: "en un point" },
+      { i: "somme(□;k;□;□)", t: "Σ", s: "somme(", s2: "k de a à b" },
+      { i: "produit(□;k;□;□)", t: "Π", s: "produit(", s2: "k de a à b" }, { i: "∞", t: "∞" },
+      { i: "x", t: "x" }, { i: "k", t: "k" }, { i: "n", t: "n" }, { i: ";", t: ";" }, { i: "e", t: "e" },
+      { i: "f(", t: "f(x)", s2: "Grapheur" }, { i: "g(", t: "g(x)", s2: "Grapheur" },
+      { i: "u(", t: "uₙ", s2: "Suites" }, { i: "v(", t: "vₙ", s2: "Suites" }, { i: "π", t: "π" },
+      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "^2", t: "x²" }, { i: "√(", t: "√" }, { i: "^", t: "xʸ" }] },
+    { id: "lois", l1: "P(X)", l2: "x̄  σ", nom: "Probabilités et statistiques", cols: 6, t: [
+      { i: "binomialePdf(□;□;□)", t: "binom", s: "binomialePdf(", s2: "P(X=k)" },
+      { i: "binomialeCdf(□;□;□)", t: "binom", s: "binomialeCdf(", s2: "P(X≤k)" },
+      { i: "invBinomiale(□;□;□)", t: "binom⁻¹", s: "invBinomiale(", s2: "seuil" },
+      { i: "combinaison(□;□)", t: "(n k)", s: "combinaison(", s2: "combin." },
+      { i: "arrangement(□;□)", t: "Aₙᵏ", s: "arrangement(", s2: "arrang." }, { i: "!", t: "n!" },
+      { i: "normaleCdf(□;□;□;□)", t: "normale", s: "normaleCdf(", s2: "P(a≤X≤b)" },
+      { i: "normalePdf(□;□;□)", t: "normale", s: "normalePdf(", s2: "densité" },
+      { i: "invNormale(□;□;□)", t: "norm⁻¹", s: "invNormale(", s2: "seuil" },
+      { i: "poissonCdf(□;□)", t: "Poisson", s: "poissonCdf(", s2: "P(X≤k)" },
+      { i: "poissonPdf(□;□)", t: "Poisson", s: "poissonPdf(", s2: "P(X=k)" },
+      { i: "geomPdf(□;□)", t: "géom.", s: "geomPdf(", s2: "P(X=k)" },
+      { i: "expoCdf(□;□)", t: "expo", s: "expoCdf(", s2: "P(X≤x)" },
+      { i: "invExpo(□;□)", t: "expo⁻¹", s: "invExpo(", s2: "seuil" },
+      { i: "uniformeCdf(□;□;□)", t: "uniforme", s: "uniformeCdf(", s2: "P(X≤x)" },
+      { i: "moyenne(", t: "x̄", s2: "moyenne" }, { i: "ecartType(", t: "σ", s2: "écart type" },
+      { i: "ecartTypeEch(", t: "s", s2: "échantillon" },
+      { i: "variance(", t: "V", s2: "variance" }, { i: "mediane(", t: "Me", s2: "médiane" },
+      { i: "aleaEntier(□;□)", t: "alea", s: "aleaEntier(", s2: "entier" },
+      { i: "[", t: "[" }, { i: "]", t: "]" }, { i: ";", t: ";" }] },
   ];
   /* Le pavé : il ne bouge JAMAIS d'un onglet à l'autre. C'est ce qui fait
      qu'on tape un nombre sans regarder. */
@@ -4394,7 +4427,10 @@
     [{ i: "0" }, { i: "." }, { i: "E", t: "×10ˣ", aide: "Puissance de dix : 2E3 vaut 2000" },
      { i: "+", t: "+", op: 1 }],
   ];
-  const TEL_LETTRES = ["azertyuiop", "qsdfghjklm", "wxcvbn"];
+  // dans l'ordre de l'alphabet, comme le modèle : on cherche une lettre,
+  // on ne tape pas un texte
+  const TEL_LETTRES = "abcdefghijklmnopqrstuvwxyz";
+  const NOM_ANGLE = { rad: "radians", deg: "degrés", grad: "grades" };
 
   function telInstaller() {
     /* Le bandeau reçoit trois boutons, invisibles hors téléphone : la
@@ -4495,7 +4531,7 @@
   function dessinerClavierTel() {
     const cl = $("#nw-clavier");
     section.dataset.app = courante;        // l'accueil se passe de clavier (CSS)
-    const sig = [telCat, telAbc, telMajL, telSysteme, courante,
+    const sig = [telCat, telAbc, telMajL, telSysteme, courante, ETAT.reglages.angle,
                  courante === "calculs" && ETAT.historique.length > 0].join("|");
     telSaisie();
     if (sig === telSig && cl.firstChild && cl.dataset.tel === "1") return;
@@ -4503,15 +4539,26 @@
     cl.dataset.tel = "1";
     cl.dataset.mod = "";
     const k = (o) => {
+      // la touche des angles dit l'unité en cours, et la change
+      if (o.a === "angle") {
+        const u = ETAT.reglages.angle || "rad", suite = { rad: "deg", deg: "grad", grad: "rad" }[u] || "rad";
+        o = Object.assign({}, o, { t: u, s2: "→ " + suite,
+          aide: "Angles en " + NOM_ANGLE[u] + " : passer en " + NOM_ANGLE[suite] });
+      }
       const t = o.t !== undefined ? o.t : o.i;
-      return '<button type="button" class="nw-tk' + (o.cls ? " " + o.cls : "") + '"'
+      const libelle = o.svg || (o.s2 ? '<span class="nw-tk-nom">' + ech(t) + '</span><span class="nw-tk-s2">'
+        + ech(o.s2) + '</span>' : ech(t));
+      const aide = o.aide || (o.s2 ? t + " " + o.s2 : "");
+      const n = o.svg ? 0 : String(t).length;
+      const long = n >= 8 ? " nw-tk-long nw-tk-tres-long" : n >= 6 ? " nw-tk-long" : "";
+      return '<button type="button" class="nw-tk' + (o.cls ? " " + o.cls : "") + long + '"'
         + (o.i !== undefined ? ' data-tins="' + ech(o.i) + '"' : "")
         + (o.s ? ' data-tsyn="' + ech(o.s) + '"' : "")
         + (o.a ? ' data-tact="' + o.a + '"' : "")
         + (o.rep ? ' data-rep="1"' : "")
-        + (o.aide || o.svg ? ' aria-label="' + ech(o.aide || t) + '" title="' + ech(o.aide || t) + '"' : "")
+        + (aide || o.svg ? ' aria-label="' + ech(aide || t) + '" title="' + ech(aide || t) + '"' : "")
         + (o.presse !== undefined ? ' aria-pressed="' + o.presse + '"' : "")
-        + '>' + (o.svg || ech(t)) + '</button>';
+        + '>' + libelle + '</button>';
     };
     const rappelPossible = courante === "calculs" && ETAT.historique.length > 0;
     const outils = '<div class="nw-tk-outils">'
@@ -4528,41 +4575,46 @@
             aide: courante === "python" ? "Exécuter" : "Valider", cls: "nw-tk-exe" })
       + '</div>';
     if (telSysteme) { cl.innerHTML = outils; return; }
-    if (telAbc) {
-      const lig = (s) => s.split("").map((c) => {
-        const t = telMajL ? c.toUpperCase() : c;
-        return k({ i: t, t: t, cls: "nw-tk-l" });
-      }).join("");
-      cl.innerHTML = outils + '<div class="nw-tk-lettres">'
-        + lig(TEL_LETTRES[0]) + lig(TEL_LETTRES[1])
-        + k({ a: "majl", t: "⇧", aide: "Majuscules : A à Z sont les mémoires", cls: "nw-tk-l nw-tk-maj", presse: telMajL })
-        + lig(TEL_LETTRES[2])
-        + k({ i: "→", t: "→", aide: "Ranger dans une mémoire : 5→A", cls: "nw-tk-l" })
-        + k({ i: "[", t: "[", cls: "nw-tk-l" }) + k({ i: "]", t: "]", cls: "nw-tk-l" })
-        + k({ i: ",", t: ",", cls: "nw-tk-l" }) + k({ i: ";", t: ";", cls: "nw-tk-l" })
-        + k({ i: "=", t: "=", cls: "nw-tk-l" }) + k({ i: "<", t: "<", cls: "nw-tk-l" })
-        + k({ i: ">", t: ">", cls: "nw-tk-l" })
-        + k({ i: " ", t: "espace", aide: "Espace", cls: "nw-tk-l nw-tk-espace" })
-        + k({ a: "systeme", svg: I_CLAVIER, aide: "Clavier du téléphone", cls: "nw-tk-l nw-tk-sys" })
-        + '</div>';
-      return;
-    }
     const cat = TEL_CATS.find((c) => c.id === telCat) || TEL_CATS[0];
+    // les onglets restent visibles avec les lettres (aucun n'est alors choisi) :
+    // un appui sur l'un d'eux quitte les lettres
     const onglets = '<div class="nw-tk-cats" role="tablist" aria-label="Familles de touches">'
       + TEL_CATS.map((c) => '<button type="button" class="nw-tk-cat" role="tab" data-tcat="' + c.id
-        + '" aria-selected="' + (c.id === cat.id) + '" aria-label="' + ech(c.nom) + '" title="' + ech(c.nom) + '">'
+        + '" aria-selected="' + (!telAbc && c.id === cat.id) + '" aria-label="' + ech(c.nom) + '" title="' + ech(c.nom) + '">'
         + '<span>' + ech(c.l1) + '</span><span>' + ech(c.l2) + '</span></button>').join("")
       + '<button type="button" class="nw-tk-cat nw-tk-tout" data-tact="boite" '
       + 'aria-label="Toutes les fonctions" title="Toutes les fonctions">' + I_BOITE + '<span>Tout</span></button>'
       + '</div>';
-    let grille = "";
-    for (let r = 0; r < 4; r++) {
-      grille += k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r]))
-              + k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r + 1]));
-      grille += TEL_PAVE[r].map((o) => k(Object.assign({}, o,
-        { cls: o.op ? "nw-tk-op" : (o.i === "E" ? "nw-tk-f nw-tk-pt" : "nw-tk-c") }))).join("");
+    const grilleDe = (cols, html, cls) => '<div class="nw-tk-grille' + (cls ? " " + cls : "") + '" style="--cols:' + cols + '">'
+      + html + '</div>';
+    if (telAbc) {
+      // 26 lettres, dans l'ordre, puis Maj (les mémoires A à Z), →, [ ], ; et
+      // le clavier du téléphone : huit colonnes, quatre rangées
+      const lettres = TEL_LETTRES.split("").map((c) => {
+        const t = telMajL ? c.toUpperCase() : c;
+        return k({ i: t, t: t, cls: "nw-tk-l" });
+      }).join("")
+        + k({ a: "majl", t: "⇧", aide: "Majuscules : A à Z sont les mémoires", cls: "nw-tk-l nw-tk-maj", presse: telMajL })
+        + k({ i: "→", t: "→", aide: "Ranger dans une mémoire : 5→A", cls: "nw-tk-l" })
+        + k({ i: "[", t: "[", cls: "nw-tk-l" }) + k({ i: "]", t: "]", cls: "nw-tk-l" })
+        + k({ i: ";", t: ";", cls: "nw-tk-l" })
+        + k({ a: "systeme", svg: I_CLAVIER, aide: "Clavier du téléphone", cls: "nw-tk-l nw-tk-sys" });
+      cl.innerHTML = outils + onglets + grilleDe(8, lettres, "nw-tk-grille-l");
+      return;
     }
-    cl.innerHTML = outils + onglets + '<div class="nw-tk-grille">' + grille + '</div>';
+    let grille = "";
+    if (cat.pave) {
+      for (let r = 0; r < 4; r++) {
+        grille += k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r]))
+                + k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r + 1]));
+        grille += TEL_PAVE[r].map((o) => k(Object.assign({}, o,
+          { cls: o.op ? "nw-tk-op" : (o.i === "E" ? "nw-tk-f nw-tk-pt" : "nw-tk-c") }))).join("");
+      }
+      cl.innerHTML = outils + onglets + grilleDe(6, grille);
+      return;
+    }
+    grille = cat.t.map((o) => k(Object.assign({ cls: "nw-tk-f" }, o))).join("");
+    cl.innerHTML = outils + onglets + grilleDe(cat.cols || 6, grille);
   }
 
   /* Insérer depuis le clavier du téléphone. Trois gestes de plus que
@@ -4641,6 +4693,12 @@
   function telAction(a) {
     switch (a) {
       case "abc": telAbc = !telAbc; telMajL = false; break;
+      case "angle": {
+        ETAT.reglages.angle = { rad: "deg", deg: "grad", grad: "rad" }[ETAT.reglages.angle] || "rad";
+        garder(); redessiner();
+        dire("Angles en " + NOM_ANGLE[ETAT.reglages.angle] + ".", "e-ok");
+        return;
+      }
       case "majl": telMajL = !telMajL; break;
       case "calc": telSysteme = false; telAbc = false; break;
       case "systeme": {
@@ -4687,7 +4745,7 @@
   clavier.addEventListener("click", (e) => {
     const cat = e.target.closest("[data-tcat]");
     if (cat) {
-      telCat = cat.dataset.tcat; dessinerClavierTel();
+      telCat = cat.dataset.tcat; telAbc = false; telMajL = false; dessinerClavierTel();
       const n = $('[data-tcat="' + telCat + '"]', clavier);
       if (n && n.scrollIntoView) n.scrollIntoView({ block: "nearest", inline: "nearest" });
       return;
