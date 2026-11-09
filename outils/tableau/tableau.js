@@ -1425,17 +1425,35 @@
     ctx.fillStyle = "rgba(248,249,250,.84)"; ctx.fill();
     ctx.shadowColor = "transparent";
     ctx.lineWidth = 1; ctx.strokeStyle = "rgba(52,58,64,.4)"; ctx.stroke();
-    // graduations : tous les 10 px, une moyenne tous les 50, une grande tous les 100
+    /* Graduations : tous les 10 px, une moyenne tous les 50, une grande tous
+       les 100. Signalé le 9 nov. 2026 : les chiffres n'étaient que sur le bord
+       du haut, et une fois la règle tournée ils passaient à l'envers. Ils
+       sont maintenant sur les DEUX bords, toujours à l'endroit, et croissent
+       de gauche à droite à l'écran : la règle retournée se compte depuis
+       l'autre bout, comme on retournerait une vraie règle. */
+    const retourne = Math.cos(E.angle) < -1e-9;
+    const K = Math.floor((L - 28) / 10);
     ctx.strokeStyle = "rgba(52,58,64,.7)"; ctx.fillStyle = "rgba(52,58,64,.85)";
-    ctx.font = "10px " + SANS; ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.beginPath();
-    for (let x = -L / 2 + 14, k = 0; x <= L / 2 - 14; x += 10, k++) {
-      const h = k % 10 === 0 ? 14 : k % 5 === 0 ? 10 : 6;
+    for (let k = 0; k <= K; k++) {
+      const x = -L / 2 + 14 + 10 * k, j = retourne ? K - k : k;
+      const h = j % 10 === 0 ? 14 : j % 5 === 0 ? 10 : 6;
       ctx.moveTo(x, -W / 2); ctx.lineTo(x, -W / 2 + h);
       ctx.moveTo(x, W / 2); ctx.lineTo(x, W / 2 - h);
-      if (k % 10 === 0 && k) ctx.fillText(String(k / 10), x, -W / 2 + 16);
     }
     ctx.stroke();
+    ctx.font = "600 10px " + SANS; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const aLEndroit = (texte, x, y) => {
+      ctx.save(); ctx.translate(x, y); if (retourne) ctx.rotate(Math.PI);
+      ctx.fillText(texte, 0, 0); ctx.restore();
+    };
+    for (let k = 0; k <= K; k++) {
+      const j = retourne ? K - k : k;
+      if (j % 10 !== 0 || !j) continue;
+      const x = -L / 2 + 14 + 10 * k;
+      aLEndroit(String(j / 10), x, -W / 2 + 22);
+      aLEndroit(String(j / 10), x, W / 2 - 22);
+    }
     // les deux poignées de rotation, et l'angle au centre
     ctx.lineWidth = 1.4;
     [-1, 1].forEach((s) => {
@@ -1445,7 +1463,7 @@
     });
     const deg = ((Math.round(-E.angle * 180 / Math.PI) % 360) + 360) % 360;
     ctx.font = "600 13px " + SANS; ctx.textBaseline = "middle";
-    ctx.fillText(deg + "°", 0, 8);
+    aLEndroit(deg + "°", 0, retourne ? -8 : 8);
     // le bord contre lequel on trace s'allume
     if (geste && geste.mode === "dessin" && geste.regle) {
       const b = geste.regle.bord;
@@ -1504,7 +1522,7 @@
     const forme = etat.lassoForme || "libre";
     geste = { mode: "lasso", forme, x0: p.x, y0: p.y, pts: [[p.x, p.y]], avant: new Set(selection),
               dernierAppui: performance.now() };
-    if (forme === "polygone") dire("Polygone : touchez chaque coin, puis le premier coin (ou deux fois, ou Entrée) pour fermer.");
+    if (forme === "polygone") dire("Un appui par coin, puis retouchez le premier.");
     majPanneau(); demander();
   }
   // la boucle d'un rectangle ou d'une ellipse, tirée du point de départ au doigt
@@ -3170,12 +3188,22 @@
   }
 
   /* ═══════════════ 14. Les commandes de l'écran ═══════════════════════ */
+  /* Le message se pose TOUJOURS hors de la barre d'outils. Signalé le 9 nov.
+     2026 : sur un écran étroit la barre est en bas, le message aussi, et il
+     cachait les stylos le temps qu'il restait affiché. On mesure donc où est
+     la barre : en bas, le message monte juste au-dessus d'elle. */
   function dire(t, faute) {
     etatLigne.textContent = t;
     etatLigne.classList.toggle("tb-faute", !!faute);
+    const barre = $(".tb-encrage"), cadre = etatLigne.offsetParent;
+    etatLigne.style.bottom = "";
+    if (barre && cadre) {
+      const rb = barre.getBoundingClientRect(), rc = cadre.getBoundingClientRect();
+      if (rb.height && rb.top > rc.top + rc.height / 2) etatLigne.style.bottom = Math.round(rc.bottom - rb.top + 10) + "px";
+    }
     etatLigne.classList.add("tb-vu");
     clearTimeout(dire.m);
-    dire.m = setTimeout(() => etatLigne.classList.remove("tb-vu"), 3800);
+    dire.m = setTimeout(() => etatLigne.classList.remove("tb-vu"), faute ? 4200 : 2800);
   }
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
@@ -4169,36 +4197,64 @@
   const TAILLES_GOMME = [6, 12, 20, 32];
   const option = (opt, libelle) => '<button type="button" class="tb-option" data-ropt="' + opt
     + '" aria-pressed="' + !!etat[opt] + '">' + libelle + "</button>";
+  /* Les réglages de la gomme et du lasso, en TUILES (demandé le 9 nov.
+     2026 : la rangée de mots « Main levée Rectangle Ellipse Polygone » était
+     laide et se lisait mal). Une tuile = un dessin de ce qu'elle fait et un
+     mot court ; une seule ligne d'aide sous chaque groupe, qui change avec
+     le choix, au lieu d'un paragraphe. */
+  const TRAIT_TUILE = (d) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + d + "</svg>";
+  const POINTILLE = ' stroke-dasharray="2.6 2.2"';
+  const IC_SELECTION = {
+    libre: TRAIT_TUILE('<path' + POINTILLE + ' d="M8 5.5c5-2.5 11.5-.5 11.5 5s-4.5 8-9.5 8S3 15.5 3.8 11c.4-2.4 2.4-4 4.2-4.4"/>'),
+    rectangle: TRAIT_TUILE('<rect' + POINTILLE + ' x="3.5" y="5.5" width="17" height="13" rx="1"/>'),
+    ellipse: TRAIT_TUILE('<ellipse' + POINTILLE + ' cx="12" cy="12" rx="8.5" ry="6.5"/>'),
+    polygone: TRAIT_TUILE('<path' + POINTILLE + ' d="M4.5 16.5 7.5 5.5l10.5 1.5 2 9.5-8.5 3z"/>'
+      + '<g fill="currentColor" stroke="none"><circle cx="4.5" cy="16.5" r="1.4"/><circle cx="7.5" cy="5.5" r="1.4"/>'
+      + '<circle cx="18" cy="7" r="1.4"/><circle cx="20" cy="16.5" r="1.4"/><circle cx="11.5" cy="19.5" r="1.4"/></g>'),
+    entier: TRAIT_TUILE('<rect' + POINTILLE + ' x="2.5" y="4.5" width="12" height="15" rx="1"/>'
+      + '<circle cx="14" cy="12" r="5" fill="currentColor" fill-opacity=".35"/>'),
+    partie: TRAIT_TUILE('<rect' + POINTILLE + ' x="2.5" y="4.5" width="12" height="15" rx="1"/>'
+      + '<path d="M14.5 7.1A5 5 0 0 1 14.5 16.9" opacity=".35"/><path d="M14.5 7.1a5 5 0 0 0 0 9.8z" fill="currentColor" fill-opacity=".35"/>'),
+    sous: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" opacity=".35"/><circle cx="12" cy="11" r="4.5"/>'),
+    objet: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" stroke-dasharray="1.5 2"/><path d="M6 8l12 9M18 8 6 17"/>'),
+  };
+  function tuiles(attr, choix, actuel) {
+    return '<div class="tb-tuiles" style="--n:' + choix.length + '">' + choix.map(([v, t, ic]) =>
+      '<button type="button" class="tb-tuile" data-' + attr + '="' + v + '" aria-pressed="' + (actuel === v) + '">'
+      + (IC_SELECTION[ic || v] || "") + "<span>" + t + "</span></button>").join("") + "</div>";
+  }
   function ouvrirReglageGomme() {
     const partie = etat.gommeMode === "partie";
-    reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p><div class="tb-choix">'
-      + [["partie", "Sous le curseur"], ["objet", "Trait entier"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rg="'
-        + v + '" aria-pressed="' + (etat.gommeMode === v) + '">' + t + "</button>").join("") + "</div>"
+    reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p>'
+      + tuiles("rg", [["partie", "Sous le rond", "sous"], ["objet", "Tout l'élément", "objet"]], etat.gommeMode)
+      + '<p class="tb-indice">' + (partie
+        ? "Efface ce qui passe sous le rond : encre, formes, images. Le texte reste."
+        : "Efface en entier tout ce que la gomme touche. Échap avant de lâcher rend tout.") + "</p>"
       + (partie ? '<p class="tb-menu-titre">Taille</p><div class="tb-calibres">'
         + TAILLES_GOMME.map((t, i) => '<button type="button" class="tb-b tb-petit tb-calibre tb-calibre-gomme" data-rgt="' + t
           + '" aria-pressed="' + (t === etat.gommeTaille) + '" title="Taille ' + (i + 1) + '" aria-label="Taille ' + (i + 1)
-          + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "")
-      + '<p class="tb-note">' + (partie
-        ? "Efface l'encre et les images sous le cercle. Les formes et le texte ne sont pas touchés."
-        : "Efface tout trait, forme ou texte touché. Échap avant de lâcher rend tout.") + "</p>";
+          + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "");
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
   }
   const LASSO_FORMES = [["libre", "Main levée"], ["rectangle", "Rectangle"], ["ellipse", "Ellipse"],
                         ["polygone", "Polygone"]];
+  const AIDE_FORME = {
+    libre: "Entourez à main levée.",
+    rectangle: "Tirez d'un coin au coin opposé.",
+    ellipse: "Tirez d'un coin au coin opposé.",
+    polygone: "Un appui par coin ; retouchez le premier pour fermer.",
+  };
   function ouvrirReglageLasso() {
-    reglage.innerHTML = '<p class="tb-menu-titre">Forme de la sélection</p><div class="tb-choix">'
-      + LASSO_FORMES.map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rf="' + v
-        + '" aria-pressed="' + (etat.lassoForme === v) + '">' + t + "</button>").join("") + "</div>"
-      + (etat.lassoForme === "polygone"
-        ? '<p class="tb-note">Touchez pour poser chaque coin. Pour fermer : retouchez le premier coin, '
-          + 'touchez deux fois de suite, ou Entrée. Échap annule.</p>' : "")
-      + '<p class="tb-menu-titre">Ce qu\'elle prend</p><div class="tb-choix">'
-      + [["entier", "Éléments entiers"], ["partie", "Seulement l'intérieur"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rl="'
-        + v + '" aria-pressed="' + (etat.lassoMode === v) + '">' + t + "</button>").join("") + "</div>"
-      + '<p class="tb-note">' + (etat.lassoMode === "partie"
-        ? "Découpe ce qui est dans la boucle : la moitié d'une image devient une image à part, un trait est coupé au bord. Le reste ne bouge pas."
-        : "Prend tout élément dont la plus grande part est dans la boucle, en entier.") + "</p>";
+    const partie = etat.lassoMode === "partie";
+    reglage.innerHTML = '<p class="tb-menu-titre">Forme</p>'
+      + tuiles("rf", LASSO_FORMES, etat.lassoForme || "libre")
+      + '<p class="tb-indice">' + AIDE_FORME[etat.lassoForme || "libre"] + "</p>"
+      + '<p class="tb-menu-titre">Ce qu\'il prend</p>'
+      + tuiles("rl", [["entier", "Éléments entiers"], ["partie", "L'intérieur"]], etat.lassoMode)
+      + '<p class="tb-indice">' + (partie
+        ? "Coupe au bord : traits, formes et images sont découpés."
+        : "Prend en entier ce qui est surtout dedans.") + "</p>";
     reglage.dataset.quoi = "lasso";
     reglage.hidden = false;
   }
