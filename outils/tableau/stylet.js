@@ -175,6 +175,348 @@
     }
     return dedans;
   }
+  /* ── ce que le lasso regarde d'un élément ──────────────────────────────
+     Signalé le 9 nov. 2026 : le lasso ne prenait pas ce qu'on avait entouré.
+     Reproduit : une boucle qui ne contient qu'un trait en prenait trois.
+       · Les points d'un trait étaient pris par leur RANG. Un trait tracé
+         lentement au début y a soixante points, puis six pour le reste :
+         33 % de sa longueur dans la boucle comptaient pour 91 %.
+       · La rotation était ignorée : un trait tourné d'un quart de tour était
+         jugé à l'endroit où il était avant de tourner.
+     Désormais un trait se juge à sa LONGUEUR (des jalons à intervalles
+     égaux, chacun au milieu de sa tranche : la part des jalons dedans est la
+     part de la longueur dedans), une forme pleine à sa SURFACE, et tout
+     point est remis à sa place réelle, rotation comprise. */
+  function jalons(P, n) {
+    if (!P.length) return [];
+    if (P.length === 1) return [[P[0][0], P[0][1]]];
+    const cum = [0];
+    for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    const L = cum[cum.length - 1];
+    if (!(L > 0)) return [[P[0][0], P[0][1]]];
+    const out = [];
+    let j = 1;
+    for (let k = 0; k < n; k++) {
+      const d = L * (k + 0.5) / n;
+      while (j < P.length - 1 && cum[j] < d) j++;
+      const t = (d - cum[j - 1]) / ((cum[j] - cum[j - 1]) || 1);
+      out.push([P[j - 1][0] + (P[j][0] - P[j - 1][0]) * t, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * t]);
+    }
+    return out;
+  }
+  /* Le centre des n × n cases d'une boîte, gardés si « garder » le veut :
+     la surface d'une ellipse, d'un losange, d'une forme remplie. */
+  function grille(b, n, garder) {
+    const out = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const q = [b.x + b.w * (i + 0.5) / n, b.y + b.h * (j + 0.5) / n];
+      if (!garder || garder(q)) out.push(q);
+    }
+    return out;
+  }
+  // des points du repère d'un élément, posés là où on les voit : tournés de
+  // « angle » autour du centre de sa boîte (c'est ainsi qu'il est peint)
+  function tourner(pts, b, angle) {
+    if (!angle) return pts;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, co = Math.cos(angle), si = Math.sin(angle);
+    return pts.map(([x, y]) => [cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co]);
+  }
+
+  /* ── découper une SURFACE par la boucle du lasso ───────────────────────
+     Signalé le 9 nov. 2026 : le lasso ne coupait pas les formes remplies
+     au seau (il les prenait entières ou pas du tout). Un trait se coupe en
+     morceaux de ligne ; une surface, elle, se coupe en surfaces : ce qui
+     est dans la boucle (S ∩ C) et ce qui reste (S − C).
+
+     L'algorithme est celui de Greiner et Hormann : on pose les points où
+     les deux contours se croisent, on marque à chacun si le contour de la
+     forme y entre dans la boucle ou en sort, puis on suit les contours en
+     changeant de l'un à l'autre à chaque croisement. Un sommet posé
+     exactement sur l'autre contour le met en défaut : la boucle est donc
+     décalée d'un dix-millionième, ce que l'œil ne voit pas.
+
+     Et le résultat est VÉRIFIÉ avant d'être rendu : sur une grille de
+     points, chacun doit être dans l'intérieur s'il est dans la forme ET la
+     boucle, dans le reste s'il est dans la forme et hors de la boucle. Une
+     forme qui se croise elle-même (un « 8 » au seau) n'a pas de dedans
+     bien défini pour cet algorithme : la vérification le voit, et la
+     fonction rend null. L'appelant revient alors à l'ancienne règle. */
+  function aireSignee(P) {
+    let a = 0;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += P[j][0] * P[i][1] - P[i][0] * P[j][1];
+    return a / 2;
+  }
+  function nettoyerContour(P) {
+    const out = [];
+    for (const p of P) {
+      const q = out[out.length - 1];
+      if (!q || Math.abs(q[0] - p[0]) > 1e-9 || Math.abs(q[1] - p[1]) > 1e-9) out.push([p[0], p[1]]);
+    }
+    while (out.length > 1 && Math.abs(out[0][0] - out[out.length - 1][0]) < 1e-9
+           && Math.abs(out[0][1] - out[out.length - 1][1]) < 1e-9) out.pop();
+    return out;
+  }
+  // un trou : l'anneau intérieur, dans l'autre sens, relié au contour par
+  // un pont aller-retour (rempli en « nonzero » comme en « evenodd », le
+  // trou reste vide)
+  function avecTrou(S, C) {
+    const T = (aireSignee(S) > 0) === (aireSignee(C) > 0) ? C.slice().reverse() : C.slice();
+    let bi = 0, bj = 0, bd = Infinity;
+    for (let i = 0; i < S.length; i++) for (let j = 0; j < T.length; j++) {
+      const d = (S[i][0] - T[j][0]) ** 2 + (S[i][1] - T[j][1]) ** 2;
+      if (d < bd) { bd = d; bi = i; bj = j; }
+    }
+    const out = [];
+    for (let k = 0; k <= S.length; k++) out.push(S[(bi + k) % S.length]);
+    for (let k = 0; k <= T.length; k++) out.push(T[(bj + k) % T.length]);
+    return out;
+  }
+  function couperSurface(S0, C0, precision) {
+    const S = nettoyerContour(S0), C = nettoyerContour(C0);
+    if (S.length < 3 || C.length < 3) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    const echelle = Math.max(x1 - x0, y1 - y0, 1);
+    // le décalage d'un dix-millionième, le même à chaque fois (pas de hasard)
+    C.forEach((p, i) => {
+      const h = Math.sin((i + 1) * 12.9898) * 43758.5453, k = h - Math.floor(h);
+      p[0] += (k - 0.5) * 2e-7 * echelle; p[1] += (0.5 - k) * 1.3e-7 * echelle;
+    });
+    const noeud = (x, y) => ({ x, y, suiv: null, prec: null, inter: false, voisin: null, entree: false, alpha: 0, vu: false });
+    const liste = (P) => {
+      const n = P.map((p) => noeud(p[0], p[1]));
+      n.forEach((v, i) => { v.suiv = n[(i + 1) % n.length]; v.prec = n[(i - 1 + n.length) % n.length]; });
+      return n;
+    };
+    const ls = liste(S), lc = liste(C);
+    const insS = S.map(() => []), insC = C.map(() => []);
+    let nb = 0;
+    for (let i = 0; i < S.length; i++) {
+      const a = S[i], b = S[(i + 1) % S.length];
+      for (let j = 0; j < C.length; j++) {
+        const c = C[j], d = C[(j + 1) % C.length];
+        const den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+        if (den === 0) continue;
+        const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den;
+        const u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den;
+        if (t <= 0 || t >= 1 || u <= 0 || u >= 1) continue;
+        const x = a[0] + t * (b[0] - a[0]), y = a[1] + t * (b[1] - a[1]);
+        const vs = noeud(x, y), vc = noeud(x, y);
+        vs.inter = vc.inter = true; vs.voisin = vc; vc.voisin = vs; vs.alpha = t; vc.alpha = u;
+        insS[i].push(vs); insC[j].push(vc); nb++;
+      }
+    }
+    /* Sans croisement, l'un est dans l'autre, ou ils sont à part. On le
+       décide sur un point bien À L'INTÉRIEUR, jamais sur un sommet : la gomme
+       repasse souvent par le même rond, et le bord du morceau EST alors ce
+       rond ; un sommet posé dessus est dedans ou dehors au hasard. Testé sur
+       le premier sommet, un morceau entier passait pour « dans la gomme » et
+       disparaissait (signalé le 9 nov. : les fonds des rectangles gommés). */
+    if (!nb) {
+      const marge = 1e-4 * echelle;
+      const sc = cote(S, C, marge);
+      const res = sc >= 0 ? { dedans: [S], dehors: [] }
+        : cote(C, S, marge) > 0 ? { dedans: [C], dehors: [avecTrou(S, C)] }
+        : { dedans: [], dehors: [S] };
+      return verifierCoupe(S, C, res, x0, y0, x1, y1, precision);
+    }
+    if (nb % 2) return null;
+    const inserer = (lst, ins) => {
+      for (let i = 0; i < lst.length; i++) {
+        const suivant = lst[(i + 1) % lst.length];
+        let avant = lst[i];
+        for (const v of ins[i].sort((p, q) => p.alpha - q.alpha)) {
+          v.prec = avant; v.suiv = suivant; avant.suiv = v; suivant.prec = v; avant = v;
+        }
+      }
+    };
+    inserer(ls, insS); inserer(lc, insC);
+    const marquer = (debut, autre, inverser) => {
+      let dedans = dansPolygone([debut.x, debut.y], autre), v = debut;
+      do { if (v.inter) { v.entree = inverser ? dedans : !dedans; dedans = !dedans; } v = v.suiv; } while (v !== debut);
+    };
+    const parcourir = (difference) => {
+      const tous = [];
+      let v = ls[0];
+      do { if (v.inter) tous.push(v); v.vu = false; if (v.voisin) v.voisin.vu = false; v = v.suiv; } while (v !== ls[0]);
+      // S − C : la forme suivie hors de la boucle, donc ses marques inversées
+      marquer(ls[0], C, difference);
+      marquer(lc[0], S, false);
+      const out = [];
+      for (const depart of tous) {
+        if (depart.vu) continue;
+        const poly = [[depart.x, depart.y]];
+        let cur = depart, garde = 0;
+        do {
+          cur.vu = true; cur.voisin.vu = true;
+          if (cur.entree) { do { cur = cur.suiv; poly.push([cur.x, cur.y]); } while (!cur.inter); }
+          else { do { cur = cur.prec; poly.push([cur.x, cur.y]); } while (!cur.inter); }
+          cur = cur.voisin;
+          if (++garde > 4 * (S.length + C.length + nb)) return null;
+        } while (!cur.vu);
+        const net = nettoyerContour(poly);
+        if (net.length >= 3 && Math.abs(aireSignee(net)) > 1e-9 * echelle * echelle) out.push(net);
+      }
+      return out;
+    };
+    const dedans = parcourir(false), dehors = parcourir(true);
+    if (!dedans || !dehors) return null;
+    return verifierCoupe(S, C, { dedans, dehors }, x0, y0, x1, y1, precision);
+  }
+  /* De quel côté de Q est le contour de P, quand ils ne se croisent pas ?
+     On regarde les sommets de P et le milieu de ses côtés, en écartant ceux
+     qui touchent le bord de Q : +1 dedans, −1 dehors, 0 s'ils le touchent
+     tous (P suit exactement le bord de Q). */
+  function cote(P, Q, marge) {
+    const loin = (q) => {
+      for (let k = 0, l = Q.length - 1; k < Q.length; l = k++) {
+        const [ax, ay] = Q[l], [bx, by] = Q[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        if (Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy) <= marge) return false;
+      }
+      return true;
+    };
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      for (const q of [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]]) {
+        if (loin(q)) return dansPolygone(q, Q) ? 1 : -1;
+      }
+    }
+    return 0;
+  }
+  // un point loin des bords : le meilleur d'une grille de 9 × 9 dans la boîte
+  function pointInterieur(P) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    P.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    let mieux = null, dm = -1;
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / 9, y0 + (y1 - y0) * (j + 0.5) / 9];
+      if (!dansPolygone(q, P)) continue;
+      let d = Infinity;
+      for (let k = 0, l = P.length - 1; k < P.length; l = k++) {
+        const [ax, ay] = P[l], [bx, by] = P[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        d = Math.min(d, Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy));
+      }
+      if (d > dm) { dm = d; mieux = q; }
+    }
+    return mieux || P[0];
+  }
+  // la vérification : N × N points sur la boîte de la forme (48, ou 20 pour la
+  // gomme, qui coupe à chaque pas du geste). Les points qui tombent à moins
+  // d'un millième de la boîte d'un bord de la boucle ne votent pas : là, dedans
+  // et dehors ne se distinguent pas.
+  function verifierCoupe(S, C, res, x0, y0, x1, y1, precision) {
+    const N = precision || 48, marge = 1e-3 * Math.max(x1 - x0, y1 - y0, 1);
+    const dansUn = (q, L) => L.some((P) => dansPolygone(q, P));
+    const presDuBord = (q) => {
+      for (let k = 0, l = C.length - 1; k < C.length; l = k++) {
+        const [ax, ay] = C[l], [bx, by] = C[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        if (Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy) < marge) return true;
+      }
+      return false;
+    };
+    let faux = 0, total = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / N, y0 + (y1 - y0) * (j + 0.5) / N];
+      const dansS = dansPolygone(q, S), dd = dansUn(q, res.dedans), dh = dansUn(q, res.dehors);
+      if (!dansS && !dd && !dh) continue;
+      if (presDuBord(q)) continue;
+      total++;
+      const dansC = dansPolygone(q, C);
+      if (dd !== (dansS && dansC) || dh !== (dansS && !dansC)) faux++;
+    }
+    if (total && faux > total * 0.01) return null;
+    return res;
+  }
+
+  /* ── une forme tracée à la main qui se croise elle-même ──────────────
+     Signalé le 9 nov. 2026 : le lasso ne coupait toujours pas les formes
+     remplies. Mesuré sur la sienne : 56 points, UN croisement. À la main,
+     on referme une forme en dépassant un peu le point de départ, et le
+     contour se croise là. Greiner et Hormann veulent des contours simples,
+     la vérification le voyait, et la découpe était refusée.
+
+     Le contour est donc d'abord défait en boucles simples : à chaque
+     croisement, il se sépare en deux, jusqu'à ce qu'aucune ne se croise
+     plus. Chaque boucle est découpée à part. Puis le TOUT est vérifié
+     contre la règle que le dessin applique vraiment (« nonzero » : un point
+     est peint si le contour tourne autour de lui au moins une fois). */
+  function croisement(P) {
+    const n = P.length;
+    for (let i = 0; i < n; i++) {
+      const a = P[i], b = P[(i + 1) % n];
+      for (let j = i + 2; j < n; j++) {
+        if (i === 0 && j === n - 1) continue;
+        const c = P[j], d = P[(j + 1) % n];
+        const den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+        if (den === 0) continue;
+        const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den;
+        const u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den;
+        if (t > 0 && t < 1 && u > 0 && u < 1) return { i, j, x: a[0] + t * (b[0] - a[0]), y: a[1] + t * (b[1] - a[1]) };
+      }
+    }
+    return null;
+  }
+  function boucles(P0, profondeur) {
+    const P = nettoyerContour(P0);
+    if (P.length < 3) return [];
+    const x = croisement(P);
+    if (!x) return Math.abs(aireSignee(P)) > 0.25 ? [P] : [];
+    if ((profondeur || 0) > 40) return null;
+    const X = [x.x, x.y];
+    const A = boucles([X].concat(P.slice(x.i + 1, x.j + 1)), (profondeur || 0) + 1);
+    const B = boucles([X].concat(P.slice(x.j + 1), P.slice(0, x.i + 1)), (profondeur || 0) + 1);
+    return A && B ? A.concat(B) : null;
+  }
+  // combien de fois le contour tourne autour du point (la règle « nonzero »)
+  function enroulement(q, P) {
+    let w = 0;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const [xa, ya] = P[j], [xb, yb] = P[i];
+      const c = (xb - xa) * (q[1] - ya) - (q[0] - xa) * (yb - ya);
+      if (ya <= q[1]) { if (yb > q[1] && c > 0) w++; }
+      else if (yb <= q[1] && c < 0) w--;
+    }
+    return w;
+  }
+  function couperSurfaceLibre(S0, C, precision) {
+    const L = boucles(S0, 0), LC = boucles(C, 0);
+    if (!L || !L.length || !LC || !LC.length) return null;
+    if (L.length === 1 && LC.length === 1) return couperSurface(L[0], LC[0], precision);
+    // la boucle du lasso aussi peut se croiser (on la referme en dépassant
+    // le départ) : chacune de ses boucles est coupée tour à tour dans ce
+    // qui reste de la forme
+    const dedans = [];
+    let restes = L;
+    for (const Ci of LC) {
+      const suivants = [];
+      for (const B of restes) {
+        const r = couperSurface(B, Ci, precision);
+        if (!r) return null;
+        dedans.push(...r.dedans); suivants.push(...r.dehors);
+      }
+      restes = suivants;
+    }
+    const dehors = restes;
+    // le tout, contre ce que le dessin peint vraiment
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S0.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    const N = precision || 48, dansUn = (q, M) => M.some((P) => dansPolygone(q, P));
+    let faux = 0, total = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / N, y0 + (y1 - y0) * (j + 0.5) / N];
+      const peint = enroulement(q, S0) !== 0, dd = dansUn(q, dedans), dh = dansUn(q, dehors);
+      if (!peint && !dd && !dh) continue;
+      total++;
+      const dansC = dansPolygone(q, C);
+      if (dd !== (peint && dansC) || dh !== (peint && !dansC)) faux++;
+    }
+    if (!total || faux > total * 0.02) return null;
+    return { dedans, dehors };
+  }
+
   /* Un élément est pris si la plus grande part de ses points l'est — un
      trait qui dépasse un peu du lasso est quand même celui qu'on entourait. */
   function pris(points, poly, part) {
@@ -517,7 +859,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, jalons, grille, tourner, couperSurface, couperSurfaceLibre, boucles, enroulement, aireSignee, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;

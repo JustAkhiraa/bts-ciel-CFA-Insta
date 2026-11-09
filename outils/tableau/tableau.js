@@ -184,6 +184,10 @@
     /* Le lasso prend les éléments ENTIERS, ou découpe ce qu'il entoure
        (« partie », demandé le 9 nov. 2026) : recliquer le lasso choisit. */
     lassoMode: "entier",
+    /* La forme de la boucle (demandé le 9 nov. 2026 : plusieurs outils de
+       sélection sous le lasso) : à main levée, rectangle, ellipse, ou
+       polygone posé coin par coin. */
+    lassoForme: "libre",
     /* Le laser se règle (demandé le 9 nov. 2026 : il disparaissait trop
        vite) : combien de temps il reste, sa couleur, son épaisseur, sa
        transparence. Par défaut, le laser d'avant, au réglage près. */
@@ -256,7 +260,7 @@
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
-          lassoMode: etat.lassoMode, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
+          lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
@@ -281,7 +285,7 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -962,7 +966,18 @@
     }
     ctx.shadowBlur = 0;
     if (traineeGomme.length) trace(ctx, traineeGomme, "rgba(120,120,120,.5)", 12, 260);
-    if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
+    if (geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      // les coins posés, le côté qui suit le doigt, et le premier coin à retoucher
+      const pts = geste.survol ? geste.pts.concat([geste.survol]) : geste.pts;
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.setLineDash([6 / z, 5 / z]); ctx.lineWidth = 1.5 / z; ctx.strokeStyle = BLEU_SEL; ctx.stroke();
+      ctx.setLineDash([]);
+      geste.pts.forEach(([x, y], i) => {
+        ctx.beginPath(); ctx.arc(x, y, (i ? 3.5 : 6) / z, 0, Math.PI * 2);
+        ctx.fillStyle = i ? BLEU_SEL : "#fff"; ctx.fill(); ctx.stroke();
+      });
+    } else if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
       ctx.beginPath();
       geste.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
       ctx.closePath();
@@ -1188,6 +1203,7 @@
   const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser", "baguette"];
   function choisirOutil(o) {
     if (edition) finirEdition();
+    if (geste && geste.mode === "lasso") { geste = null; demander(); }
     etat.outil = o;
     lienDebut = null;
     if (o !== "selection") selection.clear();
@@ -1409,17 +1425,35 @@
     ctx.fillStyle = "rgba(248,249,250,.84)"; ctx.fill();
     ctx.shadowColor = "transparent";
     ctx.lineWidth = 1; ctx.strokeStyle = "rgba(52,58,64,.4)"; ctx.stroke();
-    // graduations : tous les 10 px, une moyenne tous les 50, une grande tous les 100
+    /* Graduations : tous les 10 px, une moyenne tous les 50, une grande tous
+       les 100. Signalé le 9 nov. 2026 : les chiffres n'étaient que sur le bord
+       du haut, et une fois la règle tournée ils passaient à l'envers. Ils
+       sont maintenant sur les DEUX bords, toujours à l'endroit, et croissent
+       de gauche à droite à l'écran : la règle retournée se compte depuis
+       l'autre bout, comme on retournerait une vraie règle. */
+    const retourne = Math.cos(E.angle) < -1e-9;
+    const K = Math.floor((L - 28) / 10);
     ctx.strokeStyle = "rgba(52,58,64,.7)"; ctx.fillStyle = "rgba(52,58,64,.85)";
-    ctx.font = "10px " + SANS; ctx.textAlign = "center"; ctx.textBaseline = "top";
     ctx.beginPath();
-    for (let x = -L / 2 + 14, k = 0; x <= L / 2 - 14; x += 10, k++) {
-      const h = k % 10 === 0 ? 14 : k % 5 === 0 ? 10 : 6;
+    for (let k = 0; k <= K; k++) {
+      const x = -L / 2 + 14 + 10 * k, j = retourne ? K - k : k;
+      const h = j % 10 === 0 ? 14 : j % 5 === 0 ? 10 : 6;
       ctx.moveTo(x, -W / 2); ctx.lineTo(x, -W / 2 + h);
       ctx.moveTo(x, W / 2); ctx.lineTo(x, W / 2 - h);
-      if (k % 10 === 0 && k) ctx.fillText(String(k / 10), x, -W / 2 + 16);
     }
     ctx.stroke();
+    ctx.font = "600 10px " + SANS; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const aLEndroit = (texte, x, y) => {
+      ctx.save(); ctx.translate(x, y); if (retourne) ctx.rotate(Math.PI);
+      ctx.fillText(texte, 0, 0); ctx.restore();
+    };
+    for (let k = 0; k <= K; k++) {
+      const j = retourne ? K - k : k;
+      if (j % 10 !== 0 || !j) continue;
+      const x = -L / 2 + 14 + 10 * k;
+      aLEndroit(String(j / 10), x, -W / 2 + 22);
+      aLEndroit(String(j / 10), x, W / 2 - 22);
+    }
     // les deux poignées de rotation, et l'angle au centre
     ctx.lineWidth = 1.4;
     [-1, 1].forEach((s) => {
@@ -1429,7 +1463,7 @@
     });
     const deg = ((Math.round(-E.angle * 180 / Math.PI) % 360) + 360) % 360;
     ctx.font = "600 13px " + SANS; ctx.textBaseline = "middle";
-    ctx.fillText(deg + "°", 0, 8);
+    aLEndroit(deg + "°", 0, retourne ? -8 : 8);
     // le bord contre lequel on trace s'allume
     if (geste && geste.mode === "dessin" && geste.regle) {
       const b = geste.regle.bord;
@@ -1463,6 +1497,17 @@
      dedans. La sélection faite, l'outil reste en main : on saisit ce
      qu'on a pris pour le déplacer, ou on entoure autre chose. */
   function debutLasso(e, p) {
+    // un polygone en cours : chaque appui pose un coin, ou le ferme
+    if (geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      const g = geste, tol = 12 / etat.zoom, [x0, y0] = g.pts[0], der = g.pts[g.pts.length - 1];
+      const maintenant = performance.now();
+      const surPremier = g.pts.length > 2 && Math.hypot(p.x - x0, p.y - y0) <= tol;
+      const double = g.pts.length > 2 && maintenant - (g.dernierAppui || 0) < 350 && Math.hypot(p.x - der[0], p.y - der[1]) <= tol;
+      g.dernierAppui = maintenant;
+      if (surPremier || double) { geste = null; finLasso(g); return; }
+      g.pts.push([p.x, p.y]); g.survol = null; demander();
+      return;
+    }
     const sel = selectionnes();
     if (sel.length) {
       if (poigneeSous(p.x, p.y) || surPoigneeTourner(p.x, p.y)) return debutSelection(e, p);
@@ -1474,17 +1519,44 @@
       }
     }
     if (!e.shiftKey) selection.clear();
-    geste = { mode: "lasso", pts: [[p.x, p.y]], avant: new Set(selection) };
+    const forme = etat.lassoForme || "libre";
+    geste = { mode: "lasso", forme, x0: p.x, y0: p.y, pts: [[p.x, p.y]], avant: new Set(selection),
+              dernierAppui: performance.now() };
+    if (forme === "polygone") dire("Un appui par coin, puis retouchez le premier.");
     majPanneau(); demander();
   }
-  function echantillon(el) {
-    if (el.points && el.points.length) {
-      const pas = Math.max(1, Math.floor(el.points.length / 40));
-      return el.points.filter((_, i) => i % pas === 0).map(([x, y]) => [el.x + x, el.y + y]);
-    }
-    const b = R.boite(el), out = [];
-    for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) out.push([b.x + b.w * i / 2, b.y + b.h * j / 2]);
+  // la boucle d'un rectangle ou d'une ellipse, tirée du point de départ au doigt
+  function boucleForme(g, p) {
+    const x0 = Math.min(g.x0, p.x), x1 = Math.max(g.x0, p.x), y0 = Math.min(g.y0, p.y), y1 = Math.max(g.y0, p.y);
+    if (g.forme === "rectangle") return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2, out = [];
+    for (let k = 0; k < 48; k++) out.push([cx + rx * Math.cos(k * Math.PI / 24), cy + ry * Math.sin(k * Math.PI / 24)]);
     return out;
+  }
+  /* Ce que le lasso regarde d'un élément, là où on le voit (voir « jalons »
+     dans stylet.js) : la longueur d'un trait, la surface d'une forme. */
+  function echantillon(el) {
+    const b = R.boite(el);
+    let pts;
+    if (el.points && el.points.length) {
+      const P = el.points.map(([x, y]) => [el.x + x, el.y + y]);
+      pts = S.jalons(P, 48);
+      // une forme remplie au stylo se juge à sa surface, pas à son contour
+      if (el.type === "freedraw" && el.customData && el.customData.pointe === "remplissage" && P.length > 2) {
+        const surface = S.grille(b, 9, (q) => S.dansPolygone(q, P));
+        if (surface.length >= 4) pts = surface;
+      }
+    } else {
+      const rx = b.w / 2, ry = b.h / 2, cx = b.x + rx, cy = b.y + ry;
+      const garder = el.type === "ellipse" && rx && ry
+        ? ([x, y]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1
+        : el.type === "diamond" && rx && ry
+          ? ([x, y]) => Math.abs(x - cx) / rx + Math.abs(y - cy) / ry <= 1
+          : null;
+      pts = S.grille(b, 7, garder);
+      if (!pts.length) pts = [[cx, cy]];
+    }
+    return S.tourner(pts, b, el.angle || 0);
   }
   function finLasso(g) {
     selection = new Set(g.avant);
@@ -1534,6 +1606,31 @@
         elements.splice(i, 1, ...nouveaux);
         selection.delete(el.id);
         coupes++;
+        continue;
+      }
+      /* Une forme remplie au seau se coupe en SURFACES (signalé le 9 nov. :
+         le lasso la prenait entière ou pas du tout). Le contour peint est
+         découpé par la boucle ; si la découpe ne se vérifie pas (une forme
+         qui se croise elle-même), on garde l'ancienne règle. */
+      if (el.type === "freedraw" && !el.locked && el.customData && el.customData.pointe === "remplissage"
+          && el.points && el.points.length > 2) {
+        const r = S.couperSurfaceLibre(R.contourRemplissage(el), loc());
+        if (r && r.dedans.length && r.dehors.length) {
+          const piece = (P) => {
+            const n = morceau(el, bb, { points: P, pressions: P.map(() => 0.5) });
+            n.customData = Object.assign({}, n.customData, { net: true });
+            return n;
+          };
+          const dedans = r.dedans.map(piece), dehors = r.dehors.map(piece);
+          dedans.forEach((n) => pris.add(n.id));
+          elements.splice(i, 1, ...dehors, ...dedans);
+          selection.delete(el.id);
+          coupes++;
+          continue;
+        }
+        if (r && r.dedans.length) { pris.add(el.id); continue; }
+        if (r) continue;
+        if (S.pris(echantillon(el), poly)) pris.add(el.id);
         continue;
       }
       if (el.type === "image" && !el.locked) {
@@ -1652,6 +1749,66 @@
     toucher(n);
     return n;
   }
+  /* Une forme de l'outil Formes (rectangle, ellipse, losange) devient, au
+     premier coup de gomme partielle, ce qu'elle est à l'écran : un fond (une
+     surface remplie) et un contour (un trait de même épaisseur), qui se
+     coupent ensuite comme le reste. Signalé le 9 nov. 2026 : la gomme ne
+     touchait pas les rectangles. Restent entiers : les post-its et les
+     formes qui portent un texte, les fonds hachurés et les contours en
+     tirets, qui n'ont pas d'équivalent en trait libre. */
+  function contourForme(el) {
+    const w = el.width || 0, h = el.height || 0;
+    if (el.type === "ellipse") {
+      const out = [];
+      for (let k = 0; k < 64; k++) { const t = k * Math.PI / 32; out.push([w / 2 + (w / 2) * Math.cos(t), h / 2 + (h / 2) * Math.sin(t)]); }
+      return out;
+    }
+    if (el.type === "diamond") return [[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]];
+    const ra = R.rayonAngle(el, Math.min(w, h));
+    if (!ra) return [[0, 0], [w, 0], [w, h], [0, h]];
+    const out = [];
+    [[w - ra, ra, -Math.PI / 2], [w - ra, h - ra, 0], [ra, h - ra, Math.PI / 2], [ra, ra, Math.PI]].forEach(([cx, cy, t0]) => {
+      for (let k = 0; k <= 6; k++) { const t = t0 + k * Math.PI / 12; out.push([cx + ra * Math.cos(t), cy + ra * Math.sin(t)]); }
+    });
+    return out;
+  }
+  function densifier(P, pas) {
+    const Q = P.concat([P[0]]), out = [];
+    for (let i = 0; i + 1 < Q.length; i++) {
+      const u = Q[i], v = Q[i + 1], n = Math.max(1, Math.ceil(Math.hypot(v[0] - u[0], v[1] - u[1]) / pas));
+      for (let k = 0; k < n; k++) out.push([u[0] + (v[0] - u[0]) * k / n, u[1] + (v[1] - u[1]) * k / n]);
+    }
+    out.push([Q[Q.length - 1][0], Q[Q.length - 1][1]]);
+    return out;
+  }
+  function formeEnLibre(el) {
+    if (!/^(rectangle|ellipse|diamond)$/.test(el.type) || el.locked || estPostit(el)) return null;
+    if ((el.boundElements || []).some((x) => x.type === "text")) return null;
+    const plein = el.backgroundColor && el.backgroundColor !== "transparent";
+    if (plein && el.fillStyle && el.fillStyle !== "solid") return null;
+    const trait = el.strokeColor && el.strokeColor !== "transparent" && (el.strokeWidth || 0) > 0;
+    if (trait && el.strokeStyle && el.strokeStyle !== "solid") return null;
+    if (!plein && !trait) return null;
+    const C = contourForme(el), out = [];
+    const libre = (points, extra) => {
+      const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), type: "freedraw", points,
+        simulatePressure: false, lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
+        boundElements: null }, extra);
+      const bb = R.boite(n); n.width = bb.w; n.height = bb.h;
+      toucher(n);
+      return n;
+    };
+    if (plein) out.push(libre(C, { strokeColor: el.backgroundColor, pressures: C.map(() => 0.5),
+                                   customData: { pointe: "remplissage", net: true } }));
+    if (trait) {
+      // la même épaisseur qu'à l'écran : demi-largeur = base × (0,4 + 0,9 p)
+      const sw = el.strokeWidth || 1, ep = Math.max(0.6, sw * 0.31), base = ep * 1.9;
+      const p = Math.max(0, Math.min(1, (sw / 2 / base - 0.4) / 0.9));
+      const D = densifier(C, 4);
+      out.push(libre(D, { strokeWidth: ep, pressures: D.map(() => p), customData: { lisse: true } }));
+    }
+    return out;
+  }
   function gommerPartie(g, a, b) {
     const r = etat.gommeTaille / etat.zoom;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.5)));
@@ -1659,10 +1816,41 @@
       const c = [a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n];
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
+        if (/^(rectangle|ellipse|diamond)$/.test(el.type) && !el.locked) {
+          if (!R.touche(el, c[0], c[1], r)) continue;
+          const libres = formeEnLibre(el);
+          if (!libres) continue;
+          elements.splice(i, 1, ...libres);
+          selection.delete(el.id);
+          g.coupes = g.encre = true;
+          i += libres.length;              // ses deux morceaux passent sous la gomme dès ce pas
+          continue;
+        }
         if (el.type !== "freedraw" || el.locked) continue;
-        // une surface remplie n'est pas un trait : coupée, chaque morceau se
-        // refermerait sur lui-même en une autre forme
-        if (el.customData && el.customData.pointe === "remplissage") continue;
+        /* Une surface remplie n'est pas un trait : la gomme y découpe un
+           ROND, par la même découpe de surface que le lasso (signalé le
+           9 nov. : elle ne l'effaçait pas). Au milieu, il reste un trou. */
+        if (el.customData && el.customData.pointe === "remplissage") {
+          if (el.locked || !el.points || el.points.length < 3) continue;
+          const bs = R.boite(el), qs = versRepere(el, bs, c);
+          if (qs[0] < bs.x - r || qs[0] > bs.x + bs.w + r || qs[1] < bs.y - r || qs[1] > bs.y + bs.h + r) continue;
+          const rond = [];
+          for (let k2 = 0; k2 < 24; k2++) {
+            const a2 = k2 * Math.PI / 12;
+            rond.push([qs[0] - el.x + r * Math.cos(a2), qs[1] - el.y + r * Math.sin(a2)]);
+          }
+          const res = S.couperSurfaceLibre(R.contourRemplissage(el), rond, 20);
+          if (!res || !res.dedans.length) continue;
+          const restes = res.dehors.map((P) => {
+            const n = morceau(el, bs, { points: P, pressions: P.map(() => 0.5) });
+            n.customData = Object.assign({}, n.customData, { net: true });
+            return n;
+          });
+          elements.splice(i, 1, ...restes);
+          selection.delete(el.id);
+          g.coupes = g.encre = true;
+          continue;
+        }
         const bb = R.boite(el), q = versRepere(el, bb, c);
         // aucune pointe ne dépasse 2,5 × 1,9 × l'épaisseur de demi-largeur
         const marge = r + 4.75 * Math.max(0.6, el.strokeWidth || 1) + 1;
@@ -1967,7 +2155,12 @@
       return;
     }
     if (g.mode === "regle") return bougerRegle(g, sx, sy, e);
-    if (g.mode === "lasso") { g.pts.push([p.x, p.y]); demander(); return; }
+    if (g.mode === "lasso") {
+      if (g.forme === "rectangle" || g.forme === "ellipse") g.pts = boucleForme(g, p);
+      else if (g.forme === "polygone") g.survol = [p.x, p.y];
+      else g.pts.push([p.x, p.y]);
+      demander(); return;
+    }
     if (g.mode === "redresse") return ajusterRedresse(g, p, e);
     if (g.mode === "creer") return tracerForme(g, p, e);
     if (g.mode === "ligne") return tracerLigne(g.el, 1, p, e);
@@ -2132,6 +2325,7 @@
     const g = geste;
     clearTimeout(g.minuterie);
     if (g.mode === "pince") { if (pointeurs.size < 2) { geste = null; garder(); } return; }
+    if (g.mode === "lasso" && g.forme === "polygone") { demander(); return; }
     geste = null;
     if (g.mode === "pan") { garder(); majCurseur(); return; }
     if (g.mode === "deplacer") { if (g.bouge) memoriser(); majPanneau(); demander(); return; }
@@ -2801,6 +2995,10 @@
       return;
     }
     if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); supprimerSelection(); return; }
+    if (e.key === "Enter" && geste && geste.mode === "lasso" && geste.forme === "polygone") {
+      e.preventDefault();
+      const g = geste; geste = null; finLasso(g); return;
+    }
     if (e.key === "Enter" && selection.size === 1) {
       const el = selectionnes()[0];
       e.preventDefault();
@@ -2990,12 +3188,22 @@
   }
 
   /* ═══════════════ 14. Les commandes de l'écran ═══════════════════════ */
+  /* Le message se pose TOUJOURS hors de la barre d'outils. Signalé le 9 nov.
+     2026 : sur un écran étroit la barre est en bas, le message aussi, et il
+     cachait les stylos le temps qu'il restait affiché. On mesure donc où est
+     la barre : en bas, le message monte juste au-dessus d'elle. */
   function dire(t, faute) {
     etatLigne.textContent = t;
     etatLigne.classList.toggle("tb-faute", !!faute);
+    const barre = $(".tb-encrage"), cadre = etatLigne.offsetParent;
+    etatLigne.style.bottom = "";
+    if (barre && cadre) {
+      const rb = barre.getBoundingClientRect(), rc = cadre.getBoundingClientRect();
+      if (rb.height && rb.top > rc.top + rc.height / 2) etatLigne.style.bottom = Math.round(rc.bottom - rb.top + 10) + "px";
+    }
     etatLigne.classList.add("tb-vu");
     clearTimeout(dire.m);
-    dire.m = setTimeout(() => etatLigne.classList.remove("tb-vu"), 3800);
+    dire.m = setTimeout(() => etatLigne.classList.remove("tb-vu"), faute ? 4200 : 2800);
   }
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
@@ -3989,28 +4197,64 @@
   const TAILLES_GOMME = [6, 12, 20, 32];
   const option = (opt, libelle) => '<button type="button" class="tb-option" data-ropt="' + opt
     + '" aria-pressed="' + !!etat[opt] + '">' + libelle + "</button>";
+  /* Les réglages de la gomme et du lasso, en TUILES (demandé le 9 nov.
+     2026 : la rangée de mots « Main levée Rectangle Ellipse Polygone » était
+     laide et se lisait mal). Une tuile = un dessin de ce qu'elle fait et un
+     mot court ; une seule ligne d'aide sous chaque groupe, qui change avec
+     le choix, au lieu d'un paragraphe. */
+  const TRAIT_TUILE = (d) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + d + "</svg>";
+  const POINTILLE = ' stroke-dasharray="2.6 2.2"';
+  const IC_SELECTION = {
+    libre: TRAIT_TUILE('<path' + POINTILLE + ' d="M8 5.5c5-2.5 11.5-.5 11.5 5s-4.5 8-9.5 8S3 15.5 3.8 11c.4-2.4 2.4-4 4.2-4.4"/>'),
+    rectangle: TRAIT_TUILE('<rect' + POINTILLE + ' x="3.5" y="5.5" width="17" height="13" rx="1"/>'),
+    ellipse: TRAIT_TUILE('<ellipse' + POINTILLE + ' cx="12" cy="12" rx="8.5" ry="6.5"/>'),
+    polygone: TRAIT_TUILE('<path' + POINTILLE + ' d="M4.5 16.5 7.5 5.5l10.5 1.5 2 9.5-8.5 3z"/>'
+      + '<g fill="currentColor" stroke="none"><circle cx="4.5" cy="16.5" r="1.4"/><circle cx="7.5" cy="5.5" r="1.4"/>'
+      + '<circle cx="18" cy="7" r="1.4"/><circle cx="20" cy="16.5" r="1.4"/><circle cx="11.5" cy="19.5" r="1.4"/></g>'),
+    entier: TRAIT_TUILE('<rect' + POINTILLE + ' x="2.5" y="4.5" width="12" height="15" rx="1"/>'
+      + '<circle cx="14" cy="12" r="5" fill="currentColor" fill-opacity=".35"/>'),
+    partie: TRAIT_TUILE('<rect' + POINTILLE + ' x="2.5" y="4.5" width="12" height="15" rx="1"/>'
+      + '<path d="M14.5 7.1A5 5 0 0 1 14.5 16.9" opacity=".35"/><path d="M14.5 7.1a5 5 0 0 0 0 9.8z" fill="currentColor" fill-opacity=".35"/>'),
+    sous: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" opacity=".35"/><circle cx="12" cy="11" r="4.5"/>'),
+    objet: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" stroke-dasharray="1.5 2"/><path d="M6 8l12 9M18 8 6 17"/>'),
+  };
+  function tuiles(attr, choix, actuel) {
+    return '<div class="tb-tuiles" style="--n:' + choix.length + '">' + choix.map(([v, t, ic]) =>
+      '<button type="button" class="tb-tuile" data-' + attr + '="' + v + '" aria-pressed="' + (actuel === v) + '">'
+      + (IC_SELECTION[ic || v] || "") + "<span>" + t + "</span></button>").join("") + "</div>";
+  }
   function ouvrirReglageGomme() {
     const partie = etat.gommeMode === "partie";
-    reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p><div class="tb-choix">'
-      + [["partie", "Sous le curseur"], ["objet", "Trait entier"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rg="'
-        + v + '" aria-pressed="' + (etat.gommeMode === v) + '">' + t + "</button>").join("") + "</div>"
+    reglage.innerHTML = '<p class="tb-menu-titre">Gomme</p>'
+      + tuiles("rg", [["partie", "Sous le rond", "sous"], ["objet", "Tout l'élément", "objet"]], etat.gommeMode)
+      + '<p class="tb-indice">' + (partie
+        ? "Efface ce qui passe sous le rond : encre, formes, images. Le texte reste."
+        : "Efface en entier tout ce que la gomme touche. Échap avant de lâcher rend tout.") + "</p>"
       + (partie ? '<p class="tb-menu-titre">Taille</p><div class="tb-calibres">'
         + TAILLES_GOMME.map((t, i) => '<button type="button" class="tb-b tb-petit tb-calibre tb-calibre-gomme" data-rgt="' + t
           + '" aria-pressed="' + (t === etat.gommeTaille) + '" title="Taille ' + (i + 1) + '" aria-label="Taille ' + (i + 1)
-          + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "")
-      + '<p class="tb-note">' + (partie
-        ? "Efface l'encre et les images sous le cercle. Les formes et le texte ne sont pas touchés."
-        : "Efface tout trait, forme ou texte touché. Échap avant de lâcher rend tout.") + "</p>";
+          + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "");
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
   }
+  const LASSO_FORMES = [["libre", "Main levée"], ["rectangle", "Rectangle"], ["ellipse", "Ellipse"],
+                        ["polygone", "Polygone"]];
+  const AIDE_FORME = {
+    libre: "Entourez à main levée.",
+    rectangle: "Tirez d'un coin au coin opposé.",
+    ellipse: "Tirez d'un coin au coin opposé.",
+    polygone: "Un appui par coin ; retouchez le premier pour fermer.",
+  };
   function ouvrirReglageLasso() {
-    reglage.innerHTML = '<p class="tb-menu-titre">Lasso</p><div class="tb-choix">'
-      + [["entier", "Éléments entiers"], ["partie", "Seulement l'intérieur"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rl="'
-        + v + '" aria-pressed="' + (etat.lassoMode === v) + '">' + t + "</button>").join("") + "</div>"
-      + '<p class="tb-note">' + (etat.lassoMode === "partie"
-        ? "Découpe ce qui est dans la boucle : la moitié d'une image devient une image à part, un trait est coupé au bord. Le reste ne bouge pas."
-        : "Prend tout élément dont la plus grande part est dans la boucle, en entier.") + "</p>";
+    const partie = etat.lassoMode === "partie";
+    reglage.innerHTML = '<p class="tb-menu-titre">Forme</p>'
+      + tuiles("rf", LASSO_FORMES, etat.lassoForme || "libre")
+      + '<p class="tb-indice">' + AIDE_FORME[etat.lassoForme || "libre"] + "</p>"
+      + '<p class="tb-menu-titre">Ce qu\'il prend</p>'
+      + tuiles("rl", [["entier", "Éléments entiers"], ["partie", "L'intérieur"]], etat.lassoMode)
+      + '<p class="tb-indice">' + (partie
+        ? "Coupe au bord : traits, formes et images sont découpés."
+        : "Prend en entier ce qui est surtout dedans.") + "</p>";
     reglage.dataset.quoi = "lasso";
     reglage.hidden = false;
   }
@@ -4082,7 +4326,8 @@
     }
     if (q === "lasso") {
       if (b.dataset.rl) etat.lassoMode = b.dataset.rl;
-      garder(); ouvrirReglageLasso();
+      if (b.dataset.rf) { etat.lassoForme = b.dataset.rf; if (geste && geste.mode === "lasso") geste = null; }
+      garder(); ouvrirReglageLasso(); demander();
       return;
     }
     if (q === "gomme") {

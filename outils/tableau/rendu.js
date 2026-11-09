@@ -388,6 +388,31 @@
     return d + "Z";
   }
 
+  /* Le contour que peint « cheminLisse », aplati en segments : c'est lui,
+     et non les points du geste, qui borde la surface qu'on voit. Le lasso
+     le découpe ; les morceaux gardent donc exactement le bord peint. */
+  function contourRemplissage(el) {
+    const P = el.points || [];
+    if (el.customData && el.customData.net) return P.map((p) => [p[0], p[1]]);
+    if (P.length < 3) return [];
+    const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const out = [];
+    let cur = m(P[P.length - 1], P[0]);
+    out.push(cur);
+    for (let i = 0; i < P.length; i++) {
+      const c = P[i], fin = m(P[i], P[(i + 1) % P.length]);
+      const L = Math.hypot(c[0] - cur[0], c[1] - cur[1]) + Math.hypot(fin[0] - c[0], fin[1] - c[1]);
+      const k = Math.max(1, Math.min(10, Math.ceil(L / 5)));
+      for (let s = 1; s <= k; s++) {
+        const t = s / k, u = 1 - t;
+        out.push([u * u * cur[0] + 2 * u * t * c[0] + t * t * fin[0], u * u * cur[1] + 2 * u * t * c[1] + t * t * fin[1]]);
+      }
+      cur = fin;
+    }
+    out.pop();
+    return out;
+  }
+
   /* ═══════════════ 6. Les pointes de flèche ═══════════════════════════
      Les noms des pointes sont ceux du format de fichier ; leur dessin est
      le nôtre. La taille suit l'épaisseur du trait, et la pointe ne prend
@@ -520,7 +545,11 @@
       // La pointe qui REMPLIT : le geste devient une surface, refermée
       // d'elle-même entre le dernier point et le premier.
       if (pointe === "remplissage" && P.length > 2) {
-        ops.push({ d: cheminLisse(P), mode: "fond", couleur: el.strokeColor });
+        // un morceau découpé au lasso est déjà le contour exact : il se
+        // peint tel quel, sans être lissé une seconde fois
+        const net = el.customData && el.customData.net;
+        ops.push({ d: net ? "M" + P.map((p) => n(p[0]) + " " + n(p[1])).join("L") + "Z" : cheminLisse(P),
+                   mode: "fond", couleur: el.strokeColor });
         return ops;
       }
       const ferme = P.length > 2 && Math.hypot(P[0][0] - P[P.length - 1][0], P[0][1] - P[P.length - 1][1]) < 8;
@@ -623,8 +652,8 @@
     return lx >= 0 && ly >= 0 && lx <= w && ly <= h;
   }
 
-  const API = { aleas, chemins, boite, touche, contourLibre, trace, cheminLisse, distanceSegment,
-                dansPolygone, rayonAngle };
+  const API = { aleas, chemins, boite, touche, contourLibre, trace, cheminLisse, contourRemplissage,
+                distanceSegment, dansPolygone, rayonAngle };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_RENDU = API;
 })(typeof window !== "undefined" ? window : this);
