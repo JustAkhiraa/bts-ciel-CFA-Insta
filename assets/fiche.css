@@ -6599,6 +6599,139 @@ td.etat.sur   { color: var(--vert); }
 #atelier.at-grand .at-poignee-note { display: none; }
 body.at-fige { overflow: hidden; }
 
+/* ── l'atelier sur téléphone : une application ────────────────────────
+   Signalé le 9 nov. 2026 : coder sur un téléphone était pénible. Sous 760 px l'atelier prend tout l'écran : une barre, deux
+   vues (Code, Console) qu'un appui échange, et une barre de symboles et de
+   modèles au-dessus du clavier. La feuille suit la partie VISIBLE de
+   l'écran (--at-vh) : quand le clavier du téléphone monte, la barre de
+   symboles monte avec lui au lieu de passer dessous. */
+.at-tel-fermer, .at-tel-tp, .at-vues, .at-symboles, .at-tel-lanceur { display: none; }
+#atelier.at-tel .at-tel-lanceur { display: block; margin: 0 0 1rem; }
+#atelier.at-tel:not(.at-ouvert) > :not(.at-tel-lanceur) { display: none !important; }
+.at-tel-ouvrir {
+  display: flex; align-items: center; gap: .9rem; width: 100%;
+  min-height: 76px; padding: .8rem 1rem; cursor: pointer; text-align: left;
+  font: inherit; color: var(--encre);
+  background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 18px;
+  box-shadow: var(--ombre);
+}
+.at-tel-ouvrir-ic {
+  flex: 0 0 auto; display: grid; place-items: center; width: 48px; height: 48px;
+  border-radius: 14px; background: var(--accent); color: var(--sur-accent);
+  font-family: var(--mono); font-weight: 700; font-size: 1.05rem;
+}
+.at-tel-ouvrir b { display: block; font-size: 1.05rem; }
+.at-tel-ouvrir i { display: block; font-style: normal; font-size: .8182rem; color: var(--encre-douce); }
+
+html.at-app-ouverte, html.at-app-ouverte body { overflow: hidden; }
+html.at-app-ouverte .tel-barre, html.at-app-ouverte .tel-tete,
+html.at-app-ouverte .tel-rappel { display: none !important; }
+#atelier.at-tel.at-ouvert {
+  position: fixed; left: 0; right: 0; top: var(--at-vtop, 0); z-index: 400;
+  height: var(--at-vh, 100dvh); margin: 0; padding: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--carte); border: 0; border-radius: 0; box-shadow: none;
+}
+#atelier.at-tel.at-ouvert > .at-tel-lanceur,
+#atelier.at-tel.at-ouvert > .at-poignee-note { display: none !important; }
+
+/* La barre : une seule rangée. Le surligneur et Agrandir n'ont pas de sens
+   ici ; l'état (téléchargement, compilation) passe sur une ligne fine. */
+#atelier.at-tel.at-ouvert .at-barre {
+  flex: 0 0 auto; flex-wrap: wrap; gap: .3rem; margin: 0;
+  padding: calc(.4rem + env(safe-area-inset-top)) .45rem .4rem;
+  border: 0; border-bottom: 1px solid var(--bord); border-radius: 0;
+}
+#atelier.at-tel .at-surligneur, #atelier.at-tel #at-plein,
+#atelier.at-tel .at-langue-etiquette, #atelier.at-tel .at-barre kbd { display: none !important; }
+#atelier.at-tel .at-tel-fermer, #atelier.at-tel .at-tel-tp { display: inline-flex; }
+/* « Réglages » en toutes lettres poussait Exécuter sur une seconde rangée :
+   une roue dentée suffit, et le nom reste lu par le lecteur d'écran. */
+#atelier.at-tel #at-reglages { font-size: 0; width: 42px; padding: 0; justify-content: center; }
+#atelier.at-tel #at-reglages::before {
+  content: ""; width: 21px; height: 21px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3.2'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3.2'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+#atelier.at-tel #at-executer { padding-inline: .75rem; }
+#atelier.at-tel .at-tel-tp { padding-inline: .7rem; font-weight: 700; }
+#atelier.at-tel .at-tel-fermer { order: -2; min-width: 40px; justify-content: center; font-size: 1.1rem; }
+#atelier.at-tel .at-langue-boite { order: -1; }
+#atelier.at-tel #at-executer, #atelier.at-tel #at-arreter { order: 5; margin-left: auto; min-height: 40px; }
+#atelier.at-tel .at-barre .at-creux { min-height: 40px; }
+#atelier.at-tel .at-jauge-boite { order: 9; flex: 1 1 100%; margin: 0; }
+#atelier.at-tel .at-jauge-boite .at-etat { font-size: .7576rem; margin: 0; text-align: left; }
+#atelier.at-tel .at-jauge-boite:has(.at-etat:empty):has(.at-jauge[hidden]) { display: none; }
+
+/* Les deux vues : un interrupteur à deux positions, plein largeur. */
+#atelier.at-tel.at-ouvert .at-vues {
+  flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: .3rem;
+  margin: .45rem .5rem; padding: .25rem; border-radius: 12px; background: var(--carte-creuse);
+}
+.at-vue {
+  position: relative; min-height: 38px; border: 0; border-radius: 9px; cursor: pointer;
+  font: inherit; font-weight: 650; font-size: .8788rem;
+  background: transparent; color: var(--encre-douce);
+}
+.at-vue[aria-selected="true"] { background: var(--carte); color: var(--encre); box-shadow: var(--ombre); }
+.at-vue-neuf {
+  position: absolute; top: 9px; margin-left: .35rem;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+
+#atelier.at-tel.at-ouvert .at-grille {
+  flex: 1 1 auto; min-height: 0; display: block; margin: 0 .5rem; gap: 0;
+}
+#atelier.at-tel.at-ouvert .at-separateur { display: none !important; }
+#atelier.at-tel.at-ouvert .at-volet {
+  height: 100% !important; max-height: none; min-height: 0; resize: none;
+  display: flex; flex-direction: column;
+}
+#atelier.at-tel.at-ouvert[data-vue="code"] .at-volet-sortie,
+#atelier.at-tel.at-ouvert[data-vue="sortie"] .at-volet-code { display: none !important; }
+#atelier.at-tel.at-ouvert .at-volet-sortie { overflow: auto; }
+#atelier.at-tel.at-ouvert .at-volet-sortie .con { flex: 0 0 auto; min-height: 9rem; }
+#atelier.at-tel.at-ouvert .at-volet-sortie .at-diags { margin: .4rem .5rem .8rem; }
+#atelier.at-tel.at-ouvert .at-volet-sortie .at-diag-tete { margin: .7rem .6rem .2rem; font-size: .8788rem; }
+#atelier.at-tel .edi-num { padding: 0 .35rem 0 .4rem; }
+#atelier.at-tel .edi-peint, #atelier.at-tel .edi-saisie { padding-left: .55rem; padding-right: .55rem; }
+#atelier.at-tel.at-ouvert .edi-saisie { font-size: max(16px, var(--edi-police)); }
+
+/* Le tiroir des TP couvre l'écran, sous la barre. */
+#atelier.at-tel.at-ouvert .at-tiroir:not([hidden]) {
+  position: absolute; left: 0; right: 0; bottom: 0; top: 0; z-index: 30;
+  margin: 0; border-radius: 0; overflow: auto; background: var(--carte);
+  padding-top: env(safe-area-inset-top);
+}
+#atelier.at-tel.at-ouvert .at-tiroir-tete {
+  position: sticky; top: 0; z-index: 2; background: var(--carte);
+}
+
+/* La barre de symboles : défile de côté, touches de 44 px, les modèles
+   (printf, for…) en pastilles pour ne pas les confondre avec un caractère. */
+#atelier.at-tel.at-ouvert .at-symboles {
+  flex: 0 0 auto; display: flex; gap: .3rem; overflow-x: auto;
+  padding: .35rem .4rem calc(.35rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--bord); background: var(--carte-creuse);
+  scrollbar-width: none; overscroll-behavior-x: contain;
+}
+#atelier.at-tel.at-ouvert[data-vue="sortie"] .at-symboles { display: none; }
+#atelier.at-tel .at-symboles::-webkit-scrollbar { display: none; }
+.at-sy {
+  flex: 0 0 auto; min-width: 40px; min-height: 42px; padding: 0 .55rem; cursor: pointer;
+  font: inherit; font-family: var(--mono); font-size: 1.05rem; font-weight: 600;
+  color: var(--encre); background: var(--carte);
+  border: 1px solid var(--bord-fort); border-radius: 9px;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+}
+.at-sy:active { background: var(--accent-pale); border-color: var(--accent); }
+.at-sy-cmd { background: transparent; border-color: transparent; font-size: 1.15rem; }
+.at-sy-mod {
+  font-size: .8485rem; border-radius: 999px;
+  background: var(--accent-pale); border-color: var(--accent); color: var(--encre);
+}
+
 .at-icone { gap: .4rem; }
 /* Deux coins opposés plutôt qu'un carré plein : c'est le signe d'« agrandir »
    qu'on reconnaît sans le lire, et il tient en deux pseudo-éléments. */
@@ -7329,10 +7462,9 @@ body.at-fige { overflow: hidden; }
 .dev-rien { color: var(--encre-douce); font-style: italic; }
 
 /* ═══════════════════════════ la calculatrice ══════════════════════════
-   « Upsilon NumWorks à intégrer comme outils, et améliore-le pour qu'il
-   ressemble aux fonctionnalités récentes d'une calculatrice NumWorks
-   d'aujourd'hui. » Puis, l'outil une fois debout : « la calculatrice est
-   ultra moche, améliore-moi ça et rends-la ergonomique ».
+   Demandé : une calculatrice graphique qui reprenne les gestes et les
+   applications récentes de la machine de l'épreuve. Puis, l'outil une fois
+   debout : la rendre plus belle et plus ergonomique.
 
    Le reproche était juste, et il se mesurait. Les touches s'étiraient sur
    toute la largeur du volet : à 800 px, trente rectangles pâles de 110 px
@@ -7465,8 +7597,12 @@ body.at-fige { overflow: hidden; }
   --nw-fond: #FFFFFF;
   --nw-encre: #1A1A1A;
   --nw-encre-douce: #565656;
-  --nw-bande: #2B2B2B;
-  --nw-sur-bande: #FFFFFF;
+  /* Le bandeau jaune de la machine (demandé le 9 nov. 2026 : ressembler
+     au plus près à l'appareil de l'épreuve). L'appareil écrit en
+     blanc dessus ; le blanc sur ce jaune ne tient que 1,9:1, donc l'encre
+     est noire : 10,1:1, et le jaune reste ce qui se reconnaît. */
+  --nw-bande: #FFB734;
+  --nw-sur-bande: #1A1A1A;
   --nw-choix: #FFB734;
   --nw-sur-choix: #1A1A1A;
   --nw-filet: #CFCFCF;
@@ -7485,12 +7621,22 @@ body.at-fige { overflow: hidden; }
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--bord-fort), inset 0 2px 5px rgba(20, 14, 5, .16);
 }
+/* Les composants posés DANS l'écran (lignes de fonction du Grapheur,
+   cartes, filets) lisaient les jetons du site : sur un thème sombre, la
+   ligne « f(x) = x²−2 » sortait en encre noire sur fond noir, au milieu
+   d'un écran blanc. L'écran appartient à l'appareil : à l'intérieur, les
+   jetons de surface et d'encre du site prennent ceux de l'écran. */
+.nw-ecran {
+  --carte: var(--nw-fond); --carte-creuse: var(--nw-creuse);
+  --encre: var(--nw-encre); --encre-douce: var(--nw-encre-douce);
+  --bord: var(--nw-filet); --bord-fort: var(--nw-filet);
+}
 .nw-ecran[data-ecran="sombre"] {
   --nw-fond: #15171B;
   --nw-encre: #F3F4F6;
   --nw-encre-douce: #B6BAC2;
-  --nw-bande: #0C0E11;
-  --nw-sur-bande: #F3F4F6;
+  --nw-bande: #FFB734;
+  --nw-sur-bande: #1A1A1A;
   --nw-filet: #3A3F47;
   --nw-grille: #262B31;
   --nw-creuse: #1E2127;
@@ -7499,6 +7645,7 @@ body.at-fige { overflow: hidden; }
   --nw-c5: #FFB26B; --nw-c6: #5FD6DE; --nw-c7: #F58AD0; --nw-c8: #D9C04A;
 }
 .nw-bandeau {
+  position: relative;
   display: flex; align-items: center; gap: .6rem;
   padding: .3rem .6rem; min-height: 26px;
   background: var(--nw-bande); color: var(--nw-sur-bande);
@@ -7509,18 +7656,22 @@ body.at-fige { overflow: hidden; }
    c'est le titre qui se coupe, parce que c'est lui qu'on devine. */
 .nw-bandeau-titre {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  /* Au milieu et en capitales, comme sur la machine. */
+  position: absolute; left: 50%; transform: translateX(-50%); max-width: 52%;
+  text-transform: uppercase; letter-spacing: .07em;
 }
 .nw-bandeau-droite { margin-left: auto; display: flex; align-items: center; gap: .55rem; }
 .nw-angle, .nw-heure { font-family: var(--mono); font-weight: 600; opacity: .9; }
 .nw-examen {
-  background: var(--nw-choix); color: var(--nw-sur-choix);
+  /* posé sur le bandeau jaune : la pastille s'inverse pour se voir */
+  background: var(--nw-sur-bande); color: var(--nw-bande);
   border-radius: 4px; padding: .05rem .4rem; font-size: .9em;
 }
 /* L'état du modificateur, dans le bandeau. Une touche qui change le sens
    de trente autres sans le dire est un mode caché ; Norman en fait la
    première cause d'erreur, et l'appareil l'affiche pour cette raison. */
 .nw-mod {
-  background: var(--nw-choix); color: var(--nw-sur-choix);
+  background: var(--nw-sur-bande); color: var(--nw-bande);
   border-radius: 4px; padding: .05rem .4rem; font-size: .9em;
   font-family: var(--mono);
 }
@@ -8137,6 +8288,200 @@ select.nw-petit { width: auto; min-width: 7rem; }
 #calculatrice.nw-grand .nw-catalogue,
 #calculatrice.nw-grand .nw-aide-clavier { display: none; }
 body.nw-fige { overflow: hidden; }
+
+/* ── le téléphone : une application, pas une page ─────────────────────
+   Signalé le 9 nov. 2026 : sur téléphone, la calculatrice n'était pas
+   ergonomique. L'appareil de bureau s'empilait en une longue page : l'écran en haut,
+   trente-sept touches en dessous, et il fallait défiler pour voir le
+   résultat de ce qu'on tapait. Sous 760 px, la calculatrice devient une
+   feuille qui prend tout l'écran : l'écran de la machine en haut, un
+   clavier au pouce en bas, et rien à faire défiler entre les deux.
+
+   Tout est en jetons de la maison : le clavier change avec le thème
+   comme le reste du site. Seul l'écran garde sa palette, comme sur
+   l'appareil de bureau. */
+.nw-tel-b, .nw-tel-lanceur { display: none; }
+#calculatrice.nw-tel .nw-tel-lanceur { display: block; margin: 0 0 1rem; }
+#calculatrice.nw-tel:not(.nw-ouverte) > .nw-barre,
+#calculatrice.nw-tel:not(.nw-ouverte) > .nw-corps,
+#calculatrice.nw-tel:not(.nw-ouverte) > .nw-boite,
+#calculatrice.nw-tel .nw-aide-clavier { display: none; }
+.nw-tel-ouvrir {
+  display: flex; align-items: center; gap: .9rem; width: 100%;
+  min-height: 76px; padding: .8rem 1rem; cursor: pointer; text-align: left;
+  font: inherit; color: var(--encre);
+  background: var(--carte); border: 1px solid var(--bord-fort); border-radius: 18px;
+  box-shadow: var(--ombre);
+}
+.nw-tel-ouvrir:active { transform: translateY(1px); }
+.nw-tel-ouvrir-ic {
+  flex: 0 0 auto; display: grid; place-items: center; width: 48px; height: 48px;
+  border-radius: 14px; background: var(--accent); color: var(--sur-accent);
+}
+.nw-tel-ouvrir-ic svg { width: 28px; height: 28px; }
+.nw-tel-ouvrir b { display: block; font-size: 1.05rem; }
+.nw-tel-ouvrir i { display: block; font-style: normal; font-size: .8182rem; color: var(--encre-douce); }
+
+/* La feuille. Elle suit la partie VISIBLE de l'écran (--nw-vh, posée par
+   le script) : quand le clavier du téléphone monte, elle se raccourcit
+   au lieu de passer dessous. */
+html.nw-app-ouverte, html.nw-app-ouverte body { overflow: hidden; }
+html.nw-app-ouverte .tel-barre, html.nw-app-ouverte .tel-tete,
+html.nw-app-ouverte .tel-rappel { display: none !important; }
+#calculatrice.nw-tel.nw-ouverte {
+  position: fixed; left: 0; right: 0; top: var(--nw-vtop, 0); z-index: 400;
+  height: var(--nw-vh, 100dvh); margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  background: var(--carte); border: 0; border-radius: 0; box-shadow: none;
+}
+#calculatrice.nw-tel.nw-ouverte > :not(.nw-corps):not(.nw-boite) { display: none !important; }
+#calculatrice.nw-tel.nw-ouverte .nw-corps {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 0;
+  padding: 0; border: 0; border-radius: 0; box-shadow: none; background: var(--carte);
+}
+#calculatrice.nw-tel.nw-ouverte .nw-ecran {
+  flex: 1 1 auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none;
+}
+#calculatrice.nw-tel .nw-bandeau {
+  min-height: 50px; gap: .35rem;
+  padding: calc(.25rem + env(safe-area-inset-top)) .35rem .25rem;
+}
+#calculatrice.nw-tel .nw-bandeau-titre {
+  position: static; transform: none; max-width: none;
+  flex: 1 1 auto; text-align: center; font-size: .8485rem;
+}
+#calculatrice.nw-tel .nw-heure { display: none; }
+#calculatrice.nw-tel .nw-bandeau-droite { margin-left: 0; gap: .35rem; }
+.nw-tel .nw-tel-b {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 42px; min-height: 42px; padding: 0 .55rem; cursor: pointer;
+  font: inherit; font-size: .8485rem; font-weight: 700; letter-spacing: 0; text-transform: none;
+  background: transparent; color: var(--nw-sur-bande); border: 0; border-radius: 999px;
+}
+.nw-tel .nw-tel-b:active { background: rgba(0, 0, 0, .10); }
+.nw-tel .nw-tel-b .nw-ico { width: 22px; height: 22px; }
+.nw-tel .nw-tel-fermer { text-decoration: underline; text-underline-offset: 3px; }
+#calculatrice.nw-tel.nw-ouverte .nw-page { padding: .8rem .9rem 1rem; font-size: .9394rem; }
+/* La ligne de calcul : grande, à la mesure du pouce et de l'œil, son
+   curseur visible même sans le clavier du téléphone. EXE est en bas. */
+#calculatrice.nw-tel .nw-saisie-boite .nw-valider { display: none; }
+#calculatrice.nw-tel #nw-calc {
+  font-size: 1.55rem; min-height: 58px; padding: .35rem .2rem;
+  border: 0; border-bottom: 2px dotted var(--nw-encre-douce); border-radius: 0;
+  background: transparent; caret-color: var(--nw-c2);
+}
+#calculatrice.nw-tel #nw-calc:focus { outline: 0; border-bottom-style: solid; border-bottom-color: var(--nw-encre); }
+#calculatrice.nw-tel.nw-ouverte .nw-accueil { grid-template-columns: repeat(3, 1fr); }
+#calculatrice.nw-tel .nw-accueil-note { display: none; }
+
+/* Sur l'accueil on touche une application : le clavier n'y servirait à
+   rien, et la grille prend toute la hauteur. */
+#calculatrice.nw-tel[data-app="accueil"] .nw-clavier { display: none; }
+
+/* La ligne d'état, entre l'écran et le clavier : sous les yeux, et
+   absente quand elle n'a rien à dire. */
+#calculatrice.nw-tel .nw-corps > .nw-etat {
+  margin: 0; padding: .4rem .9rem; text-align: left;
+  font-size: .8182rem; line-height: 1.35; background: var(--carte);
+  border-top: 1px solid var(--bord);
+}
+#calculatrice.nw-tel .nw-corps > .nw-etat:empty { display: none; }
+
+/* ── le clavier au pouce ──────────────────────────────────────────── */
+#calculatrice.nw-tel .nw-clavier {
+  max-width: none; margin: 0; gap: 0; padding: .25rem 0 env(safe-area-inset-bottom);
+  border: 0; border-top: 1px solid var(--bord); border-radius: 0;
+  background: var(--carte); box-shadow: none;
+}
+.nw-tk {
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+  min-width: 0; padding: 0; cursor: pointer; user-select: none; -webkit-user-select: none;
+  font: inherit; font-family: var(--mono); color: var(--encre);
+  background: transparent; border: 0; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.nw-tk:focus-visible, .nw-tk-cat:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nw-tk .nw-ico { width: 23px; height: 23px; }
+.nw-tk-mot { font-family: var(--sans); font-size: 1.05rem; font-weight: 600; }
+
+.nw-tk-outils {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.35fr);
+  align-items: center; gap: .2rem; padding: 0 .45rem .25rem;
+}
+.nw-tk-o { min-height: 46px; border-radius: 12px; }
+.nw-tk-o:active, .nw-tk-o[aria-pressed="true"] { background: var(--carte-creuse); }
+.nw-tk-off { opacity: .38; }
+.nw-tk-exe {
+  min-height: 42px; border-radius: 999px; font-weight: 700;
+  background: var(--accent); color: var(--sur-accent);
+}
+.nw-tk-exe .nw-tk-mot { font-size: .9091rem; letter-spacing: .06em; }
+.nw-tk-exe .nw-ico { width: 19px; height: 19px; }
+.nw-tk-exe:active { filter: brightness(.92); }
+
+/* Les onglets : deux lignes chacun, défilables si l'écran est étroit.
+   L'onglet choisi est plein, comme une touche enfoncée. */
+.nw-tk-cats {
+  display: flex; gap: .45rem; padding: .2rem .6rem .55rem;
+  overflow-x: auto; scrollbar-width: none; scroll-padding-inline: .6rem;
+}
+.nw-tk-cats::-webkit-scrollbar { display: none; }
+.nw-tk-cat {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 76px; min-height: 48px; padding: .15rem .7rem; cursor: pointer;
+  font: inherit; font-family: var(--mono); font-size: .8485rem; line-height: 1.15;
+  color: var(--encre); background: var(--carte);
+  border: 1.5px solid var(--bord-fort); border-radius: 999px;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.nw-tk-cat[aria-selected="true"] { background: var(--encre); color: var(--carte); border-color: var(--encre); }
+.nw-tk-tout { flex-direction: row; gap: .35rem; font-family: var(--sans); font-weight: 600; }
+.nw-tk-tout .nw-ico { width: 20px; height: 20px; }
+
+/* La grille : six colonnes, quatre rangées, des filets et pas de
+   pastilles. Le pavé numérique est sur fond creusé, au même endroit
+   quel que soit l'onglet. */
+.nw-tk-grille {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-top: 1px solid var(--bord);
+}
+.nw-tk-grille .nw-tk {
+  min-height: clamp(48px, 7.4dvh, 60px);
+  border-right: 1px solid var(--bord); border-bottom: 1px solid var(--bord);
+  font-size: 1.12rem;
+}
+.nw-tk-grille .nw-tk:nth-child(6n) { border-right: 0; }
+.nw-tk-grille .nw-tk-c { background: var(--carte-creuse); font-size: 1.6rem; font-weight: 500; }
+.nw-tk-grille .nw-tk-op { font-size: 1.5rem; }
+.nw-tk-grille .nw-tk-pt { background: var(--carte-creuse); font-size: .9394rem; }
+.nw-tk-grille .nw-tk:active { background: var(--accent-pale); }
+
+/* Les lettres : dix colonnes, dans l'ordre du clavier français. */
+.nw-tk-lettres {
+  display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: .3rem;
+  padding: .35rem .35rem .45rem; border-top: 1px solid var(--bord);
+}
+.nw-tk-l {
+  min-height: clamp(44px, 6.4dvh, 52px); border-radius: 8px;
+  background: var(--carte-creuse); font-family: var(--sans); font-size: 1.12rem;
+  box-shadow: 0 1px 0 var(--bord-fort);
+}
+.nw-tk-l:active { background: var(--accent-pale); }
+.nw-tk-maj { font-size: 1.25rem; }
+.nw-tk-maj[aria-pressed="true"] { background: var(--encre); color: var(--carte); }
+.nw-tk-espace { grid-column: span 3; font-size: .8485rem; }
+.nw-tk-sys { grid-column: span 2; }
+
+/* La boîte à outils devient un tiroir qui monte du bas. */
+#calculatrice.nw-tel.nw-ouverte .nw-boite:not([hidden]) {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0;
+  max-height: 78%; display: flex; flex-direction: column;
+  border-radius: 20px 20px 0 0; border-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, .22);
+}
+#calculatrice.nw-tel .nw-boite-liste { max-height: none; flex: 1 1 auto; min-height: 0; }
+#calculatrice.nw-tel .nw-boite-item { min-height: 48px; }
 
 @media print {
   .nw-clavier, .nw-barre, .nw-boite, .nw-aide-clavier { display: none; }
@@ -9657,10 +10002,11 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 }
 .tb-scene:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
 .tb-toile { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-/* En sombre, le canevas est inversé : invert 93 % puis la teinte remise
-   à l'endroit. Le blanc devient un gris très sombre, le noir un blanc
-   cassé, et un bleu reste un bleu. */
-.tb-scene.tb-sombre .tb-toile,
+/* En sombre, la zone de frappe est inversée : invert 93 % puis la teinte
+   remise à l'endroit. Le blanc devient un gris très sombre, le noir un
+   blanc cassé, et un bleu reste un bleu. La TOILE ne l'est plus : ses
+   couleurs sont calculées une à une par tableau.js (même calcul), pour
+   que les images y gardent les leurs. */
 .tb-scene.tb-sombre .tb-saisie { filter: invert(93%) hue-rotate(180deg); }
 .tb-scene.tb-sombre { background: #111; }
 
@@ -10013,6 +10359,10 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   /* dix outils sur 355 px : les filets cèdent leur place, les cibles gardent 34 px */
   .tb-encrage .tb-b { min-width: 34px; padding: 0 .15rem; }
   .tb-encrage .tb-sep { display: none; }
+  /* cinq stylos depuis le 9 nov. 2026 : douze outils ne tiennent plus sur
+     une rangée de 355 px. La barre passe à deux rangées plutôt que de
+     descendre ses cibles sous 34 px. */
+  .tb-encrage { flex-wrap: wrap; max-width: calc(100% - 20px); }
   .tb-lecture { width: calc(100% - 20px); }
   .tb-reglage-stylo { top: auto; bottom: calc(100% + 8px); }
   .tb-bd { bottom: 62px; }
@@ -10265,7 +10615,7 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
       background: color-mix(in srgb, var(--papier) 88%, transparent);
       -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
     }
-    .tel-gros, .tel-pilule {
+    .tel-gros, .tel-pilule, .tel-rappel {
       background: color-mix(in srgb, var(--carte) 90%, transparent);
       -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
     }
@@ -10312,9 +10662,33 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   }
   .tel-barre > * { pointer-events: auto; }
   .tel-barre { justify-content: center; }
-  .tel-pilule { max-width: 100%; transition: max-width .32s cubic-bezier(.2, .8, .2, 1); }
-  .tel-barre.tel-mini .tel-pilule { max-width: 58px; padding: 0; }
-  .tel-barre.tel-mini .tel-pilule span { display: none; }
+  /* Repliée (on est descendu dans la page) : les trois commandes
+     s'effacent, il ne reste qu'un petit carré en bas à gauche, qui la rend. */
+  .tel-barre > :not(.tel-rappel) {
+    transition: opacity .2s ease-out, transform .3s cubic-bezier(.2, .8, .2, 1);
+  }
+  .tel-barre.tel-repliee > :not(.tel-rappel) {
+    opacity: 0; transform: translateY(26px) scale(.9); pointer-events: none;
+  }
+  .tel-rappel {
+    position: absolute; left: 0; bottom: 6px; width: 46px; height: 46px;
+    display: grid; place-items: center; border: 0; border-radius: 14px;
+    background: var(--carte); color: var(--encre); box-shadow: var(--ombre-haut); cursor: pointer;
+    opacity: 0; transform: scale(.6); pointer-events: none;
+    transition: opacity .2s ease-out, transform .26s cubic-bezier(.2, .8, .2, 1);
+  }
+  /* translucide (demandé le 9 nov. 2026) : le carré se fait discret sur le
+     texte qu'on lit, et redevient plein sous le doigt ou au clavier */
+  .tel-barre.tel-repliee .tel-rappel { opacity: .8; transform: none; pointer-events: auto; }
+  .tel-barre.tel-repliee .tel-rappel:is(:active, :focus-visible) { opacity: 1; }
+  .tel-rappel svg { width: 23px; height: 23px; }
+  .tel-rappel:active { transform: scale(.94); }
+  /* Le verre du carré vient APRÈS sa règle de base : placé plus haut avec
+     celui des autres boutons, il était recouvert par elle (même
+     spécificité, la dernière gagne) et le carré restait opaque. */
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .tel-rappel { background: color-mix(in srgb, var(--carte) 55%, transparent); }
+  }
   .tel-gros { width: 58px; height: 58px; background: var(--carte); box-shadow: var(--ombre-haut); }
   .tel-gros svg { width: 25px; height: 25px; }
   .tel-gros[aria-current="page"] { background: var(--encre); color: var(--papier); }
@@ -10522,8 +10896,32 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   html.coquille .fiche-tete h1 { margin-top: .4rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tel-volet, .tel-voile, .tel-cat-ic, .tel-tete { transition: none; }
+    .tel-volet, .tel-voile, .tel-cat-ic, .tel-tete, .tel-rappel, .tel-barre > * { transition: none; }
   }
+
+  /* Voxel : tout est carré, comme ailleurs dans ce thème (signalé le
+     9 nov. 2026 : la coquille du téléphone, venue après, gardait ses
+     arrondis). Les commandes du bas prennent le bouton de pierre du jeu. */
+  html[data-theme="voxel"] :is(.tel-tete, .tel-barre, .tel-accueil, .tel-volet, .tel-segments),
+  html[data-theme="voxel"] :is(.tel-tete, .tel-barre, .tel-accueil, .tel-volet, .tel-segments) * {
+    border-radius: 0 !important;
+  }
+  html[data-theme="voxel"] :is(.tel-gros, .tel-pilule, .tel-rappel) {
+    background: var(--pierre); color: #FFFFFF;
+    border: 2px solid #000000;
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,.34), inset -2px -2px 0 rgba(0,0,0,.42);
+    text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  html[data-theme="voxel"] .tel-gros[aria-current="page"] { background: #45792C; }
+
+  /* Les liens d'un chapitre, deux par ligne et de même largeur (demandé le
+     9 nov. 2026 : « Cours, Exercices, Fiche » puis « QCM » seul faisait une
+     ligne bancale). En nombre impair (trois sans QCM, cinq avec un TP), le
+     dernier prend la ligne entière plutôt que d'y rester seul à gauche. */
+  html.coquille .chapitre .liens { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+  html.coquille .chapitre .liens a { justify-content: center; }
+  html.coquille .chapitre .liens a:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: none; }
 
@@ -10539,7 +10937,7 @@ html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: non
     left: auto; right: 12px; top: 50%; bottom: auto; transform: translateY(-50%);
     flex-direction: column; gap: 10px;
   }
-  html.coquille .tel-pilule, html.coquille .tel-barre.tel-mini .tel-pilule {
+  html.coquille .tel-pilule {
     flex: none; width: 58px; max-width: 58px; padding: 0;
   }
   html.coquille .tel-pilule span { display: none; }

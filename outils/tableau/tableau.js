@@ -19,6 +19,61 @@
   const scene = $("#tb-scene");
   const toile = $("#tb-toile");
   const ctx = toile.getContext("2d");
+
+  /* ── le mode sombre, couleur par couleur ──
+     Avant le 9 nov. 2026, la toile entière passait sous un filtre CSS
+     (invert 93 %, puis hue-rotate 180°), et chaque image recevait le même
+     filtre avant, pour l'annuler. Signalé : en sombre, les images sortaient
+     fausses. Deux filtres de suite ne s'annulent pas : l'inversion à 93 %
+     ne rend plus ni le noir ni le blanc, et la rotation de teinte écrête les
+     couleurs saturées entre deux étapes (un rouge pur ressortait saumon,
+     255, 143, 143, mesuré dans le navigateur).
+     La toile n'est donc plus filtrée. Chaque couleur qu'on y pose (encre,
+     texte, fond, grille, sélection) passe ici par le MÊME calcul que le
+     filtre, refait à la main : le tableau sombre garde son aspect, au
+     2/255 près (mesuré sur 308 couleurs contre le filtre du navigateur).
+     Les images, elles, sont posées telles quelles. */
+  let enSombre = false;
+  const ROTATION_180 = [[-0.574, 1.43, 0.144], [0.426, 0.43, 0.144], [0.426, 1.43, -0.856]];
+  const borne = (x) => Math.max(0, Math.min(1, x));
+  const normaliseur = document.createElement("canvas").getContext("2d");
+  const teintes = new Map();
+  function teinteSombre(v) {
+    if (typeof v !== "string") return v;
+    let t = teintes.get(v);
+    if (t !== undefined) return t;
+    normaliseur.fillStyle = "#000";
+    normaliseur.fillStyle = v;
+    const n = normaliseur.fillStyle;           // « #rrggbb » ou « rgba(r, g, b, a) »
+    let c, a = 1;
+    if (n[0] === "#") c = [1, 3, 5].map((i) => parseInt(n.slice(i, i + 2), 16));
+    else {
+      const p = (n.match(/\(([^)]*)\)/) || [, ""])[1].split(",").map(Number);
+      if (p.length < 3 || p.some(isNaN)) { teintes.set(v, v); return v; }
+      c = p.slice(0, 3);
+      if (p.length > 3) a = p[3];
+    }
+    const inv = c.map((x) => borne(0.93 - 0.86 * x / 255));
+    const o = ROTATION_180.map((l) => Math.round(255 * borne(l[0] * inv[0] + l[1] * inv[1] + l[2] * inv[2])));
+    t = a < 1 ? "rgba(" + o.join(", ") + ", " + a + ")" : "rgb(" + o.join(", ") + ")";
+    teintes.set(v, t);
+    return t;
+  }
+  // Seule la toile de l'écran est concernée : un export n'est jamais sombre.
+  ["fillStyle", "strokeStyle", "shadowColor"].forEach((nom) => {
+    const d = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, nom);
+    Object.defineProperty(ctx, nom, { configurable: true,
+      get() { return d.get.call(this); },
+      set(v) { d.set.call(this, enSombre ? teinteSombre(v) : v); } });
+  });
+  ["createLinearGradient", "createRadialGradient"].forEach((nom) => {
+    const creer = CanvasRenderingContext2D.prototype[nom];
+    ctx[nom] = function (...args) {
+      const g = creer.apply(this, args);
+      if (enSombre) { const poser = g.addColorStop.bind(g); g.addColorStop = (o, c) => poser(o, teinteSombre(c)); }
+      return g;
+    };
+  });
   const saisie = $("#tb-saisie");
   const panneau = $("#tb-props");
   const etatLigne = $("#tb-etat");
@@ -109,13 +164,30 @@
       postit: POSTITS[0], surligneur: SURLIGNEURS[0], surligneurW: 6,
     },
     /* Les trois stylos, réglés chacun pour soi. */
-    stylos: [{ c: NOIR, w: 1.6 }, { c: OC.red[4], w: 1.6 }, { c: OC.blue[4], w: 1.6 }],
+    /* Cinq outils d'écriture, chacun sa pointe (demandé le 9 nov. 2026 :
+       trois fois le même stylo ne servait à rien, la couleur se change
+       déjà dans le réglage). Chacun garde sa couleur, son calibre, et sa
+       pointe se change en le recliquant. */
+    stylos: [
+      { c: NOIR, w: 1.6 },                                  // stylo à bille
+      { c: OC.blue[4], w: 1.6, pointe: "plume" },           // stylo-plume
+      { c: OC.gray[4], w: 1.6, pointe: "crayon" },          // crayon de papier
+      { c: OC.red[4], w: 2.4, pointe: "marqueur" },         // marqueur
+      { c: OC.teal[4], w: 2.4, pointe: "aquarelle" },       // pinceau
+    ],
     stylo: 0,
     /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
        ce qu'on fait du doigt quand un stylet a été vu. */
     /* La gomme efface sous le curseur, comme une vraie gomme : c'est le
        défaut depuis le 8 nov. 2026. « Trait entier » reste à un clic. */
     formes: false, gommeMode: "partie", gommeChoisie: false, gommeTaille: 12,
+    /* Le lasso prend les éléments ENTIERS, ou découpe ce qu'il entoure
+       (« partie », demandé le 9 nov. 2026) : recliquer le lasso choisit. */
+    lassoMode: "entier",
+    /* Le laser se règle (demandé le 9 nov. 2026 : il disparaissait trop
+       vite) : combien de temps il reste, sa couleur, son épaisseur, sa
+       transparence. Par défaut, le laser d'avant, au réglage près. */
+    laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
     styletSeul: false, inclinaison: true, regle: null,
   };
   /* Les douze encres, et les six calibres. */
@@ -131,6 +203,7 @@
   const pointeurs = new Map();        // les doigts posés (pincement)
   let dernierePos = null;             // la souris, en coordonnées de scène
   let laser = [];                     // la traînée du pointeur laser
+  let calqueLaser = null;             // son calque, posé d'un coup avec sa transparence
   let traineeGomme = [];
   let fantomes = new Set();           // ce que la gomme va effacer
   const ignores = new Set();          // les doigts écartés : une paume posée
@@ -183,6 +256,8 @@
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
+          lassoMode: etat.lassoMode, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
+          laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
@@ -206,7 +281,7 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -214,7 +289,9 @@
       // été choisi
       if (!lu.gommeChoisie) etat.gommeMode = "partie";
       if (lu.courant) Object.assign(etat.courant, lu.courant);
-      if (Array.isArray(lu.stylos) && lu.stylos.length === 3) etat.stylos = lu.stylos;
+      // cinq stylos depuis le 9 nov. 2026 : un réglage à trois reprend les cinq nouveaux
+      if (Array.isArray(lu.stylos) && lu.stylos.length === etat.stylos.length) etat.stylos = lu.stylos;
+      if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -478,7 +555,10 @@
       c.translate(cx, cy); c.rotate(el.angle); c.translate(-cx, -cy);
     }
     c.translate(el.x, el.y);
-    if (estSurligneur(el)) c.globalCompositeOperation = "multiply";
+    // Le surligneur fonce ce qu'il recouvre ; en sombre, où les couleurs
+    // sont retournées, c'est « screen » qui fait la même chose : il
+    // éclaircit, et l'encre dessous reste lisible.
+    if (estSurligneur(el)) c.globalCompositeOperation = c === ctx && enSombre ? "screen" : "multiply";
     if (estPostit(el)) {
       // l'ombre portée d'une note collée : ce qui la distingue d'un rectangle
       c.shadowColor = "rgba(0,0,0,.18)"; c.shadowBlur = 10; c.shadowOffsetY = 3;
@@ -549,7 +629,9 @@
     c.save();
     c.globalAlpha *= m.alpha;
     if (m.flou) { c.shadowColor = el.strokeColor; c.shadowBlur = m.flou; }
-    c.fillStyle = m.grain ? c.createPattern(toileGrain(el.strokeColor, m.grain), "repeat") : el.strokeColor;
+    // le grain est une petite toile à part : sa couleur s'assombrit ici
+    const grain = c === ctx && enSombre ? teinteSombre(el.strokeColor) : el.strokeColor;
+    c.fillStyle = m.grain ? c.createPattern(toileGrain(grain, m.grain), "repeat") : el.strokeColor;
     c.fill(p);
     if (m.flou) {
       c.shadowBlur = 0; c.shadowColor = "transparent";
@@ -569,6 +651,8 @@
     or: [[0, "#8a6a12"], [0.22, "#e2bd4f"], [0.42, "#fff1a8"], [0.6, "#d1a12a"], [0.82, "#93700f"], [1, "#e6c158"]],
   };
   function diagonale(el) {
+    // un morceau laissé par la gomme garde le dégradé du trait entier
+    if (el.customData && el.customData.diag) return el.customData.diag;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const [x, y] of el.points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
     if (x1 - x0 < 1 && y1 - y0 < 1) { x0 -= 4; x1 += 4; }
@@ -607,21 +691,20 @@
       + '</linearGradient><path d="' + d + '" fill="url(#' + id + ')"/>';
   }
 
-  /* Une image se dessine telle quelle. En sombre, le canevas entier est
-     inversé par un filtre (voir « sombre ») : une photo y sortirait en
-     négatif. On lui applique donc le même filtre AVANT, qui l'annule à
-     peu près — à l'écran seulement : un export n'est jamais sombre. */
+  /* Une image se dessine telle quelle, en sombre comme en clair : seules
+     les COULEURS posées sur la toile s'assombrissent (voir « le mode
+     sombre, couleur par couleur »), et une image n'en a pas. */
   function dessinerImage(c, el) {
-    const img = imageDe(el.fileId);
-    if (img && img.complete && img.naturalWidth) {
-      if (c === ctx && sombre()) c.filter = "invert(93%) hue-rotate(180deg)";
+    // pendant un coup de gomme, c'est la copie gommée qu'on montre
+    const gommee = c === ctx && geste && geste.toiles && geste.toiles.get(el.id);
+    const img = gommee ? gommee.cv : imageDe(el.fileId);
+    if (img && (gommee || (img.complete && img.naturalWidth))) {
       const s = Array.isArray(el.scale) ? el.scale : [1, 1];
       if (s[0] < 0 || s[1] < 0) {
         c.translate(s[0] < 0 ? el.width : 0, s[1] < 0 ? el.height : 0);
         c.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1);
       }
       c.drawImage(img, 0, 0, el.width, el.height);
-      c.filter = "none";
       return;
     }
     // pas encore décodée, ou fichier absent : un cadre qui garde sa place
@@ -665,6 +748,7 @@
     if (toile.width !== Math.round(W * dpr) || toile.height !== Math.round(H * dpr)) {
       toile.width = Math.round(W * dpr); toile.height = Math.round(H * dpr);
     }
+    enSombre = sombre();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = etat.fond;
     ctx.fillRect(0, 0, W, H);
@@ -828,28 +912,56 @@
   function dessinerEphemeres() {
     const maintenant = performance.now();
     const z = etat.zoom;
-    laser = laser.filter((p) => maintenant - p.t < 1400);
+    // « jusqu'au relâchement » : tant qu'on tient le laser, rien ne vieillit
+    const relache = etat.laserDuree === "relache";
+    if (relache && geste && geste.mode === "laser") laser.forEach((p) => { p.t = maintenant; });
+    const vieLaser = relache ? 900 : Number(etat.laserDuree) * 1000 || 1400;
+    laser = laser.filter((p) => maintenant - p.t < vieLaser);
     traineeGomme = traineeGomme.filter((p) => maintenant - p.t < 260);
-    const trace = (pts, couleur, epais, vie) => {
+    /* Un trait reste plein, puis s'efface sur ses « fondu » dernières
+       millisecondes (1,4 s au plus). Au réglage d'origine, durée et fondu
+       sont égaux : le laser s'efface comme avant, dès qu'il est tracé. */
+    const trace = (c, pts, couleur, epais, vie, fondu) => {
+      fondu = Math.min(vie, fondu || vie);
       for (let i = 1; i < pts.length; i++) {
         const a = pts[i - 1], b = pts[i];
         if (b.coupure) continue;
-        const age = Math.min(1, (maintenant - b.t) / vie);
-        ctx.strokeStyle = couleur;
-        ctx.globalAlpha = 1 - age;
-        ctx.lineWidth = (epais * (1 - age * 0.7)) / z;
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        const age = Math.max(0, Math.min(1, (maintenant - b.t - (vie - fondu)) / fondu));
+        c.strokeStyle = couleur;
+        c.globalAlpha = 1 - age;
+        c.lineWidth = (epais * (1 - age * 0.7)) / z;
+        c.lineCap = "round";
+        c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
       }
     };
     ctx.save();
     ctx.setLineDash([]);
+    /* Le laser se peint sur un CALQUE à part, posé ensuite d'un coup avec sa
+       transparence : tracé segment par segment, chaque jonction doublait
+       l'opacité, et un laser à 45 % sortait presque plein (mesuré :
+       51, 194, 104 pour un vert à 45 % sur du blanc). Le calque ne passe
+       pas par les couleurs du mode sombre : un laser rouge reste rouge. */
     if (laser.length) {
-      ctx.shadowColor = "rgba(255,40,40,.8)"; ctx.shadowBlur = 8;
-      trace(laser, "#ff2f2f", 5, 1400);
+      const W = toile.width, H = toile.height;
+      if (!calqueLaser || calqueLaser.width !== W || calqueLaser.height !== H) {
+        calqueLaser = document.createElement("canvas");
+        calqueLaser.width = W; calqueLaser.height = H;
+      }
+      const c2 = calqueLaser.getContext("2d");
+      c2.setTransform(1, 0, 0, 1, 0, 0);
+      c2.clearRect(0, 0, W, H);
+      c2.setTransform(ctx.getTransform());
+      // la lueur prend la couleur du laser
+      c2.shadowColor = etat.laserCouleur + "cc"; c2.shadowBlur = 8;
+      trace(c2, laser, etat.laserCouleur, etat.laserTaille, vieLaser, 1400);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = etat.laserOpacite;
+      ctx.drawImage(calqueLaser, 0, 0);
+      ctx.restore();
     }
     ctx.shadowBlur = 0;
-    if (traineeGomme.length) trace(traineeGomme, "rgba(120,120,120,.5)", 12, 260);
+    if (traineeGomme.length) trace(ctx, traineeGomme, "rgba(120,120,120,.5)", 12, 260);
     if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
       ctx.beginPath();
       geste.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
@@ -1376,31 +1488,167 @@
   }
   function finLasso(g) {
     selection = new Set(g.avant);
+    let coupes = 0;
     if (g.pts.length > 2) {
-      elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+      if (etat.lassoMode === "partie") {
+        const r = couperAuLasso(g.pts);
+        r.pris.forEach((id) => selection.add(id));
+        coupes = r.coupes;
+      } else {
+        elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+      }
     }
+    if (coupes) memoriser();
     const n = selection.size;
-    dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso." : "Rien d'entouré.");
+    dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso"
+      + (coupes ? ", dont " + coupes + " découpé" + (coupes > 1 ? "s" : "") + " au bord. Ctrl + Z pour revenir." : ".")
+      : "Rien d'entouré.");
     majPanneau(); demander();
+  }
+
+  /* ── le lasso qui découpe ──
+     Ce qui est DANS la boucle est pris, ce qui est dehors reste où il était.
+     Un trait est coupé au bord (ses morceaux gardent son dessin, comme pour
+     la gomme). Une image est coupée en deux : l'intérieur devient une image
+     à part, posée exactement à sa place et sélectionnée ; l'originale garde
+     le reste, avec un trou transparent. Formes et textes ne se coupent pas :
+     ils sont pris entiers, à la règle habituelle. */
+  function couperAuLasso(poly) {
+    const pris = new Set();
+    let coupes = 0;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (estLie(el)) continue;
+      const bb = R.boite(el);
+      // la boucle dans le repère de l'élément (rotation défaite)
+      const loc = () => poly.map((q) => { const r = versRepere(el, bb, q); return [r[0] - el.x, r[1] - el.y]; });
+      if (el.type === "freedraw" && !el.locked && !(el.customData && el.customData.pointe === "remplissage")) {
+        const t = R.trace(el), m = S.decouperPolygone(t.L, t.P, loc());
+        if (!m.some((x) => x.dedans)) continue;
+        if (m.every((x) => x.dedans)) { pris.add(el.id); continue; }
+        const nouveaux = m.filter((x) => x.points.length > 1).map((x) => {
+          const n = morceau(el, bb, x);
+          if (x.dedans) pris.add(n.id);
+          return n;
+        });
+        elements.splice(i, 1, ...nouveaux);
+        selection.delete(el.id);
+        coupes++;
+        continue;
+      }
+      if (el.type === "image" && !el.locked) {
+        const r = couperImage(el, bb, loc());
+        if (r === "entier") pris.add(el.id);
+        else if (r) { elements.splice(i + 1, 0, r); pris.add(r.id); coupes++; }
+        continue;
+      }
+      if (S.pris(echantillon(el), poly)) pris.add(el.id);
+    }
+    return { pris, coupes };
+  }
+  /* Rend la nouvelle image (l'intérieur), « entier » si la boucle prend
+     toute l'image, ou rien si elle n'en prend rien. */
+  function couperImage(el, bb, loc) {
+    const img = imageDe(el.fileId);
+    if (!img || !img.complete || !img.naturalWidth || !el.width || !el.height) return null;
+    const W = el.width, H = el.height, s = Array.isArray(el.scale) ? el.scale : [1, 1];
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    loc.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
+    if (x1 - x0 < 1 || y1 - y0 < 1) return null;
+    const chemin = (c, f) => { c.beginPath(); loc.forEach((q, k) => { const [x, y] = f ? f(q) : q; k ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); };
+    // la résolution de l'image : ses pixels, ou le double de l'écran pour un dessin vectoriel
+    const vect = /svg/.test((fichiers[el.fileId] || {}).mimeType || "");
+    const NW = vect ? Math.min(2048, Math.ceil(W * 2)) : img.naturalWidth;
+    const NH = vect ? Math.min(2048, Math.ceil(H * 2)) : img.naturalHeight;
+    const kx = NW / W, ky = NH / H;
+    // 1. ce qui reste : l'image entière, moins la boucle (dans son sens à elle, miroir compris)
+    const reste = document.createElement("canvas");
+    reste.width = NW; reste.height = NH;
+    const cr = reste.getContext("2d");
+    cr.drawImage(img, 0, 0, NW, NH);
+    cr.setTransform(kx, 0, 0, ky, 0, 0);
+    cr.globalCompositeOperation = "destination-out";
+    chemin(cr, ([x, y]) => [s[0] < 0 ? W - x : x, s[1] < 0 ? H - y : y]);
+    cr.fill();
+    if (toileVide(reste)) return "entier";
+    // 2. l'intérieur, recadré sur la boucle, dans le sens où on le voit
+    const pw = Math.max(1, Math.round((x1 - x0) * kx)), ph = Math.max(1, Math.round((y1 - y0) * ky));
+    const dedans = document.createElement("canvas");
+    dedans.width = pw; dedans.height = ph;
+    const cd = dedans.getContext("2d");
+    cd.setTransform(kx, 0, 0, ky, -x0 * kx, -y0 * ky);
+    chemin(cd);
+    cd.clip();
+    if (s[0] < 0 || s[1] < 0) { cd.translate(s[0] < 0 ? W : 0, s[1] < 0 ? H : 0); cd.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1); }
+    cd.drawImage(img, 0, 0, W, H);
+    if (toileVide(dedans)) return null;
+    // l'originale garde le reste ; la nouvelle se pose exactement où on la voyait
+    el.fileId = enFichierToile(reste);
+    toucher(el);
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), x: el.x + x0, y: el.y + y0,
+      width: x1 - x0, height: y1 - y0, scale: [1, 1], crop: null, fileId: enFichierToile(dedans),
+      boundElements: null, groupIds: [] });
+    if (el.angle) {
+      const [cx, cy] = milieuBoite(bb), mx = n.x + n.width / 2, my = n.y + n.height / 2;
+      const co = Math.cos(el.angle), si = Math.sin(el.angle), dx = mx - cx, dy = my - cy;
+      n.x += dx * co - dy * si - dx;
+      n.y += dx * si + dy * co - dy;
+    }
+    toucher(n);
+    return n;
   }
 
   /* ── la gomme ──
      Deux manières : le trait ENTIER (fantôme, puis effacé au relâchement)
-     ou une PARTIE du trait — l'encre sous le cercle disparaît et le trait
-     se coupe en morceaux, chacun redevenu un trait complet. */
+     ou une PARTIE du trait : l'encre sous le cercle disparaît, et le
+     trait se coupe en morceaux.
+
+     Un morceau garde le DESSIN du trait d'origine : sa ligne déjà lissée
+     et ses pressions déjà calculées (« lisse »), le même repère (donc le
+     même grain de crayon), le même dégradé, la même rotation. Avant le
+     9 nov. 2026, chaque morceau redevenait un trait neuf : lissé de
+     nouveau, pression simulée repartie de zéro, grain et dégradé recalés
+     sur lui, rotation autour d'un autre centre. Signalé : l'encre restante
+     bougeait sous la gomme, les courbes serrées s'élargissaient, et elle
+     prenait plus que son cercle. Mesuré sur 48 traits d'essai : jusqu'à
+     36 px pris hors d'un cercle de 10, l'encre restante déplacée de
+     1,2 px ; après, 0,08 px au plus, et ce qui part hors du cercle ne
+     dépasse plus la largeur du trait lui-même (un trait ne se coupe pas
+     sur la moitié de son épaisseur). */
   function debutGomme(p) {
-    geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements) };
+    geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements),
+              traces: new Map(), toiles: new Map() };
     fantomes = new Set();
     effacer(geste, p, p);
   }
   function effacer(g, a, b) { if (g.partie) gommerPartie(g, a, b); else gommer(a, b); }
-  function morceau(el, m) {
-    const [x0, y0] = m.points[0];
-    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), x: x0, y: y0,
-      points: m.points.map(([x, y]) => [x - x0, y - y0]), pressures: m.pressions,
-      customData: el.customData ? Object.assign({}, el.customData) : null });
-    const b = R.boite(Object.assign({}, n, { x: 0, y: 0 }));
-    n.width = b.w; n.height = b.h;
+  // le centre de la boîte : c'est autour de lui qu'un élément tourne
+  const milieuBoite = (b) => [b.x + b.w / 2, b.y + b.h / 2];
+  // un point de la scène, ramené dans le repère d'un élément tourné
+  function versRepere(el, b, q) {
+    if (!el.angle) return q;
+    const [cx, cy] = milieuBoite(b), co = Math.cos(-el.angle), si = Math.sin(-el.angle);
+    const dx = q[0] - cx, dy = q[1] - cy;
+    return [cx + dx * co - dy * si, cy + dx * si + dy * co];
+  }
+  function morceau(el, b, m) {
+    const cd = Object.assign({}, el.customData || {}, { lisse: true });
+    if (cd.effet && EFFETS[cd.effet] && !cd.diag) cd.diag = diagonale(el);
+    // même x, y que le trait d'origine : les points restent où ils étaient
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(),
+      points: m.points, pressures: m.pressions, simulatePressure: false, customData: cd });
+    const nb = R.boite(n);
+    n.width = nb.w; n.height = nb.h;
+    // Tourné, un morceau tournerait autour de SON centre et non de celui du
+    // trait : on le décale de (rotation − identité)(c′ − c), ce qui le pose
+    // exactement où il était peint.
+    if (el.angle) {
+      const [cx, cy] = milieuBoite(b), [mx, my] = milieuBoite(nb);
+      const co = Math.cos(el.angle), si = Math.sin(el.angle), dx = mx - cx, dy = my - cy;
+      n.x += dx * co - dy * si - dx;
+      n.y += dx * si + dy * co - dy;
+    }
     toucher(n);
     return n;
   }
@@ -1412,20 +1660,81 @@
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
         if (el.type !== "freedraw" || el.locked) continue;
-        // une pointe large se gomme sur toute sa largeur, pas seulement au centre
-        const pt = el.customData && el.customData.pointe;
-        const large = { marqueur: 1.6, pastel: 2, aquarelle: 2.5, calame: 1.5 }[pt] || 1;
-        const rr = r + (el.strokeWidth || 1) * 1.7 * large, bb = R.boite(el);
-        if (c[0] < bb.x - rr || c[0] > bb.x + bb.w + rr || c[1] < bb.y - rr || c[1] > bb.y + bb.h + rr) continue;
-        const morceaux = S.decouper(absolus(el), el.pressures, c, rr);
-        if (morceaux.length === 1 && morceaux[0].points.length === el.points.length) continue;
-        elements.splice(i, 1, ...morceaux.filter((m) => m.points.length > 1).map((m) => morceau(el, m)));
+        // une surface remplie n'est pas un trait : coupée, chaque morceau se
+        // refermerait sur lui-même en une autre forme
+        if (el.customData && el.customData.pointe === "remplissage") continue;
+        const bb = R.boite(el), q = versRepere(el, bb, c);
+        // aucune pointe ne dépasse 2,5 × 1,9 × l'épaisseur de demi-largeur
+        const marge = r + 4.75 * Math.max(0.6, el.strokeWidth || 1) + 1;
+        if (q[0] < bb.x - marge || q[0] > bb.x + bb.w + marge || q[1] < bb.y - marge || q[1] > bb.y + bb.h + marge) continue;
+        let t = g.traces.get(el.id);
+        if (!t) { t = R.trace(el); g.traces.set(el.id, t); }
+        const morceaux = S.gommer(t.L, t.P, t.R, [q[0] - el.x, q[1] - el.y], r);
+        if (!morceaux) continue;
+        elements.splice(i, 1, ...morceaux.map((m) => morceau(el, bb, m)));
         selection.delete(el.id);
-        g.coupes = true;
+        g.coupes = g.encre = true;
       }
     }
+    gommerImages(g, a, b, r);
     traineeGomme.push({ x: b.x, y: b.y, t: performance.now() });
     demander();
+  }
+
+  /* La gomme efface aussi dans les IMAGES (signalé le 9 nov. 2026 : elle
+     ne prenait que les traits). Les pixels sous le cercle deviennent
+     transparents. Pendant le geste, on gomme une COPIE de l'image, une
+     toile à sa résolution, qu'on montre à sa place ; au relâchement, la
+     copie devient un nouveau fichier (le chemin de la baguette magique),
+     et Ctrl + Z rend l'ancien. Échap avant de lâcher : rien n'a changé.
+     Une image vectorielle (les icônes réseau) est posée en pixels, au
+     double de sa taille à l'écran. */
+  function toileGommee(g, el) {
+    let t = g.toiles.get(el.id);
+    if (t) return t;
+    const img = imageDe(el.fileId);
+    if (!img || !img.complete || !img.naturalWidth || !el.width || !el.height) return null;
+    const vect = /svg/.test((fichiers[el.fileId] || {}).mimeType || "");
+    const w = vect ? Math.min(2048, Math.ceil(el.width * 2)) : img.naturalWidth;
+    const h = vect ? Math.min(2048, Math.ceil(el.height * 2)) : img.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const c = cv.getContext("2d");
+    c.drawImage(img, 0, 0, w, h);
+    c.globalCompositeOperation = "destination-out";
+    c.lineCap = "round"; c.lineJoin = "round";
+    // on gomme dans le repère de l'élément : une image étirée reçoit une
+    // gomme étirée d'autant, qui reste ronde à l'écran
+    c.setTransform(w / el.width, 0, 0, h / el.height, 0, 0);
+    t = { cv, c, el };
+    g.toiles.set(el.id, t);
+    return t;
+  }
+  function gommerImages(g, a, b, r) {
+    for (const el of elements) {
+      if (el.type !== "image" || el.locked) continue;
+      const bb = R.boite(el), s = Array.isArray(el.scale) ? el.scale : [1, 1];
+      // un point de la scène, dans l'image : rotation défaite, miroir compris
+      const local = (p) => {
+        const q = versRepere(el, bb, [p.x, p.y]);
+        const x = q[0] - el.x, y = q[1] - el.y;
+        return [s[0] < 0 ? el.width - x : x, s[1] < 0 ? el.height - y : y];
+      };
+      const pa = local(a), pb = local(b);
+      if (Math.max(pa[0], pb[0]) < -r || Math.min(pa[0], pb[0]) > el.width + r
+          || Math.max(pa[1], pb[1]) < -r || Math.min(pa[1], pb[1]) > el.height + r) continue;
+      const t = toileGommee(g, el);
+      if (!t) continue;
+      t.c.lineWidth = 2 * r;
+      t.c.beginPath(); t.c.moveTo(pa[0], pa[1]); t.c.lineTo(pb[0] + 0.001, pb[1]); t.c.stroke();
+      g.coupes = true;
+    }
+  }
+  // une image dont il ne reste rien : on la retire plutôt que garder un cadre vide
+  function toileVide(cv) {
+    const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
+    return true;
   }
 
   /* ── pointeur posé ── */
@@ -1867,7 +2176,21 @@
     }
     if (g.mode === "gomme") {
       if (g.partie) {
-        if (g.coupes) { memoriser(); dire("Encre effacée. Ctrl + Z pour revenir."); }
+        // les images gommées deviennent de nouveaux fichiers ; vides, elles partent
+        const vides = [];
+        g.toiles.forEach((t) => {
+          if (toileVide(t.cv)) { vides.push(t.el.id); return; }
+          t.el.fileId = enFichierToile(t.cv);
+          toucher(t.el);
+        });
+        if (vides.length) retirer(vides);
+        if (g.coupes) {
+          memoriser();
+          const ou = g.toiles.size ? (g.encre ? "Effacé dans l'image et dans l'encre" : "Effacé dans l'image")
+            : "Encre effacée";
+          dire(ou
+            + (vides.length ? " ; image entièrement effacée, retirée" : "") + ". Ctrl + Z pour revenir.");
+        }
         demander();
         return;
       }
@@ -2677,7 +3000,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -3598,9 +3921,36 @@
      Un clic prend le stylo ; un second clic sur le stylo déjà en main
      ouvre son réglage — couleur et calibre. */
   const reglage = $("#tb-reglage");
+  /* L'icône d'un stylo dit sa POINTE : on reconnaît la plume, le crayon,
+     le marqueur ou le pinceau sans lire. Tous écrivent vers le bas à
+     gauche, comme l'icône d'origine. */
+  const ICONES_POINTE = {
+    "": '<path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/><path d="M11.6 5.9l2.5 2.5"/>',
+    plume: '<g transform="rotate(45 10 10)"><path d="M10 2.5c2.2 2 3.6 4.4 3.6 7L10 17.5l-3.6-8c0-2.6 1.4-5 3.6-7z"/>'
+      + '<path d="M10 10.3v4.2"/><circle cx="10" cy="9" r="1.1" class="plein"/></g>',
+    crayon: '<path d="M4.5 15.5l1.2-4.2L13.5 3.5l3 3-7.8 7.8z"/><path d="M5.7 11.3l3 3"/>'
+      + '<path d="M4.5 15.5l.6-2.1 1.5 1.5z" class="plein"/><path d="M12 5l3 3"/>',
+    marqueur: '<g transform="rotate(45 10 10)"><rect x="7" y="1.8" width="6" height="10.4" rx="1.2"/>'
+      + '<path d="M7 5.2h6"/><path d="M7.6 12.2h4.8l-1 3h-2.8z"/><path d="M9.2 15.2l.4 2.4h.8l.4-2.4z" class="plein"/></g>',
+    aquarelle: '<g transform="rotate(45 10 10)"><path d="M10 1.5v7"/><rect x="8.6" y="8.5" width="2.8" height="2.6" rx=".5"/>'
+      + '<path d="M8.6 11.1c0 2.6-.6 4.6 1.4 7.4 2-2.8 1.4-4.8 1.4-7.4z" class="plein"/></g>',
+    remplissage: '<path d="M4 9.5l5.5-5.5 6 6L10 15.5z"/><path d="M4 9.5h11.5"/>'
+      + '<path d="M17 12.5c0 1.2-.7 2.2-1.5 2.2S14 13.7 14 12.5l1.5-2.6z" class="plein"/>',
+  };
+  ICONES_POINTE.monoligne = ICONES_POINTE[""];
+  ICONES_POINTE.pastel = ICONES_POINTE.crayon;
+  ICONES_POINTE.calame = ICONES_POINTE.plume;
+  const nomStylo = (i) => {
+    const v = etat.stylos[i].pointe || "";
+    return (POINTES_NOMS.find(([p]) => p === v) || POINTES_NOMS[0])[1];
+  };
   function majStylos() {
     $$("[data-stylo]").forEach((b) => {
-      const st = etat.stylos[Number(b.dataset.stylo)];
+      const i = Number(b.dataset.stylo), st = etat.stylos[i];
+      const svg = b.querySelector("svg"), v = st.pointe || "";
+      if (svg.dataset.pointe !== v) { svg.innerHTML = ICONES_POINTE[v] || ICONES_POINTE[""]; svg.dataset.pointe = v; }
+      b.setAttribute("aria-label", nomStylo(i));
+      b.title = nomStylo(i) + (i === 0 ? " (P ou 7)" : "") + " · recliquer pour le régler";
       b.querySelector("i").style.setProperty("--c", APERCUS[st.effet] || st.c);
       b.querySelector("i").style.setProperty("--w", Math.min(8, 2 + st.w * 1.3) + "px");
     });
@@ -3649,19 +3999,54 @@
           + '" aria-pressed="' + (t === etat.gommeTaille) + '" title="Taille ' + (i + 1) + '" aria-label="Taille ' + (i + 1)
           + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "")
       + '<p class="tb-note">' + (partie
-        ? "Efface l'encre sous le cercle et coupe le trait. Les formes et le texte ne sont pas touchés."
+        ? "Efface l'encre et les images sous le cercle. Les formes et le texte ne sont pas touchés."
         : "Efface tout trait, forme ou texte touché. Échap avant de lâcher rend tout.") + "</p>";
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
   }
+  function ouvrirReglageLasso() {
+    reglage.innerHTML = '<p class="tb-menu-titre">Lasso</p><div class="tb-choix">'
+      + [["entier", "Éléments entiers"], ["partie", "Seulement l'intérieur"]].map(([v, t]) => '<button type="button" class="tb-b tb-petit" data-rl="'
+        + v + '" aria-pressed="' + (etat.lassoMode === v) + '">' + t + "</button>").join("") + "</div>"
+      + '<p class="tb-note">' + (etat.lassoMode === "partie"
+        ? "Découpe ce qui est dans la boucle : la moitié d'une image devient une image à part, un trait est coupé au bord. Le reste ne bouge pas."
+        : "Prend tout élément dont la plus grande part est dans la boucle, en entier.") + "</p>";
+    reglage.dataset.quoi = "lasso";
+    reglage.hidden = false;
+  }
+  const LASER_DUREES = [[1.4, "1,4 s"], [3, "3 s"], [6, "6 s"], [10, "10 s"], ["relache", "Tant que j'appuie"]];
+  const LASER_COULEURS = [["#ff2f2f", "Rouge"], ["#22c55e", "Vert"], ["#2f8cff", "Bleu"], ["#ffc61a", "Jaune"],
+                          ["#c04dff", "Violet"], ["#ff7a1a", "Orange"]];
+  const LASER_TAILLES = [3, 5, 8, 12];
+  const LASER_OPACITES = [[1, "Opaque"], [0.7, "70 %"], [0.45, "45 %"], [0.25, "25 %"]];
+  function ouvrirReglageLaser() {
+    const bouton = (attr, v, texte, presse) => '<button type="button" class="tb-b tb-petit" data-' + attr + '="' + v
+      + '" aria-pressed="' + presse + '">' + texte + "</button>";
+    reglage.innerHTML = '<p class="tb-menu-titre">Laser : combien de temps il reste</p><div class="tb-choix tb-choix-laser">'
+      + LASER_DUREES.map(([v, t]) => bouton("rld", v, t, String(etat.laserDuree) === String(v))).join("") + "</div>"
+      + '<p class="tb-menu-titre">Couleur</p><div class="tb-pastilles">'
+      + LASER_COULEURS.map(([c, t]) => '<button type="button" class="tb-pastille" data-rlc="' + c + '" style="--c:' + c
+        + '" aria-pressed="' + (c === etat.laserCouleur) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + '<p class="tb-menu-titre">Épaisseur</p><div class="tb-calibres">'
+      + LASER_TAILLES.map((w, i) => '<button type="button" class="tb-b tb-petit tb-calibre" data-rlt="' + w + '" aria-pressed="'
+        + (w === etat.laserTaille) + '" title="Épaisseur ' + (i + 1) + '" aria-label="Épaisseur ' + (i + 1) + '"><i style="--w:'
+        + (4 + i * 3) + 'px;--c:' + etat.laserCouleur + '"></i></button>').join("") + "</div>"
+      + '<p class="tb-menu-titre">Transparence</p><div class="tb-choix tb-choix-laser">'
+      + LASER_OPACITES.map(([v, t]) => bouton("rlo", v, t, Number(v) === Number(etat.laserOpacite))).join("") + "</div>"
+      + '<p class="tb-note">Le laser montre sans écrire : il ne s\'enregistre pas et ne s\'exporte pas.</p>';
+    reglage.dataset.quoi = "laser";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
+    if (quoi === "laser") return ouvrirReglageLaser();
     if (quoi === "gomme") return ouvrirReglageGomme();
+    if (quoi === "lasso") return ouvrirReglageLasso();
     if (quoi === "baguette") return ouvrirReglageBaguette();
     const surl = quoi === "surligneur";
     const st = surl ? { c: etat.courant.surligneur, w: etat.courant.surligneurW } : etat.stylos[quoi];
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
     const calibres = surl ? [3, 4.5, 6, 8, 11, 15] : CALIBRES;
-    reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : "Stylo " + (quoi + 1)) + "</p>"
+    reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : nomStylo(quoi)) + "</p>"
       + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
         + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
       + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
@@ -3687,6 +4072,19 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "laser") {
+      if (b.dataset.rld) etat.laserDuree = b.dataset.rld === "relache" ? "relache" : Number(b.dataset.rld);
+      if (b.dataset.rlc) etat.laserCouleur = b.dataset.rlc;
+      if (b.dataset.rlt) etat.laserTaille = Number(b.dataset.rlt);
+      if (b.dataset.rlo) etat.laserOpacite = Number(b.dataset.rlo);
+      garder(); ouvrirReglageLaser();
+      return;
+    }
+    if (q === "lasso") {
+      if (b.dataset.rl) etat.lassoMode = b.dataset.rl;
+      garder(); ouvrirReglageLasso();
+      return;
+    }
     if (q === "gomme") {
       if (b.dataset.rg) { etat.gommeMode = b.dataset.rg; etat.gommeChoisie = true; }
       if (b.dataset.rgt) etat.gommeTaille = Number(b.dataset.rgt);
@@ -3924,6 +4322,9 @@
     const cv = document.createElement("canvas");
     cv.width = w; cv.height = h;
     cv.getContext("2d").putImageData(new ImageData(px, w, h), 0, 0);
+    return enFichierToile(cv);
+  }
+  function enFichierToile(cv) {
     // PNG, pour garder la transparence ; WebP s'il est plus léger
     let data = cv.toDataURL("image/png"), type = "image/png";
     if (data.length > 400000) {
