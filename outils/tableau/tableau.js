@@ -184,6 +184,10 @@
     /* Le lasso prend les éléments ENTIERS, ou découpe ce qu'il entoure
        (« partie », demandé le 9 nov. 2026) : recliquer le lasso choisit. */
     lassoMode: "entier",
+    /* Le laser se règle (demandé le 9 nov. 2026 : il disparaissait trop
+       vite) : combien de temps il reste, sa couleur, son épaisseur, sa
+       transparence. Par défaut, le laser d'avant, au réglage près. */
+    laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
     styletSeul: false, inclinaison: true, regle: null,
   };
   /* Les douze encres, et les six calibres. */
@@ -199,6 +203,7 @@
   const pointeurs = new Map();        // les doigts posés (pincement)
   let dernierePos = null;             // la souris, en coordonnées de scène
   let laser = [];                     // la traînée du pointeur laser
+  let calqueLaser = null;             // son calque, posé d'un coup avec sa transparence
   let traineeGomme = [];
   let fantomes = new Set();           // ce que la gomme va effacer
   const ignores = new Set();          // les doigts écartés : une paume posée
@@ -251,7 +256,8 @@
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
           titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
-          lassoMode: etat.lassoMode,
+          lassoMode: etat.lassoMode, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
+          laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
@@ -275,7 +281,7 @@
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -906,28 +912,56 @@
   function dessinerEphemeres() {
     const maintenant = performance.now();
     const z = etat.zoom;
-    laser = laser.filter((p) => maintenant - p.t < 1400);
+    // « jusqu'au relâchement » : tant qu'on tient le laser, rien ne vieillit
+    const relache = etat.laserDuree === "relache";
+    if (relache && geste && geste.mode === "laser") laser.forEach((p) => { p.t = maintenant; });
+    const vieLaser = relache ? 900 : Number(etat.laserDuree) * 1000 || 1400;
+    laser = laser.filter((p) => maintenant - p.t < vieLaser);
     traineeGomme = traineeGomme.filter((p) => maintenant - p.t < 260);
-    const trace = (pts, couleur, epais, vie) => {
+    /* Un trait reste plein, puis s'efface sur ses « fondu » dernières
+       millisecondes (1,4 s au plus). Au réglage d'origine, durée et fondu
+       sont égaux : le laser s'efface comme avant, dès qu'il est tracé. */
+    const trace = (c, pts, couleur, epais, vie, fondu) => {
+      fondu = Math.min(vie, fondu || vie);
       for (let i = 1; i < pts.length; i++) {
         const a = pts[i - 1], b = pts[i];
         if (b.coupure) continue;
-        const age = Math.min(1, (maintenant - b.t) / vie);
-        ctx.strokeStyle = couleur;
-        ctx.globalAlpha = 1 - age;
-        ctx.lineWidth = (epais * (1 - age * 0.7)) / z;
-        ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        const age = Math.max(0, Math.min(1, (maintenant - b.t - (vie - fondu)) / fondu));
+        c.strokeStyle = couleur;
+        c.globalAlpha = 1 - age;
+        c.lineWidth = (epais * (1 - age * 0.7)) / z;
+        c.lineCap = "round";
+        c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
       }
     };
     ctx.save();
     ctx.setLineDash([]);
+    /* Le laser se peint sur un CALQUE à part, posé ensuite d'un coup avec sa
+       transparence : tracé segment par segment, chaque jonction doublait
+       l'opacité, et un laser à 45 % sortait presque plein (mesuré :
+       51, 194, 104 pour un vert à 45 % sur du blanc). Le calque ne passe
+       pas par les couleurs du mode sombre : un laser rouge reste rouge. */
     if (laser.length) {
-      ctx.shadowColor = "rgba(255,40,40,.8)"; ctx.shadowBlur = 8;
-      trace(laser, "#ff2f2f", 5, 1400);
+      const W = toile.width, H = toile.height;
+      if (!calqueLaser || calqueLaser.width !== W || calqueLaser.height !== H) {
+        calqueLaser = document.createElement("canvas");
+        calqueLaser.width = W; calqueLaser.height = H;
+      }
+      const c2 = calqueLaser.getContext("2d");
+      c2.setTransform(1, 0, 0, 1, 0, 0);
+      c2.clearRect(0, 0, W, H);
+      c2.setTransform(ctx.getTransform());
+      // la lueur prend la couleur du laser
+      c2.shadowColor = etat.laserCouleur + "cc"; c2.shadowBlur = 8;
+      trace(c2, laser, etat.laserCouleur, etat.laserTaille, vieLaser, 1400);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = etat.laserOpacite;
+      ctx.drawImage(calqueLaser, 0, 0);
+      ctx.restore();
     }
     ctx.shadowBlur = 0;
-    if (traineeGomme.length) trace(traineeGomme, "rgba(120,120,120,.5)", 12, 260);
+    if (traineeGomme.length) trace(ctx, traineeGomme, "rgba(120,120,120,.5)", 12, 260);
     if (geste && geste.mode === "lasso" && geste.pts.length > 1) {
       ctx.beginPath();
       geste.pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
@@ -2966,7 +3000,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -3980,7 +4014,31 @@
     reglage.dataset.quoi = "lasso";
     reglage.hidden = false;
   }
+  const LASER_DUREES = [[1.4, "1,4 s"], [3, "3 s"], [6, "6 s"], [10, "10 s"], ["relache", "Tant que j'appuie"]];
+  const LASER_COULEURS = [["#ff2f2f", "Rouge"], ["#22c55e", "Vert"], ["#2f8cff", "Bleu"], ["#ffc61a", "Jaune"],
+                          ["#c04dff", "Violet"], ["#ff7a1a", "Orange"]];
+  const LASER_TAILLES = [3, 5, 8, 12];
+  const LASER_OPACITES = [[1, "Opaque"], [0.7, "70 %"], [0.45, "45 %"], [0.25, "25 %"]];
+  function ouvrirReglageLaser() {
+    const bouton = (attr, v, texte, presse) => '<button type="button" class="tb-b tb-petit" data-' + attr + '="' + v
+      + '" aria-pressed="' + presse + '">' + texte + "</button>";
+    reglage.innerHTML = '<p class="tb-menu-titre">Laser : combien de temps il reste</p><div class="tb-choix tb-choix-laser">'
+      + LASER_DUREES.map(([v, t]) => bouton("rld", v, t, String(etat.laserDuree) === String(v))).join("") + "</div>"
+      + '<p class="tb-menu-titre">Couleur</p><div class="tb-pastilles">'
+      + LASER_COULEURS.map(([c, t]) => '<button type="button" class="tb-pastille" data-rlc="' + c + '" style="--c:' + c
+        + '" aria-pressed="' + (c === etat.laserCouleur) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + '<p class="tb-menu-titre">Épaisseur</p><div class="tb-calibres">'
+      + LASER_TAILLES.map((w, i) => '<button type="button" class="tb-b tb-petit tb-calibre" data-rlt="' + w + '" aria-pressed="'
+        + (w === etat.laserTaille) + '" title="Épaisseur ' + (i + 1) + '" aria-label="Épaisseur ' + (i + 1) + '"><i style="--w:'
+        + (4 + i * 3) + 'px;--c:' + etat.laserCouleur + '"></i></button>').join("") + "</div>"
+      + '<p class="tb-menu-titre">Transparence</p><div class="tb-choix tb-choix-laser">'
+      + LASER_OPACITES.map(([v, t]) => bouton("rlo", v, t, Number(v) === Number(etat.laserOpacite))).join("") + "</div>"
+      + '<p class="tb-note">Le laser montre sans écrire : il ne s\'enregistre pas et ne s\'exporte pas.</p>';
+    reglage.dataset.quoi = "laser";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
+    if (quoi === "laser") return ouvrirReglageLaser();
     if (quoi === "gomme") return ouvrirReglageGomme();
     if (quoi === "lasso") return ouvrirReglageLasso();
     if (quoi === "baguette") return ouvrirReglageBaguette();
@@ -4014,6 +4072,14 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "laser") {
+      if (b.dataset.rld) etat.laserDuree = b.dataset.rld === "relache" ? "relache" : Number(b.dataset.rld);
+      if (b.dataset.rlc) etat.laserCouleur = b.dataset.rlc;
+      if (b.dataset.rlt) etat.laserTaille = Number(b.dataset.rlt);
+      if (b.dataset.rlo) etat.laserOpacite = Number(b.dataset.rlo);
+      garder(); ouvrirReglageLaser();
+      return;
+    }
     if (q === "lasso") {
       if (b.dataset.rl) etat.lassoMode = b.dataset.rl;
       garder(); ouvrirReglageLasso();

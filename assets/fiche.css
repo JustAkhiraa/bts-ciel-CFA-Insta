@@ -10332,9 +10332,18 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
     opacity: 0; transform: scale(.6); pointer-events: none;
     transition: opacity .2s ease-out, transform .26s cubic-bezier(.2, .8, .2, 1);
   }
-  .tel-barre.tel-repliee .tel-rappel { opacity: 1; transform: none; pointer-events: auto; }
+  /* translucide (demandé le 9 nov. 2026) : le carré se fait discret sur le
+     texte qu'on lit, et redevient plein sous le doigt ou au clavier */
+  .tel-barre.tel-repliee .tel-rappel { opacity: .8; transform: none; pointer-events: auto; }
+  .tel-barre.tel-repliee .tel-rappel:is(:active, :focus-visible) { opacity: 1; }
   .tel-rappel svg { width: 23px; height: 23px; }
   .tel-rappel:active { transform: scale(.94); }
+  /* Le verre du carré vient APRÈS sa règle de base : placé plus haut avec
+     celui des autres boutons, il était recouvert par elle (même
+     spécificité, la dernière gagne) et le carré restait opaque. */
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .tel-rappel { background: color-mix(in srgb, var(--carte) 55%, transparent); }
+  }
   .tel-gros { width: 58px; height: 58px; background: var(--carte); box-shadow: var(--ombre-haut); }
   .tel-gros svg { width: 25px; height: 25px; }
   .tel-gros[aria-current="page"] { background: var(--encre); color: var(--papier); }
