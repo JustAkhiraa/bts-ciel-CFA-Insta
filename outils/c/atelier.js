@@ -4502,10 +4502,18 @@
 
          Le vide est dit, pas masqué : un tiroir qui s'ouvre sur rien sans un
          mot laisse croire à une panne. */
+      /* C et C++ sont UNE famille (signalé le 9 nov. 2026 : « tu n'as mis que
+         le TP 1 de C++ »). Les TP 2 à 8 sont ceux du cours de C, et sous le
+         bouton C++ on ne les voyait plus. Sous l'un comme sous l'autre, le
+         tiroir montre donc les deux, ceux du langage choisi d'abord ; un TP de
+         C s'ouvre en C, un TP de C++ en C++. Les autres langages restent
+         chacun chez eux. */
       function dessinerExemples(l) {
         groupes = {};
-        ex.forEach((e) => {
-          if ((e.langue || "c") !== l) return;
+        const famille = (x) => (x === "c" || x === "c++" ? "c/c++" : x);
+        const garde = ex.filter((e) => famille(e.langue || "c") === famille(l));
+        garde.sort((a, b) => ((a.langue || "c") === l ? 0 : 1) - ((b.langue || "c") === l ? 0 : 1));
+        garde.forEach((e) => {
           (groupes[e.groupe] = groupes[e.groupe] || []).push(e);
         });
         if (!Object.keys(groupes).length) {
