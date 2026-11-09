@@ -911,11 +911,14 @@
              les coller sous chaque ligne de l'historique noierait celui
              qu'on vient de faire, qui est le seul qu'on regarde. */
           + (i === h.length - 1 && !l.erreur && l.complements && l.complements.length
-            ? '<div class="nw-complements"><span class="nw-compl-titre">Résultats '
-              + 'complémentaires</span>'
+            /* Repliés (9 nov. 2026) : affichés d'office, ils s'imposaient
+               sous chaque calcul, jusqu'à « 1+1 ». La machine ne les montre
+               que si on les demande sur un résultat ; ici, on touche la ligne. */
+            ? '<details class="nw-complements"><summary class="nw-compl-titre">Autres '
+              + 'écritures</summary><div class="nw-compl-corps">'
               + l.complements.map(([t, x]) => '<span class="nw-compl"><b>' + ech(t)
                   + '</b> ' + ech(x) + '</span>').join("")
-              + '</div>'
+              + '</div></details>'
             : "")
           + '</div>')
         /* Demandé : « inverse le sens met le exe en haut et quand on tape
@@ -4348,8 +4351,12 @@
   const I_ENTREE = ICO('<path d="M19.5 5v6.5a2 2 0 0 1-2 2H5.5"/><path d="m9.5 9.5-4 4 4 4"/>');
   const I_CLAVIER = ICO('<rect x="2.8" y="6" width="18.4" height="12" rx="2"/>'
                       + '<path d="M6.4 9.6h.01M10.1 9.6h.01M13.9 9.6h.01M17.6 9.6h.01M7.6 14.4h8.8"/>');
-  const I_REGL = ICO('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6'
-    + 'M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/>');
+  /* Les curseurs de la tuile « Paramètres », et non une roue dentée : dessinée
+     en cercle et rayons, elle se lisait comme le soleil du thème clair, qui
+     fait autre chose (signalé le 9 nov.). */
+  const I_REGL = ICO('<path d="M4 6.5h16M4 12h16M4 17.5h16"/>'
+    + '<circle cx="9" cy="6.5" r="2.3" fill="currentColor"/><circle cx="15.5" cy="12" r="2.3" fill="currentColor"/>'
+    + '<circle cx="10.5" cy="17.5" r="2.3" fill="currentColor"/>');
 
   /* Les huit touches de gauche, par onglet. Un onglet porte deux lignes
      d'étiquette, pour qu'on lise ce qu'il contient avant de l'ouvrir. */

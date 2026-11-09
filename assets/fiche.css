@@ -6650,8 +6650,8 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
 #atelier.at-tel #at-reglages { font-size: 0; width: 42px; padding: 0; justify-content: center; }
 #atelier.at-tel #at-reglages::before {
   content: ""; width: 21px; height: 21px; background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3.2'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3'/%3E%3C/svg%3E") center / contain no-repeat;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3.2'/%3E%3Cpath d='M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 6.5h16M4 12h16M4 17.5h16'/%3E%3Ccircle cx='9' cy='6.5' r='2.4' fill='black'/%3E%3Ccircle cx='15.5' cy='12' r='2.4' fill='black'/%3E%3Ccircle cx='10.5' cy='17.5' r='2.4' fill='black'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 6.5h16M4 12h16M4 17.5h16'/%3E%3Ccircle cx='9' cy='6.5' r='2.4' fill='black'/%3E%3Ccircle cx='15.5' cy='12' r='2.4' fill='black'/%3E%3Ccircle cx='10.5' cy='17.5' r='2.4' fill='black'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 #atelier.at-tel #at-executer { padding-inline: .75rem; }
 #atelier.at-tel .at-tel-tp { padding-inline: .7rem; font-weight: 700; }
@@ -7960,15 +7960,20 @@ select.nw-petit { width: auto; min-width: 7rem; }
    en retrait et en petit. Ils complètent une réponse, ils ne la
    concurrencent pas — d'où l'encre adoucie et le filet à gauche. */
 .nw-complements {
-  margin: .3rem 0 .1rem 1.2rem; padding: .35rem .6rem;
+  margin: .3rem 0 .1rem 1.2rem; padding: 0 .6rem;
   border-left: 2px solid var(--nw-filet);
-  display: flex; flex-wrap: wrap; gap: .15rem 1.1rem;
   font-size: .7576rem; color: var(--nw-encre-douce);
 }
+.nw-compl-corps { display: flex; flex-wrap: wrap; gap: .15rem 1.1rem; padding: 0 0 .35rem; }
+/* Repliés, ils ne laissent qu'une ligne : la cible garde ses 34 px. */
 .nw-compl-titre {
-  flex: 1 0 100%; font-weight: 600; letter-spacing: .03em;
+  display: flex; align-items: center; gap: .35rem; min-height: 34px; cursor: pointer;
+  list-style: none; font-weight: 600; letter-spacing: .03em;
   text-transform: uppercase; font-size: .697rem;
 }
+.nw-compl-titre::-webkit-details-marker { display: none; }
+.nw-compl-titre::before { content: "▸"; font-size: .9rem; transition: transform .15s ease; }
+.nw-complements[open] > .nw-compl-titre::before { transform: rotate(90deg); }
 .nw-compl { font-family: var(--mono); }
 .nw-compl b { font-family: inherit; font-weight: 600; color: var(--nw-encre); }
 /* La barre de l'onglet Graphique, comme sur la machine : des entrées
@@ -8335,13 +8340,21 @@ html.nw-app-ouverte .tel-rappel { display: none !important; }
   background: var(--carte); border: 0; border-radius: 0; box-shadow: none;
 }
 #calculatrice.nw-tel.nw-ouverte > :not(.nw-corps):not(.nw-boite) { display: none !important; }
+/* « stretch », pas le « start » de l'appareil de bureau : avec « start », l'écran
+   prenait la largeur de son contenu. Sur un thème à grande police, 416 px sur un
+   téléphone de 375 : « Fermer » et les résultats (alignés à droite) sortaient
+   de l'écran (signalé le 9 nov., capture d'un iPhone). */
 #calculatrice.nw-tel.nw-ouverte .nw-corps {
+  align-items: stretch;
   flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 0;
   padding: 0; border: 0; border-radius: 0; box-shadow: none; background: var(--carte);
 }
 #calculatrice.nw-tel.nw-ouverte .nw-ecran {
   flex: 1 1 auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none;
+  width: 100%; min-width: 0;
 }
+#calculatrice.nw-tel.nw-ouverte .nw-page { overflow-x: hidden; overflow-wrap: anywhere; }
+#calculatrice.nw-tel .nw-tel-b { flex: 0 0 auto; }
 #calculatrice.nw-tel .nw-bandeau {
   min-height: 50px; gap: .35rem;
   padding: calc(.25rem + env(safe-area-inset-top)) .35rem .25rem;
