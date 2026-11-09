@@ -17,13 +17,23 @@
 #   NixOS         une recette Nix (bureau/flake.nix), vérifiée ici à chaque
 #                 passage : elle recompile depuis les sources, rien à déposer
 #
+# Téléphones (demandés le 9 nov. 2026), le même code (bureau/src-tauri/src/lib.rs) :
+#   .apk          Android, signé : avec la clé du dépôt si les deux secrets
+#                 ANDROID_KEYSTORE et ANDROID_KEYSTORE_PASSWORD existent,
+#                 sinon avec une clé d'un jour (une mise à jour demandera
+#                 alors de désinstaller d'abord)
+#   .ipa          iPhone, NON signée : Apple n'en installe aucune autre sans
+#                 compte payant. Elle passe par un outil d'installation
+#                 parallèle et l'identifiant Apple de l'élève, 7 jours.
+#
 # L'ordre, pour que les machines déposent dans la MÊME version sans se
 # marcher dessus :
 #   1. ouvrir    : crée la version en brouillon, une seule fois ;
 #   2. fabriquer : Mac, Windows et Linux y déposent leurs fichiers ;
 #   3. publier   : le brouillon devient public si les trois ont réussi ;
-#   en même temps que 3, Arch et Flatpak ajoutent les leurs. Un échec de
-#   l'un des deux n'empêche pas la version de sortir : il se voit ici.
+#   en même temps que 3, Arch et Flatpak ajoutent les leurs, et Android et
+#   iPhone, partis dès 1, déposent les leurs quand ils ont fini. Un échec
+#   de l'un d'eux n'empêche pas la version de sortir : il se voit ici.
 #
 # Elle se lance à la main : onglet Actions, « Appli de bureau », « Run
 # workflow ». Chaque passage publie la version 1.0.N (N, le numéro du
@@ -78,12 +88,17 @@ jobs:
           | Toute distribution avec Flatpak | `.flatpak` | `flatpak install --user BTS.CIEL_*.flatpak` |
           | Toutes les autres | `.AppImage` | le rendre exécutable, puis le lancer, sans rien installer |
 
+          **Android** : le `.apk`. Télécharge-le depuis le téléphone, ouvre-le, et autorise l'installation depuis ce navigateur quand Android le demande.
+
+          **iPhone** : le `.ipa`, **non signé**. Apple n'installe aucune application sans sa signature payante : il faut un outil d'installation parallèle (« sideloading ») sur un ordinateur, avec ton identifiant Apple, et l'application est à renouveler tous les 7 jours. Plus simple, sans rien installer : ouvre le site dans Safari, Partager, « Sur l'écran d'accueil » ; il marche aussi hors ligne.
+
           ## À la première ouverture
 
           L'application n'est pas signée par un éditeur payant, d'où un avertissement la première fois :
 
           - Mac : clic droit sur l'application, puis Ouvrir. Si macOS refuse encore : Réglages Système, Confidentialité et sécurité, « Ouvrir quand même ».
           - Windows : « Informations complémentaires », puis « Exécuter quand même ».
+          - Android : « Installer quand même » si le téléphone signale une application inconnue.
 
           Le planning embarqué est celui du jour de la fabrication ; le site en ligne, lui, se met à jour tout seul.
           NOTES
@@ -233,6 +248,148 @@ jobs:
           flatpak-builder --user --install-deps-from=flathub --repo=depot --force-clean construction fr.btsciel.revisions.yml
           f="BTS.CIEL_${VERSION}_x86_64.flatpak"
           flatpak build-bundle depot "$f" fr.btsciel.revisions --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
+            --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=$f" > /dev/null
+          echo "déposé : $f"
+
+  # Android : le même code que l'ordinateur (src-tauri/src/lib.rs), compilé
+  # pour les processeurs des téléphones (ARM 64 et 32 bits). Le projet
+  # Android (gen/android) n'est pas dans le dépôt : il est refait à chaque
+  # passage, comme gen/ sur ordinateur.
+  android:
+    name: Android (APK)
+    needs: ouvrir
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Rust, pour les processeurs des téléphones
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - name: Garder la compilation d'une fois sur l'autre
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: bureau/src-tauri -> target
+
+      - name: L'outil de fabrication
+        run: npm install -g @tauri-apps/cli@2
+
+      - name: Le site à embarquer, et le numéro de version
+        shell: bash
+        run: |
+          mkdir -p bureau/site
+          tar --exclude=./.git --exclude=./.github --exclude=./bureau --exclude=./verification \
+              --exclude=./outillage -cf - . | tar -xf - -C bureau/site
+          test -f bureau/site/index.html || { echo "le site n'a pas été recopié"; exit 1; }
+          sed -i.avant "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" bureau/src-tauri/tauri.conf.json
+          grep -q "\"version\": \"$VERSION\"" bureau/src-tauri/tauri.conf.json || { echo "numéro de version non posé"; exit 1; }
+
+      - name: Compiler l'APK
+        run: |
+          # le kit de compilation native d'Android est déjà sur la machine
+          export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          test -d "$NDK_HOME" || { echo "kit Android (NDK) introuvable"; exit 1; }
+          cd bureau
+          tauri android init --ci
+          # les icônes d'Android, tirées de l'icône d'origine (1024 px)
+          tauri icon icone-source.png
+          tauri android build --apk --target aarch64 --target armv7
+
+      # Android refuse une mise à jour signée d'une autre clé que l'appli
+      # installée : il faudrait désinstaller, et perdre ce que l'élève avait
+      # coché. La clé du dépôt vit dans deux secrets ; sans eux, une clé
+      # d'un jour, et un avertissement ici.
+      - name: Signer, puis déposer dans la version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.ouvrir.outputs.id }}
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          KS_MDP: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          apk=$(find bureau/src-tauri/gen/android -name '*-release-unsigned.apk' | head -1)
+          test -n "$apk" || { echo "l'APK n'a pas été produite"; find bureau/src-tauri/gen/android -name '*.apk'; exit 1; }
+          outils=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$outils/zipalign" -p -f 4 "$apk" alignee.apk
+          if [ -n "$ANDROID_KEYSTORE" ] && [ -n "$KS_MDP" ]; then
+            printf '%s' "$ANDROID_KEYSTORE" | base64 -d > cle.p12
+            echo "signée avec la clé du dépôt"
+          else
+            export KS_MDP=$(openssl rand -hex 24)
+            keytool -genkeypair -keystore cle.p12 -storetype PKCS12 -storepass "$KS_MDP" -keypass "$KS_MDP" \
+              -alias bts-ciel -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=BTS CIEL"
+            echo "::warning::APK signée avec une clé d'un jour : ajouter les secrets ANDROID_KEYSTORE et ANDROID_KEYSTORE_PASSWORD pour que les mises à jour s'installent par-dessus."
+          fi
+          f="BTS.CIEL_${VERSION}_android.apk"
+          "$outils/apksigner" sign --ks cle.p12 --ks-type PKCS12 --ks-pass env:KS_MDP --out "$f" alignee.apk
+          rm -f cle.p12
+          "$outils/apksigner" verify --print-certs "$f" | grep -m1 "SHA-256"
+          curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
+            --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=$f" > /dev/null
+          echo "déposé : $f"
+
+  # iPhone : la même chose sur un Mac de GitHub, qui a Xcode. Sans compte
+  # développeur payant, Apple ne signe rien : « --no-sign » sort une .ipa
+  # non signée, qu'un outil d'installation parallèle signe ensuite avec
+  # l'identifiant Apple de l'élève (choisi par lui le 9 nov. 2026).
+  iphone:
+    name: iPhone (IPA non signée)
+    needs: ouvrir
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Rust, pour le processeur de l'iPhone
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Garder la compilation d'une fois sur l'autre
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: bureau/src-tauri -> target
+
+      - name: Les outils de fabrication
+        run: |
+          npm install -g @tauri-apps/cli@2
+          # le projet Xcode est engendré par xcodegen
+          command -v xcodegen >/dev/null || brew install xcodegen
+
+      - name: Le site à embarquer, et le numéro de version
+        shell: bash
+        run: |
+          mkdir -p bureau/site
+          tar --exclude=./.git --exclude=./.github --exclude=./bureau --exclude=./verification \
+              --exclude=./outillage -cf - . | tar -xf - -C bureau/site
+          test -f bureau/site/index.html || { echo "le site n'a pas été recopié"; exit 1; }
+          sed -i.avant "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" bureau/src-tauri/tauri.conf.json
+          grep -q "\"version\": \"$VERSION\"" bureau/src-tauri/tauri.conf.json || { echo "numéro de version non posé"; exit 1; }
+
+      - name: Compiler l'IPA
+        run: |
+          cd bureau
+          tauri ios init --ci
+          # les icônes de l'iPhone, tirées de l'icône d'origine (1024 px)
+          tauri icon icone-source.png
+          tauri ios build --no-sign --target aarch64
+
+      - name: Déposer dans la version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ needs.ouvrir.outputs.id }}
+        run: |
+          ipa=$(find bureau/src-tauri/gen/apple -name '*.ipa' | head -1)
+          test -n "$ipa" || { echo "l'IPA n'a pas été produite"; exit 1; }
+          f="BTS.CIEL_${VERSION}_iphone-non-signee.ipa"
+          cp "$ipa" "$f"
+          echo "$(du -h "$f" | cut -f1) ; contenu : $(unzip -l "$f" | grep -c '') entrées"
+          unzip -l "$f" | grep -m1 "Payload/.*\.app/" || { echo "l'IPA ne contient pas d'application"; exit 1; }
           curl -sSf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" \
             --data-binary @"$f" "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$ID/assets?name=$f" > /dev/null
           echo "déposé : $f"
