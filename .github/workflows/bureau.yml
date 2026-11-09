@@ -278,8 +278,14 @@ jobs:
         with:
           workspaces: bureau/src-tauri -> target
 
+      # L'outil Tauri en sous-commande de cargo, et non par npm : Gradle (et
+      # Xcode pour l'iPhone) RAPPELLENT l'outil au milieu de la compilation,
+      # avec la commande qui l'a lancé. Installé par npm et appelé seul, il se
+      # rappelait « node tauri », un fichier qui n'existe pas dans le projet
+      # (échec de la 1.0.3 : « Cannot find module …/src-tauri/tauri »). En
+      # « cargo tauri », il se rappelle « cargo tauri », qui marche partout.
       - name: L'outil de fabrication
-        run: npm install -g @tauri-apps/cli@2
+        run: command -v cargo-tauri >/dev/null || cargo install tauri-cli --version "^2" --locked
 
       - name: Le site à embarquer, et le numéro de version
         shell: bash
@@ -297,10 +303,10 @@ jobs:
           export NDK_HOME="$ANDROID_NDK_LATEST_HOME"
           test -d "$NDK_HOME" || { echo "kit Android (NDK) introuvable"; exit 1; }
           cd bureau
-          tauri android init --ci
+          cargo tauri android init --ci
           # les icônes d'Android, tirées de l'icône d'origine (1024 px)
-          tauri icon icone-source.png
-          tauri android build --apk --target aarch64 --target armv7
+          cargo tauri icon icone-source.png
+          cargo tauri android build --apk --target aarch64 --target armv7
 
       # Android refuse une mise à jour signée d'une autre clé que l'appli
       # installée : il faudrait désinstaller, et perdre ce que l'élève avait
@@ -355,9 +361,11 @@ jobs:
         with:
           workspaces: bureau/src-tauri -> target
 
+      # cargo tauri, et non npm : même raison que pour Android (le script de
+      # compilation d'Xcode rappelait « node tauri », introuvable)
       - name: Les outils de fabrication
         run: |
-          npm install -g @tauri-apps/cli@2
+          command -v cargo-tauri >/dev/null || cargo install tauri-cli --version "^2" --locked
           # le projet Xcode est engendré par xcodegen
           command -v xcodegen >/dev/null || brew install xcodegen
 
@@ -374,10 +382,10 @@ jobs:
       - name: Compiler l'IPA
         run: |
           cd bureau
-          tauri ios init --ci
+          cargo tauri ios init --ci
           # les icônes de l'iPhone, tirées de l'icône d'origine (1024 px)
-          tauri icon icone-source.png
-          tauri ios build --no-sign --target aarch64
+          cargo tauri icon icone-source.png
+          cargo tauri ios build --no-sign --target aarch64
 
       - name: Déposer dans la version
         env:
