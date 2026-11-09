@@ -19,6 +19,61 @@
   const scene = $("#tb-scene");
   const toile = $("#tb-toile");
   const ctx = toile.getContext("2d");
+
+  /* ── le mode sombre, couleur par couleur ──
+     Avant le 9 nov. 2026, la toile entière passait sous un filtre CSS
+     (invert 93 %, puis hue-rotate 180°), et chaque image recevait le même
+     filtre avant, pour l'annuler. Signalé : en sombre, les images sortaient
+     fausses. Deux filtres de suite ne s'annulent pas : l'inversion à 93 %
+     ne rend plus ni le noir ni le blanc, et la rotation de teinte écrête les
+     couleurs saturées entre deux étapes (un rouge pur ressortait saumon,
+     255, 143, 143, mesuré dans le navigateur).
+     La toile n'est donc plus filtrée. Chaque couleur qu'on y pose (encre,
+     texte, fond, grille, sélection) passe ici par le MÊME calcul que le
+     filtre, refait à la main : le tableau sombre garde son aspect, au
+     2/255 près (mesuré sur 308 couleurs contre le filtre du navigateur).
+     Les images, elles, sont posées telles quelles. */
+  let enSombre = false;
+  const ROTATION_180 = [[-0.574, 1.43, 0.144], [0.426, 0.43, 0.144], [0.426, 1.43, -0.856]];
+  const borne = (x) => Math.max(0, Math.min(1, x));
+  const normaliseur = document.createElement("canvas").getContext("2d");
+  const teintes = new Map();
+  function teinteSombre(v) {
+    if (typeof v !== "string") return v;
+    let t = teintes.get(v);
+    if (t !== undefined) return t;
+    normaliseur.fillStyle = "#000";
+    normaliseur.fillStyle = v;
+    const n = normaliseur.fillStyle;           // « #rrggbb » ou « rgba(r, g, b, a) »
+    let c, a = 1;
+    if (n[0] === "#") c = [1, 3, 5].map((i) => parseInt(n.slice(i, i + 2), 16));
+    else {
+      const p = (n.match(/\(([^)]*)\)/) || [, ""])[1].split(",").map(Number);
+      if (p.length < 3 || p.some(isNaN)) { teintes.set(v, v); return v; }
+      c = p.slice(0, 3);
+      if (p.length > 3) a = p[3];
+    }
+    const inv = c.map((x) => borne(0.93 - 0.86 * x / 255));
+    const o = ROTATION_180.map((l) => Math.round(255 * borne(l[0] * inv[0] + l[1] * inv[1] + l[2] * inv[2])));
+    t = a < 1 ? "rgba(" + o.join(", ") + ", " + a + ")" : "rgb(" + o.join(", ") + ")";
+    teintes.set(v, t);
+    return t;
+  }
+  // Seule la toile de l'écran est concernée : un export n'est jamais sombre.
+  ["fillStyle", "strokeStyle", "shadowColor"].forEach((nom) => {
+    const d = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, nom);
+    Object.defineProperty(ctx, nom, { configurable: true,
+      get() { return d.get.call(this); },
+      set(v) { d.set.call(this, enSombre ? teinteSombre(v) : v); } });
+  });
+  ["createLinearGradient", "createRadialGradient"].forEach((nom) => {
+    const creer = CanvasRenderingContext2D.prototype[nom];
+    ctx[nom] = function (...args) {
+      const g = creer.apply(this, args);
+      if (enSombre) { const poser = g.addColorStop.bind(g); g.addColorStop = (o, c) => poser(o, teinteSombre(c)); }
+      return g;
+    };
+  });
   const saisie = $("#tb-saisie");
   const panneau = $("#tb-props");
   const etatLigne = $("#tb-etat");
@@ -478,7 +533,10 @@
       c.translate(cx, cy); c.rotate(el.angle); c.translate(-cx, -cy);
     }
     c.translate(el.x, el.y);
-    if (estSurligneur(el)) c.globalCompositeOperation = "multiply";
+    // Le surligneur fonce ce qu'il recouvre ; en sombre, où les couleurs
+    // sont retournées, c'est « screen » qui fait la même chose : il
+    // éclaircit, et l'encre dessous reste lisible.
+    if (estSurligneur(el)) c.globalCompositeOperation = c === ctx && enSombre ? "screen" : "multiply";
     if (estPostit(el)) {
       // l'ombre portée d'une note collée : ce qui la distingue d'un rectangle
       c.shadowColor = "rgba(0,0,0,.18)"; c.shadowBlur = 10; c.shadowOffsetY = 3;
@@ -549,7 +607,9 @@
     c.save();
     c.globalAlpha *= m.alpha;
     if (m.flou) { c.shadowColor = el.strokeColor; c.shadowBlur = m.flou; }
-    c.fillStyle = m.grain ? c.createPattern(toileGrain(el.strokeColor, m.grain), "repeat") : el.strokeColor;
+    // le grain est une petite toile à part : sa couleur s'assombrit ici
+    const grain = c === ctx && enSombre ? teinteSombre(el.strokeColor) : el.strokeColor;
+    c.fillStyle = m.grain ? c.createPattern(toileGrain(grain, m.grain), "repeat") : el.strokeColor;
     c.fill(p);
     if (m.flou) {
       c.shadowBlur = 0; c.shadowColor = "transparent";
@@ -609,21 +669,18 @@
       + '</linearGradient><path d="' + d + '" fill="url(#' + id + ')"/>';
   }
 
-  /* Une image se dessine telle quelle. En sombre, le canevas entier est
-     inversé par un filtre (voir « sombre ») : une photo y sortirait en
-     négatif. On lui applique donc le même filtre AVANT, qui l'annule à
-     peu près — à l'écran seulement : un export n'est jamais sombre. */
+  /* Une image se dessine telle quelle, en sombre comme en clair : seules
+     les COULEURS posées sur la toile s'assombrissent (voir « le mode
+     sombre, couleur par couleur »), et une image n'en a pas. */
   function dessinerImage(c, el) {
     const img = imageDe(el.fileId);
     if (img && img.complete && img.naturalWidth) {
-      if (c === ctx && sombre()) c.filter = "invert(93%) hue-rotate(180deg)";
       const s = Array.isArray(el.scale) ? el.scale : [1, 1];
       if (s[0] < 0 || s[1] < 0) {
         c.translate(s[0] < 0 ? el.width : 0, s[1] < 0 ? el.height : 0);
         c.scale(s[0] < 0 ? -1 : 1, s[1] < 0 ? -1 : 1);
       }
       c.drawImage(img, 0, 0, el.width, el.height);
-      c.filter = "none";
       return;
     }
     // pas encore décodée, ou fichier absent : un cadre qui garde sa place
@@ -667,6 +724,7 @@
     if (toile.width !== Math.round(W * dpr) || toile.height !== Math.round(H * dpr)) {
       toile.width = Math.round(W * dpr); toile.height = Math.round(H * dpr);
     }
+    enSombre = sombre();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = etat.fond;
     ctx.fillRect(0, 0, W, H);
