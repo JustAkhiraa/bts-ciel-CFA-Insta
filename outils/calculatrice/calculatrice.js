@@ -293,8 +293,8 @@
     { act: "boite", t: "🧰", svg: I_BOITE, aide: "Boîte à outils", cls: "nw-touche-fn" },
     { act: "eff", t: "⌫", svg: I_EFF, aide: "Effacer", cls: "nw-touche-fn" },
 
-    { ins: "exp(", t: "eˣ", s: "ln", si: "ln(", a: "A", aide: "Exponentielle (Maj : ln)" },
-    { ins: "ln(", t: "ln", s: "eˣ", si: "exp(", a: "B", aide: "Logarithme népérien" },
+    { ins: "e^", t: "eˣ", s: "ln", si: "ln(", a: "A", aide: "Exponentielle (Maj : ln)" },
+    { ins: "ln(", t: "ln", s: "eˣ", si: "e^", a: "B", aide: "Logarithme népérien" },
     { ins: "log(", t: "log", s: "10ˣ", si: "10^", a: "C", aide: "Logarithme décimal" },
     { ins: "integrale(", t: "∫", s: "Σ", si: "somme(", a: "D",
       aide: "Intégrale (Maj : somme). La touche i de l'appareil : les complexes ne sont pas de ce semestre." },
@@ -305,8 +305,8 @@
     { ins: "cos(", t: "cos", s: "cos⁻¹", si: "arccos(", a: "H", aide: "Cosinus (Maj : arc cosinus)" },
     { ins: "tan(", t: "tan", s: "tan⁻¹", si: "arctan(", a: "I", aide: "Tangente (Maj : arc tangente)" },
     { ins: "π", t: "π", s: "e", si: "e", a: "J", aide: "Pi (Maj : la constante e)" },
-    { ins: "√(", t: "√", s: "x³", si: "^3", a: "K", aide: "Racine carrée (Maj : cube)" },
-    { ins: "^2", t: "x²", s: "√", si: "√(", a: "L", aide: "Carré (Maj : racine carrée)" },
+    { ins: "√(", t: "√", s: "x³", si: "³", a: "K", aide: "Racine carrée (Maj : cube)" },
+    { ins: "²", t: "x²", s: "√", si: "√(", a: "L", aide: "Carré (Maj : racine carrée)" },
   ];
   const NUMERIQUE = [
     { ins: "7", t: "7", a: "M" }, { ins: "8", t: "8", a: "N" }, { ins: "9", t: "9", a: "O" },
@@ -464,6 +464,9 @@
     c.focus();
     // dans une case de matrice, « ; » passe à la case suivante (6 bis)
     if (c.id === "nw-calc" && texte === ";" && pointVirguleDansMatrice(c)) { majSaisie(); return; }
+    // au bout d'une puissance, « ) » en sort ; dans sa case vide, « ( » ne fait rien (6 ter)
+    if (c.id === "nw-calc" && texte === ")" && sortirExposant(c)) { majSaisie(); return; }
+    if (c.id === "nw-calc" && texte === "(" && parentheseDansCaseVide(c)) { majSaisie(); return; }
     const d = c.selectionStart === null ? c.value.length : c.selectionStart;
     const f = c.selectionEnd === null ? c.value.length : c.selectionEnd;
     c.value = c.value.slice(0, d) + texte + c.value.slice(f);
@@ -479,7 +482,7 @@
     const c = champActif();
     if (!c) return;
     c.focus();
-    if (c.id === "nw-calc" && effacerDansMatrice(c)) { majSaisie(); return; }
+    if (c.id === "nw-calc" && (effacerExposant(c) || effacerDansMatrice(c))) { majSaisie(); return; }
     const d = c.selectionStart, f = c.selectionEnd;
     if (d === f && d > 0) {
       c.value = c.value.slice(0, d - 1) + c.value.slice(d);
@@ -1032,9 +1035,9 @@
         + '<p class="nw-sous">La <b>forme exacte</b> est au-dessus, sa valeur approchée '
         + 'en dessous : sur une copie, c\'est la forme exacte qu\'on recopie. '
         + '<kbd>↑</kbd> rappelle le calcul précédent, et <b>un clic sur un calcul '
-        + 'passé le reprend</b>. Les <b>puissances s\'écrivent en petit</b> : '
-        + 'tapez <code>^</code> puis les chiffres, et <code>e^1</code> devient '
-        + '<code>e¹</code>.</p>';
+        + 'passé le reprend</b>. Une <b>puissance s\'ouvre en petit</b> : '
+        + 'tapez <code>^</code>, écrivez l\'exposant (<code>1+1</code> aussi), '
+        + 'puis <kbd>→</kbd> pour revenir en bas.</p>';
     },
     apres() {
       /* Le plus récent est en haut : c'est donc en haut qu'on se place. */
@@ -1051,7 +1054,10 @@
         if (sens && nu && naviguer(champ, sens)) return pris();
         if (e.key === "Tab" && !e.altKey && !e.metaKey && !e.ctrlKey && caseEn(matricesDe(champ.value), champ.selectionStart)
             && naviguer(champ, e.shiftKey ? "gauche" : "droite")) return pris();
-        if (e.key === "Backspace" && nu && effacerDansMatrice(champ)) return pris();
+        if (e.key === "Backspace" && nu && (effacerExposant(champ) || effacerDansMatrice(champ))) return pris();
+        const sansMod = !e.altKey && !e.metaKey && !e.ctrlKey;
+        if (e.key === ")" && sansMod && sortirExposant(champ)) return pris();
+        if (e.key === "(" && sansMod && parentheseDansCaseVide(champ)) return pris();
         if (e.key === ";" && !e.altKey && !e.metaKey && !e.ctrlKey && pointVirguleDansMatrice(champ)) return pris();
         setTimeout(majSaisie, 0);
       });
@@ -1125,7 +1131,10 @@
       champ.focus();
       try { champ.setSelectionRange(p, p + 1); } catch (e) {}
       majSaisie();
-      dire(matricesDe(champ.value).length
+      const dansPuissance = exposantsDe(champ.value).some((g) => p > g.o && p < g.f);
+      dire(dansPuissance
+        ? "Une puissance est vide : sa case est sélectionnée, tapez l'exposant."
+        : matricesDe(champ.value).length
         ? "Une case de la matrice est vide : elle est sélectionnée, tapez sa valeur."
         : "Remplissez d'abord les cases □ : la flèche → passe de l'une à l'autre.", "e-erreur");
       return;
@@ -1323,6 +1332,7 @@
   /* Les flèches dans une matrice. Rend vrai si le geste est pris ici ;
      faux, et c'est le geste ordinaire du champ. */
   function naviguer(champ, sens) {
+    if (naviguerExposant(champ, sens)) return true;
     const t = champ.value, ms = matricesDe(t);
     if (!ms.length) return false;
     const d = champ.selectionStart, f = champ.selectionEnd;
@@ -1421,12 +1431,165 @@
     return naviguer(champ, "droite");
   }
 
+  /* ═══════════════ 6 ter. La puissance dessinée ════════════════════════
+     Signalé le 9 nov. 2026 : impossible d'écrire « e puissance 1+1 ». Les
+     exposants s'écrivaient en caractères (« e¹ ») et le mode s'arrêtait au
+     premier signe : « 1+1 » ne montait pas, et « x¹^+¹ » finissait en
+     erreur. La machine fait autrement : la touche puissance ouvre une case
+     en petit, TOUT ce qu'on tape va dedans, et → en sort.
+
+     Même principe que la matrice (6 bis) : le texte reste la référence,
+     « e^(1+1) », et c'est lui que lit le moteur. « ^( » et sa parenthèse
+     fermante ne se dessinent pas : la couche montre le contenu en petit, en
+     haut, avec le curseur dedans. Une puissance vide porte la case « □ ». */
+  function exposantsDe(t) {
+    const out = [];
+    for (let i = 0; i < t.length - 1; i++) {
+      if (t[i] !== "^" || t[i + 1] !== "(") continue;
+      let prof = 0, j = i + 1;
+      for (; j < t.length; j++) {
+        if (t[j] === "(") prof++;
+        else if (t[j] === ")" && --prof === 0) break;
+      }
+      if (j < t.length) out.push({ d: i, o: i + 1, f: j });    // « ^ », « ( », « ) »
+    }
+    return out;
+  }
+  const contenuVide = (t, g) => g.f === g.o + 1 || t.slice(g.o + 1, g.f) === VIDE;
+  /* La case vide se sélectionne en entier : la frappe remplace « □ ». */
+  function entrerExposant(champ, g, ou) {
+    const a = g.o + 1, b = g.f;
+    if (champ.value.slice(a, b) === VIDE) champ.setSelectionRange(a, b);
+    else { const p = ou === "debut" ? a : b; champ.setSelectionRange(p, p); }
+  }
+  const caseExposant = (t, g, d, f) => d === g.o + 1 && f === g.f && t.slice(d, f) === VIDE;
+  /* → et ← : on entre dans une puissance et on en sort, sans jamais
+     s'arrêter sur « ^( » ou « ) », qui ne se voient pas. */
+  function naviguerExposant(champ, sens) {
+    const t = champ.value, ex = exposantsDe(t);
+    if (!ex.length || (sens !== "droite" && sens !== "gauche")) return false;
+    const d = champ.selectionStart, f = champ.selectionEnd;
+    const vide = ex.find((g) => caseExposant(t, g, d, f));
+    if (vide) {
+      const p = sens === "droite" ? vide.f + 1 : vide.d;
+      champ.setSelectionRange(p, p); return true;
+    }
+    if (d !== f) return false;
+    if (sens === "droite") {
+      const g = ex.find((x) => x.d === d);          // devant : on y entre
+      if (g) { entrerExposant(champ, g, "debut"); return true; }
+      const h = ex.find((x) => x.f === d);          // au bout : on en sort
+      if (h) { champ.setSelectionRange(h.f + 1, h.f + 1); return true; }
+      return false;
+    }
+    const g = ex.find((x) => x.o + 1 === d);        // au début : on sort devant
+    if (g) { champ.setSelectionRange(g.d, g.d); return true; }
+    const h = ex.find((x) => x.f + 1 === d);        // juste derrière : on y entre
+    if (h) { entrerExposant(champ, h, "fin"); return true; }
+    return false;
+  }
+  /* ⌫ : une puissance vide disparaît ; au début d'une puissance pleine, on
+     sort devant sans rien effacer (la défaire changerait le calcul sans le
+     dire : « e^(2) » deviendrait « e2 ») ; juste derrière, on y entre. */
+  function effacerExposant(champ) {
+    const t = champ.value, ex = exposantsDe(t);
+    if (!ex.length) return false;
+    const d = champ.selectionStart, f = champ.selectionEnd;
+    let g = ex.find((x) => d === x.o + 1 && contenuVide(t, x) && (f === d || f === x.f));
+    if (g) {
+      champ.value = t.slice(0, g.d) + t.slice(g.f + 1);
+      champ.setSelectionRange(g.d, g.d); return true;
+    }
+    if (d !== f) return false;
+    g = ex.find((x) => d === x.o + 1);
+    if (g) { champ.setSelectionRange(g.d, g.d); return true; }
+    g = ex.find((x) => d === x.f + 1);
+    if (g) { entrerExposant(champ, g, "fin"); return true; }
+    return false;
+  }
+  /* « ) » tapé au bout d'une puissance (ou dans sa case vide) : on sort,
+     au lieu d'écrire une parenthèse de trop. C'est le geste d'avant,
+     « e^(1+1) », qui continue de marcher tel quel. */
+  function sortirExposant(champ) {
+    const t = champ.value, d = champ.selectionStart, f = champ.selectionEnd;
+    const g = exposantsDe(t).find((x) => (d === f && d === x.f) || caseExposant(t, x, d, f));
+    if (!g) return false;
+    champ.setSelectionRange(g.f + 1, g.f + 1);
+    return true;
+  }
+  /* « ( » tapé dans la case vide : la puissance est déjà une parenthèse.
+     Sans cela, l'ancien geste « ^( » donnait « ^(() », boiteux. */
+  function parentheseDansCaseVide(champ) {
+    const t = champ.value, d = champ.selectionStart, f = champ.selectionEnd;
+    return exposantsDe(t).some((x) => caseExposant(t, x, d, f));
+  }
+  /* Après une frappe : un « ^ » nu ouvre la puissance, case vide choisie.
+     Sur un clavier français, « ^ » est une touche morte : il arrive AVEC le
+     caractère suivant, « ^1 » ou « ^( », d'où les deux autres cas. */
+  function puissanceALaFrappe(c, compose) {
+    const t = c.value, p = c.selectionStart;
+    if (p === null || p !== c.selectionEnd) return false;
+    if (t[p - 1] === "^" && t[p] !== "(") {
+      c.value = t.slice(0, p) + "(" + VIDE + ")" + t.slice(p);
+      c.setSelectionRange(p + 1, p + 2); return true;
+    }
+    /* « ( » et « ) » sont aussi pris à la touche (keydown) ; ici, pour les
+       claviers qui n'envoient que le texte (téléphone, saisie prédictive).
+       Une parenthèse ouvrante tapée dans la case vide est retirée : la
+       puissance en est déjà une. */
+    if (t.slice(p - 3, p + 1) === "^(()") {
+      c.value = t.slice(0, p - 1) + VIDE + t.slice(p);
+      c.setSelectionRange(p - 1, p); return true;
+    }
+    // une fermante tapée au bout d'une puissance : on sort au lieu de doubler
+    if (t[p - 1] === ")") {
+      const t0 = t.slice(0, p - 1) + t.slice(p);
+      if (exposantsDe(t0).some((g) => g.f === p - 1)) {
+        c.value = t0; c.setSelectionRange(p, p); return true;
+      }
+    }
+    if (!compose || t[p - 2] !== "^") return false;
+    if (t[p - 1] === "(") {
+      if (exposantsDe(t).some((x) => x.o === p - 1)) return false;
+      c.value = t.slice(0, p) + VIDE + ")" + t.slice(p);
+      c.setSelectionRange(p, p + 1); return true;
+    }
+    c.value = t.slice(0, p - 1) + "(" + t[p - 1] + ")" + t.slice(p);
+    c.setSelectionRange(p + 1, p + 1); return true;
+  }
+  /* Une puissance vidée retrouve sa case ; un curseur posé dans une case
+     vide la sélectionne ; un curseur tombé entre « ^ » et « ( » (invisible)
+     passe dedans. */
+  function normaliserExposants(champ) {
+    let t = champ.value, d = champ.selectionStart, f = champ.selectionEnd;
+    for (let n = 0; n < 50; n++) {
+      const g = exposantsDe(t).find((x) => x.f === x.o + 1);
+      if (!g) break;
+      t = t.slice(0, g.f) + VIDE + t.slice(g.f);
+      if (d > g.o) d++;
+      if (f > g.o) f++;
+    }
+    if (d === f) {
+      const ex = exposantsDe(t);
+      const g = ex.find((x) => d === x.o) || ex.find((x) => t.slice(x.o + 1, x.f) === VIDE && (d === x.o + 1 || d === x.f));
+      if (g) {
+        if (t.slice(g.o + 1, g.f) === VIDE) { d = g.o + 1; f = g.f; }
+        else d = f = g.o + 1;
+      }
+    }
+    if (t !== champ.value) champ.value = t;
+    if (champ.selectionStart !== d || champ.selectionEnd !== f) {
+      try { champ.setSelectionRange(d, f); } catch (e) {}
+    }
+  }
+
   /* ── le dessin ────────────────────────────────────────────────────── */
   const CURSEUR = '<span class="nw-v-car" aria-hidden="true"></span>';
-  function dessinMatrice(t, m, ici, d, f, focus) {
-    const R = m.lignes.length, C = Math.max.apply(null, m.lignes.map((l) => l.length));
+  function dessinMatrice(t, m, ici, C) {
+    const { d, f, focus } = C;
+    const R = m.lignes.length, Cc = Math.max.apply(null, m.lignes.map((l) => l.length));
     const fant = !!ici;
-    const CC = C + (fant ? 1 : 0), RR = R + (fant ? 1 : 0);
+    const CC = Cc + (fant ? 1 : 0), RR = R + (fant ? 1 : 0);
     let h = '<span class="nw-m2' + (fant ? " nw-m2-actif" : "") + '" data-m="' + m.d
       + '" style="--nw-m2-c:' + CC + '">';
     for (let r = 0; r < RR; r++) for (let c = 0; c < CC; c++) {
@@ -1441,56 +1604,71 @@
           + (dedans ? CURSEUR : '<i></i>') + '</span>';
         continue;
       }
-      h += '<span class="nw-m2-k"' + bornes + '>' + lettres(t, x.d, x.f, d, f, focus)
+      h += '<span class="nw-m2-k"' + bornes + '>' + dessinPlage(t, x.d, x.f, C)
         + (focus && d === f && d === x.f ? CURSEUR : "") + '</span>';
     }
     return h + '</span>';
   }
-  function lettres(t, a, b, d, f, focus) {
+  /* La puissance : son contenu en petit, en haut. « ^( » et « ) » ne se
+     dessinent pas ; une puissance vide montre sa case. */
+  function dessinExposant(t, g, C) {
+    const { d, f, focus } = C;
+    const a = g.o + 1, b = g.f;
+    const dedans = focus && d >= a && f <= b;
+    let h = '<span class="nw-v-exp' + (dedans ? " nw-v-exp-ici" : "") + '" data-e="' + g.d + '">';
+    if (contenuVide(t, g)) {
+      const ici = focus && ((d === a && f === b) || (d === f && (d === a || d === b)));
+      h += '<span class="nw-v-case" data-p="' + a + '">' + (ici ? CURSEUR : "<i></i>") + '</span>';
+    } else {
+      h += dessinPlage(t, a, b, C);
+      if (focus && d === f && d === b) h += CURSEUR;
+    }
+    return h + '</span>';
+  }
+  /* Une portion du texte : ses lettres, ses matrices et ses puissances,
+     l'une dans l'autre au besoin (une puissance dans une case, une
+     puissance de puissance). Le curseur est posé là où il tombe. */
+  function dessinPlage(t, a, b, C) {
+    const { d, f, focus } = C;
     let h = "";
     for (let i = a; i < b; i++) {
       if (focus && d === f && i === d) h += CURSEUR;
+      const m = C.ms.get(i);
+      if (m && m.f <= b) { h += dessinMatrice(t, m, m.k === C.actif ? C.ici : null, C); i = m.f - 1; continue; }
+      const g = C.ex.get(i);
+      if (g && g.f < b) { h += dessinExposant(t, g, C); i = g.f; continue; }
       const sel = focus && d !== f && i >= d && i < f;
       h += '<span class="nw-v' + (sel ? " nw-v-sel" : "") + '" data-p="' + i + '">' + ech(t[i]) + '</span>';
     }
     return h;
   }
-  /* Une entrée de l'historique, ses matrices dessinées : ce qu'on a tapé
-     se relit comme on l'a vu. Sans curseur ni case fantôme. */
+  function contexteDessin(t, focus, d, f) {
+    const ms = matricesDe(t), ex = exposantsDe(t);
+    const ici = focus ? caseEn(ms, d) : null;
+    return {
+      ms: new Map(ms.map((m, k) => [m.d, Object.assign(m, { k })])),
+      ex: new Map(ex.map((g) => [g.d, g])),
+      n: ms.length + ex.length, d, f, focus, ici, actif: ici && ici.cell ? ici.k : -1,
+    };
+  }
+  /* Une entrée de l'historique, ses matrices et ses puissances dessinées :
+     ce qu'on a tapé se relit comme on l'a vu. Sans curseur ni case fantôme. */
   function saisieDessinee(t) {
-    const ms = matricesDe(t);
-    if (!ms.length) return ech(t);
-    let h = "", p = 0;
-    for (const m of ms) {
-      h += ech(t.slice(p, m.d))
-        + '<span class="nw-m2" style="--nw-m2-c:'
-        + Math.max.apply(null, m.lignes.map((l) => l.length)) + '">'
-        + m.lignes.map((l) => l.map((x) => '<span class="nw-m2-k">'
-            + ech(t.slice(x.d, x.f)) + '</span>').join("")).join("") + '</span>';
-      p = m.f;
-    }
-    return h + ech(t.slice(p));
+    const C = contexteDessin(t, false, -1, -1);
+    return C.n ? dessinPlage(t, 0, t.length, C) : ech(t);
   }
 
   function vueSaisie(champ) {
     const zone = champ.closest(".nw-saisie-zone");
     const vue = zone && $(".nw-saisie-vue", zone);
     if (!vue) return;
-    const t = champ.value, ms = matricesDe(t);
-    zone.classList.toggle("nw-2d", ms.length > 0);
-    if (!ms.length) { if (vue.innerHTML) vue.innerHTML = ""; return; }
+    const t = champ.value;
     const focus = document.activeElement === champ;
     const d = champ.selectionStart, f = champ.selectionEnd;
-    const ici = focus ? caseEn(ms, d) : null;
-    const actif = ici && ici.cell ? ici.k : -1;
-    let h = "", p = 0;
-    ms.forEach((m, k) => {
-      h += lettres(t, p, m.d, d, f, focus);
-      if (focus && d === f && d === m.d) h += CURSEUR;
-      h += dessinMatrice(t, m, k === actif ? ici : null, d, f, focus);
-      p = m.f;
-    });
-    h += lettres(t, p, t.length, d, f, focus);
+    const C = contexteDessin(t, focus, d, f);
+    zone.classList.toggle("nw-2d", C.n > 0);
+    if (!C.n) { if (vue.innerHTML) vue.innerHTML = ""; return; }
+    let h = dessinPlage(t, 0, t.length, C);
     if (focus && d === f && d === t.length) h += CURSEUR;
     vue.innerHTML = h;
     // le curseur reste visible quand la ligne est plus longue que l'écran
@@ -1505,7 +1683,7 @@
   function majSaisie() {
     const c = $("#nw-calc");
     if (!c) return;
-    if (document.activeElement === c) normaliser(c);
+    if (document.activeElement === c) { normaliser(c); normaliserExposants(c); }
     vueSaisie(c);
   }
   document.addEventListener("selectionchange", () => {
@@ -4793,7 +4971,20 @@
     if (!c || c.tagName !== "INPUT") return;
     const type = (c.getAttribute("type") || "text").toLowerCase();
     if (type !== "text" && type !== "search") return;
+    /* La ligne de calcul DESSINE ses puissances (6 ter) : « ^ » y ouvre une
+       case, on n'y écrit plus de caractères d'exposant. Pendant une touche
+       morte, on attend la fin de la composition ; un collage reste tel quel. */
+    if (c.id === "nw-calc") {
+      if (e.isComposing) return;
+      if (e.inputType !== "insertFromPaste" && e.inputType !== "insertFromDrop")
+        puissanceALaFrappe(c, e.inputType === "insertCompositionText");
+      return;
+    }
     exposantsALaFrappe(c);
+  });
+  page.addEventListener("compositionend", (e) => {
+    const c = e.target;
+    if (c && c.id === "nw-calc" && puissanceALaFrappe(c, true)) setTimeout(majSaisie, 0);
   });
 
   page.addEventListener("click", (e) => {
@@ -4903,13 +5094,13 @@
      connaît pas). « s2 » est la ligne en petit sous le nom. */
   const TEL_CATS = [
     { id: "base", l1: "+ −", l2: "× ÷", nom: "Opérations", pave: true, t: [
-      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "^2", t: "x²" }, { i: "√(", t: "√" },
+      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "²", t: "x²" }, { i: "√(", t: "√" },
       { i: "^", t: "xʸ" }, { i: "x", t: "x" }, { i: "π", t: "π" }, { i: "ans", t: "ans" }] },
     { id: "fx", l1: "f(x) e", l2: "log ln", nom: "Exponentielles, logarithmes, entiers, complexes", cols: 6, t: [
-      { i: "exp(", t: "eˣ" }, { i: "ln(", t: "ln" }, { i: "log(", t: "log₁₀" },
+      { i: "e^", t: "eˣ" }, { i: "ln(", t: "ln" }, { i: "log(", t: "log₁₀" },
       { i: "log(□;□)", t: "logₐ", s: "log(", s2: "base a" }, { i: "10^", t: "10ˣ" }, { i: "e", t: "e" },
       { i: "abs(", t: "|x|" }, { i: "!", t: "n!" }, { i: "√(", t: "√" },
-      { i: "(□)^(1/□)", t: "ⁿ√", s2: "n-ième" }, { i: "^3", t: "x³" }, { i: "^", t: "xʸ" },
+      { i: "(□)^(1/□)", t: "ⁿ√", s2: "n-ième" }, { i: "³", t: "x³" }, { i: "^", t: "xʸ" },
       { i: "pgcd(□;□)", t: "pgcd", s: "pgcd(" }, { i: "ppcm(□;□)", t: "ppcm", s: "ppcm(" },
       { i: "reste(□;□)", t: "reste", s: "reste(" }, { i: "quotient(□;□)", t: "quot.", s: "quotient(", s2: "euclidien" },
       { i: "partieEntiere(", t: "⌊x⌋", s2: "partie ent." }, { i: "arrondi(□;□)", t: "arr.", s: "arrondi(", s2: "à n chiffres" },
@@ -4923,7 +5114,7 @@
       { i: "(", t: "(" }, { i: "sinh(", t: "sinh" }, { i: "cosh(", t: "cosh" }, { i: "tanh(", t: "tanh" },
       { i: "csc(", t: "csc" }, { i: "arccsc(", t: "arccsc" },
       { i: ")", t: ")" }, { i: "argsh(", t: "argsh" }, { i: "argch(", t: "argch" }, { i: "argth(", t: "argth" },
-      { i: "^2", t: "x²" }, { i: ";", t: ";" }] },
+      { i: "²", t: "x²" }, { i: ";", t: ";" }] },
     { id: "analyse", l1: "∫ Σ", l2: "d/dx ∞", nom: "Intégrales, dérivées, sommes", cols: 5, t: [
       { i: "integrale(□;x;□;□)", t: "∫", s: "integrale(", s2: "de a à b" },
       { i: "derivee(□;x;□)", t: "d/dx", s: "derivee(", s2: "en un point" },
@@ -4932,7 +5123,7 @@
       { i: "x", t: "x" }, { i: "k", t: "k" }, { i: "n", t: "n" }, { i: ";", t: ";" }, { i: "e", t: "e" },
       { i: "f(", t: "f(x)", s2: "Grapheur" }, { i: "g(", t: "g(x)", s2: "Grapheur" },
       { i: "u(", t: "uₙ", s2: "Suites" }, { i: "v(", t: "vₙ", s2: "Suites" }, { i: "π", t: "π" },
-      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "^2", t: "x²" }, { i: "√(", t: "√" }, { i: "^", t: "xʸ" }] },
+      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "²", t: "x²" }, { i: "√(", t: "√" }, { i: "^", t: "xʸ" }] },
     { id: "lois", l1: "P(X)", l2: "x̄  σ", nom: "Probabilités et statistiques", cols: 6, t: [
       { i: "binomialePdf(□;□;□)", t: "binom", s: "binomialePdf(", s2: "P(X=k)" },
       { i: "binomialeCdf(□;□;□)", t: "binom", s: "binomialeCdf(", s2: "P(X≤k)" },
