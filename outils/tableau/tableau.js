@@ -1477,14 +1477,30 @@
     geste = { mode: "lasso", pts: [[p.x, p.y]], avant: new Set(selection) };
     majPanneau(); demander();
   }
+  /* Ce que le lasso regarde d'un élément, là où on le voit (voir « jalons »
+     dans stylet.js) : la longueur d'un trait, la surface d'une forme. */
   function echantillon(el) {
+    const b = R.boite(el);
+    let pts;
     if (el.points && el.points.length) {
-      const pas = Math.max(1, Math.floor(el.points.length / 40));
-      return el.points.filter((_, i) => i % pas === 0).map(([x, y]) => [el.x + x, el.y + y]);
+      const P = el.points.map(([x, y]) => [el.x + x, el.y + y]);
+      pts = S.jalons(P, 48);
+      // une forme remplie au stylo se juge à sa surface, pas à son contour
+      if (el.type === "freedraw" && el.customData && el.customData.pointe === "remplissage" && P.length > 2) {
+        const surface = S.grille(b, 9, (q) => S.dansPolygone(q, P));
+        if (surface.length >= 4) pts = surface;
+      }
+    } else {
+      const rx = b.w / 2, ry = b.h / 2, cx = b.x + rx, cy = b.y + ry;
+      const garder = el.type === "ellipse" && rx && ry
+        ? ([x, y]) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1
+        : el.type === "diamond" && rx && ry
+          ? ([x, y]) => Math.abs(x - cx) / rx + Math.abs(y - cy) / ry <= 1
+          : null;
+      pts = S.grille(b, 7, garder);
+      if (!pts.length) pts = [[cx, cy]];
     }
-    const b = R.boite(el), out = [];
-    for (let i = 0; i <= 2; i++) for (let j = 0; j <= 2; j++) out.push([b.x + b.w * i / 2, b.y + b.h * j / 2]);
-    return out;
+    return S.tourner(pts, b, el.angle || 0);
   }
   function finLasso(g) {
     selection = new Set(g.avant);

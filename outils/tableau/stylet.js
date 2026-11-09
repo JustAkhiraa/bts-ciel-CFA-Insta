@@ -175,6 +175,53 @@
     }
     return dedans;
   }
+  /* ── ce que le lasso regarde d'un élément ──────────────────────────────
+     Signalé le 9 nov. 2026 : le lasso ne prenait pas ce qu'on avait entouré.
+     Reproduit : une boucle qui ne contient qu'un trait en prenait trois.
+       · Les points d'un trait étaient pris par leur RANG. Un trait tracé
+         lentement au début y a soixante points, puis six pour le reste :
+         33 % de sa longueur dans la boucle comptaient pour 91 %.
+       · La rotation était ignorée : un trait tourné d'un quart de tour était
+         jugé à l'endroit où il était avant de tourner.
+     Désormais un trait se juge à sa LONGUEUR (des jalons à intervalles
+     égaux, chacun au milieu de sa tranche : la part des jalons dedans est la
+     part de la longueur dedans), une forme pleine à sa SURFACE, et tout
+     point est remis à sa place réelle, rotation comprise. */
+  function jalons(P, n) {
+    if (!P.length) return [];
+    if (P.length === 1) return [[P[0][0], P[0][1]]];
+    const cum = [0];
+    for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+    const L = cum[cum.length - 1];
+    if (!(L > 0)) return [[P[0][0], P[0][1]]];
+    const out = [];
+    let j = 1;
+    for (let k = 0; k < n; k++) {
+      const d = L * (k + 0.5) / n;
+      while (j < P.length - 1 && cum[j] < d) j++;
+      const t = (d - cum[j - 1]) / ((cum[j] - cum[j - 1]) || 1);
+      out.push([P[j - 1][0] + (P[j][0] - P[j - 1][0]) * t, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * t]);
+    }
+    return out;
+  }
+  /* Le centre des n × n cases d'une boîte, gardés si « garder » le veut :
+     la surface d'une ellipse, d'un losange, d'une forme remplie. */
+  function grille(b, n, garder) {
+    const out = [];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const q = [b.x + b.w * (i + 0.5) / n, b.y + b.h * (j + 0.5) / n];
+      if (!garder || garder(q)) out.push(q);
+    }
+    return out;
+  }
+  // des points du repère d'un élément, posés là où on les voit : tournés de
+  // « angle » autour du centre de sa boîte (c'est ainsi qu'il est peint)
+  function tourner(pts, b, angle) {
+    if (!angle) return pts;
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2, co = Math.cos(angle), si = Math.sin(angle);
+    return pts.map(([x, y]) => [cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co]);
+  }
+
   /* Un élément est pris si la plus grande part de ses points l'est — un
      trait qui dépasse un peu du lasso est quand même celui qu'on entourait. */
   function pris(points, poly, part) {
@@ -517,7 +564,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, jalons, grille, tourner, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;
