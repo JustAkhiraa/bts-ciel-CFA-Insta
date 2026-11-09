@@ -164,7 +164,17 @@
       postit: POSTITS[0], surligneur: SURLIGNEURS[0], surligneurW: 6,
     },
     /* Les trois stylos, réglés chacun pour soi. */
-    stylos: [{ c: NOIR, w: 1.6 }, { c: OC.red[4], w: 1.6 }, { c: OC.blue[4], w: 1.6 }],
+    /* Cinq outils d'écriture, chacun sa pointe (demandé le 9 nov. 2026 :
+       trois fois le même stylo ne servait à rien, la couleur se change
+       déjà dans le réglage). Chacun garde sa couleur, son calibre, et sa
+       pointe se change en le recliquant. */
+    stylos: [
+      { c: NOIR, w: 1.6 },                                  // stylo à bille
+      { c: OC.blue[4], w: 1.6, pointe: "plume" },           // stylo-plume
+      { c: OC.gray[4], w: 1.6, pointe: "crayon" },          // crayon de papier
+      { c: OC.red[4], w: 2.4, pointe: "marqueur" },         // marqueur
+      { c: OC.teal[4], w: 2.4, pointe: "aquarelle" },       // pinceau
+    ],
     stylo: 0,
     /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
        ce qu'on fait du doigt quand un stylet a été vu. */
@@ -273,7 +283,9 @@
       // été choisi
       if (!lu.gommeChoisie) etat.gommeMode = "partie";
       if (lu.courant) Object.assign(etat.courant, lu.courant);
-      if (Array.isArray(lu.stylos) && lu.stylos.length === 3) etat.stylos = lu.stylos;
+      // cinq stylos depuis le 9 nov. 2026 : un réglage à trois reprend les cinq nouveaux
+      if (Array.isArray(lu.stylos) && lu.stylos.length === etat.stylos.length) etat.stylos = lu.stylos;
+      if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -3875,9 +3887,36 @@
      Un clic prend le stylo ; un second clic sur le stylo déjà en main
      ouvre son réglage — couleur et calibre. */
   const reglage = $("#tb-reglage");
+  /* L'icône d'un stylo dit sa POINTE : on reconnaît la plume, le crayon,
+     le marqueur ou le pinceau sans lire. Tous écrivent vers le bas à
+     gauche, comme l'icône d'origine. */
+  const ICONES_POINTE = {
+    "": '<path d="M5 15l1-3.5L13 4.5l2.5 2.5-7 7z"/><path d="M11.6 5.9l2.5 2.5"/>',
+    plume: '<g transform="rotate(45 10 10)"><path d="M10 2.5c2.2 2 3.6 4.4 3.6 7L10 17.5l-3.6-8c0-2.6 1.4-5 3.6-7z"/>'
+      + '<path d="M10 10.3v4.2"/><circle cx="10" cy="9" r="1.1" class="plein"/></g>',
+    crayon: '<path d="M4.5 15.5l1.2-4.2L13.5 3.5l3 3-7.8 7.8z"/><path d="M5.7 11.3l3 3"/>'
+      + '<path d="M4.5 15.5l.6-2.1 1.5 1.5z" class="plein"/><path d="M12 5l3 3"/>',
+    marqueur: '<g transform="rotate(45 10 10)"><rect x="7" y="1.8" width="6" height="10.4" rx="1.2"/>'
+      + '<path d="M7 5.2h6"/><path d="M7.6 12.2h4.8l-1 3h-2.8z"/><path d="M9.2 15.2l.4 2.4h.8l.4-2.4z" class="plein"/></g>',
+    aquarelle: '<g transform="rotate(45 10 10)"><path d="M10 1.5v7"/><rect x="8.6" y="8.5" width="2.8" height="2.6" rx=".5"/>'
+      + '<path d="M8.6 11.1c0 2.6-.6 4.6 1.4 7.4 2-2.8 1.4-4.8 1.4-7.4z" class="plein"/></g>',
+    remplissage: '<path d="M4 9.5l5.5-5.5 6 6L10 15.5z"/><path d="M4 9.5h11.5"/>'
+      + '<path d="M17 12.5c0 1.2-.7 2.2-1.5 2.2S14 13.7 14 12.5l1.5-2.6z" class="plein"/>',
+  };
+  ICONES_POINTE.monoligne = ICONES_POINTE[""];
+  ICONES_POINTE.pastel = ICONES_POINTE.crayon;
+  ICONES_POINTE.calame = ICONES_POINTE.plume;
+  const nomStylo = (i) => {
+    const v = etat.stylos[i].pointe || "";
+    return (POINTES_NOMS.find(([p]) => p === v) || POINTES_NOMS[0])[1];
+  };
   function majStylos() {
     $$("[data-stylo]").forEach((b) => {
-      const st = etat.stylos[Number(b.dataset.stylo)];
+      const i = Number(b.dataset.stylo), st = etat.stylos[i];
+      const svg = b.querySelector("svg"), v = st.pointe || "";
+      if (svg.dataset.pointe !== v) { svg.innerHTML = ICONES_POINTE[v] || ICONES_POINTE[""]; svg.dataset.pointe = v; }
+      b.setAttribute("aria-label", nomStylo(i));
+      b.title = nomStylo(i) + (i === 0 ? " (P ou 7)" : "") + " · recliquer pour le régler";
       b.querySelector("i").style.setProperty("--c", APERCUS[st.effet] || st.c);
       b.querySelector("i").style.setProperty("--w", Math.min(8, 2 + st.w * 1.3) + "px");
     });
@@ -3949,7 +3988,7 @@
     const st = surl ? { c: etat.courant.surligneur, w: etat.courant.surligneurW } : etat.stylos[quoi];
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
     const calibres = surl ? [3, 4.5, 6, 8, 11, 15] : CALIBRES;
-    reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : "Stylo " + (quoi + 1)) + "</p>"
+    reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : nomStylo(quoi)) + "</p>"
       + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
         + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
       + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
