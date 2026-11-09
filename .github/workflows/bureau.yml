@@ -87,10 +87,25 @@ jobs:
 
           Le planning embarqué est celui du jour de la fabrication ; le site en ligne, lui, se met à jour tout seul.
           NOTES
-          gh release create "bureau-v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --draft --title "Appli de bureau $VERSION" --notes-file notes.md
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"bureau-v$VERSION\") | .id")
-          test -n "$id" || { echo "le brouillon de la version est introuvable"; exit 1; }
+          # Le numéro du brouillon est pris dans la RÉPONSE de sa création.
+          # Le chercher ensuite dans la liste des versions échoue : elle met
+          # un moment à le montrer (constaté au premier passage, 0,4 s après
+          # la création, le brouillon n'y était pas encore).
+          id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+                 -f tag_name="bureau-v$VERSION" -f target_commitish="$GITHUB_SHA" \
+                 -f name="Appli de bureau $VERSION" -F draft=true -F body=@notes.md \
+                 --jq '.id' 2>/dev/null) || id=""
+          # Un passage relancé garde son numéro, donc sa version : le
+          # brouillon existe déjà, on le reprend (en laissant à la liste le
+          # temps de le montrer).
+          for essai in 1 2 3 4 5; do
+            test -n "$id" && break
+            sleep 3
+            id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+                   --jq ".[] | select(.draft and .tag_name == \"bureau-v$VERSION\") | .id" | head -1)
+          done
+          test -n "$id" || { echo "le brouillon de la version n'a pu être ni créé ni retrouvé"; exit 1; }
+          echo "brouillon n° $id"
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
   fabriquer:
@@ -113,7 +128,7 @@ jobs:
             options: ""
     runs-on: ${{ matrix.systeme }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Les bibliothèques du moteur web (Linux)
         if: runner.os == 'Linux'
@@ -159,7 +174,7 @@ jobs:
       # le .deb sert ensuite à fabriquer le paquet Arch et le Flatpak
       - name: Passer le .deb aux paquets Arch et Flatpak
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: paquet-deb
           path: bureau/src-tauri/target/release/bundle/deb/*.deb
@@ -171,8 +186,8 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
         with:
           name: paquet-deb
           path: arch
@@ -200,8 +215,8 @@ jobs:
     needs: [ouvrir, fabriquer]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v7
         with:
           name: paquet-deb
           path: flatpak
@@ -228,7 +243,7 @@ jobs:
     name: Linux (NixOS, vérification)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: cachix/install-nix-action@v31
       - run: nix build ./bureau -L
       - run: test -x result/bin/bts-ciel
