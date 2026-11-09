@@ -46,7 +46,7 @@ const CALC = (function () {
 const REGLAGES = () => ({
   angle: "rad",        // "rad" | "deg" | "grad"
   format: "auto",      // "auto" | "sci" | "ing"
-  chiffres: 10,        // chiffres significatifs affichés (NumWorks : 10)
+  chiffres: 10,        // chiffres significatifs affichés (la machine : 10)
   complexe: false,     // réservé : les complexes ne sont pas de ce semestre
 });
 
@@ -3181,11 +3181,11 @@ function moindresCarres(A, y) {
 /* Les noms sont ceux de la machine, et ils sont aussi les bons : en français,
    « linéaire » désigne x ↦ ax et « affine » désigne x ↦ ax + b. Nous avions
    l'inverse — un élève qui lisait « Linéaire » ici et choisissait « Linéaire »
-   sur sa NumWorks ne prenait pas le même modèle. Les CLÉS ne bougent pas : une
+   sur sa machine ne prenait pas le même modèle. Les CLÉS ne bougent pas : une
    mémoire enregistrée avant la correction désigne toujours son modèle. */
 /* ── Les constantes physiques ────────────────────────────────────────────
    Celles de la machine, aux mêmes valeurs (CODATA 2018). Le souligné
-   initial est la convention de la NumWorks, et il sert à quelque chose :
+   initial est la convention de la machine, et il sert à quelque chose :
    les lettres seules — A, B, … Z — sont les mémoires de l'utilisateur, et
    « c » ou « e » lui appartiennent. Sans préfixe, ranger 5 dans « e »
    aurait écrasé la charge élémentaire.

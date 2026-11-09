@@ -4864,6 +4864,273 @@
       }
     });
 
+    /* ── le téléphone ────────────────────────────────────────────────────
+       Signalé le 9 nov. 2026 : coder sur un téléphone était pénible. Trois
+       défauts, tous mesurés sur un écran de 375 px :
+         · la page s'empilait : Exécuter en haut, l'éditeur au milieu, la
+           console tout en bas. On lançait, puis on descendait chercher la
+           sortie, puis on remontait corriger ;
+         · le clavier du téléphone n'a ni { } ni ; ni # ni Tab au premier
+           niveau : chaque accolade coûtait trois appuis ;
+         · les TP étaient rangés dans le menu Réglages.
+       Sous 760 px, l'atelier devient donc une application plein écran :
+       une barre (Fermer, langage, TP, réglages, Exécuter), deux vues, Code
+       et Console, qu'un appui fait passer de l'une à l'autre (Exécuter
+       ouvre la Console tout seul), et une barre de symboles et de modèles
+       posée au-dessus du clavier, qui suit le langage choisi. */
+    const TEL_AT = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+    let atTel = false, atPousse = false;
+    const voletSortie = $(".at-volet-sortie", racine), grilleAt = $(".at-grille", racine);
+    const diagTete = $("#at-diag-tete");
+    const barreAt = $(".at-barre", racine);
+
+    /* « | » marque où le curseur se pose après un modèle. */
+    const MODELES = {
+      "c": [["printf", 'printf("|\\n");'], ["scanf", 'scanf("%d", &|);'],
+            ["for", "for (int i = 0; i < |; i++) {\n    \n}"], ["if", "if (|) {\n    \n}"],
+            ["else", "else {\n    |\n}"], ["while", "while (|) {\n    \n}"]],
+      "c++": [["cout", "cout << | << endl;"], ["cin", "cin >> |;"], ["getline", "getline(cin, |);"],
+              ["for", "for (int i = 0; i < |; i++) {\n    \n}"], ["if", "if (|) {\n    \n}"],
+              ["class", "class | {\npublic:\n    \n};"], ["string", "string |;"]],
+      "python": [["print", "print(|)"], ["input", 'input("|")'], ["for", "for i in range(|):\n    "],
+                 ["if", "if |:\n    "], ["elif", "elif |:\n    "], ["def", "def |():\n    "],
+                 ["while", "while |:\n    "]],
+      "js": [["console.log", "console.log(|);"], ["let", "let | = ;"],
+             ["for", "for (let i = 0; i < |; i++) {\n    \n}"], ["if", "if (|) {\n    \n}"],
+             ["function", "function |() {\n    \n}"]],
+      "web": [["<p>", "<p>|</p>"], ["<div>", "<div>|</div>"], ["<h1>", "<h1>|</h1>"],
+              ["<a>", '<a href="|"></a>'], ["<img>", '<img src="|" alt="">'], ["<li>", "<li>|</li>"]],
+      "php": [["echo", 'echo "|";'], ["<?php", "<?php\n|\n?>"], ["if", "if (|) {\n    \n}"],
+              ["foreach", "foreach (| as $x) {\n    \n}"], ["$_POST", "$_POST['|']"]],
+      "sql": [["SELECT", "SELECT | FROM ;"], ["WHERE", "WHERE |"], ["ORDER BY", "ORDER BY |"],
+              ["GROUP BY", "GROUP BY |"], ["JOIN", "JOIN | ON "], ["INSERT", "INSERT INTO | VALUES ();"]],
+    };
+    const SYMBOLES = {
+      "c": "{ } ( ) ; \" ' < > = [ ] # & * / % ! | + - , . : \\ _",
+      "c++": "{ } ( ) ; << >> :: \" ' < > = [ ] # & * / % ! | + - , . _",
+      "python": ": ( ) [ ] \" ' = # . , + - * / < > _ { } %",
+      "js": "{ } ( ) ; \" ' = < > [ ] . , + - * / ! & | : $ ` _",
+      "web": "< > / = \" ! - { } ; : # . ' ( )",
+      "php": "$ ; \" ' ( ) { } [ ] = > < . - ! & | ? : #",
+      "sql": "( ) ; , ' * = < > . _ % \"",
+    };
+
+    function atVue(v) {
+      racine.dataset.vue = v;
+      $$(".at-vue", racine).forEach((b) => b.setAttribute("aria-selected", String(b.dataset.vue === v)));
+      if (v === "sortie") { const n = $(".at-vue-neuf", racine); if (n) n.hidden = true; }
+    }
+
+    function atInstaller() {
+      if ($(".at-vues", racine)) return;
+      const bouton = (cls, html, aide) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = cls; b.innerHTML = html;
+        if (aide) { b.setAttribute("aria-label", aide); b.title = aide; }
+        return b;
+      };
+      // la barre : Fermer devant, les TP à côté du langage
+      const fermer = bouton("at-creux at-tel-fermer", "✕", "Fermer l'atelier");
+      fermer.addEventListener("click", () => atOuvrir(false));
+      barreAt.prepend(fermer);
+      const tp = bouton("at-creux at-tel-tp", "TP", "Les TP et les exemples");
+      tp.addEventListener("click", () => (tiroir.hidden ? ouvrirTiroir() : fermerTiroir()));
+      $("#at-langue", racine).after(tp);
+      // les deux vues
+      const vues = document.createElement("div");
+      vues.className = "at-vues"; vues.setAttribute("role", "tablist"); vues.setAttribute("aria-label", "Vue");
+      vues.innerHTML = '<button type="button" class="at-vue" role="tab" data-vue="code">Code</button>'
+        + '<button type="button" class="at-vue" role="tab" data-vue="sortie">Console'
+        + '<span class="at-vue-neuf" hidden aria-label="(nouveau)"></span></button>';
+      vues.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-vue]");
+        if (b) atVue(b.dataset.vue);
+      });
+      grilleAt.before(vues);
+      // la barre de symboles
+      const sym = document.createElement("div");
+      sym.className = "at-symboles"; sym.setAttribute("role", "toolbar");
+      sym.setAttribute("aria-label", "Symboles et modèles de code");
+      grilleAt.after(sym);
+      atBrancherSymboles(sym);
+      // la carte qui rouvre l'atelier
+      const l = document.createElement("div");
+      l.className = "at-tel-lanceur";
+      l.innerHTML = '<button type="button" class="at-tel-ouvrir"><span class="at-tel-ouvrir-ic" '
+        + 'aria-hidden="true">{ }</span><span><b>Ouvrir l\'atelier</b>'
+        + '<i>Plein écran, Code et Console d\'un appui</i></span></button>';
+      racine.prepend(l);
+      $(".at-tel-ouvrir", l).addEventListener("click", () => atOuvrir(true));
+      // Exécuter montre la sortie ; une saisie demandée aussi
+      bEx.addEventListener("click", () => { if (atTel) atVue("sortie"); });
+      new MutationObserver(() => {
+        if (atTel && !zoneEntree.hidden) atVue("sortie");
+      }).observe(zoneEntree, { attributes: true, attributeFilter: ["hidden"] });
+      // du neuf dans la console pendant qu'on est sur le code : une pastille
+      const neuf = () => {
+        if (atTel && racine.dataset.vue === "code") { const n = $(".at-vue-neuf", racine); if (n) n.hidden = false; }
+      };
+      new MutationObserver(neuf).observe($(".con-flux", racine), { childList: true, characterData: true, subtree: true });
+      new MutationObserver(neuf).observe(diags, { childList: true });
+      // revenir au code dès qu'on y touche (un clic sur une erreur y renvoie)
+      editeur.element.addEventListener("focus", () => { if (atTel) atVue("code"); });
+      // un TP choisi : on le montre
+      tiroir.addEventListener("click", (e) => {
+        if (atTel && e.target.closest(".at-ex")) setTimeout(() => { fermerTiroir(); atVue("code"); atSymboles(); }, 0);
+      });
+      /* La barre suit le langage, quel que soit le chemin qui l'a changé
+         (le menu, un TP d'un autre langage, la restauration au chargement) :
+         on écoute l'étiquette du bouton, la seule chose qu'ils touchent tous. */
+      const lib = $("#at-langue-courant", racine);
+      if (lib) new MutationObserver(() => atSymboles())
+        .observe(lib, { childList: true, characterData: true, subtree: true });
+    }
+
+    function atSymboles() {
+      const sym = $(".at-symboles", racine);
+      if (!sym) return;
+      const l = MODELES[langue] ? langue : "c";
+      const b = (cls, data, txt, aide) => '<button type="button" class="' + cls + '" ' + data
+        + (aide ? ' aria-label="' + aide + '" title="' + aide + '"' : "") + ">" + txt + "</button>";
+      const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      sym.innerHTML = b("at-sy at-sy-cmd", 'data-cmd="tab"', "⇥", "Alinéa")
+        + b("at-sy at-sy-cmd", 'data-cmd="gauche"', "←", "Curseur à gauche")
+        + b("at-sy at-sy-cmd", 'data-cmd="droite"', "→", "Curseur à droite")
+        + b("at-sy at-sy-cmd", 'data-cmd="annuler"', "↶", "Annuler")
+        + MODELES[l].map(([nom, m]) => b("at-sy at-sy-mod", 'data-mod="' + esc(m) + '"', esc(nom))).join("")
+        + SYMBOLES[l].split(" ").map((s) => b("at-sy", 'data-sym="' + esc(s) + '"', esc(s))).join("");
+      sym.scrollLeft = 0;
+    }
+
+    function atEcrire(texte, caret) {
+      const z = editeur.element;
+      z.focus();
+      const d = z.selectionStart, f = z.selectionEnd;
+      let ok = false;
+      try { ok = document.execCommand("insertText", false, texte); } catch (e) {}
+      const attendu = z.value.slice(0, d) + texte;
+      if (!ok || z.value.slice(0, d + texte.length) !== attendu) {
+        z.setRangeText(texte, d, f, "end");
+        z.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      if (caret !== undefined) { try { z.setSelectionRange(d + caret, d + caret); } catch (e) {} }
+    }
+    function atTouche(cle) {
+      // l'éditeur connaît déjà ses gestes (Tab, paires de parenthèses et de
+      // guillemets) : on lui présente la touche comme si elle était frappée
+      const z = editeur.element;
+      z.focus();
+      const ev = new KeyboardEvent("keydown", { key: cle, bubbles: true, cancelable: true });
+      z.dispatchEvent(ev);
+      if (!ev.defaultPrevented && cle.length === 1) atEcrire(cle);
+      else if (!ev.defaultPrevented) atEcrire(cle);
+    }
+    function atAgir(b) {
+      const z = editeur.element;
+      if (b.dataset.sym !== undefined) {
+        const s = b.dataset.sym;
+        if (s.length === 1) atTouche(s); else atEcrire(s);
+        return;
+      }
+      if (b.dataset.mod !== undefined) {
+        // le modèle prend l'alinéa de la ligne où il arrive
+        const debut = z.value.lastIndexOf("\n", z.selectionStart - 1) + 1;
+        const alinea = (z.value.slice(debut).match(/^[ \t]*/) || [""])[0];
+        const m = b.dataset.mod.replace(/\n/g, "\n" + alinea);
+        const p = m.indexOf("|");
+        atEcrire(m.replace("|", ""), p < 0 ? undefined : p);
+        return;
+      }
+      z.focus();
+      const c = b.dataset.cmd;
+      if (c === "tab") atTouche("Tab");
+      else if (c === "annuler") { try { document.execCommand("undo"); } catch (e) {} }
+      else if (c === "gauche" || c === "droite") {
+        const q = c === "gauche" ? Math.max(0, z.selectionStart - 1) : Math.min(z.value.length, z.selectionEnd + 1);
+        z.setSelectionRange(q, q);
+      }
+    }
+    /* Une touche de cette barre ne doit JAMAIS prendre le focus : sur un
+       téléphone, l'éditeur qui le perd ferme le clavier. Le doigt agit
+       donc au « touchend » (annulé, il n'y a ni clic ni changement de
+       focus), et seulement s'il n'a pas glissé : la barre défile de côté. */
+    function atBrancherSymboles(sym) {
+      let debut = null;
+      sym.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        debut = { x: t.clientX, y: t.clientY, b: e.target.closest("button") };
+      }, { passive: true });
+      sym.addEventListener("touchend", (e) => {
+        if (!debut) return;
+        const t = e.changedTouches[0], d = debut;
+        debut = null;
+        if (!d.b || Math.abs(t.clientX - d.x) > 8 || Math.abs(t.clientY - d.y) > 8) return;
+        e.preventDefault();
+        atAgir(d.b);
+      });
+      sym.addEventListener("mousedown", (e) => { if (e.target.closest("button")) e.preventDefault(); });
+      sym.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) atAgir(b); });
+    }
+
+    function atViewport() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      racine.style.setProperty("--at-vh", Math.round(vv.height) + "px");
+      racine.style.setProperty("--at-vtop", Math.round(vv.offsetTop) + "px");
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => { if (atTel) atViewport(); });
+      window.visualViewport.addEventListener("scroll", () => { if (atTel) atViewport(); });
+    }
+
+    function atOuvrir(oui, depuisHistorique) {
+      if (!atTel) return;
+      if (oui === racine.classList.contains("at-ouvert")) return;
+      racine.classList.toggle("at-ouvert", oui);
+      document.documentElement.classList.toggle("at-app-ouverte", oui);
+      if (oui) {
+        atViewport();
+        if (!depuisHistorique && history.pushState) {
+          try { history.pushState({ atelier: 1 }, ""); atPousse = true; } catch (e) {}
+        }
+      } else {
+        fermerTiroir();
+        if (!depuisHistorique && atPousse) { atPousse = false; try { history.back(); } catch (e) {} }
+        atPousse = false;
+        const a = document.activeElement;
+        if (a && racine.contains(a) && a.blur) a.blur();
+      }
+    }
+    window.addEventListener("popstate", () => {
+      if (racine.classList.contains("at-ouvert")) { atPousse = false; atOuvrir(false, true); }
+    });
+
+    function atBasculer() {
+      const veut = !!(TEL_AT && TEL_AT.matches);
+      if (veut === atTel) return;
+      atTel = veut;
+      racine.classList.toggle("at-tel", atTel);
+      if (atTel) {
+        atInstaller();
+        atSymboles();
+        if (racine.classList.contains("at-grand")) plein(false);
+        // les erreurs vont dans la vue Console, où on les cherche
+        voletSortie.append(diagTete, diags);
+        atVue(racine.dataset.vue || "code");
+      } else {
+        atOuvrir(false);
+        $(".at-poignee-note", racine).after(diagTete, diags);
+        racine.classList.remove("at-ouvert");
+        document.documentElement.classList.remove("at-app-ouverte");
+      }
+    }
+    if (TEL_AT) {
+      if (TEL_AT.addEventListener) TEL_AT.addEventListener("change", atBasculer);
+      else if (TEL_AT.addListener) TEL_AT.addListener(atBasculer);
+    }
+    atBasculer();
+    if (atTel) atOuvrir(true);
+
     /* ── la liste des commandes ─────────────────────────────────────────
        Signalé : Alt+Z fonctionne, mais sur Mac la touche est
        introuvable — d'où la demande d'une commande qui montre les

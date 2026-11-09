@@ -35,6 +35,10 @@
   const ecran = $("#nw-ecran"), page = $("#nw-page"), bTitre = $("#nw-titre");
   const bAngle = $("#nw-angle"), bHeure = $("#nw-heure"), bExamen = $("#nw-examen");
   const etat = $("#nw-etat");
+  /* La disposition téléphone (section 15) : posée ou non, l'onglet de
+     touches choisi, le clavier de lettres, ses majuscules, et le clavier
+     du téléphone à la place du nôtre. */
+  let tel = false, telCat = "base", telAbc = false, telMajL = false, telSysteme = false;
   const ech = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
                               .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -363,6 +367,7 @@
       + ' title="' + ech(aide) + '">' + libelle + sec + '</button>';
   }
   function dessinerClavier() {
+    if (tel) { dessinerClavierTel(); return; }
     const cl = $("#nw-clavier");
     cl.innerHTML =
       '<div class="nw-bloc nw-bloc-nav">' + NAV.map(toucheHTML).join("") + '</div>'
@@ -611,7 +616,7 @@
 
   /* ═══════════════ 4. Le routage et le rendu ═════════════════════════ */
   const APPS = {};          // rempli par les sections suivantes
-  /* L'ordre de la machine, pas le nôtre. Un élève qui a la NumWorks en main
+  /* L'ordre de la machine, pas le nôtre. Un élève qui a la machine en main
      retrouve ses applications à la place où il a l'habitude de les voir — et
      l'accueil est justement l'écran qu'on traverse sans lire. Les quatre
      applications que la machine a en plus (Python, Éléments, Inférence,
@@ -634,6 +639,7 @@
   function aller(cle) {
     courante = cle;
     maj = alpha = false;
+    if (tel) telSurApp(cle);
     redessiner();
     const champ = $(".nw-champ", page) || $("input,select,button", page);
     if (champ && cle !== "accueil") { try { champ.focus(); } catch (e) {} }
@@ -718,6 +724,9 @@
     bExamen.hidden = !ETAT.reglages.examen;
     ecran.dataset.ecran = ETAT.reglages.ecranSombre ? "sombre" : "clair";
     if (app && app.apres) app.apres();
+    /* Sur téléphone, le mode de saisie se pose AVANT de rendre le focus :
+       dans l'autre ordre, le clavier du téléphone a le temps de monter. */
+    if (tel) telSaisie();
     let cible = null;
     if (id) cible = document.getElementById(id);
     if (!cible && dataCle) cible = $('[data-cle="' + dataCle + '"]', page);
@@ -764,7 +773,9 @@
   function ouvrirBoite(ouvrir) {
     boite.hidden = !ouvrir;
     $("#nw-catalogue").setAttribute("aria-expanded", String(!!ouvrir));
-    if (ouvrir) { dessinerBoite($("#nw-boite-filtre").value); $("#nw-boite-filtre").focus(); }
+    /* Sur téléphone, pas de focus dans le filtre : il ferait monter le
+       clavier du téléphone par-dessus la liste qu'on vient d'ouvrir. */
+    if (ouvrir) { dessinerBoite($("#nw-boite-filtre").value); if (!tel) $("#nw-boite-filtre").focus(); }
   }
 
   /* ═══════════════ 6. Calculs ════════════════════════════════════════
@@ -1021,6 +1032,14 @@
     if (!champ) return;
     const texte = champ.value.trim();
     if (!texte) return;
+    /* Un gabarit du clavier téléphone laisse des cases □ à remplir. */
+    if (texte.indexOf("□") >= 0) {
+      const p = champ.value.indexOf("□");
+      champ.focus();
+      try { champ.setSelectionRange(p, p + 1); } catch (e) {}
+      dire("Remplissez d'abord les cases □ : la flèche → passe de l'une à l'autre.", "e-erreur");
+      return;
+    }
     const ctx = contexte();
     ctx.vars.set("ans", ETAT.dernier === undefined ? 0 : ETAT.dernier);
     /* Un calcul qui commence par un opérateur reprend le résultat
@@ -2459,7 +2478,7 @@
   /* ═══════════════ 10. Régressions ═══════════════════════════════════ */
   /* ═══════════════ 10. Régressions ═══════════════════════════════════
      Rangée comme sur la machine : Données · Graphique · Stats. Ce n'est
-     pas un détail d'habillage. Un élève qui a la NumWorks en main pendant
+     pas un détail d'habillage. Un élève qui a la machine en main pendant
      l'épreuve cherche l'onglet qu'il connaît ; s'il doit réapprendre un
      rangement ici, l'outil lui coûte plus qu'il ne lui rapporte.
 
@@ -4221,6 +4240,7 @@
     if (!b) return;
     if (courante === "accueil") aller("calculs");
     inserer(b.dataset.ins);
+    if (tel) { ouvrirBoite(false); dire("Inséré.", "e-ok"); return; }
     dire("Inséré. La boîte reste ouverte pour en ajouter d'autres.", "e-ok");
   });
 
@@ -4298,10 +4318,418 @@
   heure();
   setInterval(heure, 30000);
 
+  /* ═══════════════ 15. Le téléphone ══════════════════════════════════
+     Demandé le 9 nov. 2026 : sur un téléphone, l'appareil de bureau ne se
+     tenait pas. L'écran et ses trente-sept touches s'empilaient sur une
+     page qu'il fallait faire défiler pour passer de l'un à l'autre, et
+     chaque touche donnait le focus au champ : le clavier du téléphone
+     montait alors PAR-DESSUS celui de la calculatrice.
+
+     Sur un écran étroit, la calculatrice devient donc une application à
+     part entière, qui occupe tout l'écran :
+       · en haut, l'écran de la machine, bandeau jaune compris ;
+       · en bas, un clavier pensé pour le pouce : une rangée d'outils
+         (lettres, rappel, flèches, effacer, EXE), une rangée d'onglets
+         qui change les huit touches de gauche, et le pavé numérique
+         toujours au même endroit ;
+       · le champ garde son curseur mais n'appelle plus le clavier du
+         téléphone (inputmode="none") ; la touche ⌨ le rend quand on en
+         a besoin, et Python l'a d'office.
+     Les fonctions à plusieurs arguments s'insèrent avec leurs cases □ :
+     la flèche → passe à la case suivante, comme on remplit un gabarit.
+     L'appareil de bureau n'est pas touché : c'est une seconde
+     disposition, pas une réécriture. */
+  const TEL_REQ = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+  const CASE = "□";
+  const I_HISTO = ICO('<path d="M3.6 12a8.4 8.4 0 1 0 2.5-6"/><path d="M3.4 4.2v4.4h4.4"/>'
+                    + '<path d="M12 7.6V12l3 2"/>');
+  const I_FG = ICO('<path d="M14.5 5.5 8 12l6.5 6.5"/>');
+  const I_FD = ICO('<path d="M9.5 5.5 16 12l-6.5 6.5"/>');
+  const I_ENTREE = ICO('<path d="M19.5 5v6.5a2 2 0 0 1-2 2H5.5"/><path d="m9.5 9.5-4 4 4 4"/>');
+  const I_CLAVIER = ICO('<rect x="2.8" y="6" width="18.4" height="12" rx="2"/>'
+                      + '<path d="M6.4 9.6h.01M10.1 9.6h.01M13.9 9.6h.01M17.6 9.6h.01M7.6 14.4h8.8"/>');
+  const I_REGL = ICO('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6'
+    + 'M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/>');
+
+  /* Les huit touches de gauche, par onglet. Un onglet porte deux lignes
+     d'étiquette, pour qu'on lise ce qu'il contient avant de l'ouvrir. */
+  const TEL_CATS = [
+    { id: "base", l1: "+ −", l2: "× ÷", nom: "Opérations", t: [
+      { i: "(", t: "(" }, { i: ")", t: ")" }, { i: "^2", t: "x²" }, { i: "√(", t: "√" },
+      { i: "^", t: "xʸ" }, { i: "x", t: "x" }, { i: "π", t: "π" }, { i: "ans", t: "ans" }] },
+    { id: "fx", l1: "f(x) e", l2: "log ln", nom: "Exponentielles et logarithmes", t: [
+      { i: "exp(", t: "eˣ" }, { i: "ln(", t: "ln" }, { i: "10^", t: "10ˣ" }, { i: "log(", t: "log" },
+      { i: "e", t: "e" }, { i: "abs(", t: "|x|" }, { i: "!", t: "n!" }, { i: ";", t: ";" }] },
+    { id: "trigo", l1: "sin cos", l2: "tan", nom: "Trigonométrie", t: [
+      { i: "sin(", t: "sin" }, { i: "cos(", t: "cos" }, { i: "tan(", t: "tan" }, { i: "π", t: "π" },
+      { i: "arcsin(", t: "sin⁻¹" }, { i: "arccos(", t: "cos⁻¹" }, { i: "arctan(", t: "tan⁻¹" },
+      { i: "^2", t: "x²" }] },
+    { id: "analyse", l1: "∫ Σ", l2: "d/dx", nom: "Intégrales, dérivées, sommes", t: [
+      { i: "integrale(□;x;□;□)", t: "∫", s: "integrale(" },
+      { i: "derivee(□;x;□)", t: "d/dx", s: "derivee(" },
+      { i: "somme(□;k;□;□)", t: "Σ", s: "somme(" },
+      { i: "produit(□;k;□;□)", t: "Π", s: "produit(" },
+      { i: "x", t: "x" }, { i: "k", t: "k" }, { i: ";", t: ";" }, { i: "∞", t: "∞" }] },
+    { id: "lois", l1: "P(X)", l2: "x̄  σ", nom: "Probabilités et statistiques", t: [
+      { i: "binomialePdf(□;□;□)", t: "B(=)", s: "binomialePdf(" },
+      { i: "binomialeCdf(□;□;□)", t: "B(≤)", s: "binomialeCdf(" },
+      { i: "normaleCdf(□;□;□;□)", t: "N(≤)", s: "normaleCdf(" },
+      { i: "invNormale(□;□;□)", t: "N⁻¹", s: "invNormale(" },
+      { i: "moyenne(", t: "x̄" }, { i: "ecartType(", t: "σ" },
+      { i: "combinaison(□;□)", t: "(n k)", s: "combinaison(" }, { i: ";", t: ";" }] },
+  ];
+  /* Le pavé : il ne bouge JAMAIS d'un onglet à l'autre. C'est ce qui fait
+     qu'on tape un nombre sans regarder. */
+  const TEL_PAVE = [
+    [{ i: "7" }, { i: "8" }, { i: "9" }, { i: "/", t: "÷", op: 1 }],
+    [{ i: "4" }, { i: "5" }, { i: "6" }, { i: "*", t: "×", op: 1 }],
+    [{ i: "1" }, { i: "2" }, { i: "3" }, { i: "-", t: "−", op: 1 }],
+    [{ i: "0" }, { i: "." }, { i: "E", t: "×10ˣ", aide: "Puissance de dix : 2E3 vaut 2000" },
+     { i: "+", t: "+", op: 1 }],
+  ];
+  const TEL_LETTRES = ["azertyuiop", "qsdfghjklm", "wxcvbn"];
+
+  function telInstaller() {
+    /* Le bandeau reçoit trois boutons, invisibles hors téléphone : la
+       maison à gauche, comme la touche de la machine ; les réglages et
+       Fermer à droite. */
+    const bandeau = $(".nw-bandeau", ecran);
+    if (bandeau && !$(".nw-tel-b", bandeau)) {
+      const b = (cls, html, aide) => {
+        const x = document.createElement("button");
+        x.type = "button"; x.className = "nw-tel-b " + cls; x.innerHTML = html;
+        x.setAttribute("aria-label", aide); x.title = aide;
+        return x;
+      };
+      bandeau.prepend(b("nw-tel-maison", I_MAISON, "Toutes les applications"));
+      bandeau.append(b("nw-tel-regl", I_REGL, "Paramètres"),
+                     b("nw-tel-fermer", "Fermer", "Fermer la calculatrice"));
+      $(".nw-tel-maison", bandeau).addEventListener("click", () => aller("accueil"));
+      $(".nw-tel-regl", bandeau).addEventListener("click", () => aller("reglages"));
+      $(".nw-tel-fermer", bandeau).addEventListener("click", () => telOuvrir(false));
+    }
+    /* Fermée, la calculatrice laisse la place à une carte qui la rouvre :
+       la page garde son mode d'emploi et son catalogue, lisibles. */
+    if (!$(".nw-tel-lanceur", section)) {
+      const l = document.createElement("div");
+      l.className = "nw-tel-lanceur";
+      l.innerHTML = '<button type="button" class="nw-tel-ouvrir">'
+        + '<span class="nw-tel-ouvrir-ic" aria-hidden="true">' + APP_ICO.calculs + '</span>'
+        + '<span><b>Ouvrir la calculatrice</b><i>Plein écran, clavier en bas</i></span></button>';
+      section.prepend(l);
+      $(".nw-tel-ouvrir", l).addEventListener("click", () => telOuvrir(true));
+    }
+  }
+
+  let telPousse = false;           // une entrée d'historique posée pour la feuille
+  function telOuvrir(ouvrir, depuisHistorique) {
+    if (!tel) return;
+    const deja = section.classList.contains("nw-ouverte");
+    if (ouvrir === deja) return;
+    section.classList.toggle("nw-ouverte", ouvrir);
+    document.documentElement.classList.toggle("nw-app-ouverte", ouvrir);
+    if (ouvrir) {
+      if (courante === "accueil") aller("calculs");
+      telViewport();
+      /* Le bouton « retour » d'Android ferme la calculatrice au lieu de
+         quitter la page : une entrée d'historique la représente. */
+      if (!depuisHistorique && history.pushState) {
+        try { history.pushState({ nwCalc: 1 }, ""); telPousse = true; } catch (e) {}
+      }
+    } else {
+      if (!depuisHistorique && telPousse) { telPousse = false; try { history.back(); } catch (e) {} }
+      telPousse = false;
+      ouvrirBoite(false);
+      const a = document.activeElement;
+      if (a && section.contains(a) && a.blur) a.blur();
+    }
+  }
+  window.addEventListener("popstate", () => {
+    if (section.classList.contains("nw-ouverte")) { telPousse = false; telOuvrir(false, true); }
+  });
+
+  /* Le clavier du téléphone, quand il monte, réduit la partie visible de
+     la page sans réduire la fenêtre : la feuille suit donc la partie
+     VISIBLE, sinon la rangée d'outils finirait cachée dessous. */
+  function telViewport() {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    section.style.setProperty("--nw-vh", Math.round(vv.height) + "px");
+    section.style.setProperty("--nw-vtop", Math.round(vv.offsetTop) + "px");
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => { if (tel) telViewport(); });
+    window.visualViewport.addEventListener("scroll", () => { if (tel) telViewport(); });
+  }
+
+  function telSurApp(cle) {
+    telAbc = false; telMajL = false;
+    telSysteme = cle === "python";
+  }
+
+  /* inputmode="none" : le curseur reste, le clavier du téléphone ne monte
+     pas. La valeur d'origine (« decimal » sur les paramètres des lois) est
+     gardée, et rendue dès qu'on repasse au clavier du téléphone. */
+  function telSaisie() {
+    $$("input, textarea", page).forEach((c) => {
+      const ty = (c.getAttribute("type") || "text").toLowerCase();
+      if (["radio", "checkbox", "range", "color", "file", "button"].indexOf(ty) >= 0) return;
+      if (c.dataset.imOrig === undefined) c.dataset.imOrig = c.getAttribute("inputmode") || "";
+      if (tel && !telSysteme) c.setAttribute("inputmode", "none");
+      /* « votre calcul, puis Entrée » ne tient pas sur un téléphone, et
+         il n'y a pas de touche Entrée : c'est EXE, en bas. */
+      if (c.id === "nw-calc") c.placeholder = tel ? "Votre calcul" : "votre calcul, puis Entrée";
+      else if (c.dataset.imOrig) c.setAttribute("inputmode", c.dataset.imOrig);
+      else c.removeAttribute("inputmode");
+    });
+  }
+
+  let telSig = "";
+  function dessinerClavierTel() {
+    const cl = $("#nw-clavier");
+    section.dataset.app = courante;        // l'accueil se passe de clavier (CSS)
+    const sig = [telCat, telAbc, telMajL, telSysteme, courante,
+                 courante === "calculs" && ETAT.historique.length > 0].join("|");
+    telSaisie();
+    if (sig === telSig && cl.firstChild && cl.dataset.tel === "1") return;
+    telSig = sig;
+    cl.dataset.tel = "1";
+    cl.dataset.mod = "";
+    const k = (o) => {
+      const t = o.t !== undefined ? o.t : o.i;
+      return '<button type="button" class="nw-tk' + (o.cls ? " " + o.cls : "") + '"'
+        + (o.i !== undefined ? ' data-tins="' + ech(o.i) + '"' : "")
+        + (o.s ? ' data-tsyn="' + ech(o.s) + '"' : "")
+        + (o.a ? ' data-tact="' + o.a + '"' : "")
+        + (o.rep ? ' data-rep="1"' : "")
+        + (o.aide || o.svg ? ' aria-label="' + ech(o.aide || t) + '" title="' + ech(o.aide || t) + '"' : "")
+        + (o.presse !== undefined ? ' aria-pressed="' + o.presse + '"' : "")
+        + '>' + (o.svg || ech(t)) + '</button>';
+    };
+    const rappelPossible = courante === "calculs" && ETAT.historique.length > 0;
+    const outils = '<div class="nw-tk-outils">'
+      + (telSysteme
+        ? k({ a: "calc", svg: '<span class="nw-tk-mot">123</span>', aide: "Revenir au clavier de la calculatrice", cls: "nw-tk-o" })
+        : k({ a: "abc", svg: '<span class="nw-tk-mot">' + (telAbc ? "123" : "abc") + '</span>',
+              aide: telAbc ? "Revenir aux chiffres" : "Les lettres", cls: "nw-tk-o", presse: telAbc }))
+      + k({ a: "rappel", svg: I_HISTO, cls: "nw-tk-o" + (rappelPossible ? "" : " nw-tk-off"),
+            aide: "Rappeler le calcul précédent" })
+      + k({ a: "gauche", svg: I_FG, aide: "Curseur à gauche", cls: "nw-tk-o", rep: 1 })
+      + k({ a: "droite", svg: I_FD, aide: "Curseur à droite, ou case suivante", cls: "nw-tk-o", rep: 1 })
+      + k({ a: "eff", svg: I_EFF, aide: "Effacer", cls: "nw-tk-o", rep: 1 })
+      + k({ a: "exe", svg: '<span class="nw-tk-mot">EXE</span>' + I_ENTREE,
+            aide: courante === "python" ? "Exécuter" : "Valider", cls: "nw-tk-exe" })
+      + '</div>';
+    if (telSysteme) { cl.innerHTML = outils; return; }
+    if (telAbc) {
+      const lig = (s) => s.split("").map((c) => {
+        const t = telMajL ? c.toUpperCase() : c;
+        return k({ i: t, t: t, cls: "nw-tk-l" });
+      }).join("");
+      cl.innerHTML = outils + '<div class="nw-tk-lettres">'
+        + lig(TEL_LETTRES[0]) + lig(TEL_LETTRES[1])
+        + k({ a: "majl", t: "⇧", aide: "Majuscules : A à Z sont les mémoires", cls: "nw-tk-l nw-tk-maj", presse: telMajL })
+        + lig(TEL_LETTRES[2])
+        + k({ i: "→", t: "→", aide: "Ranger dans une mémoire : 5→A", cls: "nw-tk-l" })
+        + k({ i: "[", t: "[", cls: "nw-tk-l" }) + k({ i: "]", t: "]", cls: "nw-tk-l" })
+        + k({ i: ",", t: ",", cls: "nw-tk-l" }) + k({ i: ";", t: ";", cls: "nw-tk-l" })
+        + k({ i: "=", t: "=", cls: "nw-tk-l" }) + k({ i: "<", t: "<", cls: "nw-tk-l" })
+        + k({ i: ">", t: ">", cls: "nw-tk-l" })
+        + k({ i: " ", t: "espace", aide: "Espace", cls: "nw-tk-l nw-tk-espace" })
+        + k({ a: "systeme", svg: I_CLAVIER, aide: "Clavier du téléphone", cls: "nw-tk-l nw-tk-sys" })
+        + '</div>';
+      return;
+    }
+    const cat = TEL_CATS.find((c) => c.id === telCat) || TEL_CATS[0];
+    const onglets = '<div class="nw-tk-cats" role="tablist" aria-label="Familles de touches">'
+      + TEL_CATS.map((c) => '<button type="button" class="nw-tk-cat" role="tab" data-tcat="' + c.id
+        + '" aria-selected="' + (c.id === cat.id) + '" aria-label="' + ech(c.nom) + '" title="' + ech(c.nom) + '">'
+        + '<span>' + ech(c.l1) + '</span><span>' + ech(c.l2) + '</span></button>').join("")
+      + '<button type="button" class="nw-tk-cat nw-tk-tout" data-tact="boite" '
+      + 'aria-label="Toutes les fonctions" title="Toutes les fonctions">' + I_BOITE + '<span>Tout</span></button>'
+      + '</div>';
+    let grille = "";
+    for (let r = 0; r < 4; r++) {
+      grille += k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r]))
+              + k(Object.assign({ cls: "nw-tk-f" }, cat.t[2 * r + 1]));
+      grille += TEL_PAVE[r].map((o) => k(Object.assign({}, o,
+        { cls: o.op ? "nw-tk-op" : (o.i === "E" ? "nw-tk-f nw-tk-pt" : "nw-tk-c") }))).join("");
+    }
+    cl.innerHTML = outils + onglets + '<div class="nw-tk-grille">' + grille + '</div>';
+  }
+
+  /* Insérer depuis le clavier du téléphone. Trois gestes de plus que
+     « inserer » :
+       · une fonction s'écrit avec SA parenthèse fermante, le curseur
+         entre les deux ;
+       · « ) » devant une « ) » déjà écrite passe par-dessus au lieu d'en
+         ajouter une ;
+       · un gabarit à cases sélectionne sa première case □, et dit sa
+         syntaxe dans la ligne d'état. */
+  function telInserer(txt, syn) {
+    const c = champActif();
+    const texte = c && (c.tagName === "INPUT" || c.tagName === "TEXTAREA");
+    if (texte && txt === ")" && c.selectionStart === c.selectionEnd
+        && c.value.charAt(c.selectionStart) === ")") {
+      c.focus(); c.setSelectionRange(c.selectionStart + 1, c.selectionStart + 1); return;
+    }
+    if (texte && c.selectionStart !== null && c.value.charAt(c.selectionStart) === CASE
+        && c.selectionEnd === c.selectionStart) {
+      // le curseur est posé juste devant une case : la frappe la remplace
+      c.setSelectionRange(c.selectionStart, c.selectionStart + 1);
+    }
+    const d = texte && c.selectionStart !== null ? c.selectionStart : null;
+    if (txt.indexOf(CASE) >= 0) {
+      inserer(txt);
+      if (texte && d !== null) {
+        const p = c.value.indexOf(CASE, d);
+        if (p >= 0) { try { c.setSelectionRange(p, p + 1); } catch (e) {} }
+      }
+    } else if (texte && /[a-zA-Z√]\($/.test(txt) && c.type !== "number") {
+      inserer(txt + ")");
+      try { const p = c.selectionStart - 1; c.setSelectionRange(p, p); } catch (e) {}
+    } else {
+      inserer(txt);
+    }
+    const cherche = syn || txt;
+    const cat = (typeof CALC_CATALOGUE === "object" && CALC_CATALOGUE.categories) || [];
+    for (const g of cat) for (const e of g.entrees) {
+      if (e.insere === cherche || (syn && e.insere.indexOf(syn) === 0)) {
+        dire(e.syntaxe + " · " + e.nom + (txt.indexOf(CASE) >= 0 ? ". La flèche → passe à la case suivante." : ""), "");
+        return;
+      }
+    }
+  }
+
+  function telDeplacer(sens) {
+    const c = champActif();
+    const champ = c && (c.tagName === "INPUT" || c.tagName === "TEXTAREA") && c.selectionStart !== null;
+    if (!champ || courante === "accueil"
+        || (courante === "fonctions" && ETAT.onglets.fonctions === "graphique")) {
+      fleche(sens > 0 ? "droite" : "gauche", false); return;
+    }
+    c.focus();
+    if (sens > 0) {
+      const p = c.value.indexOf(CASE, c.selectionEnd);
+      if (p >= 0) { c.setSelectionRange(p, p + 1); return; }
+      const q = Math.min(c.value.length, c.selectionStart === c.selectionEnd ? c.selectionEnd + 1 : c.selectionEnd);
+      c.setSelectionRange(q, q);
+    } else {
+      const q = Math.max(0, c.selectionStart === c.selectionEnd ? c.selectionStart - 1 : c.selectionStart);
+      c.setSelectionRange(q, q);
+    }
+  }
+
+  function telRappel() {
+    if (courante !== "calculs" || !ETAT.historique.length) return;
+    const c = $("#nw-calc");
+    if (!c) return;
+    rappel = rappel < 0 ? ETAT.historique.length - 1 : (rappel - 1 + ETAT.historique.length) % ETAT.historique.length;
+    c.value = ETAT.historique[rappel].entree;
+    c.focus();
+    try { c.setSelectionRange(c.value.length, c.value.length); } catch (e) {}
+    dire("Calcul rappelé : touchez encore ↺ pour remonter plus loin.", "e-ok");
+  }
+
+  function telAction(a) {
+    switch (a) {
+      case "abc": telAbc = !telAbc; telMajL = false; break;
+      case "majl": telMajL = !telMajL; break;
+      case "calc": telSysteme = false; telAbc = false; break;
+      case "systeme": {
+        telSysteme = true; telAbc = false;
+        dessinerClavierTel();
+        const c = champActif();
+        if (c) { try { c.blur(); c.focus(); } catch (e) {} }
+        return;
+      }
+      case "rappel": telRappel(); return;
+      case "gauche": telDeplacer(-1); return;
+      case "droite": telDeplacer(1); return;
+      case "eff": effacer(); return;
+      case "boite": ouvrirBoite(boite.hidden); return;
+      case "exe": action("exe"); return;
+      default: return;
+    }
+    dessinerClavierTel();
+  }
+
+  /* Les touches qui se répètent (⌫, ←, →) agissent dès l'appui, puis
+     toutes les 70 ms au bout de 400 ms ; le « click » qui suit l'appui
+     ne doit donc pas agir une seconde fois. Le clavier physique (Entrée,
+     Espace sur une touche qui a le focus) n'envoie qu'un « click » : il
+     agit une fois, normalement. */
+  let telMinuteur = null, telDelai = null, telAppuye = null;
+  const telStop = () => { clearTimeout(telDelai); clearInterval(telMinuteur); telDelai = telMinuteur = null; };
+  clavier.addEventListener("pointerdown", (e) => {
+    const t = e.target.closest(".nw-tk, .nw-tk-cat");
+    if (!t) return;
+    e.preventDefault();                       // le champ garde son focus et son curseur
+    if (!t.dataset.rep) return;
+    telAppuye = t;
+    telAction(t.dataset.tact);
+    telStop();
+    telDelai = setTimeout(() => {
+      telMinuteur = setInterval(() => telAction(t.dataset.tact), 70);
+    }, 400);
+  });
+  ["pointerup", "pointercancel"].forEach((n) => document.addEventListener(n, telStop));
+  clavier.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".nw-tk, .nw-tk-cat")) e.preventDefault();
+  });
+  clavier.addEventListener("click", (e) => {
+    const cat = e.target.closest("[data-tcat]");
+    if (cat) {
+      telCat = cat.dataset.tcat; dessinerClavierTel();
+      const n = $('[data-tcat="' + telCat + '"]', clavier);
+      if (n && n.scrollIntoView) n.scrollIntoView({ block: "nearest", inline: "nearest" });
+      return;
+    }
+    const t = e.target.closest(".nw-tk, .nw-tk-tout");
+    if (!t) return;
+    if (t.dataset.rep && telAppuye === t) { telAppuye = null; return; }
+    if (t.dataset.tact) { telAction(t.dataset.tact); return; }
+    if (t.dataset.tins === undefined) return;
+    telInserer(t.dataset.tins, t.dataset.tsyn);
+    if (telMajL) { telMajL = false; dessinerClavierTel(); }
+  });
+
+  function telBasculer() {
+    const veut = !!(TEL_REQ && TEL_REQ.matches);
+    if (veut === tel) return;
+    tel = veut;
+    section.classList.toggle("nw-tel", tel);
+    const corps = $(".nw-corps", section), barre = $(".nw-barre", section);
+    if (tel) {
+      telInstaller();
+      // la ligne d'état passe entre l'écran et le clavier, sous les yeux
+      corps.insertBefore(etat, $("#nw-clavier"));
+      telSurApp(courante);
+    } else {
+      telOuvrir(false);
+      barre.appendChild(etat);
+      section.classList.remove("nw-ouverte");
+      document.documentElement.classList.remove("nw-app-ouverte");
+    }
+    telSig = "";
+    const cl = $("#nw-clavier");
+    cl.dataset.tel = tel ? "1" : "";
+    dessinerClavier();
+  }
+  if (TEL_REQ) {
+    if (TEL_REQ.addEventListener) TEL_REQ.addEventListener("change", telBasculer);
+    else if (TEL_REQ.addListener) TEL_REQ.addListener(telBasculer);
+  }
+
+
   /* ── le départ ───────────────────────────────────────────────────── */
+  telBasculer();
   dessinerClavier();
   aller("accueil");
   dire("");
+  /* Sur téléphone, on arrive dans la calculatrice, pas sur sa notice :
+     sauf si le lien visait le catalogue, qu'on vient alors lire. */
+  if (tel && !/catalogue/.test(location.hash)) telOuvrir(true);
 
   /* Le diagnostic, pour le banc de rendu et pour la console : il dit ce
      que la page sait d'elle-même. Sans point d'entrée mesurable, un
