@@ -1863,6 +1863,39 @@
     jauge();
   }
 
+  /* ──────────────────────────────────────────── les contrôles blancs faits
+     Demandé : plusieurs contrôles blancs, et savoir lesquels on a déjà
+     faits. Le bouton du bas d'un sujet le marque ; partout où ce sujet est
+     proposé (la carte du devoir, les numéros en tête du sujet, la page
+     d'exercices du chapitre), l'élément qui porte le même « data-blanc »
+     prend la classe « est-fait » et montre sa pastille. La mémoire est
+     celle des réglages (S), comme les chapitres révisés : propre à ce
+     navigateur, et rien ne casse si elle est vide. */
+  function blancsFaits() {
+    var faits = S.blancs || (S.blancs = []);
+    function peindre() {
+      document.querySelectorAll("[data-blanc]").forEach(function (el) {
+        var on = faits.indexOf(el.dataset.blanc) !== -1;
+        el.classList.toggle("est-fait", on);
+        var p = el.querySelector(".blanc-fait");
+        if (p) p.hidden = !on;
+        if (el.classList.contains("blanc-fini")) {
+          el.setAttribute("aria-pressed", String(on));
+          el.textContent = on ? "Fait ✓ · annuler" : "Marquer ce contrôle blanc comme fait";
+        }
+      });
+    }
+    document.querySelectorAll(".blanc-fini").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = faits.indexOf(b.dataset.blanc);
+        if (i === -1) { faits.push(b.dataset.blanc); toast("Contrôle blanc fait ✓"); }
+        else faits.splice(i, 1);
+        enregistrer(); peindre();
+      });
+    });
+    peindre();
+  }
+
   /* ─────────────────────────────── réponses des exercices, en un geste
      Sur une page de vingt quiz, ouvrir chaque réponse à la main quand on
      relit sa correction est fastidieux. Ce réglage les déplie toutes.
@@ -2024,8 +2057,15 @@
   function apparitions() {
     if (!S.anim || !("IntersectionObserver" in window)) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    var cibles = document.querySelectorAll(".carte-matiere, .chapitre");
-    if (!cibles.length || cibles.length > 120) return;
+    /* Au téléphone, les cartes de l'accueil s'y ajoutent : catégories,
+       cours du jour, devoirs, chapitres des rangées qu'on fait glisser
+       (demandé le 9 nov. 2026 : un site plus vivant au téléphone). Elles
+       n'existent que dans la coquille, posée juste avant. */
+    var tel = document.documentElement.classList.contains("coquille")
+      && window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
+    var cibles = document.querySelectorAll(".carte-matiere, .chapitre"
+      + (tel ? ", .tel-cat, .tel-carte, .tel-carte-ch" : ""));
+    if (!cibles.length || cibles.length > 160) return;
     var obs = new IntersectionObserver(function (entrees) {
       entrees.forEach(function (x) {
         if (!x.isIntersecting) return;
@@ -2037,6 +2077,16 @@
       c.classList.add("apparait");
       c.style.setProperty("--retard", Math.min(i, 8) * 45 + "ms");
       obs.observe(c);
+      /* L'entrée finie, on rend la carte à elle-même. L'animation garde son
+         état final (« both »), et un état d'animation l'emporte sur toute
+         règle : le « transform » de l'enfoncement au toucher (« :active »)
+         ne s'appliquait plus jamais aux cartes entrées en fondu. */
+      c.addEventListener("animationend", function fin(e) {
+        if (e.target !== c) return;
+        c.classList.remove("apparait", "vu");
+        c.style.removeProperty("--retard");
+        c.removeEventListener("animationend", fin);
+      });
     });
   }
 
@@ -2397,6 +2447,7 @@
     poserHeure();
     brancherRecherche();
     progression();
+    blancsFaits();
     reponses();
     memoriser();
     proposerReprise();

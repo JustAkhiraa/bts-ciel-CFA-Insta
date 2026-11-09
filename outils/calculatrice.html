@@ -9,8 +9,8 @@
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../assets/logo-classe.jpg">
 <link rel="apple-touch-icon" sizes="180x180" href="../assets/icone-180.png">
-<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script>
-<link rel="stylesheet" href="../assets/fiche.css?v=07ac1e6b">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../assets/fiche.css?v=16a7fc5c">
 </head>
 <body data-matiere="maths">
 
@@ -75,34 +75,41 @@
             en bas de cette page : il se lit, se cherche et s'imprime sans rien
             exécuter.</p>
         </div>
+        <!-- La boîte à outils s'ouvre SUR l'écran, sous le bandeau, comme sur
+             la machine (demandé le 9 nov. 2026) : elle était posée sous
+             l'appareil, loin de la ligne où elle écrit. -->
+        <div class="nw-boite" id="nw-boite" hidden>
+          <div class="nw-boite-tete">
+            <h3>Boîte à outils</h3>
+            <button type="button" id="nw-boite-fermer" aria-label="Fermer la boîte à outils">✕</button>
+          </div>
+          <div class="nw-boite-cherche">
+            <input type="search" id="nw-boite-filtre" placeholder="chercher : matrice, loi, pgcd…"
+                   autocomplete="off" spellcheck="false" aria-label="Chercher une fonction">
+          </div>
+          <div class="nw-boite-liste" id="nw-boite-liste" role="listbox"
+               aria-label="Fonctions à insérer"></div>
+        </div>
       </div>
       <div class="nw-clavier" id="nw-clavier">
       </div>
     </div>
 
-    <div class="nw-boite" id="nw-boite" hidden>
-      <div class="nw-boite-tete">
-        <h3>Boîte à outils</h3>
-        <input type="search" id="nw-boite-filtre" placeholder="filtrer : loi, intégrale, pgcd…"
-               autocomplete="off" spellcheck="false" aria-label="Filtrer les fonctions">
-        <button type="button" id="nw-boite-fermer" aria-label="Fermer la boîte à outils">✕</button>
-      </div>
-      <div class="nw-boite-liste" id="nw-boite-liste" role="listbox"
-           aria-label="Fonctions à insérer"></div>
-    </div>
 
     <p class="nw-aide-clavier">Le <b>clavier de votre ordinateur fonctionne partout</b> :
       tapez votre calcul et validez par <kbd>Entrée</kbd>. Le clavier dessiné est là pour
       retrouver une touche : <kbd>Maj</kbd> allume les fonctions inverses écrites en petit,
       <kbd>alpha</kbd> les lettres de mémoire. <kbd>F1</kbd> ouvre la boîte à outils,
       <kbd>↑</kbd> rappelle le calcul précédent.
-      <br><b>Les puissances s'écrivent en petit, pendant que vous tapez</b> :
-      <code>^</code> puis les chiffres, et <code>e^1</code> devient <code>e¹</code>,
-      <code>2^10</code> devient <code>2¹⁰</code>, <code>2^-3</code> devient
-      <code>2⁻³</code>. Tout ce qui n'est pas un chiffre sort de la puissance, donc
-      <code>2^10+3</code> s'écrit seul. Un exposant qui n'est pas un nombre, 
-      <code>x^(n+1)</code>, garde son accent circonflexe : une parenthèse ne
-      s'écrit pas en petit.</p>
+      <br><b>Dans Calculs, une puissance s'ouvre en petit</b>, comme sur la machine :
+      tapez <code>^</code>, écrivez l'exposant, <code>1+1</code> compris, puis
+      <kbd>→</kbd> pour redescendre. « e puissance 1+1, plus 1 » se tape donc
+      <kbd>e</kbd> <kbd>^</kbd> <kbd>1</kbd> <kbd>+</kbd> <kbd>1</kbd> <kbd>→</kbd>
+      <kbd>+</kbd> <kbd>1</kbd>. <code>e^(1+1)</code> tapé avec ses parenthèses
+      marche aussi.
+      <br>Dans les autres applications, <code>^</code> puis les chiffres s'écrivent en
+      petit (<code>e^1</code> devient <code>e¹</code>), et un exposant plus long
+      s'écrit entre parenthèses : <code>x^(n+1)</code>.</p>
 
     <details class="nw-notice">
       <summary>Ce que cette calculatrice est, et ce qu'elle n'est pas</summary>
@@ -256,11 +263,11 @@
         </table></div>
       </div>
       <div class="nw-cat-groupe">
-        <h4 id="nw-cat-matrices">Matrices</h4>
+        <h4 id="nw-cat-matrices">Matrices et vecteurs</h4>
         <div class="tableau"><table class="nw-cat-table">
           <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
           <tbody>
-          <tr><th scope="row">Saisir une matrice</th><td><code>[[a;b];[c;d]]</code></td><td class="ex"><code>[[1;2];[3;4]]</code></td><td>Ligne par ligne, entre crochets, termes séparés par « ; ». Un décimal s'écrit avec un point : -1.5. « [[1;2];[3;4]]→A » la range dans A. <a class="nw-chapitre" href="../03-mathematiques/14-calcul-matriciel/cours.html">Calcul matriciel</a></td></tr>
+          <tr><th scope="row">Nouvelle matrice ou vecteur</th><td><code>[[1;2];[3;4]]</code></td><td class="ex"><code>[[1;2];[3;4]]</code></td><td>Une matrice à remplir case par case, comme sur la machine. → passe à la case suivante et ajoute une colonne, ↓ ajoute une ligne ; une colonne ou une ligne laissée vide disparaît. Puis « →A » la range dans A. <a class="nw-chapitre" href="../03-mathematiques/14-calcul-matriciel/cours.html">Calcul matriciel</a></td></tr>
           <tr><th scope="row">Produit de matrices</th><td><code>A×B</code></td><td class="ex"><code>[[1;2];[3;4]]×[[0;1];[1;0]]</code></td><td>Possible si la première a autant de colonnes que la seconde a de lignes. L'ordre compte : A×B n'est pas B×A. <a class="nw-chapitre" href="../03-mathematiques/14-calcul-matriciel/cours.html">Calcul matriciel</a></td></tr>
           <tr><th scope="row">Matrice inverse</th><td><code>inverse(A)</code></td><td class="ex"><code>inverse([[2;-1.5];[-1;1]])</code></td><td>En fractions exactes quand les termes sont rationnels. « A^-1 » fait la même chose. Refuse une matrice de déterminant nul. <a class="nw-chapitre" href="../03-mathematiques/14-calcul-matriciel/cours.html">Calcul matriciel</a></td></tr>
           <tr><th scope="row">Déterminant</th><td><code>det(A)</code></td><td class="ex"><code>det([[1;2];[3;4]])</code></td><td>Matrice carrée seulement. Nul : la matrice n'a pas d'inverse. <a class="nw-chapitre" href="../03-mathematiques/14-calcul-matriciel/cours.html">Calcul matriciel</a></td></tr>
@@ -362,7 +369,7 @@
           <thead><tr><th scope="col">Fonction</th><th scope="col">Syntaxe</th><th scope="col">Exemple</th><th scope="col">Ce qu'elle fait</th></tr></thead>
           <tbody>
           <tr><th scope="row">Ranger en mémoire</th><td><code>valeur→A</code></td><td class="ex"><code>5→A</code></td><td>Range le résultat dans une lettre, de A à Z. On la réutilise ensuite comme un nombre.</td></tr>
-          <tr><th scope="row">Résultat précédent</th><td><code>ans</code></td><td class="ex"><code>ans</code></td><td>Le dernier résultat calculé. Un calcul qui commence par un opérateur le sous-entend.</td></tr>
+          <tr><th scope="row">Résultat précédent</th><td><code>ans</code></td><td class="ex"><code>ans</code></td><td>Le dernier résultat calculé. Un calcul qui commence par +, ×, ÷ ou ^ le sous-entend ; un moins en tête donne un nombre négatif.</td></tr>
           <tr><th scope="row">Vos fonctions et suites</th><td><code>f(x) · u(n)</code></td><td class="ex"><code>2+2</code></td><td>Une fonction définie dans l'application Fonctions, ou une suite de l'application Suites, s'appelle ici par son nom.</td></tr>
           </tbody>
         </table></div>
@@ -418,13 +425,13 @@
    pas le DOM et se mesure donc avec node, « calculatrice.js » est
    l'appareil et ne contient aucune formule. */
 </script>
-<script src="calculatrice/catalogue.js?v=dbc3d9d8"></script>
+<script src="calculatrice/catalogue.js?v=d214ff45"></script>
 <script src="calculatrice/elements.js?v=17be2dd8"></script>
 <script src="calculatrice/python-mini.js?v=8817dc1b"></script>
 <script src="calculatrice/moteur.js?v=691ae990"></script>
-<script src="calculatrice/calculatrice.js?v=1d7a7e6f"></script>
+<script src="calculatrice/calculatrice.js?v=d9695143"></script>
 
-<script src="../assets/fiche.js?v=07ac1e6b"></script>
+<script src="../assets/fiche.js?v=16a7fc5c"></script>
 
 <footer class="app-pied">
   <p>Fiches de révision d'un étudiant de BTS CIEL, mises au propre et vérifiées.<br>
@@ -437,7 +444,7 @@
   </p>
 </footer>
 
-<script src="../assets/app.js?v=07ac1e6b"></script>
+<script src="../assets/app.js?v=16a7fc5c"></script>
 <script>if("serviceWorker" in navigator){addEventListener("load",function(){
   navigator.serviceWorker.register("../sw.js").catch(function(){});});}</script>
 </body>

@@ -6987,9 +6987,113 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
 .rv-res p { margin: 0; }
 .rv-res p + p { margin-top: .35rem; }
 /* Un petit calcul ne se coupe pas en deux : « 3×2 + 1 = » d'un côté et
-   « 7 ✓ » de l'autre, le résultat se lit mal. Ils sont tous courts. */
-.dev-revisions .quiz p code, .dev-revisions .quiz li code,
+   « 7 ✓ » de l'autre, le résultat se lit mal. Seulement dans les exercices
+   au format des matrices (« .rv-lbl »), où ils sont tous courts. Posée aussi
+   sur « .dev-revisions », la règle rendait insécables les dérivées du
+   contrôle d'octobre, longues de 60 caractères : la page des devoirs
+   s'élargissait à 680 px sur un téléphone de 375 (mesuré le 9 nov.). */
 .quiz:has(.rv-lbl) p code, .quiz:has(.rv-lbl) li code { white-space: nowrap; }
+
+/* ═════════════════════ les contrôles blancs ═════════════════════════════
+   Demandé le 9 nov. 2026 : le premier contrôle blanc était fait, il en
+   fallait d'autres, et une interface pour choisir. Une tuile par sujet, son
+   numéro en grand, et ce qu'un sujet d'épreuve dit en tête (exercices,
+   points, durée). La page d'un sujet a sa consigne, son barème, les quatre
+   numéros pour passer de l'un à l'autre, et un bouton « fait » (app.js).
+   Aucune couleur nouvelle : l'encre sur --accent-pale (le conseil du
+   devoir), l'encre sur --vert-pale (la réponse d'un exercice) et
+   --sur-accent sur --accent, trois couples mesurés sur les 41 thèmes. */
+.dev-blancs { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--bord); }
+.dev-blancs h3 {
+  margin: 0 0 .35rem; font-size: .6667rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--encre-douce);
+}
+.dev-blancs-intro { margin: 0 0 .75rem; font-size: .8485rem; line-height: 1.55; color: var(--encre-douce); }
+/* Deux colonnes, pas « auto-fill » : quatre sujets en 3 + 1 laissaient le
+   dernier seul sur sa ligne, comme oublié. Une colonne sur un téléphone. */
+.blancs-grille {
+  display: grid; gap: .55rem; margin: 0 0 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 560px) { .blancs-grille { grid-template-columns: minmax(0, 1fr); } }
+.blanc-tuile {
+  display: flex; align-items: center; gap: .75rem;
+  min-height: 64px; padding: .6rem .75rem;
+  border: 1px solid var(--bord); border-left: 3px solid var(--accent);
+  border-radius: var(--r); background: var(--carte-creuse);
+  color: var(--encre); text-decoration: none;
+  transition: border-color .14s, transform .1s var(--ease, ease);
+}
+.blanc-tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
+.blanc-tuile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blanc-num {
+  flex: none; display: grid; place-items: center;
+  width: 2.4rem; height: 2.4rem; border-radius: 10px;
+  background: var(--accent-pale); color: var(--encre);
+  font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.blanc-tuile.est-fait .blanc-num { background: var(--vert-pale); }
+.blanc-txt { display: flex; flex-direction: column; gap: .08rem; min-width: 0; }
+.blanc-txt b { font-size: .8788rem; font-weight: 700; color: var(--encre); }
+.blanc-sous { font-size: .8182rem; line-height: 1.35; color: var(--encre); }
+.blanc-meta { font-size: .7576rem; color: var(--encre-douce); }
+.blanc-fait {
+  margin-left: auto; align-self: flex-start; flex: none;
+  font-size: .7273rem; font-weight: 700; letter-spacing: .03em;
+  padding: .06rem .5rem; border-radius: 999px;
+  background: var(--vert-pale); color: var(--encre); border: 1px solid var(--vert-bord);
+}
+.blanc-fait[hidden] { display: none; }
+
+/* La page d'un sujet. */
+.blanc-choix { display: flex; flex-wrap: wrap; gap: .45rem; margin: 1rem 0 .2rem; }
+.blanc-choix a {
+  display: grid; place-items: center; min-width: 44px; min-height: 44px;
+  border: 1px solid var(--bord); border-radius: 12px; background: var(--carte);
+  color: var(--encre); font-weight: 750; text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.blanc-choix a:hover { border-color: var(--accent); }
+.blanc-choix a.est-fait { background: var(--vert-pale); border-color: var(--vert-bord); }
+.blanc-choix a[aria-current="page"] { background: var(--accent-pale); border: 2px solid var(--accent); }
+.blanc-consigne {
+  margin: 1rem 0 1.2rem; padding: .85rem 1rem;
+  border: 1px solid var(--bord); border-radius: 14px; background: var(--carte);
+}
+.blanc-consigne > p { margin: .45rem 0; font-size: .9091rem; line-height: 1.6; color: var(--encre); }
+.blanc-consigne > .blanc-meta-tete { display: flex; flex-wrap: wrap; gap: .3rem .4rem; margin-top: 0; }
+.blanc-meta-tete span {
+  font-size: .76rem; color: var(--encre-douce); padding: .1rem .5rem;
+  border: 1px solid var(--bord); border-radius: 999px; background: var(--carte-creuse);
+}
+.blanc-bareme { margin: .6rem 0 0; padding-left: 1.3rem; }
+.blanc-bareme li { margin: .3rem 0; font-size: .8788rem; line-height: 1.5; color: var(--encre); }
+.blanc-pts {
+  margin-left: .4rem; padding: .02rem .42rem; white-space: nowrap;
+  font-size: .74rem; color: var(--encre-douce);
+  border: 1px solid var(--bord); border-radius: 999px;
+}
+.blanc-sujet { margin-top: 0; padding-top: 0; border-top: 0; }
+.blanc-fin { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 1.4rem 0 .6rem; }
+.blanc-fini {
+  min-height: 44px; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .8788rem; font-weight: 700;
+  background: var(--carte); color: var(--encre); border: 1px solid var(--bord-fort);
+}
+.blanc-fini[aria-pressed="true"] { background: var(--vert-pale); border-color: var(--vert-bord); }
+.blanc-suivant {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; padding: .5rem 1rem; border-radius: 999px;
+  background: var(--accent); color: var(--sur-accent);
+  font-size: .8788rem; font-weight: 700; text-decoration: none;
+}
+.blanc-suivant::after { content: "→"; }
+.blanc-retour { margin: .4rem 0 0; font-size: .8485rem; color: var(--encre-douce); }
+
+/* Dans la page d'exercices du chapitre : un titre par sujet, que la grille
+   vise par son ancre ; la marge garde le titre sous la barre collée. */
+.blanc-titre { scroll-margin-top: 4.5rem; }
+.blanc-ligne { margin: .2rem 0 .8rem; font-size: .8788rem; color: var(--encre-douce); }
 
 /* ═════════════════════ le TP de révision ════════════════════════════════
    Demandé : « comme les tp […] ca ameene au complitaeur avec les enoncer ».
@@ -7593,6 +7697,28 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
 }
 @media (max-width: 900px) { .nw-corps { grid-template-columns: minmax(0, 1fr); } }
 
+/* L'écran a la hauteur du clavier, pas celle de son historique (demandé
+   le 9 nov. 2026). Chaque calcul l'allongeait et la page descendait sans
+   fin ; l'écran de la machine ne grandit pas, ce qui dépasse défile
+   DEDANS. « contain: size » retire le contenu du calcul de la hauteur de
+   la rangée : la rangée prend celle du clavier, l'écran s'étire dessus,
+   et « .nw-page » (déjà « overflow: auto ») fait défiler le reste. Sur
+   une colonne, sans clavier à côté, c'est une hauteur plafonnée. */
+@media (min-width: 901px) {
+  #calculatrice:not(.nw-tel) .nw-ecran { align-self: stretch; contain: size; }
+  /* Le tracé suivait la largeur (381 px de haut sur 616 de large) et
+     dépassait l'écran de 22 px sous les onglets du Grapheur. Plafonné, il
+     garde ses proportions : le dessin se centre dans son cadre. */
+  #calculatrice:not(.nw-tel) .nw-trace { max-height: 340px; }
+}
+@media (max-width: 900px) {
+  #calculatrice:not(.nw-tel) .nw-ecran { max-height: max(400px, 70vh); }
+}
+@media print {
+  #calculatrice .nw-ecran { contain: none; max-height: none; }
+  #calculatrice .nw-page { overflow: visible; }
+}
+
 .nw-ecran {
   --nw-fond: #FFFFFF;
   --nw-encre: #1A1A1A;
@@ -7759,9 +7885,15 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
   display: inline-table; width: auto; font-size: inherit;
   margin-left: auto; border-collapse: separate;
   border-spacing: .75em .12em; padding: .1em .05em;
-  border-left: 2px solid currentColor; border-right: 2px solid currentColor;
-  border-radius: 7px; font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums; position: relative;
 }
+/* Des crochets droits, comme la saisie dessinée et comme la machine. */
+.nw-mat::before, .nw-mat::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: .3em;
+  border: 2px solid currentColor; pointer-events: none;
+}
+.nw-mat::before { left: 0; border-right: 0; }
+.nw-mat::after { right: 0; border-left: 0; }
 .nw-mat td { text-align: right; padding: 0; white-space: nowrap; }
 .nw-resultat:has(> .nw-mat), .nw-approche:has(> .nw-mat) { display: flex; justify-content: flex-end; align-items: center; gap: .4em; overflow-x: auto; }
 .nw-erreur {
@@ -7788,6 +7920,14 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
   /* La boîte est passée EN TÊTE de l'écran : l'air qu'elle avait au-dessus
      lui sert maintenant en dessous, pour la détacher du premier calcul. */
   margin: 0 0 .8rem;
+  /* L'écran a une hauteur fixe et l'historique défile dessous : la ligne
+     de calcul reste en haut, sinon une touche du clavier écrirait dans un
+     champ qu'on ne voit plus. Le fond et la marge négative couvrent le
+     haut de « .nw-page » (son padding), où passaient les lignes. */
+  position: sticky; top: -.7rem; z-index: 2;
+  margin-top: -.7rem; padding-top: .7rem;
+  background: var(--nw-fond);
+  box-shadow: 0 .4rem .4rem -.4rem var(--nw-fond);
 }
 .nw-champ {
   flex: 1; min-width: 0; min-height: 42px; padding: .35rem .55rem;
@@ -7801,6 +7941,80 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
   background: var(--nw-bande); color: var(--nw-sur-bande); border: 0;
   font: inherit; font-weight: 700; font-size: .8182rem; letter-spacing: .04em;
 }
+
+/* ── La matrice dessinée dans la ligne de saisie (calculatrice.js, 6 bis) ──
+   Le champ reste là, invisible mais focalisable : il garde le clavier et le
+   curseur. La couche dessine la ligne, ses matrices en deux dimensions et
+   le curseur. Sans matrice, elle est retirée et le champ se montre comme
+   avant. Ses couleurs sont celles du champ : déjà mesurées. */
+.nw-saisie-zone { position: relative; flex: 1; min-width: 0; display: flex; }
+.nw-saisie-zone > .nw-champ { flex: 1; }
+.nw-saisie-vue { display: none; }
+.nw-saisie-zone.nw-2d > .nw-champ { position: absolute; inset: 0; opacity: 0; min-height: 0; }
+.nw-saisie-zone.nw-2d > .nw-saisie-vue {
+  display: flex; align-items: center; flex: 1; min-width: 0; min-height: 42px;
+  position: relative; z-index: 1; padding: .35rem .55rem; cursor: text;
+  font-family: var(--mono); font-size: 1rem; color: var(--nw-encre);
+  background: var(--nw-creuse); font-variant-numeric: tabular-nums;
+  border: 1.5px solid var(--nw-filet); border-radius: 9px;
+  white-space: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+.nw-saisie-zone.nw-2d:focus-within > .nw-saisie-vue {
+  outline: 2px solid var(--nw-choix); outline-offset: 1px; border-color: var(--nw-choix);
+}
+.nw-saisie-vue .nw-v { white-space: pre; flex: none; }
+.nw-v-sel { background: color-mix(in srgb, var(--nw-choix) 50%, transparent); }
+/* Le curseur ne prend aucune place : il ne pousse pas le texte en clignotant. */
+.nw-v-car {
+  display: inline-block; flex: none; width: 2px; height: 1.25em; margin: 0 -1px;
+  background: var(--nw-encre); position: relative; z-index: 1;
+  animation: nw-clignote 1.06s steps(1) infinite;
+}
+@keyframes nw-clignote { 50% { opacity: 0; } }
+:root[data-anim="0"] .nw-v-car { animation: none; }
+@media (prefers-reduced-motion: reduce) { .nw-v-car { animation: none; } }
+
+/* La matrice : une grille entre deux crochets dessinés par deux bordures
+   ouvertes. Pas de dégradé de fond : le banc de contraste prendrait un
+   dégradé opaque pour la surface sous les chiffres. */
+.nw-m2 {
+  display: inline-grid; grid-template-columns: repeat(var(--nw-m2-c, 2), auto);
+  align-items: center; justify-items: center; column-gap: .2em; row-gap: .12em;
+  position: relative; flex: none; vertical-align: middle;
+  padding: .14em .42em; margin: 0 .18em;
+}
+.nw-m2::before, .nw-m2::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: .28em;
+  border: 2px solid currentColor; pointer-events: none;
+}
+.nw-m2::before { left: 0; border-right: 0; }
+.nw-m2::after { right: 0; border-left: 0; }
+.nw-m2-k {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 1.1em; min-height: 1.3em; padding: 0 .16em; border-radius: 3px;
+}
+/* Une case vide est un carré plein ; une case fantôme, un carré en
+   pointillés : elle n'existe pas encore, on la crée en y entrant. */
+.nw-m2-k > i { display: block; width: .68em; height: 1em; border-radius: 2px; background: var(--nw-filet); }
+.nw-m2-fantome > i { background: none; outline: 1.5px dashed var(--nw-filet); outline-offset: -1.5px; }
+.nw-saisie-vue .nw-m2-k { cursor: pointer; }
+.nw-saisie-vue .nw-m2-k:hover { background: color-mix(in srgb, var(--nw-choix) 20%, transparent); }
+.nw-saisie .nw-m2 { margin: .1em .2em; }
+
+/* La puissance dessinée (calculatrice.js, 6 ter) : le contenu en petit,
+   remonté d'une demi-ligne, comme sur la machine. Décalée par « top » et
+   non par un alignement, elle garde sa place dans la ligne, en saisie comme
+   dans l'historique. Une puissance vide montre sa case ; celle où est le
+   curseur est à peine teintée, pour savoir qu'on écrit EN HAUT. */
+.nw-v-exp {
+  display: inline-flex; align-items: center; flex: none;
+  position: relative; top: -.5em; font-size: .72em; line-height: 1.1;
+  padding: 0 .08em; border-radius: 3px;
+}
+.nw-v-exp-ici { background: color-mix(in srgb, var(--nw-choix) 18%, transparent); }
+.nw-v-case { display: inline-flex; align-items: center; justify-content: center; min-width: .9em; min-height: 1.15em; }
+.nw-v-case > i { display: block; width: .68em; height: 1em; border-radius: 2px; background: var(--nw-filet); }
+.nw-saisie-vue .nw-v-exp { cursor: text; }
 
 /* ── les panneaux d'application ────────────────────────────────────────
    Les onglets forment un SEGMENT : un seul bloc creux, dans lequel la
@@ -8181,27 +8395,49 @@ select.nw-petit { width: auto; min-width: 7rem; }
 }
 .nw-clavier-note { margin: .1rem 0 0; font-size: .6818rem; color: var(--encre-douce); text-align: center; }
 
-/* ── la boîte à outils ───────────────────────────────────────────────── */
+/* ── la boîte à outils, SUR l'écran ──────────────────────────────────────
+   Demandé le 9 nov. 2026 : elle était posée sous l'appareil, loin de la
+   ligne où elle écrit. Comme sur la machine, elle s'ouvre maintenant sur
+   l'écran, sous le bandeau jaune qui reste visible : un titre sombre, la
+   recherche, puis la liste, la fonction à gauche et ce qu'elle fait à
+   droite. Ses couleurs sont celles de l'écran, jour et nuit. */
+.nw-ecran { position: relative; }
+.nw-ecran {
+  /* le gris du titre de la boîte et le surlignage de l'entrée choisie */
+  --nw-titre-boite: #5E5C66; --nw-sur-titre-boite: #FFFFFF;
+  --nw-surligne: #DCDDEE;
+}
+.nw-ecran[data-ecran="sombre"] { --nw-titre-boite: #3A3843; --nw-surligne: #30344A; }
 .nw-boite {
-  margin-top: 1rem; border: 1px solid var(--bord-fort); border-radius: var(--r);
-  background: var(--carte); box-shadow: var(--ombre);
+  position: absolute; left: 0; right: 0; bottom: 0; top: var(--nw-sous-bande, 0px);
+  z-index: 6; display: flex; flex-direction: column; min-height: 0;
+  background: var(--nw-fond); color: var(--nw-encre);
 }
+.nw-boite[hidden] { display: none; }
 .nw-boite-tete {
-  display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
-  padding: .6rem .8rem; border-bottom: 1px solid var(--bord);
+  position: relative; display: flex; align-items: center; justify-content: center;
+  min-height: 38px; padding: .25rem 2.8rem;
+  background: var(--nw-titre-boite); color: var(--nw-sur-titre-boite);
 }
-.nw-boite-tete h3 { margin: 0; font-size: .9394rem; }
-.nw-boite-tete input {
-  flex: 1; min-width: 10rem; min-height: 38px; padding: .2rem .5rem;
-  border: 1px solid var(--bord-fort); border-radius: 999px;
-  background: var(--carte-creuse); color: var(--encre); font: inherit; font-size: .8485rem;
+.nw-boite-tete h3 {
+  margin: 0; font-size: .9091rem; font-weight: 700; letter-spacing: .06em;
+  color: inherit; text-align: center;
 }
 .nw-boite-tete button {
-  min-height: 38px; min-width: 38px; cursor: pointer; font: inherit; font-size: 1rem;
-  border: 1px solid var(--bord-fort); border-radius: 999px;
-  background: var(--carte-creuse); color: var(--encre-douce);
+  position: absolute; right: .3rem; top: 50%; transform: translateY(-50%);
+  min-height: 34px; min-width: 34px; cursor: pointer; font: inherit; font-size: 1rem;
+  border: 0; border-radius: 999px; background: transparent; color: inherit;
 }
-.nw-boite-liste { max-height: 340px; overflow: auto; padding: .4rem; }
+.nw-boite-tete button:hover { background: rgba(255, 255, 255, .16); }
+.nw-boite-tete button:focus-visible { outline: 2px solid var(--nw-choix); outline-offset: 1px; }
+.nw-boite-cherche { padding: .45rem .6rem; border-bottom: 1px solid var(--nw-filet); }
+.nw-boite-cherche input {
+  width: 100%; min-height: 36px; padding: .2rem .7rem;
+  border: 1px solid var(--nw-filet); border-radius: 999px;
+  background: var(--nw-creuse); color: var(--nw-encre); font: inherit; font-size: .8485rem;
+}
+.nw-boite-cherche input:focus { outline: 2px solid var(--nw-choix); outline-offset: 0; border-color: var(--nw-choix); }
+.nw-boite-liste { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 0 .4rem; }
 /* ── les catégories se voient ─────────────────────────────────────────
    Signalé : une fois revenu à la ligne, on ne sait plus dans quelle
    catégorie on est. C'était vrai : le titre était un petit mot gris posé
@@ -8213,26 +8449,37 @@ select.nw-petit { width: auto; min-width: 7rem; }
    Et « sticky » : le titre reste collé en haut pendant qu'on fait défiler,
    donc la question « on est où ? » ne se pose plus jamais. */
 .nw-boite-cat {
-  position: sticky; top: -.4rem; z-index: 2;
-  margin: .9rem -.4rem .3rem; padding: .35rem .8rem;
-  font-size: .7576rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .06em; color: var(--encre-douce);
-  background: color-mix(in srgb, var(--encre) 5%, var(--carte));
-  border-top: 1px solid var(--bord-fort);
-  border-bottom: 1px solid var(--bord);
+  position: sticky; top: 0; z-index: 2; margin: 0; padding: .4rem .8rem;
+  font-size: .7879rem; font-weight: 600; letter-spacing: .04em; text-align: center;
+  color: var(--nw-encre-douce); background: var(--nw-fond);
+  border-bottom: 1px solid var(--nw-filet);
 }
-.nw-boite-cat:first-child { margin-top: -.4rem; border-top: 0; }
+.nw-boite-cat:not(:first-child) { border-top: 1px solid var(--nw-filet); }
+/* Une entrée : la fonction à gauche, son nom à droite en gris, l'aide
+   dessous sur une ligne. L'entrée CHOISIE (flèches) se surligne et montre
+   toute son aide : c'est celle qu'on va insérer. */
 .nw-boite-item {
   display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
-  min-height: 38px; padding: .35rem .5rem; border: 1px solid transparent;
-  border-radius: 9px; background: none; color: var(--encre);
+  min-height: 42px; padding: .4rem .8rem; border: 0; border-radius: 0;
+  border-bottom: 1px solid var(--nw-grille); background: none; color: var(--nw-encre);
 }
-.nw-boite-item:hover, .nw-boite-item:focus-visible {
-  background: var(--accent-pale); border-color: var(--accent);
+.nw-boite-item[aria-selected="true"], .nw-boite-item:hover { background: var(--nw-surligne); }
+.nw-boite-item:focus-visible { outline: 2px solid var(--nw-choix); outline-offset: -2px; }
+.nw-boite-ligne { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
+.nw-boite-item b {
+  font-family: var(--mono); font-size: .9394rem; font-weight: 600;
+  min-width: 0; overflow-wrap: anywhere;
 }
-.nw-boite-item b { font-family: var(--mono); font-size: .8485rem; }
-.nw-boite-item i { display: block; font-style: normal; font-size: .7879rem; color: var(--encre-douce); }
-.nw-boite-rien { padding: .8rem; margin: 0; color: var(--encre-douce); font-style: italic; }
+.nw-boite-nom { flex: 0 1 auto; text-align: right; font-size: .8485rem; color: var(--nw-encre-douce); }
+.nw-boite-item i {
+  display: block; margin-top: .15rem; font-style: normal; font-size: .7576rem;
+  color: var(--nw-encre-douce); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.nw-boite-item[aria-selected="true"] i { white-space: normal; }
+/* « Nouvelle matrice » : la matrice dessinée à la place de la syntaxe. */
+.nw-boite-dessin { padding-top: .5rem; padding-bottom: .5rem; }
+.nw-m2-mini { font-family: var(--mono); font-size: .9091rem; font-weight: 600; margin: .1rem 0 .1rem .1rem; }
+.nw-boite-rien { padding: .8rem; margin: 0; color: var(--nw-encre-douce); font-style: italic; }
 
 .nw-aide-clavier {
   margin: .9rem 0 0; font-size: .8182rem; color: var(--encre-douce); line-height: 1.6;
@@ -8286,7 +8533,11 @@ select.nw-petit { width: auto; min-width: 7rem; }
   box-shadow: none; overflow: auto; background: var(--papier);
   padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
 }
-#calculatrice.nw-grand .nw-ecran { min-height: calc(100vh - 11rem); }
+/* Agrandi, l'écran suit encore le clavier quand il est à côté (même
+   demande que plus haut) ; sur une colonne, il prend la fenêtre. */
+@media (max-width: 900px) {
+  #calculatrice.nw-grand:not(.nw-tel) .nw-ecran { height: calc(100vh - 11rem); max-height: none; }
+}
 #calculatrice.nw-grand .nw-notice,
 #calculatrice.nw-grand .nw-cat-tete,
 #calculatrice.nw-grand .nw-cat-intro,
@@ -8309,7 +8560,6 @@ body.nw-fige { overflow: hidden; }
 #calculatrice.nw-tel .nw-tel-lanceur { display: block; margin: 0 0 1rem; }
 #calculatrice.nw-tel:not(.nw-ouverte) > .nw-barre,
 #calculatrice.nw-tel:not(.nw-ouverte) > .nw-corps,
-#calculatrice.nw-tel:not(.nw-ouverte) > .nw-boite,
 #calculatrice.nw-tel .nw-aide-clavier { display: none; }
 .nw-tel-ouvrir {
   display: flex; align-items: center; gap: .9rem; width: 100%;
@@ -8378,12 +8628,24 @@ html.nw-app-ouverte .tel-rappel { display: none !important; }
 /* La ligne de calcul : grande, à la mesure du pouce et de l'œil, son
    curseur visible même sans le clavier du téléphone. EXE est en bas. */
 #calculatrice.nw-tel .nw-saisie-boite .nw-valider { display: none; }
+/* Le haut de la page vaut .8rem ici, pas .7 : la ligne collée le suit. */
+#calculatrice.nw-tel.nw-ouverte .nw-saisie-boite { top: -.8rem; margin-top: -.8rem; padding-top: .8rem; }
 #calculatrice.nw-tel #nw-calc {
   font-size: 1.55rem; min-height: 58px; padding: .35rem .2rem;
   border: 0; border-bottom: 2px dotted var(--nw-encre-douce); border-radius: 0;
   background: transparent; caret-color: var(--nw-c2);
 }
 #calculatrice.nw-tel #nw-calc:focus { outline: 0; border-bottom-style: solid; border-bottom-color: var(--nw-encre); }
+/* La couche de la matrice dessinée prend l'allure du champ au téléphone. */
+#calculatrice.nw-tel .nw-saisie-zone.nw-2d > .nw-saisie-vue {
+  font-size: 1.55rem; min-height: 58px; padding: .35rem .2rem;
+  border: 0; border-bottom: 2px dotted var(--nw-encre-douce); border-radius: 0; background: transparent;
+}
+#calculatrice.nw-tel .nw-saisie-zone.nw-2d:focus-within > .nw-saisie-vue {
+  outline: 0; border-bottom-style: solid; border-bottom-color: var(--nw-encre);
+}
+#calculatrice.nw-tel .nw-v-car { background: var(--nw-c2); }
+#calculatrice.nw-tel .nw-m2-k { min-width: 1.25em; min-height: 1.45em; }
 #calculatrice.nw-tel.nw-ouverte .nw-accueil { grid-template-columns: repeat(3, 1fr); }
 #calculatrice.nw-tel .nw-accueil-note { display: none; }
 
@@ -8499,15 +8761,10 @@ html.nw-app-ouverte .tel-rappel { display: none !important; }
 .nw-tk-sys { grid-column: span 2; }
 
 /* La boîte à outils devient un tiroir qui monte du bas. */
-#calculatrice.nw-tel.nw-ouverte .nw-boite:not([hidden]) {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0;
-  max-height: 78%; display: flex; flex-direction: column;
-  border-radius: 20px 20px 0 0; border-bottom: 0;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -12px 32px rgba(0, 0, 0, .22);
-}
-#calculatrice.nw-tel .nw-boite-liste { max-height: none; flex: 1 1 auto; min-height: 0; }
-#calculatrice.nw-tel .nw-boite-item { min-height: 48px; }
+/* Au téléphone aussi, la boîte se pose sur l'écran, sous le bandeau : le
+   clavier reste dessous, et une entrée se touche du pouce. */
+#calculatrice.nw-tel .nw-boite-item { min-height: 50px; }
+#calculatrice.nw-tel .nw-boite-tete button { min-width: 42px; min-height: 42px; }
 
 @media print {
   .nw-clavier, .nw-barre, .nw-boite, .nw-aide-clavier { display: none; }
@@ -10409,10 +10666,18 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   .tb-encrage { flex-wrap: wrap; max-width: calc(100% - 20px); }
   .tb-lecture { width: calc(100% - 20px); }
   .tb-reglage-stylo { top: auto; bottom: calc(100% + 8px); }
-  .tb-bd { bottom: 62px; }
+  /* Au-dessus de la barre d'encrage, quelle que soit sa hauteur (« --tb-bas »,
+     mesurée par tableau.js) : à 62 px fixes, le zoom passait dessous dès
+     qu'elle prenait deux rangées. */
+  .tb-bd { bottom: calc(10px + var(--tb-bas, 52px)); }
   .tb-cote { top: 60px; transform: none; }
-  .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: 116px; z-index: 6; }
-  .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: 62px; max-height: 45%; }
+  .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: calc(10px + var(--tb-bas, 52px) + 54px); z-index: 6; }
+  .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: calc(10px + var(--tb-bas, 52px)); max-height: 45%; }
+  /* Le titre laisse la place au coin droit (« --tb-hd-l », mesurée) et
+     rétrécit au lieu de passer dessous ; les deux flèches restent entières. */
+  .tb-hg { max-width: calc(100% - 28px - var(--tb-hd-l, 140px)); }
+  .tb-hg .tb-titre { width: auto; flex: 1 1 7.5rem; min-width: 2.5rem; }
+  .tb-hg .tb-groupe { flex: none; }
   .tb-a-droite .tb-props { left: 10px; }
 }
 
@@ -10968,6 +11233,47 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   html.coquille .chapitre .liens a:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: none; }
+
+/* ══════════════════════════════════ le mouvement, au téléphone
+   Demandé le 9 nov. 2026 : un site plus dynamique, surtout au téléphone.
+   Ce qui manquait le plus, c'était le passage d'une page à l'autre :
+   chaque lien rechargeait l'écran d'un bloc, comme un site et non comme
+   une appli. Le navigateur sait faire glisser une page sur la suivante
+   (« @view-transition », sans une ligne de script) : la barre du haut et
+   celle du bas RESTENT en place, le contenu monte en fondu, et l'onglet
+   Cours · Exercices · Fiche · QCM glisse jusqu'au nouvel onglet.
+
+   La règle « @view-transition » n'est PAS ici : le script d'en-tête la
+   pose (publier.py, GARDE_TRANSITION), au téléphone seulement, hors d'un
+   cadre, animations allumées et sans demande de moins de mouvement. Une
+   feuille de style ne sait pas lire ces deux réglages-là. Ce qui suit ne
+   fait que dessiner la transition quand elle a lieu. Un navigateur qui ne
+   la connaît pas l'ignore, et la page s'ouvre comme avant. */
+html.coquille .tel-tete { view-transition-name: tel-tete; }
+html.coquille .tel-barre { view-transition-name: tel-barre; }
+html.coquille .tel-segments { view-transition-name: tel-segments; }
+html.coquille .tel-segments a[aria-current="page"] { view-transition-name: tel-segment; }
+::view-transition-old(root) { animation: 130ms ease-in both vt-sort; }
+::view-transition-new(root) { animation: 300ms cubic-bezier(.2, .8, .2, 1) 30ms both vt-entre; }
+::view-transition-group(tel-segment) { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+@keyframes vt-sort { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-entre { from { opacity: 0; transform: translateY(16px); } }
+html[data-anim="0"]::view-transition-group(*),
+html[data-anim="0"]::view-transition-old(*),
+html[data-anim="0"]::view-transition-new(*) { animation: none !important; }
+
+/* Un retour au toucher là où il manquait encore : l'onglet, les cartes de
+   l'accueil, les pastilles. Un enfoncement de quelques pour cent, rendu
+   en 150 ms : la main sait que le geste a été pris avant que la page
+   change. */
+@media (max-width: 760px) {
+  html.coquille :is(.tel-segments a, .tel-carte, .tel-pastille, .tel-voir, .blanc-tuile, .chapitre .liens a) {
+    transition: transform .15s ease-out, background-color .15s ease-out;
+  }
+  html.coquille :is(.tel-segments a, .tel-pastille, .tel-voir):active { transform: scale(.95); }
+  html.coquille :is(.tel-carte, .blanc-tuile):active { transform: scale(.975); }
+}
+html[data-anim="0"].coquille :is(.tel-segments a, .tel-carte, .tel-pastille, .tel-voir, .blanc-tuile):active { transform: none; }
 
 /* ── un téléphone tenu en paysage ────────────────────────────────────────
    375 px de haut : une barre en haut et une en bas en prendraient le tiers.
