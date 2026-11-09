@@ -6987,9 +6987,113 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
 .rv-res p { margin: 0; }
 .rv-res p + p { margin-top: .35rem; }
 /* Un petit calcul ne se coupe pas en deux : « 3×2 + 1 = » d'un côté et
-   « 7 ✓ » de l'autre, le résultat se lit mal. Ils sont tous courts. */
-.dev-revisions .quiz p code, .dev-revisions .quiz li code,
+   « 7 ✓ » de l'autre, le résultat se lit mal. Seulement dans les exercices
+   au format des matrices (« .rv-lbl »), où ils sont tous courts. Posée aussi
+   sur « .dev-revisions », la règle rendait insécables les dérivées du
+   contrôle d'octobre, longues de 60 caractères : la page des devoirs
+   s'élargissait à 680 px sur un téléphone de 375 (mesuré le 9 nov.). */
 .quiz:has(.rv-lbl) p code, .quiz:has(.rv-lbl) li code { white-space: nowrap; }
+
+/* ═════════════════════ les contrôles blancs ═════════════════════════════
+   Demandé le 9 nov. 2026 : le premier contrôle blanc était fait, il en
+   fallait d'autres, et une interface pour choisir. Une tuile par sujet, son
+   numéro en grand, et ce qu'un sujet d'épreuve dit en tête (exercices,
+   points, durée). La page d'un sujet a sa consigne, son barème, les quatre
+   numéros pour passer de l'un à l'autre, et un bouton « fait » (app.js).
+   Aucune couleur nouvelle : l'encre sur --accent-pale (le conseil du
+   devoir), l'encre sur --vert-pale (la réponse d'un exercice) et
+   --sur-accent sur --accent, trois couples mesurés sur les 41 thèmes. */
+.dev-blancs { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--bord); }
+.dev-blancs h3 {
+  margin: 0 0 .35rem; font-size: .6667rem; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--encre-douce);
+}
+.dev-blancs-intro { margin: 0 0 .75rem; font-size: .8485rem; line-height: 1.55; color: var(--encre-douce); }
+/* Deux colonnes, pas « auto-fill » : quatre sujets en 3 + 1 laissaient le
+   dernier seul sur sa ligne, comme oublié. Une colonne sur un téléphone. */
+.blancs-grille {
+  display: grid; gap: .55rem; margin: 0 0 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 560px) { .blancs-grille { grid-template-columns: minmax(0, 1fr); } }
+.blanc-tuile {
+  display: flex; align-items: center; gap: .75rem;
+  min-height: 64px; padding: .6rem .75rem;
+  border: 1px solid var(--bord); border-left: 3px solid var(--accent);
+  border-radius: var(--r); background: var(--carte-creuse);
+  color: var(--encre); text-decoration: none;
+  transition: border-color .14s, transform .1s var(--ease, ease);
+}
+.blanc-tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
+.blanc-tuile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blanc-num {
+  flex: none; display: grid; place-items: center;
+  width: 2.4rem; height: 2.4rem; border-radius: 10px;
+  background: var(--accent-pale); color: var(--encre);
+  font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.blanc-tuile.est-fait .blanc-num { background: var(--vert-pale); }
+.blanc-txt { display: flex; flex-direction: column; gap: .08rem; min-width: 0; }
+.blanc-txt b { font-size: .8788rem; font-weight: 700; color: var(--encre); }
+.blanc-sous { font-size: .8182rem; line-height: 1.35; color: var(--encre); }
+.blanc-meta { font-size: .7576rem; color: var(--encre-douce); }
+.blanc-fait {
+  margin-left: auto; align-self: flex-start; flex: none;
+  font-size: .7273rem; font-weight: 700; letter-spacing: .03em;
+  padding: .06rem .5rem; border-radius: 999px;
+  background: var(--vert-pale); color: var(--encre); border: 1px solid var(--vert-bord);
+}
+.blanc-fait[hidden] { display: none; }
+
+/* La page d'un sujet. */
+.blanc-choix { display: flex; flex-wrap: wrap; gap: .45rem; margin: 1rem 0 .2rem; }
+.blanc-choix a {
+  display: grid; place-items: center; min-width: 44px; min-height: 44px;
+  border: 1px solid var(--bord); border-radius: 12px; background: var(--carte);
+  color: var(--encre); font-weight: 750; text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.blanc-choix a:hover { border-color: var(--accent); }
+.blanc-choix a.est-fait { background: var(--vert-pale); border-color: var(--vert-bord); }
+.blanc-choix a[aria-current="page"] { background: var(--accent-pale); border: 2px solid var(--accent); }
+.blanc-consigne {
+  margin: 1rem 0 1.2rem; padding: .85rem 1rem;
+  border: 1px solid var(--bord); border-radius: 14px; background: var(--carte);
+}
+.blanc-consigne > p { margin: .45rem 0; font-size: .9091rem; line-height: 1.6; color: var(--encre); }
+.blanc-consigne > .blanc-meta-tete { display: flex; flex-wrap: wrap; gap: .3rem .4rem; margin-top: 0; }
+.blanc-meta-tete span {
+  font-size: .76rem; color: var(--encre-douce); padding: .1rem .5rem;
+  border: 1px solid var(--bord); border-radius: 999px; background: var(--carte-creuse);
+}
+.blanc-bareme { margin: .6rem 0 0; padding-left: 1.3rem; }
+.blanc-bareme li { margin: .3rem 0; font-size: .8788rem; line-height: 1.5; color: var(--encre); }
+.blanc-pts {
+  margin-left: .4rem; padding: .02rem .42rem; white-space: nowrap;
+  font-size: .74rem; color: var(--encre-douce);
+  border: 1px solid var(--bord); border-radius: 999px;
+}
+.blanc-sujet { margin-top: 0; padding-top: 0; border-top: 0; }
+.blanc-fin { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 1.4rem 0 .6rem; }
+.blanc-fini {
+  min-height: 44px; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .8788rem; font-weight: 700;
+  background: var(--carte); color: var(--encre); border: 1px solid var(--bord-fort);
+}
+.blanc-fini[aria-pressed="true"] { background: var(--vert-pale); border-color: var(--vert-bord); }
+.blanc-suivant {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; padding: .5rem 1rem; border-radius: 999px;
+  background: var(--accent); color: var(--sur-accent);
+  font-size: .8788rem; font-weight: 700; text-decoration: none;
+}
+.blanc-suivant::after { content: "→"; }
+.blanc-retour { margin: .4rem 0 0; font-size: .8485rem; color: var(--encre-douce); }
+
+/* Dans la page d'exercices du chapitre : un titre par sujet, que la grille
+   vise par son ancre ; la marge garde le titre sous la barre collée. */
+.blanc-titre { scroll-margin-top: 4.5rem; }
+.blanc-ligne { margin: .2rem 0 .8rem; font-size: .8788rem; color: var(--encre-douce); }
 
 /* ═════════════════════ le TP de révision ════════════════════════════════
    Demandé : « comme les tp […] ca ameene au complitaeur avec les enoncer ».
@@ -7593,6 +7697,28 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
 }
 @media (max-width: 900px) { .nw-corps { grid-template-columns: minmax(0, 1fr); } }
 
+/* L'écran a la hauteur du clavier, pas celle de son historique (demandé
+   le 9 nov. 2026). Chaque calcul l'allongeait et la page descendait sans
+   fin ; l'écran de la machine ne grandit pas, ce qui dépasse défile
+   DEDANS. « contain: size » retire le contenu du calcul de la hauteur de
+   la rangée : la rangée prend celle du clavier, l'écran s'étire dessus,
+   et « .nw-page » (déjà « overflow: auto ») fait défiler le reste. Sur
+   une colonne, sans clavier à côté, c'est une hauteur plafonnée. */
+@media (min-width: 901px) {
+  #calculatrice:not(.nw-tel) .nw-ecran { align-self: stretch; contain: size; }
+  /* Le tracé suivait la largeur (381 px de haut sur 616 de large) et
+     dépassait l'écran de 22 px sous les onglets du Grapheur. Plafonné, il
+     garde ses proportions : le dessin se centre dans son cadre. */
+  #calculatrice:not(.nw-tel) .nw-trace { max-height: 340px; }
+}
+@media (max-width: 900px) {
+  #calculatrice:not(.nw-tel) .nw-ecran { max-height: max(400px, 70vh); }
+}
+@media print {
+  #calculatrice .nw-ecran { contain: none; max-height: none; }
+  #calculatrice .nw-page { overflow: visible; }
+}
+
 .nw-ecran {
   --nw-fond: #FFFFFF;
   --nw-encre: #1A1A1A;
@@ -7794,6 +7920,14 @@ html.at-app-ouverte .tel-rappel { display: none !important; }
   /* La boîte est passée EN TÊTE de l'écran : l'air qu'elle avait au-dessus
      lui sert maintenant en dessous, pour la détacher du premier calcul. */
   margin: 0 0 .8rem;
+  /* L'écran a une hauteur fixe et l'historique défile dessous : la ligne
+     de calcul reste en haut, sinon une touche du clavier écrirait dans un
+     champ qu'on ne voit plus. Le fond et la marge négative couvrent le
+     haut de « .nw-page » (son padding), où passaient les lignes. */
+  position: sticky; top: -.7rem; z-index: 2;
+  margin-top: -.7rem; padding-top: .7rem;
+  background: var(--nw-fond);
+  box-shadow: 0 .4rem .4rem -.4rem var(--nw-fond);
 }
 .nw-champ {
   flex: 1; min-width: 0; min-height: 42px; padding: .35rem .55rem;
@@ -8384,7 +8518,11 @@ select.nw-petit { width: auto; min-width: 7rem; }
   box-shadow: none; overflow: auto; background: var(--papier);
   padding: .8rem clamp(.8rem, 2vw, 1.4rem) 1.4rem;
 }
-#calculatrice.nw-grand .nw-ecran { min-height: calc(100vh - 11rem); }
+/* Agrandi, l'écran suit encore le clavier quand il est à côté (même
+   demande que plus haut) ; sur une colonne, il prend la fenêtre. */
+@media (max-width: 900px) {
+  #calculatrice.nw-grand:not(.nw-tel) .nw-ecran { height: calc(100vh - 11rem); max-height: none; }
+}
 #calculatrice.nw-grand .nw-notice,
 #calculatrice.nw-grand .nw-cat-tete,
 #calculatrice.nw-grand .nw-cat-intro,
@@ -8475,6 +8613,8 @@ html.nw-app-ouverte .tel-rappel { display: none !important; }
 /* La ligne de calcul : grande, à la mesure du pouce et de l'œil, son
    curseur visible même sans le clavier du téléphone. EXE est en bas. */
 #calculatrice.nw-tel .nw-saisie-boite .nw-valider { display: none; }
+/* Le haut de la page vaut .8rem ici, pas .7 : la ligne collée le suit. */
+#calculatrice.nw-tel.nw-ouverte .nw-saisie-boite { top: -.8rem; margin-top: -.8rem; padding-top: .8rem; }
 #calculatrice.nw-tel #nw-calc {
   font-size: 1.55rem; min-height: 58px; padding: .35rem .2rem;
   border: 0; border-bottom: 2px dotted var(--nw-encre-douce); border-radius: 0;

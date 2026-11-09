@@ -1133,8 +1133,12 @@
     const ctx = contexte();
     ctx.vars.set("ans", ETAT.dernier === undefined ? 0 : ETAT.dernier);
     /* Un calcul qui commence par un opérateur reprend le résultat
-       précédent : « +3 » après 7 fait 10. C'est le geste de la machine. */
-    const prefixe = /^[+\-*/^]/.test(texte) && ETAT.historique.length ? "ans" : "";
+       précédent : « +3 » après 7 fait 10. C'est le geste de la machine.
+       Sauf le moins : la machine a une touche (−) pour un nombre négatif,
+       un clavier d'ordinateur n'a que « - ». « -5*7+3*12 » est donc −35+36,
+       pas « ans−35+36 » (signalé : chaque Entrée ajoutait 1 au résultat).
+       Pour retrancher au résultat précédent, on écrit « ans- ». */
+    const prefixe = /^[+*×/÷^]/.test(texte) && ETAT.historique.length ? "ans" : "";
     const r = CALC.calculer(prefixe + texte, ctx);
     if (r.ok) {
       if (Number.isFinite(r.valeur)) ETAT.dernier = r.valeur;
@@ -1167,6 +1171,9 @@
     rappel = -1;
     garder();
     redessiner();
+    /* L'écran défile (hauteur du clavier) : le résultat neuf est en haut,
+       juste sous la ligne de calcul, c'est donc là qu'on revient. */
+    page.scrollTop = 0;
     const neuf = $("#nw-calc");
     if (neuf) { neuf.value = ""; neuf.focus(); majSaisie(); }
     if (r.desaccord && window.console)
