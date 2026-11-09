@@ -395,11 +395,19 @@
      règle, taper « 5 » après avoir cliqué dans une cellule de
      statistiques l'écrivait dans la ligne de calcul — invisible, et
      incompréhensible. */
+  /* Le champ où écrire. Jamais la recherche de la boîte à outils : elle a
+     le focus dès que la boîte s'ouvre, et une fonction choisie s'écrivait
+     DANS la recherche (« matric[[ » au lieu d'une matrice, signalé le
+     9 nov. 2026). On écrit alors dans le dernier champ de l'écran qui a
+     eu le focus, ou dans le premier. */
+  let dernierChamp = null;
+  const ecrivable = (a) => a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")
+    && a.type !== "radio" && a.type !== "checkbox" && a.type !== "range";
+  page.addEventListener("focusin", (e) => { if (ecrivable(e.target)) dernierChamp = e.target; });
   function champActif() {
     const a = document.activeElement;
-    if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")
-        && section.contains(a) && a.type !== "radio" && a.type !== "checkbox"
-        && a.type !== "range") return a;
+    if (ecrivable(a) && page.contains(a)) return a;
+    if (dernierChamp && dernierChamp.isConnected && page.contains(dernierChamp)) return dernierChamp;
     return $(".nw-champ", page) || null;
   }
   /* ── Les exposants s'écrivent en petit, à la frappe ──────────────────
@@ -454,17 +462,24 @@
     const c = champActif();
     if (!c) return;
     c.focus();
+    // dans une case de matrice, « ; » passe à la case suivante (6 bis)
+    if (c.id === "nw-calc" && texte === ";" && pointVirguleDansMatrice(c)) { majSaisie(); return; }
     const d = c.selectionStart === null ? c.value.length : c.selectionStart;
     const f = c.selectionEnd === null ? c.value.length : c.selectionEnd;
     c.value = c.value.slice(0, d) + texte + c.value.slice(f);
     const pos = d + texte.length;
     try { c.setSelectionRange(pos, pos); } catch (e) {}
+    /* Un gabarit à cases (« [[□]] », la nouvelle matrice) : le curseur va
+       dans sa première case, prête à recevoir la frappe. */
+    const q = texte.indexOf("□") >= 0 ? c.value.indexOf("□", d) : -1;
+    if (q >= 0) { try { c.setSelectionRange(q, q + 1); } catch (e) {} }
     c.dispatchEvent(new Event("input", { bubbles: true }));
   }
   function effacer() {
     const c = champActif();
     if (!c) return;
     c.focus();
+    if (c.id === "nw-calc" && effacerDansMatrice(c)) { majSaisie(); return; }
     const d = c.selectionStart, f = c.selectionEnd;
     if (d === f && d > 0) {
       c.value = c.value.slice(0, d - 1) + c.value.slice(d);
@@ -752,30 +767,65 @@
   const boite = $("#nw-boite"), boiteListe = $("#nw-boite-liste");
   function dessinerBoite(filtre) {
     const cat = (typeof CALC_CATALOGUE === "object" && CALC_CATALOGUE.categories) || [];
-    const f = (filtre || "").trim().toLowerCase();
+    /* La recherche ignore les accents et lit aussi le nom de la catégorie :
+       « matrice » rend toute la famille, déterminant et inverse compris. */
+    const sansAccent = (x) => x.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const f = sansAccent((filtre || "").trim());
     const bouts = [];
     let n = 0;
     for (const c of cat) {
       const gardees = c.entrees.filter((e) => !f
-        || (e.nom + " " + e.syntaxe + " " + e.aide).toLowerCase().includes(f));
+        || sansAccent(c.titre + " " + e.nom + " " + e.syntaxe + " " + e.aide).includes(f));
       if (!gardees.length) continue;
       bouts.push('<p class="nw-boite-cat">' + ech(c.titre) + '</p>');
       for (const e of gardees) {
-        n++;
-        bouts.push('<button type="button" class="nw-boite-item" data-ins="' + ech(e.insere) + '">'
-          + '<b>' + ech(e.syntaxe) + '</b> : ' + ech(e.nom)
+        /* Comme sur la machine : la fonction à gauche, ce qu'elle fait à
+           droite, l'aide dessous. « Nouvelle matrice » se montre DESSINÉE :
+           une syntaxe à crochets ne dit rien à qui ne la connaît pas déjà. */
+        const gauche = e.dessin === "matrice"
+          ? '<span class="nw-m2 nw-m2-mini" style="--nw-m2-c:2" aria-hidden="true">'
+            + ["1", "2", "3", "4"].map((x) => '<span class="nw-m2-k">' + x + '</span>').join("") + '</span>'
+          : '<b>' + ech(e.syntaxe) + '</b>';
+        bouts.push('<button type="button" class="nw-boite-item' + (e.dessin ? " nw-boite-dessin" : "")
+          + '" role="option" data-i="' + n + '" aria-selected="' + (n === boiteChoix) + '" data-ins="'
+          + ech(e.insere) + '"><span class="nw-boite-ligne">' + gauche
+          + '<span class="nw-boite-nom">' + ech(e.nom) + '</span></span>'
           + '<i>' + ech(e.aide) + '</i></button>');
+        n++;
       }
     }
     boiteListe.innerHTML = n ? bouts.join("")
       : '<p class="nw-boite-rien">Aucune fonction ne correspond à « ' + ech(f) + ' ».</p>';
   }
+  /* L'entrée choisie : les flèches la déplacent, OK ou Entrée l'insère. */
+  let boiteChoix = 0;
+  function choisirDansBoite(delta) {
+    const items = $$(".nw-boite-item", boiteListe);
+    if (!items.length) return;
+    boiteChoix = Math.max(0, Math.min(items.length - 1, boiteChoix + delta));
+    items.forEach((b, i) => b.setAttribute("aria-selected", String(i === boiteChoix)));
+    if (boiteChoix === 0) boiteListe.scrollTop = 0;
+    else if (items[boiteChoix].scrollIntoView) items[boiteChoix].scrollIntoView({ block: "nearest" });
+  }
   function ouvrirBoite(ouvrir) {
     boite.hidden = !ouvrir;
     $("#nw-catalogue").setAttribute("aria-expanded", String(!!ouvrir));
-    /* Sur téléphone, pas de focus dans le filtre : il ferait monter le
-       clavier du téléphone par-dessus la liste qu'on vient d'ouvrir. */
-    if (ouvrir) { dessinerBoite($("#nw-boite-filtre").value); if (!tel) $("#nw-boite-filtre").focus(); }
+    if (ouvrir) {
+      /* Sous le bandeau jaune, qui reste visible : on sait toujours dans
+         quelle application on écrira. */
+      const bande = $(".nw-bandeau", ecran);
+      boite.style.setProperty("--nw-sous-bande", (bande ? bande.offsetHeight : 0) + "px");
+      boiteChoix = 0;
+      dessinerBoite($("#nw-boite-filtre").value);
+      boiteListe.scrollTop = 0;
+      /* Sur téléphone, pas de focus dans la recherche : il ferait monter
+         le clavier du téléphone par-dessus la liste qu'on vient d'ouvrir. */
+      if (!tel) $("#nw-boite-filtre").focus();
+    } else if (!tel && section.contains(document.activeElement)) {
+      // la boîte refermée rend la main à la ligne où l'on écrivait
+      const c = champActif();
+      if (c && document.activeElement !== c) { try { c.focus(); } catch (e) {} }
+    }
   }
 
   /* ═══════════════ 6. Calculs ════════════════════════════════════════
@@ -899,7 +949,7 @@
       const lignes = h.length ? h.map((l, i) => '<div class="nw-ligne">'
           + '<button type="button" class="nw-saisie" data-reprendre="' + i + '" '
           + 'title="Reprendre ce calcul dans la ligne de saisie">'
-          + ech(l.entree) + '</button>'
+          + saisieDessinee(l.entree) + '</button>'
           + (l.erreur
             ? '<span class="nw-erreur">' + ech(l.erreur) + '</span>'
             : l.matrice
@@ -970,10 +1020,13 @@
          d'obtenir se touchent : plus rien ne pousse le résultat hors de
          l'écran à mesure que l'historique s'allonge, et sur un téléphone
          le champ ne fuit plus sous le clavier. */
-      return '<div class="nw-saisie-boite">'
+      return '<div class="nw-saisie-boite"><div class="nw-saisie-zone">'
         + '<input type="text" class="nw-champ" id="nw-calc" autocomplete="off" '
         + 'spellcheck="false" autocapitalize="off" aria-label="Votre calcul" '
         + 'placeholder="votre calcul, puis Entrée">'
+        /* La couche qui dessine la ligne quand elle porte une matrice (6 bis).
+           Le lecteur d'écran garde le champ, qui dit le même texte. */
+        + '<div class="nw-saisie-vue" aria-hidden="true"></div></div>'
         + '<button type="button" class="nw-valider" id="nw-calc-ok">EXE</button></div>'
         + '<div class="nw-flux" id="nw-flux">' + lignes + '</div>' + panneau
         + '<p class="nw-sous">La <b>forme exacte</b> est au-dessus, sa valeur approchée '
@@ -988,19 +1041,46 @@
       const flux = $("#nw-flux");
       if (flux) flux.scrollTop = 0;
       const champ = $("#nw-calc");
+      /* La matrice dessinée passe AVANT l'historique : dans une matrice, ↑
+         monte d'une ligne, il ne rappelle pas le calcul précédent. */
+      if (champ) champ.addEventListener("keydown", (e) => {
+        const pris = () => { e.preventDefault(); e.stopImmediatePropagation(); majSaisie(); };
+        const sens = { ArrowLeft: "gauche", ArrowRight: "droite", ArrowUp: "haut",
+                       ArrowDown: "bas" }[e.key];
+        const nu = !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey;
+        if (sens && nu && naviguer(champ, sens)) return pris();
+        if (e.key === "Tab" && !e.altKey && !e.metaKey && !e.ctrlKey && caseEn(matricesDe(champ.value), champ.selectionStart)
+            && naviguer(champ, e.shiftKey ? "gauche" : "droite")) return pris();
+        if (e.key === "Backspace" && nu && effacerDansMatrice(champ)) return pris();
+        if (e.key === ";" && !e.altKey && !e.metaKey && !e.ctrlKey && pointVirguleDansMatrice(champ)) return pris();
+        setTimeout(majSaisie, 0);
+      });
       if (champ) champ.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); valider(); }
         else if (e.key === "ArrowUp" && ETAT.historique.length) {
           e.preventDefault();
           rappel = rappel < 0 ? ETAT.historique.length - 1 : Math.max(0, rappel - 1);
           champ.value = ETAT.historique[rappel].entree;
+          majSaisie();
         } else if (e.key === "ArrowDown" && rappel >= 0) {
           e.preventDefault();
           rappel++;
           if (rappel >= ETAT.historique.length) { rappel = -1; champ.value = ""; }
           else champ.value = ETAT.historique[rappel].entree;
+          majSaisie();
         }
       });
+      if (champ) {
+        /* Après « exposantsALaFrappe », qui écoute plus haut dans la page.
+           Pas une micro-tâche : pour une vraie frappe, le navigateur les
+           sert entre deux écouteurs, donc AVANT la conversion « ^-1 » en
+           « ⁻¹ » (mesuré). Le tour de boucle suivant, lui, vient après. */
+        ["input", "focus", "blur", "select", "keyup", "pointerup", "selectionchange"].forEach((n) =>
+          champ.addEventListener(n, () => setTimeout(majSaisie, 0)));
+        const vue = $(".nw-saisie-vue", page);
+        if (vue) vue.addEventListener("pointerdown", toucherVue);
+        majSaisie();
+      }
       const ok = $("#nw-calc-ok");
       if (ok) ok.addEventListener("click", valider);
       const vider = $("#nw-vider-vars");
@@ -1025,6 +1105,7 @@
         c.value = l.entree;
         c.focus();
         try { c.setSelectionRange(c.value.length, c.value.length); } catch (e) {}
+        majSaisie();
         dire("Calcul repris : corrigez-le et validez.", "e-ok");
       }));
     },
@@ -1033,6 +1114,9 @@
   function valider() {
     const champ = $("#nw-calc");
     if (!champ) return;
+    /* Les colonnes et lignes fantômes d'une matrice ne partent pas au
+       moteur : elles n'étaient là que pour l'agrandir. */
+    normaliser(champ, true);
     const texte = champ.value.trim();
     if (!texte) return;
     /* Un gabarit du clavier téléphone laisse des cases □ à remplir. */
@@ -1040,7 +1124,10 @@
       const p = champ.value.indexOf("□");
       champ.focus();
       try { champ.setSelectionRange(p, p + 1); } catch (e) {}
-      dire("Remplissez d'abord les cases □ : la flèche → passe de l'une à l'autre.", "e-erreur");
+      majSaisie();
+      dire(matricesDe(champ.value).length
+        ? "Une case de la matrice est vide : elle est sélectionnée, tapez sa valeur."
+        : "Remplissez d'abord les cases □ : la flèche → passe de l'une à l'autre.", "e-erreur");
       return;
     }
     const ctx = contexte();
@@ -1081,9 +1168,380 @@
     garder();
     redessiner();
     const neuf = $("#nw-calc");
-    if (neuf) { neuf.value = ""; neuf.focus(); }
+    if (neuf) { neuf.value = ""; neuf.focus(); majSaisie(); }
     if (r.desaccord && window.console)
       console.warn("calculatrice : forme exacte écartée", r.desaccord);
+  }
+
+  /* ═══════════════ 6 bis. La matrice dessinée ═════════════════════════
+     Signalé le 9 nov. 2026, captures de l'émulateur à l'appui : taper
+     « [[a;b];[c;d]] » ne se comprend pas. Sur la machine, « Nouvelle
+     matrice » pose dans la ligne de saisie une matrice DESSINÉE : une case
+     où écrire, une colonne et une ligne fantômes à droite et en dessous,
+     et les flèches qui passent d'une case à l'autre. Écrire dans une case
+     fantôme la fait exister ; une colonne ou une ligne laissée vide
+     disparaît quand on quitte la matrice.
+
+     Le TEXTE reste la référence, « [[1;2];[3;4]] », et c'est lui que lit
+     le moteur. Le champ est toujours là, invisible : il garde le clavier,
+     le copier-coller et l'historique. Une couche le dessine par-dessus,
+     matrices en deux dimensions, ET dessine le curseur, puisque c'est
+     elle qui sait où il tombe (§ 2 : un exposant dessiné au-dessus d'un
+     champ ne suivait pas le curseur ; ici, le curseur est dessiné avec
+     lui). Sans matrice dans la ligne, la couche se retire et la saisie
+     ordinaire reste exactement celle d'avant. */
+  const VIDE = "□";
+
+  /* Une matrice du texte, et la place de chaque case : « d » et « f »
+     bornent le texte de la case, crochets et « ; » exclus. Une case peut
+     contenir des parenthèses, et leurs « ; » : seuls ceux du premier
+     niveau séparent les cases. Rien de reconnaissable, rien de dessiné. */
+  function lireMatrice(t, i) {
+    if (t[i] !== "[" || t[i + 1] !== "[") return null;
+    const lignes = [];
+    let p = i + 1;
+    for (;;) {
+      if (t[p] !== "[") return null;
+      p++;
+      const ligne = [];
+      let d = p, prof = 0;
+      for (;; p++) {
+        if (p >= t.length) return null;
+        const ch = t[p];
+        if (ch === "(" || ch === "[") prof++;
+        else if ((ch === ")" || ch === "]") && prof > 0) prof--;
+        else if (prof === 0 && (ch === ";" || ch === "]")) {
+          ligne.push({ d, f: p });
+          if (ch === "]") break;
+          d = p + 1;
+        }
+      }
+      lignes.push(ligne);
+      p++;
+      if (t[p] === ";") { p++; continue; }
+      if (t[p] === "]") return { d: i, f: p + 1, lignes };
+      return null;
+    }
+  }
+  function matricesDe(t) {
+    const out = [];
+    for (let i = 0; i < t.length - 1; i++) {
+      if (t[i] !== "[" || t[i + 1] !== "[") continue;
+      const m = lireMatrice(t, i);
+      if (m) { out.push(m); i = m.f - 1; }
+    }
+    return out;
+  }
+  const casesDe = (t, m) => m.lignes.map((l) => l.map((k) => t.slice(k.d, k.f)));
+  const texteMatrice = (cases) => "[" + cases.map((l) => "[" + l.join(";") + "]").join(";") + "]";
+  /* La case d'une position, bornes comprises : le curseur est au début ou
+     à la fin du texte de la case. Entre deux crochets, hors de toute case,
+     on rend la matrice seule (cellule nulle). */
+  function caseEn(ms, pos) {
+    for (let k = 0; k < ms.length; k++) {
+      const m = ms[k];
+      if (pos <= m.d || pos >= m.f) continue;
+      for (let r = 0; r < m.lignes.length; r++)
+        for (let c = 0; c < m.lignes[r].length; c++) {
+          const x = m.lignes[r][c];
+          if (pos >= x.d && pos <= x.f) return { k, m, r, c, cell: x };
+        }
+      return { k, m, r: -1, c: -1, cell: null };
+    }
+    return null;
+  }
+  /* Une case vide est sélectionnée en entier : la frappe remplace « □ ».
+     Sinon le curseur se pose au début ou à la fin de son texte. */
+  function viserCase(champ, m, r, c, ou) {
+    const l = m.lignes[Math.min(r, m.lignes.length - 1)];
+    const x = l[Math.min(c, l.length - 1)];
+    if (champ.value.slice(x.d, x.f) === VIDE) champ.setSelectionRange(x.d, x.f);
+    else { const p = ou === "debut" ? x.d : x.f; champ.setSelectionRange(p, p); }
+  }
+  function poserMatrice(champ, m, cases, r, c, ou) {
+    const t = champ.value;
+    champ.value = t.slice(0, m.d) + texteMatrice(cases) + t.slice(m.f);
+    viserCase(champ, lireMatrice(champ.value, m.d), r, c, ou);
+  }
+  /* Les lignes inégales se complètent de cases vides : la grille est
+     toujours rectangulaire, comme sur la machine. */
+  function rectangle(cases) {
+    const C = Math.max.apply(null, cases.map((l) => l.length));
+    return cases.map((l) => l.concat(new Array(C - l.length).fill(VIDE)));
+  }
+
+  /* Remettre le texte d'aplomb après chaque geste :
+       · une case vidée redevient « □ », sélectionnée si le curseur y est ;
+       · une matrice que le curseur a QUITTÉE perd sa dernière colonne et
+         sa dernière ligne si elles sont restées vides : c'est la colonne
+         fantôme dans laquelle on était entré sans rien y écrire.
+     « horsEdition » range toutes les matrices : c'est la validation. */
+  function normaliser(champ, horsEdition) {
+    let t = champ.value;
+    const ms = matricesDe(t);
+    if (!ms.length) return;
+    let d = champ.selectionStart, f = champ.selectionEnd;
+    const ici = horsEdition ? null : caseEn(ms, d);
+    const actif = ici && ici.cell ? ici.k : -1;
+    for (let k = ms.length - 1; k >= 0; k--) {
+      const m = ms[k];
+      let cases = rectangle(casesDe(t, m).map((l) => l.map((s) => (s === "" ? VIDE : s))));
+      if (k !== actif) {
+        const toutVide = (l) => l.every((s) => s === VIDE);
+        while (cases.length > 1 && toutVide(cases[cases.length - 1])) cases.pop();
+        while (cases[0].length > 1 && toutVide(cases.map((l) => l[l.length - 1])))
+          cases = cases.map((l) => l.slice(0, -1));
+      }
+      const neuf = texteMatrice(cases);
+      const ancien = t.slice(m.d, m.f);
+      if (neuf === ancien) continue;
+      t = t.slice(0, m.d) + neuf + t.slice(m.f);
+      const delta = neuf.length - ancien.length;
+      if (k === actif) {
+        const m2 = lireMatrice(t, m.d), x = ici.cell;
+        const y = m2.lignes[ici.r][ici.c];
+        if (t.slice(y.d, y.f) === VIDE) { d = y.d; f = y.f; }
+        else { d = f = y.d + Math.min(d - x.d, y.f - y.d); }
+      } else {
+        const place = (p) => (p >= m.f ? p + delta : p > m.d ? m.d + neuf.length : p);
+        d = place(d); f = place(f);
+      }
+    }
+    if (t !== champ.value) champ.value = t;
+    if (champ.selectionStart !== d || champ.selectionEnd !== f) {
+      try { champ.setSelectionRange(d, f); } catch (e) {}
+    }
+  }
+
+  /* Les flèches dans une matrice. Rend vrai si le geste est pris ici ;
+     faux, et c'est le geste ordinaire du champ. */
+  function naviguer(champ, sens) {
+    const t = champ.value, ms = matricesDe(t);
+    if (!ms.length) return false;
+    const d = champ.selectionStart, f = champ.selectionEnd;
+    const ici = caseEn(ms, d);
+    if (!ici) {
+      // juste devant ou juste derrière une matrice : on y entre
+      if (sens === "droite" && d === f) {
+        const m = ms.find((x) => x.d === d);
+        if (m) { viserCase(champ, m, 0, 0, "debut"); return true; }
+      }
+      if (sens === "gauche" && d === f) {
+        const m = ms.find((x) => x.f === d);
+        if (m) {
+          const r = m.lignes.length - 1;
+          viserCase(champ, m, r, m.lignes[r].length - 1, "fin"); return true;
+        }
+      }
+      return false;
+    }
+    const { m, r, c, cell } = ici;
+    if (!cell) { champ.setSelectionRange(m.f, m.f); return true; }
+    const s = t.slice(cell.d, cell.f);
+    const vide = s === VIDE && d === cell.d && f === cell.f;
+    const cases = rectangle(casesDe(t, m));
+    const R = cases.length, C = cases[0].length;
+    const colVide = (j) => cases.every((l) => l[j] === VIDE);
+    const ligneVide = (i) => cases[i].every((x) => x === VIDE);
+    if (sens === "droite") {
+      if (!vide && (d !== f || d < cell.f)) return false;      // dans le texte de la case
+      if (c + 1 < C) { viserCase(champ, lireMatrice(t, m.d), r, c + 1, "debut"); return true; }
+      // la colonne fantôme : on y entre, et une seconde fois on sort
+      if (C > 1 && colVide(c)) { champ.setSelectionRange(m.f, m.f); return true; }
+      poserMatrice(champ, m, cases.map((l) => l.concat(VIDE)), r, c + 1, "debut");
+      return true;
+    }
+    if (sens === "gauche") {
+      if (!vide && (d !== f || d > cell.d)) return false;
+      if (c > 0) { viserCase(champ, m, r, c - 1, "fin"); return true; }
+      champ.setSelectionRange(m.d, m.d);
+      return true;
+    }
+    if (sens === "haut") {
+      if (r > 0) viserCase(champ, m, r - 1, c, "fin");
+      return true;                    // jamais l'historique depuis une matrice
+    }
+    if (sens === "bas") {
+      if (r + 1 < R) { viserCase(champ, m, r + 1, c, "fin"); return true; }
+      if (R > 1 && ligneVide(r)) return true;     // déjà dans la ligne fantôme
+      poserMatrice(champ, m, cases.concat([new Array(C).fill(VIDE)]), r + 1, c, "fin");
+      return true;
+    }
+    return false;
+  }
+
+  /* L'effacement : dans une case vide ou au début d'une case, il recule
+     d'une case au lieu de manger le « ; » qui la sépare de la voisine ;
+     une matrice entièrement vide disparaît ; juste derrière une matrice,
+     il y entre. Ailleurs, l'effacement ordinaire. */
+  function effacerDansMatrice(champ) {
+    const t = champ.value, ms = matricesDe(t);
+    if (!ms.length) return false;
+    const d = champ.selectionStart, f = champ.selectionEnd;
+    if (d === f) {
+      const m = ms.find((x) => x.f === d);
+      if (m) { const r = m.lignes.length - 1; viserCase(champ, m, r, m.lignes[r].length - 1, "fin"); return true; }
+    }
+    const ici = caseEn(ms, d);
+    if (!ici || !ici.cell) return false;
+    const { m, r, c, cell } = ici;
+    const vide = t.slice(cell.d, cell.f) === VIDE && d === cell.d && f === cell.f;
+    if (!vide && (d !== f || d > cell.d)) return false;
+    if (casesDe(t, m).every((l) => l.every((s) => s === VIDE || s === ""))) {
+      champ.value = t.slice(0, m.d) + t.slice(m.f);
+      champ.setSelectionRange(m.d, m.d);
+      return true;
+    }
+    if (c > 0) viserCase(champ, m, r, c - 1, "fin");
+    else if (r > 0) viserCase(champ, m, r - 1, m.lignes[r - 1].length - 1, "fin");
+    return true;
+  }
+
+  /* « ; » dans une case ne fait pas une case de plus sur une seule ligne :
+     il passe à la case suivante, comme la flèche. Dans les parenthèses
+     d'une fonction (« pgcd(4;6) »), il reste un « ; ». */
+  function pointVirguleDansMatrice(champ) {
+    const t = champ.value, ms = matricesDe(t);
+    const ici = ms.length ? caseEn(ms, champ.selectionStart) : null;
+    if (!ici || !ici.cell) return false;
+    let prof = 0;
+    for (let i = ici.cell.d; i < champ.selectionStart; i++) {
+      if (t[i] === "(" || t[i] === "[") prof++;
+      else if (t[i] === ")" || t[i] === "]") prof--;
+    }
+    if (prof > 0) return false;
+    champ.setSelectionRange(ici.cell.f, ici.cell.f);
+    return naviguer(champ, "droite");
+  }
+
+  /* ── le dessin ────────────────────────────────────────────────────── */
+  const CURSEUR = '<span class="nw-v-car" aria-hidden="true"></span>';
+  function dessinMatrice(t, m, ici, d, f, focus) {
+    const R = m.lignes.length, C = Math.max.apply(null, m.lignes.map((l) => l.length));
+    const fant = !!ici;
+    const CC = C + (fant ? 1 : 0), RR = R + (fant ? 1 : 0);
+    let h = '<span class="nw-m2' + (fant ? " nw-m2-actif" : "") + '" data-m="' + m.d
+      + '" style="--nw-m2-c:' + CC + '">';
+    for (let r = 0; r < RR; r++) for (let c = 0; c < CC; c++) {
+      const x = r < R ? m.lignes[r][c] : null;
+      const pos = ' data-r="' + r + '" data-c="' + c + '"';
+      if (!x) { h += '<span class="nw-m2-k nw-m2-fantome"' + pos + '><i></i></span>'; continue; }
+      const s = t.slice(x.d, x.f);
+      const bornes = pos + ' data-d="' + x.d + '" data-f="' + x.f + '"';
+      if (s === VIDE) {
+        const dedans = focus && d === x.d && f === x.f;
+        h += '<span class="nw-m2-k ' + (dedans ? "nw-m2-ici" : "nw-m2-vide") + '"' + bornes + '>'
+          + (dedans ? CURSEUR : '<i></i>') + '</span>';
+        continue;
+      }
+      h += '<span class="nw-m2-k"' + bornes + '>' + lettres(t, x.d, x.f, d, f, focus)
+        + (focus && d === f && d === x.f ? CURSEUR : "") + '</span>';
+    }
+    return h + '</span>';
+  }
+  function lettres(t, a, b, d, f, focus) {
+    let h = "";
+    for (let i = a; i < b; i++) {
+      if (focus && d === f && i === d) h += CURSEUR;
+      const sel = focus && d !== f && i >= d && i < f;
+      h += '<span class="nw-v' + (sel ? " nw-v-sel" : "") + '" data-p="' + i + '">' + ech(t[i]) + '</span>';
+    }
+    return h;
+  }
+  /* Une entrée de l'historique, ses matrices dessinées : ce qu'on a tapé
+     se relit comme on l'a vu. Sans curseur ni case fantôme. */
+  function saisieDessinee(t) {
+    const ms = matricesDe(t);
+    if (!ms.length) return ech(t);
+    let h = "", p = 0;
+    for (const m of ms) {
+      h += ech(t.slice(p, m.d))
+        + '<span class="nw-m2" style="--nw-m2-c:'
+        + Math.max.apply(null, m.lignes.map((l) => l.length)) + '">'
+        + m.lignes.map((l) => l.map((x) => '<span class="nw-m2-k">'
+            + ech(t.slice(x.d, x.f)) + '</span>').join("")).join("") + '</span>';
+      p = m.f;
+    }
+    return h + ech(t.slice(p));
+  }
+
+  function vueSaisie(champ) {
+    const zone = champ.closest(".nw-saisie-zone");
+    const vue = zone && $(".nw-saisie-vue", zone);
+    if (!vue) return;
+    const t = champ.value, ms = matricesDe(t);
+    zone.classList.toggle("nw-2d", ms.length > 0);
+    if (!ms.length) { if (vue.innerHTML) vue.innerHTML = ""; return; }
+    const focus = document.activeElement === champ;
+    const d = champ.selectionStart, f = champ.selectionEnd;
+    const ici = focus ? caseEn(ms, d) : null;
+    const actif = ici && ici.cell ? ici.k : -1;
+    let h = "", p = 0;
+    ms.forEach((m, k) => {
+      h += lettres(t, p, m.d, d, f, focus);
+      if (focus && d === f && d === m.d) h += CURSEUR;
+      h += dessinMatrice(t, m, k === actif ? ici : null, d, f, focus);
+      p = m.f;
+    });
+    h += lettres(t, p, t.length, d, f, focus);
+    if (focus && d === f && d === t.length) h += CURSEUR;
+    vue.innerHTML = h;
+    // le curseur reste visible quand la ligne est plus longue que l'écran
+    const car = $(".nw-v-car", vue);
+    if (car) {
+      const cr = car.getBoundingClientRect(), vr = vue.getBoundingClientRect();
+      if (cr.right > vr.right - 10) vue.scrollLeft += cr.right - vr.right + 24;
+      else if (cr.left < vr.left + 10) vue.scrollLeft -= vr.left - cr.left + 24;
+    }
+  }
+  /* Après chaque geste : remettre d'aplomb, puis dessiner. */
+  function majSaisie() {
+    const c = $("#nw-calc");
+    if (!c) return;
+    if (document.activeElement === c) normaliser(c);
+    vueSaisie(c);
+  }
+  document.addEventListener("selectionchange", () => {
+    if (document.activeElement && document.activeElement.id === "nw-calc") majSaisie();
+  });
+
+  /* Toucher la couche : le champ reprend le focus, et le curseur va là où
+     l'on a touché. Une case fantôme touchée devient une vraie case. */
+  function toucherVue(e) {
+    const champ = $("#nw-calc");
+    if (!champ) return;
+    e.preventDefault();
+    champ.focus();
+    const t = champ.value;
+    const lettre = e.target.closest("[data-p]");
+    const casee = e.target.closest(".nw-m2-k");
+    const mat = e.target.closest(".nw-m2");
+    if (lettre) {
+      const p = +lettre.dataset.p, r = lettre.getBoundingClientRect();
+      const pos = e.clientX > r.left + r.width / 2 ? p + 1 : p;
+      champ.setSelectionRange(pos, pos);
+    } else if (casee && casee.dataset.d !== undefined) {
+      const a = +casee.dataset.d, b = +casee.dataset.f;
+      if (t.slice(a, b) === VIDE) champ.setSelectionRange(a, b);
+      else champ.setSelectionRange(b, b);
+    } else if (casee && mat) {
+      const m = lireMatrice(t, +mat.dataset.m);
+      if (m) {
+        let cases = rectangle(casesDe(t, m));
+        const r = +casee.dataset.r, c = +casee.dataset.c;
+        if (c >= cases[0].length) cases = cases.map((l) => l.concat(VIDE));
+        if (r >= cases.length) cases = cases.concat([new Array(cases[0].length).fill(VIDE)]);
+        poserMatrice(champ, m, cases, r, c, "fin");
+      }
+    } else if (mat) {
+      // sur un crochet : juste derrière la matrice
+      const m = lireMatrice(t, +mat.dataset.m);
+      const p = m ? m.f : t.length;
+      champ.setSelectionRange(p, p);
+    } else {
+      champ.setSelectionRange(t.length, t.length);
+    }
+    majSaisie();
   }
 
   /* ═══════════════ 7. Fonctions ══════════════════════════════════════
@@ -4185,6 +4643,19 @@
   });
 
   function action(nom) {
+    /* Boîte ouverte sur l'écran : les touches de navigation sont à elle,
+       comme sur la machine. ↑ ↓ choisissent, OK et EXE insèrent, la
+       flèche retour referme. */
+    if (!boite.hidden) {
+      if (nom === "haut" || nom === "bas") { choisirDansBoite(nom === "bas" ? 1 : -1); return; }
+      if (nom === "ok" || nom === "exe") {
+        const b = $$(".nw-boite-item", boiteListe)[boiteChoix];
+        if (b) insererDepuisBoite(b);
+        return;
+      }
+      if (nom === "retour" || nom === "gauche") { ouvrirBoite(false); return; }
+      if (nom === "accueil") ouvrirBoite(false);
+    }
     switch (nom) {
       case "accueil": case "retour": aller("accueil"); return;
       case "maj": maj = !maj; alpha = false; dessinerClavier(); return;
@@ -4227,6 +4698,27 @@
       else if (sens === "droite") bougerCurseur(1);
       return;
     }
+    /* Dans Calculs, les flèches dessinées font ce que font celles du
+       clavier : elles promènent le curseur, de case en case dans une
+       matrice, et ↑ ↓ rappellent l'historique hors de toute matrice. */
+    const c = courante === "calculs" && !duClavierPhysique ? $("#nw-calc") : null;
+    if (c) {
+      c.focus();
+      if (naviguer(c, sens)) { majSaisie(); return; }
+      if (sens === "gauche" || sens === "droite") {
+        const p = sens === "gauche"
+          ? (c.selectionStart === c.selectionEnd ? Math.max(0, c.selectionStart - 1) : c.selectionStart)
+          : (c.selectionStart === c.selectionEnd ? Math.min(c.value.length, c.selectionEnd + 1) : c.selectionEnd);
+        c.setSelectionRange(p, p);
+      } else if (ETAT.historique.length) {
+        if (sens === "haut") rappel = rappel < 0 ? ETAT.historique.length - 1 : Math.max(0, rappel - 1);
+        else if (rappel >= 0) rappel++;
+        if (rappel >= ETAT.historique.length) { rappel = -1; c.value = ""; }
+        else if (rappel >= 0) c.value = ETAT.historique[rappel].entree;
+        c.setSelectionRange(c.value.length, c.value.length);
+      }
+      majSaisie();
+    }
   }
 
   /* ── les boutons du châssis ──────────────────────────────────────── */
@@ -4234,18 +4726,46 @@
   $("#nw-catalogue").addEventListener("click", () => ouvrirBoite(boite.hidden));
   $("#nw-reglages").addEventListener("click", () => aller("reglages"));
   $("#nw-boite-fermer").addEventListener("click", () => ouvrirBoite(false));
-  $("#nw-boite-filtre").addEventListener("input", (e) => dessinerBoite(e.target.value));
+  $("#nw-boite-filtre").addEventListener("input", (e) => { boiteChoix = 0; dessinerBoite(e.target.value); boiteListe.scrollTop = 0; });
   boiteListe.addEventListener("mousedown", (e) => {
     if (e.target.closest(".nw-boite-item")) e.preventDefault();
   });
   boiteListe.addEventListener("click", (e) => {
     const b = e.target.closest(".nw-boite-item");
-    if (!b) return;
-    if (courante === "accueil") aller("calculs");
-    inserer(b.dataset.ins);
-    if (tel) { ouvrirBoite(false); dire("Inséré.", "e-ok"); return; }
-    dire("Inséré. La boîte reste ouverte pour en ajouter d'autres.", "e-ok");
+    if (b) insererDepuisBoite(b);
   });
+  /* Dans la recherche, ↑ ↓ choisissent l'entrée et Entrée l'insère : la
+     main ne quitte pas le clavier. */
+  $("#nw-boite-filtre").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault(); choisirDansBoite(e.key === "ArrowDown" ? 1 : -1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const b = $$(".nw-boite-item", boiteListe)[boiteChoix];
+      if (b) insererDepuisBoite(b);
+    }
+  });
+  /* La machine referme sa boîte une fois la fonction choisie : posée sur
+     l'écran, ouverte, elle cacherait la ligne où la fonction vient
+     d'arriver. */
+  function insererDepuisBoite(b) {
+    if (courante === "accueil") aller("calculs");
+    const matrice = b.dataset.ins.indexOf("[[") === 0;
+    /* Une matrice ne se pose que dans la ligne de Calculs, la seule qui la
+       dessine. Ailleurs, on y va d'abord. */
+    if (matrice && courante !== "calculs") aller("calculs");
+    inserer(b.dataset.ins);
+    if (matrice) {
+      majSaisie();
+      // au téléphone, l'onglet Matrices : le pavé, et ↑ ↓ pour changer de ligne
+      if (tel) { telCat = "matrices"; telAbc = false; dessinerClavierTel(); }
+      ouvrirBoite(false);
+      dire("Écrivez dans la case, puis → pour la case suivante et ↓ pour une nouvelle ligne.", "e-ok");
+      return;
+    }
+    ouvrirBoite(false);
+    dire("Inséré.", "e-ok");
+  }
 
   const bPlein = $("#nw-plein");
   bPlein.addEventListener("click", () => {
@@ -4348,6 +4868,15 @@
                     + '<path d="M12 7.6V12l3 2"/>');
   const I_FG = ICO('<path d="M14.5 5.5 8 12l6.5 6.5"/>');
   const I_FD = ICO('<path d="M9.5 5.5 16 12l-6.5 6.5"/>');
+  const I_FH = ICO('<path d="M5.5 14.5 12 8l6.5 6.5"/>');
+  const I_FB = ICO('<path d="M5.5 9.5 12 16l6.5-6.5"/>');
+  /* La nouvelle matrice : deux crochets et quatre cases, comme l'entrée de
+     la boîte à outils de la machine. */
+  const I_MAT = ICO('<path d="M6.5 4H4v16h2.5M17.5 4H20v16h-2.5"/>'
+    + '<rect x="7.4" y="7" width="3.6" height="3.6" rx=".7" fill="currentColor" stroke="none"/>'
+    + '<rect x="13" y="7" width="3.6" height="3.6" rx=".7" fill="currentColor" stroke="none"/>'
+    + '<rect x="7.4" y="13.4" width="3.6" height="3.6" rx=".7" fill="currentColor" stroke="none"/>'
+    + '<rect x="13" y="13.4" width="3.6" height="3.6" rx=".7" fill="currentColor" stroke="none"/>');
   const I_ENTREE = ICO('<path d="M19.5 5v6.5a2 2 0 0 1-2 2H5.5"/><path d="m9.5 9.5-4 4 4 4"/>');
   const I_CLAVIER = ICO('<rect x="2.8" y="6" width="18.4" height="12" rx="2"/>'
                       + '<path d="M6.4 9.6h.01M10.1 9.6h.01M13.9 9.6h.01M17.6 9.6h.01M7.6 14.4h8.8"/>');
@@ -4417,6 +4946,14 @@
       { i: "variance(", t: "V", s2: "variance" }, { i: "mediane(", t: "Me", s2: "médiane" },
       { i: "aleaEntier(□;□)", t: "alea", s: "aleaEntier(", s2: "entier" },
       { i: "[", t: "[" }, { i: "]", t: "]" }, { i: ";", t: ";" }] },
+    /* Les matrices gardent le pavé : une matrice se remplit de nombres, et
+       ↑ ↓ ne sont pas dans la rangée d'outils, où ← → suffisent ailleurs. */
+    { id: "matrices", l1: "[ ]", l2: "det A⁻¹", nom: "Matrices et vecteurs", pave: true, t: [
+      { i: "[[□]]", svg: I_MAT, aide: "Nouvelle matrice ou vecteur" }, { i: "det(", t: "det" },
+      { a: "haut", svg: I_FH, aide: "Case du dessus", rep: 1 },
+      { a: "bas", svg: I_FB, aide: "Case du dessous, ou nouvelle ligne", rep: 1 },
+      { i: "inverse(", t: "A⁻¹", aide: "Matrice inverse" }, { i: "transposee(", t: "ᵗA", aide: "Transposée" },
+      { i: "identite(", t: "Iₙ", aide: "Matrice identité" }, { i: "→", t: "→", aide: "Ranger : …→A" }] },
   ];
   /* Le pavé : il ne bouge JAMAIS d'un onglet à l'autre. C'est ce qui fait
      qu'on tape un nombre sans regarder. */
@@ -4626,6 +5163,14 @@
        · un gabarit à cases sélectionne sa première case □, et dit sa
          syntaxe dans la ligne d'état. */
   function telInserer(txt, syn) {
+    /* La nouvelle matrice : seule la ligne de Calculs la dessine. */
+    if (txt.indexOf("[[") === 0) {
+      if (courante !== "calculs") aller("calculs");
+      inserer(txt);
+      majSaisie();
+      dire("Écrivez dans la case, puis → pour la case suivante et ↓ pour une nouvelle ligne.", "e-ok");
+      return;
+    }
     const c = champActif();
     const texte = c && (c.tagName === "INPUT" || c.tagName === "TEXTAREA");
     if (texte && txt === ")" && c.selectionStart === c.selectionEnd
@@ -4668,6 +5213,7 @@
       fleche(sens > 0 ? "droite" : "gauche", false); return;
     }
     c.focus();
+    if (c.id === "nw-calc" && naviguer(c, sens > 0 ? "droite" : "gauche")) { majSaisie(); return; }
     if (sens > 0) {
       const p = c.value.indexOf(CASE, c.selectionEnd);
       if (p >= 0) { c.setSelectionRange(p, p + 1); return; }
@@ -4711,6 +5257,12 @@
       case "rappel": telRappel(); return;
       case "gauche": telDeplacer(-1); return;
       case "droite": telDeplacer(1); return;
+      case "haut": case "bas": {
+        const c = courante === "calculs" ? $("#nw-calc") : null;
+        if (c) { c.focus(); if (naviguer(c, a)) { majSaisie(); return; } }
+        dire("↑ et ↓ passent d'une ligne à l'autre d'une matrice : placez d'abord le curseur dedans.", "");
+        return;
+      }
       case "eff": effacer(); return;
       case "boite": ouvrirBoite(boite.hidden); return;
       case "exe": action("exe"); return;
