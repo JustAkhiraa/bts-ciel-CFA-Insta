@@ -1731,6 +1731,66 @@
     toucher(n);
     return n;
   }
+  /* Une forme de l'outil Formes (rectangle, ellipse, losange) devient, au
+     premier coup de gomme partielle, ce qu'elle est à l'écran : un fond (une
+     surface remplie) et un contour (un trait de même épaisseur), qui se
+     coupent ensuite comme le reste. Signalé le 9 nov. 2026 : la gomme ne
+     touchait pas les rectangles. Restent entiers : les post-its et les
+     formes qui portent un texte, les fonds hachurés et les contours en
+     tirets, qui n'ont pas d'équivalent en trait libre. */
+  function contourForme(el) {
+    const w = el.width || 0, h = el.height || 0;
+    if (el.type === "ellipse") {
+      const out = [];
+      for (let k = 0; k < 64; k++) { const t = k * Math.PI / 32; out.push([w / 2 + (w / 2) * Math.cos(t), h / 2 + (h / 2) * Math.sin(t)]); }
+      return out;
+    }
+    if (el.type === "diamond") return [[w / 2, 0], [w, h / 2], [w / 2, h], [0, h / 2]];
+    const ra = R.rayonAngle(el, Math.min(w, h));
+    if (!ra) return [[0, 0], [w, 0], [w, h], [0, h]];
+    const out = [];
+    [[w - ra, ra, -Math.PI / 2], [w - ra, h - ra, 0], [ra, h - ra, Math.PI / 2], [ra, ra, Math.PI]].forEach(([cx, cy, t0]) => {
+      for (let k = 0; k <= 6; k++) { const t = t0 + k * Math.PI / 12; out.push([cx + ra * Math.cos(t), cy + ra * Math.sin(t)]); }
+    });
+    return out;
+  }
+  function densifier(P, pas) {
+    const Q = P.concat([P[0]]), out = [];
+    for (let i = 0; i + 1 < Q.length; i++) {
+      const u = Q[i], v = Q[i + 1], n = Math.max(1, Math.ceil(Math.hypot(v[0] - u[0], v[1] - u[1]) / pas));
+      for (let k = 0; k < n; k++) out.push([u[0] + (v[0] - u[0]) * k / n, u[1] + (v[1] - u[1]) * k / n]);
+    }
+    out.push([Q[Q.length - 1][0], Q[Q.length - 1][1]]);
+    return out;
+  }
+  function formeEnLibre(el) {
+    if (!/^(rectangle|ellipse|diamond)$/.test(el.type) || el.locked || estPostit(el)) return null;
+    if ((el.boundElements || []).some((x) => x.type === "text")) return null;
+    const plein = el.backgroundColor && el.backgroundColor !== "transparent";
+    if (plein && el.fillStyle && el.fillStyle !== "solid") return null;
+    const trait = el.strokeColor && el.strokeColor !== "transparent" && (el.strokeWidth || 0) > 0;
+    if (trait && el.strokeStyle && el.strokeStyle !== "solid") return null;
+    if (!plein && !trait) return null;
+    const C = contourForme(el), out = [];
+    const libre = (points, extra) => {
+      const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), type: "freedraw", points,
+        simulatePressure: false, lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
+        boundElements: null }, extra);
+      const bb = R.boite(n); n.width = bb.w; n.height = bb.h;
+      toucher(n);
+      return n;
+    };
+    if (plein) out.push(libre(C, { strokeColor: el.backgroundColor, pressures: C.map(() => 0.5),
+                                   customData: { pointe: "remplissage", net: true } }));
+    if (trait) {
+      // la même épaisseur qu'à l'écran : demi-largeur = base × (0,4 + 0,9 p)
+      const sw = el.strokeWidth || 1, ep = Math.max(0.6, sw * 0.31), base = ep * 1.9;
+      const p = Math.max(0, Math.min(1, (sw / 2 / base - 0.4) / 0.9));
+      const D = densifier(C, 4);
+      out.push(libre(D, { strokeWidth: ep, pressures: D.map(() => p), customData: { lisse: true } }));
+    }
+    return out;
+  }
   function gommerPartie(g, a, b) {
     const r = etat.gommeTaille / etat.zoom;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.5)));
@@ -1738,6 +1798,16 @@
       const c = [a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n];
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
+        if (/^(rectangle|ellipse|diamond)$/.test(el.type) && !el.locked) {
+          if (!R.touche(el, c[0], c[1], r)) continue;
+          const libres = formeEnLibre(el);
+          if (!libres) continue;
+          elements.splice(i, 1, ...libres);
+          selection.delete(el.id);
+          g.coupes = g.encre = true;
+          i += libres.length;              // ses deux morceaux passent sous la gomme dès ce pas
+          continue;
+        }
         if (el.type !== "freedraw" || el.locked) continue;
         /* Une surface remplie n'est pas un trait : la gomme y découpe un
            ROND, par la même découpe de surface que le lasso (signalé le

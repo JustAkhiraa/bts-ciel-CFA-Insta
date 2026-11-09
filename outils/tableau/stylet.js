@@ -306,10 +306,19 @@
         insS[i].push(vs); insC[j].push(vc); nb++;
       }
     }
+    /* Sans croisement, l'un est dans l'autre, ou ils sont à part. On le
+       décide sur un point bien À L'INTÉRIEUR, jamais sur un sommet : la gomme
+       repasse souvent par le même rond, et le bord du morceau EST alors ce
+       rond ; un sommet posé dessus est dedans ou dehors au hasard. Testé sur
+       le premier sommet, un morceau entier passait pour « dans la gomme » et
+       disparaissait (signalé le 9 nov. : les fonds des rectangles gommés). */
     if (!nb) {
-      if (dansPolygone(S[0], C)) return { dedans: [S], dehors: [] };
-      if (dansPolygone(C[0], S)) return { dedans: [C], dehors: [avecTrou(S, C)] };
-      return { dedans: [], dehors: [S] };
+      const marge = 1e-4 * echelle;
+      const sc = cote(S, C, marge);
+      const res = sc >= 0 ? { dedans: [S], dehors: [] }
+        : cote(C, S, marge) > 0 ? { dedans: [C], dehors: [avecTrou(S, C)] }
+        : { dedans: [], dehors: [S] };
+      return verifierCoupe(S, C, res, x0, y0, x1, y1, precision);
     }
     if (nb % 2) return null;
     const inserer = (lst, ins) => {
@@ -352,21 +361,74 @@
     };
     const dedans = parcourir(false), dehors = parcourir(true);
     if (!dedans || !dehors) return null;
-    // la vérification : 48 × 48 points sur la boîte de la forme (moins pour
-    // la gomme, qui coupe à chaque pas du geste)
-    let faux = 0, total = 0;
-    const N = precision || 48;
+    return verifierCoupe(S, C, { dedans, dehors }, x0, y0, x1, y1, precision);
+  }
+  /* De quel côté de Q est le contour de P, quand ils ne se croisent pas ?
+     On regarde les sommets de P et le milieu de ses côtés, en écartant ceux
+     qui touchent le bord de Q : +1 dedans, −1 dehors, 0 s'ils le touchent
+     tous (P suit exactement le bord de Q). */
+  function cote(P, Q, marge) {
+    const loin = (q) => {
+      for (let k = 0, l = Q.length - 1; k < Q.length; l = k++) {
+        const [ax, ay] = Q[l], [bx, by] = Q[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        if (Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy) <= marge) return false;
+      }
+      return true;
+    };
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], b = P[(i + 1) % P.length];
+      for (const q of [a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]]) {
+        if (loin(q)) return dansPolygone(q, Q) ? 1 : -1;
+      }
+    }
+    return 0;
+  }
+  // un point loin des bords : le meilleur d'une grille de 9 × 9 dans la boîte
+  function pointInterieur(P) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    P.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    let mieux = null, dm = -1;
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / 9, y0 + (y1 - y0) * (j + 0.5) / 9];
+      if (!dansPolygone(q, P)) continue;
+      let d = Infinity;
+      for (let k = 0, l = P.length - 1; k < P.length; l = k++) {
+        const [ax, ay] = P[l], [bx, by] = P[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        d = Math.min(d, Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy));
+      }
+      if (d > dm) { dm = d; mieux = q; }
+    }
+    return mieux || P[0];
+  }
+  // la vérification : N × N points sur la boîte de la forme (48, ou 20 pour la
+  // gomme, qui coupe à chaque pas du geste). Les points qui tombent à moins
+  // d'un millième de la boîte d'un bord de la boucle ne votent pas : là, dedans
+  // et dehors ne se distinguent pas.
+  function verifierCoupe(S, C, res, x0, y0, x1, y1, precision) {
+    const N = precision || 48, marge = 1e-3 * Math.max(x1 - x0, y1 - y0, 1);
     const dansUn = (q, L) => L.some((P) => dansPolygone(q, P));
+    const presDuBord = (q) => {
+      for (let k = 0, l = C.length - 1; k < C.length; l = k++) {
+        const [ax, ay] = C[l], [bx, by] = C[k], vx = bx - ax, vy = by - ay;
+        const t = Math.max(0, Math.min(1, ((q[0] - ax) * vx + (q[1] - ay) * vy) / ((vx * vx + vy * vy) || 1)));
+        if (Math.hypot(q[0] - ax - t * vx, q[1] - ay - t * vy) < marge) return true;
+      }
+      return false;
+    };
+    let faux = 0, total = 0;
     for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
       const q = [x0 + (x1 - x0) * (i + 0.5) / N, y0 + (y1 - y0) * (j + 0.5) / N];
-      const dansS = dansPolygone(q, S);
-      if (!dansS && !dansUn(q, dedans) && !dansUn(q, dehors)) continue;
+      const dansS = dansPolygone(q, S), dd = dansUn(q, res.dedans), dh = dansUn(q, res.dehors);
+      if (!dansS && !dd && !dh) continue;
+      if (presDuBord(q)) continue;
       total++;
       const dansC = dansPolygone(q, C);
-      if (dansUn(q, dedans) !== (dansS && dansC) || dansUn(q, dehors) !== (dansS && !dansC)) faux++;
+      if (dd !== (dansS && dansC) || dh !== (dansS && !dansC)) faux++;
     }
-    if (!total || faux > total * 0.01) return null;
-    return { dedans, dehors };
+    if (total && faux > total * 0.01) return null;
+    return res;
   }
 
   /* ── une forme tracée à la main qui se croise elle-même ──────────────
