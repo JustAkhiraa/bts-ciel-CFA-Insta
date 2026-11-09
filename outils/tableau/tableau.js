@@ -1552,6 +1552,31 @@
         coupes++;
         continue;
       }
+      /* Une forme remplie au seau se coupe en SURFACES (signalé le 9 nov. :
+         le lasso la prenait entière ou pas du tout). Le contour peint est
+         découpé par la boucle ; si la découpe ne se vérifie pas (une forme
+         qui se croise elle-même), on garde l'ancienne règle. */
+      if (el.type === "freedraw" && !el.locked && el.customData && el.customData.pointe === "remplissage"
+          && el.points && el.points.length > 2) {
+        const r = S.couperSurface(R.contourRemplissage(el), loc());
+        if (r && r.dedans.length && r.dehors.length) {
+          const piece = (P) => {
+            const n = morceau(el, bb, { points: P, pressions: P.map(() => 0.5) });
+            n.customData = Object.assign({}, n.customData, { net: true });
+            return n;
+          };
+          const dedans = r.dedans.map(piece), dehors = r.dehors.map(piece);
+          dedans.forEach((n) => pris.add(n.id));
+          elements.splice(i, 1, ...dehors, ...dedans);
+          selection.delete(el.id);
+          coupes++;
+          continue;
+        }
+        if (r && r.dedans.length) { pris.add(el.id); continue; }
+        if (r) continue;
+        if (S.pris(echantillon(el), poly)) pris.add(el.id);
+        continue;
+      }
       if (el.type === "image" && !el.locked) {
         const r = couperImage(el, bb, loc());
         if (r === "entier") pris.add(el.id);

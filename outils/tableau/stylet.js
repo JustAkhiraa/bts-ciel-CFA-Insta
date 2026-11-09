@@ -222,6 +222,151 @@
     return pts.map(([x, y]) => [cx + (x - cx) * co - (y - cy) * si, cy + (x - cx) * si + (y - cy) * co]);
   }
 
+  /* ── découper une SURFACE par la boucle du lasso ───────────────────────
+     Signalé le 9 nov. 2026 : le lasso ne coupait pas les formes remplies
+     au seau (il les prenait entières ou pas du tout). Un trait se coupe en
+     morceaux de ligne ; une surface, elle, se coupe en surfaces : ce qui
+     est dans la boucle (S ∩ C) et ce qui reste (S − C).
+
+     L'algorithme est celui de Greiner et Hormann : on pose les points où
+     les deux contours se croisent, on marque à chacun si le contour de la
+     forme y entre dans la boucle ou en sort, puis on suit les contours en
+     changeant de l'un à l'autre à chaque croisement. Un sommet posé
+     exactement sur l'autre contour le met en défaut : la boucle est donc
+     décalée d'un dix-millionième, ce que l'œil ne voit pas.
+
+     Et le résultat est VÉRIFIÉ avant d'être rendu : sur une grille de
+     points, chacun doit être dans l'intérieur s'il est dans la forme ET la
+     boucle, dans le reste s'il est dans la forme et hors de la boucle. Une
+     forme qui se croise elle-même (un « 8 » au seau) n'a pas de dedans
+     bien défini pour cet algorithme : la vérification le voit, et la
+     fonction rend null. L'appelant revient alors à l'ancienne règle. */
+  function aireSignee(P) {
+    let a = 0;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) a += P[j][0] * P[i][1] - P[i][0] * P[j][1];
+    return a / 2;
+  }
+  function nettoyerContour(P) {
+    const out = [];
+    for (const p of P) {
+      const q = out[out.length - 1];
+      if (!q || Math.abs(q[0] - p[0]) > 1e-9 || Math.abs(q[1] - p[1]) > 1e-9) out.push([p[0], p[1]]);
+    }
+    while (out.length > 1 && Math.abs(out[0][0] - out[out.length - 1][0]) < 1e-9
+           && Math.abs(out[0][1] - out[out.length - 1][1]) < 1e-9) out.pop();
+    return out;
+  }
+  // un trou : l'anneau intérieur, dans l'autre sens, relié au contour par
+  // un pont aller-retour (rempli en « nonzero » comme en « evenodd », le
+  // trou reste vide)
+  function avecTrou(S, C) {
+    const T = (aireSignee(S) > 0) === (aireSignee(C) > 0) ? C.slice().reverse() : C.slice();
+    let bi = 0, bj = 0, bd = Infinity;
+    for (let i = 0; i < S.length; i++) for (let j = 0; j < T.length; j++) {
+      const d = (S[i][0] - T[j][0]) ** 2 + (S[i][1] - T[j][1]) ** 2;
+      if (d < bd) { bd = d; bi = i; bj = j; }
+    }
+    const out = [];
+    for (let k = 0; k <= S.length; k++) out.push(S[(bi + k) % S.length]);
+    for (let k = 0; k <= T.length; k++) out.push(T[(bj + k) % T.length]);
+    return out;
+  }
+  function couperSurface(S0, C0) {
+    const S = nettoyerContour(S0), C = nettoyerContour(C0);
+    if (S.length < 3 || C.length < 3) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+    const echelle = Math.max(x1 - x0, y1 - y0, 1);
+    // le décalage d'un dix-millionième, le même à chaque fois (pas de hasard)
+    C.forEach((p, i) => {
+      const h = Math.sin((i + 1) * 12.9898) * 43758.5453, k = h - Math.floor(h);
+      p[0] += (k - 0.5) * 2e-7 * echelle; p[1] += (0.5 - k) * 1.3e-7 * echelle;
+    });
+    const noeud = (x, y) => ({ x, y, suiv: null, prec: null, inter: false, voisin: null, entree: false, alpha: 0, vu: false });
+    const liste = (P) => {
+      const n = P.map((p) => noeud(p[0], p[1]));
+      n.forEach((v, i) => { v.suiv = n[(i + 1) % n.length]; v.prec = n[(i - 1 + n.length) % n.length]; });
+      return n;
+    };
+    const ls = liste(S), lc = liste(C);
+    const insS = S.map(() => []), insC = C.map(() => []);
+    let nb = 0;
+    for (let i = 0; i < S.length; i++) {
+      const a = S[i], b = S[(i + 1) % S.length];
+      for (let j = 0; j < C.length; j++) {
+        const c = C[j], d = C[(j + 1) % C.length];
+        const den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0]);
+        if (den === 0) continue;
+        const t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den;
+        const u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den;
+        if (t <= 0 || t >= 1 || u <= 0 || u >= 1) continue;
+        const x = a[0] + t * (b[0] - a[0]), y = a[1] + t * (b[1] - a[1]);
+        const vs = noeud(x, y), vc = noeud(x, y);
+        vs.inter = vc.inter = true; vs.voisin = vc; vc.voisin = vs; vs.alpha = t; vc.alpha = u;
+        insS[i].push(vs); insC[j].push(vc); nb++;
+      }
+    }
+    if (!nb) {
+      if (dansPolygone(S[0], C)) return { dedans: [S], dehors: [] };
+      if (dansPolygone(C[0], S)) return { dedans: [C], dehors: [avecTrou(S, C)] };
+      return { dedans: [], dehors: [S] };
+    }
+    if (nb % 2) return null;
+    const inserer = (lst, ins) => {
+      for (let i = 0; i < lst.length; i++) {
+        const suivant = lst[(i + 1) % lst.length];
+        let avant = lst[i];
+        for (const v of ins[i].sort((p, q) => p.alpha - q.alpha)) {
+          v.prec = avant; v.suiv = suivant; avant.suiv = v; suivant.prec = v; avant = v;
+        }
+      }
+    };
+    inserer(ls, insS); inserer(lc, insC);
+    const marquer = (debut, autre, inverser) => {
+      let dedans = dansPolygone([debut.x, debut.y], autre), v = debut;
+      do { if (v.inter) { v.entree = inverser ? dedans : !dedans; dedans = !dedans; } v = v.suiv; } while (v !== debut);
+    };
+    const parcourir = (difference) => {
+      const tous = [];
+      let v = ls[0];
+      do { if (v.inter) tous.push(v); v.vu = false; if (v.voisin) v.voisin.vu = false; v = v.suiv; } while (v !== ls[0]);
+      // S − C : la forme suivie hors de la boucle, donc ses marques inversées
+      marquer(ls[0], C, difference);
+      marquer(lc[0], S, false);
+      const out = [];
+      for (const depart of tous) {
+        if (depart.vu) continue;
+        const poly = [[depart.x, depart.y]];
+        let cur = depart, garde = 0;
+        do {
+          cur.vu = true; cur.voisin.vu = true;
+          if (cur.entree) { do { cur = cur.suiv; poly.push([cur.x, cur.y]); } while (!cur.inter); }
+          else { do { cur = cur.prec; poly.push([cur.x, cur.y]); } while (!cur.inter); }
+          cur = cur.voisin;
+          if (++garde > 4 * (S.length + C.length + nb)) return null;
+        } while (!cur.vu);
+        const net = nettoyerContour(poly);
+        if (net.length >= 3 && Math.abs(aireSignee(net)) > 1e-9 * echelle * echelle) out.push(net);
+      }
+      return out;
+    };
+    const dedans = parcourir(false), dehors = parcourir(true);
+    if (!dedans || !dehors) return null;
+    // la vérification : 48 × 48 points sur la boîte de la forme
+    let faux = 0, total = 0;
+    const dansUn = (q, L) => L.some((P) => dansPolygone(q, P));
+    for (let i = 0; i < 48; i++) for (let j = 0; j < 48; j++) {
+      const q = [x0 + (x1 - x0) * (i + 0.5) / 48, y0 + (y1 - y0) * (j + 0.5) / 48];
+      const dansS = dansPolygone(q, S);
+      if (!dansS && !dansUn(q, dedans) && !dansUn(q, dehors)) continue;
+      total++;
+      const dansC = dansPolygone(q, C);
+      if (dansUn(q, dedans) !== (dansS && dansC) || dansUn(q, dehors) !== (dansS && !dansC)) faux++;
+    }
+    if (!total || faux > total * 0.01) return null;
+    return { dedans, dehors };
+  }
+
   /* Un élément est pris si la plus grande part de ses points l'est — un
      trait qui dépasse un peu du lasso est quand même celui qu'on entourait. */
   function pris(points, poly, part) {
@@ -564,7 +709,7 @@
   }
 
   const API = { reconnaitreForme, simplifier, bordsRegle, bordProche, projeter, dansRegle,
-                dansPolygone, pris, jalons, grille, tourner, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
+                dansPolygone, pris, jalons, grille, tourner, couperSurface, aireSignee, decouper, gommer, decouperPolygone, lireSymbole, lireEcriture, grouperEnSymboles,
                 normaliser, signature, longueur, boite, MODELES_BASE };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   else racine.TB_STYLET = API;
