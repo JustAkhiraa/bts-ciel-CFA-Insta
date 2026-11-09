@@ -4802,6 +4802,27 @@
   pile = [JSON.stringify(elements)]; curseurPile = 0;
   majHistorique();
   new ResizeObserver(() => demander()).observe(toile);
+  /* Au téléphone, les îlots se placent d'après la taille RÉELLE de leurs
+     voisins (signalé le 9 nov. 2026, capture d'un iPhone à l'appui) :
+       · le zoom était posé à 62 px du bas, et la barre d'encrage, passée
+         à deux rangées avec les cinq stylos, en mesure près de 90 : elle
+         le recouvrait. « --tb-bas » est sa hauteur, nulle si elle est
+         rangée ;
+       · le titre et le coin droit se recouvraient dès que le texte était
+         agrandi : « --tb-hd-l » est la largeur du coin droit, que le coin
+         gauche laisse libre.
+     Mesurer plutôt que deviner : la barre passe d'une rangée à deux selon
+     la largeur, la taille du texte et les outils affichés. */
+  {
+    const encrage = $("#tb-encrage"), coinDroit = $(".tb-hd");
+    const poser = () => {
+      scene.style.setProperty("--tb-bas", (encrage.hidden ? 0 : encrage.offsetHeight + 8) + "px");
+      scene.style.setProperty("--tb-hd-l", coinDroit.offsetWidth + "px");
+    };
+    const ro = new ResizeObserver(poser);
+    ro.observe(encrage); ro.observe(coinDroit); ro.observe(scene);
+    poser();
+  }
   if (!elements.length && !etat.scrollX && !etat.scrollY) {
     etat.scrollX = toile.clientWidth / 2; etat.scrollY = toile.clientHeight / 2;
   }

@@ -10666,10 +10666,18 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   .tb-encrage { flex-wrap: wrap; max-width: calc(100% - 20px); }
   .tb-lecture { width: calc(100% - 20px); }
   .tb-reglage-stylo { top: auto; bottom: calc(100% + 8px); }
-  .tb-bd { bottom: 62px; }
+  /* Au-dessus de la barre d'encrage, quelle que soit sa hauteur (« --tb-bas »,
+     mesurée par tableau.js) : à 62 px fixes, le zoom passait dessous dès
+     qu'elle prenait deux rangées. */
+  .tb-bd { bottom: calc(10px + var(--tb-bas, 52px)); }
   .tb-cote { top: 60px; transform: none; }
-  .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: 116px; z-index: 6; }
-  .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: 62px; max-height: 45%; }
+  .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: calc(10px + var(--tb-bas, 52px) + 54px); z-index: 6; }
+  .tb-props { left: 10px; right: 10px; width: auto; top: auto; bottom: calc(10px + var(--tb-bas, 52px)); max-height: 45%; }
+  /* Le titre laisse la place au coin droit (« --tb-hd-l », mesurée) et
+     rétrécit au lieu de passer dessous ; les deux flèches restent entières. */
+  .tb-hg { max-width: calc(100% - 28px - var(--tb-hd-l, 140px)); }
+  .tb-hg .tb-titre { width: auto; flex: 1 1 7.5rem; min-width: 2.5rem; }
+  .tb-hg .tb-groupe { flex: none; }
   .tb-a-droite .tb-props { left: 10px; }
 }
 
@@ -11225,6 +11233,47 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   html.coquille .chapitre .liens a:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: none; }
+
+/* ══════════════════════════════════ le mouvement, au téléphone
+   Demandé le 9 nov. 2026 : un site plus dynamique, surtout au téléphone.
+   Ce qui manquait le plus, c'était le passage d'une page à l'autre :
+   chaque lien rechargeait l'écran d'un bloc, comme un site et non comme
+   une appli. Le navigateur sait faire glisser une page sur la suivante
+   (« @view-transition », sans une ligne de script) : la barre du haut et
+   celle du bas RESTENT en place, le contenu monte en fondu, et l'onglet
+   Cours · Exercices · Fiche · QCM glisse jusqu'au nouvel onglet.
+
+   La règle « @view-transition » n'est PAS ici : le script d'en-tête la
+   pose (publier.py, GARDE_TRANSITION), au téléphone seulement, hors d'un
+   cadre, animations allumées et sans demande de moins de mouvement. Une
+   feuille de style ne sait pas lire ces deux réglages-là. Ce qui suit ne
+   fait que dessiner la transition quand elle a lieu. Un navigateur qui ne
+   la connaît pas l'ignore, et la page s'ouvre comme avant. */
+html.coquille .tel-tete { view-transition-name: tel-tete; }
+html.coquille .tel-barre { view-transition-name: tel-barre; }
+html.coquille .tel-segments { view-transition-name: tel-segments; }
+html.coquille .tel-segments a[aria-current="page"] { view-transition-name: tel-segment; }
+::view-transition-old(root) { animation: 130ms ease-in both vt-sort; }
+::view-transition-new(root) { animation: 300ms cubic-bezier(.2, .8, .2, 1) 30ms both vt-entre; }
+::view-transition-group(tel-segment) { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+@keyframes vt-sort { to { opacity: 0; transform: translateY(-6px); } }
+@keyframes vt-entre { from { opacity: 0; transform: translateY(16px); } }
+html[data-anim="0"]::view-transition-group(*),
+html[data-anim="0"]::view-transition-old(*),
+html[data-anim="0"]::view-transition-new(*) { animation: none !important; }
+
+/* Un retour au toucher là où il manquait encore : l'onglet, les cartes de
+   l'accueil, les pastilles. Un enfoncement de quelques pour cent, rendu
+   en 150 ms : la main sait que le geste a été pris avant que la page
+   change. */
+@media (max-width: 760px) {
+  html.coquille :is(.tel-segments a, .tel-carte, .tel-pastille, .tel-voir, .blanc-tuile, .chapitre .liens a) {
+    transition: transform .15s ease-out, background-color .15s ease-out;
+  }
+  html.coquille :is(.tel-segments a, .tel-pastille, .tel-voir):active { transform: scale(.95); }
+  html.coquille :is(.tel-carte, .blanc-tuile):active { transform: scale(.975); }
+}
+html[data-anim="0"].coquille :is(.tel-segments a, .tel-carte, .tel-pastille, .tel-voir, .blanc-tuile):active { transform: none; }
 
 /* ── un téléphone tenu en paysage ────────────────────────────────────────
    375 px de haut : une barre en haut et une en bas en prendraient le tiers.

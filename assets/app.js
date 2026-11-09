@@ -2057,8 +2057,15 @@
   function apparitions() {
     if (!S.anim || !("IntersectionObserver" in window)) return;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    var cibles = document.querySelectorAll(".carte-matiere, .chapitre");
-    if (!cibles.length || cibles.length > 120) return;
+    /* Au téléphone, les cartes de l'accueil s'y ajoutent : catégories,
+       cours du jour, devoirs, chapitres des rangées qu'on fait glisser
+       (demandé le 9 nov. 2026 : un site plus vivant au téléphone). Elles
+       n'existent que dans la coquille, posée juste avant. */
+    var tel = document.documentElement.classList.contains("coquille")
+      && window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
+    var cibles = document.querySelectorAll(".carte-matiere, .chapitre"
+      + (tel ? ", .tel-cat, .tel-carte, .tel-carte-ch" : ""));
+    if (!cibles.length || cibles.length > 160) return;
     var obs = new IntersectionObserver(function (entrees) {
       entrees.forEach(function (x) {
         if (!x.isIntersecting) return;
@@ -2070,6 +2077,16 @@
       c.classList.add("apparait");
       c.style.setProperty("--retard", Math.min(i, 8) * 45 + "ms");
       obs.observe(c);
+      /* L'entrée finie, on rend la carte à elle-même. L'animation garde son
+         état final (« both »), et un état d'animation l'emporte sur toute
+         règle : le « transform » de l'enfoncement au toucher (« :active »)
+         ne s'appliquait plus jamais aux cartes entrées en fondu. */
+      c.addEventListener("animationend", function fin(e) {
+        if (e.target !== c) return;
+        c.classList.remove("apparait", "vu");
+        c.style.removeProperty("--retard");
+        c.removeEventListener("animationend", fin);
+      });
     });
   }
 
