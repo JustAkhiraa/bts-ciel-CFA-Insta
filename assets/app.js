@@ -415,9 +415,25 @@
       page = 0;
     }
 
+    /* Sur un téléphone, la disposition de console s'efface : la coquille
+       du téléphone a déjà sa barre du bas, sa recherche et ses rangées.
+       Signalé le 9 nov. 2026 : en « Console blanche », la barre de la Wii
+       passait SOUS celle du téléphone, et la pagination cachait 8 chapitres
+       sur 20 derrière des flèches. Le thème garde ses couleurs ; seule la
+       mise en page de bureau se retire. Même requête que la feuille de
+       style, et on la suit si l'écran tourne. */
+    var TELEPHONE = window.matchMedia
+      ? matchMedia("(max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape)")
+      : null;
+    if (TELEPHONE) {
+      var suivre = function () { Dispo.appliquer(document.documentElement.dataset.theme); };
+      if (TELEPHONE.addEventListener) TELEPHONE.addEventListener("change", suivre);
+      else if (TELEPHONE.addListener) TELEPHONE.addListener(suivre);
+    }
+
     return {
       appliquer: function (idTheme) {
-        var quoi = DISPOS[idTheme];
+        var quoi = TELEPHONE && TELEPHONE.matches ? null : DISPOS[idTheme];
         var d = document.documentElement;
         if (!quoi) { if (d.dataset.dispo) retirer(); return; }
         if (d.dataset.dispo === quoi) { rafraichir(); tictac(); return; }
@@ -2192,6 +2208,18 @@
     var vers = lien("tel-rond tel-gros", "Outils", ICONE_OUTILS, base + "outils/index.html");
     if (type === "outil" || /\/outils\/index\.html$/.test(location.pathname)) vers.setAttribute("aria-current", "page");
     barre.appendChild(vers);
+    /* Le petit carré qui la rappelle (demandé le 9 nov. 2026) : quand on
+       descend dans une page, la barre se REPLIE en un carré en bas à
+       gauche, et ne revient que si on le touche. On lit sans rien sur le
+       texte ; on cherche, un geste la rend. Son dessin : une barre et ses
+       trois commandes. */
+    var rappel = outil("tel-rappel", "Afficher la barre : réglages, recherche, outils",
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">'
+      + '<rect x="2.5" y="7" width="19" height="10" rx="5"/><circle cx="7.5" cy="12" r="1.3" fill="currentColor"/>'
+      + '<circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor"/></svg>',
+      function () { deplier(true); });
+    rappel.inert = true;
+    barre.appendChild(rappel);
     document.body.appendChild(barre);
 
     if (som) document.getElementById("tel-sommaire").addEventListener("click", function () {
@@ -2217,12 +2245,39 @@
 
     /* En défilant : un filet sous la barre du haut dès qu'on a quitté le
        haut de la page ; sur une fiche, la part lue, d'un trait de la couleur
-       de la matière ; et la barre du bas qui se RÉDUIT quand on descend dans
-       un texte, puis revient dès qu'on remonte — le geste des barres
-       flottantes des téléphones depuis 2025 : on lit, la commande se fait
-       petite ; on cherche, elle revient. */
+       de la matière ; et la barre du bas qui se REPLIE en un petit carré
+       quand on descend dans un texte. Elle ne revient plus d'elle-même en
+       remontant (avant le 9 nov. 2026, si) : seulement quand on touche le
+       carré. Remonter pour relire ne fait pas réapparaître ce qu'on avait
+       écarté. */
     var trait = tete.querySelector(".tel-lecture i");
     var dernierY = window.pageYOffset, attente = false;
+    var repliee = false, ancre = 0;
+    // en paysage, la barre est un rail sur le côté : elle ne cache rien, on ne la replie pas
+    var PAYSAGE = window.matchMedia
+      ? matchMedia("(max-height: 500px) and (max-width: 1000px) and (orientation: landscape)") : null;
+    var commandes = [barre.children[0], barre.children[1], barre.children[2]];
+    var replier = function () {
+      repliee = true;
+      barre.classList.add("tel-repliee");
+      commandes.forEach(function (c) { c.inert = true; });
+      rappel.inert = false;
+    };
+    var deplier = function (parLeDoigt) {
+      if (!repliee) return;
+      repliee = false;
+      ancre = window.pageYOffset;
+      barre.classList.remove("tel-repliee");
+      commandes.forEach(function (c) { c.inert = false; });
+      rappel.inert = true;
+      // au clavier, le focus ne doit pas rester sur un bouton qui disparaît
+      if (parLeDoigt && document.activeElement === rappel) commandes[1].focus();
+    };
+    if (PAYSAGE) {
+      var tourne = function () { if (PAYSAGE.matches) deplier(false); };
+      if (PAYSAGE.addEventListener) PAYSAGE.addEventListener("change", tourne);
+      else if (PAYSAGE.addListener) PAYSAGE.addListener(tourne);
+    }
     var marquer = function () {
       attente = false;
       var y = window.pageYOffset;
@@ -2232,7 +2287,9 @@
         trait.style.transform = "scaleX(" + (max > 0 ? Math.min(1, y / max) : 0).toFixed(4) + ")";
       }
       if (Math.abs(y - dernierY) > 6) {
-        barre.classList.toggle("tel-mini", y > dernierY && y > 160 && !feuilleTel);
+        // on descend, assez loin, et pas juste après l'avoir rappelée
+        if (!repliee && y > dernierY && y > 160 && y > ancre + 80 && !feuilleTel
+            && !(PAYSAGE && PAYSAGE.matches)) replier();
         dernierY = y;
       }
     };

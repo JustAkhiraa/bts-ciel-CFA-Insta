@@ -10266,7 +10266,7 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
       background: color-mix(in srgb, var(--papier) 88%, transparent);
       -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
     }
-    .tel-gros, .tel-pilule {
+    .tel-gros, .tel-pilule, .tel-rappel {
       background: color-mix(in srgb, var(--carte) 90%, transparent);
       -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
     }
@@ -10313,9 +10313,24 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   }
   .tel-barre > * { pointer-events: auto; }
   .tel-barre { justify-content: center; }
-  .tel-pilule { max-width: 100%; transition: max-width .32s cubic-bezier(.2, .8, .2, 1); }
-  .tel-barre.tel-mini .tel-pilule { max-width: 58px; padding: 0; }
-  .tel-barre.tel-mini .tel-pilule span { display: none; }
+  /* Repliée (on est descendu dans la page) : les trois commandes
+     s'effacent, il ne reste qu'un petit carré en bas à gauche, qui la rend. */
+  .tel-barre > :not(.tel-rappel) {
+    transition: opacity .2s ease-out, transform .3s cubic-bezier(.2, .8, .2, 1);
+  }
+  .tel-barre.tel-repliee > :not(.tel-rappel) {
+    opacity: 0; transform: translateY(26px) scale(.9); pointer-events: none;
+  }
+  .tel-rappel {
+    position: absolute; left: 0; bottom: 6px; width: 46px; height: 46px;
+    display: grid; place-items: center; border: 0; border-radius: 14px;
+    background: var(--carte); color: var(--encre); box-shadow: var(--ombre-haut); cursor: pointer;
+    opacity: 0; transform: scale(.6); pointer-events: none;
+    transition: opacity .2s ease-out, transform .26s cubic-bezier(.2, .8, .2, 1);
+  }
+  .tel-barre.tel-repliee .tel-rappel { opacity: 1; transform: none; pointer-events: auto; }
+  .tel-rappel svg { width: 23px; height: 23px; }
+  .tel-rappel:active { transform: scale(.94); }
   .tel-gros { width: 58px; height: 58px; background: var(--carte); box-shadow: var(--ombre-haut); }
   .tel-gros svg { width: 25px; height: 25px; }
   .tel-gros[aria-current="page"] { background: var(--encre); color: var(--papier); }
@@ -10523,8 +10538,24 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   html.coquille .fiche-tete h1 { margin-top: .4rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .tel-volet, .tel-voile, .tel-cat-ic, .tel-tete { transition: none; }
+    .tel-volet, .tel-voile, .tel-cat-ic, .tel-tete, .tel-rappel, .tel-barre > * { transition: none; }
   }
+
+  /* Voxel : tout est carré, comme ailleurs dans ce thème (signalé le
+     9 nov. 2026 : la coquille du téléphone, venue après, gardait ses
+     arrondis). Les commandes du bas prennent le bouton de pierre du jeu. */
+  html[data-theme="voxel"] :is(.tel-tete, .tel-barre, .tel-accueil, .tel-volet, .tel-segments),
+  html[data-theme="voxel"] :is(.tel-tete, .tel-barre, .tel-accueil, .tel-volet, .tel-segments) * {
+    border-radius: 0 !important;
+  }
+  html[data-theme="voxel"] :is(.tel-gros, .tel-pilule, .tel-rappel) {
+    background: var(--pierre); color: #FFFFFF;
+    border: 2px solid #000000;
+    box-shadow: inset 2px 2px 0 rgba(255,255,255,.34), inset -2px -2px 0 rgba(0,0,0,.42);
+    text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  html[data-theme="voxel"] .tel-gros[aria-current="page"] { background: #45792C; }
 }
 html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: none; }
 
@@ -10540,7 +10571,7 @@ html[data-anim="0"] .tel-volet, html[data-anim="0"] .tel-voile { transition: non
     left: auto; right: 12px; top: 50%; bottom: auto; transform: translateY(-50%);
     flex-direction: column; gap: 10px;
   }
-  html.coquille .tel-pilule, html.coquille .tel-barre.tel-mini .tel-pilule {
+  html.coquille .tel-pilule {
     flex: none; width: 58px; max-width: 58px; padding: 0;
   }
   html.coquille .tel-pilule span { display: none; }
