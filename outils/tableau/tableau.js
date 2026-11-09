@@ -673,8 +673,10 @@
      les COULEURS posées sur la toile s'assombrissent (voir « le mode
      sombre, couleur par couleur »), et une image n'en a pas. */
   function dessinerImage(c, el) {
-    const img = imageDe(el.fileId);
-    if (img && img.complete && img.naturalWidth) {
+    // pendant un coup de gomme, c'est la copie gommée qu'on montre
+    const gommee = c === ctx && geste && geste.toiles && geste.toiles.get(el.id);
+    const img = gommee ? gommee.cv : imageDe(el.fileId);
+    if (img && (gommee || (img.complete && img.naturalWidth))) {
       const s = Array.isArray(el.scale) ? el.scale : [1, 1];
       if (s[0] < 0 || s[1] < 0) {
         c.translate(s[0] < 0 ? el.width : 0, s[1] < 0 ? el.height : 0);
@@ -1463,7 +1465,7 @@
      sur la moitié de son épaisseur). */
   function debutGomme(p) {
     geste = { mode: "gomme", partie: etat.gommeMode === "partie", avant: JSON.stringify(elements),
-              traces: new Map() };
+              traces: new Map(), toiles: new Map() };
     fantomes = new Set();
     effacer(geste, p, p);
   }
@@ -1518,11 +1520,68 @@
         if (!morceaux) continue;
         elements.splice(i, 1, ...morceaux.map((m) => morceau(el, bb, m)));
         selection.delete(el.id);
-        g.coupes = true;
+        g.coupes = g.encre = true;
       }
     }
+    gommerImages(g, a, b, r);
     traineeGomme.push({ x: b.x, y: b.y, t: performance.now() });
     demander();
+  }
+
+  /* La gomme efface aussi dans les IMAGES (signalé le 9 nov. 2026 : elle
+     ne prenait que les traits). Les pixels sous le cercle deviennent
+     transparents. Pendant le geste, on gomme une COPIE de l'image, une
+     toile à sa résolution, qu'on montre à sa place ; au relâchement, la
+     copie devient un nouveau fichier (le chemin de la baguette magique),
+     et Ctrl + Z rend l'ancien. Échap avant de lâcher : rien n'a changé.
+     Une image vectorielle (les icônes réseau) est posée en pixels, au
+     double de sa taille à l'écran. */
+  function toileGommee(g, el) {
+    let t = g.toiles.get(el.id);
+    if (t) return t;
+    const img = imageDe(el.fileId);
+    if (!img || !img.complete || !img.naturalWidth || !el.width || !el.height) return null;
+    const vect = /svg/.test((fichiers[el.fileId] || {}).mimeType || "");
+    const w = vect ? Math.min(2048, Math.ceil(el.width * 2)) : img.naturalWidth;
+    const h = vect ? Math.min(2048, Math.ceil(el.height * 2)) : img.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const c = cv.getContext("2d");
+    c.drawImage(img, 0, 0, w, h);
+    c.globalCompositeOperation = "destination-out";
+    c.lineCap = "round"; c.lineJoin = "round";
+    // on gomme dans le repère de l'élément : une image étirée reçoit une
+    // gomme étirée d'autant, qui reste ronde à l'écran
+    c.setTransform(w / el.width, 0, 0, h / el.height, 0, 0);
+    t = { cv, c, el };
+    g.toiles.set(el.id, t);
+    return t;
+  }
+  function gommerImages(g, a, b, r) {
+    for (const el of elements) {
+      if (el.type !== "image" || el.locked) continue;
+      const bb = R.boite(el), s = Array.isArray(el.scale) ? el.scale : [1, 1];
+      // un point de la scène, dans l'image : rotation défaite, miroir compris
+      const local = (p) => {
+        const q = versRepere(el, bb, [p.x, p.y]);
+        const x = q[0] - el.x, y = q[1] - el.y;
+        return [s[0] < 0 ? el.width - x : x, s[1] < 0 ? el.height - y : y];
+      };
+      const pa = local(a), pb = local(b);
+      if (Math.max(pa[0], pb[0]) < -r || Math.min(pa[0], pb[0]) > el.width + r
+          || Math.max(pa[1], pb[1]) < -r || Math.min(pa[1], pb[1]) > el.height + r) continue;
+      const t = toileGommee(g, el);
+      if (!t) continue;
+      t.c.lineWidth = 2 * r;
+      t.c.beginPath(); t.c.moveTo(pa[0], pa[1]); t.c.lineTo(pb[0] + 0.001, pb[1]); t.c.stroke();
+      g.coupes = true;
+    }
+  }
+  // une image dont il ne reste rien : on la retire plutôt que garder un cadre vide
+  function toileVide(cv) {
+    const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
+    return true;
   }
 
   /* ── pointeur posé ── */
@@ -1964,7 +2023,21 @@
     }
     if (g.mode === "gomme") {
       if (g.partie) {
-        if (g.coupes) { memoriser(); dire("Encre effacée. Ctrl + Z pour revenir."); }
+        // les images gommées deviennent de nouveaux fichiers ; vides, elles partent
+        const vides = [];
+        g.toiles.forEach((t) => {
+          if (toileVide(t.cv)) { vides.push(t.el.id); return; }
+          t.el.fileId = enFichierToile(t.cv);
+          toucher(t.el);
+        });
+        if (vides.length) retirer(vides);
+        if (g.coupes) {
+          memoriser();
+          const ou = g.toiles.size ? (g.encre ? "Effacé dans l'image et dans l'encre" : "Effacé dans l'image")
+            : "Encre effacée";
+          dire(ou
+            + (vides.length ? " ; image entièrement effacée, retirée" : "") + ". Ctrl + Z pour revenir.");
+        }
         demander();
         return;
       }
@@ -3746,7 +3819,7 @@
           + '" aria-pressed="' + (t === etat.gommeTaille) + '" title="Taille ' + (i + 1) + '" aria-label="Taille ' + (i + 1)
           + '"><i style="--w:' + (6 + i * 4) + 'px"></i></button>').join("") + "</div>" : "")
       + '<p class="tb-note">' + (partie
-        ? "Efface l'encre sous le cercle et coupe le trait. Les formes et le texte ne sont pas touchés."
+        ? "Efface l'encre et les images sous le cercle. Les formes et le texte ne sont pas touchés."
         : "Efface tout trait, forme ou texte touché. Échap avant de lâcher rend tout.") + "</p>";
     reglage.dataset.quoi = "gomme";
     reglage.hidden = false;
@@ -4021,6 +4094,9 @@
     const cv = document.createElement("canvas");
     cv.width = w; cv.height = h;
     cv.getContext("2d").putImageData(new ImageData(px, w, h), 0, 0);
+    return enFichierToile(cv);
+  }
+  function enFichierToile(cv) {
     // PNG, pour garder la transparence ; WebP s'il est plus léger
     let data = cv.toDataURL("image/png"), type = "image/png";
     if (data.length > 400000) {
