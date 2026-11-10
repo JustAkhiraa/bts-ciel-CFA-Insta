@@ -421,8 +421,18 @@ li::marker { color: var(--accent-sombre); }
   background: var(--accent); color: var(--sur-accent); font-family: var(--mono); font-size: 0.6061rem;
   font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   padding: .16rem .55rem; border-radius: 5px; z-index: 2; }
-.bloc-code .copier, .bloc-code .essayer { position: absolute; top: .55rem; right: .55rem; z-index: 2;
-  font: inherit; font-size: 0.697rem; font-weight: 600; cursor: pointer;
+/* Signalé le 10 nov. 2026, captures d'un téléphone : « Copier » cachait la
+   fin des premières lignes, posé DANS le bloc, à 34 px de haut. Il passe sur
+   le BORD, en haut à droite, comme l'étiquette de langue à gauche : petit,
+   en capitales, et à 88 % d'opacité. Il ne couvre plus une seule lettre.
+   La cible garde ses 34 px (la règle du site) grâce à une bordure
+   TRANSPARENTE de 8 px : seul le centre se peint (« background-clip »).
+   Contraste mesuré avec l'opacité, au pire sur une page blanche : 5,1:1.
+   (À 85 %, 4,75:1 : trop près du seuil, § 40.) */
+.bloc-code .copier, .bloc-code .essayer { position: absolute; top: 0; right: .55rem; z-index: 2;
+  transform: translateY(-50%); opacity: .88;
+  font-family: var(--mono); font-size: 0.6061rem; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; line-height: 1; cursor: pointer;
   /* Fond OPAQUE, et c'est une mesure qui l'exige. En rgba(255,255,255,.09)
      le rendu était le même à l'œil — le bouton flotte au-dessus d'un <pre>
      sombre — mais un contrôle de contraste compose les fonds en remontant
@@ -431,11 +441,13 @@ li::marker { color: var(--accent-sombre); }
      Sur « Androïde (jour) », elle relevait 1,18:1. Le rendu ne change pas :
      #373532 est exactement rgba(255,255,255,.09) posé sur #23211E. Le texte
      y tient 6,91:1, et 8,97:1 au survol. */
-  background: #373532; color: #C9C2B6; border: 1px solid #464542;
-  border-radius: 6px; padding: .45rem .7rem; transition: all .15s;
+  background-color: #373532; color: #C9C2B6; background-clip: padding-box;
+  border: 8px solid transparent; border-radius: 13px; padding: .22rem .5rem;
+  transition: opacity .15s, background-color .15s, color .15s;
   min-height: 34px; }   /* 30 px se rataient au doigt sur un bloc de code */
-.bloc-code .copier:hover, .bloc-code .essayer:hover { background: #4B4946; color: #fff; }
-.bloc-code .copier.fait { background: #2D5A27; border-color: #2D5A27; color: #fff; }
+.bloc-code .copier:hover, .bloc-code .essayer:hover,
+.bloc-code .copier:focus-visible, .bloc-code .essayer:focus-visible { opacity: 1; background-color: #4B4946; color: #fff; }
+.bloc-code .copier.fait { opacity: 1; background-color: #2D5A27; color: #fff; }
 /* « Essayer » se range à gauche de « Copier », et PARTAGE ses règles au lieu
    de les recopier : deux commandes du même bloc n'ont aucune raison de se
    ressembler à moitié. Écrit d'abord en double, le bouton faisait 43 px de
@@ -443,6 +455,11 @@ li::marker { color: var(--accent-sombre); }
    les deux écarts réels — le décalage de 4,9 rem est la largeur de
    « Copier » plus la gouttière. */
 .bloc-code .essayer { right: 4.9rem; text-decoration: none; }
+/* Étiquette et boutons partagent désormais le bord du haut : l'étiquette
+   s'arrête avant eux, et passe à la ligne s'il le faut (vu au téléphone :
+   « … PREMIÈRE VALEUR » se couchait sur « COPIER »). */
+.bloc-code:has(> .copier) .langue { max-width: calc(100% - 6.6rem); }
+.bloc-code:has(> .essayer) .langue { max-width: calc(100% - 11.6rem); }
 
 /* ── l'atelier par-dessus le cours ───────────────────────────────────────
    « ça m'amène à l'outil, du coup ça me sort du cours. » Un onglet neuf
@@ -548,6 +565,32 @@ pre code { font: inherit; color: inherit; background: none; padding: 0; border: 
 .bloc-code pre { container-type: inline-size; }
 .bloc-code pre code {
   font-size: clamp(0.6rem, calc(100cqi / (var(--car, 40) * 0.67)), 0.8061rem);
+}
+/* Signalé le 10 nov. 2026 : au téléphone, faire défiler vers la droite pour
+   lire la fin d'une ligne. Un bloc marqué « data-plie » (publier.py : du
+   code, ou un texte qui ne tient pas à ses colonnes) passe à la ligne À
+   L'AFFICHAGE, comme un éditeur en mode « retour à la ligne ». Le texte ne
+   change pas : on copie, compile et compare toujours le même. Il rétrécit
+   d'abord un peu, jamais sous 0,74 rem (12 px) : plus petit, on lit mal, et
+   passer à la ligne vaut mieux. Les blocs en colonnes, eux, sont réécrits. */
+/* Les cadres imbriqués se resserrent au téléphone. Mesuré le 10 nov. 2026 :
+   un bloc dans la correction d'un exercice n'avait que 231 px sur un écran
+   de 375. L'exercice prenait 28 px de chaque côté, la correction 21, le bloc
+   lui-même 21 : 33 caractères ne tenaient plus, même au plus petit. Ces
+   marges respirent sur un grand écran ; au téléphone, c'est le contenu qui
+   doit respirer. */
+@media (max-width: 760px) {
+  .exo { padding: 1.1rem .85rem; }
+  .quiz { padding: .95rem .75rem; }
+  pre { padding-left: .85rem; padding-right: .85rem; }
+}
+@media (max-width: 760px) {
+  .bloc-code[data-plie] pre, .bloc-code[data-plie] pre code {
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .bloc-code[data-plie] pre code {
+    font-size: clamp(0.74rem, calc(100cqi / (var(--car, 40) * 0.67)), 0.8061rem);
+  }
 }
 
 /* ------------------------------------------- coloration du code publié
