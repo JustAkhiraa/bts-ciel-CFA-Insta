@@ -163,6 +163,18 @@
     { id: "ile",       nom: "3D bis", dossier: "ile",   ouvre: "l'île" }
   ];
 
+  /* Signalé le 10 nov. 2026 : sur un téléphone, « Lanceur » et « Classique »
+     ne changeaient rien, puisque la version téléphone n'est ni l'un ni
+     l'autre. Le choix qui a un sens là, c'est la VERSION : celle du pouce,
+     ou la page d'ordinateur, pour pouvoir la retrouver au besoin. Les deux
+     mondes restent. Même requête que la feuille de style. */
+  var ECRAN_TEL = window.matchMedia
+    ? matchMedia("(max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape)")
+    : null;
+  function surTelephone() { return !!(ECRAN_TEL && ECRAN_TEL.matches); }
+  var VERSIONS = [{ id: "tel", nom: "Version tel" }, { id: "pc", nom: "Version PC" }]
+    .concat(STYLES.filter(function (o) { return o.dossier; }));
+
   var TAILLES = [
     { id: "petit", nom: "Petit" }, { id: "normal", nom: "Normal" },
     { id: "grand", nom: "Grand" }, { id: "tres-grand", nom: "Très grand" }
@@ -596,6 +608,19 @@
            '<p class="reglage-liens">' + h + "</p></div>";
   }
 
+  /* Le pied de page n'existe pas dans la version téléphone : ses quatre
+     liens vivent donc ici, dans les réglages, au bout du pouce. */
+  function rangeeSite() {
+    var base = racine(), depot = "https://github.com/JustAkhiraa/bts-ciel-CFA-Insta";
+    return '<div class="reglage"><h3>Le site</h3>' +
+      '<p class="reglage-liens">' +
+      '<a href="' + base + 'kit.html">Kit de survie</a>' +
+      '<a href="' + base + 'a-propos.html">À propos</a>' +
+      '<a href="' + depot + '">Code source</a>' +
+      '<a href="' + depot + '/releases/latest">Télécharger l\'appli</a>' +
+      "</p></div>";
+  }
+
   function pastilles(liste, actuel) {
     return liste.map(function (o) {
       return '<button type="button" data-v="' + o.id + '" aria-pressed="' +
@@ -1010,12 +1035,20 @@
           '<span class="ap-carte"><i></i><b></b></span>' +
           '<span class="ap-txt">Aperçu du thème</span></div></div>' +
 
-        '<div class="reglage"><h3>Accueil</h3>' +
-        '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-        '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
-        'Le lanceur montre tout en un écran, le classique garde les grandes ' +
-        'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
-        '« retour » y ramène ici.</p></div>' + rangeeMondes() +
+        (surTelephone()
+          ? '<div class="reglage"><h3>Accueil</h3>' +
+            '<div class="pastilles" data-champ="version">' +
+            pastilles(VERSIONS, leMonde(S.style) ? S.style : (S.pc ? "pc" : "tel")) +
+            '</div><p class="reglage-aide">La version tel est faite pour le pouce. ' +
+            'La version PC remet la page d\'ordinateur sur ce téléphone, au besoin. ' +
+            '« 3D » et « 3D bis » ouvrent directement un monde.</p></div>'
+          : '<div class="reglage"><h3>Accueil</h3>' +
+            '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
+            '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
+            'Le lanceur montre tout en un écran, le classique garde les grandes ' +
+            'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
+            '« retour » y ramène ici.</p></div>') +
+        rangeeMondes() + (surTelephone() ? rangeeSite() : "") +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
@@ -1110,6 +1143,27 @@
         S.variante = "";
         feuille.querySelector("#choix-theme").value = choisi.id;
         enregistrer(); appliquer(); toast(choisi.nom);
+        return;
+      }
+
+      /* La version, au téléphone : passer de l'une à l'autre change toute la
+         page (la coquille est bâtie au chargement), donc on recharge. Un
+         monde, lui, ne fait que s'inscrire, comme sur l'ordinateur. */
+      if ((b = e.target.closest('[data-champ="version"] [data-v]'))) {
+        var v = b.dataset.v, monde = leMonde(v);
+        b.parentNode.querySelectorAll("[data-v]").forEach(function (x) {
+          x.setAttribute("aria-pressed", String(x === b));
+        });
+        if (monde) {
+          S.style = v; enregistrer(); appliquer();
+          toast("Le site s'ouvrira sur " + monde.ouvre);
+          return;
+        }
+        var pcAvant = !!S.pc, styleAvant2 = S.style;
+        S.pc = (v === "pc");
+        if (leMonde(S.style)) S.style = "lanceur";
+        enregistrer(); appliquer();
+        if (S.pc !== pcAvant || S.style !== styleAvant2) location.reload();
         return;
       }
 
@@ -2202,6 +2256,8 @@
   function coquilleTelephone() {
     var type = typeDePage();
     if (!type) return;
+    // « Version PC » choisie dans les réglages : la page d'ordinateur reste
+    if (S.pc) return;
     var base = racine();
     var tete = document.createElement("header");
     tete.className = "tel-tete";

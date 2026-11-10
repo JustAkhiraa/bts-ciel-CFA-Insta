@@ -7,7 +7,7 @@
 <meta name="description" content="Le TD de révision corrigé : les sept rappels, les calculs d'adressage et le VLSM, la configuration de SW1 et R1, les VLAN et le trunk, le routage inter-VLAN, le diagnostic et la checklist finale.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=6850265f">
+<link rel="stylesheet" href="../../assets/fiche.css?v=83e4b4e2">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -37,16 +37,16 @@
 
   <h1>TD de révision · exercices</h1>
   <p class="chapeau">Les six parties du TD, corrigées. À faire <strong>sur Packet Tracer</strong>,
-     pas sur le papier : c'est le montage qui révèle ce qu'on croyait savoir.</p>
+     pas sur le papier :<br class="ae"> c'est le montage qui révèle ce qu'on croyait savoir.</p>
 
   <div class="encart methode">
     <div class="titre">🎯 L'ordre de montage qui évite les impasses</div>
     <ol>
-      <li>Câbler et allumer : <code>no shutdown</code> partout sur R1.</li>
+      <li>Câbler et allumer : <code>no shutdown</code> partout sur R1.</li>
       <li>Vérifier le <strong>ping SW1 ↔ R1</strong> avant de créer le moindre VLAN.</li>
       <li>Créer les VLAN, affecter les ports, vérifier avec <code>show vlan brief</code>.</li>
       <li>Monter le trunk, vérifier avec <code>show interfaces trunk</code>.</li>
-      <li>Seulement alors : les sous-interfaces de R1.</li>
+      <li>Seulement alors : les sous-interfaces de R1.</li>
       <li>Sauvegarder à chaque étape qui fonctionne.</li>
     </ol>
     <p class="rap">Chaque étape se vérifie avant la suivante. Monter les six d'un coup puis
@@ -63,13 +63,13 @@
     <div class="enonce">
       <ol>
         <li>Citez les 7 couches du modèle OSI dans l'ordre, avec un exemple de PDU pour chacune.</li>
-        <li>À quelles couches OSI correspond le modèle TCP/IP en 4 couches ?</li>
-        <li>Quelle est la différence fonctionnelle entre un switch et un routeur ?</li>
-        <li>Qu'est-ce qu'une adresse MAC ? une adresse IP ? Laquelle identifie un hôte sur
-            Internet ?</li>
+        <li>À quelles couches OSI correspond le modèle TCP/IP en 4 couches ?</li>
+        <li>Quelle est la différence fonctionnelle entre un switch et un routeur ?</li>
+        <li>Qu'est-ce qu'une adresse MAC ? une adresse IP ? Laquelle identifie un hôte sur
+            Internet ?</li>
         <li>Expliquez en une phrase le rôle d'ARP.</li>
-        <li>Qu'est-ce qu'un domaine de broadcast ? de collision ? Qui les segmente ?</li>
-        <li>Quel protocole sert aux tests de connectivité ?</li>
+        <li>Qu'est-ce qu'un domaine de broadcast ? de collision ? Qui les segmente ?</li>
+        <li>Quel protocole sert aux tests de connectivité ?</li>
       </ol>
     </div>
     <div class="quiz">
@@ -94,7 +94,7 @@
         </div>
         <ol start="3">
           <li><strong>Switch / routeur.</strong> Le switch commute des <strong>trames</strong>
-              d'après l'adresse <strong>MAC</strong> à l'intérieur d'un même réseau ; le routeur
+              d'après l'adresse <strong>MAC</strong> à l'intérieur d'un même réseau ; le routeur
               achemine des <strong>paquets</strong> d'après l'adresse <strong>IP</strong>
               <em>entre</em> des réseaux différents.</li>
           <li><strong>MAC / IP.</strong> La MAC est physique, gravée dans la carte, sur 48 bits,
@@ -102,19 +102,19 @@
               <strong>elle</strong> qui identifie un hôte de bout en bout sur Internet.</li>
           <li><strong>ARP</strong> trouve la <strong>MAC</strong> correspondant à une
               <strong>IP</strong> sur le réseau local.</li>
-          <li><strong>Broadcast</strong> : l'ensemble des machines qu'atteint une diffusion, 
+          <li><strong>Broadcast</strong> :<br class="ae"> l'ensemble des machines qu'atteint une diffusion, 
               segmenté par un <strong>routeur</strong> ou un <strong>VLAN</strong>.
-              <strong>Collision</strong> : l'ensemble des machines qui se disputent le média, 
+              <strong>Collision</strong> :<br class="ae"> l'ensemble des machines qui se disputent le média, 
               segmenté par un <strong>switch</strong>, un domaine par port.</li>
           <li><strong>ICMP</strong>, employé par <code>ping</code> et <code>traceroute</code>.</li>
         </ol>
         <div class="encart outils">
           <div class="titre">🧰 Le moyen mnémotechnique qui tient à l'examen</div>
-          <p>De 7 vers 1 : <strong>A</strong>pplication · <strong>P</strong>résentation ·
+          <p>De 7 vers 1 :<br class="ae"> <strong>A</strong>pplication · <strong>P</strong>résentation ·
              <strong>S</strong>ession · <strong>T</strong>ransport · <strong>R</strong>éseau ·
              <strong>L</strong>iaison · <strong>P</strong>hysique →
              « <em>Après Plusieurs Semaines Tout Refonctionne Là Parfaitement</em> ».</p>
-          <p class="rap">Et pour les PDU, de bas en haut : <strong>bit → trame → paquet →
+          <p class="rap">Et pour les PDU, de bas en haut :<br class="ae"> <strong>bit → trame → paquet →
              segment → données</strong>.</p>
         </div>
       </div>
@@ -144,10 +144,10 @@
 <span class="j-com">  plage           </span>  <span class="j-num">192.168.10.1</span>  <span class="j-op">-&gt;</span>  <span class="j-num">192.168.10.254</span></code></pre></div>
         <div class="encart savoir">
           <div class="titre">💡 Pourquoi « − 2 »</div>
-          <p>Deux adresses ne sont jamais attribuables à une machine : celle où
+          <p>Deux adresses ne sont jamais attribuables à une machine :<br class="ae"> celle où
              <strong>tous les bits d'hôte valent 0</strong> (elle désigne le réseau lui-même) et
              celle où <strong>tous valent 1</strong> (le broadcast).</p>
-          <p class="rap">C'est valable pour tous les masques : <code>/30</code> laisse
+          <p class="rap">C'est valable pour tous les masques :<br class="ae"> <code>/30</code> laisse
              2 bits d'hôte, donc 2² − 2 = <strong>2</strong> hôtes, ce qui suffit à une liaison point à point.</p>
         </div>
       </div>
@@ -216,7 +216,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
           <div class="titre">⚠️ Commencer par le plus petit condamne le découpage</div>
           <p>Si l'on sert d'abord le service C dans <code>172.16.0.0/27</code>, le bloc
              <code>/23</code> du service A ne peut plus commencer avant
-             <code>172.16.2.0</code> : on perd presque deux <code>/24</code> entiers.</p>
+             <code>172.16.2.0</code> :<br class="ae"> on perd presque deux <code>/24</code> entiers.</p>
           <p class="rap"><strong>Du plus gros au plus petit.</strong> C'est la seule règle du
              VLSM, et elle suffit.</p>
         </div>
@@ -227,7 +227,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <article class="exo">
     <h3><span class="no">4</span>Le plan d'adressage du scénario <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Compléter le tableau : passerelle et plage utilisable pour les VLAN 10, 20, 30 et pour
+      <p>Compléter le tableau :<br class="ae"> passerelle et plage utilisable pour les VLAN 10, 20, 30 et pour
          le réseau <code>192.168.99.0/24</code>.</p>
     </div>
     <div class="quiz">
@@ -264,10 +264,10 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
              du sous-réseau » doit être justifiée, mais la partie 5 configure les
              sous-interfaces en <code>192.168.10.1</code>, <code>192.168.20.1</code>,
              <code>192.168.30.1</code>, c'est-à-dire la <strong>première</strong>.</p>
-          <p><strong>La justification attendue vaut dans les deux sens</strong> : la passerelle
-             est une adresse d'hôte ordinaire ; on la place à une extrémité du bloc pour qu'elle
+          <p><strong>La justification attendue vaut dans les deux sens</strong> :<br class="ae"> la passerelle
+             est une adresse d'hôte ordinaire ; on la place à une extrémité du bloc pour qu'elle
              soit <strong>prévisible</strong> et pour laisser une plage continue aux machines.</p>
-          <p>Aucune des deux extrémités n'est techniquement meilleure : <strong>seule la
+          <p>Aucune des deux extrémités n'est techniquement meilleure : <strong>seule la
              constance compte</strong>.</p>
           <p class="rap">Le tableau ci-dessus suit la configuration réelle du TD. Si la
              convention imposée est la dernière adresse, il faut remplacer <code>.1</code> par
@@ -277,10 +277,10 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
 
         <div class="encart savoir">
           <div class="titre">💡 <code>192.168.99.0/24</code> n'est pas « le réseau du trunk »</div>
-          <p>Un lien trunk <strong>ne porte pas d'adresse IP</strong> : il transporte les trames
+          <p>Un lien trunk <strong>ne porte pas d'adresse IP</strong> :<br class="ae"> il transporte les trames
              de plusieurs VLAN, chacune avec son étiquette.</p>
           <p>Le réseau 99 est un
-             <strong>VLAN d'administration</strong> : celui où l'on place les interfaces de
+             <strong>VLAN d'administration</strong> :<br class="ae"> celui où l'on place les interfaces de
              gestion des équipements, à l'écart des utilisateurs.</p>
           <p class="rap">C'est aussi pour cela que l'énoncé écrit prudemment « (si trunk) ».</p>
         </div>
@@ -298,9 +298,9 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
     <div class="enonce">
       <ul>
         <li>Pourquoi configure-t-on une adresse IP sur <code>interface vlan 1</code> alors que le
-            switch est un équipement de couche 2 ?</li>
-        <li>Quelle est l'utilité d'<code>ip default-gateway</code> sur un switch L2 ?</li>
-        <li>Que fait <code>service password-encryption</code> ? Est-ce suffisant ?</li>
+            switch est un équipement de couche 2 ?</li>
+        <li>Quelle est l'utilité d'<code>ip default-gateway</code> sur un switch L2 ?</li>
+        <li>Que fait <code>service password-encryption</code> ? Est-ce suffisant ?</li>
       </ul>
     </div>
     <div class="quiz">
@@ -308,28 +308,28 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
         <p><strong>1. L'adresse sur <code>vlan 1</code>.</strong> Elle ne sert
-           <strong>jamais</strong> à commuter : le switch continue à travailler sur les adresses
-           MAC. Elle sert uniquement à <strong>l'administrer à distance</strong> : SSH, Telnet,
+           <strong>jamais</strong> à commuter :<br class="ae"> le switch continue à travailler sur les adresses
+           MAC. Elle sert uniquement à <strong>l'administrer à distance</strong> :<br class="ae"> SSH, Telnet,
            SNMP, supervision. C'est une interface virtuelle, pas un port.</p>
         <p><strong>2. <code>ip default-gateway</code>.</strong> Le switch doit pouvoir
            <strong>répondre</strong> à un administrateur situé dans un autre sous-réseau. Sans
-           passerelle, il reçoit la requête mais ne sait pas où renvoyer la réponse : on ne peut
+           passerelle, il reçoit la requête mais ne sait pas où renvoyer la réponse :<br class="ae"> on ne peut
            l'administrer que depuis son propre réseau.</p>
         <p>La commande n'a de sens que tant que
-           <code>ip routing</code> est désactivé : sur un switch L3 qui route, c'est
+           <code>ip routing</code> est désactivé :<br class="ae"> sur un switch L3 qui route, c'est
            <code>ip route 0.0.0.0 0.0.0.0 …</code> qui prend le relais.</p>
         <p><strong>3. <code>service password-encryption</code>.</strong> Elle chiffre les mots de
            passe stockés en clair, ceux de <code>line console</code> et <code>line vty</code>, 
            avec l'algorithme <strong>type 7</strong>.</p>
         <div class="encart piege">
           <div class="titre">⚠️ Le type 7 est réversible</div>
-          <p>Ce n'est pas un hachage : c'est un <strong>chiffrement réversible</strong>, et des
+          <p>Ce n'est pas un hachage :<br class="ae"> c'est un <strong>chiffrement réversible</strong>, et des
              outils publics le cassent instantanément. Il protège d'un regard par-dessus l'épaule
              ou d'une capture d'écran, <strong>pas d'un attaquant</strong> qui obtient la
              configuration.</p>
           <p>Le seul mot de passe réellement protégé est celui d'<code>enable secret</code>,
              qui est <strong>haché</strong>.</p>
-          <p class="rap">Réponse attendue en une phrase : <em>« elle masque, elle ne protège
+          <p class="rap">Réponse attendue en une phrase :<br class="ae"> <em>« elle masque, elle ne protège
              pas »</em>.</p>
         </div>
       </div>
@@ -339,7 +339,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <article class="exo">
     <h3><span class="no">6</span>Diagnostic : la panne posée par le binôme <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Un binôme introduit une panne : interface en <code>shutdown</code>, mauvais masque,
+      <p>Un binôme introduit une panne :<br class="ae"> interface en <code>shutdown</code>, mauvais masque,
          câble sur le mauvais port. La localiser avec
          <code>show ip interface brief</code>, <code>show interfaces</code>,
          <code>show cdp neighbors</code>.</p>
@@ -383,9 +383,9 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
         <div class="encart outils">
           <div class="titre">🧰 <code>show cdp neighbors</code> : qui est vraiment en face</div>
           <p>CDP annonce, port par port, le voisin Cisco détecté. C'est la seule commande qui
-             démasque un <strong>câble branché au mauvais endroit</strong> : la configuration est
+             démasque un <strong>câble branché au mauvais endroit</strong> :<br class="ae"> la configuration est
              parfaite, mais le voisin n'est pas celui qu'on croit.</p>
-          <p class="rap">CDP est propriétaire Cisco : en production on le désactive sur les ports
+          <p class="rap">CDP est propriétaire Cisco :<br class="ae"> en production on le désactive sur les ports
              ouverts vers l'extérieur, car il renseigne aussi un attaquant.</p>
         </div>
       </div>
@@ -401,10 +401,10 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
     <h3><span class="no">7</span>Les trois questions sur le trunk <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
       <ul>
-        <li>Quelle est la différence entre un port access et un port trunk ?</li>
-        <li>À quoi sert le tag 802.1Q dans une trame qui traverse un lien trunk ?</li>
+        <li>Quelle est la différence entre un port access et un port trunk ?</li>
+        <li>À quoi sert le tag 802.1Q dans une trame qui traverse un lien trunk ?</li>
         <li>Que se passe-t-il si <code>switchport trunk allowed vlan</code> n'inclut pas le
-            VLAN 30 ?</li>
+            VLAN 30 ?</li>
       </ul>
     </div>
     <div class="quiz">
@@ -412,17 +412,17 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
       <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
       <div class="reponse">
         <p><strong>1.</strong> Un port <strong>access</strong> appartient à
-           <strong>un seul VLAN</strong> et transporte des trames <strong>sans étiquette</strong> :
+           <strong>un seul VLAN</strong> et transporte des trames <strong>sans étiquette</strong> :<br class="ae">
            on y branche un poste, qui ignore tout de l'existence des VLAN.</p>
         <p>Un port
            <strong>trunk</strong> transporte <strong>plusieurs VLAN</strong> sur le même câble,
-           en <strong>étiquetant</strong> chaque trame : on y branche un autre switch ou un
+           en <strong>étiquetant</strong> chaque trame :<br class="ae"> on y branche un autre switch ou un
            routeur.</p>
         <p><strong>2.</strong> Le tag 802.1Q insère <strong>4 octets</strong> dans la trame
            Ethernet, dont un identifiant de VLAN sur <strong>12 bits</strong>. Sans lui, le
            destinataire recevrait un flot de trames mélangées sans pouvoir les trier.</p>
         <p>Le tag est
-           ajouté à l'entrée du trunk et <strong>retiré à la sortie</strong> : le poste final ne
+           ajouté à l'entrée du trunk et <strong>retiré à la sortie</strong> :<br class="ae"> le poste final ne
            le voit jamais.</p>
 <div class="bloc-code" data-fam="calcul" data-plie style="--car:44"><span class="langue">calcul</span><pre><code>identifiant de VLAN sur <span class="j-num">12</span> bits
   <span class="j-num">2</span><span class="j-op">^</span><span class="j-num">12</span> <span class="j-op">=</span> <span class="j-num">4096</span> valeurs
@@ -436,7 +436,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
              sans problème, mais <strong>aucun ne sort</strong>. Tout accuse le routeur, alors
              que la faute est sur le switch.</p>
 <div class="bloc-code" data-fam="cisco" style="--car:26"><span class="langue">Cisco IOS</span><pre><code><span class="j-var">SW1#</span><span class="j-mc"> show</span> interfaces <span class="j-fn">trunk</span></code></pre></div>
-          <p class="rap">Deux colonnes à lire : <em>Vlans allowed on trunk</em> et
+          <p class="rap">Deux colonnes à lire :<br class="ae"> <em>Vlans allowed on trunk</em> et
              <em>Vlans in spanning tree forwarding state</em>. Si 30 manque dans la première,
              vous avez trouvé.</p>
         </div>
@@ -452,7 +452,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <article class="exo">
     <h3><span class="no">8</span>Vérifier que le router-on-a-stick fonctionne <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
-      <p>Après configuration des sous-interfaces : chaque PC de test reçoit la bonne passerelle,
+      <p>Après configuration des sous-interfaces :<br class="ae"> chaque PC de test reçoit la bonne passerelle,
          le ping entre VLAN passe, et <code>show ip route</code> montre les trois réseaux.</p>
     </div>
     <div class="quiz">
@@ -482,15 +482,15 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
           <div class="titre">⚠️ Trois causes, dans l'ordre de fréquence</div>
           <ol>
             <li><strong>L'interface physique <code>g0/0</code> est restée éteinte.</strong> Les
-                sous-interfaces sont portées par elle : tout est configuré, rien ne
+                sous-interfaces sont portées par elle :<br class="ae"> tout est configuré, rien ne
                 fonctionne.</li>
             <li><strong>Une passerelle absente ou fausse sur un PC.</strong> Le ping intra-VLAN
-                passe, l'inter-VLAN non : la machine ne sait pas à qui remettre le paquet.</li>
+                passe, l'inter-VLAN non :<br class="ae"> la machine ne sait pas à qui remettre le paquet.</li>
             <li><strong>Le numéro d'<code>encapsulation dot1Q</code> ne correspond pas au
                 VLAN.</strong> Écrire <code>dot1Q 10</code> sur la sous-interface
                 <code>.20</code> compile sans erreur et ne marche jamais.</li>
           </ol>
-          <p class="rap">Toujours faire le <strong>ping intra-VLAN d'abord</strong> : s'il échoue,
+          <p class="rap">Toujours faire le <strong>ping intra-VLAN d'abord</strong> :<br class="ae"> s'il échoue,
              le problème est en couche 2 et il est inutile de regarder R1.</p>
         </div>
       </div>
@@ -500,8 +500,8 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <article class="exo">
     <h3><span class="no">9</span>Question de synthèse : stick ou switch L3 ? <span class="niveau n3">Difficile</span></h3>
     <div class="enonce">
-      <p>Dans quels cas privilégier le router-on-a-stick plutôt qu'un switch L3, et inversement : 
-         coût, performance, montée en charge ?</p>
+      <p>Dans quels cas privilégier le router-on-a-stick plutôt qu'un switch L3, et inversement :<br class="ae"> 
+         coût, performance, montée en charge ?</p>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
@@ -533,15 +533,15 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
              (SW1 → R1) puis <strong>au retour</strong> (R1 → SW1).</p>
           <p>Sur un lien à 1 Gb/s, il ne
              reste donc que <strong>500 Mb/s utiles</strong> de trafic inter-VLAN.</p>
-          <p class="rap">Ce n'est pas une nuance : c'est une division par deux. C'est cette
+          <p class="rap">Ce n'est pas une nuance : c'est une division par deux. C'est cette
              phrase qu'on attend en synthèse.</p>
         </div>
         <p><strong>Conclusion à rédiger.</strong> Le router-on-a-stick convient à
            <strong>une petite structure</strong> avec peu de trafic entre services et un budget
-           contraint : exactement la PME du scénario.</p>
+           contraint :<br class="ae"> exactement la PME du scénario.</p>
         <p>Le switch L3 s'impose dès que
            <strong>le trafic inter-VLAN devient significatif</strong>, ou que le nombre de VLAN
-           augmente : cœur de réseau, établissement, site en croissance.</p>
+           augmente :<br class="ae"> cœur de réseau, établissement, site en croissance.</p>
       </div>
     </div>
   </article>
@@ -583,9 +583,9 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
         </div>
         <div class="encart piege">
           <div class="titre">⚠️ Le premier ping qui échoue dit où chercher</div>
-          <p>Si l'<strong>intra</strong>-VLAN échoue : couche 2, VLAN, affectation de port,
+          <p>Si l'<strong>intra</strong>-VLAN échoue :<br class="ae"> couche 2, VLAN, affectation de port,
              câblage. R1 n'y est pour rien.<br>
-             Si seul l'<strong>inter</strong>-VLAN échoue : couche 3, sous-interfaces,
+             Si seul l'<strong>inter</strong>-VLAN échoue :<br class="ae"> couche 3, sous-interfaces,
              passerelles des PC, trunk incomplet.</p>
           <p class="rap">Deux pings, et la moitié des hypothèses tombe. C'est le meilleur
              rapport temps/information du TP.</p>
@@ -598,7 +598,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
     <h3><span class="no">11</span>Question ouverte : pourquoi éviter le VLAN 1 ? <span class="niveau n2">Moyen</span></h3>
     <div class="enonce">
       <p>Pourquoi est-il préférable, en production, de ne pas utiliser le VLAN 1 par défaut sur
-         les ports d'accès ?</p>
+         les ports d'accès ?</p>
     </div>
     <div class="quiz">
       <div class="titre">✅ Correction</div>
@@ -606,20 +606,20 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
       <div class="reponse">
         <ol>
           <li><strong>C'est le VLAN par défaut de tous les équipements.</strong> Un switch
-              raccordé sans configuration se retrouve dans le VLAN 1 : potentiellement avec les
+              raccordé sans configuration se retrouve dans le VLAN 1 :<br class="ae"> potentiellement avec les
               interfaces d'administration du reste du parc.</li>
-          <li><strong>Il porte le trafic de service</strong> : CDP, DTP, STP, VTP. Y mêler du
+          <li><strong>Il porte le trafic de service</strong> : CDP, DTP, STP, VTP. Y mêler du
               trafic utilisateur expose ces protocoles à des postes non maîtrisés.</li>
           <li><strong>Un attaquant le sait.</strong> C'est le premier VLAN essayé, notamment pour
-              le <em>VLAN hopping</em>, qui exploite le VLAN natif d'un trunk : non étiqueté
+              le <em>VLAN hopping</em>, qui exploite le VLAN natif d'un trunk :<br class="ae"> non étiqueté
               par construction.</li>
         </ol>
         <div class="encart outils">
           <div class="titre">🧰 La pratique courante</div>
           <ul>
-            <li>laisser le <strong>VLAN 1 inutilisé</strong> ;</li>
-            <li>placer l'administration dans un <strong>VLAN dédié</strong> : ici le 99 ;</li>
-            <li>affecter <strong>chaque port d'accès</strong> à un VLAN métier explicite ;</li>
+            <li>laisser le <strong>VLAN 1 inutilisé</strong> ;</li>
+            <li>placer l'administration dans un <strong>VLAN dédié</strong> : ici le 99 ;</li>
+            <li>affecter <strong>chaque port d'accès</strong> à un VLAN métier explicite ;</li>
             <li>changer le <strong>VLAN natif</strong> du trunk pour un VLAN inutilisé.</li>
           </ul>
           <p class="rap">Un port non configuré ne doit jamais donner accès à quoi que ce soit
@@ -650,11 +650,11 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
         <div class="encart outils">
           <div class="titre">🧰 Trois décisions dans ces six lignes</div>
           <ul>
-            <li><strong>ACL étendue</strong> (et non standard) : il faut filtrer sur la
+            <li><strong>ACL étendue</strong> (et non standard) :<br class="ae"> il faut filtrer sur la
                 <em>destination</em>, pas seulement sur la source.</li>
-            <li><strong>Masque générique</strong> <code>0.0.0.255</code> : l'inverse du masque de
+            <li><strong>Masque générique</strong> <code>0.0.0.255</code> :<br class="ae"> l'inverse du masque de
                 sous-réseau. Un 0 signifie « ce bit doit correspondre ».</li>
-            <li><strong>Appliquée <code>in</code> sur la sous-interface du VLAN 30</strong> :
+            <li><strong>Appliquée <code>in</code> sur la sous-interface du VLAN 30</strong> :<br class="ae">
                 au plus près de la source, pour que le trafic refusé ne traverse pas le routeur
                 inutilement.</li>
           </ul>
@@ -665,7 +665,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
              invisible dans la configuration. Sans la ligne <code>permit</code> finale, les deux
              <code>deny</code> bloquent la Direction et la Comptabilité, <strong>et tout le
              reste avec</strong>.</p>
-          <p class="rap">Règle : une ACL qui ne se termine pas par un <code>permit</code> explicite
+          <p class="rap">Règle :<br class="ae"> une ACL qui ne se termine pas par un <code>permit</code> explicite
              bloque tout. C'est l'erreur la plus fréquente, et la plus spectaculaire.</p>
         </div>
       </div>
@@ -677,17 +677,17 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <div class="recap">
     <h2>⚡ Ce que ce TD fait travailler</h2>
     <ul>
-      <li><strong>Partie 1</strong> : OSI, PDU, MAC/IP, ARP, domaines de broadcast et de
+      <li><strong>Partie 1</strong> :<br class="ae"> OSI, PDU, MAC/IP, ARP, domaines de broadcast et de
           collision.</li>
-      <li><strong>Partie 2</strong> : calculs de sous-réseau et <strong>VLSM du plus gros au plus
+      <li><strong>Partie 2</strong> :<br class="ae"> calculs de sous-réseau et <strong>VLSM du plus gros au plus
           petit</strong>, avec le contrôle « broadcast + 1 = réseau suivant ».</li>
-      <li><strong>Partie 3</strong> : configuration initiale, mots de passe, et la différence
+      <li><strong>Partie 3</strong> :<br class="ae"> configuration initiale, mots de passe, et la différence
           entre <em>masquer</em> et <em>protéger</em>.</li>
-      <li><strong>Partie 4</strong> : access contre trunk, le tag 802.1Q, et le VLAN oublié dans
+      <li><strong>Partie 4</strong> :<br class="ae"> access contre trunk, le tag 802.1Q, et le VLAN oublié dans
           <code>allowed vlan</code>.</li>
-      <li><strong>Partie 5</strong> : router-on-a-stick, SVI, et l'argument chiffré du trafic qui
+      <li><strong>Partie 5</strong> :<br class="ae"> router-on-a-stick, SVI, et l'argument chiffré du trafic qui
           passe deux fois.</li>
-      <li><strong>Partie 6</strong> : diagnostiquer de bas en haut, et la règle du moindre
+      <li><strong>Partie 6</strong> :<br class="ae"> diagnostiquer de bas en haut, et la règle du moindre
           privilège appliquée au VLAN 1.</li>
     </ul>
   </div>
@@ -695,7 +695,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>« Révision : Réseaux &amp; Configuration Cisco », TD de 2<sup>e</sup> année, 7 pages :
+      <li>« Révision : Réseaux &amp; Configuration Cisco », TD de 2<sup>e</sup> année, 7 pages :<br class="ae">
           scénario fil rouge, parties 1 à 6, checklist, question ouverte et prolongements</li>
       <li>Liste de vidéos de révision rassemblée en classe</li>
     </ul>
@@ -708,7 +708,7 @@ Service C : 20 hotes       (on repart de 172.16.2.128)
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../15-projet-techshop/exercices.html"><span>Chapitre précédent</span><b>Projet TechShop</b></a><a class="suiv" href="../17-atelier-infrastructure/exercices.html"><span>Chapitre suivant</span><b>Atelier : infrastructure complète</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=6850265f"></script>
-<script src="../../assets/app.js?v=6850265f"></script>
+<script src="../../assets/fiche.js?v=83e4b4e2"></script>
+<script src="../../assets/app.js?v=83e4b4e2"></script>
 </body>
 </html>
