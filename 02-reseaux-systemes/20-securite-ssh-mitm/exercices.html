@@ -7,7 +7,7 @@
 <meta name="description" content="Les 19 questions de l'activité MITM sur SSH, corrigées : sudo, clés d'hôte et sshd_config, TOFU et known_hosts, reconnaissance nmap, principes du MITM, routage et redirection de port, ARP spoofing, détection du changement de clé et remise en état.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=16a7fc5c">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a43b5e2f">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -90,7 +90,7 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:55"><span class="langue">terminal</span><pre><code><span class="j-fn">dpkg</span> <span class="j-att">-l</span> | grep openssh-server     <span class="j-com"># installe ?</span>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:55"><span class="langue">terminal</span><pre><code><span class="j-fn">dpkg</span> <span class="j-att">-l</span> | grep openssh-server     <span class="j-com"># installe ?</span>
 <span class="j-fn">systemctl</span> status ssh              <span class="j-com"># demarre ? (ou sshd)</span></code></pre></div><p>La première liste les paquets installés et filtre sur <code>openssh-server</code> ; la seconde interroge le gestionnaire de services sur l'état du démon SSH (actif, arrêté, au démarrage).</p>
       </div>
     </div>
@@ -164,7 +164,7 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
 <span class="j-fn">nmap</span> <span class="j-att">-sV</span> <span class="j-num">192.168</span>.<span class="j-num">56.10</span>       <span class="j-com"># quels ports, quels services, quelles versions</span></code></pre></div><p>Le premier scan dresse la <strong>liste des machines actives</strong> sur le réseau (découverte d'hôtes). Le second révèle, pour une machine, les <strong>ports ouverts</strong>, les <strong>services</strong> qui écoutent et souvent leur <strong>version précise</strong> (par exemple <code>OpenSSH 9.2p1</code>).</p>
 <p>L'attaquant sait alors quoi viser, ici, le port 22/SSH, et peut chercher des failles connues de cette version.</p>
       </div>
@@ -224,7 +224,7 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit faire passer le flux par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client.</p>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit faire passer le flux par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client.</p>
 <p>La redirection envoie tout ce qui arrive sur le port 22 vers le port local où cet outil écoute (10022). Sans elle, les paquets seraient simplement transmis, jamais déchiffrés par l'attaquant.</p>
       </div>
     </div>
@@ -330,7 +330,7 @@
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:72"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.ciel.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
+        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" data-plie style="--car:72"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.ciel.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
       </div>
     </div>
   </article>
@@ -372,7 +372,7 @@
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/exercices.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=16a7fc5c"></script>
-<script src="../../assets/app.js?v=16a7fc5c"></script>
+<script src="../../assets/fiche.js?v=a43b5e2f"></script>
+<script src="../../assets/app.js?v=a43b5e2f"></script>
 </body>
 </html>

