@@ -7,7 +7,7 @@
 <meta name="description" content="Chapitre bonus : wslc, le moteur de conteneurs intégré à Windows depuis WSL 2.9.3. Installation, premier conteneur, images, ports, Containerfile, et la table de correspondance avec Docker.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=6850265f">
+<link rel="stylesheet" href="../../assets/fiche.css?v=83e4b4e2">
 </head>
 <body data-matiere="reseau">
 <div class="page">
@@ -43,23 +43,23 @@
 
   <h1>WSL Containers · des conteneurs Linux sans Docker Desktop</h1>
   <p class="chapeau">Depuis septembre 2026, Windows sait lancer des conteneurs Linux
-     <em>tout seul</em> : plus de moteur à installer, plus de Docker Desktop. La commande
+     <em>tout seul</em> :<br class="ae"> plus de moteur à installer, plus de Docker Desktop. La commande
      s'appelle <code>wslc</code>, elle est livrée avec WSL, et sa syntaxe est volontairement
      proche de celle de Docker. Le chapitre <a href="../18-docker-conteneurs/cours.html">18</a>
-     reste la référence pour les <em>idées</em> ; celui-ci montre l'outil.</p>
+     reste la référence pour les <em>idées</em> ; celui-ci montre l'outil.</p>
 
   <div class="encart piege">
     <div class="titre">⚠️ Un chapitre bonus, et un chapitre daté</div>
     <p>Il n'est <strong>pas au programme du BTS</strong> et n'a pas été donné en cours. Il
        est là parce que l'outil vient de sortir et qu'il change la façon de monter un
-       environnement de conteneurs sur un poste Windows : exactement le genre de chose qu'on
+       environnement de conteneurs sur un poste Windows :<br class="ae"> exactement le genre de chose qu'on
        vous demandera en entreprise bien avant qu'elle n'arrive dans un référentiel.</p>
     <p><strong>Un outil de quelques semaines bouge encore.</strong> Les commandes, les
        numéros de version et les sorties de ce chapitre viennent de la
        <a href="https://learn.microsoft.com/fr-fr/windows/wsl/wsl-container">documentation
        officielle de Microsoft</a>, relevée le <strong>14 octobre 2026</strong>.</p>
     <p>Sur votre
-       machine, c'est <code>wslc --help</code> qui fait foi : il décrit la version que vous
+       machine, c'est <code>wslc --help</code> qui fait foi :<br class="ae"> il décrit la version que vous
        avez réellement installée. <strong>Si elle répond autre chose que ce qui est écrit
        ici, c'est elle qui a raison.</strong></p>
   </div>
@@ -68,17 +68,17 @@
     <span class="pastille">📌</span>
     <div>
       <h2>Résumé flash</h2>
-      <p><strong><code>wslc.exe</code> est livré avec WSL</strong> : rien à installer en
+      <p><strong><code>wslc.exe</code> est livré avec WSL</strong> : rien à installer en
          plus. Il faut <strong>WSL 2.9.3 ou supérieur</strong>, 
          <code>wsl --update</code> puis <code>wsl --version</code>.</p>
-      <p>Les trois mots du chapitre 18 ne changent pas : <strong>image</strong>,
+      <p>Les trois mots du chapitre 18 ne changent pas : <strong>image</strong>,
          <strong>conteneur</strong>, <strong>volume</strong>. Les commandes non plus, ou
-         presque : <code>wslc run</code>, <code>wslc exec</code>,
-         <code>wslc image list</code>, <code>wslc container list</code>,
-         <code>wslc build</code>. <code>-p</code>, <code>-d</code>, <code>--rm</code>,
+         presque :<br class="ae"> <code>wslc run</code>, <code>wslc exec</code>,<br class="ae">
+         <code>wslc image list</code>,<br class="ae"> <code>wslc container list</code>,<br class="ae">
+         <code>wslc build</code>.<br class="ae"> <code>-p</code>, <code>-d</code>, <code>--rm</code>,
          <code>-it</code> se lisent comme chez Docker.</p>
-      <p>Les images viennent des <strong>mêmes registres</strong> : Docker Hub en tête. Ce
-         n'est pas un format concurrent : c'est un autre moteur pour les mêmes images.</p>
+      <p>Les images viennent des <strong>mêmes registres</strong> : Docker Hub en tête. Ce
+         n'est pas un format concurrent :<br class="ae"> c'est un autre moteur pour les mêmes images.</p>
     </div>
   </div>
   <p class="motscles">🔑
@@ -92,7 +92,7 @@
   <h2><span class="num">1</span>Pourquoi ce chapitre existe</h2>
 
   <p>Il n'a pas été demandé par un professeur. Il est là parce qu'un outil est sorti il y a
-     quelques semaines et qu'il répond à une gêne bien réelle du chapitre précédent :
+     quelques semaines et qu'il répond à une gêne bien réelle du chapitre précédent :<br class="ae">
      <strong>sous Windows, faire tourner un conteneur demandait d'installer Docker
      Desktop</strong>, un logiciel lourd, qui démarre une machine virtuelle, qui tourne en
      permanence, et dont la licence n'est gratuite que pour les petites structures et
@@ -111,9 +111,9 @@
     </ul>
   </div>
 
-  <p class="rap">Le revers, et il faut le dire : un outil de trois semaines n'a pas la
+  <p class="rap">Le revers, et il faut le dire :<br class="ae"> un outil de trois semaines n'a pas la
      documentation, les tutoriels ni les réponses de forum d'un outil de douze ans.
-     <strong>Docker reste ce qu'on apprend</strong> ; <code>wslc</code> est ce qu'on
+     <strong>Docker reste ce qu'on apprend</strong> ; <code>wslc</code> est ce qu'on
      surveille.</p>
 </section>
 
@@ -122,11 +122,11 @@
 
   <h3>D'abord, WSL en une phrase</h3>
   <p><strong>WSL</strong>, <em>Windows Subsystem for Linux</em>, permet d'exécuter Linux
-     sur Windows. Dans sa version 2, ce n'est pas une émulation : c'est un
+     sur Windows. Dans sa version 2, ce n'est pas une émulation :<br class="ae"> c'est un
      <strong>vrai noyau Linux</strong> qui tourne dans une machine virtuelle légère gérée
      par Windows, avec les fichiers et le réseau partagés entre les deux mondes.</p>
 
-  <p>Or un conteneur Linux a besoin d'exactement une chose : un noyau Linux. Windows en a
+  <p>Or un conteneur Linux a besoin d'exactement une chose : un noyau Linux. Windows en a
      désormais un sous la main en permanence. <strong>Il ne manquait plus que le moteur et
      la commande</strong>, c'est ce que Microsoft a ajouté.</p>
 
@@ -150,11 +150,11 @@
 
   <div class="encart analogie">
     <div class="titre">🔌 La prise et l'appareil</div>
-    <p>Docker Desktop apportait <em>sa propre prise</em> : une machine virtuelle à lui, un
+    <p>Docker Desktop apportait <em>sa propre prise</em> :<br class="ae"> une machine virtuelle à lui, un
        moteur à lui, une interface à lui.</p>
     <p>WSL avait déjà la prise, un noyau Linux qui
        tourne, et il ne s'en servait pas pour ça.</p>
-    <p class="rap"><code>wslc</code> ne réinvente pas le conteneur : il branche le moteur
+    <p class="rap"><code>wslc</code> ne réinvente pas le conteneur :<br class="ae"> il branche le moteur
        sur une prise qui existait déjà.</p>
   </div>
 
@@ -162,7 +162,7 @@
   <p>Microsoft livre aussi une <strong>interface de programmation</strong> (le paquet NuGet
      <code>Microsoft.WSL.Containers</code>) qui permet à une application Windows écrite en
      C# ou en C++ de télécharger une image, de lancer un conteneur et de lire sa sortie
-     <em>depuis son propre code</em>. Autrement dit : le conteneur devient une brique qu'un
+     <em>depuis son propre code</em>. Autrement dit :<br class="ae"> le conteneur devient une brique qu'un
      logiciel Windows peut employer, et plus seulement un outil de développeur.</p>
 </section>
 
@@ -183,7 +183,7 @@
        exigence. La version stable qui a rendu la fonction publique, fin septembre 2026,
        porte le numéro <strong>3.0.1</strong>, c'est celui que citent les articles et les
        vidéos parus à la sortie.</p>
-    <p class="rap">Les deux sont vrais et ne se contredisent pas : 2.9.3 est le plancher,
+    <p class="rap">Les deux sont vrais et ne se contredisent pas :<br class="ae"> 2.9.3 est le plancher,
        3.0.1 est ce qu'on installe aujourd'hui. <code>wsl --update</code> règle la question
        dans les deux cas.</p>
   </div>
@@ -200,7 +200,7 @@
 <span class="j-fn">wslc</span> <span class="j-att">--help</span>          <span class="j-com"># toutes les commandes</span>
 <span class="j-fn">wslc</span> run <span class="j-att">--help</span>      <span class="j-com"># le détail d'une commande</span>
 </code></pre></div>
-  <p class="rap"><code>wslc --help</code> est la source la plus à jour qui existe : plus
+  <p class="rap"><code>wslc --help</code> est la source la plus à jour qui existe :<br class="ae"> plus
      récente que ce cours, plus récente que n'importe quel tutoriel. Sur un outil de
      quelques semaines, prenez-en l'habitude.</p>
 </section>
@@ -208,27 +208,27 @@
 <section id="premier">
   <h2><span class="num">4</span>Le premier conteneur</h2>
 
-  <p>Le rite de passage est le même que sous Docker : une image minuscule dont le seul rôle
+  <p>Le rite de passage est le même que sous Docker :<br class="ae"> une image minuscule dont le seul rôle
      est d'afficher un message et de s'arrêter.</p>
 
   <div class="bloc-code" data-fam="bash" style="--car:25"><span class="langue">powershell</span><pre><code><span class="j-fn">wslc</span> run <span class="j-att">--rm</span> hello-world
 </code></pre></div>
 
-  <p>Il se passe quatre choses, dans cet ordre, et il faut savoir les nommer :</p>
+  <p>Il se passe quatre choses, dans cet ordre, et il faut savoir les nommer :</p>
   <ol>
     <li>l'image <code>hello-world</code> n'est pas sur la machine, donc elle est
-        <strong>téléchargée</strong> depuis le registre ;</li>
-    <li>un conteneur est <strong>créé</strong> à partir d'elle ;</li>
-    <li>il est <strong>démarré</strong>, affiche son message, et son processus se termine ;</li>
+        <strong>téléchargée</strong> depuis le registre ;</li>
+    <li>un conteneur est <strong>créé</strong> à partir d'elle ;</li>
+    <li>il est <strong>démarré</strong>, affiche son message, et son processus se termine ;</li>
     <li><code>--rm</code> le fait <strong>détruire</strong> dans la foulée.</li>
   </ol>
 
   <div class="encart savoir">
     <div class="titre">💡 <code>--rm</code>, et pourquoi on le met presque toujours</div>
-    <p>Sans lui, le conteneur arrêté <strong>reste</strong> sur la machine : il n'occupe plus
+    <p>Sans lui, le conteneur arrêté <strong>reste</strong> sur la machine :<br class="ae"> il n'occupe plus
        de processeur, mais il occupe du disque et il encombre la liste. Après une heure
        d'essais on en compte facilement trente.</p>
-    <p class="rap">Règle simple : <code>--rm</code> pour tout ce qu'on lance pour voir, pas
+    <p class="rap">Règle simple :<br class="ae"> <code>--rm</code> pour tout ce qu'on lance pour voir, pas
        de <code>--rm</code> pour ce qu'on veut retrouver.</p>
   </div>
 
@@ -246,7 +246,7 @@
     </tbody>
   </table>
   </div>
-  <p class="rap"><code>-it</code> est l'habitude de Docker, et elle se garde : les deux
+  <p class="rap"><code>-it</code> est l'habitude de Docker, et elle se garde :<br class="ae"> les deux
      lettres vont presque toujours ensemble, parce qu'un terminal sans entrée ne sert à
      rien.</p>
 </section>
@@ -255,8 +255,8 @@
   <h2><span class="num">5</span>Les images et leurs registres</h2>
 
   <p>Une image porte un <strong>nom</strong> et un <strong>tag</strong>, séparés par deux
-     points : <code>ubuntu:latest</code>, <code>nginx:1.27</code>,
-     <code>python:3</code>. Sans tag, c'est <code>latest</code> qui est pris.</p>
+     points :<br class="ae"> <code>ubuntu:latest</code>,<br class="ae"> <code>nginx:1.27</code>,
+     <code>python:3</code>.<br class="ae"> Sans tag, c'est <code>latest</code> qui est pris.</p>
 
   <div class="encart piege">
     <div class="titre">⚠️ <code>latest</code> n'est pas une version</div>
@@ -268,13 +268,13 @@
   </div>
 
   <h3>D'où viennent les images</h3>
-  <p>C'est le point qui surprend : <strong>wslc va chercher dans les registres de
+  <p>C'est le point qui surprend :<br class="ae"> <strong>wslc va chercher dans les registres de
      Docker</strong>. Il n'y a pas de catalogue Microsoft séparé, pas de format
      propriétaire. Une image construite pour Docker tourne sous wslc, et l'inverse aussi.</p>
   <ul>
-    <li><strong>Docker Hub</strong> : le registre par défaut, celui des images officielles ;</li>
-    <li><strong>GitHub Container Registry</strong> : celui des projets hébergés sur GitHub ;</li>
-    <li><strong>Azure Container Registry</strong> : les registres privés d'entreprise.</li>
+    <li><strong>Docker Hub</strong> :<br class="ae"> le registre par défaut, celui des images officielles ;</li>
+    <li><strong>GitHub Container Registry</strong> :<br class="ae"> celui des projets hébergés sur GitHub ;</li>
+    <li><strong>Azure Container Registry</strong> :<br class="ae"> les registres privés d'entreprise.</li>
   </ul>
 
   <h3>Les commandes des images</h3>
@@ -284,7 +284,7 @@
 </code></pre></div>
   <p class="rap">La documentation de Microsoft emploie aussi les formes courtes
      <code>wslc image ls</code> et <code>wslc container ps</code>, héritées de Docker. Les
-     deux écritures apparaissent dans ses propres pages ; <code>wslc --help</code> dit
+     deux écritures apparaissent dans ses propres pages ; <code>wslc --help</code> dit
      laquelle votre version accepte.</p>
 </section>
 
@@ -308,14 +308,14 @@
     <div class="titre">💡 <code>run</code> et <code>exec</code> ne font pas la même chose</div>
     <p><code>run</code> <strong>crée</strong> un conteneur à partir d'une image.
        <code>exec</code> lance une commande <strong>dans un conteneur qui existe déjà</strong>.</p>
-    <p class="rap">La confusion coûte cher : on fait un <code>run</code> croyant
+    <p class="rap">La confusion coûte cher :<br class="ae"> on fait un <code>run</code> croyant
        entrer dans son serveur, et on se retrouve dans un second serveur tout neuf, vide,
        sans aucun des fichiers qu'on cherchait.</p>
   </div>
 
   <h3>Ce que fait le conteneur quand sa commande se termine</h3>
   <p>Un conteneur vit exactement aussi longtemps que <strong>son processus principal</strong>.
-     Une image qui lance <code>bash</code> sans terminal s'arrête immédiatement : bash n'a
+     Une image qui lance <code>bash</code> sans terminal s'arrête immédiatement :<br class="ae"> bash n'a
      rien à lire, il sort, le conteneur sort. Ce n'est pas une panne, c'est la règle.</p>
 </section>
 
@@ -342,16 +342,16 @@
 
   <div class="encart piege">
     <div class="titre">⚠️ Le dehors est à gauche</div>
-    <p><code>-p 8080:80</code> veut dire : <strong>le 8080 de la machine</strong> mène au
+    <p><code>-p 8080:80</code> veut dire :<br class="ae"> <strong>le 8080 de la machine</strong> mène au
        <strong>80 du conteneur</strong>. C'est la même lecture que sous Docker, et c'est la
-       même erreur qu'on fait : inverser les deux, puis chercher longtemps pourquoi la page
+       même erreur qu'on fait :<br class="ae"> inverser les deux, puis chercher longtemps pourquoi la page
        ne répond pas.</p>
-    <p class="rap">Moyen mnémotechnique : on écrit l'adresse qu'on va taper
+    <p class="rap">Moyen mnémotechnique :<br class="ae"> on écrit l'adresse qu'on va taper
        <em>en premier</em>. <code>localhost:8080</code> → <code>-p 8080:…</code></p>
   </div>
 
   <p>Comme le conteneur a été lancé avec <code>--rm</code>, il disparaît tout seul à
-     l'arrêt : rien à nettoyer.</p>
+     l'arrêt : rien à nettoyer.</p>
 </section>
 
 <section id="construire">
@@ -362,7 +362,7 @@
      <code>wslc build</code>.</p>
 
   <p>Microsoft nomme ce fichier <strong><code>Containerfile</code></strong> dans son
-     tutoriel. Son contenu est la syntaxe que vous connaissez déjà du chapitre 18 :</p>
+     tutoriel. Son contenu est la syntaxe que vous connaissez déjà du chapitre 18 :</p>
 
   <div class="bloc-code" data-plie style="--car:56"><span class="langue">dockerfile</span><pre><code>FROM python:3
 WORKDIR /app
@@ -398,14 +398,14 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     <div class="titre">💡 <code>RUN</code> et <code>CMD</code>, l'erreur classique</div>
     <p><code>RUN</code> s'exécute <strong>une fois, à la construction</strong>, et son
        résultat est figé dans l'image. <code>CMD</code> ne s'exécute pas du tout à la
-       construction : c'est <strong>ce que fera le conteneur</strong> quand on le lancera.</p>
+       construction :<br class="ae"> c'est <strong>ce que fera le conteneur</strong> quand on le lancera.</p>
     <p class="rap">Mettre le serveur dans un <code>RUN</code> construit une image pendant
        laquelle le serveur a tourné, et qui ne lance rien au démarrage.</p>
   </div>
 
   <div class="encart piege">
     <div class="titre">⚠️ Où ranger son projet</div>
-    <p>Microsoft insiste, et c'est une vraie mesure de performance : gardez les fichiers du
+    <p>Microsoft insiste, et c'est une vraie mesure de performance :<br class="ae"> gardez les fichiers du
        projet <strong>du côté Linux</strong> (<code>\\wsl$</code>) quand vous travaillez avec
        des outils Linux.</p>
     <p>Un projet posé sur le disque Windows et lu depuis WSL traverse une
@@ -421,7 +421,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 <span class="j-fn">wslc</span> system info     <span class="j-com"># l'état de l'environnement de conteneurs</span>
 </code></pre></div>
 
-  <p><code>wslc events</code> mérite un essai dès le départ : on l'ouvre dans une
+  <p><code>wslc events</code> mérite un essai dès le départ :<br class="ae"> on l'ouvre dans une
      console, on travaille dans une autre, et <strong>on voit en direct ce que fait vraiment
      chaque commande</strong>.</p>
   <p>Un <code>run --rm</code> y écrit la séquence complète, 
@@ -487,12 +487,12 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
   <div class="encart savoir">
     <div class="titre">💡 La seule différence de forme qui compte</div>
-    <p>Docker accepte beaucoup de raccourcis historiques : <code>docker ps</code> plutôt que
+    <p>Docker accepte beaucoup de raccourcis historiques :<br class="ae"> <code>docker ps</code> plutôt que
        <code>docker container ls</code>, <code>docker images</code> plutôt que
        <code>docker image ls</code>.</p>
     <p><code>wslc</code> met plus volontiers
-       <strong>l'objet avant le verbe</strong> : <code>container list</code>,
-       <code>image list</code>, <code>container stop</code>.</p>
+       <strong>l'objet avant le verbe</strong> :<br class="ae"> <code>container list</code>,<br class="ae">
+       <code>image list</code>,<br class="ae"> <code>container stop</code>.</p>
     <p class="rap">C'est en fait la forme <em>moderne</em> de Docker, celle que sa
        documentation recommande depuis des années. Si vous prenez l'habitude de
        <code>container</code> et <code>image</code>, les deux outils vous obéissent.</p>
@@ -514,11 +514,11 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
         d'intégration continue, les extensions d'éditeur parlent tous <code>docker</code>.
         Cela se traduit, mais cela se traduit à la main.</li>
     <li><strong>La virtualisation reste nécessaire.</strong> Le noyau Linux tourne dans une
-        machine virtuelle gérée par Windows : si la virtualisation est désactivée dans le
+        machine virtuelle gérée par Windows :<br class="ae"> si la virtualisation est désactivée dans le
         BIOS, rien ne démarre, exactement comme pour WSL.</li>
   </ul>
 
-  <p class="rap">La bonne position en BTS : <strong>apprendre Docker</strong>, parce que
+  <p class="rap">La bonne position en BTS :<br class="ae"> <strong>apprendre Docker</strong>, parce que
      c'est lui qui est au programme, qui est partout et qui est demandé.
      <strong>Savoir que wslc existe</strong>, ce qu'il remplace et comment le lancer, 
      parce que c'est ce qui vous distinguera le jour où un poste Windows doit faire tourner
@@ -568,7 +568,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
   <div class="recap">
     <h2>⚡ Récap 2 minutes</h2>
     <ul>
-      <li><strong><code>wslc.exe</code> est livré avec WSL</strong> : rien à installer, pas
+      <li><strong><code>wslc.exe</code> est livré avec WSL</strong> :<br class="ae"> rien à installer, pas
           de licence, et plus de Docker Desktop sous Windows.</li>
       <li><strong>Il faut WSL 2.9.3 au minimum</strong>, <code>wsl --update</code> puis
           <code>wsl --version</code>. La version stable de sortie porte le numéro 3.0.1.</li>
@@ -576,7 +576,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
           fait tourner un vrai noyau Linux dans une machine virtuelle légère.</li>
       <li><strong>Les images sont les mêmes que celles de Docker</strong>, prises dans les
           mêmes registres. Ce n'est pas un format concurrent, c'est un autre moteur.</li>
-      <li><strong><code>-p 8080:80</code> se lit hôte : conteneur.</strong> Le dehors est
+      <li><strong><code>-p 8080:80</code> se lit hôte : conteneur.</strong> Le dehors est
           toujours à gauche.</li>
       <li><strong><code>run</code> part d'une image, <code>exec</code> entre dans un
           conteneur qui tourne.</strong> Les confondre donne un second conteneur vide.</li>
@@ -584,9 +584,9 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
           chez Microsoft, et son contenu est la syntaxe du chapitre 18. <code>RUN</code>
           s'exécute à la construction, <code>CMD</code> au démarrage, <code>EXPOSE</code>
           documente sans publier.</li>
-      <li><strong>Ce sont les images qui pèsent</strong> : <code>wslc image prune</code>
+      <li><strong>Ce sont les images qui pèsent</strong> :<br class="ae"> <code>wslc image prune</code>
           libère bien plus que <code>wslc container prune</code>.</li>
-      <li><strong>Docker reste ce qu'on apprend ; wslc est ce qu'on surveille.</strong>
+      <li><strong>Docker reste ce qu'on apprend ; wslc est ce qu'on surveille.</strong>
           Windows seulement, pas d'interface graphique, et tout l'écosystème parle encore
           <code>docker</code>.</li>
     </ul>
@@ -596,22 +596,22 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
   <div class="encart">
     <div class="titre">Sources</div>
     <ul>
-      <li>Microsoft Learn : <a href="https://learn.microsoft.com/fr-fr/windows/wsl/wsl-container">WSL
+      <li>Microsoft Learn :<br class="ae"> <a href="https://learn.microsoft.com/fr-fr/windows/wsl/wsl-container">WSL
           container</a> et <a href="https://learn.microsoft.com/fr-fr/windows/wsl/tutorials/wsl-containers">Get
           started with containers on WSL</a>, pages datées du 29 septembre 2026, relevées le
-          14 octobre 2026. <strong>C'est la source qui fait foi</strong> : les commandes et
+          14 octobre 2026. <strong>C'est la source qui fait foi</strong> :<br class="ae"> les commandes et
           les versions de ce chapitre en viennent.</li>
-      <li>Vidéo « Des conteneurs Linux sur Windows, sans Docker Desktop : j'ai testé wslc »,
+      <li>Vidéo « Des conteneurs Linux sur Windows, sans Docker Desktop : j'ai testé wslc »,
           <a href="https://www.youtube.com/watch?v=JaxsCZR-kxM">YouTube</a>, c'est par elle
-          que l'outil a été découvert. Elle est sous droits : rien n'en est recopié, ses
+          que l'outil a été découvert. Elle est sous droits :<br class="ae"> rien n'en est recopié, ses
           faits ont servi de piste, et chacun a été revérifié sur la documentation de
           Microsoft.</li>
       <li>Chapitre <a href="../18-docker-conteneurs/cours.html">18 : Docker</a>,
           pour les notions d'image, de conteneur, de volume et de port.</li>
     </ul>
-    <p class="rap">Sur un outil aussi récent, aucune page ne reste juste très longtemps : 
+    <p class="rap">Sur un outil aussi récent, aucune page ne reste juste très longtemps : 
        celle-ci pas davantage. <code>wslc --help</code> décrit la version installée sur votre
-       machine : c'est la référence la plus sûre, et la seule qui ne vieillit pas.</p>
+       machine :<br class="ae"> c'est la référence la plus sûre, et la seule qui ne vieillit pas.</p>
   </div>
 </footer>
 
@@ -619,7 +619,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../18-docker-conteneurs/cours.html"><span>Chapitre précédent</span><b>Docker : conteneurs</b></a><a class="suiv" href="../20-securite-ssh-mitm/cours.html"><span>Chapitre suivant</span><b>Sécurité SSH &amp; attaque MITM</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=6850265f"></script>
-<script src="../../assets/app.js?v=6850265f"></script>
+<script src="../../assets/fiche.js?v=83e4b4e2"></script>
+<script src="../../assets/app.js?v=83e4b4e2"></script>
 </body>
 </html>

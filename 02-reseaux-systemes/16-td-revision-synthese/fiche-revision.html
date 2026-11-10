@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche recto-verso imprimable : OSI et PDU, la méthode VLSM, les commandes Cisco de base, VLAN access et trunk, router-on-a-stick contre SVI, et l'ordre de diagnostic.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=6850265f">
+<link rel="stylesheet" href="../../assets/fiche.css?v=83e4b4e2">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -50,11 +50,11 @@
   <article class="memo">
     <h2>MAC · IP · ARP</h2>
     <ul>
-      <li><strong>MAC</strong> : physique, 48 bits, valable sur le lien local.</li>
-      <li><strong>IP</strong> : logique, hiérarchique, identifie l'hôte <strong>de bout en
+      <li><strong>MAC</strong> :<br class="ae"> physique, 48 bits, valable sur le lien local.</li>
+      <li><strong>IP</strong> :<br class="ae"> logique, hiérarchique, identifie l'hôte <strong>de bout en
           bout</strong>.</li>
-      <li><strong>ARP</strong> : trouve la MAC à partir de l'IP, sur le réseau local.</li>
-      <li><strong>ICMP</strong> : <code>ping</code>, <code>traceroute</code>.</li>
+      <li><strong>ARP</strong> :<br class="ae"> trouve la MAC à partir de l'IP, sur le réseau local.</li>
+      <li><strong>ICMP</strong> : <code>ping</code>, <code>traceroute</code>.</li>
     </ul>
   </article>
 
@@ -71,8 +71,8 @@
       </tbody>
     </table>
     </div>
-    <p><strong>Contrôle :</strong> broadcast d'un bloc <strong>+ 1</strong> = réseau du suivant.
-       Sinon : trou ou recouvrement.</p>
+    <p><strong>Contrôle :</strong><br class="ae"> broadcast d'un bloc <strong>+ 1</strong> = réseau du suivant.
+       Sinon : trou ou recouvrement.</p>
     <p>Justifier le masque en écrivant <strong>celui du dessous et pourquoi il ne suffit
        pas</strong>.</p>
   </article>
@@ -103,7 +103,7 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
 <span class="j-mc">ip</span> default-gateway <span class="j-num">192.168.1.1</span>
 <span class="j-mc">end</span>
 <span class="j-mc">copy</span> <span class="j-att">running-config</span> <span class="j-att">startup-config</span></code></pre></div>
-    <p><code>service password-encryption</code> = <strong>type 7, réversible</strong> : ça masque,
+    <p><code>service password-encryption</code> = <strong>type 7, réversible</strong> : ça masque,
        ça ne protège pas. Seul <code>enable secret</code> est haché.</p>
   </article>
 
@@ -122,7 +122,7 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
 <span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">allowed</span> <span class="j-typ">vlan 10</span>,<span class="j-num">20,30</span></code></pre></div>
     <p><strong>access</strong> = 1 VLAN, sans étiquette · <strong>trunk</strong> = plusieurs VLAN,
        étiquetés <strong>802.1Q</strong> (4 octets, 12 bits → <strong>4 094</strong> VLAN).</p>
-    <p>Sur un 2960, <code>switchport trunk encapsulation</code> <strong>n'existe pas</strong> :
+    <p>Sur un 2960, <code>switchport trunk encapsulation</code> <strong>n'existe pas</strong> :<br class="ae">
        passer directement à <code>switchport mode trunk</code>.</p>
   </article>
 
@@ -139,7 +139,7 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
 <span class="j-mc">interface</span> <span class="j-typ">vlan 10</span>
 <span class="j-mc"> ip</span> <span class="j-att">address</span> <span class="j-num">192.168.10.1</span> <span class="j-num">255.255.255.0</span>
 <span class="j-mc"> no shutdown</span></code></pre></div>
-    <p>Les deux lignes qu'on oublie : <strong><code>no shutdown</code> sur l'interface
+    <p>Les deux lignes qu'on oublie :<br class="ae"> <strong><code>no shutdown</code> sur l'interface
        physique</strong> (elle porte les sous-interfaces) et <strong><code>ip routing</code></strong>
        sur le switch L3 (sans lui, rien ne route).</p>
   </article>
@@ -157,15 +157,15 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
       </tbody>
     </table>
     </div>
-    <p>L'argument : sur un lien à 1 Gb/s, il reste <strong>500 Mb/s utiles</strong> de trafic
+    <p>L'argument :<br class="ae"> sur un lien à 1 Gb/s, il reste <strong>500 Mb/s utiles</strong> de trafic
        inter-VLAN.</p>
   </article>
 
   <article class="memo alerte">
     <h2>⚡ Diagnostiquer de bas en haut</h2>
     <ol>
-      <li><code>show ip interface brief</code> → <code>up / up</code> ?</li>
-      <li><code>show cdp neighbors</code> → qui est en face ?</li>
+      <li><code>show ip interface brief</code> → <code>up / up</code> ?</li>
+      <li><code>show cdp neighbors</code> → qui est en face ?</li>
       <li><code>show vlan brief</code> → VLAN et ports</li>
       <li><code>show interfaces trunk</code> → VLAN autorisés</li>
       <li><code>show ip route</code> → 3 réseaux en <code>C</code></li>
@@ -180,11 +180,11 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
     <h2>⚠️ Les cinq pièges</h2>
     <ol>
       <li><strong>Interfaces du routeur éteintes</strong> par défaut.</li>
-      <li><strong>VLAN absent d'<code>allowed vlan</code></strong> : trames jetées en silence, on
+      <li><strong>VLAN absent d'<code>allowed vlan</code></strong> :<br class="ae"> trames jetées en silence, on
           accuse le routeur à tort.</li>
       <li><strong><code>no ip address</code> oublié</strong> sur la physique du stick.</li>
       <li><strong><code>ip routing</code> oublié</strong> sur le switch L3.</li>
-      <li><strong>Mauvais masque</strong> : une partie du réseau répond, l'autre non.</li>
+      <li><strong>Mauvais masque</strong> :<br class="ae"> une partie du réseau répond, l'autre non.</li>
     </ol>
   </article>
 
@@ -194,10 +194,10 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
       <li><strong>VLAN 1 inutilisé</strong>, c'est le défaut de tout le monde, il porte CDP/DTP/
           STP/VTP, et c'est le premier essayé par un attaquant.</li>
       <li><strong>Administration dans un VLAN dédié</strong> (99).</li>
-      <li><strong>VLAN natif</strong> du trunk changé : il circule sans étiquette.</li>
-      <li><strong>ACL</strong> après le routage : le VLAN sépare, le routeur relie,
+      <li><strong>VLAN natif</strong> du trunk changé : il circule sans étiquette.</li>
+      <li><strong>ACL</strong> après le routage :<br class="ae"> le VLAN sépare, le routeur relie,
           <strong>l'ACL arbitre</strong>.</li>
-      <li>Une ACL sans <code>permit</code> final <strong>bloque tout</strong> :
+      <li>Une ACL sans <code>permit</code> final <strong>bloque tout</strong> :
           <code>deny any</code> implicite.</li>
     </ul>
   </article>
@@ -207,7 +207,7 @@ C  172.16.2.128/27   .2.129 -> .2.158    bc .2.159</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../15-projet-techshop/fiche-revision.html"><span>Chapitre précédent</span><b>Projet TechShop</b></a><a class="suiv" href="../17-atelier-infrastructure/fiche-revision.html"><span>Chapitre suivant</span><b>Atelier : infrastructure complète</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=6850265f"></script>
-<script src="../../assets/app.js?v=6850265f"></script>
+<script src="../../assets/fiche.js?v=83e4b4e2"></script>
+<script src="../../assets/app.js?v=83e4b4e2"></script>
 </body>
 </html>

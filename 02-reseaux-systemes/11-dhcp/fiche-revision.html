@@ -7,7 +7,7 @@
 <meta name="description" content="Fiche imprimable : DORA, ports, méthodes d'attribution, configuration Cisco et ISC, relais et dépannage DHCP.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;d.dataset.theme=T||(n?"dark":"light");d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=6850265f">
+<link rel="stylesheet" href="../../assets/fiche.css?v=83e4b4e2">
 </head>
 <body data-matiere="reseau">
 <div class="page revision">
@@ -44,7 +44,7 @@
       </table>
       </div>
       <p style="margin:.4rem 0 0;font-size:13px">Le DISCOVER part de <code>0.0.0.0</code> vers
-        <code>255.255.255.255</code> : le client n'a pas encore d'adresse.</p>
+        <code>255.255.255.255</code> :<br class="ae"> le client n'a pas encore d'adresse.</p>
       <p style="margin:.3rem 0 0;font-size:13px">Le REQUEST est en diffusion pour <strong>prévenir
         les autres serveurs</strong> que leur offre est refusée.</p>
     </div>
@@ -52,9 +52,9 @@
     <div class="memo cle">
       <h3>Les chiffres</h3>
       <div class="formule" style="font-size:13.5px">UDP <strong>67</strong> serveur<br>UDP <strong>68</strong> client</div>
-      <p style="margin:0;font-size:13.5px"><strong>Renouvellement :</strong> T1 à <strong>50 %</strong>
+      <p style="margin:0;font-size:13.5px"><strong>Renouvellement :</strong><br class="ae"> T1 à <strong>50 %</strong>
         (unicast) · T2 à <strong>87,5 %</strong> (diffusion) · 100 % → nouveau DORA</p>
-      <p style="margin:.35rem 0 0;font-size:13px"><strong><code>169.254.x.x</code> = APIPA</strong> :
+      <p style="margin:.35rem 0 0;font-size:13px"><strong><code>169.254.x.x</code> = APIPA</strong> :
         aucun serveur joint.</p>
     </div>
 
@@ -80,7 +80,7 @@
         </tbody>
       </table>
       </div>
-      <p style="margin:.4rem 0 0;font-size:13px"><strong>Réservation &gt; statique</strong> : même
+      <p style="margin:.4rem 0 0;font-size:13px"><strong>Réservation &gt; statique</strong> :<br class="ae"> même
         résultat, gestion centralisée. Sauf pour le routeur lui-même.</p>
     </div>
 
@@ -140,12 +140,12 @@ cat /var/lib/dhcp/dhcpd.leases            ← les baux accordés</code></pre></d
 
     <div class="memo cle">
       <h3>Le relais DHCP</h3>
-      <p style="margin:0 0 .35rem;font-size:13.5px"><strong>Le problème :</strong> un routeur ne
+      <p style="margin:0 0 .35rem;font-size:13.5px"><strong>Le problème :</strong><br class="ae"> un routeur ne
         relaie pas les diffusions → un serveur ne sert que son propre segment.</p>
 <div class="bloc-code" data-plie style="--car:50"><pre><code>! sur l'interface côté CLIENT
 R1(config-subif)# ip helper-address 192.168.100.10</code></pre></div>
       <p style="margin:.35rem 0 0;font-size:13px">La diffusion devient un <strong>unicast</strong>
-        vers le serveur, avec l'adresse de l'interface (<code>giaddr</code>) : c'est ainsi que le
+        vers le serveur, avec l'adresse de l'interface (<code>giaddr</code>) :<br class="ae"> c'est ainsi que le
         serveur choisit le bon pool.</p>
       <p style="margin:.3rem 0 0;font-size:13px">⚠️ Il faut <strong>un pool par sous-réseau
         relayé</strong> sur le serveur.</p>
@@ -201,7 +201,7 @@ dhclient enp0s3</code></pre></div>
   <div class="recap">
     <h2>⚡ Si vous ne reteniez que trois choses</h2>
     <ul>
-      <li><strong>DORA</strong>, et les deux diffusions : Discover et Request.</li>
+      <li><strong>DORA</strong>, et les deux diffusions : Discover et Request.</li>
       <li><strong>Un routeur bloque les diffusions</strong> → <code>ip helper-address</code> côté
           client + un pool par sous-réseau.</li>
       <li><strong>Toujours exclure</strong> la passerelle et les adresses statiques.</li>
@@ -211,7 +211,7 @@ dhclient enp0s3</code></pre></div>
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>5-cours_DHCP_nat-pat.pdf : le professeur</li>
+      <li>5-cours_DHCP_nat-pat.pdf : le professeur</li>
       <li>Mission1-DHCP-Serveur.pdf · TP_DHCP_BioVision.html</li>
     </ul>
   </div>
@@ -221,7 +221,7 @@ dhclient enp0s3</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../10-routage-dynamique-rip/fiche-revision.html"><span>Chapitre précédent</span><b>Routage dynamique</b></a><a class="suiv" href="../12-nat-pat/fiche-revision.html"><span>Chapitre suivant</span><b>NAT &amp; PAT</b></a></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=6850265f"></script>
-<script src="../../assets/app.js?v=6850265f"></script>
+<script src="../../assets/fiche.js?v=83e4b4e2"></script>
+<script src="../../assets/app.js?v=83e4b4e2"></script>
 </body>
 </html>
