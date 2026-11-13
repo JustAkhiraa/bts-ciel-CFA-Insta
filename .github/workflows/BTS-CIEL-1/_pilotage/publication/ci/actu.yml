@@ -1,0 +1,57 @@
+# Relève les titres de l'actualité tech, toutes les heures de la journée.
+#
+# Pourquoi ici et pas dans la page : les flux RSS n'autorisent pas un
+# navigateur à les lire depuis un autre site. C'est donc cette Action qui les
+# lit, une fois par heure, et qui range les titres dans « actu/donnees/ ».
+# La page ne lit que ces fichiers-là.
+#
+# Ce qui est gardé : le titre, l'adresse, la date et l'adresse de la
+# vignette. Jamais le texte des articles.
+name: Actu
+
+on:
+  schedule:
+    # À la minute 43, de 5 h à 22 h UTC (6 h à 23 h à Paris en hiver).
+    # Une minute qui n'est pas ronde, et pas celle du planning (17).
+    - cron: "43 5-22 * * *"
+
+  workflow_dispatch:        # à la demande, depuis l'onglet Actions
+
+permissions:
+  contents: write           # le seul droit nécessaire : committer le relevé
+
+concurrency:
+  group: actu
+  cancel-in-progress: false
+
+jobs:
+  relever:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Relever les titres
+        run: python3 outillage/actu.py
+
+      # Le garde-fou passe APRÈS le relevé et AVANT le commit, comme pour le
+      # planning : un titre qui porterait une adresse ou un numéro arrête tout.
+      - name: Vérifier avant de publier
+        run: python3 verification/verifier.py
+
+      - name: Committer s'il y a du neuf
+        run: |
+          if [ -z "$(git status --porcelain actu/donnees)" ]; then
+            echo "Rien de neuf : aucun commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add actu/donnees
+          git commit -m "Actu : nouveaux titres"
+          # Le robot du planning a pu passer entre-temps : on se remet derrière lui.
+          git pull --rebase
+          git push
