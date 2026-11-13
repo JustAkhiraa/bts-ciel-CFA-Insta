@@ -139,7 +139,15 @@
     im.decoding = "async";
     im.referrerPolicy = "no-referrer";
     im.width = 76; im.height = 76;
-    im.addEventListener("load", function () { im.classList.add("la"); });
+    /* « load » dit que l'image est arrivée, pas qu'elle est prête à être
+       peinte : montrée trop tôt, elle laissait un carré pâle à la place des
+       initiales. On attend donc qu'elle soit décodée. */
+    im.addEventListener("load", function () {
+      var montrer = function () { im.classList.add("la"); };
+      if (im.decode) im.decode().then(montrer, montrer); else montrer();
+      // un onglet en arrière-plan ne décode pas : l'image ne reste pas cachée pour autant
+      setTimeout(montrer, 1200);
+    });
     im.addEventListener("error", function () { im.remove(); });
     im.src = a.i;
     vig.appendChild(im);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste · BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=0913df92">
+<link rel="stylesheet" href="../assets/fiche.css?v=67ccd90c">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -532,6 +532,18 @@ function charger(url) {
     f.onload = async () => {
       await rafraichirStyles(f.contentDocument);
       confronterRegistre(f.contentWindow);
+      /* La page Actu remplit sa liste APRÈS son chargement, depuis un
+         fichier de données. Mesurée à l'instant du « load », elle ne
+         montrait que son squelette : le banc aurait rendu « OK » sur une
+         page sans un seul titre. On attend donc qu'elle en ait, et si elle
+         n'en a jamais, c'est dit (elle sait se dire en panne). */
+      const actu = f.contentWindow.ACTU;
+      if (actu) {
+        const t0 = Date.now();
+        while (!actu.diagnostic().articles && Date.now() - t0 < 9000) await attendre(80);
+        ACTU_VUE.titres = Math.max(ACTU_VUE.titres, actu.diagnostic().articles);
+        ACTU_VUE.vides += actu.diagnostic().articles ? 0 : 1;
+      }
       res(f);
     };
     /* Le paramètre anti-cache se place AVANT l'ancre. Écrit après,
@@ -676,7 +688,16 @@ document.getElementById("go").addEventListener("click", async () => {
     for (const r of doc.querySelectorAll(".jx-regles")) r.hidden = false;
     for (const a of AMB) {
       for (const face of faces(a)) {
-      d.dataset.theme = a; d.dataset.sombre = face;
+      /* Une page qui a sa propre direction artistique (« data-da », la page
+         Actu) ne prend JAMAIS l'univers choisi : appliquer() ne lui donne que
+         la face, sur le thème de base. Le banc court-circuite appliquer() ;
+         il doit donc suivre la même règle, sinon il mesure quarante états
+         que la page ne peut pas atteindre. Trouvé le 13 nov. 2026 : sept
+         textes à 2,06:1 « sous Voxel », thème que la page ne porte jamais
+         (vérifié dans le navigateur : thème choisi voxel, thème posé dark,
+         8,99:1). La feuille de la page a quand même été durcie. */
+      d.dataset.theme = d.dataset.da ? (face === "1" || face === 1 ? "dark" : "light") : a;
+      d.dataset.sombre = face;
       /* Un thème qui porte une DISPOSITION déplace le HTML : des chaînes
          carrées, une barre en bas, une horloge. Poser « data-theme » seul
          ne la déclenche pas — elle se pose dans appliquer(), que le banc
@@ -718,8 +739,13 @@ document.getElementById("go").addEventListener("click", async () => {
       + [...JETONS].sort().join(" ") + "</p>"
     : "<p class=\"ko\">⚠️ AUCUNE teinte de code mesurée : le banc n'a rencontré "
       + "aucun bloc coloré. Ce n'est pas une réussite, c'est un angle mort.</p>";
+  const alerteActu = !pages.some(p => /actu\.html/.test(p)) ? ""
+    : (ACTU_VUE.titres && !ACTU_VUE.vides)
+      ? "<p>page Actu : mesurée avec " + ACTU_VUE.titres + " titres à l'écran.</p>"
+      : "<p class=\"ko\">⚠️ page Actu mesurée SANS ses titres (" + ACTU_VUE.vides
+        + " chargement(s) vides) : seule sa coquille a été relue.</p>";
   j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>" +
-    "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons +
+    "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons + alerteActu +
     (echecs.length
       ? '<p class="ko">' + echecs.length + " élément(s) sous le seuil :</p>" +
         echecs.map(([k,v]) => "<p>" + v.r + " &lt; " + v.seuil + "  (" + v.ou + ")  " + k + "</p>").join("")
@@ -760,6 +786,8 @@ document.getElementById("go").addEventListener("click", async () => {
    sept contre un. */
 
 const attendre = ms => new Promise(r => setTimeout(r, ms));
+/* Ce que la page Actu avait à montrer quand le banc l'a mesurée. */
+const ACTU_VUE = { titres: 0, vides: 0 };
 async function attendreQue(test, quoi, max = 25000) {
   const t0 = performance.now();
   while (!test()) {
