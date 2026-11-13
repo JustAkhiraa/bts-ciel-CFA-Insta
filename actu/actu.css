@@ -1,0 +1,216 @@
+/* ═══ La page « Actu » ══════════════════════════════════════════════════════
+   Demandé le 13 novembre 2026 : une page d'actualités « ultra clean », avec
+   un style à elle. Sa mise en page reprend les gestes des applis d'actualité
+   qu'on a dans la poche : un grand titre condensé, une vignette carrée aux
+   coins ronds, une étiquette en capitales, le titre en gras, l'heure, et un
+   filet en pointillés entre deux lignes.
+
+   « Un style à elle » se tient en un seul endroit : cette page redéfinit les
+   jetons de couleur du site. La coquille du téléphone, l'en-tête et le pied
+   les lisent déjà, donc tout suit, sans une règle de plus. La page porte
+   « data-da="actu" » ; app.js lui donne alors le thème de base, clair ou
+   sombre selon la face choisie, et aucun des univers ne vient la déformer.
+
+   Deux faces, mesurées au banc de contraste : encre sur papier, encre douce
+   sur papier, accent sur papier, blanc sur chacune des sept vignettes. */
+html[data-da="actu"][data-sombre="0"] {
+  --papier: #FFFFFF; --carte: #FFFFFF; --carte-creuse: #F1F3F6;
+  --bord: #E2E5EA; --bord-fort: #CBD0D8;
+  --encre: #0B0C0E; --encre-forte: #000000; --encre-douce: #565D69; --encre-tenue: #656C78;
+  --accent: #1657A6; --accent-sombre: #114785; --accent-pale: #E8F0FA; --sur-accent: #FFFFFF;
+  --actu-filet: rgba(22, 87, 166, .42);
+  color-scheme: light;
+}
+html[data-da="actu"][data-sombre="1"] {
+  --papier: #0C0D10; --carte: #15171B; --carte-creuse: #1C1F25;
+  --bord: #2A2E36; --bord-fort: #3A404A;
+  --encre: #F3F4F6; --encre-forte: #FFFFFF; --encre-douce: #AAB0BB; --encre-tenue: #9AA1AD;
+  --accent: #7FB2FF; --accent-sombre: #A6C9FF; --accent-pale: #16243A; --sur-accent: #0B0C0E;
+  --actu-filet: rgba(127, 178, 255, .38);
+  color-scheme: dark;
+}
+html[data-da="actu"] {
+  --sans: "Helvetica Neue", Helvetica, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --actu-condense: Impact, "HelveticaNeue-CondensedBlack", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif;
+}
+html[data-da="actu"] body { background: var(--papier); background-image: none; font-family: var(--sans); }
+
+.actu { max-width: 1080px; font-family: var(--sans); letter-spacing: 0; }
+.actu .fil-app { margin-bottom: 0; }
+
+/* ── le titre, et ce que la page sait d'elle-même ── */
+.actu-tete { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem 1rem; padding: 1.1rem 0 .7rem; }
+.actu-tete h1 {
+  margin: 0; flex: 1 1 14rem; display: flex; align-items: center; gap: .55rem;
+  font-family: var(--actu-condense); font-weight: 800; font-stretch: condensed;
+  font-size: clamp(1.95rem, 7.4vw, 2.7rem); line-height: 1; letter-spacing: .004em;
+  color: var(--encre-forte); text-wrap: balance;
+}
+.actu-tete h1 svg { flex: none; width: .78em; height: .78em; }
+.actu-outils { display: flex; align-items: center; gap: .4rem; }
+.actu-etat { flex: 1 1 100%; margin: 0; font-size: .8rem; line-height: 1.35; color: var(--encre-douce); min-height: 1.1rem; }
+.actu-rond {
+  display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; min-width: 38px; min-height: 38px;
+  border: 1px solid var(--bord); border-radius: 50%; background: var(--carte); color: var(--encre);
+  cursor: pointer; padding: 0; transition: background-color .15s, transform .12s, border-color .15s;
+}
+.actu-rond svg { width: 1.15rem; height: 1.15rem; }
+.actu-rond:hover { background: var(--carte-creuse); border-color: var(--bord-fort); }
+.actu-rond:active { transform: scale(.93); }
+.actu-rond[aria-pressed="false"] { color: var(--encre-tenue); }
+.actu-rond[aria-pressed="false"] svg .barre { opacity: 1; }
+.actu-rond svg .barre { opacity: 0; }
+.actu-rond.tourne svg { animation: actu-tourne .8s linear infinite; }
+@keyframes actu-tourne { to { transform: rotate(360deg); } }
+
+/* ── le choix des sites : il reste sous le doigt pendant qu'on descend ── */
+.actu-filtres {
+  position: sticky; top: var(--actu-haut, 0px); z-index: 30;
+  display: flex; gap: .45rem; align-items: center;
+  /* La rangée va d'un bord à l'autre de la page. Sa marge n'est pas écrite
+     ici : le script la relève sur la page elle-même (« --actu-marge »).
+     Écrite en dur, elle valait celle du téléphone et faisait déborder la
+     page de 14 à 22 px sur un écran d'ordinateur, où la page est une carte
+     aux marges plus étroites. Sans script, elle vaut zéro : rien ne déborde. */
+  margin: 0 calc(-1 * var(--actu-marge, 0px)); padding: .55rem var(--actu-marge, 0px);
+  overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+  background: color-mix(in srgb, var(--papier) 90%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid transparent; transition: border-color .2s;
+}
+.actu-filtres::-webkit-scrollbar { display: none; }
+.actu-filtres.colle { border-bottom-color: var(--bord); }
+.actu-puce {
+  flex: none; display: inline-flex; align-items: center; gap: .42rem;
+  min-height: 38px; padding: .28rem .8rem .28rem .34rem; border-radius: 999px;
+  border: 1px solid var(--bord); background: var(--carte); color: var(--encre);
+  font: 600 .84rem/1 var(--sans); white-space: nowrap; cursor: pointer;
+  transition: background-color .16s, color .16s, border-color .16s, transform .12s;
+}
+.actu-puce:first-child { padding-left: .9rem; }
+.actu-puce i {
+  display: inline-grid; place-items: center; width: 1.65rem; height: 1.65rem; border-radius: .5rem;
+  background: var(--src, var(--accent)); color: #FFFFFF;
+  font: 800 .64rem/1 var(--sans); font-style: normal; letter-spacing: -.01em;
+}
+.actu-puce:hover { border-color: var(--bord-fort); background: var(--carte-creuse); }
+.actu-puce:active { transform: scale(.96); }
+.actu-puce[aria-pressed="true"] { background: var(--encre); color: var(--papier); border-color: var(--encre); }
+.actu-puce:focus-visible, .actu-rond:focus-visible, .actu-art a:focus-visible, .actu-suite:focus-visible,
+.actu-neufs:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── un jour, ses articles ── */
+.actu-jour { margin: 0; }
+.actu-jour[hidden] { display: none; }
+.actu-jour-titre {
+  display: flex; align-items: baseline; gap: .6rem; margin: 1.5rem 0 .2rem; padding: 0; border: 0;
+  font-family: var(--actu-condense); font-weight: 800; font-stretch: condensed;
+  font-size: 1.42rem; line-height: 1.1; color: var(--encre-forte); letter-spacing: .01em;
+}
+.actu-jour:first-child .actu-jour-titre { margin-top: .9rem; }
+.actu-jour-titre small { font: 500 .8rem/1.2 var(--sans); color: var(--encre-douce); letter-spacing: 0; }
+.actu-articles { list-style: none; margin: 0; padding: 0; }
+.actu-art { margin: 0; padding: 0; border-bottom: 1px dashed var(--actu-filet); }
+.actu-art[hidden] { display: none; }
+.actu-art a {
+  display: grid; grid-template-columns: 4.75rem minmax(0, 1fr); gap: .85rem; align-items: start;
+  padding: .82rem .2rem; margin: 0 -.2rem; border-radius: 14px;
+  color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent;
+  transition: background-color .14s, transform .14s;
+}
+.actu-art a:hover { background: var(--carte-creuse); }
+.actu-art a:active { background: var(--carte-creuse); transform: scale(.985); }
+.actu-vignette {
+  position: relative; display: grid; place-items: center; overflow: hidden;
+  width: 4.75rem; height: 4.75rem; border-radius: 16px;
+  background: var(--src, var(--accent)); color: #FFFFFF;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.actu-vignette b { font: 800 1.42rem/1 var(--sans); letter-spacing: -.03em; }
+.actu-vignette img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .28s ease-out; background: var(--carte-creuse);
+}
+.actu-vignette img.la { opacity: 1; }
+.actu-texte { display: flex; flex-direction: column; gap: .2rem; min-width: 0; padding-top: .05rem; }
+.actu-source {
+  display: flex; align-items: center; gap: .38rem;
+  font: 600 .68rem/1.2 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--accent);
+}
+.actu-art[data-neuf] .actu-source::before {
+  content: ""; flex: none; width: .46rem; height: .46rem; border-radius: 50%; background: var(--accent);
+}
+.actu-titre {
+  font: 700 1.02rem/1.24 var(--sans); color: var(--encre-forte); overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden;
+}
+.actu-meta { font: 400 .76rem/1.3 var(--sans); color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.actu-art[data-lu] .actu-titre { color: var(--encre-douce); font-weight: 600; }
+/* Un article lu perd sa couleur, pas son contraste : baisser l'opacité de
+   la vignette faisait tomber ses initiales à 2,6:1 sur le blanc. */
+.actu-art[data-lu] .actu-vignette { filter: grayscale(.92); }
+.actu-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ── la suite, la fin, les à-côtés ── */
+.actu-suite {
+  display: block; margin: 1.4rem auto 0; min-height: 44px; padding: .6rem 1.3rem; border-radius: 999px;
+  border: 1px solid var(--bord-fort); background: var(--carte); color: var(--encre);
+  font: 600 .88rem/1 var(--sans); cursor: pointer; transition: background-color .15s, transform .12s;
+}
+.actu-suite:hover { background: var(--carte-creuse); }
+.actu-suite:active { transform: scale(.97); }
+.actu-suite[hidden] { display: none; }
+.actu-message { margin: 2.2rem auto 0; max-width: 30rem; text-align: center; color: var(--encre-douce); font-size: .92rem; line-height: 1.5; }
+.actu-message b { display: block; margin-bottom: .3rem; color: var(--encre); font-size: 1.02rem; }
+.actu-message button { margin-top: .9rem; }
+.actu-message[hidden] { display: none; }
+.actu-note { margin: 2.4rem 0 0; padding-top: 1rem; border-top: 1px solid var(--bord); color: var(--encre-douce); font-size: .78rem; line-height: 1.5; max-width: 46rem; }
+.actu-note a { color: var(--accent); }
+
+/* la pastille « n nouveaux titres », qui descend quand le relevé a bougé */
+.actu-neufs {
+  position: fixed; left: 50%; top: calc(var(--actu-haut, 0px) + 4.1rem); z-index: 35;
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .5rem 1rem;
+  border: 0; border-radius: 999px; background: var(--accent); color: var(--sur-accent);
+  font: 700 .84rem/1 var(--sans); cursor: pointer; white-space: nowrap;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .22);
+  transform: translate(-50%, -160%); opacity: 0; pointer-events: none;
+  transition: transform .34s cubic-bezier(.2, .9, .3, 1.15), opacity .2s;
+}
+.actu-neufs.visible { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+.actu-neufs svg { width: .95rem; height: .95rem; }
+
+/* ── en attendant le relevé : la forme de la liste, sans son contenu ── */
+.actu-squelette { list-style: none; margin: .9rem 0 0; padding: 0; }
+.actu-squelette li { display: grid; grid-template-columns: 4.75rem 1fr; gap: .85rem; padding: .82rem 0; border-bottom: 1px dashed var(--actu-filet); }
+.actu-squelette span, .actu-squelette i { display: block; border-radius: 8px; background: var(--carte-creuse); }
+.actu-squelette span { width: 4.75rem; height: 4.75rem; border-radius: 16px; }
+.actu-squelette div { display: grid; gap: .5rem; align-content: start; padding-top: .2rem; }
+.actu-squelette i:nth-child(1) { width: 4.2rem; height: .6rem; }
+.actu-squelette i:nth-child(2) { width: 94%; height: .95rem; }
+.actu-squelette i:nth-child(3) { width: 62%; height: .95rem; }
+
+/* ── le mouvement : il dit d'où viennent les lignes, et il s'éteint ── */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-anim="0"]) .actu-art.entre { animation: actu-entre .42s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i, 0) * 34ms); }
+  html:not([data-anim="0"]) .actu-art.arrive { animation: actu-arrive 1.6s ease-out both; }
+  html:not([data-anim="0"]) .actu-squelette span, html:not([data-anim="0"]) .actu-squelette i { animation: actu-pouls 1.25s ease-in-out infinite alternate; }
+}
+@keyframes actu-entre { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes actu-arrive { 0% { background: var(--accent-pale); } 100% { background: transparent; } }
+@keyframes actu-pouls { from { opacity: 1; } to { opacity: .45; } }
+html[data-anim="0"] .actu-neufs, html[data-anim="0"] .actu-vignette img { transition: none; }
+
+/* ── le grand écran : deux colonnes, la même ligne ── */
+@media (min-width: 980px) {
+  .actu-articles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.6rem; }
+  .actu-squelette { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.6rem; }
+}
+@media (max-width: 760px) {
+  html.coquille .actu .fil-app { display: none; }
+  .actu-tete { padding-top: .5rem; }
+}
+@media print {
+  .actu-filtres, .actu-outils, .actu-suite, .actu-neufs { display: none; }
+  .actu-art a { break-inside: avoid; }
+}

@@ -485,7 +485,12 @@
        « variante » n'a pas de sens : le thème EST sa face. */
     if (t.duo && S.variante) sombre = (S.variante === "sombre");
 
-    d.dataset.theme      = S.theme || (sombre ? "dark" : "light");
+    /* Une page qui a sa propre direction artistique (« data-da », la page
+       Actu) ne prend que la FACE, claire ou sombre, sur le thème de base :
+       sa feuille redéfinit les jetons, et aucun univers ne la déforme. Même
+       règle dans l'amorce d'en-tête, pour que la page ne clignote pas. */
+    d.dataset.theme      = d.dataset.da ? (sombre ? "dark" : "light")
+                                        : (S.theme || (sombre ? "dark" : "light"));
     d.dataset.sombre     = sombre ? "1" : "0";
     d.dataset.taille     = S.taille || "normal";
     d.dataset.largeur    = S.largeur || "normal";
@@ -2274,7 +2279,8 @@
       if (type === "fiche" && mat) { retour = mat.getAttribute("href"); ou = mat.textContent.trim(); }
       else if (type === "outil") { retour = base + "outils/index.html"; ou = "Outils"; }
       var h1 = document.querySelector("h1");
-      var titre = (h1 ? h1.textContent : document.title.split(/ [|—] /)[0]).replace(/\s+/g, " ").trim();
+      // un titre long peut déclarer sa forme courte pour la barre (« data-court »)
+      var titre = (h1 ? (h1.dataset.court || h1.textContent) : document.title.split(/ [|—] /)[0]).replace(/\s+/g, " ").trim();
       var genre = type === "fiche"
         ? ({ "cours.html": "Cours", "exercices.html": "Exercices", "fiche-revision.html": "Fiche de révision",
              "qcm.html": "QCM" }[location.pathname.split("/").pop()] || "") : "";
