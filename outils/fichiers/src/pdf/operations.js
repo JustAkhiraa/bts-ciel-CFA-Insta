@@ -252,11 +252,17 @@ export async function tamponnerPages(doc, dessiner, options = {}) {
       const mv = matriceVisible(d.get("CropBox") || d.get("MediaBox"), t.rotation);
       const r = await dessiner({ index: i, total: pages.length, largeur: mv.largeur, hauteur: mv.hauteur, ecrivain: e });
       if (!r) return;
-      const avant = e.ajouter(new Flux(new Dict(), enc.encode("q\n")));
-      const apres = e.ajouter(new Flux(new Dict(), enc.encode("Q\nq " + mv.m.map(nb).join(" ") + " cm\n" + r.ops.join("\n") + "\nQ\n")));
       const contenu = d.get("Contents");
       const existants = contenu == null ? [] : Array.isArray(contenu) ? contenu : [contenu];
-      d.set("Contents", [avant, ...existants, apres]);
+      if (r.dessous) {
+        // un fond (un papier à en-tête) : dessiné AVANT le contenu, qui reste par-dessus
+        const sous = e.ajouter(new Flux(new Dict(), enc.encode("q " + mv.m.map(nb).join(" ") + " cm\n" + r.ops.join("\n") + "\nQ\n")));
+        d.set("Contents", [sous, ...existants]);
+      } else {
+        const avant = e.ajouter(new Flux(new Dict(), enc.encode("q\n")));
+        const apres = e.ajouter(new Flux(new Dict(), enc.encode("Q\nq " + mv.m.map(nb).join(" ") + " cm\n" + r.ops.join("\n") + "\nQ\n")));
+        d.set("Contents", [avant, ...existants, apres]);
+      }
       // les ressources de la page, résolues et complétées (une copie à elle)
       let res = d.get("Resources");
       if (res instanceof Ref) res = e.obtenir(res);
@@ -575,3 +581,7 @@ function filtreDe(d) {
 }
 
 export { DocumentPdf };
+
+/* Les gestes de base, pour le module de mise en page (miseenpage.js) : il
+   bâtit lui aussi des fichiers neufs à partir de pages copiées. */
+export { Copieur, copierPage, finir, CLES_CATALOGUE, nb };

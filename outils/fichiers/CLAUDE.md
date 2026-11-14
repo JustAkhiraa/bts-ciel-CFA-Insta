@@ -37,7 +37,7 @@ outils/fichiers.html              la page (coquille du site, data-matiere="resea
 outils/fichiers/fichiers.css      le style, sur les jetons de couleur du site (les 40 thèmes)
 outils/fichiers/src/
   app.js                          l'accueil (zone de dépôt, liste, filtre) et l'ÉTABLI commun à tous les outils
-  rangement.js                    les huit groupes de l'accueil, leur couleur, la phrase courte de chaque outil
+  rangement.js                    les dix groupes de l'accueil, leur couleur, la phrase courte de chaque outil
   aides.js                        type d'un fichier par ses octets, décodage / encodage d'images
   apercu.js                       vignettes de pages (Grille), placeur de boîtes, ardoise de signature
   icones.js                       les pictogrammes
@@ -53,6 +53,8 @@ outils/fichiers/src/
     ecriture.js                   écrire un PDF neuf (table xref classique)
     operations.js                 copier des pages, fusionner, pivoter, tamponner, images → PDF…
     police.js                     Helvetica (métriques AFM) pour écrire numéros et filigranes
+    miseenpage.js                 POSER des pages (n par feuille, livret, format, calque) ; nettoyer, signets, pièces jointes, texte → PDF
+    comparer.js                   le texte de deux PDF, ligne par ligne (plus longue suite commune)
     rendu.js                      DESSINER une page sur un canevas
     texte.js                      RELEVER une page : chaque lettre à sa place, images, traits, liens
     glyphes.js                    polices pour le rendu : encodages, CMap, TrueType (glyf)
@@ -66,6 +68,7 @@ outils/fichiers/src/
     epub.js                       .epub (texte redistribuable ou pages fixes)
   outils/
     pdf.js                        20 outils PDF
+    pdf2.js                       15 outils PDF (13 nov. 2026) : mise en page, nettoyage, comparaison
     convertir.js                  6 conversions (PDF en .docx, .odt, texte…, livre, tableur, diaporama)
     images.js                     6 outils d'images
     divers.js                     8 utilitaires
@@ -256,3 +259,42 @@ vidéo et son, RAR/7z.
   Android : l'aperçu n'est montré que si `navigator.pdfViewerEnabled`.
 - Les cases `hidden` d'un `display: flex` : `.af-carte [hidden]` force
   `display: none`.
+
+## 9. Mettre en page, nettoyer, comparer (13 et 14 novembre 2026)
+
+Quinze outils (`outils/pdf2.js`), deux familles.
+
+**Ceux qui RÉARRANGENT** (`pdf/miseenpage.js`) : le texte reste du texte.
+- La **pose** : une page devient un formulaire (XObject Form) qu'on dessine où
+  l'on veut, à l'échelle voulue, telle qu'on la VOIT (rotation et recadrage
+  appliqués par l'inverse de `matriceVisible`). `imposer(doc, feuilles)` fait
+  le reste : plusieurs pages par feuille, livret, format, grande page.
+  La pose perd les liens et les annotations : c'est dit dans chaque outil.
+- **Couper en deux** ne pose rien : chaque page est gardée deux fois, et son
+  `/CropBox` ne montre que sa moitié.
+- **Superposer** passe par `tamponnerPages`, qui sait maintenant glisser un
+  dessin SOUS le contenu (`dessous`).
+- **Nettoyer, signets, pièces jointes** recopient tout le document
+  (`copieEntiere`), le retouchent, puis `purger()` retire du fichier ce qui
+  n'est plus relié à rien. Sans la purge, un script retiré ou une pièce
+  « supprimée » restaient lisibles dans le fichier.
+
+**Ceux qui REDESSINENT** (aplatir, caviarder, inverser, pages blanches) : ils
+passent par `rendrePage`, et une page redessinée n'est plus qu'une image.
+- `rendrePage` rend un canevas dont le contexte garde l'échelle de la page.
+  On ne peint JAMAIS dessus : `pageEnImage` copie l'image sur un canevas neuf
+  avant de la retoucher. Le caviardage relit le pixel au centre de chaque
+  cache et refuse d'enregistrer s'il n'est pas noir.
+- Seules les pages touchées sont redessinées ; les autres restent intactes
+  (`remplacer` : une fusion page par page).
+
+**Bancs.** `tests/miseenpage.test.mjs` (12 cas) relit chaque fichier produit
+et relève la POSITION du texte : une pose au mauvais endroit se voit. Juge
+extérieur rejoué à la main le 14 novembre (PyMuPDF) : nombre et taille des
+pages, ordre du livret, signets (`get_toc`), pièces jointes, absence de
+JavaScript. Les outils qui redessinent n'ont pas de banc node (pas de
+canevas) : essayés dans le navigateur, fichier produit relu au pixel.
+
+**Ce qui n'est toujours pas fait**, faute de pouvoir l'écrire sans
+dépendance : OCR, conversion d'un document de bureautique VERS le PDF, PDF/A,
+signature par certificat.

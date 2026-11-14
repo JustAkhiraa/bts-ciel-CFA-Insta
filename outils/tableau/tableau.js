@@ -176,6 +176,9 @@
       { c: OC.teal[4], w: 2.4, pointe: "aquarelle" },       // pinceau
     ],
     stylo: 0,
+    /* La couleur que verse le seau. La pipette la change, avec celle du
+       stylo en main et celle du trait. */
+    seau: OC.yellow[2],
     /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
        ce qu'on fait du doigt quand un stylet a été vu. */
     /* La gomme efface sous le curseur, comme une vraie gomme : c'est le
@@ -201,6 +204,7 @@
                   [OC.pink[3], "Rose"], [OC.bronze[4], "Marron"]];
   const CALIBRES = [0.6, 1, 1.6, 2.4, 3.4, 5];
   let selection = new Set();
+  let avantPipette = "selection";     // l'outil à reprendre une fois la couleur prise
   let edition = null;                 // l'élément texte en cours de frappe
   let espace = false;                 // barre d'espace tenue : la main
   let geste = null;                   // ce que fait le pointeur en ce moment
@@ -258,7 +262,7 @@
         localStorage.setItem(ECRIT_CLE, JSON.stringify({
           elements, fond: etat.fond, grille: etat.grille, theme: etat.theme,
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
-          titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
+          titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo, seau: etat.seau,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
           lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
@@ -296,6 +300,7 @@
       // cinq stylos depuis le 9 nov. 2026 : un réglage à trois reprend les cinq nouveaux
       if (Array.isArray(lu.stylos) && lu.stylos.length === etat.stylos.length) etat.stylos = lu.stylos;
       if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
+      if (typeof lu.seau === "string" && /^#[0-9a-f]{6}$/i.test(lu.seau)) etat.seau = lu.seau;
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -314,6 +319,15 @@
   const estPostit = (el) => !!(el && el.customData && el.customData.postit);
   const estSurligneur = (el) => !!(el && el.customData && el.customData.surligneur);
   const conteneur = (el) => /^(rectangle|diamond|ellipse)$/.test(el.type);
+  /* Un TRAIT peut porter un texte lui aussi (13 nov. 2026) : le « extend »
+     ou le « include » d'une flèche de cas d'utilisation, le nom d'un
+     message. Le texte ne s'écrit pas DANS le trait, il se pose au-dessus de
+     son milieu et le suit. Même lien que pour une forme (« containerId » d'un
+     côté, « boundElements » de l'autre), donc même format de fichier.
+     « conteneur » reste réservé aux formes : c'est lui qui dit qu'un texte
+     se plie à une largeur. « porteur » dit seulement qu'un texte suit. */
+  const lineaire = (el) => el.type === "arrow" || el.type === "line";
+  const porteur = (el) => conteneur(el) || lineaire(el);
   const texteDe = (c) => {
     const b = (c.boundElements || []).find((x) => x.type === "text");
     return b ? parId(b.id) : null;
@@ -437,9 +451,52 @@
      centré dedans ; et si le texte est plus haut que la forme, c'est la
      forme qui grandit. Un post-it, lui, RÉDUIT d'abord
      sa police, et ne grandit qu'en dernier recours. */
+  /* Le texte d'un trait : au milieu de sa longueur, décalé du côté qui
+     monte (à droite pour un trait vertical), assez loin pour ne pas mordre
+     sur le trait. Jamais replié : un stéréotype tient sur sa ligne. */
+  function placerSurTrait(t, c) {
+    const brut = t.originalText != null ? t.originalText : t.text;
+    const lignes = String(brut).split("\n");
+    t.text = lignes.join("\n");
+    t.width = Math.max(1, ...lignes.map((l) => largeurTexte(l, t)));
+    t.height = lignes.length * t.fontSize * (t.lineHeight || 1.25);
+    const pts = c.points && c.points.length > 1 ? c.points : [[0, 0], [c.width || 0, c.height || 0]];
+    const longueurs = [];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      longueurs.push(d); total += d;
+    }
+    let reste = total / 2, mx = pts[0][0], my = pts[0][1], dx = 1, dy = 0;
+    for (let i = 0; i < longueurs.length; i++) {
+      if (reste <= longueurs[i] || i === longueurs.length - 1) {
+        const k = longueurs[i] ? Math.min(1, reste / longueurs[i]) : 0;
+        dx = pts[i + 1][0] - pts[i][0]; dy = pts[i + 1][1] - pts[i][1];
+        mx = pts[i][0] + dx * k; my = pts[i][1] + dy * k;
+        break;
+      }
+      reste -= longueurs[i];
+    }
+    let x = c.x + mx, y = c.y + my;
+    if (c.angle) {
+      const b = R.boite(c), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const co = Math.cos(c.angle), si = Math.sin(c.angle);
+      const rx = x - cx, ry = y - cy;
+      x = cx + rx * co - ry * si; y = cy + rx * si + ry * co;
+      const ex = dx * co - dy * si; dy = dx * si + dy * co; dx = ex;
+    }
+    const n = Math.hypot(dx, dy) || 1;
+    let nx = -dy / n, ny = dx / n;
+    if (ny > 1e-6 || (Math.abs(ny) <= 1e-6 && nx < 0)) { nx = -nx; ny = -ny; }
+    const ecart = Math.abs(nx) * t.width / 2 + Math.abs(ny) * t.height / 2 + 5 + (c.strokeWidth || 1);
+    t.x = x + nx * ecart - t.width / 2;
+    t.y = y + ny * ecart - t.height / 2;
+    t.angle = 0;
+  }
   function placerLie(t) {
     const c = parId(t.containerId);
     if (!c) return;
+    if (lineaire(c)) return placerSurTrait(t, c);
     const pad = estPostit(c) ? PAD_POSTIT : PAD;
     const facteur = c.type === "ellipse" ? Math.SQRT1_2 : c.type === "diamond" ? 0.5 : 1;
     const maxW = Math.max(10, c.width * facteur - pad * 2);
@@ -467,7 +524,16 @@
   }
   function replacerLies(liste) {
     (liste || elements).forEach((c) => {
-      if (!conteneur(c)) return;
+      if (!porteur(c)) return;
+      const t = texteDe(c);
+      if (t) placerLie(t);
+    });
+    /* Une flèche accrochée à une forme la suit sans figurer dans la liste
+       de ce qu'on déplace : ses étiquettes sont donc replacées à chaque
+       fois. Il y en a peu, et les oublier laisserait un « extend » flotter
+       là où la flèche n'est plus. */
+    if (liste) elements.forEach((c) => {
+      if (!lineaire(c) || liste.indexOf(c) > -1) return;
       const t = texteDe(c);
       if (t) placerLie(t);
     });
@@ -739,7 +805,7 @@
             || b.y + b.h < visible.y0 - m) return;
       }
       dessinerElement(c, el, fantomes.has(el.id));
-      if (conteneur(el)) {
+      if (porteur(el)) {
         const t = texteDe(el);
         if (t) dessinerElement(c, t, fantomes.has(el.id));
       }
@@ -1004,8 +1070,8 @@
       const el = elements[i];
       if (estLie(el)) continue;
       if (R.touche(el, x, y, tol)) return el;
-      // un conteneur se prend aussi par son texte, même sans fond
-      if (conteneur(el)) {
+      // un conteneur se prend aussi par son texte, même sans fond ; un trait aussi
+      if (porteur(el)) {
         const t = texteDe(el);
         if (t && R.touche(t, x, y, tol)) return el;
       }
@@ -1203,6 +1269,8 @@
   const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser", "baguette"];
   function choisirOutil(o) {
     if (edition) finirEdition();
+    // la pipette rend la main à l'outil d'avant, une fois la couleur prise
+    if (o === "pipette" && etat.outil !== "pipette") avantPipette = etat.outil;
     if (geste && geste.mode === "lasso") { geste = null; demander(); }
     etat.outil = o;
     lienDebut = null;
@@ -1971,6 +2039,8 @@
     if (o === "gomme") { debutGomme(p); return; }
     if (o === "lasso") return debutLasso(e, p);
     if (o === "baguette") return clicBaguette(e, p);
+    if (o === "pipette") return clicPipette(e, p);
+    if (o === "seau") return clicSeau(e, p);
     if (o === "lien") return debutLien(e, p);
     if (o === "laser") {
       geste = { mode: "laser" };
@@ -2242,6 +2312,10 @@
     el.points = [[0, 0], [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]]];
     el.width = Math.abs(el.points[1][0]); el.height = Math.abs(el.points[1][1]);
     toucher(el);
+    // l'étiquette d'une flèche suit le bout qu'on tire (essayé : sans ceci,
+    // « extend » restait où la flèche n'était plus, du mauvais côté)
+    const etiq = texteDe(el);
+    if (etiq) placerLie(etiq);
     demander();
   }
 
@@ -2476,6 +2550,8 @@
       const libreDuGroupe = voisins.find((x) => x.type === "text" && !x.containerId);
       if (libreDuGroupe) return ouvrirEdition(libreDuGroupe);
     }
+    // un trait seul (ou qui porte déjà son étiquette) : on écrit dessus
+    if (el && lineaire(el) && !estLien(el)) return editerLie(el);
     if (!el) {
       etat.outil = "texte";
       debutTexte(e, p);
@@ -2526,7 +2602,7 @@
     s.lineHeight = String(el.lineHeight || 1.25);
     s.color = el.strokeColor;
     s.textAlign = el.textAlign;
-    if (c) {
+    if (c && !lineaire(c)) {
       const pad = estPostit(c) ? PAD_POSTIT : PAD;
       const facteur = c.type === "ellipse" ? Math.SQRT1_2 : c.type === "diamond" ? 0.5 : 1;
       const maxW = c.width * facteur - pad * 2;
@@ -2596,7 +2672,7 @@
     // le texte d'un conteneur part avec lui ; un conteneur perd son lien
     ids.forEach((id) => {
       const el = parId(id);
-      if (el && conteneur(el)) { const t = texteDe(el); if (t) tout.add(t.id); }
+      if (el && porteur(el)) { const t = texteDe(el); if (t) tout.add(t.id); }
     });
     elements.forEach((el) => {
       if (el.boundElements) {
@@ -2616,7 +2692,7 @@
      nouveaux identifiants des deux côtés, et le lien refait. */
   function cloner(liste, dx, dy) {
     const ids = new Set(liste.map((e) => e.id));
-    liste.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+    liste.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
     const sources = elements.filter((e) => ids.has(e.id));
     return clonerBrut(sources, dx, dy);
   }
@@ -2658,7 +2734,7 @@
     const sel = selectionnes();
     if (!sel.length) return;
     const ids = new Set(sel.map((e) => e.id));
-    sel.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+    sel.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
     const liste = elements.filter((e) => ids.has(e.id));
     pressePapiers = JSON.parse(JSON.stringify(liste));
     /* Le format de presse-papiers partagé : ce qu'on copie ici se colle
@@ -2781,9 +2857,9 @@
       + '" aria-label="' + ech(t) + '">' + (ic || ech(t)) + '</button>').join("") + '</div>';
   }
   function grilleCouleurs(prop) {
-    return '<details class="tb-plus"><summary>Plus de couleurs</summary><div class="tb-palette">'
+    return '<details class="tb-plus"><summary>Toutes les couleurs</summary><div class="tb-palette">'
       + Object.keys(OC).map((k) => OC[k].map((c) => pastille(prop, c, null, k + " " + c)).join("")).join("")
-      + '</div><label class="tb-hex">Code <input type="color" data-prop="' + prop + '" aria-label="Couleur libre"></label></details>';
+      + '</div><label class="tb-hex">Couleur libre <input type="color" data-prop="' + prop + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
   }
   const IC = {
     hachure: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M5 11l6-6M5 16l11-11M10 16l6-6"/></svg>',
@@ -2898,7 +2974,7 @@
     const sel = selectionnes();
     sel.forEach((el) => {
       const touches = [el];
-      if (/^font|textAlign/.test(prop) && conteneur(el)) { const t = texteDe(el); if (t) touches.push(t); }
+      if (/^font|textAlign/.test(prop) && porteur(el)) { const t = texteDe(el); if (t) touches.push(t); }
       touches.forEach((x) => {
         if (prop === "arrondi") {
           if (x.type === "text" || x.type === "ellipse" || x.type === "freedraw") return;
@@ -2947,7 +3023,7 @@
   const TOUCHES = { v: "selection", 1: "selection", r: "rectangle", 2: "rectangle", d: "diamond", 3: "diamond",
                     o: "ellipse", 4: "ellipse", a: "arrow", 5: "arrow", l: "line", 6: "line", p: "freedraw",
                     7: "freedraw", t: "texte", 8: "texte", e: "gomme", 0: "gomme", h: "main", k: "laser",
-                    n: "postit", m: "surligneur", s: "lasso", w: "baguette" };
+                    n: "postit", m: "surligneur", s: "lasso", w: "baguette", i: "pipette", b: "seau" };
   scene.addEventListener("keydown", (e) => {
     if (e.target !== scene) return;
     const k = e.key.toLowerCase();
@@ -3104,7 +3180,7 @@
     const sel = selectionnes();
     if (seule && sel.length) {
       const ids = new Set(sel.map((e) => e.id));
-      sel.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+      sel.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
       return elements.filter((e) => ids.has(e.id));
     }
     return elements;
@@ -3180,7 +3256,7 @@
     liste.forEach((el) => {
       if (estLie(el)) return;
       s += svgEl(el);
-      if (conteneur(el)) { const t = texteDe(el); if (t) s += svgEl(t); }
+      if (porteur(el)) { const t = texteDe(el); if (t) s += svgEl(t); }
     });
     s += "</g>\n</svg>\n";
     telecharger(nomFichier() + ".svg", s, "image/svg+xml");
@@ -3208,7 +3284,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -3696,6 +3772,149 @@
     const tete = gRect(0, 0, w, h1, { backgroundColor: couleur }), bas = gRect(0, h1, w, h2);
     return [tete, gTexte(tete, titre), bas, gListe(bas, corps)];
   }
+  /* ── le tableau de bord de supervision ──
+     Demandé le 13 novembre 2026 : de quoi maquetter un tableau de bord
+     comme ceux des outils de supervision (panneaux sombres, valeur en
+     grand, courbes, jauge à seuils). Ce sont des éléments ordinaires :
+     chaque panneau se déplace, se réécrit, se recolore au seau. Les
+     chiffres sont des exemples ; un double-clic les remplace.
+     Les couleurs sont fixées ici, hors palette, parce qu'un panneau de
+     supervision a ses propres codes : vert tant que ça va, jaune à
+     surveiller, rouge en alerte. */
+  const BD = { fond: "#181b1f", bord: "#34373d", grille: "#2c3038", texte: "#ccccdc", doux: "#8e9199", nuit: "#101214",
+               vert: "#73bf69", jaune: "#f2cc0c", rouge: "#f2495c", bleu: "#5794f2", orange: "#ff9830" };
+  const bdTexte = (x, y, t, taille, couleur) => libre(x, y, t, taille, { strokeColor: couleur || BD.texte, fontFamily: 2 });
+  const bdTrait = (pts, couleur, w) => { const t = gTrace(pts, false, { w: w || 2 }); t.strokeColor = couleur; return t; };
+  const bdBloc = (x, y, w, h, couleur, o) => gRect(x, y, w, h, Object.assign(
+    { backgroundColor: couleur, strokeColor: "transparent", strokeWidth: 1 }, o || {}));
+  const bdPastille = (x, y, w, h, couleur, t, encre) => {
+    const p = bdBloc(x, y, w, h, couleur, { roundness: { type: 3 } });
+    return [p, gTexte(p, t, { fontSize: 12, strokeColor: encre || BD.nuit, fontFamily: 2 })];
+  };
+  const bdSeuil = (v) => (v < 0.6 ? BD.vert : v < 0.85 ? BD.jaune : BD.rouge);
+  function bdPanneau(w, h, titre) {
+    const p = gRect(0, 0, w, h, { backgroundColor: BD.fond, strokeColor: BD.bord, strokeWidth: 1, roundness: { type: 3 } });
+    return titre ? [p, bdTexte(12, 9, titre, 14)] : [p];
+  }
+  function bdStat(titre, valeur, couleur, w, h) {
+    w = w || 220; h = h || 130;
+    const k = [0.2, 0.35, 0.3, 0.5, 0.42, 0.6, 0.55, 0.78, 0.7, 0.95];
+    return bdPanneau(w, h, titre).concat([bdTexte(12, 34, valeur, 38, couleur),
+      bdTrait(k.map((v, i) => [12 + i * (w - 24) / (k.length - 1), h - 10 - v * 26]), couleur, 2)]);
+  }
+  function bdCourbe(w, h, titre) {
+    w = w || 460; h = h || 240;
+    const g0 = 46, g1 = w - 16, h0 = 42, h1 = h - 48, els = bdPanneau(w, h, titre);
+    ["100", "66", "33", "0"].forEach((t, i) => {
+      const y = h0 + (h1 - h0) * i / 3;
+      els.push(bdTrait([[g0, y], [g1, y]], BD.grille, 1), bdTexte(12, y - 8, t, 11, BD.doux));
+    });
+    const serie = (vals, c) => bdTrait(vals.map((v, i) => [g0 + (g1 - g0) * i / (vals.length - 1), h1 - (h1 - h0) * v]), c, 2);
+    els.push(serie([0.3, 0.42, 0.38, 0.55, 0.5, 0.7, 0.62, 0.8, 0.66, 0.74, 0.58, 0.69], BD.vert),
+             serie([0.15, 0.2, 0.3, 0.26, 0.4, 0.36, 0.3, 0.44, 0.5, 0.4, 0.46, 0.38], BD.bleu));
+    ["10:00", "11:00", "12:00", "13:00"].forEach((t, i) => els.push(bdTexte(g0 + (g1 - g0 - 34) * i / 3, h1 + 5, t, 11, BD.doux)));
+    els.push(bdBloc(g0, h - 15, 12, 4, BD.vert), bdTexte(g0 + 18, h - 22, "entrant", 11),
+             bdBloc(g0 + 92, h - 15, 12, 4, BD.bleu), bdTexte(g0 + 110, h - 22, "sortant", 11));
+    return els;
+  }
+  function bdJauge(titre, part, texte, w, h) {
+    w = w || 240; h = h || 190;
+    const cx = w / 2, cy = h - 44, r = Math.max(30, Math.min(w / 2 - 34, h - 96));
+    const arc = (rayon, a0, a1, c, ep) => bdTrait(arcG(cx, cy, rayon, rayon, Math.PI * (1 + a0), Math.PI * (1 + a1), 24), c, ep);
+    const els = bdPanneau(w, h, titre).concat([arc(r, 0, 1, BD.grille, 14), arc(r, 0, part, bdSeuil(part), 14),
+      arc(r + 13, 0, 0.6, BD.vert, 3), arc(r + 13, 0.6, 0.85, BD.jaune, 3), arc(r + 13, 0.85, 1, BD.rouge, 3)]);
+    const t = bdTexte(0, cy - 32, texte, 28, bdSeuil(part));
+    t.x = cx - t.width / 2;
+    els.push(t);
+    return els;
+  }
+  function bdBarres(w, h, titre) {
+    w = w || 360; h = h || 220;
+    const els = bdPanneau(w, h, titre), base = h - 32, haut = 44, vals = [0.45, 0.7, 0.55, 0.9, 0.62, 0.38, 0.75];
+    const pas = (w - 40) / vals.length;
+    els.push(bdTrait([[16, base], [w - 16, base]], BD.grille, 1));
+    vals.forEach((v, i) => {
+      const hb = (base - haut) * v;
+      els.push(bdBloc(24 + i * pas, base - hb, pas * 0.62, hb, BD.bleu),
+               bdTexte(24 + i * pas, base + 6, ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"][i], 11, BD.doux));
+    });
+    return els;
+  }
+  function bdJauges(w, h, titre) {
+    w = w || 340; h = h || 170;
+    const els = bdPanneau(w, h, titre), x0 = 112, l = w - x0 - 64;
+    [["Processeur", 0.42], ["Mémoire", 0.71], ["Disque", 0.9]].forEach(([nom, v], i) => {
+      const y = 44 + i * 40;
+      els.push(bdTexte(12, y + 1, nom, 13), bdBloc(x0, y, l, 18, BD.grille), bdBloc(x0, y, l * v, 18, bdSeuil(v)),
+               bdTexte(w - 52, y, Math.round(v * 100) + " %", 14, bdSeuil(v)));
+    });
+    return els;
+  }
+  function bdTableau(w, h, titre) {
+    w = w || 440; h = h || 210;
+    const els = bdPanneau(w, h, titre), cols = [12, w * 0.38, w * 0.64, w - 66];
+    ["Hôte", "Adresse", "Latence", "État"].forEach((t, i) => els.push(bdTexte(cols[i], 38, t, 12, BD.bleu)));
+    els.push(bdTrait([[12, 60], [w - 12, 60]], BD.bord, 1));
+    [["srv-web-01", "10.0.10.11", "12 ms", "OK", BD.vert], ["srv-bdd-01", "10.0.20.21", "48 ms", "OK", BD.vert],
+     ["routeur-r1", "10.0.0.1", "3 ms", "OK", BD.vert], ["srv-fichiers", "10.0.30.31", "aucune", "HS", BD.rouge]].forEach((ligne, r) => {
+      const y = 68 + r * 33;
+      ligne.slice(0, 3).forEach((t, i) => els.push(bdTexte(cols[i], y + 4, t, 13)));
+      els.push(...bdPastille(cols[3], y + 2, 46, 22, ligne[4], ligne[3]));
+      if (r < 3) els.push(bdTrait([[12, y + 30], [w - 12, y + 30]], BD.grille, 1));
+    });
+    return els;
+  }
+  function bdCamembert(w, h, titre) {
+    w = w || 300; h = h || 220;
+    const els = bdPanneau(w, h, titre), cx = 96, cy = h / 2 + 12, r = 66;
+    let a = -Math.PI / 2;
+    [[0.5, BD.vert, "Web"], [0.3, BD.bleu, "Base"], [0.2, BD.orange, "Autres"]].forEach(([part, c, nom], i) => {
+      const b = a + part * 2 * Math.PI;
+      const secteur = gTrace([[cx, cy]].concat(arcG(cx, cy, r, r, a, b, Math.max(6, Math.round(part * 48)))), true, { fond: c, w: 1 });
+      secteur.strokeColor = BD.fond;
+      els.push(secteur, bdBloc(190, 62 + i * 30, 12, 12, c), bdTexte(210, 59 + i * 30, nom + "  " + Math.round(part * 100) + " %", 13));
+      a = b;
+    });
+    return els;
+  }
+  function bdEtat(titre, texte, couleur, w, h) {
+    w = w || 200; h = h || 110;
+    const t = bdTexte(0, 42, texte, 28, BD.nuit);
+    t.x = w / 2 - t.width / 2;
+    return [gRect(0, 0, w, h, { backgroundColor: couleur, strokeColor: "transparent", roundness: { type: 3 } }), bdTexte(12, 9, titre, 13, BD.nuit), t];
+  }
+  function bdAlertes(w, h, titre) {
+    w = w || 340; h = h || 190;
+    const els = bdPanneau(w, h, titre);
+    [[BD.rouge, "Disque plein à 90 %", "srv-fichiers · il y a 4 min"], [BD.orange, "Latence élevée", "srv-bdd-01 · il y a 12 min"],
+     [BD.vert, "Lien rétabli", "routeur-r1 · il y a 1 h"]].forEach(([c, t, d], i) => {
+      const y = 40 + i * 48;
+      els.push(bdBloc(12, y, 4, 38, c), bdTexte(26, y, t, 14), bdTexte(26, y + 20, d, 11, BD.doux));
+    });
+    return els;
+  }
+  /* Le tableau de bord entier : chaque panneau garde SON groupe, pour qu'on
+     en déplace un sans emporter les autres. */
+  function bdComplet() {
+    const W = 960, tout = [];
+    const poser = (els, x, y) => {
+      const g = nouvelId();
+      els.forEach((e) => { e.x += x; e.y += y; if (!estLie(e)) e.groupIds = [g]; });
+      tout.push(...els);
+    };
+    poser([gRect(0, 0, W, 46, { backgroundColor: BD.fond, strokeColor: BD.bord, strokeWidth: 1, roundness: { type: 3 } }),
+           bdTexte(16, 12, "Supervision · salle serveurs", 17)]
+      .concat(bdPastille(W - 270, 9, 150, 28, BD.grille, "Dernières 6 heures", BD.texte),
+              bdPastille(W - 108, 9, 92, 28, BD.grille, "↻  30 s", BD.texte)), 0, 0);
+    const ws = (W - 36) / 4;
+    [["Disponibilité", "99,9 %", BD.vert], ["Requêtes / s", "1 284", BD.bleu], ["Latence moyenne", "42 ms", BD.jaune],
+     ["Erreurs", "7", BD.rouge]].forEach(([t, v, c], i) => poser(bdStat(t, v, c, ws, 124), i * (ws + 12), 58));
+    poser(bdCourbe(620, 250, "Trafic réseau (Mbit/s)"), 0, 194);
+    poser(bdJauge("Processeur", 0.72, "72 %", 328, 250), 632, 194);
+    poser(bdTableau(540, 210, "Équipements"), 0, 456);
+    poser(bdAlertes(408, 210, "Alertes"), 552, 456);
+    return tout;
+  }
   const GABARITS = {
     // ── général ──
     cylindre: ["Cylindre", "general", '<path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><ellipse cx="12" cy="6" rx="7" ry="3"/>', "base disque stockage",
@@ -3804,6 +4023,15 @@
       () => [gTrace([[0, 0], [200, 0]], false, { fin: "triangle_outline", style: "dashed" })]],
     dependance: ["Dépendance", "uml", '<path d="M3 12h17" stroke-dasharray="2.5 2"/><path d="M16 8l4 4-4 4"/>', "uml utilise",
       () => [gTrace([[0, 0], [200, 0]], false, { fin: "arrow", style: "dashed" })]],
+    /* Signalé le 13 nov. 2026 : dans un diagramme de cas d'utilisation, la
+       flèche en pointillés ne disait pas si elle inclut ou si elle étend.
+       Le stéréotype est LIÉ à la flèche : il reste au-dessus de son milieu
+       quand on la déplace ou qu'on tire un de ses bouts. Toute autre
+       flèche peut en recevoir un : double-clic dessus. */
+    inclusion: ["Inclusion « include »", "uml", '<path d="M3 16h17" stroke-dasharray="2.5 2"/><path d="M16 12l4 4-4 4"/><text x="11" y="9" font-size="7" font-family="sans-serif" text-anchor="middle" stroke="none" fill="currentColor">«inc»</text>', "uml cas utilisation include inclure inclut",
+      () => { const f = gTrace([[0, 0], [230, 0]], false, { fin: "arrow", style: "dashed" }); return [f, gTexte(f, "«include»", { fontSize: 16 })]; }],
+    extension: ["Extension « extend »", "uml", '<path d="M3 16h17" stroke-dasharray="2.5 2"/><path d="M16 12l4 4-4 4"/><text x="11" y="9" font-size="7" font-family="sans-serif" text-anchor="middle" stroke="none" fill="currentColor">«ext»</text>', "uml cas utilisation extend etendre etend",
+      () => { const f = gTrace([[0, 0], [230, 0]], false, { fin: "arrow", style: "dashed" }); return [f, gTexte(f, "«extend»", { fontSize: 16 })]; }],
     agregation: ["Agrégation", "uml", '<path d="M10 12h11M3 12l3.5-3 3.5 3-3.5 3z"/>', "uml losange vide",
       () => [gTrace([[0, 0], [200, 0]], false, { debut: "diamond_outline" })]],
     composition: ["Composition", "uml", '<path d="M10 12h11"/><path d="M3 12l3.5-3 3.5 3-3.5 3z" fill="currentColor"/>', "uml losange plein",
@@ -3812,6 +4040,30 @@
       () => { const t = libre(40, -30, "message()", 16); return [gTrace([[0, 0], [200, 0]], false, { fin: "triangle" }), t]; }],
     retour: ["Retour", "uml", '<path d="M21 12H5" stroke-dasharray="2.5 2"/><path d="M8 8l-4 4 4 4"/>', "uml sequence reponse",
       () => [gTrace([[200, 0], [0, 0]], false, { fin: "arrow", style: "dashed" })]],
+
+    // ── tableau de bord de supervision ──
+    "bd-complet": ["Tableau de bord complet", "bord", '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M9 8v13M9 14h12"/>', "supervision monitoring metriques dashboard panneaux",
+      () => bdComplet()],
+    "bd-stat": ["Valeur en grand", "bord", '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M6 16l3-2 3 1 6-4"/><path d="M7 9h5"/>', "supervision stat chiffre indicateur kpi",
+      () => bdStat("Requêtes / s", "1 284", BD.vert)],
+    "bd-courbe": ["Courbe dans le temps", "bord", '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M6 15l3-4 3 2 3-5 3 3"/>', "supervision graphique serie temporelle trafic",
+      () => bdCourbe(0, 0, "Trafic réseau (Mbit/s)")],
+    "bd-jauge": ["Jauge à seuils", "bord", '<path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4-5"/>', "supervision jauge seuil charge pourcentage",
+      () => bdJauge("Processeur", 0.72, "72 %")],
+    "bd-jauges": ["Jauges en barres", "bord", '<path d="M4 7h16M4 12h16M4 17h16" opacity=".35"/><path d="M4 7h7M4 12h11M4 17h14"/>', "supervision barre progression memoire disque",
+      () => bdJauges(0, 0, "Ressources")],
+    "bd-barres": ["Histogramme", "bord", '<path d="M4 20h16"/><path d="M6 20v-6M10 20V9M14 20v-8M18 20V6"/>', "supervision barres histogramme semaine",
+      () => bdBarres(0, 0, "Requêtes par jour")],
+    "bd-camembert": ["Camembert", "bord", '<circle cx="12" cy="12" r="8"/><path d="M12 12V4M12 12l6.5 4.5"/>', "supervision secteurs repartition part",
+      () => bdCamembert(0, 0, "Répartition du trafic")],
+    "bd-tableau": ["Tableau d'équipements", "bord", '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M10 4v16"/>', "supervision liste hotes etat tableau",
+      () => bdTableau(0, 0, "Équipements")],
+    "bd-alertes": ["Liste d'alertes", "bord", '<path d="M12 4l9 16H3z"/><path d="M12 10v5M12 17.5v.5"/>', "supervision alerte incident journal",
+      () => bdAlertes(0, 0, "Alertes")],
+    "bd-etat-ok": ["État : en ligne", "bord", '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M8 12l3 3 5-6"/>', "supervision etat service disponible vert",
+      () => bdEtat("Serveur web", "EN LIGNE", BD.vert)],
+    "bd-etat-ko": ["État : hors ligne", "bord", '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/>', "supervision etat service panne rouge",
+      () => bdEtat("Serveur de fichiers", "HORS LIGNE", BD.rouge)],
   };
   function insererGabarit(id) {
     const [nom, , , , faire] = GABARITS[id];
@@ -3825,7 +4077,10 @@
     });
     liste.forEach((e) => { if (e.type === "text" && !e.containerId) mesurerLibre(e); });
     const libres = liste.filter((e) => !estLie(e));
-    if (libres.length > 1) { const g = nouvelId(); libres.forEach((e) => { e.groupIds = [g]; }); }
+    // un gabarit qui apporte déjà ses groupes (un panneau par groupe) les garde
+    if (libres.length > 1 && !libres.some((e) => e.groupIds && e.groupIds.length)) {
+      const g = nouvelId(); libres.forEach((e) => { e.groupIds = [g]; });
+    }
     const b = boiteDe(libres), p = pointInsertion(b.w, b.h);
     liste.forEach((e) => { e.x += p.x - b.x; e.y += p.y - b.y; });
     elements.push(...liste);
@@ -4047,7 +4302,7 @@
     + gabaritsDe("general").map((id) => boutonGab(id, false)).join("");
   $("#tb-lignes").innerHTML = LIGNES.map(([id, t, def]) => boutonForme("data-ligne", id, t, def)).join("")
     + FORMES.filter(([id]) => estFleche(id)).map(([id, t, def]) => boutonForme("data-forme", id, t, def)).join("");
-  for (const fam of ["flux", "mcd", "uml"]) $("#tb-" + fam).innerHTML = gabaritsDe(fam).map((id) => boutonGab(id, true)).join("");
+  for (const fam of ["flux", "mcd", "uml", "bord"]) $("#tb-" + fam).innerHTML = gabaritsDe(fam).map((id) => boutonGab(id, true)).join("");
   $("#tb-reactions").innerHTML = REACTIONS.map(([e, t]) => '<button type="button" class="tb-b tb-forme tb-reaction" data-reaction="'
     + e + '" title="' + t + '" aria-label="Réaction : ' + t + '">' + e + "</button>").join("");
   const icReseau = (r) => svgReseau(r).replace("<svg ", '<svg aria-hidden="true" ');
@@ -4165,6 +4420,8 @@
     const s = $('.tb-encrage [data-outil="surligneur"] i');
     s.style.setProperty("--c", etat.courant.surligneur);
     s.style.setProperty("--w", "8px");
+    const se = $('.tb-encrage [data-outil="seau"] i');
+    if (se) { se.style.setProperty("--c", etat.seau); se.style.setProperty("--w", "8px"); }
   }
   const EFFETS_NOMS = [["", "Aucun"], ["arcenciel", "Arc-en-ciel"], ["or", "Or"], ["neon", "Néon"]];
   const APERCUS = {
@@ -4281,7 +4538,33 @@
     reglage.dataset.quoi = "laser";
     reglage.hidden = false;
   }
+  /* « Toutes les couleurs » (demandé le 13 nov. 2026) : la palette entière
+     en pastilles, puis le nuancier du système, qui les donne toutes. Le
+     même bloc sert au stylo, au surligneur et au seau. Le réglage se
+     redessine à chaque choix : on retient si le bloc était ouvert, sinon il
+     se refermerait sous le doigt. */
+  let plusOuvert = false;
+  function toutesCouleurs(actuelle) {
+    const hexa = /^#[0-9a-f]{6}$/i.test(actuelle || "") ? actuelle : "#000000";
+    return '<details class="tb-plus"' + (plusOuvert ? " open" : "") + '><summary>Toutes les couleurs</summary><div class="tb-palette">'
+      + Object.keys(OC).map((k) => OC[k].map((c) => '<button type="button" class="tb-pastille" data-rc="' + c
+        + '" style="--c:' + c + '" aria-pressed="' + (c === actuelle) + '" title="' + k + " " + c + '" aria-label="' + k + " " + c
+        + '"></button>').join("")).join("")
+      + '</div><label class="tb-hex">Couleur libre <input type="color" data-rcl value="' + hexa
+      + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
+  }
+  function ouvrirReglageSeau() {
+    reglage.innerHTML = '<p class="tb-menu-titre">Seau de couleur</p>'
+      + '<div class="tb-pastilles">' + ENCRES.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
+        + '" style="--c:' + c + '" aria-pressed="' + (c === etat.seau) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + toutesCouleurs(etat.seau)
+      + '<p class="tb-note">Un clic DANS une forme la remplit. Sur son contour, sur un trait ou sur un texte, il les colore. '
+      + "La pipette (I) prend une couleur déjà posée.</p>";
+    reglage.dataset.quoi = "seau";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
+    if (quoi === "seau") return ouvrirReglageSeau();
     if (quoi === "laser") return ouvrirReglageLaser();
     if (quoi === "gomme") return ouvrirReglageGomme();
     if (quoi === "lasso") return ouvrirReglageLasso();
@@ -4293,6 +4576,7 @@
     reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : nomStylo(quoi)) + "</p>"
       + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
         + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + toutesCouleurs(st.c)
       + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
         + POINTES_NOMS.map(([v, t]) => '<button type="button" class="tb-b tb-petit tb-pointe" data-rpt="' + v
           + '" aria-pressed="' + ((st.pointe || "") === v) + '">' + apercuPointe(v) + "<span>" + t + "</span></button>").join("")
@@ -4316,6 +4600,11 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "seau") {
+      if (b.dataset.rc) etat.seau = b.dataset.rc;
+      majStylos(); garder(); ouvrirReglageSeau();
+      return;
+    }
     if (q === "laser") {
       if (b.dataset.rld) etat.laserDuree = b.dataset.rld === "relache" ? "relache" : Number(b.dataset.rld);
       if (b.dataset.rlc) etat.laserCouleur = b.dataset.rlc;
@@ -4355,6 +4644,29 @@
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));
   });
+  // le nuancier du système : la couleur suit le doigt, et se retient au lâcher
+  function couleurDuReglage(c) {
+    const q = reglage.dataset.quoi;
+    if (q === "seau") etat.seau = c;
+    else if (q === "surligneur") etat.courant.surligneur = c;
+    else if (/^\d+$/.test(q || "") && etat.stylos[Number(q)]) etat.stylos[Number(q)].c = c;
+    else return false;
+    return true;
+  }
+  reglage.addEventListener("input", (e) => {
+    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
+    if (couleurDuReglage(e.target.value)) majStylos();
+  });
+  reglage.addEventListener("change", (e) => {
+    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
+    if (!couleurDuReglage(e.target.value)) return;
+    majStylos(); garder();
+    const q = reglage.dataset.quoi;
+    ouvrirReglage(q === "seau" || q === "surligneur" ? q : Number(q));
+  });
+  reglage.addEventListener("toggle", (e) => {
+    if (e.target.matches && e.target.matches("details.tb-plus")) plusOuvert = e.target.open;
+  }, true);
   $$("[data-stylo]").forEach((b) => b.addEventListener("click", () => {
     const i = Number(b.dataset.stylo);
     if (etat.outil === "freedraw" && etat.stylo === i) {
@@ -4509,6 +4821,90 @@
     ctx.drawImage(baguette.voile, 0, 0, el.width, el.height);
     ctx.restore();
   }
+  /* ═══════════════ La pipette et le seau ═════════════════════════════
+     Demandés le 13 novembre 2026. Le tableau est fait d'OBJETS, pas de
+     pixels : la pipette ne lit donc pas l'écran, elle demande sa couleur à
+     l'élément touché (son trait, ou son fond si on vise l'intérieur). Elle
+     rend ainsi la couleur exacte, la même en clair et en sombre. Seule une
+     image se lit au pixel. Le seau, de même, ne « coule » pas : il remplit
+     la forme visée, ou colore le trait et le texte.
+
+     Une forme sans fond ne se prend d'ordinaire que par son contour. Pour
+     ces deux outils on la tient pour pleine : c'est justement dans le vide
+     d'un rectangle qu'on vise pour le remplir. */
+  const estFermee = (el) => /^(rectangle|diamond|ellipse)$/.test(el.type) || (el.type === "line" && !!el.polygon);
+  const tenuePleine = (el) => Object.assign({}, el, { backgroundColor: "#000000", fillStyle: "solid" });
+  const tenueCreuse = (el) => Object.assign({}, el, { backgroundColor: "transparent" });
+  function dessous(p) {
+    const tol = 6 / etat.zoom;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (R.touche(estFermee(el) ? tenuePleine(el) : el, p.x, p.y, tol)) return el;
+    }
+    return null;
+  }
+  const surContour = (el, p) => el.strokeColor && el.strokeColor !== "transparent"
+    && R.touche(tenueCreuse(el), p.x, p.y, 5 / etat.zoom);
+  function couleurSous(p) {
+    const el = dessous(p);
+    if (!el) return null;
+    if (el.type === "image") {
+      const img = imageDe(el.fileId);
+      if (!img || !img.complete || !img.naturalWidth) return null;
+      const [u, v] = versPixel(el, img, p);
+      if (u < 0 || v < 0 || u >= img.naturalWidth || v >= img.naturalHeight) return null;
+      try {
+        const cv = document.createElement("canvas");
+        cv.width = cv.height = 1;
+        const g = cv.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, u, v, 1, 1, 0, 0, 1, 1);
+        const d = g.getImageData(0, 0, 1, 1).data;
+        if (d[3] < 8) return null;                       // un pixel transparent n'a pas de couleur
+        return "#" + [d[0], d[1], d[2]].map((n) => ("0" + n.toString(16)).slice(-2)).join("");
+      } catch (err) { return null; }
+    }
+    const trait = el.strokeColor && el.strokeColor !== "transparent" ? el.strokeColor : null;
+    const fond = el.backgroundColor && el.backgroundColor !== "transparent" ? el.backgroundColor : null;
+    if (!estFermee(el)) return trait || fond;
+    return surContour(el, p) ? trait : (fond || trait);
+  }
+  function clicPipette(e, p) {
+    const c = couleurSous(p);
+    if (!c) { dire("La pipette prend la couleur d'un élément : vise un trait, un fond ou une image.", true); return; }
+    const st = etat.stylos[etat.stylo];
+    st.c = c;
+    st.effet = null;                       // un effet (arc-en-ciel, or) masquerait la couleur prise
+    etat.courant.strokeColor = c;
+    etat.seau = c;
+    majStylos(); garder();
+    dire("Couleur prise : " + c.toUpperCase() + ". Elle est dans le stylo, le trait et le seau.");
+    if (!etat.verrou) choisirOutil(avantPipette === "pipette" ? "selection" : avantPipette);
+  }
+  function clicSeau(e, p) {
+    let el = dessous(p);
+    // le texte écrit dans une forme : c'est la forme qu'on remplit
+    if (el && estLie(el)) { const c0 = parId(el.containerId); if (c0 && conteneur(c0)) el = c0; }
+    if (!el) { dire("Le seau remplit un élément : clique dans une forme, sur un trait ou sur un texte.", true); return; }
+    if (el.locked) { dire("Cet élément est verrouillé.", true); return; }
+    if (el.type === "image") { dire("Une image ne se remplit pas au seau : la baguette magique sait remplir une zone d'image.", true); return; }
+    const c = etat.seau;
+    let quoi = "le trait";
+    if (estPostit(el)) { el.backgroundColor = c; quoi = "le post-it"; }
+    else if (estFermee(el) && !surContour(el, p)) {
+      // une forme vide reçoit un fond plein ; une forme hachurée garde ses hachures
+      if (!el.backgroundColor || el.backgroundColor === "transparent") el.fillStyle = "solid";
+      el.backgroundColor = c;
+      quoi = "la forme";
+    } else {
+      el.strokeColor = c;
+      if (el.type === "text") quoi = "le texte";
+      else if (estFermee(el)) quoi = "le contour";
+    }
+    toucher(el);
+    memoriser(); garder(); majPanneau(); demander();
+    dire("Le seau a coloré " + quoi + ".");
+  }
+
   function clicBaguette(e, p) {
     const el = imageSous(p);
     if (!el) { dire("La baguette agit dans une image : clique sur une couleur de l'image.", true); return; }

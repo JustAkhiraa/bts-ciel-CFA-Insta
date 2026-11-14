@@ -29,15 +29,13 @@
   var message = document.getElementById("actu-message");
   var pastille = document.getElementById("actu-neufs");
   var bRafraichir = document.getElementById("actu-rafraichir");
-  var bImages = document.getElementById("actu-images");
 
   /* ── ce que ce navigateur retient ── */
-  var E = { src: [], lus: [], img: true, vu: "" };
+  var E = { src: [], lus: [], vu: "" };
   try {
     var garde = JSON.parse(localStorage.getItem(CLE) || "{}");
     if (Array.isArray(garde.src)) E.src = garde.src.filter(function (x) { return typeof x === "string"; });
     if (Array.isArray(garde.lus)) E.lus = garde.lus.filter(function (x) { return typeof x === "string"; });
-    if (garde.img === false) E.img = false;
     if (typeof garde.vu === "string") E.vu = garde.vu;
   } catch (e) { /* stockage fermé : la page marche sans mémoire */ }
   function garder() {
@@ -53,7 +51,7 @@
     if (!id) return;
     var i = b.querySelector("i");
     SOURCES[id] = { nom: b.getAttribute("data-nom"), sigle: i ? i.textContent : id.slice(0, 2),
-                    couleur: b.style.getPropertyValue("--src") };
+                    couleur: b.style.getPropertyValue("--src"), cadre: b.getAttribute("data-cadre") === "1" };
   });
   E.src = E.src.filter(function (id) { return SOURCES[id]; });
 
@@ -123,7 +121,7 @@
     txt.appendChild(s); txt.appendChild(t); txt.appendChild(m);
     lien.appendChild(vig); lien.appendChild(txt);
     li.appendChild(lien);
-    if (E.img) image(li, a);
+    image(li, a);
     return li;
   }
   /* La vignette vient du site de l'article, au moment où la ligne approche
@@ -349,7 +347,6 @@
 
   function demarrer() {
     peindrePuces();
-    bImages.setAttribute("aria-pressed", String(E.img));
     lire("index.json").then(function (ix) {
       if (!ix || !Array.isArray(ix.jours) || !ix.jours.length) {
         erreur("Pas encore de relevé", "Le premier relevé des titres n'a pas encore eu lieu. Il passe toutes les heures.");
@@ -435,15 +432,116 @@
     if (e.persisted) { direEtat(); controler(false); }
   });
 
-  /* ── les images : un interrupteur, pour qui compte ses données ── */
-  bImages.addEventListener("click", function () {
-    E.img = !E.img;
-    garder();
-    bImages.setAttribute("aria-pressed", String(E.img));
-    connus.forEach(function (x) {
-      if (E.img) image(x.li, x.a);
-      else { var im = x.li.querySelector(".actu-vignette img"); if (im) im.remove(); }
+  /* ══ lire sans quitter le site ══════════════════════════════════════════
+     Signalé le 14 novembre 2026 : un clic emmenait sur le site de l'article,
+     alors qu'on voulait le lire ICI. Le clic ouvre donc un volet de lecture,
+     dans la page, et « retour » referme le volet au lieu de quitter la page.
+
+     Ce que le volet montre dépend du site, et c'est le site qui en décide :
+       · s'il accepte d'être affiché ailleurs que chez lui, son article
+         s'affiche dans le volet, servi par lui (quatre sites sur sept) ;
+       · s'il le refuse, le volet montre le titre, l'image et le court résumé
+         de son flux, et un bouton mène à l'article.
+     Dans les deux cas le texte de l'article n'est pas recopié ici : il reste
+     à ceux qui l'ont écrit.
+
+     Le cadre est « sandbox » sans « allow-top-navigation » : la page du
+     site peut vivre sa vie dans son cadre, elle ne peut pas emmener la
+     nôtre ailleurs. */
+  var lecteur = null, lecteurOuvert = null, focusAvant = null;
+  function batirLecteur() {
+    var d = document.createElement("div");
+    d.className = "actu-lecteur";
+    d.id = "actu-lecteur";
+    d.hidden = true;
+    d.setAttribute("role", "dialog");
+    d.setAttribute("aria-modal", "true");
+    d.setAttribute("aria-labelledby", "actu-l-titre");
+    d.innerHTML =
+      '<div class="actu-l-barre">'
+      + '<button type="button" class="actu-rond" data-fermer aria-label="Revenir à la liste"><svg viewBox="0 0 24 24" fill="none" '
+      + 'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>'
+      + '<span class="actu-l-ou"><b></b><small></small></span>'
+      + '<a class="actu-l-dehors" target="_blank" rel="noopener">Ouvrir le site</a></div>'
+      + '<div class="actu-l-corps"><article class="actu-l-fiche">'
+      + '<p class="actu-source"></p><h2 id="actu-l-titre"></h2><p class="actu-meta"></p>'
+      + '<img class="actu-l-image" alt="" hidden><p class="actu-l-resume"></p>'
+      + '<p class="actu-l-mot"></p><a class="actu-l-aller" target="_blank" rel="noopener"></a></article>'
+      + '<iframe class="actu-l-cadre" hidden sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms" '
+      + 'referrerpolicy="no-referrer"></iframe></div>';
+    document.body.appendChild(d);
+    d.querySelector("[data-fermer]").addEventListener("click", function () {
+      // « retour » et la flèche font le même geste, pour que l'historique reste juste
+      if (history.state && history.state.actuLecteur) history.back(); else fermerLecteur();
     });
+    d.querySelector(".actu-l-cadre").addEventListener("load", function () {
+      if (lecteurOuvert && this.getAttribute("src")) { this.classList.add("la"); d.classList.add("charge"); }
+    });
+    return d;
+  }
+  function ouvrirLecteur(a, lien) {
+    if (!lecteur) lecteur = batirLecteur();
+    var src = SOURCES[a.s] || { nom: a.s, cadre: false };
+    var q = function (sel) { return lecteur.querySelector(sel); };
+    lecteur.classList.remove("charge");
+    lecteur.classList.toggle("encadre", !!src.cadre);
+    q(".actu-l-ou b").textContent = src.nom;
+    q(".actu-l-ou small").textContent = J.format(new Date(a.d)) + ", " + H.format(new Date(a.d));
+    q(".actu-l-dehors").href = a.u;
+    q(".actu-source").textContent = src.nom;
+    q("#actu-l-titre").textContent = a.t;
+    q(".actu-meta").textContent = J.format(new Date(a.d)) + " à " + H.format(new Date(a.d));
+    var im = q(".actu-l-image");
+    im.hidden = true;
+    im.removeAttribute("src");
+    if (a.i && a.i.indexOf("https://") === 0) {
+      im.referrerPolicy = "no-referrer";
+      im.onload = function () { im.hidden = false; };
+      im.onerror = function () { im.hidden = true; };
+      im.src = a.i;
+    }
+    var r = q(".actu-l-resume");
+    r.textContent = a.r || "";
+    r.hidden = !a.r;
+    var cadre = q(".actu-l-cadre"), aller = q(".actu-l-aller"), mot = q(".actu-l-mot");
+    cadre.classList.remove("la");
+    if (src.cadre) {
+      mot.textContent = "L'article s'affiche ci-dessous, servi par " + src.nom + "…";
+      aller.hidden = true;
+      cadre.hidden = false;
+      cadre.title = "L'article, sur " + src.nom;
+      cadre.src = a.u;
+    } else {
+      mot.textContent = src.nom + " ne permet pas d'afficher ses articles ailleurs que chez lui : la suite se lit sur son site.";
+      aller.hidden = false;
+      aller.href = a.u;
+      aller.textContent = "Lire l'article sur " + src.nom;
+      cadre.hidden = true;
+      cadre.removeAttribute("src");
+    }
+    focusAvant = lien || document.activeElement;
+    lecteur.hidden = false;
+    lecteurOuvert = a;
+    document.documentElement.classList.add("actu-lit");
+    q(".actu-l-corps").scrollTop = 0;
+    q("[data-fermer]").focus({ preventScroll: true });
+  }
+  function fermerLecteur() {
+    if (!lecteur || !lecteurOuvert) return;
+    lecteurOuvert = null;
+    lecteur.hidden = true;
+    document.documentElement.classList.remove("actu-lit");
+    // on vide le cadre : une vidéo du site ne doit pas continuer sous la liste
+    var cadre = lecteur.querySelector(".actu-l-cadre");
+    cadre.removeAttribute("src");
+    cadre.hidden = true;
+    if (focusAvant && focusAvant.focus) focusAvant.focus({ preventScroll: true });
+  }
+  addEventListener("popstate", function () { fermerLecteur(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || !lecteurOuvert) return;
+    e.preventDefault();
+    if (history.state && history.state.actuLecteur) history.back(); else fermerLecteur();
   });
 
   /* ── un article ouvert est un article lu ── */
@@ -451,6 +549,16 @@
     var lien = e.target.closest && e.target.closest(".actu-art a");
     if (!lien || (e.type === "auxclick" && e.button !== 1)) return;
     var u = lien.getAttribute("href");
+    /* Un clic simple ouvre le volet. Avec une touche (Cmd, Ctrl, Maj), au
+       bouton du milieu, ou si le volet ne peut pas s'ouvrir, le lien reste un
+       lien : il mène au site, comme l'annonce la barre d'état. */
+    var simple = e.type === "click" && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+    var x = connus.get(u);
+    if (simple && x) {
+      e.preventDefault();
+      try { history.pushState({ actuLecteur: true }, ""); } catch (err) { /* historique fermé : le volet s'ouvre quand même */ }
+      ouvrirLecteur(x.a, lien);
+    }
     if (lus.has(u)) return;
     lus.add(u);
     E.lus.push(u);
@@ -508,7 +616,9 @@
     diagnostic: function () {
       var c = filtrer();
       return { jours: index ? index.jours.length : 0, charges: charges, articles: connus.size,
-               visibles: c.visibles, sources: Object.keys(SOURCES).length, panne: panne };
+               visibles: c.visibles, sources: Object.keys(SOURCES).length, panne: panne,
+               lecteur: lecteurOuvert ? lecteurOuvert.u : null,
+               encadrables: Object.keys(SOURCES).filter(function (k) { return SOURCES[k].cadre; }).length };
     }
   };
 

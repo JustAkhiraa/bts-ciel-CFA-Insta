@@ -11551,6 +11551,18 @@ html.coquille.jx-en-partie body { padding-bottom: calc(16px + env(safe-area-inse
   .jx-grille-mot { --cmax: clamp(2rem, calc((100svh - 24.5rem) / 6 - 6px), 3.6rem); }
 }
 .jx-ligne { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+/* La lettre posée sur une case COLORÉE (juste, ailleurs, absente).
+   Signalé le 13 nov. 2026 : en mode sombre, les lettres disparaissaient.
+   Mesuré : 29 combinaisons de thème sur 60 les peignaient à 13 % d'opacité.
+   La case prenait « --vert » pour fond et « --vert-pale » pour lettre, soit
+   le couple des encarts À L'ENVERS : de nuit, « -pale » est un voile
+   translucide fait pour servir de FOND, pas une encre. Une lettre n'a donc
+   plus de jeton de thème : blanche sur les faces claires, presque noire sur
+   les faces sombres, parce que le fond coloré, lui, s'inverse avec la face.
+   Mesuré sur les 60 combinaisons réelles : 6,49:1 au pire, aucune lettre
+   translucide (il en restait deux avec « --carte », sur le thème de verre). */
+.jx { --jx-sur: #FFFFFF; }
+html[data-sombre="1"] .jx { --jx-sur: #0E1013; }
 .jx-case { --f: var(--carte); --t: var(--encre); --b: var(--bord-fort);
   display: grid; place-items: center; aspect-ratio: 1; box-sizing: border-box; border: 2px solid var(--b); border-radius: 8px;
   background: var(--f); color: var(--t); font: 760 clamp(1rem, 5vw, 1.55rem)/1 var(--sans); text-transform: uppercase;
@@ -11559,10 +11571,10 @@ html.coquille.jx-en-partie body { padding-bottom: calc(16px + env(safe-area-inse
   .jx-grille-mot .jx-case { font-size: min(1.65rem, calc(100cqi / var(--n) * .48)); }
 }
 .jx-case.tapee { --b: var(--encre-douce); }
-.jx-case.juste { --f: var(--vert); --t: var(--vert-pale); --b: var(--vert); }
-.jx-case.ailleurs { --f: var(--ambre-sombre); --t: var(--ambre-pale); --b: var(--ambre-sombre);
-  outline: 2px dashed var(--ambre-pale); outline-offset: -6px; }
-.jx-case.absente { --f: var(--encre-douce); --t: var(--carte); --b: var(--encre-douce); }
+.jx-case.juste { --f: var(--vert); --t: var(--jx-sur); --b: var(--vert); }
+.jx-case.ailleurs { --f: var(--ambre-sombre); --t: var(--jx-sur); --b: var(--ambre-sombre);
+  outline: 2px dashed var(--jx-sur); outline-offset: -6px; }
+.jx-case.absente { --f: var(--encre-douce); --t: var(--jx-sur); --b: var(--encre-douce); }
 .jx-case.pop { animation: jx-pop .12s ease-out; }
 .jx-case.revele { animation: jx-retourne .52s ease-in-out both; animation-delay: calc(var(--i) * 120ms); }
 .jx-ligne.secoue { animation: jx-secoue .4s; }
@@ -11592,10 +11604,10 @@ html.coquille.jx-en-partie body { padding-bottom: calc(16px + env(safe-area-inse
 .jx-touche:active { transform: translateY(1px); box-shadow: none; }
 .jx-touche.large { flex-grow: 1.55; font-size: .8rem; }
 .jx-touche .jx-ico { width: 1.35rem; height: 1.35rem; }
-.jx-touche.juste { --f: var(--vert); --t: var(--vert-pale); --b: var(--vert); }
-.jx-touche.ailleurs { --f: var(--ambre-sombre); --t: var(--ambre-pale); --b: var(--ambre-sombre);
-  outline: 2px dashed var(--ambre-pale); outline-offset: -5px; }
-.jx-touche.absente { --f: var(--encre-douce); --t: var(--carte); --b: var(--encre-douce); }
+.jx-touche.juste { --f: var(--vert); --t: var(--jx-sur); --b: var(--vert); }
+.jx-touche.ailleurs { --f: var(--ambre-sombre); --t: var(--jx-sur); --b: var(--ambre-sombre);
+  outline: 2px dashed var(--jx-sur); outline-offset: -5px; }
+.jx-touche.absente { --f: var(--encre-douce); --t: var(--jx-sur); --b: var(--encre-douce); }
 
 /* la notion cachée */
 .jx-proposer { display: flex; gap: .5rem; }
@@ -11692,7 +11704,7 @@ mark.jx-neuf { padding: 0 .12em; border-radius: 3px; background: var(--accent-pa
 .jx-cellule.zero { border-color: var(--encre-douce); background: var(--carte); color: var(--encre); }
 .jx-cellule.un { border-color: var(--accent); background: var(--accent-pale); color: var(--accent-sombre); }
 .jx-cellule.fixe { border-color: transparent; cursor: default; }
-.jx-cellule.fixe.zero { background: var(--encre-douce); color: var(--carte); }
+.jx-cellule.fixe.zero { background: var(--encre-douce); color: var(--jx-sur); }
 .jx-cellule.fixe.un { background: var(--accent); color: var(--sur-accent); }
 .jx-cellule.faute:not(.fixe) { border: 2px dashed var(--rouge); background: var(--rouge-pale); color: var(--rouge); }
 .jx-cellule.fixe.faute { outline: 2.5px dashed var(--rouge); outline-offset: 1px; }

@@ -64,22 +64,32 @@ MEMOIRE_JOURS = 14            # un article redaté dans ce délai n'entre pas de
 # « liens » et « images » sont des listes BLANCHES d'hôtes : une adresse qui
 # sort de chez l'éditeur n'entre pas. « pages » : certains flux ne donnent que
 # quinze articles, on en lit donc deux pages pour ne rien manquer entre deux
-# relevés ; « pagine » dit qu'on peut en demander davantage (« ?paged=3 »). « couleur » peint la vignette de repli (les initiales) : ce sont
+# relevés ; « pagine » dit qu'on peut en demander davantage (« ?paged=3 »).
+#
+# « cadre » (14 novembre 2026) : le site accepte-t-il que ses articles soient
+# AFFICHÉS dans une autre page ? Demandé : lire l'article sans quitter le
+# site. On ne recopie pas le texte d'un article (il n'est pas à nous, et ce
+# dépôt est public) ; mais un site qui le permet peut être montré dans un
+# cadre, servi par lui. C'est LUI qui le dit, par ses en-têtes : relevé le
+# 14 novembre, trois le refusent (X-Frame-Options ou frame-ancestors), quatre
+# ne posent aucune des deux barrières. On suit leur réponse : la page
+# n'essaie jamais d'encadrer un site qui a dit non. « --cadres » refait le
+# relevé, à relancer si un article ne s'affiche plus. « couleur » peint la vignette de repli (les initiales) : ce sont
 # des teintes choisies ici, mesurées à 4,5:1 au moins sous du blanc, pas les
 # couleurs de marque.
 SOURCES = [
     {"id": "iphonesoft", "nom": "iPhoneSoft", "sigle": "iS", "couleur": "#1657A6",
      "site": "https://iphonesoft.fr/",
      "flux": "https://feeds.feedburner.com/iphonesoft", "pages": 1,
-     "liens": ("iphonesoft.fr",), "images": ("iphonesoft.fr",)},
+     "liens": ("iphonesoft.fr",), "images": ("iphonesoft.fr",), "cadre": False},
     {"id": "igen", "nom": "iGen", "sigle": "iG", "couleur": "#0B7A53",
      "site": "https://www.igen.fr/",
      "flux": "https://rss.igen.fr", "pages": 1,
-     "liens": ("igen.fr",), "images": ()},
+     "liens": ("igen.fr",), "images": (), "cadre": False},
     {"id": "mac4ever", "nom": "Mac4Ever", "sigle": "M4", "couleur": "#B3261E",
      "site": "https://www.mac4ever.com/",
      "flux": "https://www.mac4ever.com/flux/rss/content/all", "pages": 1,
-     "liens": ("mac4ever.com",), "images": ("img-api.mac4ever.com",),
+     "liens": ("mac4ever.com",), "images": ("img-api.mac4ever.com",), "cadre": True,
      # Ce flux ne porte pas d'image : on lit l'aperçu que la page d'article
      # déclare pour les partages, et on demande la petite taille que le
      # serveur d'images sait rendre.
@@ -88,19 +98,19 @@ SOURCES = [
     {"id": "frandroid", "nom": "Frandroid", "sigle": "Fr", "couleur": "#C2410C",
      "site": "https://www.frandroid.com/",
      "flux": "https://www.frandroid.com/feed", "pages": 2, "pagine": True,
-     "liens": ("frandroid.com",), "images": ("img.frandroid.com", "images.frandroid.com")},
+     "liens": ("frandroid.com",), "images": ("img.frandroid.com", "images.frandroid.com"), "cadre": True},
     {"id": "lesnumeriques", "nom": "Les Numériques", "sigle": "LN", "couleur": "#7B2CBF",
      "site": "https://www.lesnumeriques.com/",
      "flux": "https://www.lesnumeriques.com/rss.xml", "pages": 1,
-     "liens": ("lesnumeriques.com",), "images": ("cdn.lesnumeriques.com",)},
+     "liens": ("lesnumeriques.com",), "images": ("cdn.lesnumeriques.com",), "cadre": True},
     {"id": "numerama", "nom": "Numerama", "sigle": "Nu", "couleur": "#B5176B",
      "site": "https://www.numerama.com/",
      "flux": "https://www.numerama.com/feed/", "pages": 2, "pagine": True,
-     "liens": ("numerama.com",), "images": ("img.numerama.com",)},
+     "liens": ("numerama.com",), "images": ("img.numerama.com",), "cadre": True},
     {"id": "jdg", "nom": "Journal du Geek", "sigle": "JG", "couleur": "#0F6E78",
      "site": "https://www.journaldugeek.com/",
      "flux": "https://www.journaldugeek.com/feed/", "pages": 1, "pagine": True,
-     "liens": ("journaldugeek.com",), "images": ("journaldugeek.com",)},
+     "liens": ("journaldugeek.com",), "images": ("journaldugeek.com",), "cadre": False},
 ]
 
 MEDIA = "{http://search.yahoo.com/mrss/}"
@@ -159,6 +169,40 @@ def texte_nu(s):
     if TIRET_LONG in s:
         s = re.sub(r"\s*" + TIRET_LONG + r"\s*", ", " if ":" in s else " : ", s).strip(" :,")
     return s[:220]
+
+
+# Le court résumé que le site publie dans son flux (le chapô). On n'en garde
+# qu'un extrait, deux phrases au plus : de quoi savoir si l'article vaut le
+# clic, pas de quoi s'en passer.
+RESUME_MAX = 300
+POSTFACE = re.compile(r"\s*(?:L[\u2019']article\b.{0,200}?\best apparu en premier sur\b.*|The post\b.{0,200}?\bappeared first on\b.*"
+                      r"|Lire la suite\b.*|\[(?:\u2026|\.\.\.)\])\s*$", re.S | re.I)
+
+
+def resume_propre(s, titre=""):
+    s = s or ""
+    for _ in range(3):
+        neuf = html.unescape(s)
+        if neuf == s:
+            break
+        s = neuf
+    s = re.sub(r"<(script|style)\b.*?</\1\s*>", " ", s, flags=re.S | re.I)
+    s = re.sub(r"<[^>]*>", " ", s)
+    s = re.sub(r"\s+", " ", INVISIBLES.sub(" ", s)).strip()
+    s = POSTFACE.sub("", s).strip()
+    # « _Fold-a-Phone _ » : un flux écrit ses italiques avec des tirets bas,
+    # qui n'ont rien à faire dans une phrase lue telle quelle
+    s = re.sub(r"(?<![A-Za-z0-9])_(?=\S)([^_]{1,80}?)\s_", r"\1 ", s)
+    s = re.sub(r"(?<![A-Za-z0-9])_(?=\S)([^_]{1,80}?)_(?![A-Za-z0-9])", r"\1", s)
+    if TIRET_LONG in s:
+        s = re.sub(r"\s*" + TIRET_LONG + r"\s*", ", ", s).strip(" ,")
+    if len(s) < 40 or s == titre:
+        return ""
+    if len(s) > RESUME_MAX:
+        coupe = s[:RESUME_MAX]
+        fin = max(coupe.rfind(". "), coupe.rfind("! "), coupe.rfind("? "), coupe.rfind(".\u00a0"))
+        s = coupe[:fin + 1] if fin >= 120 else coupe[:coupe.rfind(" ")].rstrip(" ,;:") + "\u2026"
+    return s
 
 
 def hote_permis(hote, permis):
@@ -242,7 +286,8 @@ def lire_flux(octets):
         if not image:
             image = premiere_image(champs.get("encoded")) or premiere_image(champs.get("description"))
         out.append({"titre": champs.get("title"), "lien": champs.get("link"),
-                    "date": champs.get("pubDate") or champs.get("date"), "image": image})
+                    "date": champs.get("pubDate") or champs.get("date"), "image": image,
+                    "resume": champs.get("description") or champs.get("encoded")})
     for it in racine.iter(ATOM + "entry"):
         lien = None
         for l in it.findall(ATOM + "link"):
@@ -258,6 +303,7 @@ def lire_flux(octets):
             image = (premiere_image(it.findtext(ATOM + "summary"))
                      or premiere_image(it.findtext(ATOM + "content")))
         out.append({"titre": it.findtext(ATOM + "title"), "lien": lien,
+                    "resume": it.findtext(ATOM + "summary") or it.findtext(ATOM + "content"),
                     "date": it.findtext(ATOM + "published") or it.findtext(ATOM + "updated"),
                     "image": image})
     return out
@@ -286,6 +332,9 @@ def normaliser(brut, src, maintenant):
     image = image_propre(brut.get("image"), src)
     if image:
         art["i"] = image
+    resume = resume_propre(brut.get("resume"), titre)
+    if resume:
+        art["r"] = resume
     return art
 
 
@@ -388,11 +437,13 @@ def fusionner(racine, releves, personnel):
             continue
         if a.get("i") and refuse(personnel, a["i"]):
             del a["i"]                      # l'adresse de l'image seule est en cause
+        if a.get("r") and refuse(personnel, a["r"]):
+            del a["r"]                      # le résumé seul est en cause : le titre reste
         ancien = connus.get(a["u"])
         if ancien is not None:
             # Déjà rangé : il garde sa date et son jour. Seuls le titre et la
             # vignette suivent ce que le site publie maintenant.
-            for cle in ("t", "i"):
+            for cle in ("t", "i", "r"):
                 if a.get(cle) and ancien.get(cle) != a[cle]:
                     ancien[cle] = a[cle]
                     touches.add(jour_de_paris(ancien["d"]))
@@ -463,9 +514,43 @@ def relever(src, ctx, pages, maintenant):
     return arts
 
 
+def relever_cadres(racine, ctx):
+    """Pour chaque source : un de ses articles accepte-t-il d'être affiché
+    dans une autre page ? Lit les en-têtes, compare à « cadre », et le dit."""
+    ecarts = 0
+    for src in SOURCES:
+        url = None
+        for j in jours_presents(racine)[:5]:
+            url = next((a["u"] for a in lire_jour(racine, j) if a["s"] == src["id"]), None)
+            if url:
+                break
+        if not url:
+            print(f"  {src['nom']:<16} aucun article gardé : rien à demander")
+            continue
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA}, method="HEAD")
+            with urllib.request.urlopen(req, timeout=25, context=ctx) as rep:
+                xfo = (rep.headers.get("X-Frame-Options") or "").strip()
+                csp = rep.headers.get("Content-Security-Policy") or ""
+        except (urllib.error.URLError, OSError) as e:
+            print(f"  {src['nom']:<16} ne répond pas ({type(e).__name__})")
+            continue
+        ancetres = next((d.strip() for d in csp.split(";") if "frame-ancestors" in d), "")
+        permis = not xfo and not ancetres
+        marque = "" if permis == bool(src.get("cadre")) else "   ← À CORRIGER dans SOURCES"
+        ecarts += bool(marque)
+        print(f"  {src['nom']:<16} {'accepte le cadre' if permis else 'le refuse':<17} "
+              f"({xfo or ancetres[:40] or 'aucune barrière'}){marque}")
+        time.sleep(PAUSE)
+    return 1 if ecarts else 0
+
+
 def main(argv):
     if "--essai" in argv:
         return essai()
+    if "--cadres" in argv:
+        racine = os.path.abspath(argv[argv.index("--vers") + 1]) if "--vers" in argv else os.path.dirname(ICI)
+        return relever_cadres(racine, contexte_ssl())
     racine = os.path.abspath(argv[argv.index("--vers") + 1]) if "--vers" in argv \
         else os.path.dirname(ICI)
     remonter = int(argv[argv.index("--remonter") + 1]) if "--remonter" in argv else 0
@@ -529,6 +614,8 @@ RSS_ESSAI = """<?xml version="1.0"?><rss version="2.0"
 <item><title>Un &amp;eacute;cran pliable &lt;b&gt;arrive&lt;/b&gt; @TIRET@ enfin</title>
  <link>http://www.exemple-a.fr/2026/11/ecran?utm_source=rss&amp;p=3#suite</link>
  <pubDate>Fri, 13 Nov 2026 23:30:00 +0100</pubDate>
+ <description>&lt;p&gt;Le chap&amp;ocirc; du site, tel qu'il le donne dans son flux, avec assez de mots pour valoir un extrait.&lt;/p&gt;
+  L'article Un écran pliable est apparu en premier sur Exemple.</description>
  <media:content url="https://img.exemple-a.fr/a.jpg" medium="image"/></item>
 <item><title>Appelez le @TEL@ pour gagner</title>
  <link>https://www.exemple-a.fr/2026/11/concours</link><dc:date>2026-11-13T09:00:00+01:00</dc:date></item>
@@ -574,6 +661,15 @@ def essai():
     vrai(par[u1]["t"] == "Un écran pliable arrive : enfin", "titre : entités deux fois, balises, tiret long")
     vrai(par[u1]["d"] == "2026-11-13T22:30:00Z", "date RFC 822 ramenée en UTC")
     vrai(par[u1]["i"] == "https://img.exemple-a.fr/a.jpg", "vignette lue dans media:content")
+    vrai(par[u1].get("r") == "Le chapô du site, tel qu'il le donne dans son flux, avec assez de mots pour valoir un extrait.",
+         "résumé : balises et entités retirées, formule de fin de flux coupée : " + repr(par[u1].get("r")))
+    long = resume_propre("Première phrase assez longue pour compter dans l'extrait qu'on garde. " * 9)
+    vrai(len(long) <= RESUME_MAX and long.endswith(".") and long.count("Première") >= 2, "résumé long : coupé à la fin d'une phrase, " + str(len(long)) + " signes")
+    vrai(resume_propre("Trop court.") == "" and resume_propre("<p></p>") == "", "un résumé trop court n'est pas gardé")
+    vrai(resume_propre("Une machine sobrement baptisée _Fold-a-Phone _a tourné vingt jours, et un nom_de_fichier reste entier.")
+         == "Une machine sobrement baptisée Fold-a-Phone a tourné vingt jours, et un nom_de_fichier reste entier.",
+         "les tirets bas d'italique partent, ceux d'un identifiant restent")
+    vrai(resume_propre("mot " * 200).endswith(chr(0x2026)) and len(resume_propre("mot " * 200)) <= RESUME_MAX, "sans point où couper : coupé au mot, avec des points de suspension")
     vrai("i" not in par["https://www.exemple-a.fr/2026/11/image"], "image d'un autre hôte écartée")
     vrai(par["https://www.exemple-a.fr/atom/1"]["i"].endswith("b.webp"), "Atom : lien, date, vignette")
     rdf = par.get("https://www.exemple-a.fr/rdf/1", {})

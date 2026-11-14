@@ -375,7 +375,9 @@ def actualites(racine, pbs):
     serveur. L'exception est donc bornée ICI : chaque adresse d'article et
     chaque adresse d'image doit être en https, chez un hôte que le releveur
     déclare pour sa source (liste blanche). Un champ de plus, du balisage dans
-    un titre, un hôte inconnu : la publication s'arrête.
+    un titre, un hôte inconnu, un résumé qui dépasse l'extrait : la
+    publication s'arrête. Le TEXTE d'un article n'a pas de champ : il ne peut
+    donc pas entrer.
 
     La liste des sources n'est pas recopiée : on la lit chez le releveur.
     Rend le nombre de titres relus, ou None s'il n'y a pas de relevé."""
@@ -409,10 +411,16 @@ def actualites(racine, pbs):
             if src is None:
                 pbs.append((rel, f"source inconnue : {str(a)[:60]}"))
                 continue
-            de_trop = set(a) - {"s", "t", "u", "d", "i"}
+            de_trop = set(a) - {"s", "t", "u", "d", "i", "r"}
             if de_trop:
-                pbs.append((rel, f"champ inattendu {sorted(de_trop)} : seuls le titre, "
-                                 "l'adresse, la date et la vignette se publient"))
+                pbs.append((rel, f"champ inattendu {sorted(de_trop)} : seuls le titre, l'adresse, "
+                                 "la date, la vignette et un court résumé se publient"))
+            # Le résumé est un EXTRAIT : deux phrases que le site donne lui-même
+            # dans son flux. Plus long, ce serait recopier l'article.
+            r = a.get("r")
+            if r is not None and (not isinstance(r, str) or not (40 <= len(r) <= 320)
+                                  or "<" in r or chr(0x2014) in r):
+                pbs.append((rel, f"résumé refusé (balisage, tiret long ou longueur {len(str(r))}) : {str(r)[:60]}"))
             t, u = a.get("t"), a.get("u")
             if not isinstance(t, str) or not (8 <= len(t) <= 220) or "<" in t or chr(0x2014) in t:
                 pbs.append((rel, f"titre refusé (balisage, tiret long ou longueur) : {str(t)[:60]}"))

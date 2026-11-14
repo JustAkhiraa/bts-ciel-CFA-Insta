@@ -2103,9 +2103,23 @@
       var a = document.activeElement;
       if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
 
-      if (e.key === "/") { e.preventDefault(); chercherMaintenant(); }
-      else if (e.key === "t") { e.preventDefault(); basculerClairSombre(); }
-      else if (e.key === "r") { e.preventDefault(); hasard(); }
+      /* Signalé le 13 nov. 2026 : dans le mot du jour, taper « T » passait le
+         site en sombre (et « R » ouvrait une page au hasard, en pleine
+         partie). Le jeu lit bien ses lettres et les retient par
+         « preventDefault », mais il s'inscrit APRÈS ce raccourci, qui avait
+         donc déjà agi. On ne décide donc plus pendant la frappe : on
+         regarde, une fois que tout le monde a lu la touche, si quelqu'un
+         l'a prise. Cela vaut pour tout outil qui lit le clavier, sans liste
+         à tenir. « / » reste immédiat : il doit empêcher la recherche du
+         navigateur, ce qui ne se fait qu'à la frappe. */
+      if (e.defaultPrevented) return;
+      if (e.key === "/") { e.preventDefault(); chercherMaintenant(); return; }
+      if (e.key !== "t" && e.key !== "r") return;
+      var touche = e.key;
+      setTimeout(function () {
+        if (e.defaultPrevented) return;
+        if (touche === "t") basculerClairSombre(); else hasard();
+      }, 0);
     });
   }
 
