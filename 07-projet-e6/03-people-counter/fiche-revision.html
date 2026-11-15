@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People counter : fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable du people counter : ESP32-CAM, pan/tilt et servomoteurs, différence d'images, ligne de comptage, heartbeat, HTTP ou MQTT, seuil et hystérésis, tableau de bord, sécurité et vie privée.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=7f2328a6">
+</head>
+<body data-matiere="projets">
+<div class="page revision">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html" aria-current="page">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Projet E6</a>
+    <span class="sep">/</span><span>Chapitre 3</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>People counter</h1>
+  <p class="chapeau">Le projet entier, sur une page.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ Le principe</h2>
+    <div class="formule">ESP32-CAM sur pan/tilt<br>
+      → détecte, compte → Wi-Fi<br>
+      → serveur (seuil) → base<br>
+      → tableau de bord, alertes</div>
+  </article>
+
+  <article class="memo">
+    <h2>L'ESP32-CAM</h2>
+    <p>Pas d'USB : <strong>convertisseur USB-UART</strong>. Peu de broches, peu de
+       calcul.</p>
+    <p class="rap">Un second ESP32 peut piloter les servos.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le pan/tilt</h2>
+    <p><strong>Pan</strong> : gauche, droite. <strong>Tilt</strong> : haut, bas.</p>
+    <div class="formule">PWM 50 Hz, impulsion ≈ 1 à 2 ms</div>
+    <p class="rap">N'analyser que caméra immobile. Servos sur une alimentation à part.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Compter</h2>
+    <div class="formule">|image − fond| &gt; seuil → mouvement<br>
+      franchir la ligne → +1 ou −1<br>
+      présents = entrées − sorties</div>
+    <p class="rap">Limites :<br class="ae"> deux personnes collées, hésitation sur la ligne, lumière.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le réseau</h2>
+    <p>Adresses fixes ou réservation DHCP · HTTP ou MQTT · envoi périodique et à chaque
+       passage · reconnexion automatique.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Le heartbeat</h2>
+    <p>Un message de vie à intervalle fixe. Plus rien depuis trois intervalles : caméra
+       <strong>hors ligne</strong>.</p>
+    <p class="rap">Sinon, une panne ressemble à une salle vide.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le seuil</h2>
+    <div class="formule">alerte si présents &gt; 40<br>
+      levée si présents &lt; 36</div>
+    <p class="rap">L'hystérésis empêche l'alerte de clignoter.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Le tableau de bord</h2>
+    <p>Nombre en direct · historique en graphique · alertes en couleur · état de la caméra
+       · réglage du seuil.</p>
+  </article>
+
+  <article class="memo">
+    <h2>La sécurité</h2>
+    <p>Jeton et <strong>validation</strong> des données · filtrage IP · limitation de débit
+       (429) · journal · droits restreints · sauvegardes · rôles technicien et
+       administrateur.</p>
+    <p>Risques :<br class="ae"> force brute, flux vidéo détourné, injection.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ La vie privée</h2>
+    <p>Une image où l'on reconnaît quelqu'un est une donnée personnelle.</p>
+    <p class="rap">Compter sur place, n'envoyer que des nombres, couper le flux de
+       réglage : la minimisation.</p>
+  </article>
+
+</section>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../02-coffre-fort-connecte/fiche-revision.html"><span>Chapitre précédent</span><b>Coffre-fort connecté</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=7f2328a6"></script>
+<script src="../../assets/app.js?v=7f2328a6"></script>
+</body>
+</html>

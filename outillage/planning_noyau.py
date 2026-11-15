@@ -426,9 +426,13 @@ def blocs_semaines(plan):
 # soit relisible et qu'une erreur se voie dans le HTML produit.
 # L'ordre compte : « réseaux informatiques » contient « informatique ».
 MATIERES_COURS = [
+    # « Valorisation de la donnée et cybersécurité » est l'intitulé de l'E6 :
+    # ce cours-là est celui du projet (15 nov. 2026). Placé AVANT le réseau,
+    # qui l'aurait pris pour « cyber ».
+    ("projets", ("valorisation de la donnée", "valorisation de la donnee")),
     ("reseau",  ("réseau", "reseau", "infrastructur", "cyber", "sécurité",
                  "securite", "système", "systeme", "exploitation",
-                 "maintenance", "valorisation de la donnée")),
+                 "maintenance")),
     ("maths",   ("math",)),
     ("anglais", ("anglais", "english")),
     ("culture", ("culture générale", "culture generale", "expression",

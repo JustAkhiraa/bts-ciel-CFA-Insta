@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People counter : les exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Dix exercices corrigés sur le people counter : la ligne de comptage, le pan/tilt, l'ESP32-CAM, le heartbeat, le seuil et l'hystérésis, la validation des données, la limitation de débit, la vie privée et les questions du jury.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=7f2328a6">
+</head>
+<body data-matiere="projets">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Projet E6</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#compter">1 · Compter</a></li>
+    <li><a href="#camera">2 · La caméra et le réseau</a></li>
+    <li><a href="#serveur">3 · Le serveur et la sécurité</a></li>
+    <li><a href="#oral">4 · Préparer l'oral</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="exercices.html" aria-current="page">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Projet E6</a>
+    <span class="sep">/</span><span>Chapitre 3</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>People counter : les exercices</h1>
+  <p class="chapeau">Dix exercices, du comptage aux questions du jury.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<section id="compter">
+  <h2><span class="num">1</span>Compter</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Le compte de la journée <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>La salle est vide à l'ouverture. Dans la matinée, la caméra compte 57 entrées et
+         31 sorties. Combien de personnes sont présentes ? Le seuil est de 40 : l'alerte
+         est-elle levée ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Présents = entrées − sorties = 57 − 31 = <strong>26</strong>.</p>
+<p>26 est sous le seuil de 40 : <strong>pas d'alerte</strong>.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Le sens du passage <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>La ligne de comptage est verticale, à x = 160 sur une image de 320 pixels de
+         large. Le couloir est à gauche, la salle à droite.</p>
+      <p>Le centre d'une silhouette passe
+         de x = 150 à x = 172 entre deux images. Que fait le compteur ? Et s'il passait de
+         x = 172 à x = 150 ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>De 150 à 172, le centre franchit la ligne de gauche à droite, du couloir vers la
+   salle : c'est une <strong>entrée</strong>, <strong>+1</strong>.</p>
+<p>De 172 à 150, il la franchit dans l'autre sens : c'est une <strong>sortie</strong>,
+   <strong>−1</strong>.</p>
+<p class="rap">On compare la position d'avant et celle d'après à la ligne :<br class="ae"> c'est le
+   changement de côté qui compte, pas la position seule.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>La foule fantôme <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pendant les essais, chaque rotation du servo pan fait monter le compteur de
+         plusieurs personnes. Expliquer et corriger.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Quand la caméra tourne, <strong>toute l'image change</strong>. La différence d'images
+   voit du mouvement partout, et des zones franchissent la ligne.</p>
+<p><strong>Correction</strong> :<br class="ae"> suspendre la détection pendant le mouvement, attendre que
+   la caméra soit immobile, et ne comparer que des images prises au même angle.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="camera">
+  <h2><span class="num">2</span>La caméra et le réseau</h2>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Un second ESP32 ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Donner deux raisons de confier les servomoteurs à un second ESP32 plutôt qu'à
+         l'ESP32-CAM.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ul>
+  <li><strong>Les broches</strong> :<br class="ae"> la caméra et la carte mémoire occupent la plupart de
+      celles de l'ESP32-CAM.</li>
+  <li><strong>Le calcul</strong> :<br class="ae"> la capture et la détection l'occupent déjà ; le pilotage
+      des moteurs se fait mieux à part.</li>
+</ul>
+<p class="rap">On peut ajouter la clarté du découpage :<br class="ae"> chaque carte a un rôle, et se
+   teste seule.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Panne ou salle vide ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le tableau de bord affiche 0 personne depuis une heure, en plein après-midi.
+         Comment le système peut-il faire la différence entre une salle vide et une caméra
+         en panne ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Par un <strong>heartbeat</strong> :<br class="ae"> la caméra envoie à intervalle fixe un message de
+   vie, même quand le nombre ne change pas.</p>
+<p>Si le serveur en reçoit encore, la caméra fonctionne et la salle est vide. S'il n'en
+   reçoit plus depuis plusieurs intervalles, la caméra est <strong>hors ligne</strong>, et
+   le tableau de bord doit l'afficher.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Le Wi-Fi coupé <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le Wi-Fi tombe pendant dix minutes, et 12 personnes entrent. Que doit faire la
+         caméra pour que le compte reste juste au retour du réseau ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ul>
+  <li><strong>Continuer à compter</strong> en local pendant la coupure.</li>
+  <li><strong>Tenter de se reconnecter</strong> régulièrement.</li>
+  <li>Au retour, <strong>envoyer</strong> le compte à jour (ou les passages en attente,
+      avec leur heure).</li>
+</ul>
+<p class="rap">C'est la « gestion des erreurs de perte réseau » demandée pour la partie
+   embarquée.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="serveur">
+  <h2><span class="num">3</span>Le serveur et la sécurité</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>L'alerte qui clignote <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Le seuil est de 40. Pendant cinq minutes, le nombre de présents vaut, mesure après
+         mesure : 39, 41, 40, 41, 39, 42, 38.</p>
+      <p>Combien de fois l'alerte se déclenche-t-elle
+         avec la règle « alerte si présents &gt; 40 » ? Et avec une hystérésis (déclencher
+         au-dessus de 40, lever en dessous de 36) ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>Sans hystérésis</strong> :<br class="ae"> l'alerte se déclenche à 41 (2ᵉ mesure), se lève à
+   40, se déclenche à 41 (4ᵉ), se lève à 39, se déclenche à 42 (6ᵉ), se lève à 38. Elle
+   se déclenche <strong>3 fois</strong> en cinq minutes.</p>
+<p><strong>Avec hystérésis</strong> :<br class="ae"> elle se déclenche à 41 (2ᵉ mesure) et ne se lève
+   plus, puisque le nombre ne descend jamais sous 36. Elle se déclenche <strong>une
+   fois</strong>.</p>
+<p class="rap">Trois alertes pour une seule situation finissent par ne plus être lues.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Une donnée à refuser <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le serveur reçoit, avec le bon jeton, <code>{"camera": "hall-1", "presents":
+         -4}</code>. Que doit-il faire ? Pourquoi un jeton valide ne suffit-il pas ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Il doit <strong>refuser</strong> la mesure (un nombre de personnes ne peut pas être
+   négatif), répondre par une erreur (<code>400</code>), et <strong>noter</strong>
+   l'incident dans le journal.</p>
+<p>Le jeton prouve <strong>qui</strong> envoie, pas que ce qui est envoyé est juste :<br class="ae"> la
+   caméra peut être en panne, ou son jeton volé. C'est la « validation systématique des
+   données reçues ».</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>La limitation de débit <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>La caméra envoie au plus un message par seconde. Le serveur reçoit soudain 500
+         requêtes par seconde au nom de cette caméra. Que se passe-t-il sans limitation de
+         débit ? Que fait le serveur avec ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>Sans limite</strong> :<br class="ae"> le serveur et la base s'épuisent à tout traiter, le
+   tableau de bord ralentit ou tombe, et de fausses mesures peuvent noyer les vraies.</p>
+<p><strong>Avec</strong> :<br class="ae"> au-delà d'un nombre de requêtes par minute et par adresse, le
+   serveur refuse (réponse <code>429</code>, « trop de requêtes ») et le note dans le
+   journal.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="oral">
+  <h2><span class="num">4</span>Préparer l'oral</h2>
+
+  <article class="exo">
+    <h3><span class="no">10</span>La question de la vie privée <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Le jury demande :<br class="ae"> « Vous filmez les gens qui entrent dans la salle. Avez-vous
+         pensé au RGPD ? » Rédiger une réponse en quatre ou cinq phrases.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Une réponse possible :</p>
+<p>« Une image où l'on reconnaît quelqu'un est une donnée personnelle. Notre système n'a
+   besoin que d'un <strong>nombre</strong> : la caméra compte sur place et n'envoie que
+   des chiffres, aucune image n'est stockée ni transmise. C'est le principe de
+   minimisation.</p>
+<p>Le flux vidéo ne sert qu'au réglage, et il est coupé ou protégé ensuite. Pour une installation réelle, il faudrait aussi informer les personnes, par un
+   affichage à l'entrée. »</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Projet E6 : people counter, caméra motorisée pour comptage de personnes »,
+          présentation du sujet</li>
+    </ul>
+    <p class="rap">Les dix exercices et leurs corrections sont écrits pour le site.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../02-coffre-fort-connecte/exercices.html"><span>Chapitre précédent</span><b>Coffre-fort connecté</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=7f2328a6"></script>
+<script src="../../assets/app.js?v=7f2328a6"></script>
+</body>
+</html>

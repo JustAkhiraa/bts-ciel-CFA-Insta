@@ -2604,8 +2604,17 @@
       [].forEach.call(fen.querySelectorAll(".lan-tenu"), function (e) { e.classList.remove("lan-tenu"); });
       if (window.innerWidth <= 760 || !depasse()) return;
       fen.classList.add("lan-serre");
+      /* En dernier : une matière qui n'a encore aucun chapitre (« 0 ch. »).
+         Ajouté avec la septième matière, le Projet E6 : à 1366 × 650, la
+         colonne de gauche dépassait de 32 px, tout le reste cédé. Sa page
+         reste à un clic par la recherche et par l'accueil en cartes. */
+      var vides = [].filter.call(fen.querySelectorAll("#lan-matieres > li"), function (li) {
+        var c = li.querySelector(".lan-cpt");
+        return c && /^0\s*ch\.?$/.test(c.textContent.trim());
+      });
       var cedent = [].slice.call(fen.querySelectorAll("#reprise .lan-liste > li")).slice(1).reverse()
-        .concat([].slice.call(fen.querySelectorAll("#pd-liste > li")).slice(1).reverse());
+        .concat([].slice.call(fen.querySelectorAll("#pd-liste > li")).slice(1).reverse())
+        .concat(vides);
       for (var i = 0; i < cedent.length && depasse(); i++) cedent[i].classList.add("lan-tenu");
     }
     var prevu = false;
