@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste · BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=9a6b3f84">
+<link rel="stylesheet" href="../assets/fiche.css?v=e991b602">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -91,7 +91,7 @@ const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
   "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
-  "console-bleue","bristol"];
+  "console-bleue","bristol","verre-nuit"];
 /* Le chapeau annonçait « 41 thèmes » alors que la liste en contenait 42 :
    un banc qui récite un chiffre périmé apprend à ne plus le lire. Il le
    compte, maintenant, sur la liste qu'il balaye vraiment. */
@@ -100,13 +100,13 @@ document.getElementById("nb-themes").textContent = AMB.length;
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
-  "console-bleue"]);
+  "console-bleue","verre-nuit"]);
 /* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
    au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
    la moitié du site sans contrôle — et c'est justement la moitié neuve. */
 const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
   "determination","velours","neon-lime","androide","grand-large","cahier-rose",
-  "console-blanche","bloc-notes","liquid","zellige","console-bleue","bristol"]);
+  "console-blanche","bloc-notes","liquid","zellige","console-bleue","bristol","verre-nuit"]);
 function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 /* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
    interligne serré ne change pas le contraste, mais une largeur « pleine »
@@ -650,10 +650,17 @@ document.getElementById("go").addEventListener("click", async () => {
                  /* La page Actu : elle a sa propre palette (deux faces, posées
                     sur le thème de base), des pastilles de site, des vignettes
                     à initiales et des titres venus d'ailleurs. */
-                 "../actu.html"];
+                 "../actu.html",
+                 /* La révision du jour (tableau de bord, pastilles, carte de
+                    question) et les projets (cartes de chapitre, liens). */
+                 "../revision.html", "../projets.html"];
   /* « ?page=fichiers » : ne relire qu'une page, le temps d'une retouche. */
   const seule = new URLSearchParams(location.search).get("page");
   const pages = seule ? toutes.filter((p) => p.includes(seule)) : toutes;
+  /* « ?theme=verre-nuit » : ne mesurer qu'un thème, ses deux faces, le
+     temps de le mettre au point. Le banc complet reste la règle. */
+  const unTheme = new URLSearchParams(location.search).get("theme");
+  const balayes = unTheme ? AMB.filter((a) => a === unTheme) : AMB;
   const pire = {}; let n = 0;
   let fondRef = null; const fondsCode = new Set();
   for (const p of pages) {
@@ -686,7 +693,7 @@ document.getElementById("go").addEventListener("click", async () => {
     /* Les règles d'un jeu se replient après la première visite : le banc
        les rouvre, leurs exemples de couleur sont du texte comme un autre. */
     for (const r of doc.querySelectorAll(".jx-regles")) r.hidden = false;
-    for (const a of AMB) {
+    for (const a of balayes) {
       for (const face of faces(a)) {
       /* Une page qui a sa propre direction artistique (« data-da », la page
          Actu) ne prend JAMAIS l'univers choisi : appliquer() ne lui donne que

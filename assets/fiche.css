@@ -3154,6 +3154,225 @@ html[data-theme="console-bleue"] .app-pied::after {
   color:var(--encre-tenue); text-align:center;
 }
 
+/* ══════════════════ VERRE DE NUIT : des vitres allumées dans le noir ══
+   Demandé le 15 nov. 2026, sur une image : deux panneaux de verre posés dans
+   une scène bleu nuit, un trait de lumière sur leur bord, des pastilles
+   rondes dont la choisie est pleine et rayonne, et un sol sous l'horizon.
+   Les lampes ont été retirées le même jour : deux taches orange collées aux
+   bords de l'écran, qui faisaient une lueur étrange.
+
+   Ce qui fait reconnaître l'univers :
+     · LE VERRE. Un panneau ne se remplit pas : il se teinte (10 % de bleu
+       clair) et floute ce qui passe derrière. Son bord est un trait de
+       lumière, plus clair en haut ;
+     · LA PASTILLE. Toute ronde. Au repos, un contour ; choisie, elle est
+       pleine, bleu vif, cernée d'un anneau de lueur ;
+     · LA SCÈNE. Un horizon à 78 % de la hauteur, un sol plus sombre dessous ;
+     · LA LUMIÈRE VIT. Les halos bleus dérivent lentement, et une tache
+       claire suit le pointeur sur les cartes (app.js, « lumiere »). Les
+       deux se coupent avec le réglage des animations.
+
+   Les couleurs sont mesurées, pas choisies (mesure.py, 15 nov.). --papier
+   vaut la teinte la plus CLAIRE que le fond prenne sous un texte : le bleu
+   nuit le plus clair de la scène (#0A1A44) sous un halo à 18 % donne
+   #182F66, et --papier est posé un cran plus clair encore. Sur ce fond, verre et reflet compris : encre-tenue 5,14:1, accent
+   4,92:1. Sous la tache du pointeur : 4,81:1 et 4,61:1. */
+html[data-theme="verre-nuit"], html[data-theme="verre-nuit"] [data-matiere] {
+  --papier:#1B3169; --carte:#131F47; --carte-creuse:#0E1838;
+  --bord:rgba(150,185,255,.18); --bord-fort:rgba(150,185,255,.40);
+  --encre:#F3F6FF; --encre-douce:#CBD7F5; --encre-tenue:#B4C4EC;
+  --accent:#A3C0FF; --accent-pale:rgba(120,160,255,.14); --accent-sombre:#C9DAFF;
+  --sur-accent:#06123A;
+}
+/* LA FACE JOUR : le même verre, devant un ciel pâle. --papier vaut cette
+   fois la teinte la plus SOMBRE du ciel (#DEDCE2 mesuré avec la lampe d'alors,
+   --papier posé un cran plus sombre). Mesuré : encre-tenue 5,25:1,
+   accent 5,07:1. */
+html[data-theme="verre-nuit"][data-sombre="0"], html[data-theme="verre-nuit"][data-sombre="0"] [data-matiere] {
+  --papier:#CFDAF0; --carte:#FFFFFF; --carte-creuse:#EEF3FC;
+  --bord:rgba(36,71,214,.16); --bord-fort:rgba(36,71,214,.38);
+  --encre:#0B1736; --encre-douce:#2A3B63; --encre-tenue:#43557F;
+  --accent:#2447D6; --accent-pale:rgba(36,71,214,.10); --accent-sombre:#1A36A8;
+  --sur-accent:#FFFFFF;
+}
+html[data-theme="verre-nuit"] {
+  --r:12px; --r-l:18px;
+  --ombre:inset 0 1px 0 rgba(205,222,255,.14), 0 10px 30px rgba(2,8,30,.45);
+  --ombre-haut:0 24px 70px rgba(2,8,30,.65), 0 0 40px rgba(70,120,255,.18);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] {
+  --ombre:inset 0 1px 0 #FFFFFF, 0 8px 24px rgba(30,60,140,.12);
+  --ombre-haut:0 22px 60px rgba(30,60,140,.22), 0 0 0 1px rgba(36,71,214,.10);
+}
+
+/* La scène : l'horizon, un trait ; puis le dégradé de nuit, qui
+   s'assombrit d'un coup sous l'horizon pour faire le sol. */
+html[data-theme="verre-nuit"][data-sombre="1"] body {
+  background-image:
+    linear-gradient(180deg, transparent calc(78% - 1px), rgba(150,185,255,.16) 78%, transparent calc(78% + 1px)),
+    linear-gradient(180deg, #050A1C 0%, #07122F 46%, #0A1A44 78%, #081233 78.2%, #050B20 100%);
+  background-attachment: fixed;
+}
+html[data-theme="verre-nuit"][data-sombre="0"] body {
+  background-image:
+    linear-gradient(180deg, transparent calc(78% - 1px), rgba(36,71,214,.14) 78%, transparent calc(78% + 1px)),
+    linear-gradient(180deg, #EEF4FF 0%, #E4ECFB 46%, #D9E4F8 78%, #D5E1F7 100%);
+  background-attachment: fixed;
+}
+/* Les halos : une couche à part, fixe, derrière tout. Elle seule bouge, et
+   seulement en position (« transform ») : le navigateur la déplace sans
+   repeindre la page. Aucun halo ne dépasse 18 %, la valeur de la mesure. */
+html[data-theme="verre-nuit"] body::before {
+  content:""; position:fixed; inset:-10%; z-index:-1; pointer-events:none;
+  background-image:
+    radial-gradient(ellipse 40% 36% at 14% 72%, rgba(90,140,255,.18), transparent 70%),
+    radial-gradient(ellipse 38% 34% at 88% 68%, rgba(90,140,255,.15), transparent 70%),
+    radial-gradient(ellipse 50% 28% at 50% 6%, rgba(120,100,255,.10), transparent 72%);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] body::before {
+  background-image:
+    radial-gradient(ellipse 40% 36% at 14% 72%, rgba(255,255,255,.80), transparent 70%),
+    radial-gradient(ellipse 38% 34% at 88% 68%, rgba(255,255,255,.65), transparent 70%),
+    radial-gradient(ellipse 50% 28% at 50% 6%, rgba(255,255,255,.55), transparent 72%);
+}
+@keyframes vn-derive {
+  from { transform: translate3d(-2.4%, 1.4%, 0) scale(1); }
+  to   { transform: translate3d(2.4%, -1.4%, 0) scale(1.06); }
+}
+html[data-theme="verre-nuit"][data-anim="1"] body::before,
+html[data-theme="verre-nuit"][data-anim="1"] .lan-lueur { animation: vn-derive 28s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="verre-nuit"] body::before, html[data-theme="verre-nuit"] .lan-lueur { animation: none !important; }
+}
+@media print { html[data-theme="verre-nuit"] body::before { display:none; } }
+
+/* Le verre. La teinte est une COULEUR de fond (10 %), que le banc sait
+   composer ; le reflet est une image par-dessus, 5 % de blanc dans l'angle. */
+html[data-theme="verre-nuit"] .carte-matiere,
+html[data-theme="verre-nuit"] .chapitre,
+html[data-theme="verre-nuit"] .bandeau-plan,
+html[data-theme="verre-nuit"] .sommaire,
+html[data-theme="verre-nuit"] .resultats {
+  border:1px solid rgba(150,185,255,.30);
+  background: rgba(140,175,255,.10) linear-gradient(160deg, rgba(255,255,255,.05), transparent 42%);
+  box-shadow: inset 0 1px 0 rgba(205,222,255,.20), 0 18px 46px rgba(2,8,30,.50), 0 0 38px rgba(70,120,255,.10);
+  backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+  transition: transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .2s, border-color .2s;
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .carte-matiere,
+html[data-theme="verre-nuit"][data-sombre="0"] .chapitre,
+html[data-theme="verre-nuit"][data-sombre="0"] .bandeau-plan,
+html[data-theme="verre-nuit"][data-sombre="0"] .sommaire,
+html[data-theme="verre-nuit"][data-sombre="0"] .resultats {
+  border-color: rgba(255,255,255,.95);
+  background: rgba(255,255,255,.62) linear-gradient(160deg, rgba(255,255,255,.55), transparent 46%);
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 16px 40px rgba(30,60,140,.14), 0 0 0 1px rgba(36,71,214,.08);
+}
+/* Les encarts gardent leur teinte de sens (vert, ambre, rouge) : on ne
+   leur donne que le flou et le trait de lumière du haut. */
+html[data-theme="verre-nuit"] .encart, html[data-theme="verre-nuit"] .quiz {
+  backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(205,222,255,.16);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .encart, html[data-theme="verre-nuit"][data-sombre="0"] .quiz { box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
+/* La sélection : le bord s'allume et la vitre se soulève. */
+html[data-theme="verre-nuit"] .carte-matiere:hover,
+html[data-theme="verre-nuit"] .carte-matiere:focus-visible,
+html[data-theme="verre-nuit"] .chapitre:hover,
+html[data-theme="verre-nuit"] .chapitre:focus-visible {
+  border-color: rgba(190,212,255,.88);
+  transform: translateY(-3px);
+  box-shadow: inset 0 1px 0 rgba(215,230,255,.30), 0 0 0 1px rgba(120,160,255,.40),
+              0 22px 54px rgba(2,8,30,.60), 0 0 44px rgba(80,130,255,.32);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .carte-matiere:hover,
+html[data-theme="verre-nuit"][data-sombre="0"] .carte-matiere:focus-visible,
+html[data-theme="verre-nuit"][data-sombre="0"] .chapitre:hover,
+html[data-theme="verre-nuit"][data-sombre="0"] .chapitre:focus-visible {
+  border-color: rgba(36,71,214,.75);
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 0 0 1px rgba(36,71,214,.35), 0 22px 50px rgba(30,60,140,.22);
+}
+/* La tache de lumière sous le pointeur. Elle s'AJOUTE au reflet : 10 % de
+   bleu clair au plus, mesuré avec le reste. Sans le script, « --lx » et
+   « --ly » n'existent pas et la tache reste en haut de la vitre. */
+html[data-theme="verre-nuit"][data-sombre="1"][data-anim="1"] .carte-matiere:hover,
+html[data-theme="verre-nuit"][data-sombre="1"][data-anim="1"] .chapitre:hover {
+  background-image:
+    radial-gradient(220px circle at var(--lx, 50%) var(--ly, 0%), rgba(170,200,255,.10), transparent 70%),
+    linear-gradient(160deg, rgba(255,255,255,.05), transparent 42%);
+}
+
+/* La barre du haut : une vitre posée à plat, son bord du bas allumé. */
+html[data-theme="verre-nuit"] .app-tete {
+  background: rgba(6,12,34,.78);
+  border-bottom:1px solid rgba(150,185,255,.24);
+  box-shadow: 0 10px 30px rgba(2,8,30,.35);
+  backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .app-tete {
+  background: rgba(255,255,255,.72);
+  border-bottom-color: rgba(36,71,214,.18);
+  box-shadow: 0 10px 30px rgba(30,60,140,.10);
+}
+/* Les pastilles. */
+html[data-theme="verre-nuit"] .app-tete nav a,
+html[data-theme="verre-nuit"] .pastilles button,
+html[data-theme="verre-nuit"] .bouton-hasard,
+html[data-theme="verre-nuit"] .mini,
+html[data-theme="verre-nuit"] .coche {
+  border:1px solid rgba(150,185,255,.28); background: rgba(120,160,255,.08);
+  border-radius:999px;
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .app-tete nav a,
+html[data-theme="verre-nuit"][data-sombre="0"] .pastilles button,
+html[data-theme="verre-nuit"][data-sombre="0"] .bouton-hasard,
+html[data-theme="verre-nuit"][data-sombre="0"] .mini,
+html[data-theme="verre-nuit"][data-sombre="0"] .coche { border-color: rgba(36,71,214,.28); background: rgba(36,71,214,.06); }
+/* La choisie : pleine et allumée. Le blanc est mesuré sur le haut du
+   dégradé, le plus clair (#3F62F2) : 4,95:1. */
+html[data-theme="verre-nuit"] .app-tete nav a[aria-current="page"],
+html[data-theme="verre-nuit"] .pastilles button[aria-pressed="true"],
+html[data-theme="verre-nuit"] .coche[aria-pressed="true"] {
+  background: #3F62F2 linear-gradient(180deg, #3F62F2, #2C4BD8);
+  border-color: rgba(190,212,255,.95); color:#FFFFFF;
+  box-shadow: 0 0 0 3px rgba(80,120,255,.22), 0 0 22px rgba(70,110,255,.55), inset 0 1px 0 rgba(255,255,255,.35);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .app-tete nav a[aria-current="page"],
+html[data-theme="verre-nuit"][data-sombre="0"] .pastilles button[aria-pressed="true"],
+html[data-theme="verre-nuit"][data-sombre="0"] .coche[aria-pressed="true"] {
+  background: #2447D6 linear-gradient(180deg, #2447D6, #1F3DBE);
+  border-color: rgba(36,71,214,.9);
+  box-shadow: 0 0 0 3px rgba(36,71,214,.16), 0 8px 22px rgba(36,71,214,.35), inset 0 1px 0 rgba(255,255,255,.30);
+}
+
+/* Le code : le fond du bloc est le même sur tous les thèmes (sa palette y
+   est mesurée), il ne change donc pas. Seul son cadre s'allume. */
+html[data-theme="verre-nuit"] .bloc-code pre {
+  border:1px solid rgba(150,185,255,.30); border-radius:14px;
+  box-shadow: 0 14px 40px rgba(2,8,30,.50), 0 0 34px rgba(70,120,255,.14);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .bloc-code pre { border-color: rgba(36,71,214,.30); box-shadow: 0 14px 34px rgba(30,60,140,.18); }
+html[data-theme="verre-nuit"] .bloc-code .langue { border-radius:999px; padding-inline:.7rem; }
+
+/* La fenêtre de l'accueil : la plus grande vitre de la scène. */
+html[data-theme="verre-nuit"] .lan-fen {
+  background: rgba(16,28,70,.70) linear-gradient(160deg, rgba(255,255,255,.05), transparent 42%);
+  box-shadow: 0 0 0 1px rgba(150,185,255,.34), 0 30px 90px rgba(2,8,30,.60), 0 0 70px rgba(70,120,255,.16);
+}
+html[data-theme="verre-nuit"][data-sombre="0"] .lan-fen {
+  background: rgba(255,255,255,.66) linear-gradient(160deg, rgba(255,255,255,.60), transparent 46%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.95), 0 30px 80px rgba(30,60,140,.20);
+}
+html[data-theme="verre-nuit"][data-sombre="1"][data-anim="1"] .lan-fen:hover {
+  background-image:
+    radial-gradient(420px circle at var(--lx, 50%) var(--ly, 0%), rgba(170,200,255,.07), transparent 70%),
+    linear-gradient(160deg, rgba(255,255,255,.05), transparent 42%);
+}
+
+/* Les titres : une lueur derrière les lettres, de nuit seulement. */
+html[data-theme="verre-nuit"][data-sombre="1"] h1 { text-shadow: 0 0 30px rgba(120,160,255,.38); }
+html[data-theme="verre-nuit"] h1 { letter-spacing:-.005em; }
+
 /* ══════════════════ CONSOLE BLANCHE — le menu de la Wii, à l'identique ══
    Demandé : pour « console blanche », un style entièrement différent des
    autres — reproduire le menu de la Wii à l'identique, avec ses
@@ -9309,11 +9528,13 @@ html[data-sombre="1"] [data-mat="physique"] { --mat:#E787BD; --mat-t:#F2B0D4; }
 [data-cat="jour"]      { --cat:#7A4BA8; }  /* violet — le temps    */
 [data-cat="rendre"]    { --cat:#A83B3B; }  /* rouge  — l'échéance  */
 [data-cat="reprendre"] { --cat:#2E7D6B; }  /* vert   — continuer   */
+[data-cat="reviser"]   { --cat:#A13A70; }  /* framboise : la mémoire */
 html[data-sombre="1"] [data-cat="matieres"]  { --cat:#8FA8E8; }
 html[data-sombre="1"] [data-cat="outils"]    { --cat:#D9BE6A; }
 html[data-sombre="1"] [data-cat="jour"]      { --cat:#C09BE8; }
 html[data-sombre="1"] [data-cat="rendre"]    { --cat:#E89B9B; }
 html[data-sombre="1"] [data-cat="reprendre"] { --cat:#7FCFBC; }
+html[data-sombre="1"] [data-cat="reviser"]   { --cat:#EBA2C8; }
 
 /* Les deux filets du « matériau » sont écrits en blanc translucide chez
    ceux qui l'ont inventé — ce qui n'a de sens que sur fond noir.
@@ -9649,6 +9870,18 @@ button.lan-de:hover {
   background: var(--carte-creuse); color: var(--accent-sombre);
   border-color: var(--bord-fort);
 }
+/* Le lien de l'actu porte la même robe que le dé, son voisin : deux
+   commandes secondaires, côte à côte, qui se ressemblent. */
+a.lan-de {
+  min-height: 36px; padding: .3rem .66rem; border-radius: 10px;
+  border: 1px solid var(--bord); color: var(--encre-douce);
+  text-decoration: none; line-height: 1.2;
+  transition: background .15s, color .15s, border-color .15s;
+}
+a.lan-de:hover {
+  background: var(--carte-creuse); color: var(--accent-sombre);
+  border-color: var(--bord-fort);
+}
 .lan-k { display: grid; place-items: center; min-width: 20px; height: 20px;
   padding: 0 5px; border-radius: 6px;
   background: color-mix(in srgb, var(--encre) 11%, transparent);
@@ -9677,7 +9910,34 @@ button.lan-de:hover {
   .lan-ou { display: none; }
   .lan-pause { display: none; }
 }
-@media (max-width: 920px) {
+/* L'accueil se resserre quand il dépasse l'écran (« tenirAccueil » dans
+   app.js) : les mêmes réglages que pour un écran bas, posés à la mesure
+   et non à une hauteur fixée d'avance. */
+.lan-scene:has(.lan-serre) { padding-block: .5rem .4rem; }
+.lan-fen.lan-serre .lan-ligne { padding: .26rem .6rem; }
+.lan-fen.lan-serre .lan-gtitre { padding: .3rem .6rem .2rem; }
+.lan-fen.lan-serre .lan-bloc { flex-direction: row; align-items: baseline; gap: .5rem; }
+.lan-fen.lan-serre .lan-l2 { flex: 0 1 auto; }
+.lan-fen.lan-serre .lan-ou, .lan-fen.lan-serre .lan-pause { display: none; }
+/* Mesuré à 1366 × 650 : tout resserré, la colonne de gauche dépassait
+   encore de 13 px. Les marges internes cèdent ~24 px, et les pastilles
+   d'outils descendent au plancher du site (34 px), à la souris seulement :
+   au doigt elles gardent leurs 44. */
+.lan-fen.lan-serre .lan-col { padding: .4rem; }
+.lan-fen.lan-serre .lan-rech { margin-top: .45rem; }
+.lan-fen.lan-serre .lan-sep { margin-top: .45rem; }
+.lan-fen.lan-serre .lan-actions { padding-block: .3rem; }
+@media (pointer: fine) { .lan-fen.lan-serre .lan-oc { min-height: 34px; } }
+.lan-fen .lan-tenu { display: none; }
+/* Les deux colonnes restent côte à côte jusqu'au téléphone : empilées
+   entre 760 et 920 px, elles faisaient défiler la page de 290 à 470 px.
+   Les outils passent à trois par rangée pour garder leurs libellés, et la
+   colonne de gauche prend un peu plus jusqu'à 1100 px : à 1024 px, quatre
+   libellés d'outils sur quatorze étaient coupés (de 4 à 7 px), et à 820 px
+   « Convertisseur » et « Compte rendu » manquaient de 1 et 2 px. */
+@media (max-width: 1100px) { .lan-corps { grid-template-columns: minmax(0,1.4fr) minmax(290px,1fr); } }
+@media (max-width: 920px) { .lan-outils { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+@media (max-width: 760px) {
   .lan-corps { grid-template-columns: 1fr; }
   .lan-col + .lan-col { border-left: 0; border-top: 1px solid var(--lan-filet); }
 }
@@ -10669,6 +10929,76 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
    ici, et un texte peut revenir à la ligne ; seule une touche ne se coupe
    pas. */
 .tb-dialogue { overflow: auto; overscroll-behavior: contain; }
+
+/* ── le traceur de fonction, dans la section Maths ── */
+.tb-fonction { display: flex; align-items: center; gap: .4rem; margin: .2rem 0 .1rem; }
+.tb-fonction label { font-weight: 700; font-size: .9rem; white-space: nowrap; }
+.tb-fx {
+  flex: 1 1 auto; min-width: 0; height: 40px; padding: 0 .6rem; font: inherit; font-size: .92rem;
+  font-family: var(--mono, ui-monospace, monospace); color: var(--encre); background: var(--papier);
+  border: 1px solid var(--tb-bord, var(--bord)); border-radius: 8px;
+}
+.tb-fx:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── « Mes tableaux » : dossiers, sous-dossiers, tableaux ──────────────
+   Une grille de cartes, comme un bureau : le dossier s'ouvre, le tableau
+   s'ouvre, et les quatre gestes de rangement sont sous chaque carte. */
+.tb-biblio { width: min(58rem, calc(100vw - 1.5rem)); }
+.tb-bib-tete { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; margin-bottom: .6rem; }
+.tb-bib-tete h2 { margin: 0; }
+.tb-bib-cherche {
+  flex: 1 1 12rem; max-width: 20rem; height: 40px; padding: 0 .8rem; font: inherit; font-size: .9rem;
+  color: var(--encre); background: var(--papier); border: 1px solid var(--bord); border-radius: 999px;
+}
+.tb-bib-cherche:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tb-bib-fil { display: flex; align-items: center; flex-wrap: wrap; gap: .15rem .3rem; font-size: .88rem; color: var(--encre-douce); min-height: 34px; }
+.tb-bib-fil button {
+  min-height: 34px; padding: 0 .45rem; font: inherit; color: var(--accent-sombre); background: none;
+  border: 0; border-radius: var(--r-s, 6px); cursor: pointer;
+}
+.tb-bib-fil button:hover { background: var(--carte-creuse); }
+.tb-bib-fil button[aria-current="page"], .tb-bib-fil strong { color: var(--encre); font-weight: 700; }
+.tb-bib-fil button:focus-visible, .tb-bib-ouvrir:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tb-bib-barre { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: .5rem 0 .9rem; }
+.tb-bib-barre .tb-bib-fort { background: var(--accent); border-color: var(--accent); color: var(--sur-accent, #fff); font-weight: 700; }
+.tb-bib-barre .tb-bib-fort:hover { background: var(--accent-sombre); }
+.tb-bib-danger { color: var(--rouge); }
+.tb-bib-pose { margin: 0 .4rem 0 0; font-size: .88rem; color: var(--encre-douce); }
+.tb-bib-liste { min-height: 9rem; }
+.tb-bib-grille { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); }
+.tb-bib-carte {
+  display: flex; flex-direction: column; min-width: 0; background: var(--papier);
+  border: 1px solid var(--bord); border-radius: var(--r, 10px); overflow: hidden;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.tb-bib-carte:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
+.tb-bib-carte.tb-bib-ouvert { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-pale); }
+.tb-bib-carte.tb-bib-pris { opacity: .45; }
+.tb-bib-ouvrir {
+  display: flex; flex-direction: column; align-items: stretch; gap: .3rem; padding: .55rem .6rem .35rem; min-width: 0;
+  font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer;
+}
+.tb-bib-ouvrir:disabled { cursor: default; }
+.tb-bib-vignette {
+  display: grid; place-items: center; aspect-ratio: 16 / 10; overflow: hidden;
+  background: #fff; border: 1px solid var(--bord); border-radius: calc(var(--r, 10px) - 4px);
+}
+.tb-bib-vignette img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tb-bib-dossier .tb-bib-vignette { background: var(--accent-pale); border-color: transparent; color: var(--accent-sombre); }
+.tb-bib-dossier .tb-bib-vignette svg { width: 42%; height: auto; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+.tb-bib-nom { font-weight: 700; font-size: .9rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-bib-info { font-size: .74rem; color: var(--encre-douce); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-bib-saisie { width: 100%; height: 34px; padding: 0 .4rem; font: inherit; font-size: .9rem; font-weight: 700; color: var(--encre); background: var(--carte); border: 1px solid var(--accent); border-radius: 6px; }
+.tb-bib-acts { display: flex; justify-content: space-between; gap: .1rem; padding: 0 .3rem .3rem; }
+.tb-bib-acts .tb-b { min-width: 34px; height: 34px; }
+.tb-bib-acts .tb-b svg { width: 17px; height: 17px; }
+.tb-bib-vide { margin: 2.2rem 0; text-align: center; color: var(--encre-douce); font-size: .92rem; }
+@media (max-width: 640px) {
+  .tb-biblio { padding: 1rem; }
+  .tb-bib-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+  .tb-bib-barre .tb-large { flex: 1 1 auto; padding: 0 .7rem; }
+}
+@media (prefers-reduced-motion: reduce) { .tb-bib-carte { transition: none; } .tb-bib-carte:hover { transform: none; } }
 .tb-aide { width: min(60rem, calc(100vw - 2rem)); }
 .tb-aide-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr));
                 gap: .2rem 1.6rem; align-items: start; }
@@ -11729,6 +12059,39 @@ mark.jx-neuf { padding: 0 .12em; border-radius: 3px; background: var(--accent-pa
    règle de classe l'emporte sur celle du navigateur, et l'élément restait
    affiché sans rien dire. Placée en dernier, et plus forte que toutes. */
 .outil.jx [hidden][hidden] { display: none; }
+
+/* ── La révision du jour, sur l'accueil ───────────────────────────────
+   Son icône prend la teinte du groupe, comme le reste de l'accueil. */
+.rv-ic { --mat: var(--cat); --mat-t: var(--encre); }
+
+/* ── Construire pour comprendre ───────────────────────────────────────
+   Les cartes SONT des cartes de chapitre (« .chapitre ») : elles prennent
+   la forme que chacun des quarante-trois thèmes donne déjà aux chapitres,
+   et leur entrée en fondu. Seuls changent la pastille du langage, plus
+   étroite que le numéro, et les deux lignes « On construit », « Ça éclaire ». */
+.pj-filtres { margin: 1.2rem 0 .4rem; }
+.pj-compte { margin: 0 0 .4rem; font-size: .8182rem; color: var(--encre-douce); }
+.pj-section { margin-top: 1.6rem; }
+.pj-section > h2 { margin: 0 0 -.6rem; }
+.pj-carte .num { font-size: .7273rem; letter-spacing: 0; font-family: var(--mono); }
+.pj-carte .txt h3 a { color: inherit; text-decoration: none; }
+.pj-carte .txt h3 a:hover { text-decoration: underline; }
+.pj-carte .txt h3 a::after { content: " \2197"; font-size: .8em; color: var(--encre-douce); }
+.pj-carte .txt p { line-height: 1.5; }
+.pj-carte .txt p b { color: var(--encre); font-weight: 650; }
+.pj-carte .pj-meta { font-size: .7273rem; letter-spacing: .02em; color: var(--encre-douce); }
+.pj-carte[hidden], .pj-section[hidden] { display: none !important; }
+/* Le lanceur ramasse les chapitres sur une ligne, texte coupé : ici, la
+   phrase EST le contenu, elle passe à la ligne. */
+html[data-style="lanceur"] body:not([data-accueil]) .pj-carte .txt p {
+  white-space: normal; overflow: visible; text-overflow: clip; }
+html[data-style="lanceur"] body:not([data-accueil]) .pj-carte { align-items: start; }
+.pj-note { margin: 2rem 0 0; font-size: .8182rem; color: var(--encre-douce); }
+
+/* Le stabilisateur a deux forces : le chiffre de la force, au coin du bouton. */
+.tb-lisse { position: relative; }
+.tb-lisse[data-niveau]::after { content: attr(data-niveau); position: absolute; right: 3px; bottom: 2px;
+  font: 800 9px/1 var(--sans, system-ui); color: currentColor; }
 
 
 /* ── Curseurs de thème — engendré par publier.py ────────────

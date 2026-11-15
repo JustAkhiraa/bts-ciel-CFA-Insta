@@ -1,0 +1,152 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   RÉVISION DU JOUR : la page
+   Tout passe par les jetons du site (--encre, --accent, --vert, --rouge…),
+   déjà mesurés sur les quarante-trois thèmes. Aucune couleur fixe ici, sauf
+   le blanc des lettres posées sur une pastille verte ou rouge, que la
+   feuille des QCM pose déjà de la même façon.
+   ═══════════════════════════════════════════════════════════════════════ */
+.rv { max-width: 46rem; }
+/* « hidden » perd contre toute règle qui pose un « display » : le bouton
+   « Question suivante » et le bilan s'affichaient avant la réponse. */
+.rv [hidden] { display: none !important; }
+.rv-tete h1 { margin-bottom: .35rem; }
+.rv-chapeau { color: var(--encre-douce); margin: 0 0 1.2rem; max-width: 40rem; }
+.rv-chargement { color: var(--encre-douce); }
+
+/* ── le tableau de bord ── */
+.rv-bord { display: grid; gap: .8rem; margin-bottom: 1.1rem; }
+.rv-chiffres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.rv-chiffre { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r-l, 14px);
+  padding: .75rem .85rem .7rem; box-shadow: var(--ombre); min-width: 0; }
+.rv-chiffre b { display: block; font-size: 1.75rem; line-height: 1.1; font-weight: 750;
+  color: var(--encre-forte, var(--encre)); font-variant-numeric: tabular-nums; }
+.rv-chiffre span { display: block; margin-top: .2rem; font-size: .7879rem; color: var(--encre-douce);
+  overflow-wrap: anywhere; }
+.rv-chiffre.rv-fort b { color: var(--accent-sombre); }
+
+.rv-deux { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: .6rem; }
+.rv-panneau { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r-l, 14px);
+  padding: .75rem .85rem .8rem; box-shadow: var(--ombre); min-width: 0; }
+.rv-panneau h2 { margin: 0 0 .6rem; font-size: .7576rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce); }
+
+/* Les boîtes : une barre par boîte, à la racine carrée du nombre pour que
+   la boîte des « neuves » (des centaines) n'écrase pas les autres. */
+.rv-boites { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .3rem;
+  height: 7.2rem; align-items: end; }
+.rv-boites > div { position: relative; height: 100%; display: flex; flex-direction: column;
+  justify-content: flex-end; align-items: center; gap: .2rem; min-width: 0; }
+.rv-boites i { display: block; width: 100%; height: var(--h, 0%); min-height: 2px; border-radius: 6px 6px 2px 2px;
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: height .5s cubic-bezier(.2, .8, .2, 1); }
+.rv-boites > div:first-child i { background: color-mix(in srgb, var(--encre) 22%, transparent); }
+.rv-boites > div:nth-child(n+6) i { background: var(--vert); }
+.rv-boites b { font-size: .6667rem; font-weight: 700; color: var(--encre); font-variant-numeric: tabular-nums; }
+.rv-boites small { font-size: .6061rem; color: var(--encre-douce); white-space: nowrap; }
+
+/* Le calendrier : vingt-huit jours, une case par jour, quatre intensités. */
+.rv-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.rv-cal i { aspect-ratio: 1; border-radius: 4px; background: color-mix(in srgb, var(--encre) 8%, transparent); }
+.rv-cal i[data-n="1"] { background: color-mix(in srgb, var(--vert) 35%, transparent); }
+.rv-cal i[data-n="2"] { background: color-mix(in srgb, var(--vert) 58%, transparent); }
+.rv-cal i[data-n="3"] { background: color-mix(in srgb, var(--vert) 80%, transparent); }
+.rv-cal i[data-n="4"] { background: var(--vert); }
+.rv-cal i[data-auj] { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rv-legende { margin: .5rem 0 0; font-size: .7273rem; color: var(--encre-douce); }
+
+/* ── le départ ── */
+.rv-depart { display: grid; gap: .7rem; margin: 1.1rem 0 .4rem; }
+.rv-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .7rem; }
+.rv-ligne > span { font-size: .8182rem; font-weight: 650; color: var(--encre-douce); min-width: 5.5rem; }
+.rv-go { display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+  min-height: 52px; padding: .8rem 1.4rem; border-radius: 999px; border: 0; cursor: pointer;
+  font: inherit; font-weight: 750; font-size: 1.0303rem;
+  background: var(--accent); color: var(--sur-accent);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: transform .15s, box-shadow .15s; }
+.rv-go:hover:not(:disabled) { transform: translateY(-2px);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--accent) 38%, transparent); }
+.rv-go:active:not(:disabled) { transform: translateY(0) scale(.98); }
+.rv-go:disabled { opacity: .55; cursor: default; box-shadow: none; }
+.rv-go svg { width: 18px; height: 18px; flex: none; }
+.rv-conseil { margin: 0; font-size: .8485rem; color: var(--encre-douce); }
+
+/* ── la séance ── */
+.rv-scene { scroll-margin-top: 5rem; }
+.rv-haut { display: flex; align-items: center; gap: .8rem; margin: .4rem 0 .9rem; }
+.rv-pos { font-family: var(--mono); font-weight: 700; font-size: .8788rem; color: var(--encre);
+  font-variant-numeric: tabular-nums; flex: none; }
+.rv-barre { flex: 1; height: 8px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--encre) 10%, transparent); }
+.rv-barre span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent);
+  transition: width .35s cubic-bezier(.2, .8, .2, 1); }
+.rv-quitter { flex: none; min-height: 36px; padding: .3rem .8rem; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .8182rem; color: var(--encre-douce);
+  background: transparent; border: 1px solid var(--bord-fort); }
+.rv-quitter:hover { color: var(--encre); border-color: var(--encre-douce); }
+
+.rv-carte { background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r-l, 14px);
+  padding: 1.1rem 1.15rem 1.15rem; box-shadow: var(--ombre-haut, var(--ombre)); }
+.rv-quoi { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; margin-bottom: .75rem; }
+.rv-ch { display: inline-flex; align-items: center; min-height: 34px; padding: .2rem .75rem;
+  border-radius: 999px; font-size: .7879rem; font-weight: 700; text-decoration: none;
+  background: var(--accent-pale); color: var(--accent-sombre); max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-ch:hover { text-decoration: underline; }
+.rv-etat { font-size: .7273rem; font-weight: 650; color: var(--encre-douce); }
+.rv-question { margin: 0 0 1rem; font-size: 1.1212rem; line-height: 1.5; font-weight: 650; color: var(--encre); }
+.rv-carte .qcm-opts { display: grid; gap: .5rem; }
+.rv-carte .qcm-opt { min-height: 48px; }
+.rv-bas { display: flex; justify-content: flex-end; margin-top: .9rem; scroll-margin-bottom: 7.5rem; }
+.rv-suite { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .55rem 1.1rem;
+  border-radius: 999px; border: 0; cursor: pointer; font: inherit; font-weight: 700;
+  background: var(--accent); color: var(--sur-accent); }
+.rv-suite kbd { font-family: var(--mono); font-size: .75rem; opacity: .8; }
+.rv-dire { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rv-clavier { margin: .8rem 0 0; font-size: .7273rem; color: var(--encre-douce); text-align: center; }
+
+/* ── le bilan ── */
+.rv-fin { display: grid; justify-items: center; text-align: center; gap: .6rem;
+  background: var(--carte); border: 1px solid var(--bord); border-radius: var(--r-l, 14px);
+  padding: 1.6rem 1.2rem 1.4rem; box-shadow: var(--ombre-haut, var(--ombre)); scroll-margin-top: 5rem; }
+.rv-score { --p: 0; width: 8.5rem; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  background:
+    radial-gradient(closest-side, var(--carte) 78%, transparent 79% 100%),
+    conic-gradient(var(--vert) calc(var(--p) * 1%), color-mix(in srgb, var(--encre) 10%, transparent) 0); }
+.rv-score b { font-size: 1.75rem; font-weight: 800; color: var(--encre); font-variant-numeric: tabular-nums; }
+.rv-fin h2 { margin: .2rem 0 0; }
+.rv-fin p { margin: 0; color: var(--encre-douce); }
+.rv-revoir { text-align: left; width: 100%; max-width: 30rem; }
+.rv-revoir ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+.rv-revoir a { color: var(--accent-sombre); }
+.rv-boutons { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; margin-top: .4rem; }
+.rv-boutons a { display: inline-flex; align-items: center; min-height: 44px; padding: .5rem 1rem;
+  border-radius: 999px; border: 1px solid var(--bord-fort); color: var(--encre); text-decoration: none; }
+
+.rv-note { margin: 1.6rem 0 0; font-size: .8182rem; color: var(--encre-douce); }
+
+/* ── le mouvement ── */
+@keyframes rv-entre { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes rv-secoue { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes rv-lueur { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--vert) 55%, transparent), var(--ombre-haut, var(--ombre)); }
+  100% { box-shadow: 0 0 0 14px transparent, var(--ombre-haut, var(--ombre)); } }
+html[data-anim="1"] .rv-carte.entre { animation: rv-entre .32s cubic-bezier(.2, .8, .2, 1) both; }
+html[data-anim="1"] .rv-carte.juste { animation: rv-lueur .6s ease-out; }
+html[data-anim="1"] .rv-carte.faux { animation: rv-secoue .4s ease-in-out; }
+.rv-carte.juste { border-color: var(--vert); }
+.rv-carte.faux { border-color: var(--rouge); }
+@media (prefers-reduced-motion: reduce) {
+  .rv-carte, .rv-boites i, .rv-barre span, .rv-go { animation: none !important; transition: none !important; }
+}
+
+/* ── au téléphone ── */
+@media (max-width: 640px) {
+  .rv-chiffres { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rv-deux { grid-template-columns: minmax(0, 1fr); }
+  .rv-go { width: 100%; }
+  .rv-carte { padding: .95rem .9rem 1rem; }
+  .rv-question { font-size: 1.0303rem; }
+  .rv-clavier { display: none; }
+}
+@media print { .rv-depart, .rv-scene, .rv-fin { display: none; } }

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EtherChannel : fiche de révision | BTS CIEL</title>
+<meta name="description" content="Fiche imprimable : pourquoi agréger, le Port-channel, PAgP et LACP, la table des modes, les conditions, les commandes, la lecture de show etherchannel summary et les pannes.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=e991b602">
+</head>
+<body data-matiere="reseau">
+<div class="page revision">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="tp.html">TP</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html" aria-current="page">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 21</span>
+    <span class="sep">/</span><span class="badge">Fiche de révision</span>
+  </div>
+  <h1>EtherChannel</h1>
+  <p class="chapeau">Plusieurs câbles, un seul lien logique. À relire la veille.
+     <a href="cours.html">Le cours</a> · <a href="tp.html">Le TP</a> ·
+     <a href="exercices.html">Les exercices</a></p>
+</header>
+
+<main class="corps">
+<section class="grille">
+
+  <article class="memo alerte">
+    <h2>⚡ Pourquoi agréger</h2>
+    <p>Sans agrégation, le spanning-tree <strong>bloque</strong> tout câble en double.</p>
+    <div class="formule">plusieurs liens physiques<br>
+      → un lien logique : le Port-channel (Po)</div>
+    <p class="rap">Débit, redondance, répartition de charge.</p>
+  </article>
+
+  <article class="memo">
+    <h2>PAgP</h2>
+    <p>Propre à <strong>Cisco</strong>.</p>
+    <div class="formule">desirable → je propose<br>
+      auto → j'attends</div>
+  </article>
+
+  <article class="memo">
+    <h2>LACP</h2>
+    <p>Norme <strong>IEEE 802.3ad</strong>, entre toutes les marques.</p>
+    <div class="formule">active → je propose<br>
+      passive → j'attends</div>
+    <p class="rap">16 ports au plus : 8 actifs, 8 en veille.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ La règle des modes</h2>
+    <div class="formule">au moins UN côté qui propose<br>
+      le MÊME protocole des deux côtés</div>
+    <p>❌ <code>auto</code> + <code>auto</code> · ❌ <code>passive</code> +
+       <code>passive</code> · ❌ PAgP face à LACP.</p>
+    <p class="rap"><code>on</code> ne marche qu'avec <code>on</code>.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Des ports identiques</h2>
+    <p>Même <strong>vitesse</strong>, même <strong>duplex</strong>, même mode (accès ou
+       trunk), mêmes <strong>VLAN autorisés</strong>, même VLAN natif.</p>
+    <p class="rap">Les numéros de ports, eux, peuvent différer.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Configurer</h2>
+    <div class="formule">interface range f0/3-4<br>
+      &nbsp;channel-group 1 mode desirable<br>
+      &nbsp;no shutdown</div>
+    <p>Puis tout se règle sur le Port-channel :</p>
+    <div class="formule">interface port-channel 1<br>
+      &nbsp;switchport mode trunk<br>
+      &nbsp;switchport trunk native vlan 99</div>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Vérifier</h2>
+    <div class="formule">show etherchannel summary<br>
+      → Po1(SU) &nbsp; Fa0/3(P) Fa0/4(P)</div>
+    <p><strong>S</strong> niveau 2 · <strong>U</strong> en service · <strong>P</strong>
+       port agrégé.</p>
+    <p class="rap">À lire sur les <strong>deux</strong> commutateurs.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Les indicateurs de panne</h2>
+    <p><code>(I)</code> isolé :<br class="ae"> personne ne répond, voir les modes.</p>
+    <p><code>(s)</code> suspendu : un réglage diffère.</p>
+    <p><code>(D)</code> éteint : <code>no shutdown</code>, câble.</p>
+  </article>
+
+  <article class="memo">
+    <h2>Spanning-tree</h2>
+    <div class="formule">1 lien FastEthernet → coût 19<br>
+      2 liens agrégés → coût 12</div>
+    <p class="rap">Trois commutateurs en triangle :<br class="ae"> un Port-channel reste bloqué, c'est
+       normal.</p>
+  </article>
+
+  <article class="memo">
+    <h2>L'ordre des gestes</h2>
+    <div class="formule">1. ports éteints<br>
+      2. channel-group, des deux côtés<br>
+      3. no shutdown<br>
+      4. show etherchannel summary</div>
+  </article>
+
+</section>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../20-securite-ssh-mitm/fiche-revision.html"><span>Chapitre précédent</span><b>Sécurité SSH &amp; attaque MITM</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=e991b602"></script>
+<script src="../../assets/app.js?v=e991b602"></script>
+</body>
+</html>

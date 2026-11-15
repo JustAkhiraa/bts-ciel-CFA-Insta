@@ -365,10 +365,32 @@
         if (!retour && connus.size < 24) return jourSuivant();
       }).then(function () {
         if (retour && retour.y) sauter(retour.y);
+        ouvrirDemande();
       });
     }).catch(function () {
       erreur("Le relevé ne répond pas", "Pas de connexion, et rien en mémoire sur cet appareil.");
     });
+  }
+
+  /* ── un titre choisi sur l'accueil : « actu.html#lire=<adresse> » ──
+     L'adresse est retirée aussitôt (un rechargement ne rouvre pas le
+     volet), puis une entrée d'historique est posée : « retour » ferme le
+     volet, comme pour un article ouvert dans la liste. */
+  function ouvrirDemande() {
+    var h = location.hash;
+    if (h.indexOf("#lire=") !== 0) return;
+    var u = "";
+    try { u = decodeURIComponent(h.slice(6)); } catch (e) { return; }
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    var x = connus.get(u);
+    if (!x) return;
+    var lien = x.li && x.li.querySelector("a");
+    try { history.pushState({ actuLecteur: true }, ""); } catch (e) {}
+    ouvrirLecteur(x.a, lien);
+    if (!lus.has(u)) {
+      lus.add(u); E.lus.push(u); garder();
+      if (x.li) { x.li.dataset.lu = "1"; x.li.removeAttribute("data-neuf"); }
+    }
   }
 
   /* ── le relevé a-t-il bougé ? ── */

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EtherChannel : agréger des liens entre commutateurs | BTS CIEL</title>
+<meta name="description" content="Le cours d'EtherChannel : pourquoi le spanning-tree bloque les câbles en double, le Port-channel, PAgP et LACP, la table des modes, les conditions d'agrégation, les commandes de configuration et de vérification, et les pannes classiques.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=e991b602">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#probleme">1 · Deux câbles, un seul qui travaille</a></li>
+    <li><a href="#principe">2 · Le Port-channel</a></li>
+    <li><a href="#protocoles">3 · PAgP et LACP</a></li>
+    <li><a href="#modes">4 · La table des modes</a></li>
+    <li><a href="#conditions">5 · Les conditions d'un agrégat</a></li>
+    <li><a href="#configurer">6 · Configurer</a></li>
+    <li><a href="#verifier">7 · Vérifier</a></li>
+    <li><a href="#stp">8 · Et le spanning-tree ?</a></li>
+    <li><a href="#pannes">9 · Ce qui empêche de monter</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html" aria-current="page">Cours</a><a href="tp.html">TP</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 21</span>
+  </div>
+
+  <h1>EtherChannel</h1>
+  <p class="chapeau">Relier deux commutateurs par plusieurs câbles, et les faire travailler
+     <strong>tous ensemble</strong>. Ce chapitre explique le principe, les deux protocoles de
+     négociation, les commandes, et la façon de lire le résultat.
+     <a href="tp.html">Le TP pas à pas</a> · <a href="exercices.html">Les exercices</a> ·
+     <a href="fiche-revision.html">La fiche</a> · <a href="qcm.html">Le QCM</a></p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+      <p>Entre deux commutateurs, le <strong>spanning-tree</strong> bloque tout câble en
+         double. <strong>EtherChannel</strong> déclare que ces câbles ne font qu'un :<br class="ae"> un
+         lien logique, le <strong>Port-channel</strong>.</p>
+      <p>Deux protocoles négocient l'agrégat :<br class="ae"> <strong>PAgP</strong> (propre à Cisco, modes
+         <code>desirable</code> et <code>auto</code>) et <strong>LACP</strong> (norme
+         IEEE 802.3ad, modes <code>active</code> et <code>passive</code>). Il faut au moins
+         un côté qui propose.</p>
+      <p>Une seule commande fait foi :<br class="ae"> <code>show etherchannel summary</code>.<br class="ae"> On y cherche
+         <code>Po1(SU)</code> et des ports en <code>(P)</code>, <strong>des deux
+         côtés</strong>.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#EtherChannel</code> <code>#agregation</code> <code>#Port-channel</code>
+    <code>#PAgP</code> <code>#LACP</code> <code>#802.3ad</code> <code>#desirable</code>
+    <code>#auto</code> <code>#active</code> <code>#passive</code> <code>#channel-group</code>
+    <code>#trunk</code> <code>#VLAN-natif</code> <code>#spanning-tree</code>
+  </p>
+</header>
+
+<section id="probleme">
+  <h2><span class="num">01</span>Deux câbles, un seul qui travaille</h2>
+
+  <p>Entre deux commutateurs, un seul câble pose deux problèmes. Son débit est un plafond,
+     et s'il tombe, la liaison tombe avec lui.</p>
+  <p>La réponse évidente est d'en brancher un second. Mais deux câbles entre deux
+     commutateurs forment une <strong>boucle</strong>, et le spanning-tree (STP) est là
+     précisément pour couper les boucles : il <strong>bloque</strong> l'un des deux.</p>
+  <p>Le second câble est branché, alimenté, et il ne transporte rien.</p>
+
+  <div class="encart analogie">
+    <div class="titre">🛣️ Deux routes, ou une route à deux voies</div>
+    <p>Deux routes séparées entre deux villes obligent à choisir un itinéraire. Le
+       spanning-tree en ferme une, par sécurité.</p>
+    <p>Une route à <strong>deux voies</strong> est une seule route sur la carte. Personne
+       ne la ferme, et les deux voies servent en même temps. EtherChannel transforme les
+       deux routes en une route à deux voies.</p>
+    <p class="rap">Si une voie est en travaux, la route reste ouverte : on roule sur
+       l'autre.</p>
+  </div>
+</section>
+
+<section id="principe">
+  <h2><span class="num">02</span>Le Port-channel</h2>
+
+  <p><strong>EtherChannel</strong> est une forme d'<strong>agrégation de liaisons</strong> :<br class="ae">
+     plusieurs liens physiques sont regroupés en un seul lien logique. Ce lien logique
+     apparaît dans la configuration comme une interface à part entière, le
+     <strong>Port-channel</strong>, abrégé <code>Po</code>.</p>
+
+  <div class="encart savoir">
+    <div class="titre">📐 Ce que l'agrégation apporte</div>
+    <ul>
+      <li><strong>Du débit</strong> :<br class="ae"> celui d'un seul lien n'est plus la limite.</li>
+      <li><strong>De la redondance</strong> :<br class="ae"> si un câble tombe, les autres continuent.</li>
+      <li><strong>De la répartition de charge</strong> :<br class="ae"> le trafic se partage entre les
+          liens.</li>
+      <li><strong>Une seule configuration</strong> :<br class="ae"> ce qu'on tape sur le Port-channel
+          s'applique à tous ses ports.</li>
+    </ul>
+  </div>
+
+  <p>Pour le spanning-tree, il n'y a plus deux liens mais un seul. Il n'a donc plus rien à
+     bloquer entre ces deux commutateurs.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 300" role="img" aria-label="Trois commutateurs en triangle, reliés deux à deux par deux câbles : Po1 en PAgP entre S1 et S3, Po2 en LACP entre S1 et S2, Po3 en LACP entre S2 et S3">
+      <style>
+        .ec-t{font:700 14px var(--sans);fill:var(--encre);text-anchor:middle}
+        .ec-s{font:12px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+        .ec-p{font:700 12px var(--sans);fill:var(--encre);text-anchor:middle}
+        .ec-l{stroke:var(--encre);stroke-width:2.2;fill:none}
+        .ec-f{stroke:var(--encre-douce);stroke-width:1.4;fill:none}
+        .ec-b{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+      </style>
+      <path class="ec-l" d="M150,52 H370 M150,62 H370"/>
+      <path class="ec-l" d="M104,84 L226,208 M116,78 L238,202"/>
+      <path class="ec-l" d="M416,84 L294,208 M404,78 L282,202"/>
+      <path class="ec-f" d="M70,84 V118 M260,246 V262 M450,84 V118"/>
+      <rect class="ec-b" x="60" y="34" width="90" height="46" rx="8"/>
+      <rect class="ec-b" x="370" y="34" width="90" height="46" rx="8"/>
+      <rect class="ec-b" x="215" y="200" width="90" height="46" rx="8"/>
+      <text class="ec-t" x="105" y="62">S1</text>
+      <text class="ec-t" x="415" y="62">S3</text>
+      <text class="ec-t" x="260" y="228">S2</text>
+      <text class="ec-p" x="260" y="30">Po1 · PAgP</text>
+      <text class="ec-s" x="260" y="82">F0/3-4 des deux côtés</text>
+      <text class="ec-p" x="118" y="158">Po2 · LACP</text>
+      <text class="ec-s" x="118" y="174">F0/1-2</text>
+      <text class="ec-p" x="402" y="158">Po3 · LACP</text>
+      <text class="ec-s" x="402" y="174">S2 F0/3-4, S3 F0/1-2</text>
+      <text class="ec-s" x="70" y="134">PC-A · F0/6</text>
+      <text class="ec-s" x="260" y="278">PC-B · F0/18</text>
+      <text class="ec-s" x="450" y="134">PC-C · F0/18</text>
+    </svg>
+    <figcaption>Trois commutateurs, trois liaisons, deux câbles par liaison. Chaque paire de
+      câbles devient un seul lien logique : un Port-channel.</figcaption>
+  </figure>
+
+  <p>La maquette du TP monte trois agrégats, un par côté du triangle :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Agrégat</th><th>Entre</th><th>Ports</th><th>Protocole</th><th>Modes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Po1</strong></td><td>S1 et S3</td><td>F0/3-4 des deux côtés</td><td>PAgP</td><td><code>desirable</code> et <code>auto</code></td></tr>
+        <tr><td><strong>Po2</strong></td><td>S1 et S2</td><td>F0/1-2 des deux côtés</td><td>LACP</td><td><code>active</code> et <code>passive</code></td></tr>
+        <tr><td><strong>Po3</strong></td><td>S2 et S3</td><td>S2 F0/3-4, S3 F0/1-2</td><td>LACP</td><td><code>active</code> et <code>passive</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="protocoles">
+  <h2><span class="num">03</span>PAgP et LACP</h2>
+
+  <p>Un agrégat peut se déclarer à la main, des deux côtés. Mais une erreur de câblage
+     passerait inaperçue. On préfère laisser les deux commutateurs <strong>négocier</strong> :<br class="ae"> ils vérifient qu'ils sont bien d'accord avant de regrouper les liens.</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th></th><th>PAgP</th><th>LACP</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Nom complet</strong></td><td>Port Aggregation Protocol</td><td>Link Aggregation Control Protocol</td></tr>
+        <tr><td><strong>Origine</strong></td><td>propre à Cisco</td><td>norme IEEE 802.3ad</td></tr>
+        <tr><td><strong>Entre quelles marques</strong></td><td>du matériel Cisco, ou compatible PAgP</td><td>toutes celles qui suivent la norme</td></tr>
+        <tr><td><strong>Le mode qui propose</strong></td><td><code>desirable</code></td><td><code>active</code></td></tr>
+        <tr><td><strong>Le mode qui attend</strong></td><td><code>auto</code></td><td><code>passive</code></td></tr>
+        <tr><td><strong>Ports en veille</strong></td><td>non</td><td>oui</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Seize ports, dont huit qui attendent</div>
+    <p>Avec LACP, un canal peut compter jusqu'à <strong>16 ports</strong>.</p>
+    <p><strong>Huit</strong> sont actifs, les <strong>huit autres</strong> restent en
+       veille. Si un port actif tombe, un port en veille prend sa place.</p>
+    <p class="rap">Ce mode de veille n'existe que pour LACP, pas pour PAgP.</p>
+  </div>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé : une norme ouverte, pas « Open Source »</div>
+    <p>L'énoncé du TP présente LACP comme un protocole « Open Source ».</p>
+    <p>Le terme juste est <strong>norme ouverte</strong> :<br class="ae"> LACP est publié par l'IEEE, et
+       n'importe quel fabricant peut l'appliquer. « Open source » se dit d'un logiciel dont
+       le code est public, ce qui est autre chose.</p>
+  </div>
+</section>
+
+<section id="modes">
+  <h2><span class="num">04</span>La table des modes</h2>
+
+  <p>La règle tient en une phrase :<br class="ae"> <strong>il faut au moins un côté qui propose</strong>,
+     et les deux côtés doivent parler le même protocole.</p>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Un côté</th><th>L'autre côté</th><th>Résultat</th></tr></thead>
+      <tbody>
+        <tr><td><code>desirable</code></td><td><code>desirable</code> ou <code>auto</code></td><td>✅ l'agrégat monte, en PAgP</td></tr>
+        <tr><td><code>auto</code></td><td><code>auto</code></td><td>❌ personne ne propose</td></tr>
+        <tr><td><code>active</code></td><td><code>active</code> ou <code>passive</code></td><td>✅ l'agrégat monte, en LACP</td></tr>
+        <tr><td><code>passive</code></td><td><code>passive</code></td><td>❌ personne ne propose</td></tr>
+        <tr><td><code>on</code></td><td><code>on</code></td><td>✅ l'agrégat monte, sans négociation</td></tr>
+        <tr><td><code>desirable</code> ou <code>auto</code></td><td><code>active</code> ou <code>passive</code></td><td>❌ deux protocoles différents</td></tr>
+        <tr><td><code>on</code></td><td>tout autre mode</td><td>❌ un côté négocie, l'autre non</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Deux « auto » ne montent jamais</div>
+    <p><code>auto</code> et <code>passive</code> attendent qu'on leur propose. Deux
+       commutateurs qui attendent tous les deux n'obtiennent rien.</p>
+    <p>C'est une panne silencieuse :<br class="ae"> aucune erreur à la saisie, et les ports restent
+       isolés.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le mode <code>on</code></div>
+    <p><code>channel-group 1 mode on</code> force l'agrégat sans aucun protocole.</p>
+    <p>Il ne fonctionne que si l'autre côté est aussi en <code>on</code>. Comme rien n'est
+       négocié, rien n'est vérifié :<br class="ae"> on le réserve au matériel qui ne connaît ni PAgP ni
+       LACP.</p>
+  </div>
+</section>
+
+<section id="conditions">
+  <h2><span class="num">05</span>Les conditions d'un agrégat</h2>
+
+  <p>Des liens ne se regroupent que s'ils sont <strong>identiques</strong>. Sur tous les
+     ports d'un même agrégat, et des deux côtés :</p>
+  <ul>
+    <li>les interfaces doivent prendre en charge EtherChannel ;</li>
+    <li>la même <strong>vitesse</strong> ;</li>
+    <li>le même mode <strong>duplex</strong> (full ou half) ;</li>
+    <li>le même mode de port :<br class="ae"> tous en accès dans le même VLAN, ou tous en trunk ;</li>
+    <li>en trunk, la même <strong>plage de VLAN autorisés</strong> et le même VLAN
+        natif.</li>
+  </ul>
+
+  <div class="encart corrige">
+    <div class="titre">🔧 Corrigé : des VLAN différents empêchent l'agrégat</div>
+    <p>L'énoncé écrit que si la plage de VLAN autorisés diffère, l'EtherChannel « passera
+       en mode Desirable ».</p>
+    <p>C'est une phrase de la documentation mal recopiée. Ce qu'elle dit vraiment :<br class="ae"> si la
+       plage diffère, les interfaces <strong>ne forment pas d'EtherChannel</strong>, et cela
+       <strong>même si</strong> PAgP est réglé sur <code>auto</code> ou
+       <code>desirable</code>.</p>
+    <p class="rap">Sur le commutateur, le port concerné s'affiche alors suspendu
+       <code>(s)</code> ou isolé <code>(I)</code>.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Les numéros de ports n'ont pas à correspondre</div>
+    <p>Dans la maquette, Po3 utilise F0/3-4 sur S2 et F0/1-2 sur S3. Ce qui doit être
+       identique, ce sont les <strong>réglages</strong>, pas les numéros.</p>
+    <p>Le numéro de groupe non plus :<br class="ae"> il est <strong>local</strong> à chaque commutateur.
+       On prend le même des deux côtés pour s'y retrouver.</p>
+  </div>
+</section>
+
+<section id="configurer">
+  <h2><span class="num">06</span>Configurer</h2>
+
+  <p>Tout tient en une commande, tapée sur les ports physiques :<br class="ae">
+     <code>channel-group</code>, avec un numéro de groupe et un mode. Elle crée
+     l'interface Port-channel au passage.</p>
+
+  <div class="bloc-code" data-fam="cisco" style="--car:31"><span class="langue">Cisco IOS · S1, le côté qui propose</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/3</span>-<span class="j-num">4</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">1</span> <span class="j-att">mode</span> desirable
+<span class="j-mc"> no shutdown</span></code></pre></div>
+  <div class="bloc-code" data-fam="cisco" style="--car:26"><span class="langue">Cisco IOS · S3, le côté qui attend</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/3</span>-<span class="j-num">4</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">1</span> <span class="j-att">mode</span> auto
+<span class="j-mc"> no shutdown</span></code></pre></div>
+
+  <p>Le commutateur répond aussitôt :</p>
+  <div class="bloc-code" style="--car:33"><span class="langue">sortie</span><pre><code>Creating a port-channel interface
+Port-channel 1</code></pre></div>
+
+  <p>À partir de là, <strong>tout se règle sur le Port-channel</strong>. Les commandes
+     qu'on y tape sont recopiées sur chacun de ses ports :</p>
+  <div class="bloc-code" data-fam="cisco" style="--car:32"><span class="langue">Cisco IOS · S1 puis S3</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">port-channel 1</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span></code></pre></div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Deux ordres possibles</div>
+    <p>On peut agréger d'abord, puis mettre le Port-channel en trunk. C'est ce que fait la
+       partie PAgP du TP.</p>
+    <p>On peut aussi mettre les ports physiques en trunk d'abord, puis les agréger. C'est
+       ce que fait sa partie LACP :</p>
+    <div class="bloc-code" data-fam="cisco" style="--car:32"><span class="langue">Cisco IOS · S1</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/1</span>-<span class="j-num">2</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">2</span> <span class="j-att">mode</span> <span class="j-fn">active</span>
+<span class="j-mc"> no shutdown</span></code></pre></div>
+    <p class="rap">Les deux marchent, à une condition :<br class="ae"> que les ports soient identiques au
+       moment où ils se regroupent.</p>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Éteindre avant, rallumer après</div>
+    <p>Deux câbles actifs qui ne sont pas encore agrégés forment une boucle. On laisse donc
+       les ports <strong>éteints</strong> pendant qu'on configure, et on tape
+       <code>no shutdown</code> une fois le mode réglé.</p>
+  </div>
+</section>
+
+<section id="verifier">
+  <h2><span class="num">07</span>Vérifier</h2>
+
+  <p>La commande à retenir, à relancer après chaque modification :</p>
+  <div class="bloc-code" data-fam="cisco" style="--car:25"><span class="langue">Cisco IOS</span><pre><code><span class="j-mc">show</span> etherchannel <span class="j-att">summary</span></code></pre></div>
+  <div class="bloc-code" style="--car:36"><span class="langue">sortie · colonnes repliées pour l'écran</span><pre><code>Flags:  D - down
+        P - bundled in port-channel
+        I - stand-alone
+        s - suspended
+        H - Hot-standby (LACP only)
+        R - Layer3      S - Layer2
+        U - in use
+        w - waiting to be aggregated
+
+Number of channel-groups in use: 1
+Number of aggregators:           1
+
+Group  Port-channel  Protocol
+       Ports
+------+-------------+---------
+1      Po1(SU)       PAgP
+       Fa0/3(P)  Fa0/4(P)</code></pre></div>
+
+  <p>Deux endroits à lire, et seulement eux :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Affichage</th><th>Se lit</th></tr></thead>
+      <tbody>
+        <tr><td><code>Po1(SU)</code></td><td><strong>S</strong> : niveau 2, l'agrégat commute. <strong>U</strong> : <em>in use</em>, il est en service.</td></tr>
+        <tr><td><code>Fa0/3(P)</code></td><td><strong>P</strong> : <em>bundled</em>, le port est bien dans l'agrégat.</td></tr>
+        <tr><td><code>PAgP</code> ou <code>LACP</code></td><td>le protocole qui a négocié.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ Un seul côté ne prouve rien</div>
+    <p>La commande se lance sur <strong>les deux</strong> commutateurs. Chacun doit
+       afficher <code>(SU)</code> et ses ports en <code>(P)</code>.</p>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Les autres commandes de contrôle</div>
+    <div class="tableau">
+      <table>
+        <thead><tr><th>Commande</th><th>Ce qu'elle montre</th></tr></thead>
+        <tbody>
+          <tr><td><code>show run interface f0/3</code></td><td>la configuration d'un port membre</td></tr>
+          <tr><td><code>show interfaces f0/3 switchport</code></td><td>son mode réel, et <em>member of bundle Po1</em></td></tr>
+          <tr><td><code>show interfaces trunk</code></td><td>le trunk : il porte le nom du Port-channel</td></tr>
+          <tr><td><code>show spanning-tree</code></td><td>le coût et la priorité du lien agrégé</td></tr>
+          <tr><td><code>show pagp neighbor</code></td><td>le voisin PAgP</td></tr>
+          <tr><td><code>show lacp neighbor</code></td><td>le voisin LACP</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="stp">
+  <h2><span class="num">08</span>Et le spanning-tree ?</h2>
+
+  <p>Dans <code>show interfaces trunk</code> comme dans <code>show spanning-tree</code>,
+     les ports physiques ont disparu. Il ne reste qu'une ligne : <code>Po1</code>.</p>
+  <p>Son <strong>coût</strong> a baissé, parce que la bande passante du lien logique a
+     augmenté :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Lien</th><th>Coût STP</th></tr></thead>
+      <tbody>
+        <tr><td>Un lien FastEthernet (100 Mbit/s)</td><td>19</td></tr>
+        <tr><td>Deux liens FastEthernet agrégés</td><td>12</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Sa <strong>priorité</strong> reste la valeur par défaut d'un port, 128.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ EtherChannel ne remplace pas le spanning-tree</div>
+    <p>Dans la maquette, les trois commutateurs forment un triangle. Entre eux, il reste
+       une boucle, faite de trois liens logiques.</p>
+    <p>Le spanning-tree bloque donc <strong>un des trois Port-channel</strong>. C'est
+       normal :<br class="ae"> EtherChannel supprime la boucle à l'intérieur d'une liaison, pas la boucle
+       entre les commutateurs.</p>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Un câble débranché ne dérange personne</div>
+    <p>Si un lien d'un agrégat tombe, le Port-channel reste en service sur les autres.</p>
+    <p>Pour le spanning-tree, rien n'a changé :<br class="ae"> le lien logique est toujours là. Aucun
+       recalcul, aucune coupure.</p>
+  </div>
+</section>
+
+<section id="pannes">
+  <h2><span class="num">09</span>Ce qui empêche de monter</h2>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Indicateur</th><th>Signification</th><th>Première chose à faire</th></tr></thead>
+      <tbody>
+        <tr><td><code>(P)</code></td><td>le port est agrégé</td><td>rien</td></tr>
+        <tr><td><code>(I)</code></td><td>isolé : personne ne lui répond</td><td>regarder le mode de l'autre côté</td></tr>
+        <tr><td><code>(s)</code></td><td>suspendu : un réglage diffère</td><td>comparer vitesse, duplex, mode et VLAN</td></tr>
+        <tr><td><code>(D)</code></td><td>éteint, ou câble absent</td><td><code>no shutdown</code>, puis le câblage</td></tr>
+        <tr><td><code>(w)</code></td><td>négociation en cours</td><td>attendre, puis relancer la commande</td></tr>
+        <tr><td><code>(H)</code></td><td>en veille (LACP seulement)</td><td>normal au-delà de huit liens</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Les causes se rangent en trois familles :</p>
+  <ul>
+    <li><strong>Les modes</strong> :<br class="ae"> deux côtés qui attendent, deux protocoles différents,
+        ou <code>on</code> face à un mode qui négocie.</li>
+    <li><strong>Les réglages</strong> :<br class="ae"> une vitesse, un duplex, un mode de port ou une
+        liste de VLAN qui diffèrent.</li>
+    <li><strong>La mise en œuvre</strong> :<br class="ae"> un port resté éteint, un
+        <code>channel-group</code> oublié d'un côté, un seul port sur deux configuré.</li>
+  </ul>
+</section>
+
+<footer>
+  <div class="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Sans EtherChannel</strong>, le spanning-tree bloque les câbles en
+          double.</li>
+      <li><strong>Avec</strong>, plusieurs liens forment un seul lien logique : le
+          Port-channel.</li>
+      <li><strong>PAgP</strong> : Cisco, <code>desirable</code> et <code>auto</code>.
+          <strong>LACP</strong> :<br class="ae"> IEEE 802.3ad, <code>active</code> et
+          <code>passive</code>.</li>
+      <li><strong>Au moins un côté doit proposer</strong>, et les deux parlent le même
+          protocole.</li>
+      <li><strong>Des ports identiques</strong> :<br class="ae"> vitesse, duplex, mode, VLAN.</li>
+      <li><strong><code>channel-group N mode …</code></strong> sur les ports, puis tout se
+          règle sur <code>interface port-channel N</code>.</li>
+      <li><strong><code>show etherchannel summary</code></strong> :<br class="ae"> <code>Po(SU)</code> et
+          des ports en <code>(P)</code>, des deux côtés.</li>
+      <li><strong>Coût STP</strong> :<br class="ae"> 19 pour un lien FastEthernet, 12 pour deux
+          agrégés.</li>
+    </ul>
+  </div>
+
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Travaux pratiques : configuration d'EtherChannel », Cisco Networking Academy,
+          7 pages :<br class="ae"> topologie, table d'adressage, contexte, conditions requises et les
+          trois parties du TP</li>
+      <li>Le guide pas à pas du même TP, rédigé à partir de l'énoncé, pour l'ordre des
+          gestes et le dépannage</li>
+    </ul>
+    <p class="rap">Trois formulations de l'énoncé sont corrigées et signalées :<br class="ae"> « Open
+       Source » pour une norme ouverte, la phrase sur la plage de VLAN, et des
+       commutateurs appelés « routeurs » (voir le TP). Les ports des PC sont ceux de la
+       figure :<br class="ae"> F0/6 sur S1, F0/18 sur S2 et S3.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../20-securite-ssh-mitm/cours.html"><span>Chapitre précédent</span><b>Sécurité SSH &amp; attaque MITM</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=e991b602"></script>
+<script src="../../assets/app.js?v=e991b602"></script>
+</body>
+</html>

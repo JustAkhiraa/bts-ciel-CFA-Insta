@@ -95,7 +95,8 @@
       { id: "liquid", nom: "Liquid Glass", sombre: false },
       { id: "bristol", nom: "Bristol", sombre: false },
       { id: "zellige", nom: "Zellige", sombre: false },
-      { id: "console-bleue", nom: "Console bleue", sombre: true }
+      { id: "console-bleue", nom: "Console bleue", sombre: true },
+      { id: "verre-nuit", nom: "Verre de nuit", sombre: true }
     ]}
   ];
 
@@ -2163,6 +2164,31 @@
     });
   }
 
+  /* ── la lumière sous le pointeur ───────────────────────────────────────
+     Sur l'univers « Verre de nuit », une tache claire suit le pointeur sur
+     les cartes : le verre répond à la main. Un seul écouteur pour toute la
+     page, une écriture par image au plus, et rien au doigt (un doigt cache
+     ce qu'il éclaire). La feuille ne s'en sert que si les animations sont
+     permises ; sans ce script, la tache reste en haut de la vitre. */
+  function lumiere() {
+    var d = document.documentElement, cible = null, x = 0, y = 0, prevu = false;
+    function poser() {
+      prevu = false;
+      if (!cible) return;
+      var r = cible.getBoundingClientRect();
+      cible.style.setProperty("--lx", Math.round(x - r.left) + "px");
+      cible.style.setProperty("--ly", Math.round(y - r.top) + "px");
+    }
+    document.addEventListener("pointermove", function (e) {
+      if (e.pointerType === "touch" || d.dataset.theme !== "verre-nuit" || d.dataset.anim === "0") return;
+      var c = e.target && e.target.closest ? e.target.closest(".carte-matiere, .chapitre, .lan-fen") : null;
+      cible = c;
+      if (!c) return;
+      x = e.clientX; y = e.clientY;
+      if (!prevu) { prevu = true; requestAnimationFrame(poser); }
+    }, { passive: true });
+  }
+
   /* ══ la coquille du téléphone ══════════════════════════════════════════
      Demandé le 2 novembre 2026 : un site pensé pour le téléphone de bout en
      bout, avec l'ergonomie des applis de livraison qu'on a dans la poche —
@@ -2517,6 +2543,56 @@
     });
   }
 
+  /* ── l'accueil tient dans l'écran ─────────────────────────────────────
+     Demandé le 15 nov. 2026 : sur l'accueil, tout voir, sans jamais
+     défiler. Le contenu change d'un jour à l'autre (un jour de cours,
+     trois devoirs, un historique) : aucune hauteur écrite d'avance ne le
+     garantit. Mesuré : sans devoir, la fenêtre tenait partout sauf à
+     1366 × 650 ; avec trois devoirs, elle dépassait de 30 à 100 px.
+
+     On MESURE donc, et tant que la page dépasse l'écran, on cède dans cet
+     ordre, du confort à l'accessoire :
+       1. la fenêtre se resserre (« .lan-serre ») : le planning passe sur
+          une ligne, les marges diminuent ;
+       2. les lignes « vu récemment » de Reprendre, de la 3ᵉ à la 2ᵉ ;
+       3. les devoirs au-delà du premier ; « Tous les devoirs → » les garde.
+     Rien n'est retiré qui ne se retrouve pas en un clic, et une classe à
+     part (« lan-tenu ») le fait : « hidden » sert déjà aux blocs de
+     l'accueil pour se montrer, on ne s'en mêle pas.
+     À chaque taille d'écran ou réglage, tout revient avant de remesurer.
+     Sous 760 px, le téléphone a son propre accueil : rien à faire. */
+  function tenirAccueil() {
+    var fen = document.getElementById("lanceur");
+    if (!fen || !document.body.hasAttribute("data-accueil")) return;
+    var racine = document.documentElement;
+    function depasse() {
+      if (!fen.offsetHeight) return false;          /* fenêtre cachée : ancien accueil, coquille */
+      return racine.scrollHeight - window.innerHeight > 1;
+    }
+    function ajuster() {
+      fen.classList.remove("lan-serre");
+      [].forEach.call(fen.querySelectorAll(".lan-tenu"), function (e) { e.classList.remove("lan-tenu"); });
+      if (window.innerWidth <= 760 || !depasse()) return;
+      fen.classList.add("lan-serre");
+      var cedent = [].slice.call(fen.querySelectorAll("#reprise .lan-liste > li")).slice(1).reverse()
+        .concat([].slice.call(fen.querySelectorAll("#pd-liste > li")).slice(1).reverse());
+      for (var i = 0; i < cedent.length && depasse(); i++) cedent[i].classList.add("lan-tenu");
+    }
+    var prevu = false;
+    function bientot() {
+      if (prevu) return;
+      prevu = true;
+      requestAnimationFrame(function () { prevu = false; ajuster(); });
+      setTimeout(function () { if (prevu) { prevu = false; ajuster(); } }, 120);
+    }
+    ajuster();
+    window.addEventListener("resize", bientot);
+    if (window.MutationObserver) new MutationObserver(bientot).observe(racine, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-sombre", "data-taille", "data-largeur", "data-police", "data-interligne", "data-style"]
+    });
+  }
+
   function init() {
     appliquer();
     poserBoutons();
@@ -2532,6 +2608,8 @@
     brancherHasard();
     raccourcis();
     apparitions();
+    lumiere();
+    tenirAccueil();
     if (window.matchMedia) {
       var mq = window.matchMedia("(prefers-color-scheme: dark)");
       var suivre = function () { if (!S.theme) { appliquer(); peindreBascule(); } };
