@@ -2662,6 +2662,43 @@
     setTimeout(poser, 120);
   }
 
+  /* Les listes d'outils de l'accueil (« Réseau », 15 nov. 2026). Le
+     navigateur les ouvre et les ferme seul (attribut « popover ») ; il ne
+     sait pas les poser sous leur bouton : il les centrerait dans l'écran.
+     On les pose donc, juste avant l'ouverture, sous le bouton, alignées sur
+     lui ; s'il n'y a pas la place dessous, au-dessus. « toggle » et
+     « beforetoggle » ne remontent pas : on les écoute à la descente. */
+  function poserListe(liste) {
+    var b = document.querySelector('[popovertarget="' + liste.id + '"]');
+    if (!b) return;
+    var r = b.getBoundingClientRect(), m = 8;
+    var L = liste.offsetWidth, H = liste.offsetHeight;
+    var x = Math.min(Math.max(m, r.left), Math.max(m, innerWidth - L - m));
+    var y = r.bottom + 6;
+    if (H && y + H > innerHeight - m && r.top - 6 - H >= m) y = r.top - 6 - H;
+    liste.style.left = Math.round(x) + "px";
+    liste.style.top = Math.round(y) + "px";
+    b.setAttribute("aria-expanded", "true");
+  }
+  document.addEventListener("beforetoggle", function (e) {
+    var l = e.target;
+    if (!l.classList || !l.classList.contains("lan-pop")) return;
+    if (e.newState === "open") poserListe(l);
+    else {
+      var b = document.querySelector('[popovertarget="' + l.id + '"]');
+      if (b) b.setAttribute("aria-expanded", "false");
+    }
+  }, true);
+  // une fois ouverte, sa vraie hauteur est connue : on corrige si elle déborde
+  document.addEventListener("toggle", function (e) {
+    var l = e.target;
+    if (l.classList && l.classList.contains("lan-pop") && e.newState === "open") poserListe(l);
+  }, true);
+  addEventListener("resize", function () {
+    var l = document.querySelector(".lan-pop:popover-open");
+    if (l) poserListe(l);
+  });
+
   if (document.readyState === "loading")
     document.addEventListener("DOMContentLoaded", function () { init(); armerFondu(); });
   else { init(); armerFondu(); }
