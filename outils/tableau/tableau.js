@@ -195,7 +195,7 @@
        vite) : combien de temps il reste, sa couleur, son épaisseur, sa
        transparence. Par défaut, le laser d'avant, au réglage près. */
     laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
-    styletSeul: false, inclinaison: true, regle: null, symetrie: null, lisse: 0,
+    styletSeul: false, inclinaison: true, regle: null, symetrie: null, lisse: 0, symAxe: "v", recentes: [],
   };
   /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
@@ -275,7 +275,7 @@
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
           lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
-          styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
+          styletSeul: etat.styletSeul, inclinaison: etat.inclinaison, symAxe: etat.symAxe, recentes: etat.recentes,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
            de photo à chaque trait tracé ferait ramer la main. Elles ne
@@ -299,7 +299,7 @@
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
       if (typeof lu.bibId === "string") etat.bibId = lu.bibId;
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison", "symAxe"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -311,6 +311,7 @@
       if (Array.isArray(lu.stylos) && lu.stylos.length === etat.stylos.length) etat.stylos = lu.stylos;
       if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
       if (typeof lu.seau === "string" && /^#[0-9a-f]{6}$/i.test(lu.seau)) etat.seau = lu.seau;
+      if (Array.isArray(lu.recentes)) etat.recentes = lu.recentes.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 7);
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -926,13 +927,36 @@
   function selectionnes() {
     return elements.filter((e) => selection.has(e.id));
   }
-  function poigneesActives() {
+  /* Les poignées de taille, et le cadre qu'elles étirent. Signalé le 15 nov.
+     2026 : après avoir tout sélectionné et tourné, plus moyen de
+     redimensionner. Un seul élément tourné (une forme, une image, un texte)
+     suffisait à retirer toutes les poignées. Désormais :
+       · un élément seul et tourné garde ses huit poignées, posées sur SON
+         cadre tourné : on l'étire le long de ses propres côtés ;
+       · plusieurs éléments dont l'un est tourné gardent les quatre coins du
+         cadre qu'on voit, et s'agrandissent sans se déformer (étirer d'un
+         seul côté une forme penchée la cisaillerait, ce qu'aucun élément du
+         tableau ne sait dessiner). */
+  function cadrePoignees() {
     const sel = selectionnes();
-    if (!sel.length || geste || sel.some((e) => e.angle) || sel.some((e) => e.locked)) return null;
+    if (!sel.length || geste || sel.some((e) => e.locked)) return null;
     if (sel.length === 1 && (sel[0].type === "line" || sel[0].type === "arrow") && sel[0].points.length === 2) {
       return null;
     }
-    return poignees(boiteDe(sel));
+    if (!sel.some((e) => e.angle)) { const b = boiteDe(sel); return { b, P: poignees(b), angle: 0 }; }
+    if (sel.length === 1) {
+      const el = sel[0], b = R.boite(el), c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+      const P = poignees(b), f = rotationAutour(c, el.angle);
+      for (const k in P) P[k] = f(P[k][0], P[k][1]);
+      return { b, P, angle: el.angle, c };
+    }
+    const b = boiteVue(sel), P = poignees(b);
+    ["n", "s", "e", "w"].forEach((k) => delete P[k]);
+    return { b, P, angle: 0, uniforme: true };
+  }
+  function poigneesActives() {
+    const C = cadrePoignees();
+    return C ? C.P : null;
   }
   function dessinerSelection() {
     const sel = selectionnes();
@@ -960,9 +984,9 @@
       }
       ctx.restore();
     });
-    const P = poigneesActives();
-    if (P) {
-      const b = boiteDe(sel), m = 6 / z;
+    const C = cadrePoignees();
+    if (C) {
+      const b = C.b, m = 6 / z;
       if (sel.length > 1) {
         ctx.setLineDash([]);
         ctx.strokeRect(b.x - m, b.y - m, b.w + m * 2, b.h + m * 2);
@@ -970,10 +994,14 @@
       ctx.setLineDash([]);
       ctx.fillStyle = "#fff";
       const t = 8 / z;
-      Object.values(P).forEach((p) => {
+      Object.values(C.P).forEach((p) => {
+        // sur un cadre tourné, la poignée tourne avec lui
+        ctx.save();
+        ctx.translate(p[0], p[1]); if (C.angle) ctx.rotate(C.angle);
         ctx.beginPath();
-        ctx.rect(p[0] - t / 2, p[1] - t / 2, t, t);
+        ctx.rect(-t / 2, -t / 2, t, t);
         ctx.fill(); ctx.stroke();
+        ctx.restore();
       });
     }
     dessinerPoigneeTourner(sel);
@@ -1426,7 +1454,7 @@
     g.minuterie = setTimeout(() => redresser(g), 550);
   }
   function redresser(g) {
-    if (geste !== g || g.jumeau) return;
+    if (geste !== g || (g.jumeaux && g.jumeaux.length)) return;
     const src = g.el, abs = absolus(src), L = S.longueur(abs);
     if (L * etat.zoom < 24) return;
     let f = estSurligneur(src) ? null : S.reconnaitreForme(abs);
@@ -1585,12 +1613,37 @@
      jamais la rejoindre tout à fait : les tremblements disparaissent, et
      au réglage fort le trait s'arrondit comme tiré au fil. */
   const LISSES = [0, 0.55, 0.82];
+  /* L'axe : vertical (gauche ↔ droite), horizontal (haut ↕ bas), ou les
+     deux, qui font quatre traits d'un seul (demandé le 15 nov. 2026 : un
+     second clic sur le bouton propose le choix, comme pour les stylos). */
+  const AXES_SYMETRIE = { v: [[-1, 1]], h: [[1, -1]], vh: [[-1, 1], [1, -1], [-1, -1]] };
+  const AIDE_AXE = {
+    v: "Axe vertical : ce qu'on trace à gauche se répète à droite.",
+    h: "Axe horizontal : ce qu'on trace en haut se répète en bas.",
+    vh: "Les deux axes : chaque trait en donne quatre, comme une rosace.",
+  };
+  function centrerAxe() {
+    const c = versScene(toile.clientWidth / 2, toile.clientHeight / 2);
+    etat.symetrie = { x: c.x, y: c.y, axe: AXES_SYMETRIE[etat.symAxe] ? etat.symAxe : "v" };
+  }
   function basculerSymetrie() {
-    etat.symetrie = etat.symetrie ? null : { x: versScene(toile.clientWidth / 2, 0).x };
+    if (etat.symetrie) etat.symetrie = null; else centrerAxe();
     majBascules();
-    dire(etat.symetrie ? "Symétrie : chaque trait est doublé en miroir de l'axe en pointillés. J pour la ranger."
-      : "Symétrie rangée.");
+    if (!reglage.hidden && reglage.dataset.quoi === "symetrie") reglage.hidden = true;
+    dire(etat.symetrie ? "Symétrie : chaque trait est doublé en miroir de l'axe en pointillés. "
+      + "Recliquer sur le bouton pour choisir l'axe, J pour la ranger." : "Symétrie rangée.");
     demander();
+  }
+  function ouvrirReglageSymetrie() {
+    const axe = etat.symetrie ? etat.symetrie.axe || "v" : etat.symAxe || "v";
+    reglage.innerHTML = '<p class="tb-menu-titre">Symétrie : l\'axe</p>'
+      + tuiles("rsy", [["v", "Vertical", "symV"], ["h", "Horizontal", "symH"], ["vh", "Les deux", "symVH"]], axe)
+      + '<p class="tb-indice">' + AIDE_AXE[axe] + "</p>"
+      + '<div class="tb-effets tb-sym-actions">'
+      + '<button type="button" class="tb-b tb-petit tb-effet" data-rsya="centrer" title="Remettre l\'axe au milieu de l\'écran">Recentrer l\'axe</button>'
+      + '<button type="button" class="tb-b tb-petit tb-effet" data-rsya="couper" title="Couper la symétrie (J)">Arrêter</button></div>';
+    reglage.dataset.quoi = "symetrie";
+    reglage.hidden = false;
   }
   function basculerLisse() {
     etat.lisse = (etat.lisse + 1) % LISSES.length;
@@ -1600,15 +1653,21 @@
           "Stabilisateur fort : le trait rattrape la pointe et s'arrondit. U pour le couper."][etat.lisse]);
   }
   function dessinerAxe(dpr) {
-    if (!etat.symetrie) return;
-    const x = Math.round((etat.symetrie.x + etat.scrollX) * etat.zoom) + 0.5;
-    if (x < 0 || x > toile.clientWidth) return;
+    const s = etat.symetrie;
+    if (!s) return;
+    if (s.y == null) s.y = versScene(0, toile.clientHeight / 2).y;      // un axe d'avant le choix
+    const axe = s.axe || "v";
+    const x = Math.round((s.x + etat.scrollX) * etat.zoom) + 0.5;
+    const y = Math.round((s.y + etat.scrollY) * etat.zoom) + 0.5;
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.strokeStyle = enSombre ? "rgba(140,180,255,.8)" : "rgba(36,71,214,.62)";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, toile.clientHeight); ctx.stroke();
+    ctx.beginPath();
+    if (axe.includes("v") && x >= 0 && x <= toile.clientWidth) { ctx.moveTo(x, 0); ctx.lineTo(x, toile.clientHeight); }
+    if (axe.includes("h") && y >= 0 && y <= toile.clientHeight) { ctx.moveTo(0, y); ctx.lineTo(toile.clientWidth, y); }
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -1956,6 +2015,32 @@
     }
     return out;
   }
+  /* Une zone posée au seau est un polygone plein, sans contour. Signalé le
+     15 nov. 2026 : la gomme passait dessus sans rien prendre (elle ne
+     connaissait que les formes et les traits), et le dessin repris au stylo
+     à cet endroit tombait sur une couleur qu'on croyait effacée. Au premier
+     coup de gomme, la zone devient ce qu'elle est à l'écran : une surface du
+     stylo Remplissage, au même rang, que la gomme découpe comme les autres. */
+  const estZoneSeau = (el) => el.type === "line" && !!el.polygon && !el.locked
+    && Array.isArray(el.points) && el.points.length > 3
+    && (!el.strokeColor || el.strokeColor === "transparent")
+    && !!el.backgroundColor && el.backgroundColor !== "transparent"
+    && (!el.fillStyle || el.fillStyle === "solid");
+  function zoneEnLibre(el) {
+    const P = el.points.map((p) => [p[0], p[1]]);
+    const a = P[0], z = P[P.length - 1];
+    if (Math.hypot(a[0] - z[0], a[1] - z[1]) < 1e-6) P.pop();     // le tracé se referme de lui-même
+    if (P.length < 3) return null;
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), type: "freedraw", points: P,
+      pressures: P.map(() => 0.5), simulatePressure: false, lastCommittedPoint: null,
+      strokeColor: el.backgroundColor, backgroundColor: "transparent", roundness: null, boundElements: null,
+      startArrowhead: null, endArrowhead: null,
+      customData: Object.assign({}, el.customData || {}, { pointe: "remplissage", net: true }) });
+    delete n.polygon;
+    const bb = R.boite(n); n.width = bb.w; n.height = bb.h;
+    toucher(n);
+    return n;
+  }
   function gommerPartie(g, a, b) {
     const r = etat.gommeTaille / etat.zoom;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.5)));
@@ -1971,6 +2056,16 @@
           selection.delete(el.id);
           g.coupes = g.encre = true;
           i += libres.length;              // ses deux morceaux passent sous la gomme dès ce pas
+          continue;
+        }
+        if (estZoneSeau(el)) {
+          if (!R.touche(el, c[0], c[1], r)) continue;
+          const libre = zoneEnLibre(el);
+          if (!libre) continue;
+          elements.splice(i, 1, libre);
+          selection.delete(el.id);
+          g.coupes = true;
+          i += 1;                          // la surface passe sous la gomme dès ce pas
           continue;
         }
         if (el.type !== "freedraw" || el.locked) continue;
@@ -2161,8 +2256,9 @@
     }
     const h = poigneeSous(p.x, p.y);
     if (h) {
-      const sel = selectionnes();
-      geste = { mode: "redim", h, b0: boiteDe(sel), origines: sel.map((el) => JSON.parse(JSON.stringify(el))) };
+      const sel = selectionnes(), C = cadrePoignees();
+      geste = { mode: "redim", h, b0: C.b, angle: C.angle || 0, c0: C.c || null, uniforme: !!C.uniforme,
+                origines: sel.map((el) => JSON.parse(JSON.stringify(el))) };
       return;
     }
     const el = aPortee(p.x, p.y);
@@ -2247,17 +2343,23 @@
       if (cd.effet || cd.pointe) el.customData = cd;
     }
     elements.push(el);
-    let jumeau = null;
+    // les jumeaux en miroir : un par axe, et un de plus, en diagonale, quand il y en a deux
+    const jumeaux = [], miroirs = [];
     if (etat.symetrie && !regle) {
-      jumeau = nouvelElement("freedraw", 2 * etat.symetrie.x - p.x, p.y, {
-        points: [[0, 0]], pressures: el.pressures.slice(), simulatePressure: el.simulatePressure,
-        lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
+      const s = etat.symetrie;
+      if (s.y == null) s.y = versScene(0, toile.clientHeight / 2).y;
+      (AXES_SYMETRIE[s.axe] || AXES_SYMETRIE.v).forEach(([kx, ky]) => {
+        const j = nouvelElement("freedraw", kx < 0 ? 2 * s.x - p.x : p.x, ky < 0 ? 2 * s.y - p.y : p.y, {
+          points: [[0, 0]], pressures: el.pressures.slice(), simulatePressure: el.simulatePressure,
+          lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
+        });
+        Object.assign(j, { strokeColor: el.strokeColor, strokeWidth: el.strokeWidth, opacity: el.opacity });
+        if (el.customData) j.customData = JSON.parse(JSON.stringify(el.customData));
+        elements.push(j);
+        jumeaux.push(j); miroirs.push([kx, ky]);
       });
-      Object.assign(jumeau, { strokeColor: el.strokeColor, strokeWidth: el.strokeWidth, opacity: el.opacity });
-      if (el.customData) jumeau.customData = JSON.parse(JSON.stringify(el.customData));
-      elements.push(jumeau);
     }
-    geste = { mode: "dessin", el, regle, jumeau, suit: { x: p.x, y: p.y } };
+    geste = { mode: "dessin", el, regle, jumeaux, miroirs, suit: { x: p.x, y: p.y } };
     demander();
   }
 
@@ -2361,11 +2463,14 @@
         if (Math.hypot(px - der[0], py - der[1]) * etat.zoom < 1) return;
         el.points.push([px, py]);
         el.pressures.push(pressionDe(ev, el));
-        if (g.jumeau) { g.jumeau.points.push([-px, py]); g.jumeau.pressures.push(el.pressures[el.pressures.length - 1]); }
+        (g.jumeaux || []).forEach((j, k) => {
+          const [kx, ky] = g.miroirs[k];
+          j.points.push([kx * px, ky * py]); j.pressures.push(el.pressures[el.pressures.length - 1]);
+        });
       });
       const b = R.boite(g.el);
       g.el.width = b.w; g.el.height = b.h;
-      if (g.jumeau) { const bj = R.boite(g.jumeau); g.jumeau.width = bj.w; g.jumeau.height = bj.h; }
+      (g.jumeaux || []).forEach((j) => { const bj = R.boite(j); j.width = bj.w; j.height = bj.h; });
       guetterArret(g, sx, sy);
       demander();
       return;
@@ -2387,8 +2492,12 @@
     if (surPoigneeTourner(p.x, p.y)) return majCurseur("grab");
     const h = poigneeSous(p.x, p.y);
     if (h) {
+      // sur un cadre tourné, la flèche du curseur tourne avec lui, par huitièmes de tour
+      const ronde = ["n", "ne", "e", "se", "s", "sw", "w", "nw"], C = cadrePoignees();
+      const pas = C && C.angle ? Math.round(C.angle / (Math.PI / 4)) : 0;
+      const k = ronde[(((ronde.indexOf(h) + pas) % 8) + 8) % 8];
       return majCurseur({ n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
-                          nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize" }[h]);
+                          nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize" }[k]);
     }
     majCurseur(aPortee(p.x, p.y) ? "move" : "default");
   }
@@ -2440,6 +2549,9 @@
      positions, tailles, points, et la police d'un texte quand on tire un
      coin. Maj garde les proportions. */
   function redimensionner(g, p, e) {
+    if (g.uniforme) return redimUniforme(g, p);
+    // un élément tourné s'étire dans SON repère : le pointeur y est ramené
+    if (g.angle) { const q = rotationAutour(g.c0, -g.angle)(p.x, p.y); p = { x: q[0], y: q[1] }; }
     const b = g.b0;
     let x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.h;
     if (g.h.includes("w")) x0 = Math.min(p.x, x1 - 1);
@@ -2474,6 +2586,44 @@
           mesurerLibre(el);
         } else { el.width = o.width; el.height = o.height; }
       }
+      /* Tourné : la nouvelle boîte a été calculée droite, autour de l'ancien
+         centre. On repose son centre là où la rotation l'envoie : le côté
+         opposé à la poignée reste alors exactement où il était. */
+      if (g.angle) {
+        const nb = R.boite(el), L = [nb.x + nb.w / 2, nb.y + nb.h / 2];
+        const S0 = rotationAutour(g.c0, g.angle)(L[0], L[1]);
+        el.x += S0[0] - L[0]; el.y += S0[1] - L[1];
+      }
+      toucher(el);
+    });
+    replacerLies(g.origines.map((o) => parId(o.id)).filter(Boolean));
+    demander();
+  }
+  /* Plusieurs éléments dont l'un est tourné : un coin les agrandit tous du
+     même facteur, depuis le coin opposé, sans rien déformer. Le facteur est
+     la projection du pointeur sur la diagonale du cadre. */
+  function redimUniforme(g, p) {
+    const b = g.b0;
+    const ax = g.h.includes("w") ? b.x + b.w : b.x, ay = g.h.includes("n") ? b.y + b.h : b.y;
+    const dx = (g.h.includes("w") ? b.x : b.x + b.w) - ax, dy = (g.h.includes("n") ? b.y : b.y + b.h) - ay;
+    const d2 = dx * dx + dy * dy || 1;
+    const s = Math.max(0.05, ((p.x - ax) * dx + (p.y - ay) * dy) / d2);
+    g.origines.forEach((o) => {
+      const el = parId(o.id);
+      if (!el) return;
+      const ob = R.boite(o), cx = ax + (ob.x + ob.w / 2 - ax) * s, cy = ay + (ob.y + ob.h / 2 - ay) * s;
+      if (o.points) {
+        el.points = o.points.map((q) => [q[0] * s, q[1] * s]);
+        const bb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+        el.width = bb.w; el.height = bb.h;
+      } else {
+        el.width = Math.max(1, o.width * s);
+        el.height = Math.max(1, o.height * s);
+      }
+      if (el.type === "text" && !el.containerId) { el.fontSize = Math.max(4, o.fontSize * s); mesurerLibre(el); }
+      // le centre de chaque élément s'éloigne du coin fixe du même facteur ; son angle ne change pas
+      const nb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+      el.x = cx - (nb.x + nb.w / 2); el.y = cy - (nb.y + nb.h / 2);
       toucher(el);
     });
     replacerLies(g.origines.map((o) => parId(o.id)).filter(Boolean));
@@ -2565,9 +2715,9 @@
       const b = R.boite(g.el);
       g.el.width = b.w; g.el.height = b.h;
       toucher(g.el);
-      if (g.jumeau) { const bj = R.boite(g.jumeau); g.jumeau.width = bj.w; g.jumeau.height = bj.h; toucher(g.jumeau); }
+      (g.jumeaux || []).forEach((j) => { const bj = R.boite(j); j.width = bj.w; j.height = bj.h; toucher(j); });
       memoriser();
-      if (etat.formes && !g.regle && !g.jumeau && !estSurligneur(g.el)) formeAuto(g.el);
+      if (etat.formes && !g.regle && !(g.jumeaux && g.jumeaux.length) && !estSurligneur(g.el)) formeAuto(g.el);
       demander();
       return;
     }
@@ -2628,7 +2778,7 @@
     geste = null;
     clearTimeout(g.appui);
     if ((g.mode === "creer" || g.mode === "ligne" || g.mode === "dessin") && g.el) retirer([g.el.id]);
-    if (g.jumeau) retirer([g.jumeau.id]);
+    if (g.jumeaux && g.jumeaux.length) retirer(g.jumeaux.map((j) => j.id));
     if (g.mode === "gomme") fantomes = new Set();
     if (g.mode === "gomme" && g.partie && g.coupes) elements = JSON.parse(g.avant);
     if (g.mode === "redresse") retirer([g.el.id]);
@@ -3426,7 +3576,11 @@
   $$("[data-bascule]").forEach((b) => b.addEventListener("click", () => {
     const q = b.dataset.bascule;
     if (q === "regle") basculerRegle();
-    else if (q === "symetrie") basculerSymetrie();
+    else if (q === "symetrie") {
+      if (!etat.symetrie) basculerSymetrie();
+      else if (reglage.hidden || reglage.dataset.quoi !== "symetrie") ouvrirReglageSymetrie();
+      else reglage.hidden = true;
+    }
     else if (q === "lisse") basculerLisse();
     else basculerFormes();
     scene.focus({ preventScroll: true });
@@ -5161,6 +5315,10 @@
       + '<path d="M14.5 7.1A5 5 0 0 1 14.5 16.9" opacity=".35"/><path d="M14.5 7.1a5 5 0 0 0 0 9.8z" fill="currentColor" fill-opacity=".35"/>'),
     sous: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" opacity=".35"/><circle cx="12" cy="11" r="4.5"/>'),
     objet: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" stroke-dasharray="1.5 2"/><path d="M6 8l12 9M18 8 6 17"/>'),
+    // l'axe en pointillés, et le même trait de part et d'autre
+    symV: TRAIT_TUILE('<path' + POINTILLE + ' d="M12 3v18"/><path d="M9 6.5C6 7.5 4.5 10 5.5 13s3 3.5 3.5 4.5M15 6.5c3 1 4.5 3.5 3.5 6.5s-3 3.5-3.5 4.5"/>'),
+    symH: TRAIT_TUILE('<path' + POINTILLE + ' d="M3 12h18"/><path d="M6.5 9C7.5 6 10 4.5 13 5.5s3.5 3 4.5 3.5M6.5 15c1 3 3.5 4.5 6.5 3.5s3.5-3 4.5-3.5"/>'),
+    symVH: TRAIT_TUILE('<path' + POINTILLE + ' d="M12 3v18M3 12h18"/><path d="M9.5 5.5 5.5 9.5M14.5 5.5l4 4M9.5 18.5l-4-4M14.5 18.5l4-4"/>'),
   };
   function tuiles(attr, choix, actuel) {
     return '<div class="tb-tuiles" style="--n:' + choix.length + '">' + choix.map(([v, t, ic]) =>
@@ -5231,22 +5389,50 @@
      redessine à chaque choix : on retient si le bloc était ouvert, sinon il
      se refermerait sous le doigt. */
   let plusOuvert = false;
+  /* Choisir une couleur, plus simplement (demandé le 15 nov. 2026). Tout
+     ce qui sert souvent est sur la première rangée : les encres, puis la
+     COULEUR LIBRE, une pastille arc-en-ciel qui ouvre le nuancier du
+     système. Avant, elle dormait au fond du bloc replié, sous soixante
+     pastilles. Une couleur prise hors des encres s'affiche dans cette
+     pastille, et rejoint les « Récentes » : on la retrouve sans la refaire.
+     Les nuances restent repliées dessous. */
+  const RECENTES_MAX = 7;
+  const hexa6 = (c) => /^#[0-9a-f]{6}$/i.test(c || "");
+  function retenirCouleur(c) {
+    if (!hexa6(c)) return;
+    c = c.toLowerCase();
+    const deBase = (l) => l.some((x) => String(Array.isArray(x) ? x[0] : x).toLowerCase() === c);
+    if (deBase(ENCRES) || deBase(SURLIGNEURS)) return;      // déjà sur une première rangée
+    etat.recentes = [c].concat((etat.recentes || []).filter((x) => x !== c)).slice(0, RECENTES_MAX);
+  }
+  function choixCouleurs(couleurs, actuelle) {
+    const a = String(actuelle || "").toLowerCase();
+    const pastille = (c, t) => '<button type="button" class="tb-pastille" data-rc="' + c + '" style="--c:' + c
+      + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + t + '" aria-label="' + t + '"></button>';
+    const connue = couleurs.some(([c]) => c.toLowerCase() === a);
+    const hexa = hexa6(actuelle) ? actuelle : "#000000";
+    const libre = '<label class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '"'
+      + (connue ? "" : ' style="--c:' + hexa + '"') + ' title="Couleur libre : n\'importe quelle teinte">'
+      + '<input type="color" data-rcl value="' + hexa + '" aria-label="Couleur libre : choisir n\'importe quelle couleur"></label>';
+    const rec = (etat.recentes || []).filter((c) => hexa6(c) && !couleurs.some(([e]) => e.toLowerCase() === c));
+    return '<div class="tb-pastilles tb-encres">' + couleurs.map(([c, t]) => pastille(c, t)).join("") + libre + "</div>"
+      + (rec.length ? '<p class="tb-menu-titre tb-recentes">Récentes</p><div class="tb-pastilles tb-encres">'
+        + rec.map((c) => pastille(c, "Récente " + c.toUpperCase())).join("") + "</div>" : "")
+      + toutesCouleurs(actuelle);
+  }
   function toutesCouleurs(actuelle) {
-    const hexa = /^#[0-9a-f]{6}$/i.test(actuelle || "") ? actuelle : "#000000";
-    return '<details class="tb-plus"' + (plusOuvert ? " open" : "") + '><summary>Toutes les couleurs</summary><div class="tb-palette">'
+    const a = String(actuelle || "").toLowerCase();
+    return '<details class="tb-plus"' + (plusOuvert ? " open" : "") + '><summary>Toutes les nuances</summary><div class="tb-palette">'
       + Object.keys(OC).map((k) => OC[k].map((c) => '<button type="button" class="tb-pastille" data-rc="' + c
-        + '" style="--c:' + c + '" aria-pressed="' + (c === actuelle) + '" title="' + k + " " + c + '" aria-label="' + k + " " + c
+        + '" style="--c:' + c + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + k + " " + c + '" aria-label="' + k + " " + c
         + '"></button>').join("")).join("")
-      + '</div><label class="tb-hex">Couleur libre <input type="color" data-rcl value="' + hexa
-      + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
+      + "</div></details>";
   }
   function ouvrirReglageSeau() {
     reglage.innerHTML = '<p class="tb-menu-titre">Seau de couleur</p>'
-      + '<div class="tb-pastilles">' + ENCRES.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
-        + '" style="--c:' + c + '" aria-pressed="' + (c === etat.seau) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
-      + toutesCouleurs(etat.seau)
-      + '<p class="tb-note">Un clic DANS une forme la remplit. Sur son contour, sur un trait ou sur un texte, il les colore. '
-      + "La pipette (I) prend une couleur déjà posée.</p>";
+      + choixCouleurs(ENCRES, etat.seau)
+      + '<p class="tb-indice">Dans une forme ou une zone fermée : elle se remplit. Sur un trait ou un texte : il change de couleur. '
+      + "La pipette (I) reprend une couleur déjà posée.</p>";
     reglage.dataset.quoi = "seau";
     reglage.hidden = false;
   }
@@ -5261,9 +5447,7 @@
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
     const calibres = surl ? [3, 4.5, 6, 8, 11, 15] : CALIBRES;
     reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : nomStylo(quoi)) + "</p>"
-      + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
-        + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
-      + toutesCouleurs(st.c)
+      + choixCouleurs(couleurs, st.c)
       + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
         + POINTES_NOMS.map(([v, t]) => '<button type="button" class="tb-b tb-petit tb-pointe" data-rpt="' + v
           + '" aria-pressed="' + ((st.pointe || "") === v) + '">' + apercuPointe(v) + "<span>" + t + "</span></button>").join("")
@@ -5287,8 +5471,19 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "symetrie") {
+      if (b.dataset.rsy) {
+        etat.symAxe = b.dataset.rsy;
+        if (!etat.symetrie) centrerAxe(); else etat.symetrie.axe = b.dataset.rsy;
+        dire(AIDE_AXE[b.dataset.rsy]);
+      }
+      if (b.dataset.rsya === "centrer") { centrerAxe(); dire("L'axe est revenu au milieu de l'écran."); }
+      if (b.dataset.rsya === "couper") { basculerSymetrie(); majBascules(); demander(); return; }
+      majBascules(); garder(); demander(); ouvrirReglageSymetrie();
+      return;
+    }
     if (q === "seau") {
-      if (b.dataset.rc) etat.seau = b.dataset.rc;
+      if (b.dataset.rc) { etat.seau = b.dataset.rc; retenirCouleur(b.dataset.rc); }
       majStylos(); garder(); ouvrirReglageSeau();
       return;
     }
@@ -5313,7 +5508,10 @@
       return;
     }
     const surl = q === "surligneur";
-    if (b.dataset.rc) { if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc; }
+    if (b.dataset.rc) {
+      if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc;
+      retenirCouleur(b.dataset.rc);
+    }
     if (b.dataset.rw) { if (surl) etat.courant.surligneurW = Number(b.dataset.rw); else etat.stylos[Number(q)].w = Number(b.dataset.rw); }
     // une matière (crayon, pastel, marqueur, aquarelle) et un effet ne
     // vont pas ensemble : choisir l'un retire l'autre
@@ -5347,6 +5545,7 @@
   reglage.addEventListener("change", (e) => {
     if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
     if (!couleurDuReglage(e.target.value)) return;
+    retenirCouleur(e.target.value);
     majStylos(); garder();
     const q = reglage.dataset.quoi;
     ouvrirReglage(q === "seau" || q === "surligneur" ? q : Number(q));
@@ -5368,7 +5567,7 @@
   document.addEventListener("pointerdown", (e) => {
     // un clic de baguette dans l'image OUVRE le réglage : ne pas le refermer aussitôt
     if (etat.outil === "baguette" && e.target === toile) return;
-    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil]")) {
+    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"]")) {
       reglage.hidden = true;
     }
   });
@@ -6573,6 +6772,7 @@
     // les raccourcis du tableau ne doivent pas agir pendant qu'on tape un nom
     dlg.addEventListener("keydown", (e) => {
       e.stopPropagation();
+      if (e.key === "Escape" && tire) { e.preventDefault(); finirTire(false); return; }
       if (e.target.classList && e.target.classList.contains("tb-bib-saisie")) {
         if (e.key === "Enter") { e.preventDefault(); bibValiderNom(e.target); }
         else if (e.key === "Escape") { e.preventDefault(); bibEdite = null; bibPeindre(); }
@@ -6588,7 +6788,97 @@
       r.onload = () => bibImporter(String(r.result));
       r.readAsText(f);
     });
+    /* Glisser une carte sur un dossier la range dedans (demandé le 15 nov.
+       2026). Au pointeur, et non au glisser-déposer du navigateur, qui ne
+       marche pas au doigt sur tablette. À la souris, le geste part après
+       6 px ; au doigt ou au stylet, après un appui tenu de 350 ms : le doigt
+       qui fait défiler la liste ne déplace donc rien. Les cibles : une carte
+       de dossier, ou un nom du chemin en haut (« Mes tableaux » pour la
+       racine). Le bouton « Déplacer » reste, pour le clavier. */
+    let tire = null, sansClic = 0;
+    const elementTire = (t) => t.genre === "dossier" ? bibDossierDe(t.id) : bib.tableaux.find((x) => x.id === t.id);
+    function cibleSous(t, x, y) {
+      const sous = document.elementFromPoint(x, y);
+      if (!sous || !dlg.contains(sous)) return null;
+      const carte = sous.closest(".tb-bib-dossier"), fil = sous.closest(".tb-bib-fil button");
+      let noeud = null, parent;
+      if (carte) { noeud = carte; parent = carte.dataset.id; }
+      else if (fil) { noeud = fil; parent = fil.dataset.bib === "racine" ? null : fil.dataset.id; }
+      if (!noeud) return null;
+      const x0 = elementTire(t);
+      if (!x0 || (x0.parent || null) === (parent || null)) return null;            // il y est déjà
+      if (t.genre === "dossier" && parent && bibContient(t.id, parent)) return null; // pas dans lui-même
+      return { noeud, parent };
+    }
+    function montrerTire(t) {
+      const x0 = elementTire(t), c = t.cible;
+      t.fantome.style.left = t.x + "px"; t.fantome.style.top = t.y + "px";
+      t.fantome.textContent = (x0 ? x0.nom : "") + (c ? "  →  " + (c.parent ? bibDossierDe(c.parent).nom : "Mes tableaux") : "");
+    }
+    function partirTire(t) {
+      t.parti = true;
+      t.carte.classList.add("tb-bib-glisse");
+      t.fantome = document.createElement("div");
+      t.fantome.className = "tb-bib-fantome";
+      dlg.appendChild(t.fantome);
+      try { dlg.setPointerCapture(t.pid); } catch (err) { /* pointeur déjà levé */ }
+      montrerTire(t);
+    }
+    function suivreTire(t) {
+      const c = cibleSous(t, t.x, t.y);
+      if ((c && c.noeud) !== (t.cible && t.cible.noeud)) {
+        if (t.cible) t.cible.noeud.classList.remove("tb-bib-cible");
+        if (c) c.noeud.classList.add("tb-bib-cible");
+      }
+      t.cible = c;
+      montrerTire(t);
+    }
+    function finirTire(poser) {
+      const t = tire;
+      if (!t) return;
+      tire = null;
+      clearTimeout(t.appui);
+      if (!t.parti) return;
+      sansClic = performance.now();
+      t.fantome.remove();
+      t.carte.classList.remove("tb-bib-glisse");
+      if (t.cible) t.cible.noeud.classList.remove("tb-bib-cible");
+      const x = elementTire(t);
+      if (!poser || !t.cible || !x) return;
+      x.parent = t.cible.parent; x.maj = Date.now();
+      bibDeplace = null; bibEcrire(); bibPeindre();
+      dire("« " + x.nom + " » est rangé dans « " + bibCheminTexte(x.parent) + " ».");
+    }
+    dlg.addEventListener("pointerdown", (e) => {
+      if (tire || bibCorbeille || bibEdite || e.button > 0) return;
+      const carte = e.target.closest(".tb-bib-carte");
+      if (!carte || e.target.closest(".tb-bib-acts, .tb-bib-saisie")) return;
+      const t = tire = { genre: carte.dataset.genre, id: carte.dataset.id, carte, pid: e.pointerId,
+                         x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY,
+                         souris: e.pointerType === "mouse", parti: false, cible: null };
+      if (!t.souris) t.appui = setTimeout(() => { if (tire === t && !t.parti) partirTire(t); }, 350);
+    });
+    dlg.addEventListener("pointermove", (e) => {
+      const t = tire;
+      if (!t || e.pointerId !== t.pid) return;
+      t.x = e.clientX; t.y = e.clientY;
+      if (!t.parti) {
+        const d = Math.hypot(t.x - t.x0, t.y - t.y0);
+        if (t.souris && d > 6) partirTire(t);
+        else if (!t.souris && d > 10) { clearTimeout(t.appui); tire = null; }   // le doigt fait défiler
+        return;
+      }
+      suivreTire(t);
+    });
+    dlg.addEventListener("pointerup", (e) => { if (tire && e.pointerId === tire.pid) finirTire(true); });
+    dlg.addEventListener("pointercancel", (e) => { if (tire && e.pointerId === tire.pid) finirTire(false); });
+    // au doigt, une fois le geste parti, la liste ne défile plus sous lui
+    dlg.addEventListener("touchmove", (e) => { if (tire && tire.parti) e.preventDefault(); }, { passive: false });
+    // Échap pendant le geste : la carte revient, la fenêtre reste ouverte
+    dlg.addEventListener("cancel", (e) => { if (tire) { e.preventDefault(); finirTire(false); } });
     dlg.addEventListener("click", (e) => {
+      // le clic qui suit un glisser n'ouvre rien
+      if (performance.now() - sansClic < 400) { e.preventDefault(); e.stopPropagation(); return; }
       if (e.target.classList && e.target.classList.contains("tb-bib-saisie")) return;
       const b = e.target.closest("[data-bib]");
       if (!b) return;

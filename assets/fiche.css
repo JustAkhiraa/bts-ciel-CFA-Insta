@@ -10674,7 +10674,7 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   box-shadow: 0 0 0 1px rgba(0,0,0,.15);
 }
 .tb-stylo svg { margin-bottom: 5px; }
-.tb-reglage-stylo { top: calc(100% + 8px); left: 0; width: 16.5rem; padding: .6rem .7rem; max-height: 62vh; overflow-y: auto; }
+.tb-reglage-stylo { top: calc(100% + 8px); left: 0; width: 18rem; max-width: calc(100vw - 20px); padding: .6rem .7rem; max-height: 62vh; overflow-y: auto; }
 /* la barre d'encrage passe au-dessus des coins : son réglage déborde sur
    celui du zoom au téléphone, et à z-index égal c'est le dernier venu qui gagnait */
 .tb-encrage { z-index: 4; }
@@ -10798,9 +10798,32 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   background: linear-gradient(135deg, transparent 45%, #e03131 45%, #e03131 55%, transparent 55%), #fff;
 }
 .tb-notes .tb-note { width: 34px; height: 34px; border-radius: 3px; box-shadow: 0 2px 4px rgba(0,0,0,.15); }
-.tb-palette { display: grid; grid-template-columns: repeat(5, 22px); gap: .2rem; margin-top: .4rem; }
-.tb-palette .tb-pastille { width: 22px; height: 22px; }
-.tb-plus summary { font-size: .74rem; color: var(--encre-douce); cursor: pointer; margin-top: .3rem; }
+.tb-palette { display: grid; grid-template-columns: repeat(5, 26px); gap: .25rem; margin-top: .4rem; }
+.tb-palette .tb-pastille { width: 26px; height: 26px; }
+.tb-plus summary { font-size: .76rem; color: var(--encre-douce); cursor: pointer; margin-top: .55rem; min-height: 28px; display: flex; align-items: center; }
+/* Le choix d'une couleur dans un réglage : des pastilles de 34 px, la taille
+   d'une commande du site (sept par rangée), et la couleur libre au bout de la première rangée. Elle est
+   arc-en-ciel tant qu'on n'en a pas pris ; ensuite elle montre la couleur
+   prise, avec un coin arc-en-ciel qui dit d'où elle vient. */
+.tb-reglage-stylo .tb-encres { display: grid; grid-template-columns: repeat(7, 34px); justify-content: space-between; gap: 4px; }
+.tb-reglage-stylo .tb-encres .tb-pastille { width: 34px; height: 34px; border-radius: 9px; }
+.tb-pastille.tb-libre {
+  position: relative; overflow: hidden; display: inline-grid; place-items: center;
+  background: conic-gradient(#e03131, #f08c00, #fcc419, #37b24d, #1c7ed6, #7048e8, #d6336c, #e03131);
+}
+.tb-pastille.tb-libre::after {
+  content: "+"; font: 700 17px/1 system-ui, sans-serif; color: #fff; pointer-events: none;
+  text-shadow: 0 0 2px rgba(0,0,0,.65), 0 0 1px rgba(0,0,0,.65);
+}
+.tb-pastille.tb-libre.tb-actif { background: var(--c); box-shadow: 0 0 0 2px var(--tb-carte), 0 0 0 4px var(--accent); }
+.tb-pastille.tb-libre.tb-actif::after {
+  content: ""; position: absolute; right: 0; bottom: 0; width: 11px; height: 11px; border-radius: 9px 0 0 0;
+  background: conic-gradient(#e03131, #fcc419, #37b24d, #1c7ed6, #7048e8, #e03131); text-shadow: none;
+}
+.tb-libre input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.tb-libre:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tb-menu-titre.tb-recentes { margin-top: .55rem; }
+.tb-sym-actions { margin-top: .55rem; }
 .tb-hex { display: flex; align-items: center; gap: .4rem; font-size: .76rem; margin-top: .4rem; }
 .tb-hex input { width: 34px; height: 24px; padding: 0; border: 0; background: none; }
 
@@ -10962,7 +10985,12 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 /* ── « Mes tableaux » : dossiers, sous-dossiers, tableaux ──────────────
    Une grille de cartes, comme un bureau : le dossier s'ouvre, le tableau
    s'ouvre, et les quatre gestes de rangement sont sous chaque carte. */
-.tb-biblio { width: min(58rem, calc(100vw - 1.5rem)); }
+/* Plus grande depuis le 15 nov. 2026 (demandé) : presque tout l'écran, et
+   une hauteur fixe où seule la grille défile. Le reste (titre, chemin,
+   boutons, Fermer) ne part plus avec elle. */
+.tb-biblio { width: min(80rem, calc(100vw - 1.5rem)); }
+.tb-biblio[open] { display: flex; flex-direction: column; height: min(54rem, calc(100vh - 2rem)); max-height: calc(100vh - 2rem); }
+.tb-biblio[open] .tb-bib-liste { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin: 0 -4px; }
 .tb-bib-tete { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .tb-bib-tete h2 { margin: 0; }
 .tb-bib-cherche {
@@ -10984,7 +11012,7 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-bib-danger { color: var(--rouge); }
 .tb-bib-pose { margin: 0 .4rem 0 0; font-size: .88rem; color: var(--encre-douce); }
 .tb-bib-liste { min-height: 9rem; }
-.tb-bib-grille { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); }
+.tb-bib-grille { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
 .tb-bib-carte {
   display: flex; flex-direction: column; min-width: 0; background: var(--papier);
   border: 1px solid var(--bord); border-radius: var(--r, 10px); overflow: hidden;
@@ -10993,6 +11021,18 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-bib-carte:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
 .tb-bib-carte.tb-bib-ouvert { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-pale); }
 .tb-bib-carte.tb-bib-pris { opacity: .45; }
+/* glisser une carte sur un dossier : la carte s'estompe, une étiquette suit
+   le pointeur, et la cible s'allume */
+.tb-bib-carte { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.tb-bib-carte.tb-bib-glisse { opacity: .4; }
+.tb-bib-carte.tb-bib-cible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+.tb-bib-fil button.tb-bib-cible { background: var(--accent-pale); color: var(--accent-sombre); box-shadow: inset 0 0 0 2px var(--accent); }
+.tb-bib-fantome {
+  position: fixed; z-index: 10; pointer-events: none; transform: translate(14px, 14px);
+  max-width: 18rem; padding: .45rem .8rem; border-radius: 999px; overflow: hidden; text-overflow: ellipsis; white-space: pre;
+  font-size: .88rem; font-weight: 700; color: var(--sur-accent, #fff); background: var(--accent);
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
 .tb-bib-ouvrir {
   display: flex; flex-direction: column; align-items: stretch; gap: .3rem; padding: .55rem .6rem .35rem; min-width: 0;
   font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer;
