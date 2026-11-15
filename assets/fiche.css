@@ -9768,6 +9768,26 @@ html[data-sombre="1"] { --lan-g1: 60%; --lan-g2: 46%; --lan-g3: 32%; --lan-op: 1
 .lan-oc:hover { background: color-mix(in srgb, var(--mat) 28%, var(--carte));
   border-color: color-mix(in srgb, var(--mat) 62%, transparent); }
 .lan-oc .ico { flex: none; width: 15px; height: 15px; opacity: .92; }
+/* Le bouton « Réseau » (15 nov. 2026) : six outils qui se ressemblaient,
+   rangés sous une seule pastille, qui dit combien elle en contient. */
+button.lan-oc { width: 100%; font-family: inherit; text-align: left; cursor: pointer; }
+.lan-oc-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.lan-oc-n { flex: none; margin-left: auto; min-width: 1.15rem; padding: 0 .3rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--mat) 30%, var(--carte)); font-size: .68rem; line-height: 1.45; text-align: center; }
+.lan-oc-groupe[aria-expanded="true"] { background: color-mix(in srgb, var(--mat) 28%, var(--carte));
+  border-color: color-mix(in srgb, var(--mat) 70%, transparent); }
+/* sa liste : posée sous le bouton par app.js (sans script, le navigateur la centre) */
+.lan-pop { position: fixed; inset: auto; margin: 0; box-sizing: border-box; width: max-content;
+  min-width: 15.5rem; max-width: calc(100vw - 16px); padding: .4rem;
+  border: 1px solid var(--bord); border-radius: 12px; background: var(--carte); color: var(--encre);
+  box-shadow: 0 12px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06); }
+.lan-pop-t { margin: .2rem .55rem .35rem; font-size: .68rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce); }
+.lan-pop-l { display: flex; align-items: center; gap: .6rem; min-height: 40px; padding: .3rem .6rem;
+  border-radius: 8px; color: var(--mat-t, var(--encre)); font-size: .85rem; font-weight: 600; text-decoration: none; }
+.lan-pop-l:hover, .lan-pop-l:focus-visible { background: color-mix(in srgb, var(--mat) 16%, var(--carte)); outline: none; }
+.lan-pop-l .ico { flex: none; width: 17px; height: 17px; }
+@media (pointer: coarse) { .lan-pop-l { min-height: 44px; } }
 
 .lan-rien { display: none; padding: 1.6rem .6rem; text-align: center;
   color: var(--encre-tenue); font-size: .8788rem; }
@@ -10827,6 +10847,98 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-hex { display: flex; align-items: center; gap: .4rem; font-size: .76rem; margin-top: .4rem; }
 .tb-hex input { width: 34px; height: 24px; padding: 0; border: 0; background: none; }
 
+/* ── Le nuancier du tableau (outil-tableau/nuancier.js) ──
+   Une bulle contre la pastille qui l'appelle ; au téléphone, une feuille qui
+   monte du bas de l'écran, sous le pouce. Toutes les commandes font 34 px,
+   les pastilles aussi, sept par rangée comme dans les réglages. Les champs
+   sont en 16 px : en dessous, un téléphone agrandit la page au toucher. */
+.nc {
+  position: fixed; z-index: 60; width: 18.5rem; max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain;
+  box-sizing: border-box; padding: .7rem .75rem .8rem; border-radius: 14px;
+  background: var(--carte); color: var(--encre); font-size: .82rem;
+  box-shadow: 0 12px 32px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.08), 0 0 0 1px var(--bord);
+  animation: nc-entree .14s ease-out;
+}
+/* « hidden » doit gagner sur les « display » ci-dessous (la pipette est une
+   grille : sans cette règle, elle restait visible là où elle ne marche pas) */
+.nc[hidden], .nc [hidden] { display: none !important; }
+@keyframes nc-entree { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes nc-monte { from { opacity: .3; transform: translateY(32px); } }
+html[data-anim="0"] .nc { animation: none; }
+@media (prefers-reduced-motion: reduce) { .nc { animation: none; } }
+.nc-poignee { display: none; }
+.nc-tete { display: flex; align-items: center; gap: .4rem; }
+/* avant | après : toucher « avant » y revient */
+.nc-apercu { display: flex; flex: none; width: 64px; height: 34px; border-radius: 9px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--bord); }
+.nc-avant { flex: 1; margin: 0; padding: 0; border: 0; background: var(--nc-avant); cursor: pointer; }
+.nc-avant:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.nc-apres { flex: 1; background: var(--nc-c); }
+.nc-code { flex: 1; min-width: 0; height: 34px; box-sizing: border-box; padding: 0 .55rem;
+  border: 1px solid var(--bord); border-radius: 9px; background: var(--papier); color: var(--encre);
+  font-family: ui-monospace, monospace; font-size: 16px; font-weight: 600; }
+.nc-code:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.nc-b { flex: none; width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+  border: 0; border-radius: 9px; background: transparent; color: var(--encre); cursor: pointer; }
+.nc-b:hover { background: var(--carte-creuse); }
+.nc-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nc-b svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round; }
+.nc-ok { background: var(--accent); color: var(--sur-accent, #fff); }
+.nc-ok:hover { background: var(--accent-sombre, var(--accent)); }
+.nc-erreur { margin: .4rem 0 0; font-size: .76rem; line-height: 1.4; color: var(--rouge, #c92a2a); }
+/* la zone : saturation de gauche à droite, luminosité de haut en bas */
+.nc-zone { position: relative; height: 150px; margin-top: .6rem; border-radius: 10px; cursor: crosshair;
+  touch-action: none; background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--nc-h));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.nc-teinte { position: relative; height: 26px; margin-top: .65rem; border-radius: 13px; cursor: pointer; touch-action: none;
+  background: linear-gradient(to right, #f00 0%, #ff0 16.67%, #0f0 33.33%, #0ff 50%, #00f 66.67%, #f0f 83.33%, #f00 100%); }
+.nc-zone:focus-visible, .nc-teinte:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* un repère blanc cerclé de sombre se voit sur toutes les couleurs */
+.nc-repere { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; box-sizing: border-box;
+  border-radius: 50%; border: 3px solid #fff; background: var(--nc-c); pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3); }
+.nc-teinte .nc-repere { top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; background: var(--nc-h); }
+.nc-ligne { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .75rem; }
+.nc-titre { margin: .75rem 0 .35rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce); }
+.nc-ligne .nc-titre { margin: 0; }
+.nc-modes { display: inline-flex; border: 1px solid var(--bord); border-radius: 9px; overflow: hidden; }
+.nc-modes button { height: 34px; min-width: 48px; padding: 0 .55rem; border: 0; background: transparent;
+  color: var(--encre-douce); font-family: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; }
+.nc-modes button + button { border-left: 1px solid var(--bord); }
+.nc-modes button[aria-pressed="true"] { background: var(--accent-pale); color: var(--accent-sombre, var(--accent)); }
+.nc-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nc-valeurs { display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin-top: .45rem; }
+.nc-valeurs label { display: flex; flex-direction: column; align-items: stretch; gap: .2rem; }
+.nc-valeurs input { width: 100%; height: 34px; box-sizing: border-box; text-align: center;
+  border: 1px solid var(--bord); border-radius: 9px; background: var(--papier); color: var(--encre);
+  font-family: ui-monospace, monospace; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nc-valeurs input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.nc-valeurs span { text-align: center; font-size: .7rem; color: var(--encre-douce); }
+.nc-rang { display: grid; grid-template-columns: repeat(7, 34px); justify-content: space-between; gap: 4px; }
+.nc-ligne + .nc-rang { margin-top: .45rem; }
+.nc-rang:empty { display: none; }
+.nc-pastille { width: 34px; height: 34px; padding: 0; border-radius: 9px; border: 1px solid rgba(0,0,0,.12);
+  background: var(--c); cursor: pointer; }
+.nc-pastille[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--carte), 0 0 0 4px var(--accent); }
+.nc-pastille:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nc-garder { height: 34px; padding: 0 .75rem; border: 1px solid var(--bord); border-radius: 9px;
+  background: var(--carte); color: var(--encre); font-family: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
+.nc-garder:hover { background: var(--carte-creuse); }
+.nc-garder:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nc-vide { margin: .4rem 0 0; font-size: .74rem; line-height: 1.4; color: var(--encre-douce); }
+/* au téléphone : la feuille du bas, et des pastilles à la largeur du pouce */
+.nc.nc-feuille { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; max-height: 86vh;
+  border-radius: 18px 18px 0 0; padding: .35rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  animation-name: nc-monte; animation-duration: .18s; }
+.nc-feuille .nc-poignee { display: block; width: 40px; height: 4px; margin: .25rem auto .6rem;
+  border-radius: 2px; background: var(--bord); }
+.nc-feuille .nc-zone { height: 170px; }
+.nc-feuille .nc-rang { grid-template-columns: repeat(7, minmax(34px, 1fr)); gap: 6px; }
+.nc-feuille .nc-pastille { width: 100%; height: auto; aspect-ratio: 1; }
+
 /* la barre d'actions au-dessus de la sélection */
 .tb-contexte { top: 0; left: 0; display: flex; gap: .1rem; padding: .2rem; z-index: 4; }
 /* Le menu « tourner » de la barre d'actions : quatre gestes, et ce que
@@ -10951,6 +11063,119 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-a-droite .tb-cote { left: auto; right: 10px; }
 .tb-a-droite .tb-creer { left: auto; right: 66px; }
 .tb-a-droite .tb-props { right: auto; left: 10px; }
+
+/* ── les calques (demandés le 15 nov. 2026) ──────────────────────────
+   Un panneau à droite, sous le menu, comme dans un logiciel de retouche :
+   du haut vers le bas, ce qui est devant puis ce qui est derrière. Il ne
+   s'affiche que si on l'a demandé (menu ☰, « Afficher les calques ») : la
+   plupart des tableaux n'ont qu'un calque, et un panneau de plus partout
+   serait du bruit. Quand il est là, le panneau « Format » se pousse à
+   côté au lieu de passer dessous. Toute commande fait au moins 34 px de
+   haut et 26 de large, comme ailleurs. */
+.tb-calques {
+  position: absolute; z-index: 3; top: 56px; right: 10px; width: 17rem;
+  max-height: calc(100% - 122px); display: flex; flex-direction: column;
+  padding: .4rem .4rem .3rem; background: var(--tb-carte); color: var(--tb-encre);
+  border-radius: 12px; box-shadow: var(--tb-ombre); font-size: .84rem;
+}
+.tb-avec-calques .tb-props { right: calc(18px + 17rem); }
+.tb-a-droite .tb-calques { right: auto; left: 10px; }
+.tb-avec-calques .tb-a-droite .tb-props { right: auto; left: calc(18px + 17rem); }
+.tb-cq-tete { display: flex; align-items: center; justify-content: space-between; padding-left: .35rem; }
+.tb-cq-tete .tb-b { height: 34px; min-width: 34px; }
+.tb-cq-tete b {
+  font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-cq-opa { display: flex; align-items: center; gap: .5rem; padding: 0 .35rem .2rem; font-size: .78rem; color: var(--encre-douce); }
+.tb-cq-opa input { flex: 1 1 auto; min-width: 0; height: 34px; accent-color: var(--accent); }
+.tb-cq-opa output { min-width: 2.9rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--tb-encre); }
+.tb-cq-liste {
+  list-style: none; margin: 0; padding: 3px 0; flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain; border-top: 1px solid var(--tb-bord); border-bottom: 1px solid var(--tb-bord);
+}
+/* une rangée : œil · pli · icône · nom · nombre · verrou · options */
+.tb-cq {
+  position: relative; display: flex; align-items: center; gap: 1px; min-height: 36px; margin: 1px 0;
+  padding-left: calc(var(--prof, 0) * 14px); border-radius: 7px; cursor: default;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.tb-cq:hover { background: var(--carte-creuse); }
+.tb-cq-actif, .tb-cq-actif:hover { background: var(--accent-pale); color: var(--accent-sombre); }
+.tb-cq svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6;
+             stroke-linecap: round; stroke-linejoin: round; }
+.tb-cq-oeil, .tb-cq-pli, .tb-cq-verrou, .tb-cq-plus {
+  flex: none; display: grid; place-items: center; width: 30px; height: 34px; padding: 0;
+  border: 0; border-radius: 6px; background: none; color: inherit; font: inherit; cursor: pointer;
+}
+.tb-cq-pli { width: 26px; }
+span.tb-cq-pli { cursor: default; }
+.tb-cq-pli svg { width: 14px; height: 14px; transition: transform .15s; }
+.tb-cq-dossier[aria-expanded="true"] .tb-cq-pli svg { transform: rotate(90deg); }
+/* l'étiquette de couleur teinte la case de l'œil, comme dans les logiciels
+   de retouche : elle se voit sans voler la lecture du nom */
+.tb-cq-teint { background: color-mix(in srgb, var(--cq) 34%, transparent); }
+.tb-cq-oeil:hover, .tb-cq-pli:hover, .tb-cq-verrou:hover, .tb-cq-plus:hover { box-shadow: inset 0 0 0 1px var(--tb-bord); }
+.tb-cq-ic { flex: none; width: 20px; color: var(--encre-douce); }
+.tb-cq-actif .tb-cq-ic { color: inherit; }
+.tb-cq-nom { flex: 1 1 auto; min-width: 0; padding: 0 .25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 34px; }
+.tb-cq-dossier .tb-cq-nom { font-weight: 650; }
+.tb-cq-eteint .tb-cq-nom { font-style: italic; color: var(--encre-douce); }
+.tb-cq-actif.tb-cq-eteint .tb-cq-nom { color: inherit; }
+.tb-cq-saisie {
+  flex: 1 1 auto; min-width: 0; height: 30px; padding: 0 .35rem; font: inherit; color: var(--encre);
+  background: var(--papier); border: 1px solid var(--accent); border-radius: 5px;
+}
+.tb-cq-n {
+  flex: none; min-width: 1.5rem; padding: 0 .3rem; border-radius: 999px; font-size: .7rem; line-height: 1.35rem;
+  text-align: center; font-variant-numeric: tabular-nums; color: var(--encre-douce); background: var(--carte-creuse);
+}
+/* le verrou se tait tant qu'il est ouvert ; fermé, il se voit */
+.tb-cq-verrou[aria-pressed="false"] { opacity: .28; }
+.tb-cq:hover .tb-cq-verrou, .tb-cq-actif .tb-cq-verrou, .tb-cq-verrou:focus-visible { opacity: 1; }
+.tb-cq:hover .tb-cq-verrou[aria-pressed="false"], .tb-cq-actif .tb-cq-verrou[aria-pressed="false"] { opacity: .6; }
+.tb-cq-plus { font-size: 1.1rem; line-height: 1; }
+.tb-cq-plus[aria-expanded="true"] { background: var(--carte-creuse); color: var(--tb-encre); }
+.tb-calques button:focus-visible, .tb-calques input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* les options d'un calque, dépliées sous lui */
+.tb-cq-options { list-style: none; margin: 0 0 3px; padding: .3rem .35rem .4rem; border-radius: 7px; background: var(--carte-creuse); }
+.tb-cq-couleurs { display: grid; grid-template-columns: repeat(8, minmax(26px, 1fr)); gap: 1px; }
+.tb-cq-couleurs button {
+  position: relative; height: 34px; min-width: 26px; padding: 0; border: 0; border-radius: 6px;
+  background: none; cursor: pointer;
+}
+.tb-cq-couleurs button::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.2);
+}
+/* « Aucune » : un rond barré */
+.tb-cq-couleurs button[data-cq-coul="0"]::before {
+  background: linear-gradient(135deg, transparent 44%, var(--encre-douce) 44% 56%, transparent 56%);
+  box-shadow: inset 0 0 0 1.5px var(--encre-douce);
+}
+.tb-cq-couleurs button[aria-pressed="true"]::before { box-shadow: 0 0 0 2px var(--carte-creuse), 0 0 0 3.5px var(--tb-encre); }
+.tb-cq-actions { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .3rem; }
+.tb-cq-actions button {
+  min-height: 34px; padding: 0 .6rem; border: 1px solid var(--tb-bord); border-radius: 7px;
+  background: var(--tb-carte); color: var(--tb-encre); font: inherit; font-size: .8rem; cursor: pointer;
+}
+.tb-cq-actions button:hover { border-color: var(--accent); }
+.tb-cq-actions .tb-cq-danger { color: var(--rouge); }
+.tb-cq-pied { display: flex; justify-content: space-between; gap: 2px; padding-top: .3rem; }
+.tb-cq-pied .tb-b { min-width: 38px; height: 34px; }
+.tb-cq-pied svg { width: 18px; height: 18px; }
+/* glisser une rangée : elle s'estompe, et un trait dit où elle tombera */
+.tb-cq-glisse { opacity: .45; }
+.tb-cq-avant::before, .tb-cq-apres::after {
+  content: ""; position: absolute; left: calc(var(--prof, 0) * 14px + 4px); right: 4px; height: 2px;
+  border-radius: 2px; background: var(--accent); pointer-events: none;
+}
+.tb-cq-avant::before { top: -2px; }
+.tb-cq-apres::after { bottom: -2px; }
+.tb-cq-dans { box-shadow: inset 0 0 0 2px var(--accent); }
+/* la case du menu qui les affiche */
+.tb-case { justify-content: flex-start; min-height: 34px; cursor: pointer; }
+.tb-case input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .tb-cq-pli svg { transition: none; } }
 
 /* les dialogues */
 .tb-dialogue {
@@ -11111,6 +11336,11 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
   .tb-hg .tb-titre { width: auto; flex: 1 1 7.5rem; min-width: 2.5rem; }
   .tb-hg .tb-groupe { flex: none; }
   .tb-a-droite .tb-props { left: 10px; }
+  /* les calques passent en haut, à côté de la barre d'outils (elle reste
+     cliquable) ; le panneau « Format » garde le bas, en plus court */
+  .tb-calques { top: 56px; left: 66px; right: 10px; width: auto; max-height: 38%; }
+  .tb-a-droite .tb-calques { left: 10px; right: 66px; }
+  .tb-avec-calques .tb-props, .tb-avec-calques .tb-a-droite .tb-props { left: 10px; right: 10px; max-height: 30%; }
 }
 
 /* ═══════════════════════════════════ la page 404

@@ -11,6 +11,7 @@
   "use strict";
   const R = window.TB_RENDU;
   const S = window.TB_STYLET;
+  const N = window.TB_NUANCIER;   // la couleur libre (nuancier.js) ; sans lui, la pastille ne fait rien
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
@@ -196,6 +197,8 @@
        transparence. Par défaut, le laser d'avant, au réglage près. */
     laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
     styletSeul: false, inclinaison: true, regle: null, symetrie: null, lisse: 0, symAxe: "v", recentes: [],
+    favoris: [],   // « Mes couleurs », gardées depuis le nuancier
+    calques: null, calqueActif: null, calquesVus: false,   // les calques (section 14 ter)
   };
   /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
@@ -222,18 +225,24 @@
   let bib = null;                     // la bibliothèque : dossiers et tableaux (section 14 bis)
   let pile = [], curseurPile = -1;
   let pileFond = [];                  // la couleur de la page, à chaque étape de l'historique
+  let pileCalques = [];               // l'arbre des calques, à chaque étape
   let baguette = null;               // la zone choisie à la baguette magique
   function memoriser() {
-    const photo = JSON.stringify(elements);
-    if (pile[curseurPile] === photo && (pileFond[curseurPile] === undefined || pileFond[curseurPile] === etat.fond)) return;
+    ranger();
+    const photo = JSON.stringify(elements), arbre = JSON.stringify(etat.calques);
+    if (pile[curseurPile] === photo && (pileFond[curseurPile] === undefined || pileFond[curseurPile] === etat.fond)
+        && (pileCalques[curseurPile] === undefined || pileCalques[curseurPile] === arbre)) return;
     pile = pile.slice(0, curseurPile + 1);
     pileFond = pileFond.slice(0, curseurPile + 1);
+    pileCalques = pileCalques.slice(0, curseurPile + 1);
     pile.push(photo);
     pileFond[pile.length - 1] = etat.fond;
-    if (pile.length > 150) { pile.shift(); pileFond.shift(); }
+    pileCalques[pile.length - 1] = arbre;
+    if (pile.length > 150) { pile.shift(); pileFond.shift(); pileCalques.shift(); }
     curseurPile = pile.length - 1;
     garder();
     majHistorique();
+    peindreCalques();                 // le nombre d'éléments de chaque calque a pu changer
   }
   function revenir(sens) {
     if (edition) finirEdition();
@@ -242,6 +251,15 @@
     curseurPile = i;
     elements = JSON.parse(pile[i]);
     if (pileFond[i] && pileFond[i] !== etat.fond) { etat.fond = pileFond[i]; majFond(); majMenu(); }
+    if (pileCalques[i] && pileCalques[i] !== JSON.stringify(etat.calques)) {
+      // ouvrir ou fermer un dossier n'est pas une étape : l'annulation laisse
+      // les dossiers comme on les voit
+      const plis = new Map(etat.calques.filter(estDossier).map((c) => [c.id, c.ouvert]));
+      etat.calques = JSON.parse(pileCalques[i]);
+      etat.calques.forEach((c) => { if (plis.has(c.id)) c.ouvert = plis.get(c.id); });
+      calquesPrets();
+    }
+    peindreCalques();
     selection = new Set([...selection].filter((id) => parId(id)));
     garder(); majHistorique(); majPanneau(); demander();
   }
@@ -276,6 +294,7 @@
           lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison, symAxe: etat.symAxe, recentes: etat.recentes,
+          favoris: etat.favoris, calques: etat.calques, calqueActif: etat.calqueActif, calquesVus: !!etat.calquesVus,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
            de photo à chaque trait tracé ferait ramer la main. Elles ne
@@ -312,6 +331,9 @@
       if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
       if (typeof lu.seau === "string" && /^#[0-9a-f]{6}$/i.test(lu.seau)) etat.seau = lu.seau;
       if (Array.isArray(lu.recentes)) etat.recentes = lu.recentes.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 7);
+      if (Array.isArray(lu.calques)) { etat.calques = lu.calques; etat.calqueActif = lu.calqueActif; }
+      etat.calquesVus = !!lu.calquesVus;
+      if (Array.isArray(lu.favoris)) etat.favoris = lu.favoris.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 14);
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -629,7 +651,8 @@
   function dessinerElement(c, el, fantome) {
     if (edition && edition.id === el.id) return;
     c.save();
-    c.globalAlpha = Math.max(0, Math.min(1, (el.opacity == null ? 100 : el.opacity) / 100)) * (fantome ? 0.2 : 1);
+    c.globalAlpha = Math.max(0, Math.min(1, (el.opacity == null ? 100 : el.opacity) / 100)) * (fantome ? 0.2 : 1)
+      * (exportSansOpacite ? 1 : alphaCalque(el));
     const b = R.boite(el);
     if (el.angle) {
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
@@ -807,9 +830,13 @@
 
   /* La scène entière, dans l'ordre : les textes liés juste après leur
      conteneur, quel que soit leur rang dans la liste. */
-  function dessinerScene(c, liste, visible) {
-    liste.forEach((el) => {
+  /* « toutVoir » : l'export PSD dessine aussi les calques cachés (le
+     fichier les garde, cachés) ; l'écran et les images, non. */
+  let exportSansOpacite = false;
+  function dessinerScene(c, liste, visible, toutVoir) {
+    ordonner(liste).forEach((el) => {
       if (estLie(el)) return;
+      if (!toutVoir && !vu(el)) return;
       if (visible) {
         const b = R.boite(el), m = 40 + (el.strokeWidth || 1) * 4;
         if (b.x > visible.x1 + m || b.y > visible.y1 + m || b.x + b.w < visible.x0 - m
@@ -1107,7 +1134,7 @@
     const tol = 10 / etat.zoom;
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
-      if (estLie(el)) continue;
+      if (estLie(el) || !prenable(el)) continue;
       if (R.touche(el, x, y, tol)) return el;
       // un conteneur se prend aussi par son texte, même sans fond ; un trait aussi
       if (porteur(el)) {
@@ -1773,7 +1800,7 @@
         r.pris.forEach((id) => selection.add(id));
         coupes = r.coupes;
       } else {
-        elements.forEach((el) => { if (!estLie(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
+        elements.forEach((el) => { if (!estLie(el) && prenable(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
       }
     }
     if (coupes) memoriser();
@@ -1796,7 +1823,7 @@
     let coupes = 0;
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
-      if (estLie(el)) continue;
+      if (estLie(el) || !prenable(el)) continue;
       const bb = R.boite(el);
       // la boucle dans le repère de l'élément (rotation défaite)
       const loc = () => poly.map((q) => { const r = versRepere(el, bb, q); return [r[0] - el.x, r[1] - el.y]; });
@@ -2000,6 +2027,7 @@
       const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), type: "freedraw", points,
         simulatePressure: false, lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
         boundElements: null }, extra);
+      if (el.customData && el.customData.calque) n.customData = Object.assign({}, n.customData, { calque: el.customData.calque });
       const bb = R.boite(n); n.width = bb.w; n.height = bb.h;
       toucher(n);
       return n;
@@ -2048,6 +2076,7 @@
       const c = [a.x + (b.x - a.x) * k / n, a.y + (b.y - a.y) * k / n];
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
+        if (!prenable(el)) continue;
         if (/^(rectangle|ellipse|diamond)$/.test(el.type) && !el.locked) {
           if (!R.touche(el, c[0], c[1], r)) continue;
           const libres = formeEnLibre(el);
@@ -2142,7 +2171,7 @@
   }
   function gommerImages(g, a, b, r) {
     for (const el of elements) {
-      if (el.type !== "image" || el.locked) continue;
+      if (el.type !== "image" || el.locked || !prenable(el)) continue;
       const bb = R.boite(el), s = Array.isArray(el.scale) ? el.scale : [1, 1];
       // un point de la scène, dans l'image : rotation défaite, miroir compris
       const local = (p) => {
@@ -2428,7 +2457,7 @@
       const x0 = Math.min(g.x0, g.x1), y0 = Math.min(g.y0, g.y1), x1 = Math.max(g.x0, g.x1), y1 = Math.max(g.y0, g.y1);
       selection = new Set(g.avant);
       elements.forEach((el) => {
-        if (estLie(el)) return;
+        if (estLie(el) || !prenable(el)) return;
         const b = R.boite(el);
         if (b.x >= x0 && b.y >= y0 && b.x + b.w <= x1 && b.y + b.h <= y1) selection.add(el.id);
       });
@@ -2643,7 +2672,7 @@
       const x = a.x + (b.x - a.x) * k / n, y = a.y + (b.y - a.y) * k / n;
       for (let i = elements.length - 1; i >= 0; i--) {
         const el = elements[i];
-        if (estLie(el) || el.locked || fantomes.has(el.id)) continue;
+        if (estLie(el) || el.locked || fantomes.has(el.id) || !prenable(el)) continue;
         if (R.touche(el, x, y, tol)) fantomes.add(el.id);
       }
     }
@@ -3097,6 +3126,7 @@
       }
       elements = arr;
     }
+    // memoriser() range par calque : « tout devant » reste devant DANS son calque
     memoriser(); demander();
   }
 
@@ -3138,9 +3168,45 @@
       + '" aria-label="' + ech(t) + '">' + (ic || ech(t)) + '</button>').join("") + '</div>';
   }
   function grilleCouleurs(prop) {
-    return '<details class="tb-plus"><summary>Toutes les couleurs</summary><div class="tb-palette">'
+    return '<details class="tb-plus"><summary>Toutes les nuances</summary><div class="tb-palette">'
       + Object.keys(OC).map((k) => OC[k].map((c) => pastille(prop, c, null, k + " " + c)).join("")).join("")
-      + '</div><label class="tb-hex">Couleur libre <input type="color" data-prop="' + prop + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
+      + "</div></details>";
+  }
+
+  /* ── La couleur libre : le nuancier du tableau (nuancier.js) ──
+     Demandé le 15 nov. 2026 : « le meilleur sélecteur de couleur au monde ».
+     La pastille arc-en-ciel, au bout de chaque rangée de couleurs, ouvre le
+     nuancier ; une couleur prise hors de la rangée s'y affiche. Les deux
+     rappels : « enDirect » suit le doigt, « valider » retient au lâcher. */
+  function estHexa(c) { return /^#[0-9a-f]{6}$/i.test(c || ""); }
+  function pastilleLibre(actuelle, connue, attrs) {
+    const c = estHexa(actuelle) ? actuelle : "#000000";
+    return '<button type="button" class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '" data-nuancier'
+      + (attrs || "") + (connue ? "" : ' style="--c:' + c + '"')
+      + ' title="Couleur libre : n\'importe quelle teinte" aria-label="Couleur libre : ouvrir le nuancier" aria-haspopup="dialog"></button>';
+  }
+  // la pastille libre d'une rangée montre la couleur en cours, pendant le geste
+  function montrerLibre(boite, c) {
+    if (!boite) return;
+    boite.querySelectorAll("[data-rc], [data-prop][data-val]").forEach((x) => {
+      if (x.closest(".tb-pastilles, .tb-encres")) x.setAttribute("aria-pressed", "false");
+    });
+    boite.querySelectorAll(".tb-libre").forEach((x) => { x.classList.add("tb-actif"); x.style.setProperty("--c", c); });
+  }
+  function ouvrirNuancier(ancre, couleur, enDirect, valider) {
+    if (!N) return;
+    if (N.ouvert()) { N.fermer(); return; }
+    N.ouvrir({
+      ancre, cote: ancre.closest(".tb-pop, .tb-props"), hote: section,
+      couleur: estHexa(couleur) ? couleur : "#1e1e1e", enDirect, valider,
+      favoris: () => etat.favoris || [],
+      garderFavoris: (l) => { etat.favoris = l; garder(); },
+      // le focus restait dans la fenêtre cachée : il revient au tableau, et ses raccourcis avec
+      fermer: () => {
+        const f = document.activeElement;
+        if (!f || f === document.body || (f.closest && f.closest(".nc"))) scene.focus({ preventScroll: true });
+      },
+    });
   }
   const IC = {
     hachure: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M5 11l6-6M5 16l11-11M10 16l6-6"/></svg>',
@@ -3159,6 +3225,7 @@
     rond: '<svg viewBox="0 0 20 20"><path d="M4 16V9a5 5 0 0 1 5-5h7"/></svg>',
   };
   function majPanneau() {
+    suivreSelection();
     const T = cibles();
     if (!selection.size) etat.format = false;
     /* Le format d'une sélection s'ouvre par le bouton
@@ -3190,12 +3257,15 @@
       bloc("Surligneur", '<div class="tb-pastilles">' + SURLIGNEURS.map((c) => pastille("surligneur", c, a.strokeColor)).join("") + '</div>');
     } else {
       bloc(types.has("text") && types.size === 1 ? "Couleur du texte" : "Trait",
-        '<div class="tb-pastilles">' + TRAITS.map((c) => pastille("strokeColor", c, a.strokeColor)).join("") + '</div>'
+        '<div class="tb-pastilles">' + TRAITS.map((c) => pastille("strokeColor", c, a.strokeColor)).join("")
+        + pastilleLibre(a.strokeColor, TRAITS.indexOf(a.strokeColor) > -1, ' data-nprop="strokeColor"') + '</div>'
         + grilleCouleurs("strokeColor"));
     }
     if ((formes || types.has("line") || types.has("freedraw")) && !surl && !postits) {
       bloc("Fond", '<div class="tb-pastilles">' + FONDS.map((c) => pastille("backgroundColor", c, a.backgroundColor,
-        c === "transparent" ? "Transparent" : c)).join("") + '</div>' + grilleCouleurs("backgroundColor"));
+        c === "transparent" ? "Transparent" : c)).join("")
+        + pastilleLibre(a.backgroundColor, FONDS.indexOf(a.backgroundColor) > -1 || !estHexa(a.backgroundColor), ' data-nprop="backgroundColor"')
+        + '</div>' + grilleCouleurs("backgroundColor"));
     }
     if (formes && T.some((e) => e.backgroundColor && e.backgroundColor !== "transparent")) {
       bloc("Remplissage", choix("fillStyle", [["hachure", "Hachures", IC.hachure],
@@ -3246,7 +3316,10 @@
 
   /* Un réglage s'applique à la sélection ET devient le réglage courant :
      le prochain élément naîtra avec. */
-  function appliquer(prop, v) {
+  /* « enDirect » : pendant un geste du nuancier, la couleur suit le doigt
+     sans redessiner le panneau ni marquer l'historique ; le lâcher, lui,
+     passe par le chemin ordinaire et fait une seule étape d'annulation. */
+  function appliquer(prop, v, enDirect) {
     const c = etat.courant;
     if (prop === "arrondi") c.arrondi = v;
     else if (prop === "postit") c.postit = v;
@@ -3275,6 +3348,7 @@
         toucher(x);
       });
     });
+    if (enDirect) { montrerLibre(panneau, v); demander(); return; }
     if (sel.length) memoriser();
     garder(); majPanneau(); demander();
   }
@@ -3285,6 +3359,11 @@
     if (b.dataset.empiler) return empiler(b.dataset.empiler);
     if (b.dataset.action === "dupliquer") return dupliquer();
     if (b.dataset.action === "supprimer") return supprimerSelection();
+    if (b.hasAttribute("data-nuancier")) {
+      const prop = b.dataset.nprop, a = cibles()[0];
+      ouvrirNuancier(b, a && a[prop], (c) => appliquer(prop, c, true), (c) => appliquer(prop, c));
+      return;
+    }
     if (b.dataset.prop) appliquer(b.dataset.prop, b.dataset.json ? JSON.parse(b.dataset.val) : b.dataset.val);
     // le focus revient au tableau : sinon les raccourcis se taisent
     if (!b.closest("details")) scene.focus({ preventScroll: true });
@@ -3294,7 +3373,6 @@
     if (!c.dataset.prop) return;
     if (c.tagName === "SELECT") appliquer(c.dataset.prop, JSON.parse(c.value));
     else if (c.type === "range") appliquer("opacity", Number(c.value));
-    else if (c.type === "color") appliquer(c.dataset.prop, c.value);
   });
 
   /* ═══════════════ 12. Le clavier ═════════════════════════════════════
@@ -3320,7 +3398,7 @@
     if (mod && k === "x") { e.preventDefault(); copier(true); return; }
     if (mod && k === "d") { e.preventDefault(); dupliquer(); return; }
     if (mod && k === "a") { e.preventDefault(); choisirOutil("selection");
-      selection = new Set(elements.filter((x) => !estLie(x)).map((x) => x.id)); majPanneau(); demander(); return; }
+      selection = new Set(elements.filter((x) => !estLie(x) && prenable(x)).map((x) => x.id)); majPanneau(); demander(); return; }
     if (mod && k === "s") { e.preventDefault(); enregistrer(); return; }
     if (mod && e.shiftKey && k === "o") { e.preventDefault(); ouvrirBiblio(); return; }
     if (mod && k === "o") { e.preventDefault(); $("#tb-fichier").click(); return; }
@@ -3399,7 +3477,9 @@
     return {
       type: "excalidraw", version: 2, source: location.origin + location.pathname,
       elements: elements.map((e) => { const c = Object.assign({}, e); delete c.neuf; delete c.virtuel; return c; }),
-      appState: { gridSize: PAS_GRILLE, gridStep: 5, gridModeEnabled: false, viewBackgroundColor: etat.fond },
+      // « calques » : une clé à nous ; un éditeur qui l'ignore garde l'ordre, déjà trié par calque
+      appState: { gridSize: PAS_GRILLE, gridStep: 5, gridModeEnabled: false, viewBackgroundColor: etat.fond,
+                  calques: etat.calques, calqueActif: etat.calqueActif },
       files: fichiersDe(elements),
     };
   }
@@ -3434,6 +3514,9 @@
     reparer();
     elements.forEach((e) => { if (e.type === "text" && e.containerId) placerLie(e); });
     if (j.appState && j.appState.viewBackgroundColor) etat.fond = j.appState.viewBackgroundColor;
+    etat.calques = j.appState && Array.isArray(j.appState.calques) ? j.appState.calques : null;
+    etat.calqueActif = j.appState ? j.appState.calqueActif : null;
+    calquesPrets(); peindreCalques();
     selection.clear();
     cacheChemins.clear();
     memoriser(); ajuster(); majPanneau(); majFond();
@@ -3465,9 +3548,9 @@
     if (seule && sel.length) {
       const ids = new Set(sel.map((e) => e.id));
       sel.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
-      return elements.filter((e) => ids.has(e.id));
+      return elements.filter((e) => ids.has(e.id) && vu(e));
     }
-    return elements;
+    return elements.filter(vu);
   }
   function exporterPNG(echelle, avecFond, seule) {
     const liste = aExporter(seule);
@@ -3496,7 +3579,7 @@
     s += '<g transform="translate(' + (m - b.x).toFixed(2) + " " + (m - b.y).toFixed(2) + ')">\n';
     const svgEl = (el) => {
       const bb = R.boite(el);
-      const op = (el.opacity == null ? 100 : el.opacity) / 100;
+      const op = (el.opacity == null ? 100 : el.opacity) / 100 * alphaCalque(el);
       let t = '<g transform="' + (el.angle ? "rotate(" + (el.angle * 180 / Math.PI).toFixed(2) + " "
         + (bb.x + bb.w / 2).toFixed(2) + " " + (bb.y + bb.h / 2).toFixed(2) + ") " : "")
         + "translate(" + el.x.toFixed(2) + " " + el.y.toFixed(2) + ')"' + (op < 1 ? ' opacity="' + op + '"' : "")
@@ -3671,6 +3754,7 @@
   });
   $("#tb-ex-svg").addEventListener("click", () => exporterSVG($("#tb-ex-fond").checked, $("#tb-ex-sel").checked));
   $("#tb-ex-json").addEventListener("click", enregistrer);
+  $("#tb-ex-psd").addEventListener("click", () => exporterPSD(Number($("#tb-ex-echelle").value) || 2, $("#tb-ex-fond").checked));
 
   /* ── agrandir : tout l'écran au tableau ── */
   const bPlein = $("#tb-plein");
@@ -5392,7 +5476,8 @@
   /* Choisir une couleur, plus simplement (demandé le 15 nov. 2026). Tout
      ce qui sert souvent est sur la première rangée : les encres, puis la
      COULEUR LIBRE, une pastille arc-en-ciel qui ouvre le nuancier du
-     système. Avant, elle dormait au fond du bloc replié, sous soixante
+     tableau (nuancier.js, depuis le soir même ; c'était celui du
+     navigateur). Avant, elle dormait au fond du bloc replié, sous soixante
      pastilles. Une couleur prise hors des encres s'affiche dans cette
      pastille, et rejoint les « Récentes » : on la retrouve sans la refaire.
      Les nuances restent repliées dessous. */
@@ -5410,10 +5495,7 @@
     const pastille = (c, t) => '<button type="button" class="tb-pastille" data-rc="' + c + '" style="--c:' + c
       + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + t + '" aria-label="' + t + '"></button>';
     const connue = couleurs.some(([c]) => c.toLowerCase() === a);
-    const hexa = hexa6(actuelle) ? actuelle : "#000000";
-    const libre = '<label class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '"'
-      + (connue ? "" : ' style="--c:' + hexa + '"') + ' title="Couleur libre : n\'importe quelle teinte">'
-      + '<input type="color" data-rcl value="' + hexa + '" aria-label="Couleur libre : choisir n\'importe quelle couleur"></label>';
+    const libre = pastilleLibre(actuelle, connue);
     const rec = (etat.recentes || []).filter((c) => hexa6(c) && !couleurs.some(([e]) => e.toLowerCase() === c));
     return '<div class="tb-pastilles tb-encres">' + couleurs.map(([c, t]) => pastille(c, t)).join("") + libre + "</div>"
       + (rec.length ? '<p class="tb-menu-titre tb-recentes">Récentes</p><div class="tb-pastilles tb-encres">'
@@ -5470,6 +5552,19 @@
     const b = e.target.closest("button");
     if (!b) return;
     const q = reglage.dataset.quoi;
+    if (b.hasAttribute("data-nuancier")) {
+      ouvrirNuancier(b, couleurDuReglageActuelle(), (c) => {
+        if (couleurDuReglage(c)) { majStylos(); montrerLibre(reglage, c); }
+      }, (c) => {
+        if (!couleurDuReglage(c)) return;
+        retenirCouleur(c);
+        majStylos(); garder();
+        // redessiné : la pastille libre, les « Récentes » et les calibres suivent
+        const qq = reglage.dataset.quoi;
+        ouvrirReglage(qq === "seau" || qq === "surligneur" ? qq : Number(qq));
+      });
+      return;
+    }
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
     if (q === "symetrie") {
       if (b.dataset.rsy) {
@@ -5529,7 +5624,7 @@
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));
   });
-  // le nuancier du système : la couleur suit le doigt, et se retient au lâcher
+  // le nuancier : la couleur suit le doigt, et se retient au lâcher
   function couleurDuReglage(c) {
     const q = reglage.dataset.quoi;
     if (q === "seau") etat.seau = c;
@@ -5538,18 +5633,13 @@
     else return false;
     return true;
   }
-  reglage.addEventListener("input", (e) => {
-    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
-    if (couleurDuReglage(e.target.value)) majStylos();
-  });
-  reglage.addEventListener("change", (e) => {
-    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
-    if (!couleurDuReglage(e.target.value)) return;
-    retenirCouleur(e.target.value);
-    majStylos(); garder();
+  function couleurDuReglageActuelle() {
     const q = reglage.dataset.quoi;
-    ouvrirReglage(q === "seau" || q === "surligneur" ? q : Number(q));
-  });
+    if (q === "seau") return etat.seau;
+    if (q === "surligneur") return etat.courant.surligneur;
+    if (/^\d+$/.test(q || "") && etat.stylos[Number(q)]) return etat.stylos[Number(q)].c;
+    return null;
+  }
   reglage.addEventListener("toggle", (e) => {
     if (e.target.matches && e.target.matches("details.tb-plus")) plusOuvert = e.target.open;
   }, true);
@@ -5567,7 +5657,8 @@
   document.addEventListener("pointerdown", (e) => {
     // un clic de baguette dans l'image OUVRE le réglage : ne pas le refermer aussitôt
     if (etat.outil === "baguette" && e.target === toile) return;
-    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"]")) {
+    // le nuancier s'ouvre hors du réglage : y toucher ne doit pas refermer le réglage
+    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"], .nc")) {
       reglage.hidden = true;
     }
   });
@@ -5589,7 +5680,7 @@
     const tol = 2 / etat.zoom;
     for (let i = elements.length - 1; i >= 0; i--) {
       const x = elements[i];
-      if (x.type === "image" && R.touche(x, p.x, p.y, tol)) return x;
+      if (x.type === "image" && prenable(x) && R.touche(x, p.x, p.y, tol)) return x;
     }
     return null;
   }
@@ -5726,6 +5817,7 @@
     const tol = 6 / etat.zoom;
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
+      if (!prenable(el)) continue;
       if (R.touche(estFermee(el) ? tenuePleine(el) : el, p.x, p.y, tol)) return el;
     }
     return null;
@@ -6465,7 +6557,8 @@
     return base;
   }
   const contenuCourant = () => ({ elements, fond: etat.fond, grille: etat.grille, scrollX: etat.scrollX,
-                                  scrollY: etat.scrollY, zoom: etat.zoom, titre: etat.titre });
+                                  scrollY: etat.scrollY, zoom: etat.zoom, titre: etat.titre,
+                                  calques: etat.calques, calqueActif: etat.calqueActif });
   /* Une vignette du tableau, pour le reconnaître dans la liste. */
   function apercuDe() {
     const W = 320, H = 200, c = document.createElement("canvas");
@@ -6507,13 +6600,17 @@
     if (c.grille) etat.grille = c.grille;
     etat.scrollX = c.scrollX || 0; etat.scrollY = c.scrollY || 0; etat.zoom = c.zoom || 1;
     etat.titre = c.titre || "Tableau sans titre";
+    etat.calques = Array.isArray(c.calques) ? c.calques : null;
+    etat.calqueActif = c.calqueActif || null;
     fichiers = f && typeof f === "object" ? f : {};
     fichiersGardes = "\u0000";
     baguette = null;
     reparer();
     elements.forEach((e) => { if (e.type === "text" && e.containerId) placerLie(e); });
     selection.clear(); cacheChemins.clear();
-    pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond];
+    calquesPrets(); ranger();
+    pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond]; pileCalques = [JSON.stringify(etat.calques)];
+    peindreCalques();
     titre.value = etat.titre;
     $("#tb-grilles").value = etat.grille;
     majHistorique(); majMenu(); majFond(); majPanneau();
@@ -6916,12 +7013,504 @@
     if (document.visibilityState === "hidden" && bib) { clearTimeout(minuterieGarde); ecrire(); bibRanger().catch(() => {}); }
   });
 
+  /* ═══════════════ 14 ter. Les calques ════════════════════════════════
+     Demandé le 15 nov. 2026, capture d'un logiciel de retouche à l'appui :
+     « choisir qui est au-dessus de l'autre, mettre des dossiers, des
+     couleurs », et pouvoir exporter en PSD. Le panneau ne s'affiche qu'à la
+     demande (menu ☰ › Calques) : « sinon ça fait trop de trucs partout ».
+
+     Le modèle :
+       etat.calques      l'arbre, À PLAT, dans l'ordre du panneau (du haut
+                         vers le bas) ; un nœud dit son dossier (« parent »),
+                         et un dossier est suivi de tout son contenu ;
+       etat.calqueActif  le calque où naissent les nouveaux éléments ;
+       customData.calque le calque d'un élément.
+     « elements » reste TRIÉ par calque (« ranger », à chaque étape de
+     l'historique) : l'ordre du fichier est l'ordre d'affichage, et un
+     éditeur qui ignore les calques montre la même superposition. Un calque
+     caché ne se dessine ni ne se vise ; verrouillé, il se voit mais ne se
+     prend pas. Son opacité multiplie celle de ses éléments. Les étiquettes
+     de couleur sont celles du PSD, dans le même ordre. */
+  const COULEURS_CALQUE = [["", "Aucune"], ["#e03131", "Rouge"], ["#f08c00", "Orange"], ["#fcc419", "Jaune"],
+                           ["#37b24d", "Vert"], ["#1c7ed6", "Bleu"], ["#7048e8", "Violet"], ["#868e96", "Gris"]];
+  let indexCalques = new Map();      // id → nœud
+  let rangs = new Map();             // id d'un calque → sa hauteur (0 : tout en bas)
+  let unSeulCalque = true;           // le cas courant : aucun calcul en plus
+  let optionsCalque = null;          // le nœud dont les options sont dépliées
+  let renommeCalque = null;          // le nœud dont le nom est en cours de saisie
+  const idCalque = () => "c" + Math.random().toString(36).slice(2, 9);
+  const estDossier = (c) => !!c && c.type === "dossier";
+  function calquesPrets() {
+    if (!Array.isArray(etat.calques) || !etat.calques.some((c) => c && c.type !== "dossier")) {
+      etat.calques = [{ id: idCalque(), nom: "Calque 1", type: "calque", parent: null, couleur: 0, visible: true, verrou: false, opacite: 100 }];
+    }
+    etat.calques = etat.calques.filter((c) => c && typeof c.id === "string");
+    indexer();
+  }
+  function indexer() {
+    indexCalques = new Map(etat.calques.map((c) => [c.id, c]));
+    etat.calques.forEach((c) => {
+      c.nom = String(c.nom || (estDossier(c) ? "Dossier" : "Calque")).slice(0, 80);
+      c.couleur = Math.max(0, Math.min(7, c.couleur | 0));
+      if (c.opacite == null || !(c.opacite >= 0 && c.opacite <= 100)) c.opacite = 100;
+      if (c.parent && !estDossier(indexCalques.get(c.parent))) c.parent = null;
+    });
+    const f = etat.calques.filter((c) => !estDossier(c));
+    rangs = new Map(f.map((c, i) => [c.id, f.length - 1 - i]));
+    unSeulCalque = etat.calques.length === 1;
+    if (!rangs.has(etat.calqueActif)) etat.calqueActif = f[0].id;
+  }
+  function calqueDe(el) {
+    const id = el.customData && el.customData.calque;
+    return rangs.has(id) ? id : etat.calqueActif;
+  }
+  function remonter(id, test) {
+    for (let c = indexCalques.get(id), n = 0; c && n < 64; c = indexCalques.get(c.parent), n++) if (test(c)) return true;
+    return false;
+  }
+  const calqueVisible = (id) => !remonter(id, (c) => c.visible === false);
+  const calqueBloque = (id) => remonter(id, (c) => !!c.verrou);
+  function opaciteCalque(id) {
+    let k = 1;
+    remonter(id, (c) => { k *= c.opacite / 100; return false; });
+    return k;
+  }
+  // ce qui se voit ; ce qui se prend (la gomme, le lasso, un clic, le seau)
+  function vu(el) {
+    if (!etat.calques) return true;                // avant le démarrage
+    return unSeulCalque ? etat.calques[0].visible !== false : calqueVisible(calqueDe(el));
+  }
+  function prenable(el) {
+    if (!etat.calques) return true;
+    if (unSeulCalque) return etat.calques[0].visible !== false && !etat.calques[0].verrou;
+    const id = calqueDe(el);
+    return calqueVisible(id) && !calqueBloque(id);
+  }
+  function alphaCalque(el) {
+    if (!etat.calques) return 1;
+    return unSeulCalque ? etat.calques[0].opacite / 100 : opaciteCalque(calqueDe(el));
+  }
+
+  /* Chaque élément reçoit son calque (un texte suit son conteneur), puis la
+     liste est triée, de façon STABLE, du calque du bas à celui du haut. */
+  function ranger() {
+    if (!etat.calques) return;
+    const parIdLocal = new Map(elements.map((e) => [e.id, e]));
+    elements.forEach((el) => {
+      let id = el.customData && el.customData.calque;
+      if (el.containerId && parIdLocal.has(el.containerId)) {
+        const c = parIdLocal.get(el.containerId);
+        id = c.customData && rangs.has(c.customData.calque) ? c.customData.calque : etat.calqueActif;
+      }
+      if (!rangs.has(id)) id = etat.calqueActif;
+      if (!el.customData || el.customData.calque !== id) el.customData = Object.assign({}, el.customData, { calque: id });
+    });
+    if (rangs.size > 1 && !trie(elements)) elements = ordonner(elements);
+  }
+  function trie(liste) {
+    let r = -1;
+    for (const el of liste) { const k = rangs.get(calqueDe(el)); if (k < r) return false; r = k; }
+    return true;
+  }
+  function ordonner(liste) {
+    if (rangs.size < 2 || trie(liste)) return liste;
+    return liste.map((e, i) => [e, i, rangs.get(calqueDe(e))]).sort((a, b) => a[2] - b[2] || a[1] - b[1]).map((x) => x[0]);
+  }
+
+  /* ── l'arbre : un nœud et tout ce qu'il contient forment un bloc contigu ── */
+  function profondeur(id) { let n = 0; remonter(id, () => { n++; return false; }); return n - 1; }
+  function dans(id, ancetre) { return remonter(id, (c) => c.id === ancetre); }
+  function bloc(id) {
+    const i = etat.calques.findIndex((c) => c.id === id);
+    let j = i + 1;
+    while (j < etat.calques.length && dans(etat.calques[j].id, id)) j++;
+    return [i, j];
+  }
+  function deplacerCalque(id, cible, ou) {
+    if (id === cible || dans(cible, id)) return false;
+    const [i, j] = bloc(id), morceau = etat.calques.slice(i, j);
+    etat.calques.splice(i, j - i);
+    const c = indexCalques.get(cible);
+    let k;
+    if (ou === "dans") { morceau[0].parent = cible; c.ouvert = true; k = etat.calques.indexOf(c) + 1; }
+    else {
+      morceau[0].parent = c.parent || null;
+      k = ou === "avant" ? etat.calques.indexOf(c) : bloc(cible)[1];
+    }
+    etat.calques.splice(k, 0, ...morceau);
+    apresCalques();
+    return true;
+  }
+  // après tout changement de l'arbre : index, ordre des éléments, historique
+  function apresCalques(sansHistoire) {
+    indexer();
+    ranger();
+    selection = new Set([...selection].filter((id) => { const e = parId(id); return e && prenable(e); }));
+    if (!sansHistoire) memoriser(); else garder();
+    peindreCalques(); majPanneau(); demander();
+  }
+  /* Ouvrir ou fermer un dossier n'est pas une étape d'historique ; l'étape
+     en cours est mise à jour pour qu'un geste suivant ne crée pas une
+     étape vide. */
+  function plierDossier(c) {
+    c.ouvert = c.ouvert === false;
+    if (pileCalques[curseurPile] !== undefined) pileCalques[curseurPile] = JSON.stringify(etat.calques);
+    apresCalques(true);
+  }
+  function nomLibre(base) {
+    const pris = new Set(etat.calques.map((c) => c.nom));
+    let n = etat.calques.filter((c) => (base === "Dossier") === estDossier(c)).length + 1;
+    while (pris.has(base + " " + n)) n++;
+    return base + " " + n;
+  }
+  function nouveauCalque() {
+    const actif = indexCalques.get(etat.calqueActif);
+    const c = { id: idCalque(), nom: nomLibre("Calque"), type: "calque", parent: actif ? actif.parent : null,
+                couleur: 0, visible: true, verrou: false, opacite: 100 };
+    etat.calques.splice(Math.max(0, etat.calques.indexOf(actif)), 0, c);
+    etat.calqueActif = c.id;
+    apresCalques();
+    dire("« " + c.nom + " » : ce que tu dessines maintenant va dedans.");
+  }
+  /* Un dossier naît AUTOUR du calque actif : vide, il ne servirait à rien
+     tant qu'on n'y a rien glissé. */
+  function nouveauDossier() {
+    const actif = indexCalques.get(etat.calqueActif);
+    const d = { id: idCalque(), nom: nomLibre("Dossier"), type: "dossier", parent: actif.parent || null,
+                couleur: 0, visible: true, verrou: false, opacite: 100, ouvert: true };
+    etat.calques.splice(etat.calques.indexOf(actif), 0, d);
+    actif.parent = d.id;
+    apresCalques();
+    dire("« " + d.nom + " » contient « " + actif.nom + " ». Glisse d'autres calques dessus pour les y ranger.");
+  }
+  function supprimerCalque(id) {
+    const [i, j] = bloc(id), partis = etat.calques.slice(i, j);
+    const feuillesPartantes = new Set(partis.filter((c) => !estDossier(c)).map((c) => c.id));
+    if (feuillesPartantes.size === rangs.size) { dire("Il faut au moins un calque : celui-ci reste.", true); return; }
+    elements = elements.filter((e) => !feuillesPartantes.has(calqueDe(e)));
+    etat.calques.splice(i, j - i);
+    if (feuillesPartantes.has(etat.calqueActif)) etat.calqueActif = null;
+    optionsCalque = null;
+    apresCalques();
+    dire("« " + partis[0].nom + " » supprimé, avec ce qu'il contenait. Ctrl Z le fait revenir.");
+  }
+  function voisin(id, sens) {
+    const c = indexCalques.get(id), freres = etat.calques.filter((x) => (x.parent || null) === (c.parent || null));
+    return freres[freres.indexOf(c) + sens] || null;
+  }
+  function monterCalque(id, sens) {
+    const v = voisin(id, sens), c = indexCalques.get(id);
+    if (v) return deplacerCalque(id, v.id, sens < 0 ? "avant" : "apres");
+    if (c.parent) return deplacerCalque(id, c.parent, sens < 0 ? "avant" : "apres");   // sortir du dossier
+    return false;
+  }
+  function selectionDansCalque(id) {
+    const sel = selectionnes();
+    if (!sel.length || estDossier(indexCalques.get(id))) return;
+    sel.forEach((e) => {
+      e.customData = Object.assign({}, e.customData, { calque: id });
+      if (porteur(e)) { const t = texteDe(e); if (t) t.customData = Object.assign({}, t.customData, { calque: id }); }
+    });
+    etat.calqueActif = id;
+    apresCalques();
+    dire(sel.length + " élément" + (sel.length > 1 ? "s" : "") + " rangé" + (sel.length > 1 ? "s" : "") + " dans « " + indexCalques.get(id).nom + " ».");
+  }
+  /* Prendre un élément au tableau rend son calque actif : ce qu'on dessine
+     ensuite va à côté de lui, comme dans les logiciels de retouche. */
+  function suivreSelection() {
+    if (unSeulCalque || !selection.size) return;
+    const ids = new Set(selectionnes().map(calqueDe));
+    if (ids.size === 1) {
+      const id = [...ids][0];
+      if (id !== etat.calqueActif) { etat.calqueActif = id; peindreCalques(); }
+    }
+  }
+
+  /* ── le panneau ── */
+  const panneauCalques = $("#tb-calques");
+  const IC_CALQUE = {
+    oeil: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z"/><circle cx="10" cy="10" r="2.4"/></svg>',
+    cache: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.5C5 6 7.3 4.5 10 4.5c5 0 8 5.5 8 5.5a14 14 0 0 1-2.2 2.8M12.8 14.9c-.9.4-1.8.6-2.8.6-5 0-8-5.5-8-5.5a14 14 0 0 1 2.6-3.1"/><path d="M3 3l14 14"/></svg>',
+    verrou: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="9" width="10" height="8" rx="1.5"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg>',
+    dossier: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5h5l1.5 2h8.5v8h-15z"/></svg>',
+    calque: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3l7.5 4-7.5 4-7.5-4z"/><path d="M2.5 11l7.5 4 7.5-4" opacity=".55"/></svg>',
+    pli: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 5l5 5-5 5"/></svg>',
+    plus: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.5" y="3.5" width="13" height="13" rx="2"/><path d="M10 7v6M7 10h6"/></svg>',
+    nvDossier: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5h5l1.5 2h8.5v8h-15z"/><path d="M10 9.5v4M8 11.5h4"/></svg>',
+    haut: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 15V5M5.5 9.5L10 5l4.5 4.5"/></svg>',
+    bas: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 5v10M5.5 10.5L10 15l4.5-4.5"/></svg>',
+    poubelle: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4h4v2M5.5 6l1 10h7l1-10"/></svg>',
+  };
+  function peindreCalques() {
+    if (!panneauCalques || panneauCalques.hidden) return;
+    const nb = new Map();
+    elements.forEach((e) => { if (!estLie(e)) { const id = calqueDe(e); nb.set(id, (nb.get(id) || 0) + 1); } });
+    const actif = indexCalques.get(etat.calqueActif);
+    let h = '<div class="tb-cq-tete"><b>Calques</b>'
+      + '<button type="button" class="tb-b tb-petit" data-cq="fermer" aria-label="Fermer les calques" title="Fermer (le menu ☰ les rouvre)">✕</button></div>'
+      + '<label class="tb-cq-opa"><span>Opacité</span><input type="range" min="0" max="100" step="5" data-cq-opa value="'
+      + actif.opacite + '" aria-label="Opacité de « ' + ech(actif.nom) + ' »"><output>' + actif.opacite + " %</output></label>"
+      + '<ul class="tb-cq-liste" role="tree" aria-label="Calques, du haut vers le bas">';
+    etat.calques.forEach((c) => {
+      if (remonter(c.parent, (p) => p.ouvert === false)) return;            // dans un dossier fermé
+      const d = estDossier(c), coul = COULEURS_CALQUE[c.couleur][0];
+      h += '<li class="tb-cq' + (c.id === etat.calqueActif ? " tb-cq-actif" : "") + (d ? " tb-cq-dossier" : "")
+        + (calqueVisible(c.id) ? "" : " tb-cq-eteint") + '" data-id="' + c.id + '" role="treeitem" aria-level="' + (profondeur(c.id) + 1)
+        + '" aria-selected="' + (c.id === etat.calqueActif) + '"' + (d ? ' aria-expanded="' + (c.ouvert !== false) + '"' : "")
+        + ' style="--prof:' + profondeur(c.id) + (coul ? ";--cq:" + coul : "") + '">'
+        + '<button type="button" class="tb-cq-oeil' + (coul ? " tb-cq-teint" : "") + '" data-cq="voir" aria-pressed="' + (c.visible !== false)
+        + '" title="' + (c.visible !== false ? "Cacher" : "Montrer") + '" aria-label="' + (c.visible !== false ? "Cacher" : "Montrer") + " « " + ech(c.nom) + ' »">'
+        + (c.visible !== false ? IC_CALQUE.oeil : IC_CALQUE.cache) + "</button>"
+        + (d ? '<button type="button" class="tb-cq-pli" data-cq="plier" aria-label="' + (c.ouvert !== false ? "Fermer" : "Ouvrir")
+            + ' le dossier « ' + ech(c.nom) + ' »">' + IC_CALQUE.pli + "</button>" : '<span class="tb-cq-pli" aria-hidden="true"></span>')
+        + '<span class="tb-cq-ic" aria-hidden="true">' + (d ? IC_CALQUE.dossier : IC_CALQUE.calque) + "</span>"
+        + (renommeCalque === c.id
+          ? '<input class="tb-cq-saisie" data-cq-nom value="' + ech(c.nom) + '" aria-label="Nouveau nom" maxlength="80" spellcheck="false">'
+          : '<span class="tb-cq-nom" title="Double-clic : renommer">' + ech(c.nom) + "</span>")
+        + (!d && nb.get(c.id) ? '<span class="tb-cq-n" title="' + nb.get(c.id) + ' élément(s)">' + nb.get(c.id) + "</span>" : "")
+        + '<button type="button" class="tb-cq-verrou" data-cq="verrou" aria-pressed="' + !!c.verrou + '" title="'
+        + (c.verrou ? "Déverrouiller" : "Verrouiller : il se voit, mais ne se prend plus") + '" aria-label="'
+        + (c.verrou ? "Déverrouiller" : "Verrouiller") + " « " + ech(c.nom) + ' »">' + IC_CALQUE.verrou + "</button>"
+        + '<button type="button" class="tb-cq-plus" data-cq="options" aria-expanded="' + (optionsCalque === c.id)
+        + '" title="Couleur, nom, et plus" aria-label="Options de « ' + ech(c.nom) + ' »">⋯</button></li>';
+      if (optionsCalque === c.id) {
+        h += '<li class="tb-cq-options" data-pour="' + c.id + '"><div class="tb-cq-couleurs" role="group" aria-label="Étiquette de couleur">'
+          + COULEURS_CALQUE.map(([v, t], i) => '<button type="button" data-cq-coul="' + i + '" aria-pressed="' + (c.couleur === i)
+            + '" title="' + t + '" aria-label="Étiquette ' + t + '" style="--c:' + (v || "transparent") + '"></button>').join("")
+          + '</div><div class="tb-cq-actions">'
+          + '<button type="button" data-cq="renommer">Renommer</button>'
+          + (!d && selection.size ? '<button type="button" data-cq="ranger">Y mettre la sélection</button>' : "")
+          + '<button type="button" data-cq="supprimer" class="tb-cq-danger">Supprimer</button></div></li>';
+      }
+    });
+    h += '</ul><div class="tb-cq-pied">'
+      + '<button type="button" class="tb-b tb-petit" data-cq="nouveau" title="Nouveau calque, au-dessus de l\'actif" aria-label="Nouveau calque">' + IC_CALQUE.plus + "</button>"
+      + '<button type="button" class="tb-b tb-petit" data-cq="dossier" title="Nouveau dossier, autour du calque actif" aria-label="Nouveau dossier">' + IC_CALQUE.nvDossier + "</button>"
+      + '<button type="button" class="tb-b tb-petit" data-cq="monter" title="Monter le calque actif" aria-label="Monter">' + IC_CALQUE.haut + "</button>"
+      + '<button type="button" class="tb-b tb-petit" data-cq="descendre" title="Descendre le calque actif" aria-label="Descendre">' + IC_CALQUE.bas + "</button>"
+      + '<button type="button" class="tb-b tb-petit" data-cq="effacer" title="Supprimer le calque actif et son contenu" aria-label="Supprimer le calque actif">' + IC_CALQUE.poubelle + "</button>"
+      + "</div>";
+    panneauCalques.innerHTML = h;
+    const saisie = panneauCalques.querySelector("[data-cq-nom]");
+    if (saisie) { saisie.focus(); saisie.select(); }
+  }
+  function montrerCalques(oui) {
+    etat.calquesVus = !!oui;
+    if (panneauCalques) panneauCalques.hidden = !oui;
+    section.classList.toggle("tb-avec-calques", !!oui);
+    const b = $("#tb-calques-vus");
+    if (b) b.checked = !!oui;
+    peindreCalques();
+    garder();
+  }
+  if (panneauCalques) {
+    panneauCalques.addEventListener("click", (e) => {
+      if (glisseCalque && glisseCalque.parti) return;
+      const li = e.target.closest("[data-id]"), b = e.target.closest("button");
+      const id = li ? li.dataset.id : etat.calqueActif, c = indexCalques.get(id);
+      const quoi = b ? b.dataset.cq : null;
+      if (b && b.dataset.cqCoul !== undefined) {
+        const pour = indexCalques.get(b.closest("[data-pour]").dataset.pour);
+        pour.couleur = Number(b.dataset.cqCoul); apresCalques(); return;
+      }
+      if (quoi === "fermer") return montrerCalques(false);
+      if (quoi === "nouveau") return nouveauCalque();
+      if (quoi === "dossier") return nouveauDossier();
+      if (quoi === "monter" || quoi === "descendre") {
+        if (!monterCalque(etat.calqueActif, quoi === "monter" ? -1 : 1)) dire("Il est déjà tout " + (quoi === "monter" ? "en haut." : "en bas."));
+        return;
+      }
+      if (quoi === "effacer") return supprimerCalque(etat.calqueActif);
+      if (b && b.closest("[data-pour]")) {
+        const pour = b.closest("[data-pour]").dataset.pour;
+        if (quoi === "renommer") { renommeCalque = pour; optionsCalque = null; peindreCalques(); return; }
+        if (quoi === "ranger") return selectionDansCalque(pour);
+        if (quoi === "supprimer") return supprimerCalque(pour);
+        return;
+      }
+      if (!c) return;
+      if (quoi === "voir") { c.visible = c.visible === false; apresCalques(); return; }
+      if (quoi === "verrou") { c.verrou = !c.verrou; apresCalques(); return; }
+      if (quoi === "plier") return plierDossier(c);
+      if (quoi === "options") { optionsCalque = optionsCalque === id ? null : id; peindreCalques(); return; }
+      if (e.target.closest("[data-cq-nom]")) return;
+      // un clic sur la ligne : il devient le calque actif (un dossier s'ouvre ou se ferme)
+      if (estDossier(c)) return plierDossier(c);
+      etat.calqueActif = id;
+      // la sélection prise dans un AUTRE calque est lâchée : sinon elle
+      // ramènerait aussitôt son calque comme actif (suivreSelection)
+      const avant = selection.size;
+      selection = new Set([...selection].filter((s) => { const e = parId(s); return e && calqueDe(e) === id; }));
+      garder(); peindreCalques();
+      if (selection.size !== avant) { majPanneau(); demander(); }
+    });
+    panneauCalques.addEventListener("dblclick", (e) => {
+      const n = e.target.closest(".tb-cq-nom");
+      if (!n) return;
+      renommeCalque = n.closest("[data-id]").dataset.id; peindreCalques();
+    });
+    const finirNom = (garderNom) => {
+      const s = panneauCalques.querySelector("[data-cq-nom]");
+      if (!s || !renommeCalque) return;
+      const c = indexCalques.get(renommeCalque), v = s.value.trim();
+      renommeCalque = null;
+      if (garderNom && c && v && v !== c.nom) { c.nom = v.slice(0, 80); apresCalques(); } else peindreCalques();
+    };
+    panneauCalques.addEventListener("keydown", (e) => {
+      e.stopPropagation();                          // ses touches ne sont pas des raccourcis du tableau
+      if (!e.target.matches("[data-cq-nom]")) return;
+      if (e.key === "Enter") { e.preventDefault(); finirNom(true); }
+      if (e.key === "Escape") { e.preventDefault(); finirNom(false); }
+    });
+    panneauCalques.addEventListener("focusout", (e) => { if (e.target.matches("[data-cq-nom]")) setTimeout(() => finirNom(true), 0); });
+    panneauCalques.addEventListener("input", (e) => {
+      if (!e.target.matches("[data-cq-opa]")) return;
+      const c = indexCalques.get(etat.calqueActif);
+      c.opacite = Number(e.target.value);
+      e.target.nextElementSibling.textContent = c.opacite + " %";
+      demander();
+    });
+    panneauCalques.addEventListener("change", (e) => { if (e.target.matches("[data-cq-opa]")) apresCalques(); });
+  }
+  const caseCalques = $("#tb-calques-vus");
+  if (caseCalques) caseCalques.addEventListener("change", () => montrerCalques(caseCalques.checked));
+
+  /* ── glisser un calque : au-dessus, en dessous, ou DANS un dossier ──
+     Souris : le geste part après 6 px. Doigt ou stylet : après un appui
+     tenu de 350 ms, sinon la liste défile. Même règle que « Mes tableaux ». */
+  let glisseCalque = null;
+  function cibleCalque(x, y) {
+    const li = document.elementFromPoint(x, y);
+    const t = li && li.closest ? li.closest(".tb-cq[data-id]") : null;
+    if (!t || !panneauCalques.contains(t)) return null;
+    const r = t.getBoundingClientRect(), k = (y - r.top) / r.height, c = indexCalques.get(t.dataset.id);
+    const ou = estDossier(c) && k > 0.28 && k < 0.72 ? "dans" : k < 0.5 ? "avant" : "apres";
+    return { li: t, id: t.dataset.id, ou };
+  }
+  function marquerCible(cb) {
+    panneauCalques.querySelectorAll(".tb-cq-avant, .tb-cq-apres, .tb-cq-dans")
+      .forEach((x) => x.classList.remove("tb-cq-avant", "tb-cq-apres", "tb-cq-dans"));
+    if (cb && cb.id !== glisseCalque.id && !dans(cb.id, glisseCalque.id)) cb.li.classList.add("tb-cq-" + cb.ou);
+  }
+  if (panneauCalques) {
+    panneauCalques.addEventListener("pointerdown", (e) => {
+      const li = e.target.closest(".tb-cq[data-id]");
+      if (!li || e.target.closest("button, input") || e.button > 0) return;
+      glisseCalque = { id: li.dataset.id, x: e.clientX, y: e.clientY, pid: e.pointerId, souris: e.pointerType === "mouse", parti: false,
+                       minuterie: e.pointerType === "mouse" ? 0 : setTimeout(() => partir(li), 350) };
+    });
+    const partir = (li) => {
+      if (!glisseCalque) return;
+      glisseCalque.parti = true;
+      li.classList.add("tb-cq-glisse");
+      try { panneauCalques.setPointerCapture(glisseCalque.pid); } catch (err) { /* pointeur déjà parti */ }
+    };
+    panneauCalques.addEventListener("pointermove", (e) => {
+      const g = glisseCalque;
+      if (!g || e.pointerId !== g.pid) return;
+      if (!g.parti) {
+        const loin = Math.hypot(e.clientX - g.x, e.clientY - g.y) > (g.souris ? 6 : 10);
+        if (!loin) return;
+        if (!g.souris) { clearTimeout(g.minuterie); glisseCalque = null; return; }   // le doigt fait défiler
+        // la souris part : ce même mouvement désigne déjà une cible (un geste
+        // rapide n'en envoie parfois qu'un avant le lâcher)
+        partir(panneauCalques.querySelector('.tb-cq[data-id="' + g.id + '"]'));
+      }
+      g.cible = cibleCalque(e.clientX, e.clientY);
+      marquerCible(g.cible);
+    });
+    const lacher = (e, poser) => {
+      const g = glisseCalque;
+      if (!g || (e && e.pointerId !== g.pid)) return;
+      clearTimeout(g.minuterie);
+      glisseCalque = null;
+      if (!g.parti) return;
+      const cb = g.cible;
+      if (poser && cb && cb.id !== g.id && deplacerCalque(g.id, cb.id, cb.ou)) {
+        dire("« " + indexCalques.get(g.id).nom + " » " + (cb.ou === "dans" ? "rangé dans « " + indexCalques.get(cb.id).nom + " »." : "déplacé."));
+      } else peindreCalques();
+      // le clic qui suit le lâcher ne doit pas changer le calque actif
+      glisseCalque = { parti: true };
+      setTimeout(() => { if (glisseCalque && !glisseCalque.id) glisseCalque = null; }, 300);
+    };
+    panneauCalques.addEventListener("pointerup", (e) => lacher(e, true));
+    panneauCalques.addEventListener("pointercancel", (e) => lacher(e, false));
+    panneauCalques.addEventListener("touchmove", (e) => { if (glisseCalque && glisseCalque.parti) e.preventDefault(); }, { passive: false });
+  }
+
+  /* ── l'export PSD (psd.js) ──
+     Le document est la boîte de tout le tableau, plus une marge ; chaque
+     calque est dessiné SEUL, sans son opacité (le PSD l'applique), dans la
+     boîte de ses propres éléments. L'image fusionnée est celle que montre
+     le tableau : calques visibles, opacités comprises. */
+  function exporterPSD(echelle, avecFond) {
+    if (!window.TB_PSD) { dire("L'export PSD n'a pas pu se charger.", true); return; }
+    const tous = elements.filter((e) => !estLie(e));
+    const B = boiteDe(tous);
+    if (!B) { dire("Le tableau est vide : rien à exporter.", true); return; }
+    const m = 20, W = Math.ceil((B.w + m * 2) * echelle), H = Math.ceil((B.h + m * 2) * echelle);
+    if (W * H > 40e6) { dire("Le tableau est trop grand pour un PSD à cette échelle : essaie ×1.", true); return; }
+    const f = fantomes; fantomes = new Set();
+    const ed = edition; edition = null;
+    const dessinerDans = (liste, x0, y0, w, h, avecOpacite) => {
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, w); c.height = Math.max(1, h);
+      const k = c.getContext("2d");
+      k.setTransform(echelle, 0, 0, echelle, (m - B.x) * echelle - x0, (m - B.y) * echelle - y0);
+      exportSansOpacite = !avecOpacite;
+      dessinerScene(k, liste, null, true);
+      exportSansOpacite = false;
+      return k.getImageData(0, 0, c.width, c.height).data;
+    };
+    try {
+      const arbre = [];
+      const parent = new Map([[null, arbre]]);
+      etat.calques.forEach((c) => {
+        const dest = parent.get(c.parent || null) || arbre;
+        if (estDossier(c)) {
+          const n = { type: "dossier", nom: c.nom, couleur: c.couleur, visible: c.visible !== false, verrou: !!c.verrou,
+                      opacite: c.opacite, ouvert: c.ouvert !== false, enfants: [] };
+          dest.push(n); parent.set(c.id, n.enfants);
+          return;
+        }
+        const liste = tous.filter((e) => calqueDe(e) === c.id);
+        const b = boiteDe(liste);
+        const n = { type: "calque", nom: c.nom, couleur: c.couleur, visible: c.visible !== false, verrou: !!c.verrou, opacite: c.opacite,
+                    x: 0, y: 0, w: 0, h: 0, rgba: null };
+        if (b) {
+          // la boîte du calque, en pixels du document, un peu élargie pour les traits épais
+          const marge = 12;
+          const x0 = Math.max(0, Math.floor((b.x - B.x + m - marge) * echelle)), y0 = Math.max(0, Math.floor((b.y - B.y + m - marge) * echelle));
+          const x1 = Math.min(W, Math.ceil((b.x + b.w - B.x + m + marge) * echelle)), y1 = Math.min(H, Math.ceil((b.y + b.h - B.y + m + marge) * echelle));
+          Object.assign(n, { x: x0, y: y0, w: x1 - x0, h: y1 - y0, rgba: dessinerDans(liste, x0, y0, x1 - x0, y1 - y0, false) });
+        }
+        dest.push(n);
+      });
+      // l'image fusionnée : ce qu'on voit, sur le fond (ou sur blanc : le PSD n'a pas de transparence fusionnée)
+      const fc = document.createElement("canvas"); fc.width = W; fc.height = H;
+      const fk = fc.getContext("2d");
+      fk.fillStyle = avecFond ? etat.fond : "#ffffff"; fk.fillRect(0, 0, W, H);
+      fk.setTransform(echelle, 0, 0, echelle, (m - B.x) * echelle, (m - B.y) * echelle);
+      dessinerScene(fk, tous, null);
+      const octets = window.TB_PSD.ecrire({ largeur: W, hauteur: H, calques: arbre, fusion: fk.getImageData(0, 0, W, H).data });
+      telecharger(nomFichier() + ".psd", new Blob([octets], { type: "image/vnd.adobe.photoshop" }));
+      dire("PSD exporté : " + rangs.size + " calque" + (rangs.size > 1 ? "s" : "") + ", "
+        + (etat.calques.length - rangs.size) + " dossier" + (etat.calques.length - rangs.size > 1 ? "s" : "") + ".");
+    } catch (err) {
+      dire("L'export PSD a échoué : " + (err && err.message ? err.message : err), true);
+    } finally {
+      fantomes = f; edition = ed;
+    }
+  }
+
   /* ═══════════════ 15. Le démarrage ═══════════════════════════════════ */
   relire();
   bibDemarrer();
   reparer();
   elements.forEach((e) => { if (e.type === "text") { if (e.containerId) placerLie(e); } });
-  pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond];
+  calquesPrets(); ranger();
+  pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond]; pileCalques = [JSON.stringify(etat.calques)];
+  montrerCalques(!!etat.calquesVus);
   majHistorique();
   new ResizeObserver(() => demander()).observe(toile);
   /* Au téléphone, les îlots se placent d'après la taille RÉELLE de leurs
