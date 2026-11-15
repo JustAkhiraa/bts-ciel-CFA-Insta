@@ -367,6 +367,83 @@ def compte_rendu(racine, pbs):
     return 1
 
 
+def actualites(racine, pbs):
+    """Les titres relevés par le robot (actu/donnees/), relus un par un.
+
+    C'est la seule partie du site écrite par une machine à partir de textes
+    venus d'ailleurs, et la seule où une page charge des images d'un autre
+    serveur. L'exception est donc bornée ICI : chaque adresse d'article et
+    chaque adresse d'image doit être en https, chez un hôte que le releveur
+    déclare pour sa source (liste blanche). Un champ de plus, du balisage dans
+    un titre, un hôte inconnu, un résumé qui dépasse l'extrait : la
+    publication s'arrête. Le TEXTE d'un article n'a pas de champ : il ne peut
+    donc pas entrer.
+
+    La liste des sources n'est pas recopiée : on la lit chez le releveur.
+    Rend le nombre de titres relus, ou None s'il n'y a pas de relevé."""
+    dossier = os.path.join(racine, "actu", "donnees")
+    if not os.path.isdir(os.path.join(dossier, "jours")):
+        return None
+    releveur = os.path.join(racine, "outillage", "actu.py")
+    if not os.path.isfile(releveur):
+        pbs.append(("actu/donnees", "des titres sont publiés mais outillage/actu.py "
+                                    "manque : leurs adresses ne peuvent pas être relues"))
+        return 0
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("releveur_actu", releveur)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    sources = {s["id"]: s for s in mod.SOURCES}
+    n = 0
+    for f in sorted(os.listdir(os.path.join(dossier, "jours"))):
+        rel = "actu/donnees/jours/" + f
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}\.json", f):
+            pbs.append((rel, "fichier inattendu dans le relevé"))
+            continue
+        try:
+            arts = json.load(open(os.path.join(dossier, "jours", f), encoding="utf-8"))
+        except ValueError:
+            pbs.append((rel, "relevé illisible (JSON)"))
+            continue
+        for a in arts if isinstance(arts, list) else []:
+            n += 1
+            src = sources.get(a.get("s")) if isinstance(a, dict) else None
+            if src is None:
+                pbs.append((rel, f"source inconnue : {str(a)[:60]}"))
+                continue
+            de_trop = set(a) - {"s", "t", "u", "d", "i", "r"}
+            if de_trop:
+                pbs.append((rel, f"champ inattendu {sorted(de_trop)} : seuls le titre, l'adresse, "
+                                 "la date, la vignette et un court résumé se publient"))
+            # Le résumé est un EXTRAIT : deux phrases que le site donne lui-même
+            # dans son flux. Plus long, ce serait recopier l'article.
+            r = a.get("r")
+            if r is not None and (not isinstance(r, str) or not (40 <= len(r) <= 320)
+                                  or "<" in r or chr(0x2014) in r):
+                pbs.append((rel, f"résumé refusé (balisage, tiret long ou longueur {len(str(r))}) : {str(r)[:60]}"))
+            t, u = a.get("t"), a.get("u")
+            if not isinstance(t, str) or not (8 <= len(t) <= 220) or "<" in t or chr(0x2014) in t:
+                pbs.append((rel, f"titre refusé (balisage, tiret long ou longueur) : {str(t)[:60]}"))
+            if not isinstance(u, str) or mod.adresse_propre(u, src["liens"]) != u:
+                pbs.append((rel, f"adresse d'article hors de chez {src['nom']} : {str(u)[:80]}"))
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", str(a.get("d"))):
+                pbs.append((rel, f"date illisible : {a.get('d')}"))
+            if "i" in a and (not src["images"] or mod.adresse_propre(a["i"], src["images"]) != a["i"]):
+                pbs.append((rel, f"image hors de chez {src['nom']} : {str(a['i'])[:80]}"))
+    # Le plancher : un relevé annoncé par l'index et aucun titre relu, c'est
+    # le contrôle qui ne lit plus, pas un relevé propre.
+    try:
+        annonces = sum(c for _, c in json.load(
+            open(os.path.join(dossier, "index.json"), encoding="utf-8"))["jours"])
+    except (OSError, ValueError, KeyError, TypeError):
+        annonces = None
+        pbs.append(("actu/donnees/index.json", "index du relevé absent ou illisible"))
+    if annonces is not None and annonces != n:
+        pbs.append(("actu/donnees/index.json",
+                    f"l'index annonce {annonces} titre(s), {n} relus : l'un des deux ment"))
+    return n
+
+
 def main():
     pbs, n = [], 0
     fichiers = sorted(pages())
@@ -388,6 +465,7 @@ def main():
     n_ports = ports(RACINE, pbs)
     n_pt = packet_tracer(RACINE, pbs)
     compte_rendu(RACINE, pbs)
+    n_actu = actualites(RACINE, pbs)
 
     for p in fichiers:
         n += 1
@@ -538,7 +616,8 @@ def main():
         pbs.append(("assets/recherche.js", "absent"))
 
     print(f"{n} pages · {n_index} entrées de recherche · {n_masques} masques "
-          f"recalculés · {n_ports} ports · {n_pt} blocs de commandes relus")
+          f"recalculés · {n_ports} ports · {n_pt} blocs de commandes relus"
+          + (f" · {n_actu} titres d'actualité relus" if n_actu is not None else ""))
     if pbs:
         print(f"\n{len(pbs)} anomalie(s) :")
         for f, m in pbs[:60]:
@@ -554,4 +633,8 @@ def main():
               "aucun lien mort.")
 
 
-main()
+# Le releveur d'actualités (outillage/actu.py) charge ce fichier pour passer
+# chaque titre au MÊME contrôle que les pages : importé, il ne doit pas se
+# lancer tout seul.
+if __name__ == "__main__":
+    main()

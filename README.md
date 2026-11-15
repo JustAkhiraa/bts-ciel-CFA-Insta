@@ -15,7 +15,7 @@ Les notes d'un étudiant, remises au propre. Pour chaque chapitre :
 | `exercices.html` | les exercices, énoncé et correction repliable |
 | `fiche-revision.html` | recto-verso dense, à imprimer, à relire la veille |
 
-**67 chapitres · 270 fiches · 5 matières.**
+**71 chapitres · 287 fiches · 5 matières.**
 
 ## Ce que ce n'est pas
 
@@ -47,7 +47,7 @@ python3 verification/verifier.py
 ## Technique
 
 Aucune dépendance, aucune étape de construction, aucun appel réseau. Du HTML, du
-CSS et du JavaScript écrits à la main. Quarante thèmes, installable comme
+CSS et du JavaScript écrits à la main. Plus de quarante thèmes, installable comme
 application, fonctionne hors-ligne.
 
 Pour le consulter en local :

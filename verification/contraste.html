@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Contrôle du contraste · BTS CIEL</title>
-<link rel="stylesheet" href="../assets/fiche.css?v=83e4b4e2">
+<link rel="stylesheet" href="../assets/fiche.css?v=902d6ad1">
 <style>
   .journal { font-family: var(--mono); font-size: 12.6px; line-height: 1.7;
     max-height: 52vh; overflow: auto; margin-top: 1rem; padding: .8rem 1rem;
@@ -91,7 +91,7 @@ const AMB = ["light","sand","cream","dawn","sakura","porcelain","linen","mist","
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
   "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
-  "console-bleue","bristol"];
+  "console-bleue","bristol","verre-nuit"];
 /* Le chapeau annonçait « 41 thèmes » alors que la liste en contenait 42 :
    un banc qui récite un chiffre périmé apprend à ne plus le lire. Il le
    compte, maintenant, sur la liste qu'il balaye vraiment. */
@@ -100,13 +100,13 @@ document.getElementById("nb-themes").textContent = AMB.length;
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
-  "console-bleue"]);
+  "console-bleue","verre-nuit"]);
 /* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
    au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
    la moitié du site sans contrôle — et c'est justement la moitié neuve. */
 const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
   "determination","velours","neon-lime","androide","grand-large","cahier-rose",
-  "console-blanche","bloc-notes","liquid","zellige","console-bleue","bristol"]);
+  "console-blanche","bloc-notes","liquid","zellige","console-bleue","bristol","verre-nuit"]);
 function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 /* Les quatre axes de confort sont croisés eux aussi : une police serif ou un
    interligne serré ne change pas le contraste, mais une largeur « pleine »
@@ -532,6 +532,18 @@ function charger(url) {
     f.onload = async () => {
       await rafraichirStyles(f.contentDocument);
       confronterRegistre(f.contentWindow);
+      /* La page Actu remplit sa liste APRÈS son chargement, depuis un
+         fichier de données. Mesurée à l'instant du « load », elle ne
+         montrait que son squelette : le banc aurait rendu « OK » sur une
+         page sans un seul titre. On attend donc qu'elle en ait, et si elle
+         n'en a jamais, c'est dit (elle sait se dire en panne). */
+      const actu = f.contentWindow.ACTU;
+      if (actu) {
+        const t0 = Date.now();
+        while (!actu.diagnostic().articles && Date.now() - t0 < 9000) await attendre(80);
+        ACTU_VUE.titres = Math.max(ACTU_VUE.titres, actu.diagnostic().articles);
+        ACTU_VUE.vides += actu.diagnostic().articles ? 0 : 1;
+      }
       res(f);
     };
     /* Le paramètre anti-cache se place AVANT l'ancre. Écrit après,
@@ -634,10 +646,27 @@ document.getElementById("go").addEventListener("click", async () => {
                  "../devoirs/calcul-matriciel-2.html",
                  /* Une fiche « TP » : les pastilles de machine (client/serveur/kali/sortie),
                     les étapes à cocher, la jauge de progression. */
-                 "../02-reseaux-systemes/20-securite-ssh-mitm/tp.html"];
+                 "../02-reseaux-systemes/20-securite-ssh-mitm/tp.html",
+                 /* La page Actu : elle a sa propre palette (deux faces, posées
+                    sur le thème de base), des pastilles de site, des vignettes
+                    à initiales et des titres venus d'ailleurs. */
+                 "../actu.html",
+                 /* La révision du jour (tableau de bord, pastilles, carte de
+                    question) et les projets (cartes de chapitre, liens). */
+                 "../revision.html", "../projets.html",
+                 /* Le pôle Projet E6 (15 nov. 2026) : la teinte dorée de la
+                    matière « projets » sur des pages entières, et plus seulement
+                    sur une carte d'outils. Le cours a tout : tableaux, encarts,
+                    schémas, code. */
+                 "../07-projet-e6/index.html",
+                 "../07-projet-e6/02-coffre-fort-connecte/cours.html"];
   /* « ?page=fichiers » : ne relire qu'une page, le temps d'une retouche. */
   const seule = new URLSearchParams(location.search).get("page");
   const pages = seule ? toutes.filter((p) => p.includes(seule)) : toutes;
+  /* « ?theme=verre-nuit » : ne mesurer qu'un thème, ses deux faces, le
+     temps de le mettre au point. Le banc complet reste la règle. */
+  const unTheme = new URLSearchParams(location.search).get("theme");
+  const balayes = unTheme ? AMB.filter((a) => a === unTheme) : AMB;
   const pire = {}; let n = 0;
   let fondRef = null; const fondsCode = new Set();
   for (const p of pages) {
@@ -670,9 +699,18 @@ document.getElementById("go").addEventListener("click", async () => {
     /* Les règles d'un jeu se replient après la première visite : le banc
        les rouvre, leurs exemples de couleur sont du texte comme un autre. */
     for (const r of doc.querySelectorAll(".jx-regles")) r.hidden = false;
-    for (const a of AMB) {
+    for (const a of balayes) {
       for (const face of faces(a)) {
-      d.dataset.theme = a; d.dataset.sombre = face;
+      /* Une page qui a sa propre direction artistique (« data-da », la page
+         Actu) ne prend JAMAIS l'univers choisi : appliquer() ne lui donne que
+         la face, sur le thème de base. Le banc court-circuite appliquer() ;
+         il doit donc suivre la même règle, sinon il mesure quarante états
+         que la page ne peut pas atteindre. Trouvé le 13 nov. 2026 : sept
+         textes à 2,06:1 « sous Voxel », thème que la page ne porte jamais
+         (vérifié dans le navigateur : thème choisi voxel, thème posé dark,
+         8,99:1). La feuille de la page a quand même été durcie. */
+      d.dataset.theme = d.dataset.da ? (face === "1" || face === 1 ? "dark" : "light") : a;
+      d.dataset.sombre = face;
       /* Un thème qui porte une DISPOSITION déplace le HTML : des chaînes
          carrées, une barre en bas, une horloge. Poser « data-theme » seul
          ne la déclenche pas — elle se pose dans appliquer(), que le banc
@@ -714,8 +752,13 @@ document.getElementById("go").addEventListener("click", async () => {
       + [...JETONS].sort().join(" ") + "</p>"
     : "<p class=\"ko\">⚠️ AUCUNE teinte de code mesurée : le banc n'a rencontré "
       + "aucun bloc coloré. Ce n'est pas une réussite, c'est un angle mort.</p>";
+  const alerteActu = !pages.some(p => /actu\.html/.test(p)) ? ""
+    : (ACTU_VUE.titres && !ACTU_VUE.vides)
+      ? "<p>page Actu : mesurée avec " + ACTU_VUE.titres + " titres à l'écran.</p>"
+      : "<p class=\"ko\">⚠️ page Actu mesurée SANS ses titres (" + ACTU_VUE.vides
+        + " chargement(s) vides) : seule sa coquille a été relue.</p>";
   j.innerHTML = "<p>cache hors ligne : " + etatCache + "</p>" +
-    "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons +
+    "<p>" + n + " combinaisons mesurées sur " + pages.length + " pages.</p>" + alerteFond + alerteJetons + alerteActu +
     (echecs.length
       ? '<p class="ko">' + echecs.length + " élément(s) sous le seuil :</p>" +
         echecs.map(([k,v]) => "<p>" + v.r + " &lt; " + v.seuil + "  (" + v.ou + ")  " + k + "</p>").join("")
@@ -756,6 +799,8 @@ document.getElementById("go").addEventListener("click", async () => {
    sept contre un. */
 
 const attendre = ms => new Promise(r => setTimeout(r, ms));
+/* Ce que la page Actu avait à montrer quand le banc l'a mesurée. */
+const ACTU_VUE = { titres: 0, vides: 0 };
 async function attendreQue(test, quoi, max = 25000) {
   const t0 = performance.now();
   while (!test()) {

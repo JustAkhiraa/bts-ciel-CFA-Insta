@@ -176,6 +176,9 @@
       { c: OC.teal[4], w: 2.4, pointe: "aquarelle" },       // pinceau
     ],
     stylo: 0,
+    /* La couleur que verse le seau. La pipette la change, avec celle du
+       stylo en main et celle du trait. */
+    seau: OC.yellow[2],
     /* Le stylet : les formes reconnues, la gomme qui coupe, la règle, et
        ce qu'on fait du doigt quand un stylet a été vu. */
     /* La gomme efface sous le curseur, comme une vraie gomme : c'est le
@@ -192,7 +195,7 @@
        vite) : combien de temps il reste, sa couleur, son épaisseur, sa
        transparence. Par défaut, le laser d'avant, au réglage près. */
     laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
-    styletSeul: false, inclinaison: true, regle: null,
+    styletSeul: false, inclinaison: true, regle: null, symetrie: null, lisse: 0, symAxe: "v", recentes: [],
   };
   /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
@@ -201,6 +204,7 @@
                   [OC.pink[3], "Rose"], [OC.bronze[4], "Marron"]];
   const CALIBRES = [0.6, 1, 1.6, 2.4, 3.4, 5];
   let selection = new Set();
+  let avantPipette = "selection";     // l'outil à reprendre une fois la couleur prise
   let edition = null;                 // l'élément texte en cours de frappe
   let espace = false;                 // barre d'espace tenue : la main
   let geste = null;                   // ce que fait le pointeur en ce moment
@@ -215,14 +219,18 @@
   let pressePapiers = null;
 
   /* ── l'historique : une photographie de la scène par action ── */
+  let bib = null;                     // la bibliothèque : dossiers et tableaux (section 14 bis)
   let pile = [], curseurPile = -1;
+  let pileFond = [];                  // la couleur de la page, à chaque étape de l'historique
   let baguette = null;               // la zone choisie à la baguette magique
   function memoriser() {
     const photo = JSON.stringify(elements);
-    if (pile[curseurPile] === photo) return;
+    if (pile[curseurPile] === photo && (pileFond[curseurPile] === undefined || pileFond[curseurPile] === etat.fond)) return;
     pile = pile.slice(0, curseurPile + 1);
+    pileFond = pileFond.slice(0, curseurPile + 1);
     pile.push(photo);
-    if (pile.length > 150) pile.shift();
+    pileFond[pile.length - 1] = etat.fond;
+    if (pile.length > 150) { pile.shift(); pileFond.shift(); }
     curseurPile = pile.length - 1;
     garder();
     majHistorique();
@@ -233,6 +241,7 @@
     if (i < 0 || i >= pile.length) return;
     curseurPile = i;
     elements = JSON.parse(pile[i]);
+    if (pileFond[i] && pileFond[i] !== etat.fond) { etat.fond = pileFond[i]; majFond(); majMenu(); }
     selection = new Set([...selection].filter((id) => parId(id)));
     garder(); majHistorique(); majPanneau(); demander();
   }
@@ -253,16 +262,20 @@
   function garder() {
     marquerSauve(false);
     clearTimeout(minuterieGarde);
-    minuterieGarde = setTimeout(() => {
+    minuterieGarde = setTimeout(ecrire, 250);
+  }
+  function ecrire() {
+    {
       try {
         localStorage.setItem(ECRIT_CLE, JSON.stringify({
+          bibId: bib ? bib.courant : (etat.bibId || null),
           elements, fond: etat.fond, grille: etat.grille, theme: etat.theme,
           scrollX: etat.scrollX, scrollY: etat.scrollY, zoom: etat.zoom, courant: etat.courant,
-          titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo,
+          titre: etat.titre, cote: etat.cote, encre: etat.encre, stylos: etat.stylos, stylo: etat.stylo, seau: etat.seau,
           formes: etat.formes, gommeMode: etat.gommeMode, gommeChoisie: etat.gommeChoisie, gommeTaille: etat.gommeTaille,
           lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
-          styletSeul: etat.styletSeul, inclinaison: etat.inclinaison,
+          styletSeul: etat.styletSeul, inclinaison: etat.inclinaison, symAxe: etat.symAxe, recentes: etat.recentes,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
            de photo à chaque trait tracé ferait ramer la main. Elles ne
@@ -277,15 +290,16 @@
         }
         marquerSauve(true);
       } catch (e) { /* stockage plein ou bloqué : le tableau marche quand même */ }
-    }, 250);
+    }
   }
   function relire() {
     try {
       const lu = JSON.parse(localStorage.getItem(ECRIT_CLE) || "null");
       if (!lu) return;
       if (Array.isArray(lu.elements)) elements = lu.elements.map(normaliser).filter(Boolean);
+      if (typeof lu.bibId === "string") etat.bibId = lu.bibId;
       ["fond", "grille", "theme", "scrollX", "scrollY", "zoom", "titre", "cote", "encre", "stylo",
-       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison"].forEach((k) => {
+       "formes", "gommeMode", "gommeChoisie", "gommeTaille", "lassoMode", "lassoForme", "laserDuree", "laserCouleur", "laserTaille", "laserOpacite", "styletSeul", "inclinaison", "symAxe"].forEach((k) => {
         if (lu[k] !== undefined && lu[k] !== null) etat[k] = lu[k];
       });
       // un « trait entier » enregistré AVANT le changement de défaut n'était
@@ -296,6 +310,8 @@
       // cinq stylos depuis le 9 nov. 2026 : un réglage à trois reprend les cinq nouveaux
       if (Array.isArray(lu.stylos) && lu.stylos.length === etat.stylos.length) etat.stylos = lu.stylos;
       if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
+      if (typeof lu.seau === "string" && /^#[0-9a-f]{6}$/i.test(lu.seau)) etat.seau = lu.seau;
+      if (Array.isArray(lu.recentes)) etat.recentes = lu.recentes.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 7);
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -314,6 +330,15 @@
   const estPostit = (el) => !!(el && el.customData && el.customData.postit);
   const estSurligneur = (el) => !!(el && el.customData && el.customData.surligneur);
   const conteneur = (el) => /^(rectangle|diamond|ellipse)$/.test(el.type);
+  /* Un TRAIT peut porter un texte lui aussi (13 nov. 2026) : le « extend »
+     ou le « include » d'une flèche de cas d'utilisation, le nom d'un
+     message. Le texte ne s'écrit pas DANS le trait, il se pose au-dessus de
+     son milieu et le suit. Même lien que pour une forme (« containerId » d'un
+     côté, « boundElements » de l'autre), donc même format de fichier.
+     « conteneur » reste réservé aux formes : c'est lui qui dit qu'un texte
+     se plie à une largeur. « porteur » dit seulement qu'un texte suit. */
+  const lineaire = (el) => el.type === "arrow" || el.type === "line";
+  const porteur = (el) => conteneur(el) || lineaire(el);
   const texteDe = (c) => {
     const b = (c.boundElements || []).find((x) => x.type === "text");
     return b ? parId(b.id) : null;
@@ -437,9 +462,52 @@
      centré dedans ; et si le texte est plus haut que la forme, c'est la
      forme qui grandit. Un post-it, lui, RÉDUIT d'abord
      sa police, et ne grandit qu'en dernier recours. */
+  /* Le texte d'un trait : au milieu de sa longueur, décalé du côté qui
+     monte (à droite pour un trait vertical), assez loin pour ne pas mordre
+     sur le trait. Jamais replié : un stéréotype tient sur sa ligne. */
+  function placerSurTrait(t, c) {
+    const brut = t.originalText != null ? t.originalText : t.text;
+    const lignes = String(brut).split("\n");
+    t.text = lignes.join("\n");
+    t.width = Math.max(1, ...lignes.map((l) => largeurTexte(l, t)));
+    t.height = lignes.length * t.fontSize * (t.lineHeight || 1.25);
+    const pts = c.points && c.points.length > 1 ? c.points : [[0, 0], [c.width || 0, c.height || 0]];
+    const longueurs = [];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+      longueurs.push(d); total += d;
+    }
+    let reste = total / 2, mx = pts[0][0], my = pts[0][1], dx = 1, dy = 0;
+    for (let i = 0; i < longueurs.length; i++) {
+      if (reste <= longueurs[i] || i === longueurs.length - 1) {
+        const k = longueurs[i] ? Math.min(1, reste / longueurs[i]) : 0;
+        dx = pts[i + 1][0] - pts[i][0]; dy = pts[i + 1][1] - pts[i][1];
+        mx = pts[i][0] + dx * k; my = pts[i][1] + dy * k;
+        break;
+      }
+      reste -= longueurs[i];
+    }
+    let x = c.x + mx, y = c.y + my;
+    if (c.angle) {
+      const b = R.boite(c), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const co = Math.cos(c.angle), si = Math.sin(c.angle);
+      const rx = x - cx, ry = y - cy;
+      x = cx + rx * co - ry * si; y = cy + rx * si + ry * co;
+      const ex = dx * co - dy * si; dy = dx * si + dy * co; dx = ex;
+    }
+    const n = Math.hypot(dx, dy) || 1;
+    let nx = -dy / n, ny = dx / n;
+    if (ny > 1e-6 || (Math.abs(ny) <= 1e-6 && nx < 0)) { nx = -nx; ny = -ny; }
+    const ecart = Math.abs(nx) * t.width / 2 + Math.abs(ny) * t.height / 2 + 5 + (c.strokeWidth || 1);
+    t.x = x + nx * ecart - t.width / 2;
+    t.y = y + ny * ecart - t.height / 2;
+    t.angle = 0;
+  }
   function placerLie(t) {
     const c = parId(t.containerId);
     if (!c) return;
+    if (lineaire(c)) return placerSurTrait(t, c);
     const pad = estPostit(c) ? PAD_POSTIT : PAD;
     const facteur = c.type === "ellipse" ? Math.SQRT1_2 : c.type === "diamond" ? 0.5 : 1;
     const maxW = Math.max(10, c.width * facteur - pad * 2);
@@ -467,7 +535,16 @@
   }
   function replacerLies(liste) {
     (liste || elements).forEach((c) => {
-      if (!conteneur(c)) return;
+      if (!porteur(c)) return;
+      const t = texteDe(c);
+      if (t) placerLie(t);
+    });
+    /* Une flèche accrochée à une forme la suit sans figurer dans la liste
+       de ce qu'on déplace : ses étiquettes sont donc replacées à chaque
+       fois. Il y en a peu, et les oublier laisserait un « extend » flotter
+       là où la flèche n'est plus. */
+    if (liste) elements.forEach((c) => {
+      if (!lineaire(c) || liste.indexOf(c) > -1) return;
       const t = texteDe(c);
       if (t) placerLie(t);
     });
@@ -739,7 +816,7 @@
             || b.y + b.h < visible.y0 - m) return;
       }
       dessinerElement(c, el, fantomes.has(el.id));
-      if (conteneur(el)) {
+      if (porteur(el)) {
         const t = texteDe(el);
         if (t) dessinerElement(c, t, fantomes.has(el.id));
       }
@@ -764,6 +841,7 @@
     dessinerSelection();
     dessinerEphemeres();
     dessinerRegle(dpr);
+    dessinerAxe(dpr);
     $("#tb-accueil").hidden = elements.length > 0 || !!geste;
     placerContexte();
     placerLecture();
@@ -849,13 +927,36 @@
   function selectionnes() {
     return elements.filter((e) => selection.has(e.id));
   }
-  function poigneesActives() {
+  /* Les poignées de taille, et le cadre qu'elles étirent. Signalé le 15 nov.
+     2026 : après avoir tout sélectionné et tourné, plus moyen de
+     redimensionner. Un seul élément tourné (une forme, une image, un texte)
+     suffisait à retirer toutes les poignées. Désormais :
+       · un élément seul et tourné garde ses huit poignées, posées sur SON
+         cadre tourné : on l'étire le long de ses propres côtés ;
+       · plusieurs éléments dont l'un est tourné gardent les quatre coins du
+         cadre qu'on voit, et s'agrandissent sans se déformer (étirer d'un
+         seul côté une forme penchée la cisaillerait, ce qu'aucun élément du
+         tableau ne sait dessiner). */
+  function cadrePoignees() {
     const sel = selectionnes();
-    if (!sel.length || geste || sel.some((e) => e.angle) || sel.some((e) => e.locked)) return null;
+    if (!sel.length || geste || sel.some((e) => e.locked)) return null;
     if (sel.length === 1 && (sel[0].type === "line" || sel[0].type === "arrow") && sel[0].points.length === 2) {
       return null;
     }
-    return poignees(boiteDe(sel));
+    if (!sel.some((e) => e.angle)) { const b = boiteDe(sel); return { b, P: poignees(b), angle: 0 }; }
+    if (sel.length === 1) {
+      const el = sel[0], b = R.boite(el), c = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+      const P = poignees(b), f = rotationAutour(c, el.angle);
+      for (const k in P) P[k] = f(P[k][0], P[k][1]);
+      return { b, P, angle: el.angle, c };
+    }
+    const b = boiteVue(sel), P = poignees(b);
+    ["n", "s", "e", "w"].forEach((k) => delete P[k]);
+    return { b, P, angle: 0, uniforme: true };
+  }
+  function poigneesActives() {
+    const C = cadrePoignees();
+    return C ? C.P : null;
   }
   function dessinerSelection() {
     const sel = selectionnes();
@@ -883,9 +984,9 @@
       }
       ctx.restore();
     });
-    const P = poigneesActives();
-    if (P) {
-      const b = boiteDe(sel), m = 6 / z;
+    const C = cadrePoignees();
+    if (C) {
+      const b = C.b, m = 6 / z;
       if (sel.length > 1) {
         ctx.setLineDash([]);
         ctx.strokeRect(b.x - m, b.y - m, b.w + m * 2, b.h + m * 2);
@@ -893,10 +994,14 @@
       ctx.setLineDash([]);
       ctx.fillStyle = "#fff";
       const t = 8 / z;
-      Object.values(P).forEach((p) => {
+      Object.values(C.P).forEach((p) => {
+        // sur un cadre tourné, la poignée tourne avec lui
+        ctx.save();
+        ctx.translate(p[0], p[1]); if (C.angle) ctx.rotate(C.angle);
         ctx.beginPath();
-        ctx.rect(p[0] - t / 2, p[1] - t / 2, t, t);
+        ctx.rect(-t / 2, -t / 2, t, t);
         ctx.fill(); ctx.stroke();
+        ctx.restore();
       });
     }
     dessinerPoigneeTourner(sel);
@@ -1004,8 +1109,8 @@
       const el = elements[i];
       if (estLie(el)) continue;
       if (R.touche(el, x, y, tol)) return el;
-      // un conteneur se prend aussi par son texte, même sans fond
-      if (conteneur(el)) {
+      // un conteneur se prend aussi par son texte, même sans fond ; un trait aussi
+      if (porteur(el)) {
         const t = texteDe(el);
         if (t && R.touche(t, x, y, tol)) return el;
       }
@@ -1203,6 +1308,8 @@
   const OUTILS_ENCRE = ["freedraw", "surligneur", "gomme", "lasso", "laser", "baguette"];
   function choisirOutil(o) {
     if (edition) finirEdition();
+    // la pipette rend la main à l'outil d'avant, une fois la couleur prise
+    if (o === "pipette" && etat.outil !== "pipette") avantPipette = etat.outil;
     if (geste && geste.mode === "lasso") { geste = null; demander(); }
     etat.outil = o;
     lienDebut = null;
@@ -1347,7 +1454,7 @@
     g.minuterie = setTimeout(() => redresser(g), 550);
   }
   function redresser(g) {
-    if (geste !== g) return;
+    if (geste !== g || (g.jumeaux && g.jumeaux.length)) return;
     const src = g.el, abs = absolus(src), L = S.longueur(abs);
     if (L * etat.zoom < 24) return;
     let f = estSurligneur(src) ? null : S.reconnaitreForme(abs);
@@ -1490,6 +1597,105 @@
   function majBascules() {
     $('[data-bascule="formes"]').setAttribute("aria-pressed", String(etat.formes));
     $('[data-bascule="regle"]').setAttribute("aria-pressed", String(!!etat.regle));
+    const sy = $('[data-bascule="symetrie"]'), li = $('[data-bascule="lisse"]');
+    if (sy) sy.setAttribute("aria-pressed", String(!!etat.symetrie));
+    if (li) {
+      li.setAttribute("aria-pressed", String(etat.lisse > 0));
+      if (etat.lisse) li.dataset.niveau = etat.lisse; else delete li.dataset.niveau;
+    }
+  }
+
+  /* ── la symétrie et le stabilisateur ──
+     Deux aides des applications de dessin sur tablette. La SYMÉTRIE double
+     chaque trait en miroir d'un axe vertical, posé au milieu de l'écran :
+     un papillon, un visage, un schéma symétrique se tracent d'une main. Le
+     STABILISATEUR fait suivre la pointe par un point qui la rattrape sans
+     jamais la rejoindre tout à fait : les tremblements disparaissent, et
+     au réglage fort le trait s'arrondit comme tiré au fil. */
+  const LISSES = [0, 0.55, 0.82];
+  /* L'axe : vertical (gauche ↔ droite), horizontal (haut ↕ bas), ou les
+     deux, qui font quatre traits d'un seul (demandé le 15 nov. 2026 : un
+     second clic sur le bouton propose le choix, comme pour les stylos). */
+  const AXES_SYMETRIE = { v: [[-1, 1]], h: [[1, -1]], vh: [[-1, 1], [1, -1], [-1, -1]] };
+  const AIDE_AXE = {
+    v: "Axe vertical : ce qu'on trace à gauche se répète à droite.",
+    h: "Axe horizontal : ce qu'on trace en haut se répète en bas.",
+    vh: "Les deux axes : chaque trait en donne quatre, comme une rosace.",
+  };
+  function centrerAxe() {
+    const c = versScene(toile.clientWidth / 2, toile.clientHeight / 2);
+    etat.symetrie = { x: c.x, y: c.y, axe: AXES_SYMETRIE[etat.symAxe] ? etat.symAxe : "v" };
+  }
+  function basculerSymetrie() {
+    if (etat.symetrie) etat.symetrie = null; else centrerAxe();
+    majBascules();
+    if (!reglage.hidden && reglage.dataset.quoi === "symetrie") reglage.hidden = true;
+    dire(etat.symetrie ? "Symétrie : chaque trait est doublé en miroir de l'axe en pointillés. "
+      + "Recliquer sur le bouton pour choisir l'axe, J pour la ranger." : "Symétrie rangée.");
+    demander();
+  }
+  function ouvrirReglageSymetrie() {
+    const axe = etat.symetrie ? etat.symetrie.axe || "v" : etat.symAxe || "v";
+    reglage.innerHTML = '<p class="tb-menu-titre">Symétrie : l\'axe</p>'
+      + tuiles("rsy", [["v", "Vertical", "symV"], ["h", "Horizontal", "symH"], ["vh", "Les deux", "symVH"]], axe)
+      + '<p class="tb-indice">' + AIDE_AXE[axe] + "</p>"
+      + '<div class="tb-effets tb-sym-actions">'
+      + '<button type="button" class="tb-b tb-petit tb-effet" data-rsya="centrer" title="Remettre l\'axe au milieu de l\'écran">Recentrer l\'axe</button>'
+      + '<button type="button" class="tb-b tb-petit tb-effet" data-rsya="couper" title="Couper la symétrie (J)">Arrêter</button></div>';
+    reglage.dataset.quoi = "symetrie";
+    reglage.hidden = false;
+  }
+  function basculerLisse() {
+    etat.lisse = (etat.lisse + 1) % LISSES.length;
+    majBascules();
+    dire(["Stabilisateur coupé : le trait suit la main.",
+          "Stabilisateur doux : les tremblements s'effacent.",
+          "Stabilisateur fort : le trait rattrape la pointe et s'arrondit. U pour le couper."][etat.lisse]);
+  }
+  function dessinerAxe(dpr) {
+    const s = etat.symetrie;
+    if (!s) return;
+    if (s.y == null) s.y = versScene(0, toile.clientHeight / 2).y;      // un axe d'avant le choix
+    const axe = s.axe || "v";
+    const x = Math.round((s.x + etat.scrollX) * etat.zoom) + 0.5;
+    const y = Math.round((s.y + etat.scrollY) * etat.zoom) + 0.5;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.strokeStyle = enSombre ? "rgba(140,180,255,.8)" : "rgba(36,71,214,.62)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    if (axe.includes("v") && x >= 0 && x <= toile.clientWidth) { ctx.moveTo(x, 0); ctx.lineTo(x, toile.clientHeight); }
+    if (axe.includes("h") && y >= 0 && y <= toile.clientHeight) { ctx.moveTo(0, y); ctx.lineTo(toile.clientWidth, y); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── les gestes des doigts ──
+     Toucher l'écran à DEUX doigts, sans glisser, annule ; à TROIS doigts,
+     rétablit. Un doigt posé et tenu sans bouger, sur un outil d'encre,
+     prend la couleur qui est dessous. Ce sont les gestes des applications
+     de dessin sur tablette : la main ne quitte pas l'écran pour corriger. */
+  let tape = null, premierDoigt = 0;
+  function prendreCouleur(p) {
+    const c = couleurSous(p);
+    if (!c) { dire("Rien sous le doigt : l'appui long prend la couleur d'un trait, d'un fond ou d'une image.", true); return; }
+    const st = etat.stylos[etat.stylo];
+    st.c = c; st.effet = null;
+    etat.courant.strokeColor = c;
+    etat.seau = c;
+    majStylos(); garder();
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* pas de vibreur : rien */ }
+    dire("Couleur prise sous le doigt : " + c.toUpperCase() + ".");
+  }
+  function armerPipette(g, sx, sy) {
+    g.ax = sx; g.ay = sy;
+    g.appui = setTimeout(() => {
+      if (geste !== g || pointeurs.size !== 1) return;
+      const p = versScene(sx, sy);
+      if (g.mode === "dessin") annulerGeste(); else { geste = null; majCurseur(); }
+      prendreCouleur(p);
+    }, 600);
   }
 
   /* ── le lasso ──
@@ -1809,6 +2015,32 @@
     }
     return out;
   }
+  /* Une zone posée au seau est un polygone plein, sans contour. Signalé le
+     15 nov. 2026 : la gomme passait dessus sans rien prendre (elle ne
+     connaissait que les formes et les traits), et le dessin repris au stylo
+     à cet endroit tombait sur une couleur qu'on croyait effacée. Au premier
+     coup de gomme, la zone devient ce qu'elle est à l'écran : une surface du
+     stylo Remplissage, au même rang, que la gomme découpe comme les autres. */
+  const estZoneSeau = (el) => el.type === "line" && !!el.polygon && !el.locked
+    && Array.isArray(el.points) && el.points.length > 3
+    && (!el.strokeColor || el.strokeColor === "transparent")
+    && !!el.backgroundColor && el.backgroundColor !== "transparent"
+    && (!el.fillStyle || el.fillStyle === "solid");
+  function zoneEnLibre(el) {
+    const P = el.points.map((p) => [p[0], p[1]]);
+    const a = P[0], z = P[P.length - 1];
+    if (Math.hypot(a[0] - z[0], a[1] - z[1]) < 1e-6) P.pop();     // le tracé se referme de lui-même
+    if (P.length < 3) return null;
+    const n = Object.assign({}, el, { id: nouvelId(), seed: graine(), type: "freedraw", points: P,
+      pressures: P.map(() => 0.5), simulatePressure: false, lastCommittedPoint: null,
+      strokeColor: el.backgroundColor, backgroundColor: "transparent", roundness: null, boundElements: null,
+      startArrowhead: null, endArrowhead: null,
+      customData: Object.assign({}, el.customData || {}, { pointe: "remplissage", net: true }) });
+    delete n.polygon;
+    const bb = R.boite(n); n.width = bb.w; n.height = bb.h;
+    toucher(n);
+    return n;
+  }
   function gommerPartie(g, a, b) {
     const r = etat.gommeTaille / etat.zoom;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (r * 0.5)));
@@ -1824,6 +2056,16 @@
           selection.delete(el.id);
           g.coupes = g.encre = true;
           i += libres.length;              // ses deux morceaux passent sous la gomme dès ce pas
+          continue;
+        }
+        if (estZoneSeau(el)) {
+          if (!R.touche(el, c[0], c[1], r)) continue;
+          const libre = zoneEnLibre(el);
+          if (!libre) continue;
+          elements.splice(i, 1, libre);
+          selection.delete(el.id);
+          g.coupes = true;
+          i += 1;                          // la surface passe sous la gomme dès ce pas
           continue;
         }
         if (el.type !== "freedraw" || el.locked) continue;
@@ -1939,6 +2181,16 @@
     toile.setPointerCapture(e.pointerId);
     const { sx, sy } = posPointeur(e);
     pointeurs.set(e.pointerId, { sx, sy, type: e.pointerType });
+    if (e.pointerType === "touch") {
+      const n = pointeurs.size, maintenant = performance.now();
+      if (n === 1) { premierDoigt = maintenant; tape = null; }
+      // deux doigts posés presque ensemble : peut-être une tape
+      else if (n === 2 && maintenant - premierDoigt < 250)
+        tape = { n: 2, t0: premierDoigt, bouge: false, vue: [etat.zoom, etat.scrollX, etat.scrollY],
+                 depart: new Map([...pointeurs].map(([id, q]) => [id, [q.sx, q.sy]])) };
+      else if (n === 3 && tape) { tape.n = 3; tape.depart.set(e.pointerId, [sx, sy]); }
+      else if (n > 3) tape = null;
+    }
     if (pointeurs.size === 2) {
       // deux doigts : on abandonne le geste commencé et on pince
       annulerGeste();
@@ -1958,6 +2210,7 @@
     if (e.button === 1 || e.button === 2 || espace || etat.outil === "main" || doigt) {
       e.preventDefault();
       geste = { mode: "pan", sx, sy, x0: etat.scrollX, y0: etat.scrollY };
+      if (doigt) armerPipette(geste, sx, sy);
       majCurseur();
       return;
     }
@@ -1966,11 +2219,17 @@
     if (o === "selection") return debutSelection(e, p);
     if (OUTILS_FORME.includes(o)) return debutForme(e, p);
     if (o === "arrow" || o === "line") return debutLigne(e, p);
-    if (OUTILS_DESSIN.includes(o)) return debutDessin(e, p);
+    if (OUTILS_DESSIN.includes(o)) {
+      debutDessin(e, p);
+      if (e.pointerType === "touch" && geste && geste.mode === "dessin") armerPipette(geste, sx, sy);
+      return;
+    }
     if (o === "texte") return debutTexte(e, p);
     if (o === "gomme") { debutGomme(p); return; }
     if (o === "lasso") return debutLasso(e, p);
     if (o === "baguette") return clicBaguette(e, p);
+    if (o === "pipette") return clicPipette(e, p);
+    if (o === "seau") return clicSeau(e, p);
     if (o === "lien") return debutLien(e, p);
     if (o === "laser") {
       geste = { mode: "laser" };
@@ -1997,8 +2256,9 @@
     }
     const h = poigneeSous(p.x, p.y);
     if (h) {
-      const sel = selectionnes();
-      geste = { mode: "redim", h, b0: boiteDe(sel), origines: sel.map((el) => JSON.parse(JSON.stringify(el))) };
+      const sel = selectionnes(), C = cadrePoignees();
+      geste = { mode: "redim", h, b0: C.b, angle: C.angle || 0, c0: C.c || null, uniforme: !!C.uniforme,
+                origines: sel.map((el) => JSON.parse(JSON.stringify(el))) };
       return;
     }
     const el = aPortee(p.x, p.y);
@@ -2083,7 +2343,23 @@
       if (cd.effet || cd.pointe) el.customData = cd;
     }
     elements.push(el);
-    geste = { mode: "dessin", el, regle };
+    // les jumeaux en miroir : un par axe, et un de plus, en diagonale, quand il y en a deux
+    const jumeaux = [], miroirs = [];
+    if (etat.symetrie && !regle) {
+      const s = etat.symetrie;
+      if (s.y == null) s.y = versScene(0, toile.clientHeight / 2).y;
+      (AXES_SYMETRIE[s.axe] || AXES_SYMETRIE.v).forEach(([kx, ky]) => {
+        const j = nouvelElement("freedraw", kx < 0 ? 2 * s.x - p.x : p.x, ky < 0 ? 2 * s.y - p.y : p.y, {
+          points: [[0, 0]], pressures: el.pressures.slice(), simulatePressure: el.simulatePressure,
+          lastCommittedPoint: null, backgroundColor: "transparent", roundness: null,
+        });
+        Object.assign(j, { strokeColor: el.strokeColor, strokeWidth: el.strokeWidth, opacity: el.opacity });
+        if (el.customData) j.customData = JSON.parse(JSON.stringify(el.customData));
+        elements.push(j);
+        jumeaux.push(j); miroirs.push([kx, ky]);
+      });
+    }
+    geste = { mode: "dessin", el, regle, jumeaux, miroirs, suit: { x: p.x, y: p.y } };
     demander();
   }
 
@@ -2106,6 +2382,11 @@
     if (ignores.has(e.pointerId)) return;
     const { sx, sy } = posPointeur(e);
     if (pointeurs.has(e.pointerId)) pointeurs.set(e.pointerId, { sx, sy, type: e.pointerType });
+    if (tape && tape.depart.has(e.pointerId)) {
+      const d0 = tape.depart.get(e.pointerId);
+      if (Math.hypot(sx - d0[0], sy - d0[1]) > 12) tape.bouge = true;
+    }
+    if (geste && geste.appui && Math.hypot(sx - geste.ax, sy - geste.ay) > 8) { clearTimeout(geste.appui); geste.appui = 0; }
     const p = versScene(sx, sy);
     dernierePos = p;
     if (!geste) {
@@ -2172,14 +2453,24 @@
       (evs.length ? evs : [e]).forEach((ev) => {
         let q = versScene(posPointeur(ev).sx, posPointeur(ev).sy);
         if (g.regle) { const j = S.projeter(g.regle.bord, [q.x, q.y], g.regle.ecart); q = { x: j[0], y: j[1] }; }
+        else if (etat.lisse) {
+          const f = LISSES[etat.lisse];
+          g.suit.x += (q.x - g.suit.x) * (1 - f); g.suit.y += (q.y - g.suit.y) * (1 - f);
+          q = { x: g.suit.x, y: g.suit.y };
+        }
         const el = g.el, der = el.points[el.points.length - 1];
         const px = q.x - el.x, py = q.y - el.y;
         if (Math.hypot(px - der[0], py - der[1]) * etat.zoom < 1) return;
         el.points.push([px, py]);
         el.pressures.push(pressionDe(ev, el));
+        (g.jumeaux || []).forEach((j, k) => {
+          const [kx, ky] = g.miroirs[k];
+          j.points.push([kx * px, ky * py]); j.pressures.push(el.pressures[el.pressures.length - 1]);
+        });
       });
       const b = R.boite(g.el);
       g.el.width = b.w; g.el.height = b.h;
+      (g.jumeaux || []).forEach((j) => { const bj = R.boite(j); j.width = bj.w; j.height = bj.h; });
       guetterArret(g, sx, sy);
       demander();
       return;
@@ -2201,8 +2492,12 @@
     if (surPoigneeTourner(p.x, p.y)) return majCurseur("grab");
     const h = poigneeSous(p.x, p.y);
     if (h) {
+      // sur un cadre tourné, la flèche du curseur tourne avec lui, par huitièmes de tour
+      const ronde = ["n", "ne", "e", "se", "s", "sw", "w", "nw"], C = cadrePoignees();
+      const pas = C && C.angle ? Math.round(C.angle / (Math.PI / 4)) : 0;
+      const k = ronde[(((ronde.indexOf(h) + pas) % 8) + 8) % 8];
       return majCurseur({ n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize",
-                          nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize" }[h]);
+                          nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize" }[k]);
     }
     majCurseur(aPortee(p.x, p.y) ? "move" : "default");
   }
@@ -2242,6 +2537,10 @@
     el.points = [[0, 0], [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]]];
     el.width = Math.abs(el.points[1][0]); el.height = Math.abs(el.points[1][1]);
     toucher(el);
+    // l'étiquette d'une flèche suit le bout qu'on tire (essayé : sans ceci,
+    // « extend » restait où la flèche n'était plus, du mauvais côté)
+    const etiq = texteDe(el);
+    if (etiq) placerLie(etiq);
     demander();
   }
 
@@ -2250,6 +2549,9 @@
      positions, tailles, points, et la police d'un texte quand on tire un
      coin. Maj garde les proportions. */
   function redimensionner(g, p, e) {
+    if (g.uniforme) return redimUniforme(g, p);
+    // un élément tourné s'étire dans SON repère : le pointeur y est ramené
+    if (g.angle) { const q = rotationAutour(g.c0, -g.angle)(p.x, p.y); p = { x: q[0], y: q[1] }; }
     const b = g.b0;
     let x0 = b.x, y0 = b.y, x1 = b.x + b.w, y1 = b.y + b.h;
     if (g.h.includes("w")) x0 = Math.min(p.x, x1 - 1);
@@ -2284,6 +2586,44 @@
           mesurerLibre(el);
         } else { el.width = o.width; el.height = o.height; }
       }
+      /* Tourné : la nouvelle boîte a été calculée droite, autour de l'ancien
+         centre. On repose son centre là où la rotation l'envoie : le côté
+         opposé à la poignée reste alors exactement où il était. */
+      if (g.angle) {
+        const nb = R.boite(el), L = [nb.x + nb.w / 2, nb.y + nb.h / 2];
+        const S0 = rotationAutour(g.c0, g.angle)(L[0], L[1]);
+        el.x += S0[0] - L[0]; el.y += S0[1] - L[1];
+      }
+      toucher(el);
+    });
+    replacerLies(g.origines.map((o) => parId(o.id)).filter(Boolean));
+    demander();
+  }
+  /* Plusieurs éléments dont l'un est tourné : un coin les agrandit tous du
+     même facteur, depuis le coin opposé, sans rien déformer. Le facteur est
+     la projection du pointeur sur la diagonale du cadre. */
+  function redimUniforme(g, p) {
+    const b = g.b0;
+    const ax = g.h.includes("w") ? b.x + b.w : b.x, ay = g.h.includes("n") ? b.y + b.h : b.y;
+    const dx = (g.h.includes("w") ? b.x : b.x + b.w) - ax, dy = (g.h.includes("n") ? b.y : b.y + b.h) - ay;
+    const d2 = dx * dx + dy * dy || 1;
+    const s = Math.max(0.05, ((p.x - ax) * dx + (p.y - ay) * dy) / d2);
+    g.origines.forEach((o) => {
+      const el = parId(o.id);
+      if (!el) return;
+      const ob = R.boite(o), cx = ax + (ob.x + ob.w / 2 - ax) * s, cy = ay + (ob.y + ob.h / 2 - ay) * s;
+      if (o.points) {
+        el.points = o.points.map((q) => [q[0] * s, q[1] * s]);
+        const bb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+        el.width = bb.w; el.height = bb.h;
+      } else {
+        el.width = Math.max(1, o.width * s);
+        el.height = Math.max(1, o.height * s);
+      }
+      if (el.type === "text" && !el.containerId) { el.fontSize = Math.max(4, o.fontSize * s); mesurerLibre(el); }
+      // le centre de chaque élément s'éloigne du coin fixe du même facteur ; son angle ne change pas
+      const nb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+      el.x = cx - (nb.x + nb.w / 2); el.y = cy - (nb.y + nb.h / 2);
       toucher(el);
     });
     replacerLies(g.origines.map((o) => parId(o.id)).filter(Boolean));
@@ -2321,9 +2661,21 @@
     if (ignores.delete(e.pointerId)) return;
     if (e.pointerId === penBas) penBas = null;
     pointeurs.delete(e.pointerId);
+    if (tape && pointeurs.size === 0) {
+      const tp = tape;
+      tape = null;
+      if (!tp.bouge && performance.now() - tp.t0 < 400) {
+        // le pincement a pu bouger la vue d'un cheveu : on la rend telle quelle
+        etat.zoom = tp.vue[0]; etat.scrollX = tp.vue[1]; etat.scrollY = tp.vue[2];
+        if (geste && geste.mode === "pince") geste = null;
+        revenir(tp.n === 2 ? -1 : 1);
+        dire(tp.n === 2 ? "Annulé, d'une tape à deux doigts." : "Rétabli, d'une tape à trois doigts.");
+        return;
+      }
+    }
     if (!geste) return;
     const g = geste;
-    clearTimeout(g.minuterie);
+    clearTimeout(g.minuterie); clearTimeout(g.appui);
     if (g.mode === "pince") { if (pointeurs.size < 2) { geste = null; garder(); } return; }
     if (g.mode === "lasso" && g.forme === "polygone") { demander(); return; }
     geste = null;
@@ -2363,8 +2715,9 @@
       const b = R.boite(g.el);
       g.el.width = b.w; g.el.height = b.h;
       toucher(g.el);
+      (g.jumeaux || []).forEach((j) => { const bj = R.boite(j); j.width = bj.w; j.height = bj.h; toucher(j); });
       memoriser();
-      if (etat.formes && !g.regle && !estSurligneur(g.el)) formeAuto(g.el);
+      if (etat.formes && !g.regle && !(g.jumeaux && g.jumeaux.length) && !estSurligneur(g.el)) formeAuto(g.el);
       demander();
       return;
     }
@@ -2423,7 +2776,9 @@
     if (!geste) return;
     const g = geste;
     geste = null;
+    clearTimeout(g.appui);
     if ((g.mode === "creer" || g.mode === "ligne" || g.mode === "dessin") && g.el) retirer([g.el.id]);
+    if (g.jumeaux && g.jumeaux.length) retirer(g.jumeaux.map((j) => j.id));
     if (g.mode === "gomme") fantomes = new Set();
     if (g.mode === "gomme" && g.partie && g.coupes) elements = JSON.parse(g.avant);
     if (g.mode === "redresse") retirer([g.el.id]);
@@ -2476,6 +2831,8 @@
       const libreDuGroupe = voisins.find((x) => x.type === "text" && !x.containerId);
       if (libreDuGroupe) return ouvrirEdition(libreDuGroupe);
     }
+    // un trait seul (ou qui porte déjà son étiquette) : on écrit dessus
+    if (el && lineaire(el) && !estLien(el)) return editerLie(el);
     if (!el) {
       etat.outil = "texte";
       debutTexte(e, p);
@@ -2526,7 +2883,7 @@
     s.lineHeight = String(el.lineHeight || 1.25);
     s.color = el.strokeColor;
     s.textAlign = el.textAlign;
-    if (c) {
+    if (c && !lineaire(c)) {
       const pad = estPostit(c) ? PAD_POSTIT : PAD;
       const facteur = c.type === "ellipse" ? Math.SQRT1_2 : c.type === "diamond" ? 0.5 : 1;
       const maxW = c.width * facteur - pad * 2;
@@ -2596,7 +2953,7 @@
     // le texte d'un conteneur part avec lui ; un conteneur perd son lien
     ids.forEach((id) => {
       const el = parId(id);
-      if (el && conteneur(el)) { const t = texteDe(el); if (t) tout.add(t.id); }
+      if (el && porteur(el)) { const t = texteDe(el); if (t) tout.add(t.id); }
     });
     elements.forEach((el) => {
       if (el.boundElements) {
@@ -2616,7 +2973,7 @@
      nouveaux identifiants des deux côtés, et le lien refait. */
   function cloner(liste, dx, dy) {
     const ids = new Set(liste.map((e) => e.id));
-    liste.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+    liste.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
     const sources = elements.filter((e) => ids.has(e.id));
     return clonerBrut(sources, dx, dy);
   }
@@ -2658,7 +3015,7 @@
     const sel = selectionnes();
     if (!sel.length) return;
     const ids = new Set(sel.map((e) => e.id));
-    sel.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+    sel.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
     const liste = elements.filter((e) => ids.has(e.id));
     pressePapiers = JSON.parse(JSON.stringify(liste));
     /* Le format de presse-papiers partagé : ce qu'on copie ici se colle
@@ -2781,9 +3138,9 @@
       + '" aria-label="' + ech(t) + '">' + (ic || ech(t)) + '</button>').join("") + '</div>';
   }
   function grilleCouleurs(prop) {
-    return '<details class="tb-plus"><summary>Plus de couleurs</summary><div class="tb-palette">'
+    return '<details class="tb-plus"><summary>Toutes les couleurs</summary><div class="tb-palette">'
       + Object.keys(OC).map((k) => OC[k].map((c) => pastille(prop, c, null, k + " " + c)).join("")).join("")
-      + '</div><label class="tb-hex">Code <input type="color" data-prop="' + prop + '" aria-label="Couleur libre"></label></details>';
+      + '</div><label class="tb-hex">Couleur libre <input type="color" data-prop="' + prop + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
   }
   const IC = {
     hachure: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M5 11l6-6M5 16l11-11M10 16l6-6"/></svg>',
@@ -2898,7 +3255,7 @@
     const sel = selectionnes();
     sel.forEach((el) => {
       const touches = [el];
-      if (/^font|textAlign/.test(prop) && conteneur(el)) { const t = texteDe(el); if (t) touches.push(t); }
+      if (/^font|textAlign/.test(prop) && porteur(el)) { const t = texteDe(el); if (t) touches.push(t); }
       touches.forEach((x) => {
         if (prop === "arrondi") {
           if (x.type === "text" || x.type === "ellipse" || x.type === "freedraw") return;
@@ -2947,7 +3304,7 @@
   const TOUCHES = { v: "selection", 1: "selection", r: "rectangle", 2: "rectangle", d: "diamond", 3: "diamond",
                     o: "ellipse", 4: "ellipse", a: "arrow", 5: "arrow", l: "line", 6: "line", p: "freedraw",
                     7: "freedraw", t: "texte", 8: "texte", e: "gomme", 0: "gomme", h: "main", k: "laser",
-                    n: "postit", m: "surligneur", s: "lasso", w: "baguette" };
+                    n: "postit", m: "surligneur", s: "lasso", w: "baguette", i: "pipette", b: "seau" };
   scene.addEventListener("keydown", (e) => {
     if (e.target !== scene) return;
     const k = e.key.toLowerCase();
@@ -2965,6 +3322,7 @@
     if (mod && k === "a") { e.preventDefault(); choisirOutil("selection");
       selection = new Set(elements.filter((x) => !estLie(x)).map((x) => x.id)); majPanneau(); demander(); return; }
     if (mod && k === "s") { e.preventDefault(); enregistrer(); return; }
+    if (mod && e.shiftKey && k === "o") { e.preventDefault(); ouvrirBiblio(); return; }
     if (mod && k === "o") { e.preventDefault(); $("#tb-fichier").click(); return; }
     if (mod && e.shiftKey && k === "e") { e.preventDefault(); ouvrirExport(); return; }
     /* La touche, pas le caractère : avec Maj, « [ » devient « { » sur un
@@ -3018,6 +3376,8 @@
     if (k === "q") { basculerVerrou(); return; }
     if (k === "g") { basculerRegle(); return; }
     if (k === "f") { basculerFormes(); return; }
+    if (k === "j") { basculerSymetrie(); return; }
+    if (k === "u") { basculerLisse(); return; }
     if (e.key === "?") { ouvrirDialogue("#tb-aide"); return; }
     const o = TOUCHES[k] || TOUCHES[e.code.replace(/^(Digit|Numpad)/, "")];
     if (o && !e.altKey) { e.preventDefault(); choisirOutil(o); }
@@ -3104,7 +3464,7 @@
     const sel = selectionnes();
     if (seule && sel.length) {
       const ids = new Set(sel.map((e) => e.id));
-      sel.forEach((e) => { if (conteneur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
+      sel.forEach((e) => { if (porteur(e)) { const t = texteDe(e); if (t) ids.add(t.id); } });
       return elements.filter((e) => ids.has(e.id));
     }
     return elements;
@@ -3180,7 +3540,7 @@
     liste.forEach((el) => {
       if (estLie(el)) return;
       s += svgEl(el);
-      if (conteneur(el)) { const t = texteDe(el); if (t) s += svgEl(t); }
+      if (porteur(el)) { const t = texteDe(el); if (t) s += svgEl(t); }
     });
     s += "</g>\n</svg>\n";
     telecharger(nomFichier() + ".svg", s, "image/svg+xml");
@@ -3208,13 +3568,21 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
   }));
   $$("[data-bascule]").forEach((b) => b.addEventListener("click", () => {
-    if (b.dataset.bascule === "regle") basculerRegle(); else basculerFormes();
+    const q = b.dataset.bascule;
+    if (q === "regle") basculerRegle();
+    else if (q === "symetrie") {
+      if (!etat.symetrie) basculerSymetrie();
+      else if (reglage.hidden || reglage.dataset.quoi !== "symetrie") ouvrirReglageSymetrie();
+      else reglage.hidden = true;
+    }
+    else if (q === "lisse") basculerLisse();
+    else basculerFormes();
     scene.focus({ preventScroll: true });
   }));
   $("#tb-annuler").addEventListener("click", () => revenir(-1));
@@ -3252,6 +3620,8 @@
     fermerMenu();
     if (a === "ouvrir") $("#tb-fichier").click();
     else if (a === "enregistrer") enregistrer();
+    else if (a === "biblio") ouvrirBiblio();
+    else if (a === "nouveau") { bibDossier = (bibCourant() || {}).parent || null; bibNouveauTableau(); }
     else if (a === "exporter") ouvrirExport();
     else if (a === "aide") ouvrirDialogue("#tb-aide");
     else if (a === "effacer") {
@@ -3540,6 +3910,9 @@
     ["sans-fil", "Sans fil", "#2f9e44", "dotted", 2],
     ["internet", "Internet", "#1971c2", "solid", 4.5],
     ["vpn", "Tunnel VPN", "#7048e8", "dashed", 3],
+    ["agregat", "Agrégat (EtherChannel)", "#0b7285", "solid", 6.5],
+    ["trunk", "Trunk 802.1Q", "#e8590c", "solid", 3.5],
+    ["telephone", "Ligne téléphonique", "#868e96", "dashed", 2],
   ];
   const estLien = (el) => !!(el && el.customData && el.customData.lien);
   let lienDebut = null;
@@ -3696,6 +4069,485 @@
     const tete = gRect(0, 0, w, h1, { backgroundColor: couleur }), bas = gRect(0, h1, w, h2);
     return [tete, gTexte(tete, titre), bas, gListe(bas, corps)];
   }
+  /* ── le tableau de bord de supervision ──
+     Demandé le 13 novembre 2026 : de quoi maquetter un tableau de bord
+     comme ceux des outils de supervision (panneaux sombres, valeur en
+     grand, courbes, jauge à seuils). Ce sont des éléments ordinaires :
+     chaque panneau se déplace, se réécrit, se recolore au seau. Les
+     chiffres sont des exemples ; un double-clic les remplace.
+     Les couleurs sont fixées ici, hors palette, parce qu'un panneau de
+     supervision a ses propres codes : vert tant que ça va, jaune à
+     surveiller, rouge en alerte. */
+  const BD = { fond: "#181b1f", bord: "#34373d", grille: "#2c3038", texte: "#ccccdc", doux: "#8e9199", nuit: "#101214",
+               vert: "#73bf69", jaune: "#f2cc0c", rouge: "#f2495c", bleu: "#5794f2", orange: "#ff9830" };
+  const bdTexte = (x, y, t, taille, couleur) => libre(x, y, t, taille, { strokeColor: couleur || BD.texte, fontFamily: 2 });
+  const bdTrait = (pts, couleur, w) => { const t = gTrace(pts, false, { w: w || 2 }); t.strokeColor = couleur; return t; };
+  const bdBloc = (x, y, w, h, couleur, o) => gRect(x, y, w, h, Object.assign(
+    { backgroundColor: couleur, strokeColor: "transparent", strokeWidth: 1 }, o || {}));
+  const bdPastille = (x, y, w, h, couleur, t, encre) => {
+    const p = bdBloc(x, y, w, h, couleur, { roundness: { type: 3 } });
+    return [p, gTexte(p, t, { fontSize: 12, strokeColor: encre || BD.nuit, fontFamily: 2 })];
+  };
+  const bdSeuil = (v) => (v < 0.6 ? BD.vert : v < 0.85 ? BD.jaune : BD.rouge);
+  function bdPanneau(w, h, titre) {
+    const p = gRect(0, 0, w, h, { backgroundColor: BD.fond, strokeColor: BD.bord, strokeWidth: 1, roundness: { type: 3 } });
+    return titre ? [p, bdTexte(12, 9, titre, 14)] : [p];
+  }
+  function bdStat(titre, valeur, couleur, w, h) {
+    w = w || 220; h = h || 130;
+    const k = [0.2, 0.35, 0.3, 0.5, 0.42, 0.6, 0.55, 0.78, 0.7, 0.95];
+    return bdPanneau(w, h, titre).concat([bdTexte(12, 34, valeur, 38, couleur),
+      bdTrait(k.map((v, i) => [12 + i * (w - 24) / (k.length - 1), h - 10 - v * 26]), couleur, 2)]);
+  }
+  function bdCourbe(w, h, titre) {
+    w = w || 460; h = h || 240;
+    const g0 = 46, g1 = w - 16, h0 = 42, h1 = h - 48, els = bdPanneau(w, h, titre);
+    ["100", "66", "33", "0"].forEach((t, i) => {
+      const y = h0 + (h1 - h0) * i / 3;
+      els.push(bdTrait([[g0, y], [g1, y]], BD.grille, 1), bdTexte(12, y - 8, t, 11, BD.doux));
+    });
+    const serie = (vals, c) => bdTrait(vals.map((v, i) => [g0 + (g1 - g0) * i / (vals.length - 1), h1 - (h1 - h0) * v]), c, 2);
+    els.push(serie([0.3, 0.42, 0.38, 0.55, 0.5, 0.7, 0.62, 0.8, 0.66, 0.74, 0.58, 0.69], BD.vert),
+             serie([0.15, 0.2, 0.3, 0.26, 0.4, 0.36, 0.3, 0.44, 0.5, 0.4, 0.46, 0.38], BD.bleu));
+    ["10:00", "11:00", "12:00", "13:00"].forEach((t, i) => els.push(bdTexte(g0 + (g1 - g0 - 34) * i / 3, h1 + 5, t, 11, BD.doux)));
+    els.push(bdBloc(g0, h - 15, 12, 4, BD.vert), bdTexte(g0 + 18, h - 22, "entrant", 11),
+             bdBloc(g0 + 92, h - 15, 12, 4, BD.bleu), bdTexte(g0 + 110, h - 22, "sortant", 11));
+    return els;
+  }
+  function bdJauge(titre, part, texte, w, h) {
+    w = w || 240; h = h || 190;
+    const cx = w / 2, cy = h - 44, r = Math.max(30, Math.min(w / 2 - 34, h - 96));
+    const arc = (rayon, a0, a1, c, ep) => bdTrait(arcG(cx, cy, rayon, rayon, Math.PI * (1 + a0), Math.PI * (1 + a1), 24), c, ep);
+    const els = bdPanneau(w, h, titre).concat([arc(r, 0, 1, BD.grille, 14), arc(r, 0, part, bdSeuil(part), 14),
+      arc(r + 13, 0, 0.6, BD.vert, 3), arc(r + 13, 0.6, 0.85, BD.jaune, 3), arc(r + 13, 0.85, 1, BD.rouge, 3)]);
+    const t = bdTexte(0, cy - 32, texte, 28, bdSeuil(part));
+    t.x = cx - t.width / 2;
+    els.push(t);
+    return els;
+  }
+  function bdBarres(w, h, titre) {
+    w = w || 360; h = h || 220;
+    const els = bdPanneau(w, h, titre), base = h - 32, haut = 44, vals = [0.45, 0.7, 0.55, 0.9, 0.62, 0.38, 0.75];
+    const pas = (w - 40) / vals.length;
+    els.push(bdTrait([[16, base], [w - 16, base]], BD.grille, 1));
+    vals.forEach((v, i) => {
+      const hb = (base - haut) * v;
+      els.push(bdBloc(24 + i * pas, base - hb, pas * 0.62, hb, BD.bleu),
+               bdTexte(24 + i * pas, base + 6, ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"][i], 11, BD.doux));
+    });
+    return els;
+  }
+  function bdJauges(w, h, titre) {
+    w = w || 340; h = h || 170;
+    const els = bdPanneau(w, h, titre), x0 = 112, l = w - x0 - 64;
+    [["Processeur", 0.42], ["Mémoire", 0.71], ["Disque", 0.9]].forEach(([nom, v], i) => {
+      const y = 44 + i * 40;
+      els.push(bdTexte(12, y + 1, nom, 13), bdBloc(x0, y, l, 18, BD.grille), bdBloc(x0, y, l * v, 18, bdSeuil(v)),
+               bdTexte(w - 52, y, Math.round(v * 100) + " %", 14, bdSeuil(v)));
+    });
+    return els;
+  }
+  function bdTableau(w, h, titre) {
+    w = w || 440; h = h || 210;
+    const els = bdPanneau(w, h, titre), cols = [12, w * 0.38, w * 0.64, w - 66];
+    ["Hôte", "Adresse", "Latence", "État"].forEach((t, i) => els.push(bdTexte(cols[i], 38, t, 12, BD.bleu)));
+    els.push(bdTrait([[12, 60], [w - 12, 60]], BD.bord, 1));
+    [["srv-web-01", "10.0.10.11", "12 ms", "OK", BD.vert], ["srv-bdd-01", "10.0.20.21", "48 ms", "OK", BD.vert],
+     ["routeur-r1", "10.0.0.1", "3 ms", "OK", BD.vert], ["srv-fichiers", "10.0.30.31", "aucune", "HS", BD.rouge]].forEach((ligne, r) => {
+      const y = 68 + r * 33;
+      ligne.slice(0, 3).forEach((t, i) => els.push(bdTexte(cols[i], y + 4, t, 13)));
+      els.push(...bdPastille(cols[3], y + 2, 46, 22, ligne[4], ligne[3]));
+      if (r < 3) els.push(bdTrait([[12, y + 30], [w - 12, y + 30]], BD.grille, 1));
+    });
+    return els;
+  }
+  function bdCamembert(w, h, titre) {
+    w = w || 300; h = h || 220;
+    const els = bdPanneau(w, h, titre), cx = 96, cy = h / 2 + 12, r = 66;
+    let a = -Math.PI / 2;
+    [[0.5, BD.vert, "Web"], [0.3, BD.bleu, "Base"], [0.2, BD.orange, "Autres"]].forEach(([part, c, nom], i) => {
+      const b = a + part * 2 * Math.PI;
+      const secteur = gTrace([[cx, cy]].concat(arcG(cx, cy, r, r, a, b, Math.max(6, Math.round(part * 48)))), true, { fond: c, w: 1 });
+      secteur.strokeColor = BD.fond;
+      els.push(secteur, bdBloc(190, 62 + i * 30, 12, 12, c), bdTexte(210, 59 + i * 30, nom + "  " + Math.round(part * 100) + " %", 13));
+      a = b;
+    });
+    return els;
+  }
+  function bdEtat(titre, texte, couleur, w, h) {
+    w = w || 200; h = h || 110;
+    const t = bdTexte(0, 42, texte, 28, BD.nuit);
+    t.x = w / 2 - t.width / 2;
+    return [gRect(0, 0, w, h, { backgroundColor: couleur, strokeColor: "transparent", roundness: { type: 3 } }), bdTexte(12, 9, titre, 13, BD.nuit), t];
+  }
+  function bdAlertes(w, h, titre) {
+    w = w || 340; h = h || 190;
+    const els = bdPanneau(w, h, titre);
+    [[BD.rouge, "Disque plein à 90 %", "srv-fichiers · il y a 4 min"], [BD.orange, "Latence élevée", "srv-bdd-01 · il y a 12 min"],
+     [BD.vert, "Lien rétabli", "routeur-r1 · il y a 1 h"]].forEach(([c, t, d], i) => {
+      const y = 40 + i * 48;
+      els.push(bdBloc(12, y, 4, 38, c), bdTexte(26, y, t, 14), bdTexte(26, y + 20, d, 11, BD.doux));
+    });
+    return els;
+  }
+  /* Le tableau de bord entier : chaque panneau garde SON groupe, pour qu'on
+     en déplace un sans emporter les autres. */
+  function bdComplet() {
+    const W = 960, tout = [];
+    const poser = (els, x, y) => {
+      const g = nouvelId();
+      els.forEach((e) => { e.x += x; e.y += y; if (!estLie(e)) e.groupIds = [g]; });
+      tout.push(...els);
+    };
+    poser([gRect(0, 0, W, 46, { backgroundColor: BD.fond, strokeColor: BD.bord, strokeWidth: 1, roundness: { type: 3 } }),
+           bdTexte(16, 12, "Supervision · salle serveurs", 17)]
+      .concat(bdPastille(W - 270, 9, 150, 28, BD.grille, "Dernières 6 heures", BD.texte),
+              bdPastille(W - 108, 9, 92, 28, BD.grille, "↻  30 s", BD.texte)), 0, 0);
+    const ws = (W - 36) / 4;
+    [["Disponibilité", "99,9 %", BD.vert], ["Requêtes / s", "1 284", BD.bleu], ["Latence moyenne", "42 ms", BD.jaune],
+     ["Erreurs", "7", BD.rouge]].forEach(([t, v, c], i) => poser(bdStat(t, v, c, ws, 124), i * (ws + 12), 58));
+    poser(bdCourbe(620, 250, "Trafic réseau (Mbit/s)"), 0, 194);
+    poser(bdJauge("Processeur", 0.72, "72 %", 328, 250), 632, 194);
+    poser(bdTableau(540, 210, "Équipements"), 0, 456);
+    poser(bdAlertes(408, 210, "Alertes"), 552, 456);
+    return tout;
+  }
+
+  /* ═══════════════ La famille « maths » ══════════════════════════════
+     Demandée le 14 novembre 2026, en pensant à un professeur de maths :
+     le repère, les courbes de référence, les tableaux de variations et de
+     signes, la matrice, l'arbre de probabilités. Et un traceur : on écrit
+     f(x), la courbe se pose dans son repère.
+
+     Tout reste fait d'éléments ordinaires : un repère est deux flèches et
+     des traits, une courbe est une ligne. On les déplace, on les recolore,
+     on écrit dessus au stylo. */
+  const M_GRILLE = "#ced4da", M_COURBE = "#c92a2a", M_BLEU = "#1971c2", M_VERT = "#2b8a3e";
+  const mLigne = (x1, y1, x2, y2, couleur, w, style) => {
+    const t = gTrace([[x1, y1], [x2, y2]], false, { w: w || 2, style });
+    t.strokeColor = couleur || ENCRE_G;
+    return t;
+  };
+  const mT = (x, y, t, taille, couleur) => libre(x, y, t, taille || 18, couleur ? { strokeColor: couleur } : null);
+  const mCase = (x, y, w, h, t, o) => {
+    const c = gRect(x, y, w, h, Object.assign({ strokeWidth: 1.5 }, o || {}));
+    return t === null || t === undefined ? [c] : [c, gTexte(c, t)];
+  };
+  /* Un repère : x de a à b, y de c à d, « u » pixels par unité. Rend les
+     éléments, et les deux fonctions qui placent un point. */
+  function mRepere(a, b, c, d, u, o) {
+    o = o || {};
+    const X = (x) => (x - a) * u, Y = (y) => (d - y) * u, L = [];
+    for (let x = Math.ceil(a); x <= b; x++) {
+      if (!x) continue;
+      L.push(o.grille ? mLigne(X(x), Y(d), X(x), Y(c), M_GRILLE, 1) : mLigne(X(x), Y(0) - 4, X(x), Y(0) + 4, ENCRE_G, 1.5));
+    }
+    for (let y = Math.ceil(c); y <= d; y++) {
+      if (!y) continue;
+      L.push(o.grille ? mLigne(X(a), Y(y), X(b), Y(y), M_GRILLE, 1) : mLigne(X(0) - 4, Y(y), X(0) + 4, Y(y), ENCRE_G, 1.5));
+    }
+    L.push(gTrace([[X(a), Y(0)], [X(b) + 16, Y(0)]], false, { fin: "arrow", w: 2 }));
+    L.push(gTrace([[X(0), Y(c)], [X(0), Y(d) - 16]], false, { fin: "arrow", w: 2 }));
+    L.push(mT(X(b) + 6, Y(0) + 6, "x", 18), mT(X(0) + 8, Y(d) - 26, "y", 18), mT(X(0) - 18, Y(0) + 4, "O", 16));
+    if (b >= 1) L.push(mT(X(1) - 5, Y(0) + 6, "1", 14));
+    if (d >= 1) L.push(mT(X(0) - 16, Y(1) - 10, "1", 14));
+    return { L, X, Y };
+  }
+  /* La courbe de f. Elle s'arrête au bord du cadre, exactement, et reprend
+     de l'autre côté d'une valeur interdite : 1/x se trace en deux branches. */
+  function mCourbe(r, f, a, b, c, d, couleur) {
+    const morceaux = [];
+    let cur = [], avant = null;
+    const n = 200, dedans = (y) => isFinite(y) && y >= c && y <= d;
+    const bord = (p, q) => {                 // où le segment p→q traverse y = c ou y = d
+      const lim = q[1] > d || p[1] > d ? d : c, t = (lim - p[1]) / (q[1] - p[1]);
+      return [p[0] + (q[0] - p[0]) * t, lim];
+    };
+    for (let i = 0; i <= n; i++) {
+      const x = a + (b - a) * i / n, y = f(x), p = [x, y];
+      const saut = avant && isFinite(y) && isFinite(avant[1]) && Math.abs(y - avant[1]) > (d - c) * 1.5;
+      if (dedans(y)) {
+        if (avant && isFinite(avant[1]) && !dedans(avant[1]) && !saut) { const q = bord(avant, p); cur.push([r.X(q[0]), r.Y(q[1])]); }
+        cur.push([r.X(x), r.Y(y)]);
+      } else {
+        if (cur.length && isFinite(y) && !saut) { const q = bord(avant, p); cur.push([r.X(q[0]), r.Y(q[1])]); }
+        if (cur.length > 1) morceaux.push(cur);
+        cur = [];
+      }
+      avant = p;
+    }
+    if (cur.length > 1) morceaux.push(cur);
+    return morceaux.map((pts) => {
+      const t = gTrace(pts, false, { w: 2.5 });
+      t.strokeColor = couleur || M_COURBE; t.roundness = { type: 2 };
+      return t;
+    });
+  }
+  function mGraphe(f, nom, a, b, c, d, u, couleur) {
+    const r = mRepere(a, b, c, d, u, { grille: true });
+    const L = r.L.concat(mCourbe(r, f, a, b, c, d, couleur));
+    if (nom) L.push(mT(r.X(a) + 4, r.Y(d) - 34, nom, 20, couleur || M_COURBE));
+    return L;
+  }
+  /* Lire « 2x^2 - 3x + 1 » sans jamais l'exécuter : une descente récursive
+     qui ne connaît que des nombres, x, les quatre opérations, la puissance
+     et une dizaine de fonctions. Rend une fonction de x, ou null. */
+  function mAnalyser(texte) {
+    const src = String(texte).toLowerCase().replace(/,/g, ".").replace(/[×·]/g, "*").replace(/[÷:]/g, "/")
+      .replace(/[−–]/g, "-").replace(/²/g, "^2").replace(/³/g, "^3").replace(/π/g, "pi").replace(/√/g, "sqrt")
+      .replace(/\*\*/g, "^").replace(/\s+/g, "");
+    const jetons = src.match(/\d+\.?\d*|\.\d+|[a-z]+|[-+*/^()|]/g);
+    if (!jetons || jetons.join("") !== src) return null;
+    const FN = { sin: Math.sin, cos: Math.cos, tan: Math.tan, exp: Math.exp, ln: Math.log, log: Math.log10,
+                 sqrt: Math.sqrt, racine: Math.sqrt, abs: Math.abs, asin: Math.asin, acos: Math.acos, atan: Math.atan };
+    const CST = { pi: Math.PI, e: Math.E };
+    let i = 0, ok = true;
+    const vu = () => jetons[i];
+    const debutPrimaire = (t) => t !== undefined && (/^[\d.a-z(]/.test(t));
+    function somme() {
+      let g = produit();
+      while (vu() === "+" || vu() === "-") {
+        const op = jetons[i++], a = g, b = produit();
+        g = op === "+" ? (x) => a(x) + b(x) : (x) => a(x) - b(x);
+      }
+      return g;
+    }
+    function produit() {
+      let g = signe();
+      for (;;) {
+        if (vu() === "*" || vu() === "/") {
+          const op = jetons[i++], a = g, b = signe();
+          g = op === "*" ? (x) => a(x) * b(x) : (x) => a(x) / b(x);
+        } else if (debutPrimaire(vu())) {             // 2x, 3(x+1), x sin(x) : le « fois » sous-entendu
+          const a = g, b = puissance();
+          g = (x) => a(x) * b(x);
+        } else return g;
+      }
+    }
+    function signe() {
+      if (vu() === "-") { i++; const a = signe(); return (x) => -a(x); }
+      if (vu() === "+") { i++; return signe(); }
+      return puissance();
+    }
+    function puissance() {
+      const a = primaire();
+      if (vu() === "^") { i++; const b = signe(); return (x) => Math.pow(a(x), b(x)); }
+      return a;
+    }
+    function primaire() {
+      const t = jetons[i++];
+      if (t === undefined) { ok = false; return () => NaN; }
+      if (/^[\d.]/.test(t)) { const v = parseFloat(t); return () => v; }
+      if (t === "(") { const g = somme(); if (jetons[i++] !== ")") ok = false; return g; }
+      if (t === "|") { const g = somme(); if (jetons[i++] !== "|") ok = false; return (x) => Math.abs(g(x)); }
+      if (t === "x") return (x) => x;
+      if (FN[t]) {
+        const fn = FN[t];
+        if (vu() !== "(") { const g = puissance(); return (x) => fn(g(x)); }     // sin x
+        i++;
+        const g = somme();
+        if (jetons[i++] !== ")") ok = false;
+        return (x) => fn(g(x));
+      }
+      if (t in CST) { const v = CST[t]; return () => v; }
+      // « xsin », « 2pix » : des lettres collées, qu'on relit une à une
+      ok = false;
+      return () => NaN;
+    }
+    const g = somme();
+    return ok && i === jetons.length ? g : null;
+  }
+  function tracerFonction(texte) {
+    const f = mAnalyser(texte);
+    if (!f) { dire("Je ne sais pas lire cette fonction. Exemples : 2x + 1, x^2 - 3, 1/x, sin(x), exp(-x^2).", true); return false; }
+    const a = -5, b = 5, vals = [];
+    for (let i = 0; i <= 200; i++) { const y = f(a + (b - a) * i / 200); if (isFinite(y)) vals.push(y); }
+    if (!vals.length) { dire("Cette fonction n'a aucune valeur entre −5 et 5.", true); return false; }
+    vals.sort((u, v) => u - v);
+    // la hauteur du repère suit la courbe, sans se laisser emporter par une asymptote
+    const bas = vals[Math.floor(vals.length * 0.04)], haut = vals[Math.ceil(vals.length * 0.96) - 1];
+    let c = Math.max(-8, Math.min(-1, Math.floor(bas - 0.5))), d = Math.min(8, Math.max(1, Math.ceil(haut + 0.5)));
+    if (d - c < 4) { c = Math.min(c, -2); d = Math.max(d, 2); }
+    const nom = "f(x) = " + String(texte).trim().replace(/\*/g, "·");
+    GABARITS["m-trace"] = [nom, "cache", "", "", () => mGraphe(f, nom, a, b, c, d, 36)];
+    insererGabarit("m-trace");
+    return true;
+  }
+  const mArc = (cx, cy, r, a0, a1, n) => Array.from({ length: n + 1 }, (_, i) => {
+    const a = a0 + (a1 - a0) * i / n;
+    return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
+  });
+  function mTrigo() {
+    const R0 = 120, L = [gEllipse(-R0, -R0, 2 * R0, 2 * R0, { backgroundColor: "transparent" })];
+    L.push(gTrace([[-R0 - 30, 0], [R0 + 40, 0]], false, { fin: "arrow", w: 1.5 }), gTrace([[0, R0 + 30], [0, -R0 - 40]], false, { fin: "arrow", w: 1.5 }));
+    [[Math.PI / 6, "π/6"], [Math.PI / 4, "π/4"], [Math.PI / 3, "π/3"]].forEach(([a, t]) => {
+      const x = R0 * Math.cos(a), y = -R0 * Math.sin(a);
+      L.push(mLigne(0, 0, x, y, M_BLEU, 1.5, "dashed"), gEllipse(x - 4, y - 4, 8, 8, { backgroundColor: M_BLEU, strokeColor: M_BLEU }),
+             mT(x + 10, y - 20, t, 16, M_BLEU));
+    });
+    const a = Math.PI / 3, x = R0 * Math.cos(a), y = -R0 * Math.sin(a);
+    L.push(mLigne(x, y, x, 0, M_COURBE, 1.5, "dotted"), mLigne(x, y, 0, y, M_VERT, 1.5, "dotted"));
+    L.push(mT(x - 14, 8, "cos", 15, M_COURBE), mT(-42, y - 10, "sin", 15, M_VERT));
+    L.push(mT(R0 + 8, 6, "0", 16), mT(6, -R0 - 28, "π/2", 16), mT(-R0 - 26, 6, "π", 16), mT(6, R0 + 6, "−π/2", 16));
+    return L;
+  }
+  function mGauss() {
+    const r = { X: (x) => (x + 4) * 50, Y: (y) => (1.15 - y) * 190 }, f = (x) => Math.exp(-x * x / 2);
+    const L = [gTrace([[r.X(-4), r.Y(0)], [r.X(4) + 16, r.Y(0)]], false, { fin: "arrow", w: 2 })];
+    const aire = [[r.X(-1), r.Y(0)]].concat(Array.from({ length: 41 }, (_, i) => { const x = -1 + i / 20; return [r.X(x), r.Y(f(x))]; }), [[r.X(1), r.Y(0)]]);
+    const z = gTrace(aire, true, { fond: "#d0ebff", w: 1 });
+    z.strokeColor = "transparent";
+    L.unshift(z);
+    L.push(...mCourbe(r, f, -4, 4, 0, 1.1, M_BLEU));
+    [[-1, "μ − σ"], [0, "μ"], [1, "μ + σ"]].forEach(([x, t]) => {
+      L.push(mLigne(r.X(x), r.Y(0), r.X(x), r.Y(f(x)), ENCRE_G, 1.2, "dashed"), mT(r.X(x) - (t.length > 1 ? 24 : 5), r.Y(0) + 8, t, 15));
+    });
+    L.push(mT(r.X(0) - 22, r.Y(0.3), "68 %", 16, M_BLEU));
+    return L;
+  }
+  function mIntegrale() {
+    const f = (x) => 0.18 * (x - 1) * (x - 1) + 0.9, r = mRepere(-1, 5, -1, 4, 46);
+    const aire = [[r.X(1), r.Y(0)]].concat(Array.from({ length: 31 }, (_, i) => { const x = 1 + i / 10; return [r.X(x), r.Y(f(x))]; }), [[r.X(4), r.Y(0)]]);
+    const z = gTrace(aire, true, { fond: "#ffe3e3", w: 1 });
+    z.strokeColor = "transparent";
+    return [z].concat(r.L, mCourbe(r, f, -1, 5, -1, 4, M_COURBE),
+      [mT(r.X(1) - 5, r.Y(0) + 24, "a", 18, M_COURBE), mT(r.X(4) - 5, r.Y(0) + 24, "b", 18, M_COURBE),
+       mT(r.X(2) - 6, r.Y(0.75), "∫ f(x) dx", 18, M_COURBE), mT(r.X(4.1), r.Y(3.4), "y = f(x)", 16, M_COURBE)]);
+  }
+  function mVariations() {
+    const L = [], W = 420, c0 = 96;
+    L.push(...mCase(0, 0, c0, 44, "x"), ...mCase(0, 44, c0, 44, "f ′(x)"), ...mCase(0, 88, c0, 96, "f(x)"));
+    L.push(...mCase(c0, 0, W, 44, null), ...mCase(c0, 44, W, 44, null), ...mCase(c0, 88, W, 96, null));
+    L.push(mT(c0 + 14, 10, "−∞", 18), mT(c0 + W / 2 - 10, 10, "x₀", 18), mT(c0 + W - 44, 10, "+∞", 18));
+    L.push(mT(c0 + W / 4, 54, "+", 20), mT(c0 + W / 2 - 5, 54, "0", 18), mT(c0 + 3 * W / 4 - 12, 54, "−", 20));
+    L.push(mLigne(c0 + W / 2, 44, c0 + W / 2, 88, ENCRE_G, 1, "dashed"));
+    L.push(gTrace([[c0 + 34, 170], [c0 + W / 2 - 34, 108]], false, { fin: "arrow", w: 2 }));
+    L.push(gTrace([[c0 + W / 2 + 34, 108], [c0 + W - 34, 170]], false, { fin: "arrow", w: 2 }));
+    L.push(mT(c0 + W / 2 - 8, 92, "M", 18, M_COURBE));
+    return L;
+  }
+  function mSignes() {
+    const L = [], W = 420, c0 = 110, lignes = ["x", "x + 2", "x − 1", "produit"];
+    lignes.forEach((t, i) => L.push(...mCase(0, i * 44, c0, 44, t), ...mCase(c0, i * 44, W, 44, null)));
+    L.push(mT(c0 + 12, 10, "−∞", 18), mT(c0 + W / 3 - 12, 10, "−2", 18), mT(c0 + 2 * W / 3 - 5, 10, "1", 18), mT(c0 + W - 44, 10, "+∞", 18));
+    [W / 3, 2 * W / 3].forEach((x) => L.push(mLigne(c0 + x, 44, c0 + x, 176, ENCRE_G, 1, "dashed")));
+    const signes = [["−", "0", "+", "", "+"], ["−", "", "−", "0", "+"], ["+", "0", "−", "0", "+"]];
+    signes.forEach((s, i) => [W / 6, W / 3, W / 2, 2 * W / 3, 5 * W / 6].forEach((x, j) => {
+      if (s[j]) L.push(mT(c0 + x - 6, 54 + i * 44, s[j], s[j] === "0" ? 18 : 20));
+    }));
+    return L;
+  }
+  function mValeurs() {
+    const L = [];
+    ["x", "−2", "−1", "0", "1", "2"].forEach((t, j) => L.push(...mCase(j ? 70 + (j - 1) * 64 : 0, 0, j ? 64 : 70, 44, t, { backgroundColor: "#e9ecef" })));
+    ["f(x)", "", "", "", "", ""].forEach((t, j) => L.push(...mCase(j ? 70 + (j - 1) * 64 : 0, 44, j ? 64 : 70, 44, t)));
+    return L;
+  }
+  function mMatrice(n) {
+    const pas = 56, H = n * 44, W = n * pas, L = [mT(-70, H / 2 - 14, "A =", 22)];
+    L.push(gTrace([[12, 0], [0, 0], [0, H], [12, H]], false, { w: 2 }), gTrace([[W + 4, 0], [W + 16, 0], [W + 16, H], [W + 4, H]], false, { w: 2 }));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) L.push(mT(22 + j * pas, 9 + i * 44, i === j ? "1" : "0", 20));
+    return L;
+  }
+  function mSysteme() {
+    const H = 120, acc = gTrace([[14, 0], [5, 8], [5, H / 2 - 10], [0, H / 2], [5, H / 2 + 10], [5, H - 8], [14, H]], false, { w: 2 });
+    acc.roundness = { type: 2 };
+    return [acc, mT(26, 2, "2x + y − z = 1", 20), mT(26, 44, "x − y + 2z = 4", 20), mT(26, 86, "3x + 2y + z = 7", 20)];
+  }
+  function mArbre() {
+    const L = [], n = (x, y, t, c) => mT(x, y - 13, t, 20, c);
+    const br = (x1, y1, x2, y2, p) => { L.push(mLigne(x1, y1, x2, y2, ENCRE_G, 1.8), mT((x1 + x2) / 2 - 16, (y1 + y2) / 2 + (y2 < y1 ? -26 : 6), p, 14, M_BLEU)); };
+    br(8, 110, 150, 50, "P(A)"); br(8, 110, 150, 170, "P(Ā)");
+    br(182, 50, 320, 16, "Pₐ(B)"); br(182, 50, 320, 84, "Pₐ(B̄)");
+    br(182, 170, 320, 136, "P(B)"); br(182, 170, 320, 204, "P(B̄)");
+    L.push(n(156, 50, "A"), n(156, 170, "Ā"), n(328, 16, "B"), n(328, 84, "B̄"), n(328, 136, "B"), n(328, 204, "B̄"));
+    L.push(gEllipse(0, 104, 10, 10, { backgroundColor: ENCRE_G }));
+    return L;
+  }
+  function mVenn() {
+    return [gRect(0, 0, 380, 230, { backgroundColor: "transparent", strokeWidth: 1.5 }),
+      gEllipse(50, 45, 170, 140, { backgroundColor: "transparent", strokeColor: M_BLEU }),
+      gEllipse(160, 45, 170, 140, { backgroundColor: "transparent", strokeColor: M_COURBE }),
+      mT(96, 100, "A", 22, M_BLEU), mT(270, 100, "B", 22, M_COURBE), mT(170, 102, "A ∩ B", 15), mT(346, 6, "Ω", 20)];
+  }
+  function mTriangle() {
+    const t = gTrace([[0, 160], [220, 160], [0, 0]], true, { fond: "transparent" });
+    return [t, gTrace([[0, 142], [18, 142], [18, 160]], false, { w: 1.5 }),
+      mT(-22, 162, "A", 20), mT(226, 158, "B", 20), mT(-22, -22, "C", 20),
+      mT(96, 166, "adjacent", 14, M_BLEU), mT(-74, 70, "opposé", 14, M_VERT), mT(122, 58, "hypoténuse", 14, M_COURBE)];
+  }
+  function mAngle() {
+    const arc = gTrace(mArc(0, 0, 46, 0, Math.PI / 4, 12), false, { w: 1.8 });
+    arc.roundness = { type: 2 }; arc.strokeColor = M_COURBE;
+    return [mLigne(0, 0, 220, 0), mLigne(0, 0, 160, -160), arc, mT(54, -34, "α", 20, M_COURBE), mT(-22, -4, "O", 18)];
+  }
+  function mVecteur() {
+    const v = gTrace([[0, 70], [180, 0]], false, { fin: "arrow", w: 2.5 });
+    v.strokeColor = M_BLEU;
+    return [v, mT(76, 4, "u", 22, M_BLEU), (() => { const p = gTrace([[72, 6], [94, 6]], false, { fin: "arrow", w: 1.5 }); p.strokeColor = M_BLEU; return p; })(),
+      gEllipse(-4, 66, 8, 8, { backgroundColor: ENCRE_G }), mT(-20, 72, "A", 18), mT(186, -18, "B", 18)];
+  }
+  function mDroiteGraduee() {
+    const u = 44, L = [gTrace([[-5.5 * u, 0], [5.5 * u + 16, 0]], false, { fin: "arrow", w: 2 })];
+    for (let x = -5; x <= 5; x++) L.push(mLigne(x * u, -6, x * u, 6, ENCRE_G, 1.5), mT(x * u - (x < 0 ? 10 : 5), 12, String(x).replace("-", "−"), 16));
+    return L;
+  }
+  function mBoite() {
+    const u = 30, L = [gTrace([[0, 90], [10 * u + 16, 90]], false, { fin: "arrow", w: 1.5 })];
+    for (let x = 0; x <= 10; x++) L.push(mLigne(x * u, 86, x * u, 94, ENCRE_G, 1.2));
+    L.push(gRect(3 * u, 20, 4 * u, 44, { backgroundColor: "#d0ebff" }), mLigne(4.5 * u, 20, 4.5 * u, 64, M_COURBE, 2.5),
+           mLigne(1 * u, 42, 3 * u, 42), mLigne(7 * u, 42, 9 * u, 42), mLigne(1 * u, 30, 1 * u, 54), mLigne(9 * u, 30, 9 * u, 54));
+    [[1, "min"], [3, "Q1"], [4.5, "Me"], [7, "Q3"], [9, "max"]].forEach(([x, t]) => L.push(mT(x * u - 12, -8, t, 15, t === "Me" ? M_COURBE : null)));
+    return L;
+  }
+  function mBatons() {
+    const L = [gTrace([[0, 200], [330, 200]], false, { fin: "arrow", w: 2 }), gTrace([[0, 200], [0, -10]], false, { fin: "arrow", w: 2 })];
+    [60, 110, 170, 130, 80].forEach((v, i) => L.push(gRect(24 + i * 58, 200 - v, 38, v, { backgroundColor: "#a5d8ff", strokeWidth: 1.5 }),
+      mT(36 + i * 58, 206, String(i + 1), 15)));
+    L.push(mT(-64, -14, "effectif", 14), mT(300, 208, "valeur", 14));
+    return L;
+  }
+  const mFraction = () => [mT(14, 0, "a", 26), mLigne(0, 38, 46, 38, ENCRE_G, 2.2), mT(14, 42, "b", 26)];
+
+  /* ── compléments : UML, algorigramme, modèles de réseau ── */
+  function gFragment(w, h, mot) {
+    const c = gRect(0, 0, w, h, { backgroundColor: "transparent" });
+    const e = gTrace([[0, 0], [70, 0], [70, 20], [58, 32], [0, 32]], true, { fond: "#e9ecef" });
+    return [c, e, mT(10, 5, mot, 16), mLigne(0, h / 2, w, h / 2, ENCRE_G, 1.5, "dashed"), mT(84, 6, "[condition]", 15), mT(10, h / 2 + 8, "[sinon]", 15)];
+  }
+  function gComposant(t) {
+    const c = gRect(0, 0, 190, 100, {});
+    return [c, gTexte(c, t), gRect(150, 10, 28, 22, { strokeWidth: 1.5 }), gRect(142, 14, 14, 6, { strokeWidth: 1.5 }), gRect(142, 23, 14, 6, { strokeWidth: 1.5 })];
+  }
+  function gNoeud(t) {
+    const c = gRect(0, 24, 190, 110, {});
+    return [gTrace([[0, 24], [24, 0], [214, 0], [190, 24]], true, {}), gTrace([[190, 24], [214, 0], [214, 110], [190, 134]], true, {}), c, gTexte(c, t)];
+  }
+  function gCouloirs() {
+    const L = [];
+    ["Client", "Serveur", "Base de données"].forEach((t, i) => {
+      const tete = gRect(i * 220, 0, 220, 44, { backgroundColor: "#e9ecef" });
+      L.push(tete, gTexte(tete, t), gRect(i * 220, 44, 220, 360, { backgroundColor: "transparent" }));
+    });
+    return L;
+  }
+  function gSiSinon() {
+    const L = [], d = gLosange(60, 0, 200, 100, {}), oui = gRect(0, 170, 150, 60, {}), non = gRect(170, 170, 150, 60, {});
+    L.push(d, gTexte(d, "condition ?"), oui, gTexte(oui, "si vrai"), non, gTexte(non, "si faux"));
+    L.push(gTrace([[60, 50], [20, 50], [20, 170]], false, { fin: "arrow" }), gTrace([[260, 50], [300, 50], [300, 170]], false, { fin: "arrow" }));
+    L.push(gTrace([[75, 230], [75, 270], [160, 270]], false, {}), gTrace([[245, 230], [245, 270], [160, 270], [160, 310]], false, { fin: "arrow" }));
+    L.push(mT(18, 22, "Oui", 15, M_VERT), mT(270, 22, "Non", 15, M_COURBE));
+    return L;
+  }
+  function gTantQue() {
+    const L = [], d = gLosange(40, 0, 200, 100, {}), c = gRect(65, 160, 150, 60, {});
+    L.push(d, gTexte(d, "condition ?"), c, gTexte(c, "traitement"));
+    L.push(gTrace([[140, 100], [140, 160]], false, { fin: "arrow" }), gTrace([[65, 190], [0, 190], [0, 50], [40, 50]], false, { fin: "arrow" }));
+    L.push(gTrace([[240, 50], [300, 50], [300, 270]], false, { fin: "arrow" }));
+    L.push(mT(148, 116, "Oui", 15, M_VERT), mT(250, 22, "Non", 15, M_COURBE));
+    return L;
+  }
+
   const GABARITS = {
     // ── général ──
     cylindre: ["Cylindre", "general", '<path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><ellipse cx="12" cy="6" rx="7" ry="3"/>', "base disque stockage",
@@ -3804,6 +4656,15 @@
       () => [gTrace([[0, 0], [200, 0]], false, { fin: "triangle_outline", style: "dashed" })]],
     dependance: ["Dépendance", "uml", '<path d="M3 12h17" stroke-dasharray="2.5 2"/><path d="M16 8l4 4-4 4"/>', "uml utilise",
       () => [gTrace([[0, 0], [200, 0]], false, { fin: "arrow", style: "dashed" })]],
+    /* Signalé le 13 nov. 2026 : dans un diagramme de cas d'utilisation, la
+       flèche en pointillés ne disait pas si elle inclut ou si elle étend.
+       Le stéréotype est LIÉ à la flèche : il reste au-dessus de son milieu
+       quand on la déplace ou qu'on tire un de ses bouts. Toute autre
+       flèche peut en recevoir un : double-clic dessus. */
+    inclusion: ["Inclusion « include »", "uml", '<path d="M3 16h17" stroke-dasharray="2.5 2"/><path d="M16 12l4 4-4 4"/><text x="11" y="9" font-size="7" font-family="sans-serif" text-anchor="middle" stroke="none" fill="currentColor">«inc»</text>', "uml cas utilisation include inclure inclut",
+      () => { const f = gTrace([[0, 0], [230, 0]], false, { fin: "arrow", style: "dashed" }); return [f, gTexte(f, "«include»", { fontSize: 16 })]; }],
+    extension: ["Extension « extend »", "uml", '<path d="M3 16h17" stroke-dasharray="2.5 2"/><path d="M16 12l4 4-4 4"/><text x="11" y="9" font-size="7" font-family="sans-serif" text-anchor="middle" stroke="none" fill="currentColor">«ext»</text>', "uml cas utilisation extend etendre etend",
+      () => { const f = gTrace([[0, 0], [230, 0]], false, { fin: "arrow", style: "dashed" }); return [f, gTexte(f, "«extend»", { fontSize: 16 })]; }],
     agregation: ["Agrégation", "uml", '<path d="M10 12h11M3 12l3.5-3 3.5 3-3.5 3z"/>', "uml losange vide",
       () => [gTrace([[0, 0], [200, 0]], false, { debut: "diamond_outline" })]],
     composition: ["Composition", "uml", '<path d="M10 12h11"/><path d="M3 12l3.5-3 3.5 3-3.5 3z" fill="currentColor"/>', "uml losange plein",
@@ -3812,6 +4673,132 @@
       () => { const t = libre(40, -30, "message()", 16); return [gTrace([[0, 0], [200, 0]], false, { fin: "triangle" }), t]; }],
     retour: ["Retour", "uml", '<path d="M21 12H5" stroke-dasharray="2.5 2"/><path d="M8 8l-4 4 4 4"/>', "uml sequence reponse",
       () => [gTrace([[200, 0], [0, 0]], false, { fin: "arrow", style: "dashed" })]],
+
+    // ── tableau de bord de supervision ──
+    "bd-complet": ["Tableau de bord complet", "bord", '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 8h18M9 8v13M9 14h12"/>', "supervision monitoring metriques dashboard panneaux",
+      () => bdComplet()],
+    "bd-stat": ["Valeur en grand", "bord", '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M6 16l3-2 3 1 6-4"/><path d="M7 9h5"/>', "supervision stat chiffre indicateur kpi",
+      () => bdStat("Requêtes / s", "1 284", BD.vert)],
+    "bd-courbe": ["Courbe dans le temps", "bord", '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M6 15l3-4 3 2 3-5 3 3"/>', "supervision graphique serie temporelle trafic",
+      () => bdCourbe(0, 0, "Trafic réseau (Mbit/s)")],
+    "bd-jauge": ["Jauge à seuils", "bord", '<path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4-5"/>', "supervision jauge seuil charge pourcentage",
+      () => bdJauge("Processeur", 0.72, "72 %")],
+    "bd-jauges": ["Jauges en barres", "bord", '<path d="M4 7h16M4 12h16M4 17h16" opacity=".35"/><path d="M4 7h7M4 12h11M4 17h14"/>', "supervision barre progression memoire disque",
+      () => bdJauges(0, 0, "Ressources")],
+    "bd-barres": ["Histogramme", "bord", '<path d="M4 20h16"/><path d="M6 20v-6M10 20V9M14 20v-8M18 20V6"/>', "supervision barres histogramme semaine",
+      () => bdBarres(0, 0, "Requêtes par jour")],
+    "bd-camembert": ["Camembert", "bord", '<circle cx="12" cy="12" r="8"/><path d="M12 12V4M12 12l6.5 4.5"/>', "supervision secteurs repartition part",
+      () => bdCamembert(0, 0, "Répartition du trafic")],
+    "bd-tableau": ["Tableau d'équipements", "bord", '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M10 4v16"/>', "supervision liste hotes etat tableau",
+      () => bdTableau(0, 0, "Équipements")],
+    "bd-alertes": ["Liste d'alertes", "bord", '<path d="M12 4l9 16H3z"/><path d="M12 10v5M12 17.5v.5"/>', "supervision alerte incident journal",
+      () => bdAlertes(0, 0, "Alertes")],
+    "bd-etat-ok": ["État : en ligne", "bord", '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M8 12l3 3 5-6"/>', "supervision etat service disponible vert",
+      () => bdEtat("Serveur web", "EN LIGNE", BD.vert)],
+    "bd-etat-ko": ["État : hors ligne", "bord", '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/>', "supervision etat service panne rouge",
+      () => bdEtat("Serveur de fichiers", "HORS LIGNE", BD.rouge)],
+
+    // ── UML, compléments du 14 novembre ──
+    etat: ["État", "uml", '<rect x="3" y="6" width="18" height="12" rx="5"/><path d="M3 11h18"/>', "uml etat machine etats transition",
+      () => { const c = gRect(0, 0, 180, 90, { roundness: { type: 3 } }); return [c, gTexte(c, "État")]; }],
+    objet: ["Objet (instance)", "uml", '<rect x="3" y="6" width="18" height="12"/><path d="M7 14h10"/>', "uml objet instance",
+      () => { const c = gRect(0, 0, 200, 60, {}); return [c, gTexte(c, "nom : Classe"), mLigne(46, 44, 154, 44, ENCRE_G, 1.2)]; }],
+    composant: ["Composant", "uml", '<rect x="6" y="4" width="15" height="16"/><rect x="3" y="7" width="6" height="3"/><rect x="3" y="13" width="6" height="3"/>', "uml composant module brique",
+      () => gComposant("Composant")],
+    noeud: ["Nœud (déploiement)", "uml", '<path d="M3 8h13v12H3zM3 8l4-4h13l-4 4M16 20l4-4V4"/>', "uml deploiement noeud serveur machine",
+      () => gNoeud("Nœud")],
+    fragment: ["Fragment alt / loop", "uml", '<rect x="3" y="4" width="18" height="16"/><path d="M3 9h7l2-2V4M3 14h18" />', "uml sequence fragment alt opt loop",
+      () => gFragment(320, 200, "alt")],
+    activation: ["Barre d'activation", "uml", '<rect x="9" y="3" width="6" height="18"/>', "uml sequence activation execution",
+      () => [gRect(0, 0, 16, 120, { strokeWidth: 1.5 })]],
+    fourche: ["Fourche / jonction", "uml", '<path d="M3 12h18" stroke-width="3.5"/><path d="M12 3v9M7 12v8M17 12v8"/>', "uml activite fork join barre parallele",
+      () => [gRect(0, 0, 220, 8, { backgroundColor: ENCRE_G })]],
+    "decision-act": ["Décision (activité)", "uml", '<path d="M12 5l7 7-7 7-7-7z"/>', "uml activite decision fusion garde",
+      () => [gLosange(0, 0, 60, 60, {})]],
+    couloirs: ["Couloirs (swimlanes)", "uml", '<rect x="3" y="4" width="18" height="16"/><path d="M3 8h18M9 4v16M15 4v16"/>', "uml activite couloir swimlane acteur partition",
+      () => gCouloirs()],
+    "message-async": ["Message asynchrone", "uml", '<path d="M3 12h17M15 8l5 4-5 4"/>', "uml sequence asynchrone signal",
+      () => [gTrace([[0, 0], [200, 0]], false, { fin: "arrow" })]],
+
+    // ── algorigramme, compléments ──
+    attente: ["Attente / délai", "flux", '<path d="M4 6h9a6 6 0 0 1 0 12H4z"/>', "algorigramme delai temporisation pause",
+      () => gDans(gTrace([[0, 0]].concat(arcG(120, 40, 40, 40, -Math.PI / 2, Math.PI / 2, 12), [[0, 80]]), true, {}), 6, 6, 120, 68, "attente")],
+    affichage: ["Affichage", "flux", '<path d="M3 12l4-6h10a6 6 0 0 1 0 12H7z"/>', "algorigramme ecran afficher sortie",
+      () => gDans(gTrace([[0, 40], [30, 0]].concat(arcG(140, 40, 30, 40, -Math.PI / 2, Math.PI / 2, 12), [[30, 80]]), true, {}), 30, 6, 106, 68, "afficher")],
+    manuel: ["Opération manuelle", "flux", '<path d="M3 6h18l-4 12H7z"/>', "algorigramme manuel operateur",
+      () => gDans(gTrace([[0, 0], [180, 0], [150, 80], [30, 80]], true, {}), 30, 6, 120, 68, "manuel")],
+    jonction: ["Jonction (ET)", "flux", '<circle cx="12" cy="12" r="7"/><path d="M12 5v14M5 12h14"/>', "algorigramme jonction somme et",
+      () => [gEllipse(0, 0, 56, 56, {}), mLigne(28, 0, 28, 56, ENCRE_G, 1.5), mLigne(0, 28, 56, 28, ENCRE_G, 1.5)]],
+    "ou-flux": ["Jonction (OU)", "flux", '<circle cx="12" cy="12" r="7"/><path d="M7 7l10 10M17 7L7 17"/>', "algorigramme ou alternative",
+      () => [gEllipse(0, 0, 56, 56, {}), mLigne(8, 8, 48, 48, ENCRE_G, 1.5), mLigne(48, 8, 8, 48, ENCRE_G, 1.5)]],
+    "renvoi-page": ["Renvoi de page", "flux", '<path d="M6 4h12v10l-6 6-6-6z"/>', "algorigramme renvoi page suivante",
+      () => gDans(gTrace([[0, 0], [70, 0], [70, 50], [35, 80], [0, 50]], true, {}), 4, 4, 62, 46, "A")],
+    "si-sinon": ["Structure si / sinon", "flux", '<path d="M12 3l5 4-5 4-5-4zM7 7H4v7M17 7h3v7"/><rect x="2" y="14" width="6" height="4"/><rect x="16" y="14" width="6" height="4"/>', "algorigramme alternative si alors sinon test",
+      () => gSiSinon()],
+    "tant-que": ["Boucle tant que", "flux", '<path d="M12 3l5 4-5 4-5-4z"/><rect x="8" y="14" width="8" height="5"/><path d="M12 11v3M8 16.5H4V7h3"/>', "algorigramme boucle tant que repeter",
+      () => gTantQue()],
+
+    // ── maths ──
+    "m-repere": ["Repère", "maths", '<path d="M3 13h18M11 21V3M19 11l2 2-2 2M9 5l2-2 2 2"/>', "maths repere axes orthonorme abscisse ordonnee",
+      () => mRepere(-5, 5, -4, 4, 40).L],
+    "m-repere-grille": ["Repère quadrillé", "maths", '<path d="M3 13h18M11 21V3" /><path d="M3 8h18M3 18h18M6 3v18M16 3v18" opacity=".4"/>', "maths repere grille quadrillage",
+      () => mRepere(-5, 5, -4, 4, 40, { grille: true }).L],
+    "m-droite": ["Droite graduée", "maths", '<path d="M2 12h20M19 10l2 2-2 2M6 10v4M10 10v4M14 10v4"/>', "maths droite graduee nombres reels intervalle",
+      () => mDroiteGraduee()],
+    "m-affine": ["Fonction affine", "maths", '<path d="M3 13h18M11 21V3" opacity=".45"/><path d="M4 19L20 5"/>', "maths droite affine lineaire coefficient directeur",
+      () => mGraphe((x) => 0.5 * x + 1, "y = 0,5x + 1", -5, 5, -3, 4, 40)],
+    "m-parabole": ["Parabole x²", "maths", '<path d="M3 13h18M11 21V3" opacity=".45"/><path d="M5 4q6 26 12 0"/>', "maths parabole carre second degre polynome",
+      () => mGraphe((x) => x * x, "y = x²", -4, 4, -1, 6, 44)],
+    "m-cube": ["Cube x³", "maths", '<path d="M3 12h18M12 21V3" opacity=".45"/><path d="M6 21c2-12 10-6 12-18"/>', "maths cube fonction impaire",
+      () => mGraphe((x) => x * x * x, "y = x³", -3, 3, -4, 4, 50)],
+    "m-inverse": ["Inverse 1/x", "maths", '<path d="M3 12h18M12 21V3" opacity=".45"/><path d="M13.5 4c.5 5 2 6.5 7 7M10.5 20c-.5-5-2-6.5-7-7"/>', "maths inverse hyperbole asymptote",
+      () => mGraphe((x) => 1 / x, "y = 1/x", -5, 5, -4, 4, 40)],
+    "m-racine": ["Racine carrée", "maths", '<path d="M3 17h18M6 21V3" opacity=".45"/><path d="M6 17c2-7 8-10 15-11"/>', "maths racine carree",
+      () => mGraphe((x) => Math.sqrt(x), "y = √x", -1, 8, -1, 4, 44)],
+    "m-abs": ["Valeur absolue", "maths", '<path d="M3 17h18M12 21V3" opacity=".45"/><path d="M4 7l8 10 8-10"/>', "maths valeur absolue",
+      () => mGraphe((x) => Math.abs(x), "y = |x|", -4, 4, -1, 5, 44)],
+    "m-exp": ["Exponentielle", "maths", '<path d="M3 17h18M9 21V3" opacity=".45"/><path d="M3 16c8-.5 12-4 15-13"/>', "maths exponentielle exp croissance",
+      () => mGraphe((x) => Math.exp(x), "y = eˣ", -4, 3, -1, 6, 46)],
+    "m-ln": ["Logarithme ln", "maths", '<path d="M3 11h18M6 21V3" opacity=".45"/><path d="M7 21c1-9 5-13 14-15"/>', "maths logarithme neperien ln",
+      () => mGraphe((x) => Math.log(x), "y = ln x", -1, 8, -4, 3, 44)],
+    "m-sinus": ["Sinus et cosinus", "maths", '<path d="M2 12h20" opacity=".45"/><path d="M2 12c3-10 6-10 9 0s6 10 9 0"/>', "maths sinus cosinus trigonometrie periode",
+      () => { const r = mRepere(-7, 7, -2, 2, 42, { grille: true });
+              return r.L.concat(mCourbe(r, Math.sin, -7, 7, -2, 2, M_COURBE), mCourbe(r, Math.cos, -7, 7, -2, 2, M_BLEU),
+                                [mT(4, -34, "sin x", 20, M_COURBE), mT(84, -34, "cos x", 20, M_BLEU)]); }],
+    "m-trigo": ["Cercle trigonométrique", "maths", '<circle cx="12" cy="12" r="8"/><path d="M2 12h20M12 22V2M12 12l5.7-5.7"/>', "maths cercle trigonometrique radian angle cos sin",
+      () => mTrigo()],
+    "m-gauss": ["Courbe de Gauss", "maths", '<path d="M2 18h20"/><path d="M2 17c6 0 6-12 10-12s4 12 10 12"/>', "maths loi normale gauss cloche esperance ecart type",
+      () => mGauss()],
+    "m-integrale": ["Aire sous la courbe", "maths", '<path d="M3 19h18M5 21V3" opacity=".45"/><path d="M5 12c5 2 9-2 15-7"/><path d="M9 19v-7M16 19V8" />', "maths integrale aire primitive",
+      () => mIntegrale()],
+    "m-variations": ["Tableau de variations", "maths", '<rect x="2" y="4" width="20" height="16"/><path d="M2 9h20M8 4v16M10 18l4-6 4 6"/>', "maths tableau variations derivee croissante decroissante extremum",
+      () => mVariations()],
+    "m-signes": ["Tableau de signes", "maths", '<rect x="2" y="4" width="20" height="16"/><path d="M2 9h20M2 14h20M8 4v16M11 11.5h3M17 10v3M15.5 11.5h3"/>', "maths tableau signes inequation produit",
+      () => mSignes()],
+    "m-valeurs": ["Tableau de valeurs", "maths", '<rect x="2" y="7" width="20" height="10"/><path d="M2 12h20M7 7v10M12 7v10M17 7v10"/>', "maths tableau valeurs image antecedent",
+      () => mValeurs()],
+    "m-matrice2": ["Matrice 2 × 2", "maths", '<path d="M7 4H4v16h3M17 4h3v16h-3"/><circle cx="9.5" cy="9" r=".9"/><circle cx="14.5" cy="9" r=".9"/><circle cx="9.5" cy="15" r=".9"/><circle cx="14.5" cy="15" r=".9"/>', "maths matrice calcul matriciel",
+      () => mMatrice(2)],
+    "m-matrice3": ["Matrice 3 × 3", "maths", '<path d="M6 3H3v18h3M18 3h3v18h-3"/><path d="M8 7h.5M12 7h.5M16 7h.5M8 12h.5M12 12h.5M16 12h.5M8 17h.5M12 17h.5M16 17h.5" stroke-width="2.4"/>', "maths matrice identite systeme",
+      () => mMatrice(3)],
+    "m-systeme": ["Système d'équations", "maths", '<path d="M9 3c-3 0-2 4-2 6s-2 3-3 3c1 0 3 1 3 3s-1 6 2 6M12 7h9M12 12h9M12 17h9"/>', "maths systeme equations inconnues accolade",
+      () => mSysteme()],
+    "m-arbre": ["Arbre de probabilités", "maths", '<path d="M3 12l7-6M3 12l7 6M10 6l9-3M10 6l9 3M10 18l9-3M10 18l9 3"/>', "maths arbre probabilites conditionnelles pondere",
+      () => mArbre()],
+    "m-venn": ["Diagramme de Venn", "maths", '<rect x="2" y="4" width="20" height="16"/><circle cx="9.5" cy="12" r="5"/><circle cx="14.5" cy="12" r="5"/>', "maths ensembles venn intersection union evenements",
+      () => mVenn()],
+    "m-triangle": ["Triangle rectangle", "maths", '<path d="M4 20h16L4 5zM4 16h4v4"/>', "maths triangle rectangle pythagore trigonometrie",
+      () => mTriangle()],
+    "m-angle": ["Angle", "maths", '<path d="M3 19h18M3 19L17 5M10 19a7 7 0 0 0-2-5"/>', "maths angle mesure degre radian",
+      () => mAngle()],
+    "m-vecteur": ["Vecteur", "maths", '<path d="M4 18L19 6M19 6h-6M19 6v6"/>', "maths vecteur translation coordonnees",
+      () => mVecteur()],
+    "m-boite": ["Boîte à moustaches", "maths", '<path d="M2 12h5M17 12h5M2 9v6M22 9v6"/><rect x="7" y="7" width="10" height="10"/><path d="M11 7v10"/>', "maths statistiques boite moustaches mediane quartiles",
+      () => mBoite()],
+    "m-batons": ["Diagramme en bâtons", "maths", '<path d="M3 20h18M3 20V3"/><path d="M7 20v-6M11 20V9M15 20v-9M19 20v-4"/>', "maths statistiques batons effectifs histogramme",
+      () => mBatons()],
+    "m-fraction": ["Fraction", "maths", '<path d="M6 12h12"/><path d="M10 9l2-5 2 5M10 15h4l-4 5h4"/>', "maths fraction quotient numerateur denominateur",
+      () => mFraction()],
   };
   function insererGabarit(id) {
     const [nom, , , , faire] = GABARITS[id];
@@ -3825,7 +4812,10 @@
     });
     liste.forEach((e) => { if (e.type === "text" && !e.containerId) mesurerLibre(e); });
     const libres = liste.filter((e) => !estLie(e));
-    if (libres.length > 1) { const g = nouvelId(); libres.forEach((e) => { e.groupIds = [g]; }); }
+    // un gabarit qui apporte déjà ses groupes (un panneau par groupe) les garde
+    if (libres.length > 1 && !libres.some((e) => e.groupIds && e.groupIds.length)) {
+      const g = nouvelId(); libres.forEach((e) => { e.groupIds = [g]; });
+    }
     const b = boiteDe(libres), p = pointInsertion(b.w, b.h);
     liste.forEach((e) => { e.x += p.x - b.x; e.y += p.y - b.y; });
     elements.push(...liste);
@@ -3882,6 +4872,14 @@
     return el;
   }
   const IC_MODELE = {
+    osi: '<rect x="4" y="2" width="12" height="16" rx="1"/><path d="M4 4.3h12M4 6.6h12M4 8.9h12M4 11.2h12M4 13.5h12M4 15.8h12"/>',
+    tcpip: '<rect x="2" y="3" width="7" height="14" rx="1"/><rect x="11" y="3" width="7" height="14" rx="1"/><path d="M2 7h7M2 11h7M2 14h7M11 8h7M11 11h7M11 14h7"/>',
+    trame: '<rect x="1.5" y="7" width="17" height="6" rx="1"/><path d="M4.5 7v6M7.5 7v6M9.5 7v6M16 7v6"/>',
+    ipv4: '<rect x="2" y="3" width="16" height="14" rx="1"/><path d="M2 6.5h16M2 10h16M2 13.5h16M6 3v3.5M10 3v3.5M10 6.5V10M8 10v3.5"/>',
+    topo3: '<rect x="8" y="2" width="4" height="3" rx=".6"/><rect x="4" y="8.5" width="4" height="3" rx=".6"/><rect x="12" y="8.5" width="4" height="3" rx=".6"/><rect x="1.5" y="15" width="3" height="3" rx=".6"/><rect x="6.5" y="15" width="3" height="3" rx=".6"/><rect x="11" y="15" width="3" height="3" rx=".6"/><rect x="15.5" y="15" width="3" height="3" rx=".6"/><path d="M10 5L6 8.5M10 5l4 3.5M6 11.5L3 15M6 11.5L8 15M14 11.5l-1.5 3.5M14 11.5l3 3.5"/>',
+    vlsm: '<rect x="2" y="3" width="16" height="14" rx="1"/><path d="M2 7h16M2 10.3h16M2 13.6h16M7 3v14M12 3v14"/>',
+    gantt: '<path d="M3 2v16h15"/><rect x="5" y="4" width="6" height="2.4" rx=".6"/><rect x="8" y="8" width="7" height="2.4" rx=".6"/><rect x="12" y="12" width="5" height="2.4" rx=".6"/>',
+    cyclev: '<path d="M2 4l8 13 8-13"/><path d="M5 9h10M7 13h6" stroke-dasharray="1.6 1.6"/>',
     kanban: '<rect x="2" y="3" width="5" height="14" rx="1"/><rect x="8" y="3" width="5" height="14" rx="1"/><rect x="14" y="3" width="4" height="14" rx="1"/><path d="M3 6h3M9 6h3"/>',
     swot: '<rect x="2.5" y="2.5" width="15" height="15" rx="1.5"/><path d="M10 2.5v15M2.5 10h15"/>',
     carte: '<ellipse cx="10" cy="10" rx="3.5" ry="2.2"/><rect x="1.5" y="2" width="4" height="3" rx=".8"/><rect x="14.5" y="2" width="4" height="3" rx=".8"/><rect x="1.5" y="15" width="4" height="3" rx=".8"/><rect x="14.5" y="15" width="4" height="3" rx=".8"/><path d="M5.5 4.5l2 3.5M14.5 4.5l-2 3.5M5.5 15.5l2-3.5M14.5 15.5l-2-3.5"/>',
@@ -3934,6 +4932,97 @@
         out.push(e, etiquette(e, "Étape " + (i + 1)));
       }
       return out;
+    }],
+    osi: ["Modèle OSI", "les sept couches, de l'application au physique", () => {
+      const out = [libre(0, -56, "Modèle OSI", 32)];
+      [["7", "Application", "données", OC.violet ? OC.violet[1] : "#e5dbff"], ["6", "Présentation", "données", "#e5dbff"], ["5", "Session", "données", "#e5dbff"],
+       ["4", "Transport", "segment", "#d0ebff"], ["3", "Réseau", "paquet", "#d3f9d8"], ["2", "Liaison de données", "trame", "#fff3bf"],
+       ["1", "Physique", "bit", "#ffe3e3"]].forEach(([n, t, pdu, fond], i) => {
+        const num = cadre(0, i * 62, 60, 56, { backgroundColor: fond, strokeColor: "transparent" });
+        const c = cadre(66, i * 62, 300, 56, { backgroundColor: fond, strokeColor: "transparent" });
+        const p = cadre(372, i * 62, 130, 56, { backgroundColor: "transparent" });
+        out.push(num, etiquette(num, n, { fontSize: 22 }), c, etiquette(c, t, { fontSize: 20 }), p, etiquette(p, pdu, { fontSize: 16 }));
+      });
+      return out;
+    }],
+    tcpip: ["OSI et TCP/IP", "les deux piles côte à côte", () => {
+      const out = [libre(0, -56, "OSI et TCP/IP", 32)];
+      ["Application", "Présentation", "Session", "Transport", "Réseau", "Liaison", "Physique"].forEach((t, i) => {
+        const c = cadre(0, i * 52, 220, 46, { backgroundColor: OC.gray[0] });
+        out.push(c, etiquette(c, t, { fontSize: 18 }));
+      });
+      [["Application", 0, 3, "#e5dbff", "HTTP, DNS, SSH"], ["Transport", 3, 1, "#d0ebff", "TCP, UDP"], ["Internet", 4, 1, "#d3f9d8", "IP, ICMP"],
+       ["Accès réseau", 5, 2, "#fff3bf", "Ethernet, Wi-Fi"]].forEach(([t, i, n, fond, ex]) => {
+        const c = cadre(260, i * 52, 220, n * 52 - 6, { backgroundColor: fond, strokeColor: "transparent" });
+        out.push(c, etiquette(c, t, { fontSize: 20 }), libre(496, i * 52 + (n * 52 - 6) / 2 - 11, ex, 16, { strokeColor: OC.gray[4] }));
+      });
+      return out;
+    }],
+    trame: ["Trame Ethernet", "les champs, de la MAC destination au FCS", () => {
+      const out = [libre(0, -56, "Trame Ethernet II", 32)];
+      let x = 0;
+      [["MAC destination", "6 octets", 170, "#d0ebff"], ["MAC source", "6 octets", 150, "#d0ebff"], ["Type", "2 octets", 80, "#fff3bf"],
+       ["Données", "46 à 1 500 octets", 260, "#d3f9d8"], ["FCS", "4 octets", 80, "#ffe3e3"]].forEach(([t, taille, w, fond]) => {
+        const c = cadre(x, 0, w, 70, { backgroundColor: fond, roundness: null });
+        out.push(c, etiquette(c, t, { fontSize: 18 }), libre(x + 8, 78, taille, 15, { strokeColor: OC.gray[4] }));
+        x += w;
+      });
+      return out;
+    }],
+    ipv4: ["En-tête IPv4", "les champs sur 32 bits, ligne par ligne", () => {
+      const out = [libre(0, -56, "En-tête IPv4", 32)], u = 20;
+      [[["Version", 4], ["IHL", 4], ["Type de service", 8], ["Longueur totale", 16]],
+       [["Identification", 16], ["Drapeaux", 3], ["Décalage du fragment", 13]],
+       [["Durée de vie (TTL)", 8], ["Protocole", 8], ["Somme de contrôle", 16]],
+       [["Adresse IP source", 32]], [["Adresse IP de destination", 32]]].forEach((ligne, i) => {
+        let x = 0;
+        ligne.forEach(([t, bits]) => {
+          const c = cadre(x, i * 52, bits * u, 52, { backgroundColor: i > 2 ? "#d0ebff" : OC.gray[0], roundness: null });
+          out.push(c, etiquette(c, t, { fontSize: bits < 5 ? 12 : 16 }));
+          x += bits * u;
+        });
+      });
+      return out.concat(libre(0, -22, "bit 0", 14, { strokeColor: OC.gray[4] }), libre(32 * u - 46, -22, "bit 31", 14, { strokeColor: OC.gray[4] }));
+    }],
+    topo3: ["Réseau à trois niveaux", "cœur, distribution, accès", () => {
+      const out = [libre(0, -56, "Architecture à trois niveaux", 32)];
+      const boite = (x, y, t, fond) => { const c = cadre(x, y, 130, 56, { backgroundColor: fond }); out.push(c, etiquette(c, t, { fontSize: 16 })); return [x + 65, y]; };
+      const coeur = boite(285, 0, "Cœur", "#ffe3e3");
+      const d = [boite(120, 140, "Distribution 1", "#fff3bf"), boite(450, 140, "Distribution 2", "#fff3bf")];
+      const a = [0, 190, 380, 570].map((x, i) => boite(x, 280, "Accès " + (i + 1), "#d3f9d8"));
+      d.forEach((p) => out.push(trait(coeur[0], 56, p[0], p[1])));
+      a.forEach((p, i) => { out.push(trait(d[i < 2 ? 0 : 1][0], 196, p[0], p[1])); out.push(trait(d[i < 2 ? 1 : 0][0], 196, p[0], p[1], { couleur: OC.gray[2], w: 1 })); });
+      return out;
+    }],
+    vlsm: ["Plan d'adressage", "un tableau : réseau, masque, plage, diffusion", () => {
+      const out = [libre(0, -56, "Plan d'adressage", 32)], L = [150, 170, 170, 250, 170];
+      [["Sous-réseau", "Adresse réseau", "Masque", "Plage d'hôtes", "Diffusion"], ["LAN 1", "", "", "", ""], ["LAN 2", "", "", "", ""], ["LAN 3", "", "", "", ""], ["Liaison", "", "", "", ""]]
+        .forEach((ligne, i) => { let x = 0; ligne.forEach((t, j) => {
+          const c = cadre(x, i * 50, L[j], 50, { backgroundColor: i ? "transparent" : OC.gray[1], roundness: null });
+          out.push(c, etiquette(c, t, { fontSize: i ? 16 : 17 }));
+          x += L[j];
+        }); });
+      return out;
+    }],
+    gantt: ["Diagramme de Gantt", "des tâches sur une ligne de temps", () => {
+      const out = [libre(0, -56, "Planning du projet", 32)];
+      ["S1", "S2", "S3", "S4", "S5", "S6"].forEach((t, j) => { const c = cadre(170 + j * 90, 0, 90, 40, { backgroundColor: OC.gray[1], roundness: null }); out.push(c, etiquette(c, t, { fontSize: 16 })); });
+      [["Analyse", 0, 2, OC.blue[1]], ["Maquette", 1, 2, OC.green[1]], ["Réalisation", 2, 3, OC.yellow[1]], ["Tests", 4, 2, OC.red[1]]].forEach(([t, d0, n, fond], i) => {
+        out.push(libre(0, 56 + i * 54, t, 18));
+        const b = cadre(170 + d0 * 90 + 4, 50 + i * 54, n * 90 - 8, 36, { backgroundColor: fond, strokeColor: "transparent" });
+        out.push(b, etiquette(b, "", { fontSize: 14 }));
+      });
+      return out.concat(cadre(170, 40, 540, 226, { backgroundColor: "transparent", roundness: null }));
+    }],
+    cyclev: ["Cycle en V", "de l'analyse des besoins à la recette", () => {
+      const out = [libre(0, -56, "Cycle en V", 32)];
+      const g = ["Analyse des besoins", "Spécifications", "Conception générale", "Conception détaillée"];
+      const dr = ["Recette", "Tests de validation", "Tests d'intégration", "Tests unitaires"];
+      g.forEach((t, i) => { const c = cadre(i * 60, i * 76, 230, 56, { backgroundColor: OC.blue[0] }); out.push(c, etiquette(c, t, { fontSize: 16 })); });
+      dr.forEach((t, i) => { const c = cadre(760 - i * 60, i * 76, 230, 56, { backgroundColor: OC.green[0] }); out.push(c, etiquette(c, t, { fontSize: 16 }));
+        out.push(trait(i * 60 + 236, i * 76 + 28, 754 - i * 60, i * 76 + 28, { couleur: OC.gray[3], w: 1 })); });
+      const code = cadre(380, 320, 230, 56, { backgroundColor: OC.yellow[0] });
+      return out.concat(code, etiquette(code, "Codage", { fontSize: 18 }));
     }],
   };
   function insererModele(nom) {
@@ -4047,7 +5136,7 @@
     + gabaritsDe("general").map((id) => boutonGab(id, false)).join("");
   $("#tb-lignes").innerHTML = LIGNES.map(([id, t, def]) => boutonForme("data-ligne", id, t, def)).join("")
     + FORMES.filter(([id]) => estFleche(id)).map(([id, t, def]) => boutonForme("data-forme", id, t, def)).join("");
-  for (const fam of ["flux", "mcd", "uml"]) $("#tb-" + fam).innerHTML = gabaritsDe(fam).map((id) => boutonGab(id, true)).join("");
+  for (const fam of ["flux", "mcd", "uml", "bord", "maths"]) $("#tb-" + fam).innerHTML = gabaritsDe(fam).map((id) => boutonGab(id, true)).join("");
   $("#tb-reactions").innerHTML = REACTIONS.map(([e, t]) => '<button type="button" class="tb-b tb-forme tb-reaction" data-reaction="'
     + e + '" title="' + t + '" aria-label="Réaction : ' + t + '">' + e + "</button>").join("");
   const icReseau = (r) => svgReseau(r).replace("<svg ", '<svg aria-hidden="true" ');
@@ -4098,6 +5187,13 @@
     $("#tb-creer-rien").hidden = !mots.length || total > 0;
     $(".tb-creer-base").hidden = mots.length > 0;
   });
+  (function () {
+    const formulaire = $("#tb-fonction");
+    if (!formulaire) return;
+    const champ = $("#tb-fx");
+    champ.addEventListener("keydown", (e) => e.stopPropagation());
+    formulaire.addEventListener("submit", (e) => { e.preventDefault(); if (champ.value.trim()) tracerFonction(champ.value); });
+  })();
   $("#tb-modeles").innerHTML = Object.keys(MODELES).map((k) => '<button type="button" class="tb-carte tb-modele" data-modele="' + k
     + '"><span class="tb-carte-ic"><svg viewBox="0 0 20 20" aria-hidden="true">' + IC_MODELE[k] + "</svg></span><span>"
     + MODELES[k][0] + "<small>" + MODELES[k][1] + "</small></span></button>").join("");
@@ -4165,6 +5261,8 @@
     const s = $('.tb-encrage [data-outil="surligneur"] i');
     s.style.setProperty("--c", etat.courant.surligneur);
     s.style.setProperty("--w", "8px");
+    const se = $('.tb-encrage [data-outil="seau"] i');
+    if (se) { se.style.setProperty("--c", etat.seau); se.style.setProperty("--w", "8px"); }
   }
   const EFFETS_NOMS = [["", "Aucun"], ["arcenciel", "Arc-en-ciel"], ["or", "Or"], ["neon", "Néon"]];
   const APERCUS = {
@@ -4217,6 +5315,10 @@
       + '<path d="M14.5 7.1A5 5 0 0 1 14.5 16.9" opacity=".35"/><path d="M14.5 7.1a5 5 0 0 0 0 9.8z" fill="currentColor" fill-opacity=".35"/>'),
     sous: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" opacity=".35"/><circle cx="12" cy="11" r="4.5"/>'),
     objet: TRAIT_TUILE('<path d="M4 15c3-4 6-6 9-6s4 2 7 1" stroke-dasharray="1.5 2"/><path d="M6 8l12 9M18 8 6 17"/>'),
+    // l'axe en pointillés, et le même trait de part et d'autre
+    symV: TRAIT_TUILE('<path' + POINTILLE + ' d="M12 3v18"/><path d="M9 6.5C6 7.5 4.5 10 5.5 13s3 3.5 3.5 4.5M15 6.5c3 1 4.5 3.5 3.5 6.5s-3 3.5-3.5 4.5"/>'),
+    symH: TRAIT_TUILE('<path' + POINTILLE + ' d="M3 12h18"/><path d="M6.5 9C7.5 6 10 4.5 13 5.5s3.5 3 4.5 3.5M6.5 15c1 3 3.5 4.5 6.5 3.5s3.5-3 4.5-3.5"/>'),
+    symVH: TRAIT_TUILE('<path' + POINTILLE + ' d="M12 3v18M3 12h18"/><path d="M9.5 5.5 5.5 9.5M14.5 5.5l4 4M9.5 18.5l-4-4M14.5 18.5l4-4"/>'),
   };
   function tuiles(attr, choix, actuel) {
     return '<div class="tb-tuiles" style="--n:' + choix.length + '">' + choix.map(([v, t, ic]) =>
@@ -4281,7 +5383,61 @@
     reglage.dataset.quoi = "laser";
     reglage.hidden = false;
   }
+  /* « Toutes les couleurs » (demandé le 13 nov. 2026) : la palette entière
+     en pastilles, puis le nuancier du système, qui les donne toutes. Le
+     même bloc sert au stylo, au surligneur et au seau. Le réglage se
+     redessine à chaque choix : on retient si le bloc était ouvert, sinon il
+     se refermerait sous le doigt. */
+  let plusOuvert = false;
+  /* Choisir une couleur, plus simplement (demandé le 15 nov. 2026). Tout
+     ce qui sert souvent est sur la première rangée : les encres, puis la
+     COULEUR LIBRE, une pastille arc-en-ciel qui ouvre le nuancier du
+     système. Avant, elle dormait au fond du bloc replié, sous soixante
+     pastilles. Une couleur prise hors des encres s'affiche dans cette
+     pastille, et rejoint les « Récentes » : on la retrouve sans la refaire.
+     Les nuances restent repliées dessous. */
+  const RECENTES_MAX = 7;
+  const hexa6 = (c) => /^#[0-9a-f]{6}$/i.test(c || "");
+  function retenirCouleur(c) {
+    if (!hexa6(c)) return;
+    c = c.toLowerCase();
+    const deBase = (l) => l.some((x) => String(Array.isArray(x) ? x[0] : x).toLowerCase() === c);
+    if (deBase(ENCRES) || deBase(SURLIGNEURS)) return;      // déjà sur une première rangée
+    etat.recentes = [c].concat((etat.recentes || []).filter((x) => x !== c)).slice(0, RECENTES_MAX);
+  }
+  function choixCouleurs(couleurs, actuelle) {
+    const a = String(actuelle || "").toLowerCase();
+    const pastille = (c, t) => '<button type="button" class="tb-pastille" data-rc="' + c + '" style="--c:' + c
+      + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + t + '" aria-label="' + t + '"></button>';
+    const connue = couleurs.some(([c]) => c.toLowerCase() === a);
+    const hexa = hexa6(actuelle) ? actuelle : "#000000";
+    const libre = '<label class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '"'
+      + (connue ? "" : ' style="--c:' + hexa + '"') + ' title="Couleur libre : n\'importe quelle teinte">'
+      + '<input type="color" data-rcl value="' + hexa + '" aria-label="Couleur libre : choisir n\'importe quelle couleur"></label>';
+    const rec = (etat.recentes || []).filter((c) => hexa6(c) && !couleurs.some(([e]) => e.toLowerCase() === c));
+    return '<div class="tb-pastilles tb-encres">' + couleurs.map(([c, t]) => pastille(c, t)).join("") + libre + "</div>"
+      + (rec.length ? '<p class="tb-menu-titre tb-recentes">Récentes</p><div class="tb-pastilles tb-encres">'
+        + rec.map((c) => pastille(c, "Récente " + c.toUpperCase())).join("") + "</div>" : "")
+      + toutesCouleurs(actuelle);
+  }
+  function toutesCouleurs(actuelle) {
+    const a = String(actuelle || "").toLowerCase();
+    return '<details class="tb-plus"' + (plusOuvert ? " open" : "") + '><summary>Toutes les nuances</summary><div class="tb-palette">'
+      + Object.keys(OC).map((k) => OC[k].map((c) => '<button type="button" class="tb-pastille" data-rc="' + c
+        + '" style="--c:' + c + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + k + " " + c + '" aria-label="' + k + " " + c
+        + '"></button>').join("")).join("")
+      + "</div></details>";
+  }
+  function ouvrirReglageSeau() {
+    reglage.innerHTML = '<p class="tb-menu-titre">Seau de couleur</p>'
+      + choixCouleurs(ENCRES, etat.seau)
+      + '<p class="tb-indice">Dans une forme ou une zone fermée : elle se remplit. Sur un trait ou un texte : il change de couleur. '
+      + "La pipette (I) reprend une couleur déjà posée.</p>";
+    reglage.dataset.quoi = "seau";
+    reglage.hidden = false;
+  }
   function ouvrirReglage(quoi) {
+    if (quoi === "seau") return ouvrirReglageSeau();
     if (quoi === "laser") return ouvrirReglageLaser();
     if (quoi === "gomme") return ouvrirReglageGomme();
     if (quoi === "lasso") return ouvrirReglageLasso();
@@ -4291,8 +5447,7 @@
     const couleurs = surl ? SURLIGNEURS.map((c) => [c, c]) : ENCRES;
     const calibres = surl ? [3, 4.5, 6, 8, 11, 15] : CALIBRES;
     reglage.innerHTML = '<p class="tb-menu-titre">' + (surl ? "Surligneur" : nomStylo(quoi)) + "</p>"
-      + '<div class="tb-pastilles">' + couleurs.map(([c, t]) => '<button type="button" class="tb-pastille" data-rc="' + c
-        + '" style="--c:' + c + '" aria-pressed="' + (c === st.c) + '" title="' + t + '" aria-label="' + t + '"></button>').join("") + "</div>"
+      + choixCouleurs(couleurs, st.c)
       + (surl ? "" : '<p class="tb-menu-titre">Pointe</p><div class="tb-pointes">'
         + POINTES_NOMS.map(([v, t]) => '<button type="button" class="tb-b tb-petit tb-pointe" data-rpt="' + v
           + '" aria-pressed="' + ((st.pointe || "") === v) + '">' + apercuPointe(v) + "<span>" + t + "</span></button>").join("")
@@ -4316,6 +5471,22 @@
     if (!b) return;
     const q = reglage.dataset.quoi;
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
+    if (q === "symetrie") {
+      if (b.dataset.rsy) {
+        etat.symAxe = b.dataset.rsy;
+        if (!etat.symetrie) centrerAxe(); else etat.symetrie.axe = b.dataset.rsy;
+        dire(AIDE_AXE[b.dataset.rsy]);
+      }
+      if (b.dataset.rsya === "centrer") { centrerAxe(); dire("L'axe est revenu au milieu de l'écran."); }
+      if (b.dataset.rsya === "couper") { basculerSymetrie(); majBascules(); demander(); return; }
+      majBascules(); garder(); demander(); ouvrirReglageSymetrie();
+      return;
+    }
+    if (q === "seau") {
+      if (b.dataset.rc) { etat.seau = b.dataset.rc; retenirCouleur(b.dataset.rc); }
+      majStylos(); garder(); ouvrirReglageSeau();
+      return;
+    }
     if (q === "laser") {
       if (b.dataset.rld) etat.laserDuree = b.dataset.rld === "relache" ? "relache" : Number(b.dataset.rld);
       if (b.dataset.rlc) etat.laserCouleur = b.dataset.rlc;
@@ -4337,7 +5508,10 @@
       return;
     }
     const surl = q === "surligneur";
-    if (b.dataset.rc) { if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc; }
+    if (b.dataset.rc) {
+      if (surl) etat.courant.surligneur = b.dataset.rc; else etat.stylos[Number(q)].c = b.dataset.rc;
+      retenirCouleur(b.dataset.rc);
+    }
     if (b.dataset.rw) { if (surl) etat.courant.surligneurW = Number(b.dataset.rw); else etat.stylos[Number(q)].w = Number(b.dataset.rw); }
     // une matière (crayon, pastel, marqueur, aquarelle) et un effet ne
     // vont pas ensemble : choisir l'un retire l'autre
@@ -4355,6 +5529,30 @@
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));
   });
+  // le nuancier du système : la couleur suit le doigt, et se retient au lâcher
+  function couleurDuReglage(c) {
+    const q = reglage.dataset.quoi;
+    if (q === "seau") etat.seau = c;
+    else if (q === "surligneur") etat.courant.surligneur = c;
+    else if (/^\d+$/.test(q || "") && etat.stylos[Number(q)]) etat.stylos[Number(q)].c = c;
+    else return false;
+    return true;
+  }
+  reglage.addEventListener("input", (e) => {
+    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
+    if (couleurDuReglage(e.target.value)) majStylos();
+  });
+  reglage.addEventListener("change", (e) => {
+    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
+    if (!couleurDuReglage(e.target.value)) return;
+    retenirCouleur(e.target.value);
+    majStylos(); garder();
+    const q = reglage.dataset.quoi;
+    ouvrirReglage(q === "seau" || q === "surligneur" ? q : Number(q));
+  });
+  reglage.addEventListener("toggle", (e) => {
+    if (e.target.matches && e.target.matches("details.tb-plus")) plusOuvert = e.target.open;
+  }, true);
   $$("[data-stylo]").forEach((b) => b.addEventListener("click", () => {
     const i = Number(b.dataset.stylo);
     if (etat.outil === "freedraw" && etat.stylo === i) {
@@ -4369,7 +5567,7 @@
   document.addEventListener("pointerdown", (e) => {
     // un clic de baguette dans l'image OUVRE le réglage : ne pas le refermer aussitôt
     if (etat.outil === "baguette" && e.target === toile) return;
-    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil]")) {
+    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"]")) {
       reglage.hidden = true;
     }
   });
@@ -4509,6 +5707,400 @@
     ctx.drawImage(baguette.voile, 0, 0, el.width, el.height);
     ctx.restore();
   }
+  /* ═══════════════ La pipette et le seau ═════════════════════════════
+     Demandés le 13 novembre 2026. Le tableau est fait d'OBJETS, pas de
+     pixels : la pipette ne lit donc pas l'écran, elle demande sa couleur à
+     l'élément touché (son trait, ou son fond si on vise l'intérieur). Elle
+     rend ainsi la couleur exacte, la même en clair et en sombre. Seule une
+     image se lit au pixel. Le seau colore de même l'élément visé : la forme,
+     le trait, le texte. Depuis le 14 novembre il sait aussi couler dans une
+     zone fermée par des traits, et remplir la page (voir plus bas).
+
+     Une forme sans fond ne se prend d'ordinaire que par son contour. Pour
+     ces deux outils on la tient pour pleine : c'est justement dans le vide
+     d'un rectangle qu'on vise pour le remplir. */
+  const estFermee = (el) => /^(rectangle|diamond|ellipse)$/.test(el.type) || (el.type === "line" && !!el.polygon);
+  const tenuePleine = (el) => Object.assign({}, el, { backgroundColor: "#000000", fillStyle: "solid" });
+  const tenueCreuse = (el) => Object.assign({}, el, { backgroundColor: "transparent" });
+  function dessous(p) {
+    const tol = 6 / etat.zoom;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i];
+      if (R.touche(estFermee(el) ? tenuePleine(el) : el, p.x, p.y, tol)) return el;
+    }
+    return null;
+  }
+  const surContour = (el, p) => el.strokeColor && el.strokeColor !== "transparent"
+    && R.touche(tenueCreuse(el), p.x, p.y, 5 / etat.zoom);
+  function couleurSous(p) {
+    const el = dessous(p);
+    if (!el) return null;
+    if (el.type === "image") {
+      const img = imageDe(el.fileId);
+      if (!img || !img.complete || !img.naturalWidth) return null;
+      const [u, v] = versPixel(el, img, p);
+      if (u < 0 || v < 0 || u >= img.naturalWidth || v >= img.naturalHeight) return null;
+      try {
+        const cv = document.createElement("canvas");
+        cv.width = cv.height = 1;
+        const g = cv.getContext("2d", { willReadFrequently: true });
+        g.drawImage(img, u, v, 1, 1, 0, 0, 1, 1);
+        const d = g.getImageData(0, 0, 1, 1).data;
+        if (d[3] < 8) return null;                       // un pixel transparent n'a pas de couleur
+        return "#" + [d[0], d[1], d[2]].map((n) => ("0" + n.toString(16)).slice(-2)).join("");
+      } catch (err) { return null; }
+    }
+    const trait = el.strokeColor && el.strokeColor !== "transparent" ? el.strokeColor : null;
+    const fond = el.backgroundColor && el.backgroundColor !== "transparent" ? el.backgroundColor : null;
+    if (!estFermee(el)) return trait || fond;
+    return surContour(el, p) ? trait : (fond || trait);
+  }
+  function clicPipette(e, p) {
+    const c = couleurSous(p);
+    if (!c) { dire("La pipette prend la couleur d'un élément : vise un trait, un fond ou une image.", true); return; }
+    const st = etat.stylos[etat.stylo];
+    st.c = c;
+    st.effet = null;                       // un effet (arc-en-ciel, or) masquerait la couleur prise
+    etat.courant.strokeColor = c;
+    etat.seau = c;
+    majStylos(); garder();
+    dire("Couleur prise : " + c.toUpperCase() + ". Elle est dans le stylo, le trait et le seau.");
+    if (!etat.verrou) choisirOutil(avantPipette === "pipette" ? "selection" : avantPipette);
+  }
+  /* ═══════════════ Le seau qui coule ═════════════════════════════════
+     Signalé le 14 novembre 2026 : le seau remplissait un rond, pas une
+     forme tracée à la main, ni la page. Une forme dessinée au stylo n'est
+     pas un objet fermé : c'est un trait, parfois deux qui se croisent.
+     Pour savoir où la couleur s'arrête, il faut donc REGARDER le dessin.
+
+     Le seau peint la scène dans une toile cachée, fait couler la couleur
+     depuis le point visé, relève le CONTOUR de la zone atteinte, et en
+     fait un élément du tableau : un polygone plein, glissé sous les
+     traits. Le tableau reste fait d'objets : la zone se déplace, se
+     recolore et se supprime comme une forme. Si la couleur atteint le bord
+     du dessin, rien ne la retient : c'est la page qu'on remplit. */
+  const COULEE_MAX = 3.2e6;            // pixels de la toile cachée, au plus
+
+  function peindreCachee(zone, ech) {
+    const cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.ceil(zone.w * ech));
+    cv.height = Math.max(1, Math.ceil(zone.h * ech));
+    const k = cv.getContext("2d", { willReadFrequently: true });
+    k.setTransform(ech, 0, 0, ech, -zone.x * ech, -zone.y * ech);
+    const f = fantomes, ed = edition;
+    fantomes = new Set(); edition = null;
+    try { dessinerScene(k, elements, null); } finally { fantomes = f; edition = ed; }
+    return { k, w: cv.width, h: cv.height };
+  }
+  /* Ce qui arrête la couleur. On vise le vide : tout ce qui est peint.
+     On vise une couleur : tout ce qui s'en écarte. */
+  function murDe(d, w, h, sx, sy) {
+    const mur = new Uint8Array(w * h);
+    const j0 = (sy * w + sx) * 4, a0 = d[j0 + 3];
+    if (a0 < 40) {
+      for (let k = 0, j = 3; k < w * h; k++, j += 4) mur[k] = d[j] > 56 ? 1 : 0;
+    } else {
+      const r0 = d[j0], g0 = d[j0 + 1], b0 = d[j0 + 2];
+      for (let k = 0, j = 0; k < w * h; k++, j += 4) {
+        mur[k] = Math.abs(d[j] - r0) + Math.abs(d[j + 1] - g0) + Math.abs(d[j + 2] - b0)
+          + Math.abs(d[j + 3] - a0) > 60 ? 1 : 0;
+      }
+    }
+    return mur;
+  }
+  /* Épaissir un masque de « r » pixels, en deux passes de sommes cumulées. */
+  function epaissir(src, w, h, r) {
+    if (r <= 0) return src;
+    const tmp = new Uint8Array(w * h), out = new Uint8Array(w * h);
+    const cumul = new Int32Array(Math.max(w, h) + 1);
+    for (let y = 0; y < h; y++) {
+      const o = y * w;
+      for (let x = 0; x < w; x++) cumul[x + 1] = cumul[x] + src[o + x];
+      for (let x = 0; x < w; x++) tmp[o + x] = cumul[Math.min(w, x + r + 1)] - cumul[Math.max(0, x - r)] > 0 ? 1 : 0;
+    }
+    for (let x = 0; x < w; x++) {
+      for (let y = 0; y < h; y++) cumul[y + 1] = cumul[y] + tmp[y * w + x];
+      for (let y = 0; y < h; y++) out[y * w + x] = cumul[Math.min(h, y + r + 1)] - cumul[Math.max(0, y - r)] > 0 ? 1 : 0;
+    }
+    return out;
+  }
+  /* La couleur coule de proche en proche, par les quatre côtés. « bord »
+     dit quels bords de la toile elle a atteints (1 gauche, 2 droite,
+     4 haut, 8 bas). */
+  function coulerDepuis(mur, w, h, sx, sy) {
+    if (mur[sy * w + sx]) return null;
+    const zone = new Uint8Array(w * h), file = new Int32Array(w * h);
+    let n = 0, aire = 0, bord = 0, x0 = sx, x1 = sx, y0 = sy, y1 = sy;
+    file[n++] = sy * w + sx; zone[sy * w + sx] = 1;
+    while (n) {
+      const k = file[--n], x = k % w, y = (k - x) / w;
+      aire++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x === 0) bord |= 1; else if (!zone[k - 1] && !mur[k - 1]) { zone[k - 1] = 1; file[n++] = k - 1; }
+      if (x === w - 1) bord |= 2; else if (!zone[k + 1] && !mur[k + 1]) { zone[k + 1] = 1; file[n++] = k + 1; }
+      if (y === 0) bord |= 4; else if (!zone[k - w] && !mur[k - w]) { zone[k - w] = 1; file[n++] = k - w; }
+      if (y === h - 1) bord |= 8; else if (!zone[k + w] && !mur[k + w]) { zone[k + w] = 1; file[n++] = k + w; }
+    }
+    return { zone, aire, bord, x0, x1, y0, y1 };
+  }
+  /* La zone a reculé devant chaque trait (le mur était épaissi pour boucher
+     les petits trous). On la ramène pas à pas, sans jamais traverser un
+     trait : une couleur qui saute une ligne fine tache la zone d'à côté. */
+  function regagner(c, brut, w, h, pas) {
+    let cur = c.zone;
+    const xa = Math.max(0, c.x0 - pas - 1), xb = Math.min(w - 1, c.x1 + pas + 1);
+    const ya = Math.max(0, c.y0 - pas - 1), yb = Math.min(h - 1, c.y1 + pas + 1);
+    for (let t = 0; t < pas; t++) {
+      const nx = cur.slice();
+      for (let y = ya; y <= yb; y++) {
+        for (let x = xa; x <= xb; x++) {
+          const k = y * w + x;
+          if (cur[k] || brut[k]) continue;
+          if ((x && cur[k - 1]) || (x < w - 1 && cur[k + 1]) || (y && cur[k - w]) || (y < h - 1 && cur[k + w])) nx[k] = 1;
+        }
+      }
+      cur = nx;
+    }
+    return cur;
+  }
+  /* Les contours d'un masque : on longe chaque arête qui sépare un pixel
+     plein d'un pixel vide, le plein à main droite. Le tour extérieur sort
+     dans le sens des aiguilles (aire positive), les trous dans l'autre. */
+  function contoursDe(M, w, h) {
+    const W1 = w + 1, suiv = new Map();
+    const arete = (a, b) => { const l = suiv.get(a); if (l) l.push(b); else suiv.set(a, [b]); };
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const k = y * w + x;
+        if (!M[k]) continue;
+        const v = y * W1 + x;
+        if (y === 0 || !M[k - w]) arete(v, v + 1);
+        if (x === w - 1 || !M[k + 1]) arete(v + 1, v + 1 + W1);
+        if (y === h - 1 || !M[k + w]) arete(v + 1 + W1, v + W1);
+        if (x === 0 || !M[k - 1]) arete(v + W1, v);
+      }
+    }
+    const boucles = [];
+    for (const depart of suiv.keys()) {
+      const l0 = suiv.get(depart);
+      while (l0.length) {
+        const pts = [depart];
+        let v = l0.pop(), dir = v - depart;
+        while (v !== depart) {
+          pts.push(v);
+          const c = suiv.get(v);
+          let i = 0;
+          if (c.length > 1) {
+            // deux pixels pleins qui ne se touchent que par un coin : on tourne
+            // à droite, pour rester le long du même pixel
+            const droite = dir === 1 ? W1 : dir === W1 ? -1 : dir === -1 ? -W1 : 1;
+            i = c.indexOf(v + droite);
+            if (i < 0) i = 0;
+          }
+          const nv = c[i];
+          c.splice(i, 1);
+          dir = nv - v; v = nv;
+        }
+        const P = pts.map((s) => { const x = s % W1; return [x, (s - x) / W1]; });
+        let aire = 0;
+        for (let i = 0; i < P.length; i++) {
+          const a = P[i], b = P[(i + 1) % P.length];
+          aire += a[0] * b[1] - b[0] * a[1];
+        }
+        boucles.push({ pts: P, aire: aire / 2 });
+      }
+    }
+    return boucles;
+  }
+  /* Un escalier de pixels devient une ligne : on ne garde que les points
+     qui s'écartent de plus de « eps » de la corde (Douglas et Peucker). */
+  function alleger(pts, eps) {
+    const n = pts.length;
+    if (n < 8) return pts;
+    let b = 0, dmax = -1;
+    for (let i = 1; i < n; i++) {
+      const d = (pts[i][0] - pts[0][0]) ** 2 + (pts[i][1] - pts[0][1]) ** 2;
+      if (d > dmax) { dmax = d; b = i; }
+    }
+    const garde = new Uint8Array(n);
+    garde[0] = garde[b] = 1;
+    const a_faire = [[0, b], [b, n]];
+    while (a_faire.length) {
+      const [i0, i1] = a_faire.pop();
+      const p0 = pts[i0], p1 = pts[i1 % n];
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], L = Math.hypot(dx, dy) || 1;
+      let im = -1, dm = eps;
+      for (let i = i0 + 1; i < i1; i++) {
+        const d = Math.abs((pts[i][0] - p0[0]) * dy - (pts[i][1] - p0[1]) * dx) / L;
+        if (d > dm) { dm = d; im = i; }
+      }
+      if (im >= 0) { garde[im] = 1; a_faire.push([i0, im], [im, i1]); }
+    }
+    return pts.filter((_, i) => garde[i]);
+  }
+  /* Un polygone à trous écrit d'un seul trait : on va du tour extérieur au
+     trou par un aller-retour sur le même segment. Il ne couvre aucune
+     surface, et la forme reste une ligne fermée ordinaire, qu'on peut
+     étirer, tourner et rouvrir ailleurs. */
+  function avecTrous(tour, trous) {
+    let P = tour.slice();
+    trous.forEach((T) => {
+      let bi = 0, bj = 0, best = Infinity;
+      for (let i = 0; i < P.length; i++) {
+        for (let j = 0; j < T.length; j++) {
+          const d = (P[i][0] - T[j][0]) ** 2 + (P[i][1] - T[j][1]) ** 2;
+          if (d < best) { best = d; bi = i; bj = j; }
+        }
+      }
+      const tourTrou = T.slice(bj).concat(T.slice(0, bj), [T[bj]]);
+      P = P.slice(0, bi + 1).concat(tourTrou, [P[bi]], P.slice(bi + 1));
+    });
+    return P;
+  }
+  function coulerDans(zone, ech, p) {
+    const T = peindreCachee(zone, ech);
+    let d;
+    try { d = T.k.getImageData(0, 0, T.w, T.h).data; } catch (err) { return null; }
+    const sx = Math.min(T.w - 1, Math.max(0, Math.floor((p.x - zone.x) * ech)));
+    const sy = Math.min(T.h - 1, Math.max(0, Math.floor((p.y - zone.y) * ech)));
+    const brut = murDe(d, T.w, T.h, sx, sy);
+    // un trou de quelques pixels d'écran dans un trait ne laisse pas fuir la couleur
+    let r = Math.max(1, Math.round(3 * ech / etat.zoom));
+    let mur = epaissir(brut, T.w, T.h, r);
+    if (mur[sy * T.w + sx]) { mur = brut; r = 0; }          // visé tout près d'un trait
+    const c = coulerDepuis(mur, T.w, T.h, sx, sy);
+    if (!c) return null;
+    return Object.assign(c, { brut, w: T.w, h: T.h, ech, rayon: r, ox: zone.x, oy: zone.y });
+  }
+  function couler(p) {
+    const tout = boiteDe(elements.filter((e) => !estLie(e)));
+    if (!tout) return { page: true };
+    const z = etat.zoom, m = 40 / z;
+    const dessin = { x: tout.x - m, y: tout.y - m, w: tout.w + 2 * m, h: tout.h + 2 * m };
+    if (p.x <= dessin.x || p.y <= dessin.y || p.x >= dessin.x + dessin.w || p.y >= dessin.y + dessin.h) return { page: true };
+    const a = versScene(0, 0), b = versScene(toile.clientWidth, toile.clientHeight);
+    const vw = b.x - a.x, vh = b.y - a.y;
+    const X0 = Math.max(dessin.x, a.x - vw / 2), Y0 = Math.max(dessin.y, a.y - vh / 2);
+    const X1 = Math.min(dessin.x + dessin.w, b.x + vw / 2), Y1 = Math.min(dessin.y + dessin.h, b.y + vh / 2);
+    // d'abord ce qu'on voit, élargi d'une demi-vue ; si la couleur en sort
+    // sans avoir atteint le bord du dessin, on regarde le dessin entier
+    const essais = [{ x: X0, y: Y0, w: X1 - X0, h: Y1 - Y0 }, dessin];
+    for (let t = 0; t < essais.length; t++) {
+      const zone = essais[t];
+      const ech = Math.min(Math.max(z, 0.25) * 1.5, 3, Math.sqrt(COULEE_MAX / (zone.w * zone.h)));
+      const res = coulerDans(zone, ech, p);
+      if (!res) return null;
+      if (!res.bord) return res;
+      const e = 1e-6;
+      const dehors = ((res.bord & 1) && zone.x <= dessin.x + e) || ((res.bord & 2) && zone.x + zone.w >= dessin.x + dessin.w - e)
+        || ((res.bord & 4) && zone.y <= dessin.y + e) || ((res.bord & 8) && zone.y + zone.h >= dessin.y + dessin.h - e);
+      if (dehors || t === essais.length - 1) return { page: true };
+    }
+    return { page: true };
+  }
+  /* La zone coulée → un polygone du tableau, en coordonnées de scène. */
+  function masqueCoule(res) {
+    const M = regagner(res, res.brut, res.w, res.h, res.rayon * 2);
+    return epaissir(M, res.w, res.h, 1);           // un pixel SOUS le trait : aucun liseré
+  }
+  /* La couleur a-t-elle rempli TOUT l'intérieur de la forme visée ? On
+     sonde l'intérieur point par point : ce qui n'est ni un trait ni atteint
+     par la couleur manque. Un rectangle coupé en deux par une ligne, un
+     anneau entre deux ronds : il en manque, et c'est une zone qu'on pose. */
+  function couvreTout(res, M, el) {
+    const b = R.boite(el), ech = res.ech, plein = tenuePleine(el);
+    const g = el.angle ? Math.hypot(b.w, b.h) / 2 : 0;
+    const xa = Math.max(0, Math.floor((b.x - g - res.ox) * ech)), xb = Math.min(res.w - 1, Math.ceil((b.x + b.w + g - res.ox) * ech));
+    const ya = Math.max(0, Math.floor((b.y - g - res.oy) * ech)), yb = Math.min(res.h - 1, Math.ceil((b.y + b.h + g - res.oy) * ech));
+    const pas = Math.max(1, Math.round(Math.sqrt((xb - xa + 1) * (yb - ya + 1) / 20000)));
+    let dedans = 0, manque = 0;
+    for (let y = ya; y <= yb; y += pas) {
+      for (let x = xa; x <= xb; x += pas) {
+        const k = y * res.w + x;
+        if (res.brut[k]) continue;
+        if (!R.touche(plein, res.ox + (x + 0.5) / ech, res.oy + (y + 0.5) / ech, 0)) continue;
+        dedans++;
+        if (!M[k]) manque++;
+      }
+    }
+    return dedans > 0 && manque <= dedans * 0.03;
+  }
+  function formeCoulee(res, M, couleur) {
+    const { w, h, ech } = res;
+    const boucles = contoursDe(M, w, h);
+    const tour = boucles.filter((b) => b.aire > 0).sort((u, v) => v.aire - u.aire)[0];
+    if (!tour) return null;
+    const trous = boucles.filter((b) => b.aire < -40).sort((u, v) => u.aire - v.aire).slice(0, 24);
+    const versScn = (P) => alleger(P, 0.9).map(([x, y]) => [res.ox + x / ech, res.oy + y / ech]);
+    const T = versScn(tour.pts);
+    if (T.length < 3) return null;
+    const P = avecTrous(T, trous.map((b) => versScn(b.pts)).filter((t) => t.length >= 3));
+    P.push([P[0][0], P[0][1]]);
+    const x0 = P[0][0], y0 = P[0][1];
+    const rel = P.map(([x, y]) => [Math.round((x - x0) * 100) / 100, Math.round((y - y0) * 100) / 100]);
+    const el = nouvelElement("line", x0, y0, {
+      points: rel, polygon: true, roundness: null, lastCommittedPoint: null,
+      startArrowhead: null, endArrowhead: null,
+      strokeColor: "transparent", backgroundColor: couleur, fillStyle: "solid",
+      strokeWidth: 1, strokeStyle: "solid", roughness: 0, opacity: 100,
+      customData: { coulee: true },
+    });
+    const bb = R.boite(Object.assign({}, el, { x: 0, y: 0 }));
+    el.width = bb.w; el.height = bb.h;
+    return el;
+  }
+  function remplirPage(c) {
+    if (pileFond[curseurPile] === undefined) pileFond[curseurPile] = etat.fond;
+    etat.fond = c;
+    majFond(); majMenu();
+    memoriser(); garder(); demander();
+    dire("Le seau a rempli la page. Annuler la ramène à sa couleur.");
+  }
+  function clicSeau(e, p) {
+    let el = dessous(p);
+    // le texte écrit dans une forme : c'est la forme qu'on remplit
+    if (el && estLie(el)) { const c0 = parId(el.containerId); if (c0 && conteneur(c0)) el = c0; }
+    if (el && el.locked) { dire("Cet élément est verrouillé.", true); return; }
+    if (el && el.type === "image") { dire("Une image ne se remplit pas au seau : la baguette magique sait remplir une zone d'image.", true); return; }
+    const c = etat.seau;
+    const colorer = (quoi) => { toucher(el); memoriser(); garder(); majPanneau(); demander(); dire("Le seau a coloré " + quoi + "."); };
+    if (el && estPostit(el)) { el.backgroundColor = c; colorer("le post-it"); return; }
+    // un trait, un texte, un contour : c'est lui qu'on colore
+    if (el && (!estFermee(el) || surContour(el, p))) {
+      el.strokeColor = c;
+      colorer(el.type === "text" ? "le texte" : estFermee(el) ? "le contour" : "le trait");
+      return;
+    }
+    const pleine = () => {
+      // une forme vide reçoit un fond plein ; une forme hachurée garde ses hachures
+      if (!el.backgroundColor || el.backgroundColor === "transparent") el.fillStyle = "solid";
+      el.backgroundColor = c;
+      colorer("la forme");
+    };
+    const hachuree = el && el.backgroundColor && el.backgroundColor !== "transparent" && el.fillStyle && el.fillStyle !== "solid";
+    if (hachuree) { pleine(); return; }
+    // le vide, ou l'intérieur d'une forme : la couleur coule jusqu'aux traits
+    const res = couler(p);
+    if (res && res.page) {
+      if (el) { pleine(); return; }                // une forme plus grande que tout le reste
+      remplirPage(c);
+      return;
+    }
+    if (!res) {
+      if (el) { pleine(); return; }
+      dire("Vise un peu plus loin du trait : le seau n'a pas trouvé de place où couler.", true);
+      return;
+    }
+    // la couleur a-t-elle rempli toute la forme visée ? alors c'est la forme qu'on colore
+    const M = masqueCoule(res);
+    if (el && couvreTout(res, M, el)) { pleine(); return; }
+    const zone = formeCoulee(res, M, c);
+    if (!zone) { if (el) pleine(); else dire("La zone est trop petite pour le seau.", true); return; }
+    elements.splice(el ? elements.indexOf(el) + 1 : 0, 0, zone);
+    memoriser(); garder(); majPanneau(); demander();
+    dire("Le seau a rempli la zone. Elle se déplace et se supprime comme une forme.");
+  }
+
   function clicBaguette(e, p) {
     const el = imageSous(p);
     if (!el) { dire("La baguette agit dans une image : clique sur une couleur de l'image.", true); return; }
@@ -4790,16 +6382,546 @@
 
   /* ── le titre ── */
   const titre = $("#tb-titre");
-  titre.addEventListener("change", () => { etat.titre = titre.value.trim() || "Tableau sans titre"; titre.value = etat.titre; garder(); });
+  titre.addEventListener("change", () => {
+    etat.titre = titre.value.trim() || "Tableau sans titre"; titre.value = etat.titre; garder();
+    const t = bib && bibCourant();
+    if (t) { t.nom = etat.titre; t.maj = Date.now(); bibEcrire(); }
+  });
   titre.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { titre.blur(); scene.focus({ preventScroll: true }); } });
   $("#tb-cote").addEventListener("change", (e) => { etat.cote = e.target.value; majCote(); garder(); });
   function majCote() { scene.classList.toggle("tb-a-droite", etat.cote === "droite"); }
 
+
+  /* ═══════════════ 14 bis. La bibliothèque : dossiers et tableaux ════
+     Demandée le 14 novembre 2026 : ranger ses tableaux comme un professeur
+     range ses cours, dans des dossiers, et des dossiers dans des dossiers.
+
+     Trois lieux, chacun pour ce qu'il sait faire :
+       · l'ARBRE (noms, dossiers, dates) tient dans localStorage : il est
+         petit, et il se lit d'un coup, sans attendre ;
+       · le CONTENU de chaque tableau rangé, et son aperçu, vont dans
+         IndexedDB : une page écrite au stylet pèse des centaines de
+         kilo-octets, et localStorage s'arrête vers cinq mégaoctets ;
+       · le tableau OUVERT reste où il était, dans la clé de travail : rien
+         de ce qui existait ne change, et un navigateur sans IndexedDB garde
+         son tableau unique.
+     Rien n'est jeté d'un clic : supprimer envoie à la corbeille. */
+  const BIB_CLE = "ciel-tableau-biblio-v1";
+  let bibDossier = null, bibCorbeille = false, bibDeplace = null, bibCherche = "", bibEdite = null;
+  let bdd = null;
+  function ouvrirBdd() {
+    if (bdd) return Promise.resolve(bdd);
+    return new Promise((ok, ko) => {
+      let r;
+      try { r = indexedDB.open("ciel-tableau", 1); } catch (e) { ko(e); return; }
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore("tableaux"); d.createObjectStore("apercus"); };
+      r.onsuccess = () => { bdd = r.result; ok(bdd); };
+      r.onerror = () => ko(r.error);
+    });
+  }
+  const bddFaire = (magasin, mode, f) => ouvrirBdd().then((d) => new Promise((ok, ko) => {
+    const t = d.transaction(magasin, mode), q = f(t.objectStore(magasin));
+    t.oncomplete = () => ok(q && q.result);
+    t.onerror = t.onabort = () => ko(t.error);
+  }));
+  const bddLire = (m, id) => bddFaire(m, "readonly", (s) => s.get(id));
+  const bddEcrire = (m, id, v) => bddFaire(m, "readwrite", (s) => s.put(v, id));
+  const bddOter = (m, id) => bddFaire(m, "readwrite", (s) => s.delete(id));
+
+  const bibNeuf = () => "b" + nouvelId().slice(0, 11);
+  const bibCourant = () => bib.tableaux.find((t) => t.id === bib.courant);
+  const bibDossierDe = (id) => bib.dossiers.find((d) => d.id === id);
+  function bibEcrire() { try { localStorage.setItem(BIB_CLE, JSON.stringify(bib)); } catch (e) { /* plein : l'arbre reste en mémoire */ } }
+  function bibDemarrer() {
+    try {
+      const b = JSON.parse(localStorage.getItem(BIB_CLE) || "null");
+      if (b && Array.isArray(b.tableaux) && Array.isArray(b.dossiers)) bib = b;
+    } catch (e) { /* arbre illisible : on le refait autour du tableau ouvert */ }
+    if (!bib) bib = { v: 1, courant: null, dossiers: [], tableaux: [] };
+    // la clé de travail dit quel tableau elle contient : c'est elle qui a raison
+    if (etat.bibId && bib.tableaux.some((t) => t.id === etat.bibId && !t.corbeille)) bib.courant = etat.bibId;
+    if (!bibCourant()) {
+      const id = bibNeuf();
+      bib.tableaux.push({ id, nom: etat.titre, parent: null, maj: Date.now(), nb: elements.length });
+      bib.courant = id;
+    }
+    bibEcrire();
+  }
+  /* Un élément est « jeté » si lui, ou un dossier au-dessus de lui, est à la corbeille. */
+  function bibJete(x) {
+    for (let d = x, n = 0; d && n < 50; d = bibDossierDe(d.parent), n++) if (d.corbeille) return true;
+    return false;
+  }
+  function bibChemin(id) {
+    const noms = [];
+    for (let d = bibDossierDe(id), n = 0; d && n < 50; d = bibDossierDe(d.parent), n++) noms.unshift(d);
+    return noms;
+  }
+  const bibCheminTexte = (id) => ["Mes tableaux"].concat(bibChemin(id).map((d) => d.nom)).join(" › ");
+  function bibNomLibre(base, parent, liste) {
+    const pris = new Set(liste.filter((x) => (x.parent || null) === (parent || null) && !x.corbeille).map((x) => x.nom));
+    if (!pris.has(base)) return base;
+    for (let i = 2; i < 500; i++) if (!pris.has(base + " " + i)) return base + " " + i;
+    return base;
+  }
+  const contenuCourant = () => ({ elements, fond: etat.fond, grille: etat.grille, scrollX: etat.scrollX,
+                                  scrollY: etat.scrollY, zoom: etat.zoom, titre: etat.titre });
+  /* Une vignette du tableau, pour le reconnaître dans la liste. */
+  function apercuDe() {
+    const W = 320, H = 200, c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const k = c.getContext("2d");
+    k.fillStyle = etat.fond; k.fillRect(0, 0, W, H);
+    const b = boiteDe(elements.filter((e) => !estLie(e)));
+    if (b) {
+      const s = Math.min((W - 28) / Math.max(1, b.w), (H - 28) / Math.max(1, b.h), 2);
+      k.setTransform(s, 0, 0, s, (W - b.w * s) / 2 - b.x * s, (H - b.h * s) / 2 - b.y * s);
+      const f = fantomes, ed = edition;
+      fantomes = new Set(); edition = null;
+      try { dessinerScene(k, elements, null); } catch (e) { /* une vignette manquée n'empêche rien */ }
+      fantomes = f; edition = ed;
+    }
+    try {
+      const w = c.toDataURL("image/webp", 0.72);
+      return w.startsWith("data:image/webp") ? w : c.toDataURL("image/jpeg", 0.72);
+    } catch (e) { return null; }
+  }
+  /* Le tableau ouvert → la bibliothèque. */
+  function bibRanger() {
+    const t = bibCourant();
+    if (!t) return Promise.resolve();
+    if (edition) finirEdition();
+    t.nom = etat.titre; t.maj = Date.now(); t.nb = elements.filter((e) => !estLie(e)).length;
+    bibEcrire();
+    const contenu = JSON.parse(JSON.stringify(contenuCourant()));
+    return bddEcrire("tableaux", t.id, { contenu, fichiers: fichiersDe(elements) })
+      .then(() => bddEcrire("apercus", t.id, apercuDe()));
+  }
+  /* La bibliothèque → le tableau ouvert. L'écriture de la clé de travail
+     est immédiate : entre le changement de tableau et elle, une page qui se
+     ferme rangerait l'ancien contenu sous le nouveau nom. */
+  function poserContenu(c, f) {
+    if (edition) finirEdition();
+    elements = (Array.isArray(c.elements) ? c.elements : []).map(normaliser).filter(Boolean);
+    etat.fond = c.fond || "#ffffff";
+    if (c.grille) etat.grille = c.grille;
+    etat.scrollX = c.scrollX || 0; etat.scrollY = c.scrollY || 0; etat.zoom = c.zoom || 1;
+    etat.titre = c.titre || "Tableau sans titre";
+    fichiers = f && typeof f === "object" ? f : {};
+    fichiersGardes = "\u0000";
+    baguette = null;
+    reparer();
+    elements.forEach((e) => { if (e.type === "text" && e.containerId) placerLie(e); });
+    selection.clear(); cacheChemins.clear();
+    pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond];
+    titre.value = etat.titre;
+    $("#tb-grilles").value = etat.grille;
+    majHistorique(); majMenu(); majFond(); majPanneau();
+    clearTimeout(minuterieGarde); ecrire();
+    demander();
+  }
+  const bibEchec = () => dire("La bibliothèque n'a pas pu s'ouvrir dans ce navigateur. Le tableau ouvert est intact.", true);
+  function bibOuvrir(id) {
+    if (id === bib.courant) { fermerBiblio(); return Promise.resolve(); }
+    const cible = bib.tableaux.find((t) => t.id === id);
+    if (!cible) return Promise.resolve();
+    return bibRanger().then(() => bddLire("tableaux", id)).then((r) => {
+      bib.courant = id; bibEcrire();
+      poserContenu(Object.assign({}, r ? r.contenu : {}, { titre: cible.nom }), r ? r.fichiers : {});
+      fermerBiblio();
+      dire("« " + cible.nom + " » est ouvert.");
+    }).catch(bibEchec);
+  }
+  function bibNouveauTableau() {
+    const parent = bibDossier, nom = bibNomLibre("Nouveau tableau", parent, bib.tableaux);
+    return bibRanger().then(() => {
+      const id = bibNeuf();
+      bib.tableaux.push({ id, nom, parent, maj: Date.now(), nb: 0 });
+      bib.courant = id; bibEcrire();
+      poserContenu({ titre: nom, grille: etat.grille }, {});
+      fermerBiblio();
+      dire("Nouveau tableau, rangé dans « " + bibCheminTexte(parent) + " ». Son titre se change en haut à gauche.");
+    }).catch(bibEchec);
+  }
+  function bibNouveauDossier() {
+    const d = { id: bibNeuf(), nom: bibNomLibre("Nouveau dossier", bibDossier, bib.dossiers), parent: bibDossier, maj: Date.now() };
+    bib.dossiers.push(d); bibEcrire();
+    bibEdite = { genre: "dossier", id: d.id };
+    bibPeindre();
+  }
+  function bibDupliquer(id) {
+    const t = bib.tableaux.find((x) => x.id === id);
+    if (!t) return;
+    const lire = id === bib.courant ? bibRanger().then(() => bddLire("tableaux", id)) : bddLire("tableaux", id);
+    lire.then((r) => {
+      const copie = { id: bibNeuf(), nom: bibNomLibre(t.nom + " (copie)", t.parent, bib.tableaux), parent: t.parent, maj: Date.now(), nb: t.nb };
+      const rec = r ? JSON.parse(JSON.stringify(r)) : { contenu: {}, fichiers: {} };
+      rec.contenu.titre = copie.nom;
+      return bddEcrire("tableaux", copie.id, rec)
+        .then(() => bddLire("apercus", id)).then((a) => bddEcrire("apercus", copie.id, a || null))
+        .then(() => { bib.tableaux.push(copie); bibEcrire(); bibPeindre(); dire("Copie faite : « " + copie.nom + " »."); });
+    }).catch(bibEchec);
+  }
+  function bibContient(dossier, cible) {       // « cible » est-il « dossier », ou dedans ?
+    for (let d = bibDossierDe(cible), n = 0; d && n < 50; d = bibDossierDe(d.parent), n++) if (d.id === dossier) return true;
+    return false;
+  }
+  function bibJeter(genre, id) {
+    const x = genre === "dossier" ? bibDossierDe(id) : bib.tableaux.find((t) => t.id === id);
+    if (!x) return;
+    const ouvert = bibCourant();
+    if ((genre === "tableau" && id === bib.courant) || (genre === "dossier" && ouvert && bibContient(id, ouvert.parent))) {
+      dire("Ce tableau est ouvert : ouvre-en un autre avant de le mettre à la corbeille.", true);
+      return;
+    }
+    x.corbeille = Date.now(); bibEcrire(); bibPeindre();
+    dire("« " + x.nom + " » est à la corbeille. Il peut en revenir.");
+  }
+  function bibRestaurer(genre, id) {
+    const x = genre === "dossier" ? bibDossierDe(id) : bib.tableaux.find((t) => t.id === id);
+    if (!x) return;
+    delete x.corbeille;
+    // son dossier d'origine a pu disparaître, ou être lui-même jeté : il revient à la racine
+    if (x.parent && (!bibDossierDe(x.parent) || bibJete(bibDossierDe(x.parent)))) x.parent = null;
+    bibEcrire(); bibPeindre();
+    dire("« " + x.nom + " » est revenu dans « " + bibCheminTexte(x.parent) + " ».");
+  }
+  function bibDetruire(genre, id) {             // définitif : seulement depuis la corbeille, après confirmation
+    const dedans = (t) => genre === "tableau" ? t.id === id : bibContient(id, t.parent);
+    const tableaux = bib.tableaux.filter(dedans);
+    const dossiers = genre === "dossier" ? bib.dossiers.filter((d) => d.id === id || bibContient(id, d.parent)) : [];
+    const ids = new Set(dossiers.map((d) => d.id));
+    bib.tableaux = bib.tableaux.filter((t) => !tableaux.includes(t));
+    bib.dossiers = bib.dossiers.filter((d) => !ids.has(d.id));
+    bibEcrire();
+    tableaux.forEach((t) => { bddOter("tableaux", t.id).catch(() => {}); bddOter("apercus", t.id).catch(() => {}); });
+    return tableaux.length;
+  }
+  function bibPoser() {
+    const m = bibDeplace;
+    if (!m) return;
+    const x = m.genre === "dossier" ? bibDossierDe(m.id) : bib.tableaux.find((t) => t.id === m.id);
+    if (!x) { bibDeplace = null; bibPeindre(); return; }
+    if (m.genre === "dossier" && bibDossier && bibContient(m.id, bibDossier)) {
+      dire("Un dossier ne se range pas dans lui-même.", true);
+      return;
+    }
+    x.parent = bibDossier; x.maj = Date.now();
+    bibDeplace = null; bibEcrire(); bibPeindre();
+    dire("« " + x.nom + " » est rangé dans « " + bibCheminTexte(bibDossier) + " ».");
+  }
+  function bibExporter() {
+    bibRanger().then(() => {
+      const tableaux = bib.tableaux.filter((t) => !bibJete(t)), dossiers = bib.dossiers.filter((d) => !bibJete(d));
+      return Promise.all(tableaux.map((t) => bddLire("tableaux", t.id).then((r) => ({ id: t.id, contenu: r ? r.contenu : {}, fichiers: r ? r.fichiers : {} }))))
+        .then((contenus) => {
+          telecharger("mes-tableaux.json", JSON.stringify({ type: "ciel-tableaux", version: 1, date: new Date().toISOString(), dossiers, tableaux, contenus }), "application/json");
+          dire(tableaux.length + " tableau" + (tableaux.length > 1 ? "x" : "") + " dans le fichier de sauvegarde.");
+        });
+    }).catch(bibEchec);
+  }
+  function bibImporter(texte) {
+    let j;
+    try { j = JSON.parse(texte); } catch (e) { j = null; }
+    if (!j || j.type !== "ciel-tableaux" || !Array.isArray(j.tableaux)) {
+      dire("Ce fichier n'est pas une sauvegarde de « Mes tableaux ». Un tableau seul s'ouvre par le menu, « Ouvrir un fichier ».", true);
+      return;
+    }
+    const racine = { id: bibNeuf(), nom: bibNomLibre("Import du " + new Date().toLocaleDateString("fr-FR"), null, bib.dossiers), parent: null, maj: Date.now() };
+    const neuf = new Map();
+    (j.dossiers || []).forEach((d) => neuf.set(d.id, bibNeuf()));
+    const dossiers = (j.dossiers || []).map((d) => ({ id: neuf.get(d.id), nom: String(d.nom || "Dossier").slice(0, 80), parent: neuf.get(d.parent) || racine.id, maj: d.maj || Date.now() }));
+    const contenus = new Map((j.contenus || []).map((c) => [c.id, c]));
+    const ecritures = [], tableaux = [];
+    j.tableaux.forEach((t) => {
+      const id = bibNeuf(), c = contenus.get(t.id) || {};
+      tableaux.push({ id, nom: String(t.nom || "Tableau").slice(0, 80), parent: neuf.get(t.parent) || racine.id, maj: t.maj || Date.now(), nb: t.nb || 0 });
+      ecritures.push(bddEcrire("tableaux", id, { contenu: c.contenu || {}, fichiers: c.fichiers || {} }));
+    });
+    Promise.all(ecritures).then(() => {
+      bib.dossiers.push(racine, ...dossiers); bib.tableaux.push(...tableaux); bibEcrire();
+      bibDossier = racine.id; bibCorbeille = false; bibPeindre();
+      dire(tableaux.length + " tableau" + (tableaux.length > 1 ? "x" : "") + " importé" + (tableaux.length > 1 ? "s" : "") + " dans « " + racine.nom + " ».");
+    }).catch(bibEchec);
+  }
+
+  /* ── l'écran « Mes tableaux » ── */
+  const BIB_I = {
+    dossier: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h3l1.6 1.8h6.4A1.5 1.5 0 0 1 17 8.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z"/></svg>',
+    renommer: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16l1-4L14 3l3 3-9 9z"/><path d="M12 5l3 3"/></svg>',
+    deplacer: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10h13M12 6l4 4-4 4"/></svg>',
+    copier: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5"/><path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v6A1.5 1.5 0 0 0 5.5 13H7"/></svg>',
+    jeter: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 6h11M8 6V4.5h4V6M6 6l.7 9.5a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9L14 6"/></svg>',
+    revenir: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 5L4 9l4 4"/><path d="M4 9h8a4 4 0 0 1 0 8H9"/></svg>',
+  };
+  const bibDate = (ms) => {
+    const j = Math.floor((Date.now() - ms) / 86400000);
+    if (j < 1) return "aujourd'hui";
+    if (j < 2) return "hier";
+    return new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: j > 300 ? "numeric" : undefined });
+  };
+  function bibPeindre() {
+    const dlg = $("#tb-biblio");
+    if (!dlg.open && !dlg.hasAttribute("open")) return;
+    if (bibDossier && (!bibDossierDe(bibDossier) || bibJete(bibDossierDe(bibDossier)))) bibDossier = null;
+    const q = bibCherche.trim().toLowerCase();
+    // le fil d'Ariane
+    $("#tb-bib-fil").innerHTML = bibCorbeille
+      ? '<button type="button" data-bib="racine">Mes tableaux</button><span aria-hidden="true">›</span><strong>Corbeille</strong>'
+      : ['<button type="button" data-bib="racine"' + (bibDossier ? "" : ' aria-current="page"') + ">Mes tableaux</button>"]
+        .concat(bibChemin(bibDossier).map((d, i, l) => '<span aria-hidden="true">›</span><button type="button" data-bib="entrer" data-id="'
+          + d.id + '"' + (i === l.length - 1 ? ' aria-current="page"' : "") + ">" + ech(d.nom) + "</button>")).join("");
+    // la barre d'actions
+    const nbJetes = bib.tableaux.filter((t) => t.corbeille).length + bib.dossiers.filter((d) => d.corbeille).length;
+    $("#tb-bib-barre").innerHTML = bibCorbeille
+      ? '<button type="button" class="tb-b tb-large" data-bib="racine">Revenir aux tableaux</button>'
+        + (nbJetes ? '<button type="button" class="tb-b tb-large tb-bib-danger" data-bib="vider">Vider la corbeille</button>' : "")
+      : bibDeplace
+        ? '<p class="tb-bib-pose">Ouvre le dossier d\'arrivée, puis pose.</p>'
+          + '<button type="button" class="tb-b tb-large tb-bib-fort" data-bib="poser">Poser ici</button>'
+          + '<button type="button" class="tb-b tb-large" data-bib="annuler-pose">Annuler</button>'
+        : '<button type="button" class="tb-b tb-large tb-bib-fort" data-bib="nouveau-tableau">+ Tableau</button>'
+          + '<button type="button" class="tb-b tb-large" data-bib="nouveau-dossier">+ Dossier</button>'
+          + '<button type="button" class="tb-b tb-large" data-bib="exporter" title="Un fichier de sauvegarde de tous les tableaux">Tout exporter</button>'
+          + '<button type="button" class="tb-b tb-large" data-bib="importer" title="Reprendre un fichier de sauvegarde">Importer</button>'
+          + '<button type="button" class="tb-b tb-large" data-bib="corbeille">Corbeille' + (nbJetes ? " (" + nbJetes + ")" : "") + "</button>";
+    // ce qu'on montre
+    let dossiers, tableaux;
+    if (bibCorbeille) {
+      dossiers = bib.dossiers.filter((d) => d.corbeille);
+      tableaux = bib.tableaux.filter((t) => t.corbeille);
+    } else if (q) {
+      dossiers = bib.dossiers.filter((d) => !bibJete(d) && d.nom.toLowerCase().includes(q));
+      tableaux = bib.tableaux.filter((t) => !bibJete(t) && t.nom.toLowerCase().includes(q));
+    } else {
+      dossiers = bib.dossiers.filter((d) => !d.corbeille && (d.parent || null) === bibDossier);
+      tableaux = bib.tableaux.filter((t) => !t.corbeille && (t.parent || null) === bibDossier);
+    }
+    const tri = (a, b) => a.nom.localeCompare(b.nom, "fr", { numeric: true, sensitivity: "base" });
+    dossiers.sort(tri);
+    tableaux.sort((a, b) => (b.id === bib.courant) - (a.id === bib.courant) || tri(a, b));
+    const acts = (genre, x) => bibCorbeille
+      ? '<button type="button" class="tb-b tb-petit" data-bib="restaurer" title="Restaurer" aria-label="Restaurer ' + ech(x.nom) + '">' + BIB_I.revenir + "</button>"
+        + '<button type="button" class="tb-b tb-petit tb-bib-danger" data-bib="detruire" title="Supprimer pour de bon" aria-label="Supprimer pour de bon ' + ech(x.nom) + '">' + BIB_I.jeter + "</button>"
+      : '<button type="button" class="tb-b tb-petit" data-bib="renommer" title="Renommer" aria-label="Renommer ' + ech(x.nom) + '">' + BIB_I.renommer + "</button>"
+        + '<button type="button" class="tb-b tb-petit" data-bib="deplacer" title="Déplacer dans un autre dossier" aria-label="Déplacer ' + ech(x.nom) + '">' + BIB_I.deplacer + "</button>"
+        + (genre === "tableau" ? '<button type="button" class="tb-b tb-petit" data-bib="dupliquer" title="Dupliquer" aria-label="Dupliquer ' + ech(x.nom) + '">' + BIB_I.copier + "</button>" : "")
+        + '<button type="button" class="tb-b tb-petit" data-bib="jeter" title="Mettre à la corbeille" aria-label="Mettre à la corbeille ' + ech(x.nom) + '">' + BIB_I.jeter + "</button>";
+    const nomDe = (genre, x) => bibEdite && bibEdite.genre === genre && bibEdite.id === x.id
+      ? '<input type="text" class="tb-bib-saisie" maxlength="80" value="' + ech(x.nom) + '" aria-label="Nouveau nom">'
+      : '<span class="tb-bib-nom">' + ech(x.nom) + "</span>";
+    const carteDossier = (d) => {
+      const n = bib.dossiers.filter((x) => !x.corbeille && x.parent === d.id).length + bib.tableaux.filter((x) => !x.corbeille && x.parent === d.id).length;
+      return '<li class="tb-bib-carte tb-bib-dossier' + (bibDeplace && bibDeplace.id === d.id ? " tb-bib-pris" : "") + '" data-genre="dossier" data-id="' + d.id + '">'
+        + '<button type="button" class="tb-bib-ouvrir" data-bib="entrer"' + (bibCorbeille ? " disabled" : "") + ">"
+        + '<span class="tb-bib-vignette">' + BIB_I.dossier + "</span>" + nomDe("dossier", d)
+        + '<span class="tb-bib-info">' + (n ? n + " élément" + (n > 1 ? "s" : "") : "vide") + (q ? " · " + ech(bibCheminTexte(d.parent)) : "") + "</span></button>"
+        + '<span class="tb-bib-acts">' + acts("dossier", d) + "</span></li>";
+    };
+    const carteTableau = (t) => '<li class="tb-bib-carte' + (t.id === bib.courant ? " tb-bib-ouvert" : "") + (bibDeplace && bibDeplace.id === t.id ? " tb-bib-pris" : "")
+      + '" data-genre="tableau" data-id="' + t.id + '">'
+      + '<button type="button" class="tb-bib-ouvrir" data-bib="ouvrir"' + (bibCorbeille ? " disabled" : "") + ">"
+      + '<span class="tb-bib-vignette"><img alt="" data-apercu="' + t.id + '"></span>' + nomDe("tableau", t)
+      + '<span class="tb-bib-info">' + (t.id === bib.courant ? "ouvert · " : "") + bibDate(t.maj || Date.now())
+      + (q ? " · " + ech(bibCheminTexte(t.parent)) : "") + "</span></button>"
+      + '<span class="tb-bib-acts">' + acts("tableau", t) + "</span></li>";
+    const liste = $("#tb-bib-liste");
+    liste.innerHTML = dossiers.length + tableaux.length
+      ? '<ul class="tb-bib-grille">' + dossiers.map(carteDossier).join("") + tableaux.map(carteTableau).join("") + "</ul>"
+      : '<p class="tb-bib-vide">' + (bibCorbeille ? "La corbeille est vide."
+          : q ? "Aucun tableau ni dossier ne porte ce nom."
+          : "Ce dossier est vide. « + Tableau » en crée un ici, « + Dossier » un sous-dossier.") + "</p>";
+    // les vignettes : celle du tableau ouvert se dessine, les autres se lisent
+    $$("img[data-apercu]", liste).forEach((img) => {
+      const id = img.dataset.apercu;
+      const poser = (u) => { if (u) img.src = u; else img.remove(); };
+      if (id === bib.courant) poser(apercuDe()); else bddLire("apercus", id).then(poser).catch(() => img.remove());
+    });
+    const saisie = $(".tb-bib-saisie", liste);
+    if (saisie) { saisie.focus(); saisie.select(); }
+  }
+  function bibValiderNom(saisie) {
+    if (!bibEdite) return;
+    const e = bibEdite, nom = saisie.value.trim().slice(0, 80);
+    bibEdite = null;
+    const x = e.genre === "dossier" ? bibDossierDe(e.id) : bib.tableaux.find((t) => t.id === e.id);
+    if (x && nom && nom !== x.nom) {
+      x.nom = nom; x.maj = Date.now(); bibEcrire();
+      if (e.genre === "tableau" && e.id === bib.courant) { etat.titre = nom; titre.value = nom; garder(); }
+    }
+    bibPeindre();
+  }
+  function ouvrirBiblio() {
+    const t = bibCourant();
+    if (t) { t.nom = etat.titre; t.nb = elements.filter((e) => !estLie(e)).length; bibEcrire(); }
+    bibDossier = t ? (t.parent || null) : null;
+    bibCorbeille = false; bibDeplace = null; bibEdite = null; bibCherche = "";
+    $("#tb-bib-cherche").value = "";
+    ouvrirDialogue("#tb-biblio");
+    bibPeindre();
+  }
+  function fermerBiblio() {
+    const d = $("#tb-biblio");
+    if (d.open) d.close(); else d.removeAttribute("open");
+    scene.focus({ preventScroll: true });
+  }
+  (function () {
+    const dlg = $("#tb-biblio");
+    if (!dlg) return;
+    $("#tb-biblio-b").addEventListener("click", ouvrirBiblio);
+    // les raccourcis du tableau ne doivent pas agir pendant qu'on tape un nom
+    dlg.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape" && tire) { e.preventDefault(); finirTire(false); return; }
+      if (e.target.classList && e.target.classList.contains("tb-bib-saisie")) {
+        if (e.key === "Enter") { e.preventDefault(); bibValiderNom(e.target); }
+        else if (e.key === "Escape") { e.preventDefault(); bibEdite = null; bibPeindre(); }
+      }
+    });
+    dlg.addEventListener("focusout", (e) => { if (e.target.classList && e.target.classList.contains("tb-bib-saisie")) bibValiderNom(e.target); });
+    $("#tb-bib-cherche").addEventListener("input", (e) => { bibCherche = e.target.value; bibPeindre(); });
+    $("#tb-bib-fichier").addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      e.target.value = "";
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => bibImporter(String(r.result));
+      r.readAsText(f);
+    });
+    /* Glisser une carte sur un dossier la range dedans (demandé le 15 nov.
+       2026). Au pointeur, et non au glisser-déposer du navigateur, qui ne
+       marche pas au doigt sur tablette. À la souris, le geste part après
+       6 px ; au doigt ou au stylet, après un appui tenu de 350 ms : le doigt
+       qui fait défiler la liste ne déplace donc rien. Les cibles : une carte
+       de dossier, ou un nom du chemin en haut (« Mes tableaux » pour la
+       racine). Le bouton « Déplacer » reste, pour le clavier. */
+    let tire = null, sansClic = 0;
+    const elementTire = (t) => t.genre === "dossier" ? bibDossierDe(t.id) : bib.tableaux.find((x) => x.id === t.id);
+    function cibleSous(t, x, y) {
+      const sous = document.elementFromPoint(x, y);
+      if (!sous || !dlg.contains(sous)) return null;
+      const carte = sous.closest(".tb-bib-dossier"), fil = sous.closest(".tb-bib-fil button");
+      let noeud = null, parent;
+      if (carte) { noeud = carte; parent = carte.dataset.id; }
+      else if (fil) { noeud = fil; parent = fil.dataset.bib === "racine" ? null : fil.dataset.id; }
+      if (!noeud) return null;
+      const x0 = elementTire(t);
+      if (!x0 || (x0.parent || null) === (parent || null)) return null;            // il y est déjà
+      if (t.genre === "dossier" && parent && bibContient(t.id, parent)) return null; // pas dans lui-même
+      return { noeud, parent };
+    }
+    function montrerTire(t) {
+      const x0 = elementTire(t), c = t.cible;
+      t.fantome.style.left = t.x + "px"; t.fantome.style.top = t.y + "px";
+      t.fantome.textContent = (x0 ? x0.nom : "") + (c ? "  →  " + (c.parent ? bibDossierDe(c.parent).nom : "Mes tableaux") : "");
+    }
+    function partirTire(t) {
+      t.parti = true;
+      t.carte.classList.add("tb-bib-glisse");
+      t.fantome = document.createElement("div");
+      t.fantome.className = "tb-bib-fantome";
+      dlg.appendChild(t.fantome);
+      try { dlg.setPointerCapture(t.pid); } catch (err) { /* pointeur déjà levé */ }
+      montrerTire(t);
+    }
+    function suivreTire(t) {
+      const c = cibleSous(t, t.x, t.y);
+      if ((c && c.noeud) !== (t.cible && t.cible.noeud)) {
+        if (t.cible) t.cible.noeud.classList.remove("tb-bib-cible");
+        if (c) c.noeud.classList.add("tb-bib-cible");
+      }
+      t.cible = c;
+      montrerTire(t);
+    }
+    function finirTire(poser) {
+      const t = tire;
+      if (!t) return;
+      tire = null;
+      clearTimeout(t.appui);
+      if (!t.parti) return;
+      sansClic = performance.now();
+      t.fantome.remove();
+      t.carte.classList.remove("tb-bib-glisse");
+      if (t.cible) t.cible.noeud.classList.remove("tb-bib-cible");
+      const x = elementTire(t);
+      if (!poser || !t.cible || !x) return;
+      x.parent = t.cible.parent; x.maj = Date.now();
+      bibDeplace = null; bibEcrire(); bibPeindre();
+      dire("« " + x.nom + " » est rangé dans « " + bibCheminTexte(x.parent) + " ».");
+    }
+    dlg.addEventListener("pointerdown", (e) => {
+      if (tire || bibCorbeille || bibEdite || e.button > 0) return;
+      const carte = e.target.closest(".tb-bib-carte");
+      if (!carte || e.target.closest(".tb-bib-acts, .tb-bib-saisie")) return;
+      const t = tire = { genre: carte.dataset.genre, id: carte.dataset.id, carte, pid: e.pointerId,
+                         x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY,
+                         souris: e.pointerType === "mouse", parti: false, cible: null };
+      if (!t.souris) t.appui = setTimeout(() => { if (tire === t && !t.parti) partirTire(t); }, 350);
+    });
+    dlg.addEventListener("pointermove", (e) => {
+      const t = tire;
+      if (!t || e.pointerId !== t.pid) return;
+      t.x = e.clientX; t.y = e.clientY;
+      if (!t.parti) {
+        const d = Math.hypot(t.x - t.x0, t.y - t.y0);
+        if (t.souris && d > 6) partirTire(t);
+        else if (!t.souris && d > 10) { clearTimeout(t.appui); tire = null; }   // le doigt fait défiler
+        return;
+      }
+      suivreTire(t);
+    });
+    dlg.addEventListener("pointerup", (e) => { if (tire && e.pointerId === tire.pid) finirTire(true); });
+    dlg.addEventListener("pointercancel", (e) => { if (tire && e.pointerId === tire.pid) finirTire(false); });
+    // au doigt, une fois le geste parti, la liste ne défile plus sous lui
+    dlg.addEventListener("touchmove", (e) => { if (tire && tire.parti) e.preventDefault(); }, { passive: false });
+    // Échap pendant le geste : la carte revient, la fenêtre reste ouverte
+    dlg.addEventListener("cancel", (e) => { if (tire) { e.preventDefault(); finirTire(false); } });
+    dlg.addEventListener("click", (e) => {
+      // le clic qui suit un glisser n'ouvre rien
+      if (performance.now() - sansClic < 400) { e.preventDefault(); e.stopPropagation(); return; }
+      if (e.target.classList && e.target.classList.contains("tb-bib-saisie")) return;
+      const b = e.target.closest("[data-bib]");
+      if (!b) return;
+      const a = b.dataset.bib, carte = b.closest(".tb-bib-carte");
+      const genre = carte && carte.dataset.genre, id = (carte && carte.dataset.id) || b.dataset.id;
+      if (a === "racine") { bibDossier = null; bibCorbeille = false; bibCherche = ""; $("#tb-bib-cherche").value = ""; bibPeindre(); }
+      else if (a === "entrer") { bibDossier = id; bibCherche = ""; $("#tb-bib-cherche").value = ""; bibPeindre(); }
+      else if (a === "ouvrir") bibOuvrir(id);
+      else if (a === "nouveau-tableau") bibNouveauTableau();
+      else if (a === "nouveau-dossier") bibNouveauDossier();
+      else if (a === "corbeille") { bibCorbeille = true; bibDeplace = null; bibPeindre(); }
+      else if (a === "exporter") bibExporter();
+      else if (a === "importer") $("#tb-bib-fichier").click();
+      else if (a === "renommer") { bibEdite = { genre, id }; bibPeindre(); }
+      else if (a === "deplacer") { bibDeplace = { genre, id }; bibPeindre(); }
+      else if (a === "poser") bibPoser();
+      else if (a === "annuler-pose") { bibDeplace = null; bibPeindre(); }
+      else if (a === "dupliquer") bibDupliquer(id);
+      else if (a === "jeter") bibJeter(genre, id);
+      else if (a === "restaurer") bibRestaurer(genre, id);
+      else if (a === "detruire") {
+        if (!window.confirm("Supprimer pour de bon ? Cette fois, rien ne le fera revenir.")) return;
+        bibDetruire(genre, id); bibPeindre();
+      } else if (a === "vider") {
+        if (!window.confirm("Vider la corbeille ? Les tableaux qu'elle contient seront supprimés pour de bon.")) return;
+        bib.dossiers.filter((d) => d.corbeille).forEach((d) => bibDetruire("dossier", d.id));
+        bib.tableaux.filter((t) => t.corbeille).forEach((t) => bibDetruire("tableau", t.id));
+        bibPeindre();
+        dire("La corbeille est vide.");
+      }
+    });
+  })();
+  // l'onglet qu'on quitte : le tableau ouvert rejoint la bibliothèque
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && bib) { clearTimeout(minuterieGarde); ecrire(); bibRanger().catch(() => {}); }
+  });
+
   /* ═══════════════ 15. Le démarrage ═══════════════════════════════════ */
   relire();
+  bibDemarrer();
   reparer();
   elements.forEach((e) => { if (e.type === "text") { if (e.containerId) placerLie(e); } });
-  pile = [JSON.stringify(elements)]; curseurPile = 0;
+  pile = [JSON.stringify(elements)]; curseurPile = 0; pileFond = [etat.fond];
   majHistorique();
   new ResizeObserver(() => demander()).observe(toile);
   /* Au téléphone, les îlots se placent d'après la taille RÉELLE de leurs

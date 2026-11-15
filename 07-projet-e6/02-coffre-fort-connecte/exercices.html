@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coffre-fort connecté : les exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Dix exercices corrigés sur le coffre-fort connecté : le synoptique, le badge RFID, le servomoteur, l'API ou le cache, HTTP et MQTT, le LWT, l'injection SQL, le cron, la sécurité et la mallette portable.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=902d6ad1">
+</head>
+<body data-matiere="projets">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Projet E6</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#objet">1 · L'objet</a></li>
+    <li><a href="#reseau">2 · Le réseau et le protocole</a></li>
+    <li><a href="#serveur">3 · Le serveur et la sécurité</a></li>
+    <li><a href="#oral">4 · Préparer l'oral</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="exercices.html" aria-current="page">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Projet E6</a>
+    <span class="sep">/</span><span>Chapitre 2</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>Coffre-fort connecté : les exercices</h1>
+  <p class="chapeau">Dix exercices, de la carte électronique aux questions du jury. Ils
+     valent pour le coffre fixe comme pour la mallette.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a></p>
+</header>
+
+<section id="objet">
+  <h2><span class="num">1</span>L'objet</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Le chemin d'un badge <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Un badge autorisé est présenté au lecteur. Décrire, dans l'ordre, ce qui se passe
+         jusqu'à la ligne dans l'historique de la supervision.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ol>
+  <li>Le lecteur RFID alimente le badge par son champ à 13,56 MHz et lit son
+      <strong>UID</strong>.</li>
+  <li>L'ESP32 reçoit l'UID par le bus SPI et le vérifie (par l'API ou son cache).</li>
+  <li>Le badge est autorisé :<br class="ae"> l'ESP32 commande le <strong>servomoteur</strong>, qui
+      ouvre.</li>
+  <li>L'ESP32 envoie l'événement « ouverture autorisée » au serveur, en HTTP ou en
+      MQTT.</li>
+  <li>Le serveur l'enregistre dans la table des événements.</li>
+  <li>La supervision lit la base et affiche la ligne.</li>
+</ol>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>L'API ou le cache <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le Wi-Fi est coupé depuis une heure. Pendant ce temps, l'administrateur a désactivé
+         le badge d'un employé parti.</p>
+      <p>a) Le coffre s'ouvre-t-il pour un badge autorisé, s'il vérifie par l'API ? par un
+         cache local ?</p>
+      <p>b) Et pour le badge désactivé ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>a) Par l'API :<br class="ae"> <strong>non</strong>, le serveur est injoignable. Par le cache :
+   <strong>oui</strong>.</p>
+<p>b) Par l'API : non (personne n'ouvre). Par le cache :<br class="ae"> <strong>oui</strong>, et c'est
+   le problème :<br class="ae"> la copie locale ne sait pas encore que le badge a été désactivé.</p>
+<p class="rap">Chaque solution a son risque :<br class="ae"> un coffre bloqué, ou un badge retiré qui
+   marche encore. Les combiner (l'API d'abord, le cache en secours) et le dire à l'oral
+   montre qu'on a pesé le choix.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>La carte qui redémarre <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>À chaque ouverture, l'ESP32 redémarre. Le servomoteur est branché sur la broche
+         3,3 V de la carte. Expliquer la panne et la corriger.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>En démarrant, le servomoteur tire un fort courant. La tension de la carte chute, et
+   l'ESP32 redémarre.</p>
+<p><strong>Correction</strong> :<br class="ae"> alimenter le servo par sa propre source (souvent 5 V),
+   et relier les <strong>masses</strong> des deux alimentations. L'ESP32 ne fournit plus
+   que le signal de commande.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Effraction ou ouverture normale ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Le contact magnétique signale « porte ouverte ». Quelle information l'ESP32
+         doit-il consulter pour décider s'il s'agit d'une effraction ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Il regarde si <strong>un badge vient d'être accepté</strong>, et donc si lui-même a
+   commandé l'ouverture.</p>
+<ul>
+  <li>Oui : ouverture normale.</li>
+  <li>Non :<br class="ae"> la porte s'est ouverte sans badge, c'est une <strong>intrusion</strong>, et il
+      envoie l'événement correspondant.</li>
+</ul>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="reseau">
+  <h2><span class="num">2</span>Le réseau et le protocole</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>Choisir le protocole <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>On veut que l'administrateur puisse, depuis la supervision, demander au coffre de
+         recharger sa liste de badges <strong>immédiatement</strong>. Quel protocole s'y
+         prête le mieux, HTTP ou MQTT ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>MQTT.</strong></p>
+<p>En HTTP, le serveur ne peut pas parler en premier :<br class="ae"> il attend que le coffre l'appelle.
+   Il faudrait que le coffre interroge le serveur régulièrement.</p>
+<p>En MQTT, le coffre est <strong>abonné</strong> à un sujet de commandes, par exemple
+   <code>coffre/1/commande</code>. Le serveur y publie l'ordre, le coffre le reçoit tout
+   de suite.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Le coffre débranché <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Quelqu'un débranche le coffre. Expliquer comment la supervision peut l'afficher
+         « hors ligne », en MQTT, sans aucun ping.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Grâce au <strong>LWT</strong> (« dernière volonté »). En se connectant, le coffre a
+   confié au broker un message, <code>hors_ligne</code>, à publier sur
+   <code>coffre/1/etat</code> s'il disparaissait sans prévenir.</p>
+<p>Le broker constate que le coffre ne répond plus et publie ce message à sa place. La
+   supervision, abonnée à ce sujet, affiche « hors ligne ».</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Cloisonner <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Le coffre est dans un VLAN IoT ; le serveur est dans le VLAN des serveurs. Écrire,
+         en français, les deux règles du pare-feu qui suffisent pour que le coffre parle au
+         serveur en MQTT, et à rien d'autre.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ol>
+  <li><strong>Autoriser</strong> le trafic du coffre (son adresse) vers le serveur (son
+      adresse), en TCP, sur le port <strong>1883</strong> (ou 8883 s'il est
+      chiffré).</li>
+  <li><strong>Refuser</strong> tout le reste depuis le VLAN IoT.</li>
+</ol>
+<p class="rap">Les réponses du serveur au coffre passent avec la connexion autorisée. Si
+   le coffre est piraté, il ne peut atteindre ni les postes ni Internet.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="serveur">
+  <h2><span class="num">3</span>Le serveur et la sécurité</h2>
+
+  <article class="exo">
+    <h3><span class="no">8</span>L'injection SQL <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Un premier programme vérifiait un badge ainsi :</p>
+      <div class="bloc-code" data-fam="php" style="--car:31"><span class="langue">php · à ne pas faire</span><pre><code><span class="j-var">$sql</span> = "SELECT actif FROM badge
+  WHERE uid = <span class="j-txt">'$uid'</span>";</code></pre></div>
+      <p>a) Que devient la requête si un faux lecteur envoie <code>' OR '1'='1</code> comme
+         UID ? b) Réécrire la vérification correctement.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>a) La requête devient :</p>
+<div class="bloc-code" data-fam="sql" style="--car:25"><span class="langue">sql · la requête détournée</span><pre><code><span class="j-mc">SELECT</span> actif <span class="j-mc">FROM</span> badge
+<span class="j-mc">WHERE</span> uid = <span class="j-txt">''</span> <span class="j-mc">OR</span> <span class="j-txt">'1'</span>=<span class="j-txt">'1'</span></code></pre></div>
+<p>La condition est toujours vraie :<br class="ae"> la base renvoie des lignes, et le programme peut
+   croire le badge autorisé.</p>
+<p>b) Avec une <strong>requête préparée</strong> :</p>
+<div class="bloc-code" data-fam="php" style="--car:26"><span class="langue">php · une requête préparée</span><pre><code><span class="j-var">$req</span> = <span class="j-var">$pdo</span>-&gt;<span class="j-fn">prepare</span>(
+  "SELECT actif FROM badge
+   WHERE uid = ?");
+<span class="j-var">$req</span>-&gt;<span class="j-fn">execute</span>([<span class="j-var">$uid</span>]);</code></pre></div>
+<p class="rap">L'UID est envoyé à part :<br class="ae"> il reste une valeur à comparer, jamais du
+   code.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>La sauvegarde <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Que signifie cette ligne de la table cron ?</p>
+      <div class="bloc-code" style="--car:30"><span class="langue">crontab</span><pre><code>0 3 * * 1 /opt/coffre/sauve.sh</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Les champs se lisent :<br class="ae"> minute <code>0</code>, heure <code>3</code>, tous les jours du
+   mois, tous les mois, jour de la semaine <code>1</code>.</p>
+<p>Le script de sauvegarde est lancé <strong>chaque lundi à 3 h 00</strong> (le jour 1
+   est le lundi, le 0 le dimanche).</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="oral">
+  <h2><span class="num">4</span>Préparer l'oral</h2>
+
+  <article class="exo">
+    <h3><span class="no">10</span>La question du badge copié <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Le jury demande :<br class="ae"> « Quelqu'un copie l'UID d'un badge autorisé sur un badge vierge.
+         Votre coffre s'ouvre-t-il ? » Rédiger une réponse honnête, en quatre ou cinq
+         phrases.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Une réponse possible :</p>
+<p>« <strong>Oui</strong>, si le coffre ne vérifie que l'UID : ce numéro est lu en clair et
+   peut être recopié.</p>
+<p>Pour limiter le risque, nous journalisons chaque accès et nous
+   repérons les anomalies, comme le même badge présenté deux fois en quelques secondes,
+   ou à une heure inhabituelle.</p>
+<p>La vraie parade serait un badge capable de chiffrer, qui
+   prouve sa clé au lecteur sans la donner. Nous ne l'avons pas mis en place, mais c'est
+   l'amélioration que nous proposerions. »</p>
+<p class="rap">Le jury ne cherche pas un système parfait. Il vérifie que vous connaissez
+   ses limites.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Projet E6 : coffre-fort connecté, contrôle d'accès RFID et détection
+          d'intrusion », présentation du sujet</li>
+    </ul>
+    <p class="rap">Les dix exercices et leurs corrections sont écrits pour le site.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../01-epreuve-e6/exercices.html"><span>Chapitre précédent</span><b>L'épreuve E6</b></a><a class="suiv" href="../03-people-counter/exercices.html"><span>Chapitre suivant</span><b>People counter</b></a></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=902d6ad1"></script>
+<script src="../../assets/app.js?v=902d6ad1"></script>
+</body>
+</html>

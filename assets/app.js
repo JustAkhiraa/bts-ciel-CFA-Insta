@@ -95,7 +95,8 @@
       { id: "liquid", nom: "Liquid Glass", sombre: false },
       { id: "bristol", nom: "Bristol", sombre: false },
       { id: "zellige", nom: "Zellige", sombre: false },
-      { id: "console-bleue", nom: "Console bleue", sombre: true }
+      { id: "console-bleue", nom: "Console bleue", sombre: true },
+      { id: "verre-nuit", nom: "Verre de nuit", sombre: true }
     ]}
   ];
 
@@ -142,9 +143,14 @@
      La garantie qu'on se donne : les DEUX accueils sont fabriqués à
      partir des mêmes compteurs, à la publication. Aucun nombre n'est
      tapé à la main nulle part — l'ancien ne peut donc plus mentir. */
+  /* Signalé le 15 nov. 2026 : « 3D », « 3D bis », puis plus bas « Ouvrir
+     le village » et « Ouvrir l'île », et on ne comprenait pas que c'était
+     deux fois les deux mêmes mondes. Un monde porte donc UN nom, le même
+     partout : dans les pastilles, dans les liens de visite, dans l'aide.
+     Et « Classique » ne disait pas ce qu'on voit : ce sont des cartes. */
   var STYLES = [
     { id: "lanceur",   nom: "Lanceur" },
-    { id: "classique", nom: "Classique" },
+    { id: "classique", nom: "Cartes" },
     /* Demandé : le village en fait partie, c'est un accueil lui aussi.
        Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
        3D : le choisir envoie là-bas. La redirection est posée dans le
@@ -157,10 +163,10 @@
        feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
        première page. Une seconde liste des mêmes noms est exactement ce qui
        a déjà laissé un thème entier sans mesure, trois fois. */
-    { id: "monde",     nom: "3D",     dossier: "monde", ouvre: "le village" },
+    { id: "monde",     nom: "Village 3D", dossier: "monde" },
     /* L'île, le second monde : celui où l'on marche, où l'on entre dans
        les bâtiments. Demandé pour pouvoir y revenir plus tard. */
-    { id: "ile",       nom: "3D bis", dossier: "ile",   ouvre: "l'île" }
+    { id: "ile",       nom: "Île 3D",     dossier: "ile" }
   ];
 
   /* Signalé le 10 nov. 2026 : sur un téléphone, « Lanceur » et « Classique »
@@ -172,7 +178,7 @@
     ? matchMedia("(max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape)")
     : null;
   function surTelephone() { return !!(ECRAN_TEL && ECRAN_TEL.matches); }
-  var VERSIONS = [{ id: "tel", nom: "Version tel" }, { id: "pc", nom: "Version PC" }]
+  var VERSIONS = [{ id: "tel", nom: "Téléphone" }, { id: "pc", nom: "Ordinateur" }]
     .concat(STYLES.filter(function (o) { return o.dossier; }));
 
   var TAILLES = [
@@ -485,7 +491,12 @@
        « variante » n'a pas de sens : le thème EST sa face. */
     if (t.duo && S.variante) sombre = (S.variante === "sombre");
 
-    d.dataset.theme      = S.theme || (sombre ? "dark" : "light");
+    /* Une page qui a sa propre direction artistique (« data-da », la page
+       Actu) ne prend que la FACE, claire ou sombre, sur le thème de base :
+       sa feuille redéfinit les jetons, et aucun univers ne la déforme. Même
+       règle dans l'amorce d'en-tête, pour que la page ne clignote pas. */
+    d.dataset.theme      = d.dataset.da ? (sombre ? "dark" : "light")
+                                        : (S.theme || (sombre ? "dark" : "light"));
     d.dataset.sombre     = sombre ? "1" : "0";
     d.dataset.taille     = S.taille || "normal";
     d.dataset.largeur    = S.largeur || "normal";
@@ -597,22 +608,26 @@
      décider de ce qu'on verra demain matin.
      D'où une rangée séparée, avec son titre : la différence est portée par
      la structure, pas par une phrase d'aide qu'on ne lit qu'une fois. */
-  function rangeeMondes() {
+  /* 15 nov. 2026 : la rangée avait son propre titre (« Les mondes en 3D »)
+     et ses propres noms, et se lisait comme deux réglages de plus. Elle vit
+     maintenant DANS le bloc de la page d'accueil, juste sous les pastilles,
+     avec les mêmes noms : « Village 3D » ici est le « Village 3D » d'en
+     haut, et la phrase dit la seule différence, choisir ou visiter. */
+  function visitesMondes() {
     var h = STYLES.filter(function (o) { return o.dossier; })
       .map(function (o) {
-        return '<a href="' + adresseMonde(o.dossier) + '">Ouvrir ' + o.ouvre + "</a>";
+        return '<a href="' + adresseMonde(o.dossier) + '">' + o.nom + "</a>";
       }).join("");
     if (!h) return "";
-    return '<div class="reglage"><h3>Les mondes en 3D</h3>' +
-           "<p>Y aller maintenant, sans changer l'accueil.</p>" +
-           '<p class="reglage-liens">' + h + "</p></div>";
+    return "<p>Juste visiter, sans changer la page d'accueil :</p>" +
+           '<p class="reglage-liens">' + h + "</p>";
   }
 
   /* Le pied de page n'existe pas dans la version téléphone : ses quatre
      liens vivent donc ici, dans les réglages, au bout du pouce. */
   function rangeeSite() {
     var base = racine(), depot = "https://github.com/JustAkhiraa/bts-ciel-CFA-Insta";
-    return '<div class="reglage"><h3>Le site</h3>' +
+    return '<div class="reglage"><h3>À propos du site</h3>' +
       '<p class="reglage-liens">' +
       '<a href="' + base + 'kit.html">Kit de survie</a>' +
       '<a href="' + base + 'a-propos.html">À propos</a>' +
@@ -1028,34 +1043,45 @@
       '<div class="feuille-corps">' +
 
         '<div class="reglage"><h3>Thème</h3>' +
-        '<p>Quarante thèmes, dont seize venus de jeux et de vieux écrans.</p>' +
+        '<p>' + window.CIEL.themes.length + ' thèmes, dont ' +
+          window.CIEL.themes.filter(function (t) { return t.duo; }).length +
+          ' tirés de jeux et de vieux écrans.</p>' +
         '<div class="champ-select">' + selecteurThemes(S.theme) +
         '<button type="button" class="mini" data-hasard-theme title="Thème au hasard">🎲</button></div>' +
         '<div class="apercu-theme" aria-hidden="true">' +
           '<span class="ap-carte"><i></i><b></b></span>' +
           '<span class="ap-txt">Aperçu du thème</span></div></div>' +
 
+        /* « Accueil » seul ne disait pas de quoi on parlait. Chaque choix est
+           nommé dans l'aide, avec ce qu'il montre. */
         (surTelephone()
-          ? '<div class="reglage"><h3>Accueil</h3>' +
+          ? '<div class="reglage"><h3>Page d\'accueil</h3>' +
+            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
             '<div class="pastilles" data-champ="version">' +
             pastilles(VERSIONS, leMonde(S.style) ? S.style : (S.pc ? "pc" : "tel")) +
-            '</div><p class="reglage-aide">La version tel est faite pour le pouce. ' +
-            'La version PC remet la page d\'ordinateur sur ce téléphone, au besoin. ' +
-            '« 3D » et « 3D bis » ouvrent directement un monde.</p></div>'
-          : '<div class="reglage"><h3>Accueil</h3>' +
+            '</div><p class="reglage-aide"><b>Téléphone</b> : l\'accueil fait pour le pouce. ' +
+            '<b>Ordinateur</b> : la page d\'ordinateur, au besoin. ' +
+            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde.</p>' +
+            visitesMondes() + '</div>'
+          : '<div class="reglage"><h3>Page d\'accueil</h3>' +
+            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
             '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-            '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
-            'Le lanceur montre tout en un écran, le classique garde les grandes ' +
-            'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
-            '« retour » y ramène ici.</p></div>') +
-        rangeeMondes() + (surTelephone() ? rangeeSite() : "") +
+            '</div><p class="reglage-aide"><b>Lanceur</b> : tout sur un écran. ' +
+            '<b>Cartes</b> : une grande carte par matière. ' +
+            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde, ' +
+            'et son bouton « retour » ramène ici.</p>' +
+            visitesMondes() + '</div>') +
+        (surTelephone() ? rangeeSite() : "") +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
 
+        /* Au téléphone, l'écran est déjà plus étroit que la plus étroite des
+           largeurs : le réglage n'y changerait rien. */
+        (surTelephone() ? '' :
         '<div class="reglage"><h3>Largeur de lecture</h3>' +
         '<p>« Large » et « Pleine » exploitent les grands écrans ; « Étroite » garde une ligne courte, plus facile à suivre.</p>' +
-        '<div class="pastilles" data-champ="largeur">' + pastilles(LARGEURS, S.largeur) + "</div></div>" +
+        '<div class="pastilles" data-champ="largeur">' + pastilles(LARGEURS, S.largeur) + "</div></div>") +
 
         '<div class="reglage"><h3>Police</h3>' +
         '<div class="pastilles" data-champ="police">' + pastilles(POLICES, S.police) + "</div></div>" +
@@ -1063,22 +1089,29 @@
         '<div class="reglage"><h3>Interligne</h3>' +
         '<div class="pastilles" data-champ="interligne">' + pastilles(INTERLIGNES, S.interligne) + "</div></div>" +
 
-        '<div class="reglage"><h3>Révision</h3>' +
+        /* « Révision » rangeait aussi les animations et les curseurs : un
+           titre qui ne dit pas ce qu'il range. Deux blocs, chacun nommé. */
+        '<div class="reglage"><h3>Exercices</h3>' +
         '<button type="button" class="bascule" data-bascule="reponses" aria-pressed="' + !!S.reponses + '">' +
           '<span class="txt"><b>Réponses déjà ouvertes</b>' +
           '<span>Les corrections des exercices s\'affichent sans cliquer</span></span>' +
-          '<span class="interrupteur"></span></button>' +
-        '<button type="button" class="bascule" data-bascule="anim" aria-pressed="' + !!S.anim + '">' +
-          '<span class="txt"><b>Animations</b><span>Transitions et défilement doux</span></span>' +
-          '<span class="interrupteur"></span></button>' +
-        '<button type="button" class="bascule" data-bascule="curseur" aria-pressed="' + !!S.curseur + '">' +
-          '<span class="txt"><b>Curseurs de thème</b>' +
-          '<span>Activés ou non</span></span>' +
           '<span class="interrupteur"></span></button></div>' +
 
+        '<div class="reglage"><h3>Mouvement' + (surTelephone() ? '' : ' et pointeur') + '</h3>' +
+        '<button type="button" class="bascule" data-bascule="anim" aria-pressed="' + !!S.anim + '">' +
+          '<span class="txt"><b>Animations</b><span>Fondus, apparitions et défilement doux</span></span>' +
+          '<span class="interrupteur"></span></button>' +
+        /* Un pointeur de souris n'existe pas au doigt : l'interrupteur n'y
+           réglerait rien. */
+        (surTelephone() ? '' :
+        '<button type="button" class="bascule" data-bascule="curseur" aria-pressed="' + !!S.curseur + '">' +
+          '<span class="txt"><b>Pointeur du thème</b>' +
+          '<span>La flèche de la souris prend la forme du thème choisi</span></span>' +
+          '<span class="interrupteur"></span></button>') + '</div>' +
+
         '<div class="reglage"><h3>Fond sonore</h3>' +
-        '<p>Trois ambiances calculées par la page : rien à télécharger, et aucune boucle : ' +
-        'le son ne se répète jamais puisqu\'il n\'est pas enregistré.</p>' +
+        '<p>Trois ambiances calculées par la page, sans rien à télécharger. Aucune boucle : ' +
+        'le son ne se répète jamais, puisqu\'il n\'est pas enregistré.</p>' +
         '<div class="pastilles" data-champ="son">' + pastilles(FONDS, S.son || "") + "</div>" +
         '<label class="curseur-reglage"><span>Volume</span>' +
         '<input type="range" min="0" max="100" step="5" data-nombre="sonVolume" ' +
@@ -1087,13 +1120,15 @@
         '<p class="note-son">Les navigateurs interdisent de démarrer un son sans geste : ' +
         'en changeant de page, il reprend au premier clic.</p></div>' +
 
-        '<div class="reglage"><h3>Progression</h3>' +
+        '<div class="reglage"><h3>Mes données</h3>' +
         '<p id="compte-faits"></p>' +
         '<button type="button" class="danger" data-effacer>Effacer mes données locales</button></div>' +
 
-        '<div class="reglage"><h3>Raccourcis</h3>' +
+        /* Pas de clavier au doigt : la liste n'y servirait à rien. */
+        (surTelephone() ? '' :
+        '<div class="reglage"><h3>Raccourcis clavier</h3>' +
         '<p><b>/</b> ou <b>⌘K</b> chercher · <b>t</b> thème clair/sombre · <b>r</b> fiche au hasard · ' +
-        '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>' +
+        '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>') +
       "</div>";
 
     feuille.addEventListener("input", function (e) {
@@ -1156,7 +1191,7 @@
         });
         if (monde) {
           S.style = v; enregistrer(); appliquer();
-          toast("Le site s'ouvrira sur " + monde.ouvre);
+          toast("Page d'accueil : " + monde.nom);
           return;
         }
         var pcAvant = !!S.pc, styleAvant2 = S.style;
@@ -1188,7 +1223,7 @@
            La pastille dit donc ce qu'elle a fait, et la rangée du dessous
            emmène. Deux gestes, deux endroits. */
         var m = (champ === "style") && leMonde(S.style);
-        if (m) { toast("Le site s'ouvrira sur " + m.ouvre); return; }
+        if (m) { toast("Page d'accueil : " + m.nom); return; }
         /* CHANGER D'ACCUEIL CHANGE LA PAGE, pas seulement son habillage.
 
            Les deux accueils sont bien dessinés tous les deux dans le
@@ -1601,7 +1636,8 @@
     var b = document.querySelector("[data-bascule-style]");
     if (!b) return;
     var peindre = function () {
-      b.textContent = (S.style === "classique") ? "Nouvel accueil" : "Ancien accueil";
+      /* Le bouton dit où il MÈNE, avec le nom des réglages. */
+      b.textContent = (S.style === "classique") ? "Accueil : Lanceur" : "Accueil : Cartes";
     };
     peindre();
     b.addEventListener("click", function () {
@@ -2098,9 +2134,23 @@
       var a = document.activeElement;
       if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return;
 
-      if (e.key === "/") { e.preventDefault(); chercherMaintenant(); }
-      else if (e.key === "t") { e.preventDefault(); basculerClairSombre(); }
-      else if (e.key === "r") { e.preventDefault(); hasard(); }
+      /* Signalé le 13 nov. 2026 : dans le mot du jour, taper « T » passait le
+         site en sombre (et « R » ouvrait une page au hasard, en pleine
+         partie). Le jeu lit bien ses lettres et les retient par
+         « preventDefault », mais il s'inscrit APRÈS ce raccourci, qui avait
+         donc déjà agi. On ne décide donc plus pendant la frappe : on
+         regarde, une fois que tout le monde a lu la touche, si quelqu'un
+         l'a prise. Cela vaut pour tout outil qui lit le clavier, sans liste
+         à tenir. « / » reste immédiat : il doit empêcher la recherche du
+         navigateur, ce qui ne se fait qu'à la frappe. */
+      if (e.defaultPrevented) return;
+      if (e.key === "/") { e.preventDefault(); chercherMaintenant(); return; }
+      if (e.key !== "t" && e.key !== "r") return;
+      var touche = e.key;
+      setTimeout(function () {
+        if (e.defaultPrevented) return;
+        if (touche === "t") basculerClairSombre(); else hasard();
+      }, 0);
     });
   }
 
@@ -2142,6 +2192,31 @@
         c.removeEventListener("animationend", fin);
       });
     });
+  }
+
+  /* ── la lumière sous le pointeur ───────────────────────────────────────
+     Sur l'univers « Verre de nuit », une tache claire suit le pointeur sur
+     les cartes : le verre répond à la main. Un seul écouteur pour toute la
+     page, une écriture par image au plus, et rien au doigt (un doigt cache
+     ce qu'il éclaire). La feuille ne s'en sert que si les animations sont
+     permises ; sans ce script, la tache reste en haut de la vitre. */
+  function lumiere() {
+    var d = document.documentElement, cible = null, x = 0, y = 0, prevu = false;
+    function poser() {
+      prevu = false;
+      if (!cible) return;
+      var r = cible.getBoundingClientRect();
+      cible.style.setProperty("--lx", Math.round(x - r.left) + "px");
+      cible.style.setProperty("--ly", Math.round(y - r.top) + "px");
+    }
+    document.addEventListener("pointermove", function (e) {
+      if (e.pointerType === "touch" || d.dataset.theme !== "verre-nuit" || d.dataset.anim === "0") return;
+      var c = e.target && e.target.closest ? e.target.closest(".carte-matiere, .chapitre, .lan-fen") : null;
+      cible = c;
+      if (!c) return;
+      x = e.clientX; y = e.clientY;
+      if (!prevu) { prevu = true; requestAnimationFrame(poser); }
+    }, { passive: true });
   }
 
   /* ══ la coquille du téléphone ══════════════════════════════════════════
@@ -2274,7 +2349,8 @@
       if (type === "fiche" && mat) { retour = mat.getAttribute("href"); ou = mat.textContent.trim(); }
       else if (type === "outil") { retour = base + "outils/index.html"; ou = "Outils"; }
       var h1 = document.querySelector("h1");
-      var titre = (h1 ? h1.textContent : document.title.split(/ [|—] /)[0]).replace(/\s+/g, " ").trim();
+      // un titre long peut déclarer sa forme courte pour la barre (« data-court »)
+      var titre = (h1 ? (h1.dataset.court || h1.textContent) : document.title.split(/ [|—] /)[0]).replace(/\s+/g, " ").trim();
       var genre = type === "fiche"
         ? ({ "cours.html": "Cours", "exercices.html": "Exercices", "fiche-revision.html": "Fiche de révision",
              "qcm.html": "QCM" }[location.pathname.split("/").pop()] || "") : "";
@@ -2497,6 +2573,65 @@
     });
   }
 
+  /* ── l'accueil tient dans l'écran ─────────────────────────────────────
+     Demandé le 15 nov. 2026 : sur l'accueil, tout voir, sans jamais
+     défiler. Le contenu change d'un jour à l'autre (un jour de cours,
+     trois devoirs, un historique) : aucune hauteur écrite d'avance ne le
+     garantit. Mesuré : sans devoir, la fenêtre tenait partout sauf à
+     1366 × 650 ; avec trois devoirs, elle dépassait de 30 à 100 px.
+
+     On MESURE donc, et tant que la page dépasse l'écran, on cède dans cet
+     ordre, du confort à l'accessoire :
+       1. la fenêtre se resserre (« .lan-serre ») : le planning passe sur
+          une ligne, les marges diminuent ;
+       2. les lignes « vu récemment » de Reprendre, de la 3ᵉ à la 2ᵉ ;
+       3. les devoirs au-delà du premier ; « Tous les devoirs → » les garde.
+     Rien n'est retiré qui ne se retrouve pas en un clic, et une classe à
+     part (« lan-tenu ») le fait : « hidden » sert déjà aux blocs de
+     l'accueil pour se montrer, on ne s'en mêle pas.
+     À chaque taille d'écran ou réglage, tout revient avant de remesurer.
+     Sous 760 px, le téléphone a son propre accueil : rien à faire. */
+  function tenirAccueil() {
+    var fen = document.getElementById("lanceur");
+    if (!fen || !document.body.hasAttribute("data-accueil")) return;
+    var racine = document.documentElement;
+    function depasse() {
+      if (!fen.offsetHeight) return false;          /* fenêtre cachée : ancien accueil, coquille */
+      return racine.scrollHeight - window.innerHeight > 1;
+    }
+    function ajuster() {
+      fen.classList.remove("lan-serre");
+      [].forEach.call(fen.querySelectorAll(".lan-tenu"), function (e) { e.classList.remove("lan-tenu"); });
+      if (window.innerWidth <= 760 || !depasse()) return;
+      fen.classList.add("lan-serre");
+      /* En dernier : une matière qui n'a encore aucun chapitre (« 0 ch. »).
+         Ajouté avec la septième matière, le Projet E6 : à 1366 × 650, la
+         colonne de gauche dépassait de 32 px, tout le reste cédé. Sa page
+         reste à un clic par la recherche et par l'accueil en cartes. */
+      var vides = [].filter.call(fen.querySelectorAll("#lan-matieres > li"), function (li) {
+        var c = li.querySelector(".lan-cpt");
+        return c && /^0\s*ch\.?$/.test(c.textContent.trim());
+      });
+      var cedent = [].slice.call(fen.querySelectorAll("#reprise .lan-liste > li")).slice(1).reverse()
+        .concat([].slice.call(fen.querySelectorAll("#pd-liste > li")).slice(1).reverse())
+        .concat(vides);
+      for (var i = 0; i < cedent.length && depasse(); i++) cedent[i].classList.add("lan-tenu");
+    }
+    var prevu = false;
+    function bientot() {
+      if (prevu) return;
+      prevu = true;
+      requestAnimationFrame(function () { prevu = false; ajuster(); });
+      setTimeout(function () { if (prevu) { prevu = false; ajuster(); } }, 120);
+    }
+    ajuster();
+    window.addEventListener("resize", bientot);
+    if (window.MutationObserver) new MutationObserver(bientot).observe(racine, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-sombre", "data-taille", "data-largeur", "data-police", "data-interligne", "data-style"]
+    });
+  }
+
   function init() {
     appliquer();
     poserBoutons();
@@ -2512,6 +2647,8 @@
     brancherHasard();
     raccourcis();
     apparitions();
+    lumiere();
+    tenirAccueil();
     if (window.matchMedia) {
       var mq = window.matchMedia("(prefers-color-scheme: dark)");
       var suivre = function () { if (!S.theme) { appliquer(); peindreBascule(); } };

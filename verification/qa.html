@@ -41,7 +41,7 @@ const THEMES = ["light","sand","cream","dawn","sakura","porcelain","linen","mist
   "rosewood","sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
   "androide","grand-large","cahier-rose","console-blanche","bloc-notes","liquid","zellige",
-  "console-bleue","bristol"];
+  "console-bleue","bristol","verre-nuit"];
 /* Le chapeau annonçait « 41 thèmes » alors que la liste en contenait 42 :
    un banc qui récite un chiffre périmé apprend à ne plus le lire. Il le
    compte, maintenant, sur la liste qu'il balaye vraiment. */
@@ -50,13 +50,13 @@ document.getElementById("nb-themes").textContent = THEMES.length;
 const SOMBRES = new Set(["dark","emerald","ocean","mocha","nordic","carbon","rosewood",
   "sunset","starry","aurora","midnight","amoled",
   "voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime",
-  "console-bleue"]);
+  "console-bleue","verre-nuit"]);
 /* Les univers ont deux faces depuis que le bouton jour/nuit les retourne
    au lieu d'en sortir. Les mesurer sur leur seule face native laisserait
    la moitié du site sans contrôle — et c'est justement la moitié neuve. */
 const DUO = new Set(["voxel","pixel","terminal","matrix","crt","midgar",
   "determination","velours","neon-lime","androide","grand-large","cahier-rose",
-  "console-blanche","bloc-notes","liquid","zellige","console-bleue"]);
+  "console-blanche","bloc-notes","liquid","zellige","console-bleue","verre-nuit"]);
 function faces(t) { return DUO.has(t) ? ["1", "0"] : [SOMBRES.has(t) ? "1" : "0"]; }
 const LARGEURS = [375, 768, 1440];
 
@@ -147,6 +147,7 @@ function charger(url) {
    cela vérifie toute la chaîne — le raccourci, la palette construite à la
    demande, le chargement différé avec son empreinte de build, le classement,
    l'affichage — là où l'ancienne ligne ne regardait qu'une globale. */
+const AUTONOMES = new Set(["monde/index.html", "ile/index.html", "outils/labo.html", "outils/salon.html"]);
 async function coquilleVivante(fen, doc) {
   const manques = [];
   /* La barre du style « lanceur » est fabriquée par app.js : elle REMPLACE
@@ -273,6 +274,18 @@ function ciblesTrop_petites(doc) {
        deux, et reste donc signalé — vérifié en injectant un bouton de
        20 × 12 px, que le banc nomme toujours. */
     if (st.pointerEvents === "none" && parseFloat(st.opacity) === 0) continue;
+    /* Même idée pour une case DANS son étiquette : les étapes de TP sont des
+       « <label> » de toute la largeur, et la case de 20 px n'est que leur
+       témoin ; toucher n'importe où sur la rangée la coche. On mesure donc
+       l'étiquette à sa place. Une case sans étiquette, ou dans une étiquette
+       trop petite, reste signalée. */
+    if (el.tagName === "INPUT") {
+      const lab = el.closest("label");
+      if (lab) {
+        const rl = lab.getBoundingClientRect();
+        if (rl.height >= 34 && rl.width >= 26) continue;
+      }
+    }
     if (r.height < 34 || r.width < 26) {
       mauvais.push((el.textContent || el.getAttribute("aria-label") || el.tagName)
                    .trim().slice(0, 28) + " " + Math.round(r.width) + "×" + Math.round(r.height));
@@ -338,6 +351,15 @@ document.getElementById("go").onclick = async () => {
       f.style.width = w + "px";
       const doc = f.contentDocument;
       doc.documentElement.dataset.anim = "0";
+      /* Un navigateur envoie « resize » AVANT de peindre la nouvelle
+         largeur : une page qui se recale par script n'est jamais vue dans
+         l'état intermédiaire. Le banc mesurait, lui, dans la même
+         instruction que le changement de largeur, et accusait la rangée de
+         la page Actu (marge relevée à l'ancienne largeur, 16 px au lieu de
+         14). Il envoie maintenant l'événement, comme le navigateur, avant
+         de mesurer. */
+      f.offsetWidth; doc.body.offsetHeight;
+      try { f.contentWindow.dispatchEvent(new f.contentWindow.Event("resize")); } catch (e) {}
       /* Les replis s'ouvrent avant la mesure. Un <details> fermé cache sa
          largeur autant que son texte : une ligne qui déborde à 375 px ne
          déborde pas tant que personne ne l'a dépliée, et le banc annonçait
@@ -354,7 +376,12 @@ document.getElementById("go").onclick = async () => {
         const c = ciblesTrop_petites(doc);
         if (c.length) { fautes++; dire("CIBLE <34px  " + u + "  → " + c.slice(0,4).join(" | "), "ko"); }
         for (const x of incidents) { fautes++; dire("CONSOLE  " + u + "  → " + x, "ko"); }
-        for (const x of await coquilleVivante(f.contentWindow, doc)) {
+        /* Le village, l'île, le labo et SkyChat sont des applications
+           AUTONOMES : leur page ne charge pas la coquille du site (app.js)
+           et porte sa propre barre. La coquille n'y a rien à vérifier. Ils
+           sont nommés un par un : une page qui aurait PERDU sa coquille par
+           erreur reste signalée. */
+        if (!AUTONOMES.has(u)) for (const x of await coquilleVivante(f.contentWindow, doc)) {
           fautes++; dire("COQUILLE  " + u + "  → " + x, "ko");
         }
         /* Un outil qui sait se dire en panne doit être interrogé. La

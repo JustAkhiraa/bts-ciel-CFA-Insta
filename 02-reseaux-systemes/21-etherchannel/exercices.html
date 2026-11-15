@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EtherChannel : les exercices corrigés | BTS CIEL</title>
+<meta name="description" content="Treize exercices corrigés sur EtherChannel : le rôle du spanning-tree, PAgP et LACP, la table des modes, écrire une configuration, lire show etherchannel summary, trouver une panne, et le coût d'un lien agrégé.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style||"lanceur";var W=(S.style==="monde"||S.style==="ile")?S.style:"";if(W&&/(^|\/)(index\.html)?$/.test(location.pathname)&&sessionStorage.getItem("ciel-monde")!=="1"){sessionStorage.setItem("ciel-monde","1");location.replace(W+"/index.html")}d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=902d6ad1">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#comprendre">1 · Comprendre</a></li>
+    <li><a href="#modes">2 · Les modes</a></li>
+    <li><a href="#configurer">3 · Configurer et lire</a></li>
+    <li><a href="#pannes">4 · Trouver la panne</a></li>
+    <li><a href="#stp">5 · Spanning-tree et débit</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="tp.html">TP</a><a href="exercices.html" aria-current="page">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 21</span>
+    <span class="sep">/</span><span class="badge">Exercices corrigés</span>
+  </div>
+  <h1>EtherChannel : les exercices</h1>
+  <p class="chapeau">Treize exercices, du principe au dépannage. Les six questions posées
+     pendant la manipulation sont dans <a href="tp.html">le TP</a>, à leur place.
+     <a href="cours.html">Le cours</a> · <a href="fiche-revision.html">La fiche</a> ·
+     <a href="qcm.html">Le QCM</a></p>
+</header>
+
+<section id="comprendre">
+  <h2><span class="num">1</span>Comprendre</h2>
+
+  <article class="exo">
+    <h3><span class="no">1</span>Le second câble <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>On relie deux commutateurs par deux câbles, sans rien configurer. Les deux câbles transportent-ils du trafic ? Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>Non, un seul.</strong></p>
+<p>Deux câbles entre deux commutateurs forment une boucle. Le spanning-tree la détecte et
+   <strong>bloque</strong> l'un des deux ports.</p>
+<p class="rap">Le second câble ne sert que de secours, après un recalcul du spanning-tree.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">2</span>Ce que l'agrégation apporte <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Citer trois bénéfices d'un EtherChannel par rapport à un lien unique.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ul>
+  <li><strong>Le débit</strong> :<br class="ae"> la bande passante des liens s'additionne.</li>
+  <li><strong>La redondance</strong> :<br class="ae"> un câble peut tomber, la liaison tient.</li>
+  <li><strong>La répartition de charge</strong> entre les liens.</li>
+</ul>
+<p class="rap">On peut ajouter :<br class="ae"> une seule interface à configurer, le Port-channel.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">3</span>PAgP ou LACP ? <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Dire à quel protocole correspond chaque affirmation.</p>
+      <ol type="a">
+        <li>Il est propre à Cisco.</li>
+        <li>Il est défini par la norme IEEE 802.3ad.</li>
+        <li>Ses modes sont <code>active</code> et <code>passive</code>.</li>
+        <li>Ses modes sont <code>desirable</code> et <code>auto</code>.</li>
+        <li>Il sait garder des ports en veille.</li>
+        <li>Il fonctionne entre des commutateurs de marques différentes.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="tableau"><table>
+  <thead><tr><th>Affirmation</th><th>Protocole</th></tr></thead>
+  <tbody>
+    <tr><td>a</td><td>PAgP</td></tr><tr><td>b</td><td>LACP</td></tr>
+    <tr><td>c</td><td>LACP</td></tr><tr><td>d</td><td>PAgP</td></tr>
+    <tr><td>e</td><td>LACP</td></tr><tr><td>f</td><td>LACP</td></tr>
+  </tbody>
+</table></div>
+<p class="rap">Un moyen de retenir :<br class="ae"> les deux mots qui « font » quelque chose,
+   <em>desirable</em> et <em>active</em>, sont ceux qui proposent.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">4</span>Dix câbles en LACP <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>On place dix ports dans un même canal LACP. Combien sont actifs ? Que font les autres ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>Huit</strong> sont actifs. Les <strong>deux</strong> autres restent en veille
+   (<em>hot-standby</em>, indicateur <code>H</code>).</p>
+<p>Si un port actif tombe, un port en veille le remplace.</p>
+<p class="rap">Un canal LACP accepte jusqu'à 16 ports : 8 actifs, 8 en veille.</p>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<section id="modes">
+  <h2><span class="num">2</span>Les modes</h2>
+
+  <article class="exo">
+    <h3><span class="no">5</span>L'agrégat monte-t-il ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Pour chaque couple de modes, dire si l'agrégat se forme.</p>
+      <ol type="a">
+        <li><code>desirable</code> et <code>auto</code></li>
+        <li><code>auto</code> et <code>auto</code></li>
+        <li><code>active</code> et <code>active</code></li>
+        <li><code>passive</code> et <code>passive</code></li>
+        <li><code>desirable</code> et <code>active</code></li>
+        <li><code>on</code> et <code>on</code></li>
+        <li><code>on</code> et <code>desirable</code></li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="tableau"><table>
+  <thead><tr><th>Couple</th><th>Résultat</th><th>Raison</th></tr></thead>
+  <tbody>
+    <tr><td>a</td><td>✅</td><td>un côté propose, l'autre accepte</td></tr>
+    <tr><td>b</td><td>❌</td><td>les deux attendent</td></tr>
+    <tr><td>c</td><td>✅</td><td>les deux proposent</td></tr>
+    <tr><td>d</td><td>❌</td><td>les deux attendent</td></tr>
+    <tr><td>e</td><td>❌</td><td>PAgP d'un côté, LACP de l'autre</td></tr>
+    <tr><td>f</td><td>✅</td><td>forcé des deux côtés, sans négociation</td></tr>
+    <tr><td>g</td><td>❌</td><td>un côté négocie, l'autre non</td></tr>
+  </tbody>
+</table></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Choisir les modes <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Un commutateur Cisco doit être relié par deux liens à un commutateur d'une autre marque. Quel protocole choisir, et quels modes donner aux deux côtés ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p><strong>LACP</strong> :<br class="ae"> c'est une norme, l'autre marque la connaît. PAgP est propre à
+   Cisco.</p>
+<p>Modes :<br class="ae"> <code>active</code> d'un côté, <code>active</code> ou <code>passive</code> de
+   l'autre. Il faut au moins un <code>active</code>.</p>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<section id="configurer">
+  <h2><span class="num">3</span>Configurer et lire</h2>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Écrire une configuration <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur un commutateur S2, les ports F0/1 et F0/2 doivent rejoindre le groupe 2 en LACP, côté qui attend. Ils doivent être en trunk, VLAN natif 99. Écrire les commandes.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<div class="bloc-code" data-fam="cisco" style="--car:32"><span class="langue">Cisco IOS · S2</span><pre><code><span class="j-mc">configure</span> <span class="j-att">terminal</span>
+<span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/1</span>-<span class="j-num">2</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">2</span> <span class="j-att">mode</span> passive
+<span class="j-mc"> no shutdown</span>
+<span class="j-mc"> end</span></code></pre></div>
+<p class="rap">« Côté qui attend » en LACP : <code>passive</code>. Le
+   <code>no shutdown</code> vient en dernier, une fois le mode réglé.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Où taper la commande ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Po1 est monté entre S1 et S3, avec F0/3 et F0/4. On veut le passer en trunk. Sur quelle interface tape-t-on <code>switchport mode trunk</code> ? Que voit-on ensuite dans la configuration de F0/3 ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Sur <strong>l'interface Port-channel 1</strong>, et pas sur les ports physiques.</p><div class="bloc-code" data-fam="cisco" style="--car:24"><span class="langue">Cisco IOS · S1</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">port-channel 1</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span></code></pre></div>
+<p>La commande est recopiée sur les ports membres :<br class="ae">
+   <code>show run interface f0/3</code> affiche alors <code>switchport mode trunk</code>,
+   en plus de sa ligne <code>channel-group</code>.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Lire un récapitulatif <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Voici la dernière ligne d'un <code>show etherchannel summary</code>. Que dit-elle ?</p>
+      <div class="bloc-code" style="--car:25"><span class="langue">sortie</span><pre><code>1      Po1(SU)       PAgP
+       Fa0/3(P)  Fa0/4(P)</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<ul>
+  <li><code>Po1</code> :<br class="ae"> le groupe 1 a son interface logique.</li>
+  <li><code>S</code> : agrégat de niveau 2.</li>
+  <li><code>U</code> : en service.</li>
+  <li><code>PAgP</code> : le protocole qui a négocié.</li>
+  <li><code>Fa0/3(P)</code> et <code>Fa0/4(P)</code> :<br class="ae"> les deux ports sont regroupés.</li>
+</ul>
+<p class="rap">Tout va bien, de ce côté. Il reste à lire la même ligne sur l'autre
+   commutateur.</p>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<section id="pannes">
+  <h2><span class="num">4</span>Trouver la panne</h2>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Des ports isolés <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sur S1 et sur S3, le récapitulatif affiche ceci. Les deux commutateurs sont configurés ainsi. Où est l'erreur ?</p>
+      <div class="bloc-code" style="--car:25"><span class="langue">sortie</span><pre><code>1      Po1(SD)       PAgP
+       Fa0/3(I)  Fa0/4(I)</code></pre></div>
+      <div class="bloc-code" data-fam="cisco" style="--car:26"><span class="langue">Cisco IOS · S1 et S3</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/3</span>-<span class="j-num">4</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">1</span> <span class="j-att">mode</span> auto
+<span class="j-mc"> no shutdown</span></code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Les deux côtés sont en <code>auto</code> :<br class="ae"> chacun attend que l'autre propose.</p>
+<p><code>(I)</code> veut dire isolé, et <code>(SD)</code> que l'agrégat est à l'arrêt.</p>
+<p><strong>Correction</strong> :<br class="ae"> passer un des deux côtés en <code>desirable</code>.</p><div class="bloc-code" data-fam="cisco" style="--car:31"><span class="langue">Cisco IOS · S1</span><pre><code><span class="j-mc">interface</span> <span class="j-att">range</span> <span class="j-typ">f0/3</span>-<span class="j-num">4</span>
+<span class="j-mc"> channel-group</span> <span class="j-num">1</span> <span class="j-att">mode</span> desirable</code></pre></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">11</span>Des ports suspendus <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Po2 relie S1 et S2 en LACP, <code>active</code> et <code>passive</code>. Sur S1, les ports sont en trunk, VLAN natif 99. Sur S2, on a oublié de les mettre en trunk. Que va-t-on observer, et comment réparer ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Les modes sont bons, les deux commutateurs se parlent. Mais les ports ne sont pas
+   identiques :<br class="ae"> trunk d'un côté, accès de l'autre.</p>
+<p>L'agrégat ne se forme pas correctement :<br class="ae"> des ports s'affichent suspendus
+   <code>(s)</code>, et les pings entre commutateurs échouent.</p>
+<p><strong>Réparation</strong>, sur S2 :</p><div class="bloc-code" data-fam="cisco" style="--car:32"><span class="langue">Cisco IOS · S2</span><pre><code><span class="j-mc">interface</span> <span class="j-typ">port-channel 2</span>
+<span class="j-mc"> switchport</span> <span class="j-att">mode</span> <span class="j-fn">trunk</span>
+<span class="j-mc"> switchport</span> <span class="j-fn">trunk</span> <span class="j-fn">native</span> <span class="j-typ">vlan 99</span></code></pre></div>
+<p class="rap">On répare sur le Port-channel :<br class="ae"> la commande se recopie sur les deux
+   ports, qui redeviennent identiques.</p>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<section id="stp">
+  <h2><span class="num">5</span>Spanning-tree et débit</h2>
+
+  <article class="exo">
+    <h3><span class="no">12</span>Le triangle <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Trois commutateurs sont reliés en triangle par trois EtherChannel de deux liens chacun. Combien de liens logiques le spanning-tree voit-il ? En bloque-t-il ? Combien de câbles restent actifs ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Il voit <strong>trois</strong> liens logiques, un par Port-channel, et non six câbles.</p>
+<p>Ces trois liens forment une boucle : il en <strong>bloque un</strong>.</p>
+<p>Il reste deux Port-channel actifs, soit <strong>quatre câbles</strong> qui travaillent.</p>
+<p class="rap">Sans EtherChannel, le spanning-tree aurait gardé un seul câble par côté
+   actif du triangle : deux câbles en tout.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">13</span>Le coût du lien <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Dans <code>show spanning-tree</code>, un port FastEthernet seul a un coût de 19. Quel coût affiche un Port-channel de deux liens FastEthernet ? Pourquoi a-t-il changé ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+<p>Le coût passe à <strong>12</strong>.</p>
+<p>Le spanning-tree calcule le coût d'après la bande passante. Celle du lien logique est
+   plus grande que celle d'un lien seul, donc son coût est plus faible.</p>
+<p class="rap">Un coût plus faible rend ce chemin plus intéressant pour le
+   spanning-tree.</p>
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Travaux pratiques : configuration d'EtherChannel », Cisco Networking Academy,
+          7 pages</li>
+      <li>Le guide pas à pas du même TP</li>
+    </ul>
+    <p class="rap">Les treize exercices sont écrits pour le site, d'après le TP. Leurs
+       corrections sont les nôtres.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../20-securite-ssh-mitm/exercices.html"><span>Chapitre précédent</span><b>Sécurité SSH &amp; attaque MITM</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=902d6ad1"></script>
+<script src="../../assets/app.js?v=902d6ad1"></script>
+</body>
+</html>

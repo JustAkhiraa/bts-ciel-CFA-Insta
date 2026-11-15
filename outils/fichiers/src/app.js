@@ -14,6 +14,7 @@
 import { DocumentPdf } from "./pdf/lecture.js";
 import { creerZip } from "./zip.js";
 import { OUTILS as PDF } from "./outils/pdf.js";
+import { OUTILS as PDF2 } from "./outils/pdf2.js";
 import { OUTILS as CONVERTIR } from "./outils/convertir.js";
 import { OUTILS as IMAGES } from "./outils/images.js";
 import { OUTILS as DIVERS } from "./outils/divers.js";
@@ -22,7 +23,7 @@ import { GROUPES } from "./rangement.js";
 import { Grille } from "./apercu.js";
 import { esc, taille, typeDe, IMAGES as TYPES_IMAGE, decoderImage, octetsDe } from "./aides.js";
 
-const TOUS = new Map([...PDF, ...CONVERTIR, ...IMAGES, ...DIVERS].map((o) => [o.id, o]));
+const TOUS = new Map([...PDF, ...PDF2, ...CONVERTIR, ...IMAGES, ...DIVERS].map((o) => [o.id, o]));
 /* Un outil qu'on aurait oublié de ranger ne disparaît pas : il va à la fin. */
 const RANGES = new Set(GROUPES.flatMap((g) => Object.keys(g.outils)));
 const OUBLIES = [...TOUS.keys()].filter((id) => !RANGES.has(id));

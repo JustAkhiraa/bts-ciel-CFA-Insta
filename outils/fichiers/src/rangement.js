@@ -1,7 +1,7 @@
 /* Le rangement de l'accueil : quels outils vont ensemble, et ce qu'on en dit
-   en une ligne. Quarante outils sur quatre familles, dont une de vingt, ne se
-   lisent pas : huit groupes de sept au plus se balaient (le banc vérifie que
-   chaque outil y est une fois et une seule).
+   en une ligne. Cinquante-cinq outils sur quatre familles ne se lisent pas :
+   dix groupes de sept au plus se balaient (le banc vérifie que chaque outil
+   y est une fois et une seule).
 
    « mat » reprend une couleur de matière du site (--mat, --mat-t) : ces
    teintes existent en clair et en sombre, et aucun des quarante thèmes ne les
@@ -22,6 +22,7 @@ export const GROUPES = [
     "scanner": "Photographier des feuilles",
     "pdf-jpg": "Chaque page en JPG, PNG, WebP",
     "pdf-images": "Récupérer photos et figures",
+    "texte-pdf": "Un texte ou du Markdown en PDF",
   } },
   { titre: "Écrire sur un PDF", mat: "maths", outils: {
     "signer": "Dessiner et poser sa signature",
@@ -38,12 +39,30 @@ export const GROUPES = [
     "pivoter": "Remettre un scan à l'endroit",
     "recadrer": "Couper les marges",
   } },
+  { titre: "Mettre en page", mat: "maths", outils: {
+    "plusieurs-pages": "2, 4, 9 pages sur chaque feuille",
+    "livret": "Un cahier à plier et agrafer",
+    "format-pages": "Passer en A4, A5, A3, Lettre",
+    "grande-page": "Tout sur une seule longue page",
+    "couper-deux": "Un livre scanné, page par page",
+    "superposer": "Un en-tête, un tampon, un fond",
+  } },
+  { titre: "Nettoyer et comparer", mat: "maths", outils: {
+    "nettoyer": "Scripts, pièces, liens, fiche",
+    "caviarder": "Noircir pour de bon un passage",
+    "aplatir": "Figer formulaires et commentaires",
+    "pages-blanches": "Les versos vides d'un scan",
+    "signets": "La table des matières du volet",
+    "pieces-jointes": "Les sortir, ou en joindre",
+    "comparer": "Ce qui a changé entre deux versions",
+  } },
   { titre: "Alléger et protéger", mat: "maths", outils: {
     "compresser": "Pour un mail ou un dépôt en ligne",
     "proteger": "Chiffrer le fichier",
     "deverrouiller": "Si vous le connaissez",
     "metadonnees": "Voir ou effacer titre et auteur",
     "reparer": "Récupérer un fichier abîmé",
+    "inverser": "Fond noir, pour lire la nuit",
   } },
   { titre: "Images et photos", mat: "dev", outils: {
     "convertir": "PNG, JPG, WebP, une ou cent",
