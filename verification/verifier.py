@@ -573,6 +573,7 @@ def main():
     # « outils/c/ », le contrôle a réclamé trois fiches de cours à un dossier
     # de binaires. On nomme donc ce qu'est un pôle, au lieu de le deviner.
     POLE = re.compile(r"^\d{2}-[a-z0-9-]+$")
+    POLES_ORAL = {"07-projet-e6"}
     n_poles = n_chap = 0
     for pole in sorted(os.listdir(RACINE)):
         d = os.path.join(RACINE, pole)
@@ -587,7 +588,12 @@ def main():
             if not os.path.isdir(c) or chap == "sources":
                 continue
             n_chap += 1
-            for f in ("cours.html", "exercices.html", "fiche-revision.html"):
+            # Le Projet E6 prépare un oral, ce n'est pas un cours (15 nov.
+            # 2026) : ses chapitres ont la page du projet et les questions du
+            # jury (cours.html, exercices.html), sans fiche de révision.
+            attendues = ("cours.html", "exercices.html") if pole in POLES_ORAL \
+                else ("cours.html", "exercices.html", "fiche-revision.html")
+            for f in attendues:
                 if not os.path.isfile(os.path.join(c, f)):
                     pbs.append((f"{pole}/{chap}", f"{f} manquant"))
     # Un plancher, sinon le contrôle se désarme tout seul : le jour où le motif

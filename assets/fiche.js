@@ -603,7 +603,9 @@
       var n = 0;
       cases.forEach(function (c) { if (c.checked) n++; });
       if (jauge) jauge.style.width = Math.round(n / cases.length * 100) + "%";
-      if (compte) compte.textContent = n + " / " + cases.length + " étapes";
+      // « étapes » pour un TP ; une page peut dire autre chose (« questions
+      // maîtrisées » pour les questions du jury de l'E6)
+      if (compte) compte.textContent = n + " / " + cases.length + " " + (compte.getAttribute("data-unite") || "étapes");
     }
     cases.forEach(function (c, i) {
       if (faits.indexOf(i) >= 0) c.checked = true;
