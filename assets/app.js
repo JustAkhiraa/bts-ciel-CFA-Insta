@@ -143,9 +143,14 @@
      La garantie qu'on se donne : les DEUX accueils sont fabriqués à
      partir des mêmes compteurs, à la publication. Aucun nombre n'est
      tapé à la main nulle part — l'ancien ne peut donc plus mentir. */
+  /* Signalé le 15 nov. 2026 : « 3D », « 3D bis », puis plus bas « Ouvrir
+     le village » et « Ouvrir l'île », et on ne comprenait pas que c'était
+     deux fois les deux mêmes mondes. Un monde porte donc UN nom, le même
+     partout : dans les pastilles, dans les liens de visite, dans l'aide.
+     Et « Classique » ne disait pas ce qu'on voit : ce sont des cartes. */
   var STYLES = [
     { id: "lanceur",   nom: "Lanceur" },
-    { id: "classique", nom: "Classique" },
+    { id: "classique", nom: "Cartes" },
     /* Demandé : le village en fait partie, c'est un accueil lui aussi.
        Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
        3D : le choisir envoie là-bas. La redirection est posée dans le
@@ -158,10 +163,10 @@
        feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
        première page. Une seconde liste des mêmes noms est exactement ce qui
        a déjà laissé un thème entier sans mesure, trois fois. */
-    { id: "monde",     nom: "3D",     dossier: "monde", ouvre: "le village" },
+    { id: "monde",     nom: "Village 3D", dossier: "monde" },
     /* L'île, le second monde : celui où l'on marche, où l'on entre dans
        les bâtiments. Demandé pour pouvoir y revenir plus tard. */
-    { id: "ile",       nom: "3D bis", dossier: "ile",   ouvre: "l'île" }
+    { id: "ile",       nom: "Île 3D",     dossier: "ile" }
   ];
 
   /* Signalé le 10 nov. 2026 : sur un téléphone, « Lanceur » et « Classique »
@@ -173,7 +178,7 @@
     ? matchMedia("(max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape)")
     : null;
   function surTelephone() { return !!(ECRAN_TEL && ECRAN_TEL.matches); }
-  var VERSIONS = [{ id: "tel", nom: "Version tel" }, { id: "pc", nom: "Version PC" }]
+  var VERSIONS = [{ id: "tel", nom: "Téléphone" }, { id: "pc", nom: "Ordinateur" }]
     .concat(STYLES.filter(function (o) { return o.dossier; }));
 
   var TAILLES = [
@@ -603,22 +608,26 @@
      décider de ce qu'on verra demain matin.
      D'où une rangée séparée, avec son titre : la différence est portée par
      la structure, pas par une phrase d'aide qu'on ne lit qu'une fois. */
-  function rangeeMondes() {
+  /* 15 nov. 2026 : la rangée avait son propre titre (« Les mondes en 3D »)
+     et ses propres noms, et se lisait comme deux réglages de plus. Elle vit
+     maintenant DANS le bloc de la page d'accueil, juste sous les pastilles,
+     avec les mêmes noms : « Village 3D » ici est le « Village 3D » d'en
+     haut, et la phrase dit la seule différence, choisir ou visiter. */
+  function visitesMondes() {
     var h = STYLES.filter(function (o) { return o.dossier; })
       .map(function (o) {
-        return '<a href="' + adresseMonde(o.dossier) + '">Ouvrir ' + o.ouvre + "</a>";
+        return '<a href="' + adresseMonde(o.dossier) + '">' + o.nom + "</a>";
       }).join("");
     if (!h) return "";
-    return '<div class="reglage"><h3>Les mondes en 3D</h3>' +
-           "<p>Y aller maintenant, sans changer l'accueil.</p>" +
-           '<p class="reglage-liens">' + h + "</p></div>";
+    return "<p>Juste visiter, sans changer la page d'accueil :</p>" +
+           '<p class="reglage-liens">' + h + "</p>";
   }
 
   /* Le pied de page n'existe pas dans la version téléphone : ses quatre
      liens vivent donc ici, dans les réglages, au bout du pouce. */
   function rangeeSite() {
     var base = racine(), depot = "https://github.com/JustAkhiraa/bts-ciel-CFA-Insta";
-    return '<div class="reglage"><h3>Le site</h3>' +
+    return '<div class="reglage"><h3>À propos du site</h3>' +
       '<p class="reglage-liens">' +
       '<a href="' + base + 'kit.html">Kit de survie</a>' +
       '<a href="' + base + 'a-propos.html">À propos</a>' +
@@ -1034,34 +1043,45 @@
       '<div class="feuille-corps">' +
 
         '<div class="reglage"><h3>Thème</h3>' +
-        '<p>Quarante thèmes, dont seize venus de jeux et de vieux écrans.</p>' +
+        '<p>' + window.CIEL.themes.length + ' thèmes, dont ' +
+          window.CIEL.themes.filter(function (t) { return t.duo; }).length +
+          ' tirés de jeux et de vieux écrans.</p>' +
         '<div class="champ-select">' + selecteurThemes(S.theme) +
         '<button type="button" class="mini" data-hasard-theme title="Thème au hasard">🎲</button></div>' +
         '<div class="apercu-theme" aria-hidden="true">' +
           '<span class="ap-carte"><i></i><b></b></span>' +
           '<span class="ap-txt">Aperçu du thème</span></div></div>' +
 
+        /* « Accueil » seul ne disait pas de quoi on parlait. Chaque choix est
+           nommé dans l'aide, avec ce qu'il montre. */
         (surTelephone()
-          ? '<div class="reglage"><h3>Accueil</h3>' +
+          ? '<div class="reglage"><h3>Page d\'accueil</h3>' +
+            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
             '<div class="pastilles" data-champ="version">' +
             pastilles(VERSIONS, leMonde(S.style) ? S.style : (S.pc ? "pc" : "tel")) +
-            '</div><p class="reglage-aide">La version tel est faite pour le pouce. ' +
-            'La version PC remet la page d\'ordinateur sur ce téléphone, au besoin. ' +
-            '« 3D » et « 3D bis » ouvrent directement un monde.</p></div>'
-          : '<div class="reglage"><h3>Accueil</h3>' +
+            '</div><p class="reglage-aide"><b>Téléphone</b> : l\'accueil fait pour le pouce. ' +
+            '<b>Ordinateur</b> : la page d\'ordinateur, au besoin. ' +
+            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde.</p>' +
+            visitesMondes() + '</div>'
+          : '<div class="reglage"><h3>Page d\'accueil</h3>' +
+            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
             '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-            '</div><p class="reglage-aide">Ce que le site ouvre quand on l\'ouvre. ' +
-            'Le lanceur montre tout en un écran, le classique garde les grandes ' +
-            'cartes ; « 3D » et « 3D bis » ouvrent directement un monde, et ' +
-            '« retour » y ramène ici.</p></div>') +
-        rangeeMondes() + (surTelephone() ? rangeeSite() : "") +
+            '</div><p class="reglage-aide"><b>Lanceur</b> : tout sur un écran. ' +
+            '<b>Cartes</b> : une grande carte par matière. ' +
+            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde, ' +
+            'et son bouton « retour » ramène ici.</p>' +
+            visitesMondes() + '</div>') +
+        (surTelephone() ? rangeeSite() : "") +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
         '<div class="pastilles" data-champ="taille">' + pastilles(TAILLES, S.taille) + "</div></div>" +
 
+        /* Au téléphone, l'écran est déjà plus étroit que la plus étroite des
+           largeurs : le réglage n'y changerait rien. */
+        (surTelephone() ? '' :
         '<div class="reglage"><h3>Largeur de lecture</h3>' +
         '<p>« Large » et « Pleine » exploitent les grands écrans ; « Étroite » garde une ligne courte, plus facile à suivre.</p>' +
-        '<div class="pastilles" data-champ="largeur">' + pastilles(LARGEURS, S.largeur) + "</div></div>" +
+        '<div class="pastilles" data-champ="largeur">' + pastilles(LARGEURS, S.largeur) + "</div></div>") +
 
         '<div class="reglage"><h3>Police</h3>' +
         '<div class="pastilles" data-champ="police">' + pastilles(POLICES, S.police) + "</div></div>" +
@@ -1069,22 +1089,29 @@
         '<div class="reglage"><h3>Interligne</h3>' +
         '<div class="pastilles" data-champ="interligne">' + pastilles(INTERLIGNES, S.interligne) + "</div></div>" +
 
-        '<div class="reglage"><h3>Révision</h3>' +
+        /* « Révision » rangeait aussi les animations et les curseurs : un
+           titre qui ne dit pas ce qu'il range. Deux blocs, chacun nommé. */
+        '<div class="reglage"><h3>Exercices</h3>' +
         '<button type="button" class="bascule" data-bascule="reponses" aria-pressed="' + !!S.reponses + '">' +
           '<span class="txt"><b>Réponses déjà ouvertes</b>' +
           '<span>Les corrections des exercices s\'affichent sans cliquer</span></span>' +
-          '<span class="interrupteur"></span></button>' +
-        '<button type="button" class="bascule" data-bascule="anim" aria-pressed="' + !!S.anim + '">' +
-          '<span class="txt"><b>Animations</b><span>Transitions et défilement doux</span></span>' +
-          '<span class="interrupteur"></span></button>' +
-        '<button type="button" class="bascule" data-bascule="curseur" aria-pressed="' + !!S.curseur + '">' +
-          '<span class="txt"><b>Curseurs de thème</b>' +
-          '<span>Activés ou non</span></span>' +
           '<span class="interrupteur"></span></button></div>' +
 
+        '<div class="reglage"><h3>Mouvement' + (surTelephone() ? '' : ' et pointeur') + '</h3>' +
+        '<button type="button" class="bascule" data-bascule="anim" aria-pressed="' + !!S.anim + '">' +
+          '<span class="txt"><b>Animations</b><span>Fondus, apparitions et défilement doux</span></span>' +
+          '<span class="interrupteur"></span></button>' +
+        /* Un pointeur de souris n'existe pas au doigt : l'interrupteur n'y
+           réglerait rien. */
+        (surTelephone() ? '' :
+        '<button type="button" class="bascule" data-bascule="curseur" aria-pressed="' + !!S.curseur + '">' +
+          '<span class="txt"><b>Pointeur du thème</b>' +
+          '<span>La flèche de la souris prend la forme du thème choisi</span></span>' +
+          '<span class="interrupteur"></span></button>') + '</div>' +
+
         '<div class="reglage"><h3>Fond sonore</h3>' +
-        '<p>Trois ambiances calculées par la page : rien à télécharger, et aucune boucle : ' +
-        'le son ne se répète jamais puisqu\'il n\'est pas enregistré.</p>' +
+        '<p>Trois ambiances calculées par la page, sans rien à télécharger. Aucune boucle : ' +
+        'le son ne se répète jamais, puisqu\'il n\'est pas enregistré.</p>' +
         '<div class="pastilles" data-champ="son">' + pastilles(FONDS, S.son || "") + "</div>" +
         '<label class="curseur-reglage"><span>Volume</span>' +
         '<input type="range" min="0" max="100" step="5" data-nombre="sonVolume" ' +
@@ -1093,13 +1120,15 @@
         '<p class="note-son">Les navigateurs interdisent de démarrer un son sans geste : ' +
         'en changeant de page, il reprend au premier clic.</p></div>' +
 
-        '<div class="reglage"><h3>Progression</h3>' +
+        '<div class="reglage"><h3>Mes données</h3>' +
         '<p id="compte-faits"></p>' +
         '<button type="button" class="danger" data-effacer>Effacer mes données locales</button></div>' +
 
-        '<div class="reglage"><h3>Raccourcis</h3>' +
+        /* Pas de clavier au doigt : la liste n'y servirait à rien. */
+        (surTelephone() ? '' :
+        '<div class="reglage"><h3>Raccourcis clavier</h3>' +
         '<p><b>/</b> ou <b>⌘K</b> chercher · <b>t</b> thème clair/sombre · <b>r</b> fiche au hasard · ' +
-        '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>' +
+        '<b>Échap</b> fermer · <b>↑ ↓</b> parcourir les résultats</p></div>') +
       "</div>";
 
     feuille.addEventListener("input", function (e) {
@@ -1162,7 +1191,7 @@
         });
         if (monde) {
           S.style = v; enregistrer(); appliquer();
-          toast("Le site s'ouvrira sur " + monde.ouvre);
+          toast("Page d'accueil : " + monde.nom);
           return;
         }
         var pcAvant = !!S.pc, styleAvant2 = S.style;
@@ -1194,7 +1223,7 @@
            La pastille dit donc ce qu'elle a fait, et la rangée du dessous
            emmène. Deux gestes, deux endroits. */
         var m = (champ === "style") && leMonde(S.style);
-        if (m) { toast("Le site s'ouvrira sur " + m.ouvre); return; }
+        if (m) { toast("Page d'accueil : " + m.nom); return; }
         /* CHANGER D'ACCUEIL CHANGE LA PAGE, pas seulement son habillage.
 
            Les deux accueils sont bien dessinés tous les deux dans le
@@ -1607,7 +1636,8 @@
     var b = document.querySelector("[data-bascule-style]");
     if (!b) return;
     var peindre = function () {
-      b.textContent = (S.style === "classique") ? "Nouvel accueil" : "Ancien accueil";
+      /* Le bouton dit où il MÈNE, avec le nom des réglages. */
+      b.textContent = (S.style === "classique") ? "Accueil : Lanceur" : "Accueil : Cartes";
     };
     peindre();
     b.addEventListener("click", function () {

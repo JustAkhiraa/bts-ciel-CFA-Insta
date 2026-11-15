@@ -930,8 +930,14 @@ td .sub, th .sub { display: block; font-size: 0.697rem; color: var(--encre-tenue
   margin-right: .5rem; vertical-align: 1px; border-radius: 999px;
   background: var(--accent-pale); color: var(--accent-sombre);
   font-family: var(--mono); font-size: 0.6667rem; font-weight: 700; }
-.qcm-opts { display: grid; gap: .45rem; }
-.qcm-opt { display: flex; align-items: flex-start; gap: .6rem; width: 100%;
+/* Relevé le 15 nov. 2026 par le banc de rendu : le QCM de POO en C++
+   poussait la page à 410 px sur un écran de 375. Une réponse comme
+   « Ordinateur::afficherInformations(); » est un seul mot : la colonne de
+   la grille refusait de descendre sous sa largeur. La colonne peut
+   maintenant rétrécir (minmax(0, 1fr)), et un nom trop long se coupe. */
+.qcm-opts { display: grid; grid-template-columns: minmax(0, 1fr); gap: .45rem; }
+.qcm-opt > :last-child { min-width: 0; }
+.qcm-opt { display: flex; align-items: flex-start; gap: .6rem; width: 100%; min-width: 0; overflow-wrap: anywhere;
   text-align: left; cursor: pointer; font: inherit; font-size: 0.9394rem;
   line-height: 1.5; color: var(--encre); background: var(--carte-creuse);
   border: 1px solid var(--bord-fort); border-radius: var(--r);
@@ -3709,6 +3715,11 @@ html[data-theme="velours"] .fiche-tete h1 {
   text-transform:uppercase; font-weight:900; letter-spacing:.01em;
   padding:.3rem .9rem; color:#FFFFFF; background:#0B0B0B;
   box-shadow: 6px 6px 0 #E60012;
+  /* Relevé le 15 nov. 2026 par le banc de rendu, à 375 px : un titre long
+     (« Sécurité SSH et MITM ») prend toute la largeur sur deux lignes, et
+     l'inclinaison de 6° en fait sortir les coins de 5 px de chaque côté. La
+     place de l'inclinaison est réservée. */
+  max-width: calc(100% - 12px); margin-inline: 6px;
 }
 /* Les étoiles du fond : le motif de découpe du jeu, en très discret. Elles
    ne doivent pas passer derrière le texte au point de le gêner — 4 % suffit
@@ -6410,11 +6421,15 @@ td.etat.sur   { color: var(--vert); }
      « max(22rem, …) » l'empêche de devenir inutilisable sur un écran très
      court. Les 3,85rem couvrent l'onglet du haut, le rembourrage ET les deux
      bordures d'un pixel : mesuré, parce que 3,6rem donnait 29 lignes — à deux
-     pixels près, et deux pixels coûtent une ligne entière. */
+     pixels près, et deux pixels coûtent une ligne entière.
+     Remesuré le 15 nov. 2026 : depuis que la tête du volet porte les onglets
+     de fichiers, elle fait 46 px et l'éditeur ne montrait plus que 29,5
+     lignes. Onglets passés à 34 px (le plancher des cibles), tête à 50 px :
+     4,75rem rend 30,01 lignes. Une barre ajoutée en tête se paie ICI. */
   --edi-police: .8061rem;
   --edi-inter: 1.66;
   --edi-lignes: 30;
-  --h-volet: calc(var(--edi-lignes) * var(--edi-police) * var(--edi-inter) + 3.85rem);
+  --h-volet: calc(var(--edi-lignes) * var(--edi-police) * var(--edi-inter) + 4.75rem);
 }
 /* « hidden » perd contre une règle de display, et toutes celles d'ici en
    posent une. Sans ce rappel, « Arrêter » s'affiche en permanence — ce qui
@@ -11500,12 +11515,20 @@ html.tel-volet-ouvert, html.tel-volet-ouvert body { overflow: hidden; }
   /* Cours · Exercices · Fiche · QCM : une commande segmentée, celle des
      applis de banque (« semaine · mois · année »). Le segment de la fiche
      qu'on lit prend la couleur pleine de sa matière. */
+  /* Relevé le 15 nov. 2026 : cinq segments de même largeur (63 px à 375),
+     et « Exercices » en demande 66. Le mot débordait sur « Fiche », et les
+     deux se lisaient comme un seul. Chaque segment part maintenant de la
+     largeur de son mot (« flex: auto »), le reste de la place est partagé ;
+     sur un écran trop étroit pour les cinq, la barre défile au lieu de
+     faire chevaucher les mots. */
   html.coquille .tel-segments {
     display: flex; gap: 4px; margin: 6px 0 12px; padding: 4px; border-radius: 15px;
     background: var(--carte-creuse);
+    overflow-x: auto; scrollbar-width: none;
   }
+  html.coquille .tel-segments::-webkit-scrollbar { display: none; }
   html.coquille .tel-segments a {
-    flex: 1; min-width: 0; min-height: 40px; display: grid; place-items: center; padding: 0 6px;
+    flex: 1 1 auto; min-height: 40px; display: grid; place-items: center; padding: 0 8px;
     border-radius: 11px; color: var(--encre-douce); font-size: .9rem; font-weight: 680;
     text-decoration: none; white-space: nowrap;
   }

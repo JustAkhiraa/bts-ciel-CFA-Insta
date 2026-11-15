@@ -47,7 +47,7 @@ python3 verification/verifier.py
 ## Technique
 
 Aucune dépendance, aucune étape de construction, aucun appel réseau. Du HTML, du
-CSS et du JavaScript écrits à la main. Quarante thèmes, installable comme
+CSS et du JavaScript écrits à la main. Plus de quarante thèmes, installable comme
 application, fonctionne hors-ligne.
 
 Pour le consulter en local :

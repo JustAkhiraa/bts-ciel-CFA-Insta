@@ -631,6 +631,15 @@
   // la coquille du téléphone est posée par app.js, chargé après ce script
   addEventListener("load", caler);
   setTimeout(caler, 400);
+  /* Relevé le 15 nov. 2026 par le banc de rendu : 380 px de rangée pour
+     375 px d'écran. La marge était prise sur le rembourrage de la page
+     AVANT la coquille (16 px), qui le passe ensuite à 14 px. Le minuteur
+     et l'observateur de taille rattrapaient le coup, mais ils attendent
+     une image, et une page en arrière-plan n'en reçoit pas. Une mutation
+     de classe, elle, est signalée tout de suite. */
+  if ("MutationObserver" in window) {
+    new MutationObserver(caler).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  }
 
   /* Le banc de rendu ne voit pas une liste vide : la page sait se dire en
      panne (même principe que la calculatrice et l'atelier). */
