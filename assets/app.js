@@ -29,6 +29,10 @@
     try { return Object.assign({}, DEFAUTS, JSON.parse(localStorage.getItem(CLE) || "{}")); }
     catch (e) { return Object.assign({}, DEFAUTS); }
   })();
+  /* Jusqu'au 15 nov. 2026, un monde 3D pouvait être l'accueil (« monde »,
+     « ile »). Ce choix n'existe plus : qui l'avait enregistré retrouve le
+     lanceur, au lieu d'un accueil qu'aucune pastille ne montre. */
+  if (S.style !== "classique") S.style = "lanceur";
   function enregistrer() {
     try { localStorage.setItem(CLE, JSON.stringify(S)); } catch (e) {}
   }
@@ -147,39 +151,54 @@
      le village » et « Ouvrir l'île », et on ne comprenait pas que c'était
      deux fois les deux mêmes mondes. Un monde porte donc UN nom, le même
      partout : dans les pastilles, dans les liens de visite, dans l'aide.
-     Et « Classique » ne disait pas ce qu'on voit : ce sont des cartes. */
-  var STYLES = [
-    { id: "lanceur",   nom: "Lanceur" },
-    { id: "classique", nom: "Cartes" },
-    /* Demandé : le village en fait partie, c'est un accueil lui aussi.
-       Il n'est pas DESSINÉ dans la page — il a la sienne, avec son moteur
-       3D : le choisir envoie là-bas. La redirection est posée dans le
-       script d'en-tête, avant le premier pixel, donc on ne voit pas
-       l'accueil clignoter avant de partir.
+     Et « Classique » ne disait pas ce qu'on voit : ce sont des cartes.
 
-       « dossier » est ce qui distingue un monde des deux autres accueils :
-       il a SA page, les autres sont dessinés dans celle-ci. Tout ce qui
-       suit s'en déduit — où le réglage emmène, quels liens directs la
-       feuille affiche, et ce que publier.py doit vérifier avant d'écrire la
-       première page. Une seconde liste des mêmes noms est exactement ce qui
-       a déjà laissé un thème entier sans mesure, trois fois. */
-    { id: "monde",     nom: "Village 3D", dossier: "monde" },
+     « aide » est la phrase affichée sous les pastilles : celle du choix
+     allumé SEULEMENT. Une phrase pour les quatre choix à la fois se lisait
+     comme un paragraphe de plus, et ne disait pas lequel était le sien. */
+  var STYLES = [
+    { id: "lanceur",   nom: "Lanceur",
+      aide: "les matières, les outils et le planning sur un seul écran, sans défiler." },
+    { id: "classique", nom: "Cartes",
+      aide: "une grande carte par matière." }
+  ];
+
+  /* Les mondes en 3D, à part de la page d'accueil.
+
+     Jusqu'au 15 nov. 2026, ils étaient AUSSI des pastilles de la page
+     d'accueil, et une seconde rangée aux mêmes noms y emmenait sans rien
+     changer. Signalé trois fois sous trois formes (« à quoi servent ces
+     boutons », « les boutons 3D ne marchent pas », « je ne comprends
+     toujours pas ») : la pastille d'un monde n'avait aucun effet visible
+     (le départ n'avait lieu qu'à la prochaine ouverture du site), et deux
+     boutons du même nom faisaient deux choses. Il a choisi de séparer :
+     la page d'accueil n'offre plus que ce qui est dessiné dans la page, et
+     les mondes ont leur bloc, dont les boutons y emmènent, tout de suite,
+     sans rien enregistrer.
+
+     « dossier » est le dossier publié du monde. publier.py relève cette
+     liste et refuse de publier si l'un d'eux manque : un bouton qui mène
+     à une page absente serait un lien mort sur toutes les pages. */
+  var MONDES = [
+    { nom: "Village 3D", article: "le ", dossier: "monde" },
     /* L'île, le second monde : celui où l'on marche, où l'on entre dans
-       les bâtiments. Demandé pour pouvoir y revenir plus tard. */
-    { id: "ile",       nom: "Île 3D",     dossier: "ile" }
+       les bâtiments. */
+    { nom: "Île 3D",     article: "l'",  dossier: "ile" }
   ];
 
   /* Signalé le 10 nov. 2026 : sur un téléphone, « Lanceur » et « Classique »
      ne changeaient rien, puisque la version téléphone n'est ni l'un ni
      l'autre. Le choix qui a un sens là, c'est la VERSION : celle du pouce,
      ou la page d'ordinateur, pour pouvoir la retrouver au besoin. Les deux
-     mondes restent. Même requête que la feuille de style. */
+     mondes ont leur propre bloc. Même requête que la feuille de style. */
   var ECRAN_TEL = window.matchMedia
     ? matchMedia("(max-width: 760px), (max-height: 500px) and (max-width: 1000px) and (orientation: landscape)")
     : null;
   function surTelephone() { return !!(ECRAN_TEL && ECRAN_TEL.matches); }
-  var VERSIONS = [{ id: "tel", nom: "Téléphone" }, { id: "pc", nom: "Ordinateur" }]
-    .concat(STYLES.filter(function (o) { return o.dossier; }));
+  var VERSIONS = [
+    { id: "tel", nom: "Téléphone",  aide: "l'accueil fait pour le pouce." },
+    { id: "pc",  nom: "Ordinateur", aide: "la page de l'ordinateur, même sur le téléphone." }
+  ];
 
   var TAILLES = [
     { id: "petit", nom: "Petit" }, { id: "normal", nom: "Normal" },
@@ -588,39 +607,23 @@
      publier.py, avant la première page écrite. */
   function adresseMonde(cle) { return racine() + cle + "/index.html"; }
 
-  /* L'accueil nommé, ou rien s'il n'est pas un monde. Un monde est un
-     accueil qui a SA page : « dossier » est la seule chose qui le dise, et
-     c'est le seul endroit où on le demande. */
-  function leMonde(id) {
-    for (var i = 0; i < STYLES.length; i++) {
-      if (STYLES[i].id === id && STYLES[i].dossier) return STYLES[i];
-    }
-    return null;
+  /* La phrase sous les pastilles de la page d'accueil : le nom du choix
+     allumé, puis ce qu'il montre. Elle suit le clic, avant même le
+     rechargement, pour que le choix se lise là où on vient de le faire. */
+  function aideAccueil(liste, id) {
+    var o = liste.filter(function (x) { return x.id === id; })[0] || liste[0];
+    return "<b>" + o.nom + "</b> : " + o.aide;
   }
 
-  /* Les mondes, et leur rangée à eux.
-
-     Demandé : « à quoi ça sert d'avoir ces boutons ? » — et c'était une
-     bonne question, parce que rien ne disait en quoi ils diffèrent des
-     pastilles. Ils répondent à deux besoins qu'on confond tant qu'ils sont
-     côte à côte : la pastille choisit sur quoi le site S'OUVRE, ces liens
-     y emmènent MAINTENANT sans rien changer. Aller voir l'île ne doit pas
-     décider de ce qu'on verra demain matin.
-     D'où une rangée séparée, avec son titre : la différence est portée par
-     la structure, pas par une phrase d'aide qu'on ne lit qu'une fois. */
-  /* 15 nov. 2026 : la rangée avait son propre titre (« Les mondes en 3D »)
-     et ses propres noms, et se lisait comme deux réglages de plus. Elle vit
-     maintenant DANS le bloc de la page d'accueil, juste sous les pastilles,
-     avec les mêmes noms : « Village 3D » ici est le « Village 3D » d'en
-     haut, et la phrase dit la seule différence, choisir ou visiter. */
-  function visitesMondes() {
-    var h = STYLES.filter(function (o) { return o.dossier; })
-      .map(function (o) {
-        return '<a href="' + adresseMonde(o.dossier) + '">' + o.nom + "</a>";
-      }).join("");
-    if (!h) return "";
-    return "<p>Juste visiter, sans changer la page d'accueil :</p>" +
-           '<p class="reglage-liens">' + h + "</p>";
+  /* Le bloc des mondes : des liens, pas des pastilles. Ils emmènent tout
+     de suite et n'enregistrent rien ; la flèche du lien dit qu'on part. */
+  function blocMondes() {
+    return '<div class="reglage"><h3>Mondes 3D</h3>' +
+      "<p>Le site en trois dimensions.</p>" +
+      '<p class="reglage-liens">' + MONDES.map(function (o) {
+        return '<a href="' + adresseMonde(o.dossier) + '">Entrer dans ' +
+               o.article + o.nom + "</a>";
+      }).join("") + "</p></div>";
   }
 
   /* Le pied de page n'existe pas dans la version téléphone : ses quatre
@@ -1056,21 +1059,17 @@
            nommé dans l'aide, avec ce qu'il montre. */
         (surTelephone()
           ? '<div class="reglage"><h3>Page d\'accueil</h3>' +
-            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
+            '<p>Ce que tu vois en ouvrant le site.</p>' +
             '<div class="pastilles" data-champ="version">' +
-            pastilles(VERSIONS, leMonde(S.style) ? S.style : (S.pc ? "pc" : "tel")) +
-            '</div><p class="reglage-aide"><b>Téléphone</b> : l\'accueil fait pour le pouce. ' +
-            '<b>Ordinateur</b> : la page d\'ordinateur, au besoin. ' +
-            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde.</p>' +
-            visitesMondes() + '</div>'
+            pastilles(VERSIONS, S.pc ? "pc" : "tel") +
+            '</div><p class="reglage-aide" data-aide-accueil>' +
+            aideAccueil(VERSIONS, S.pc ? "pc" : "tel") + '</p></div>'
           : '<div class="reglage"><h3>Page d\'accueil</h3>' +
-            '<p>Ce qui s\'affiche quand on ouvre le site.</p>' +
-            '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style || "lanceur") +
-            '</div><p class="reglage-aide"><b>Lanceur</b> : tout sur un écran. ' +
-            '<b>Cartes</b> : une grande carte par matière. ' +
-            '<b>Village 3D</b> et <b>Île 3D</b> : le site s\'ouvre dans ce monde, ' +
-            'et son bouton « retour » ramène ici.</p>' +
-            visitesMondes() + '</div>') +
+            '<p>Ce que tu vois en ouvrant le site.</p>' +
+            '<div class="pastilles" data-champ="style">' + pastilles(STYLES, S.style) +
+            '</div><p class="reglage-aide" data-aide-accueil>' +
+            aideAccueil(STYLES, S.style) + '</p></div>') +
+        blocMondes() +
         (surTelephone() ? rangeeSite() : "") +
 
         '<div class="reglage"><h3>Taille du texte</h3>' +
@@ -1159,16 +1158,9 @@
       var b;
       if (e.target.closest("[data-fermer]")) return fermer();
 
-      /* Aller voir un monde par le lien direct, c'est une VISITE, pas un
-         changement d'accueil : le réglage n'est pas touché. On pose quand
-         même le jeton de session que poserait la redirection — sinon, pour
-         qui a fait d'un monde son accueil, le « retour » du monde visité
-         retomberait sur l'accueil, qui le renverrait aussitôt dans son
-         monde. Un aller sans retour. */
-      if (e.target.closest(".reglage-liens a")) {
-        try { sessionStorage.setItem("ciel-monde", "1"); } catch (err) {}
-        return;
-      }
+      /* Un lien de la feuille (un monde 3D, une page du site) : le
+         navigateur s'en charge, aucun réglage n'est touché. */
+      if (e.target.closest(".reglage-liens a")) return;
 
       if ((b = e.target.closest("[data-hasard-theme]"))) {
         var tous = [];
@@ -1182,23 +1174,17 @@
       }
 
       /* La version, au téléphone : passer de l'une à l'autre change toute la
-         page (la coquille est bâtie au chargement), donc on recharge. Un
-         monde, lui, ne fait que s'inscrire, comme sur l'ordinateur. */
+         page (la coquille est bâtie au chargement), donc on recharge. */
       if ((b = e.target.closest('[data-champ="version"] [data-v]'))) {
-        var v = b.dataset.v, monde = leMonde(v);
+        var v = b.dataset.v, pcAvant = !!S.pc;
         b.parentNode.querySelectorAll("[data-v]").forEach(function (x) {
           x.setAttribute("aria-pressed", String(x === b));
         });
-        if (monde) {
-          S.style = v; enregistrer(); appliquer();
-          toast("Page d'accueil : " + monde.nom);
-          return;
-        }
-        var pcAvant = !!S.pc, styleAvant2 = S.style;
+        var aideV = feuille.querySelector("[data-aide-accueil]");
+        if (aideV) aideV.innerHTML = aideAccueil(VERSIONS, v);
         S.pc = (v === "pc");
-        if (leMonde(S.style)) S.style = "lanceur";
         enregistrer(); appliquer();
-        if (S.pc !== pcAvant || S.style !== styleAvant2) location.reload();
+        if (S.pc !== pcAvant) location.reload();
         return;
       }
 
@@ -1210,20 +1196,10 @@
           x.setAttribute("aria-pressed", String(x === b));
         });
         enregistrer(); appliquer();
-        /* Signalé : « les deux boutons 3D ne fonctionnent pas ». Ils ne
-           faisaient rien de VISIBLE, et c'était vrai des deux depuis le
-           début : la pastille inscrit une préférence, mais le départ est
-           décidé par l'amorce d'en-tête au CHARGEMENT de l'accueil. Depuis
-           une fiche, ou depuis l'accueil déjà ouvert, il n'y avait rien à
-           charger. Un réglage sans effet visible passe pour cassé.
-
-           Les y faire partir était la mauvaise réponse : cliquer pour aller
-           voir changeait du même coup l'accueil de tous les jours, sans
-           l'avoir demandé. Un piège qui se redéclenche à chaque visite.
-           La pastille dit donc ce qu'elle a fait, et la rangée du dessous
-           emmène. Deux gestes, deux endroits. */
-        var m = (champ === "style") && leMonde(S.style);
-        if (m) { toast("Page d'accueil : " + m.nom); return; }
+        if (champ === "style") {
+          var aideS = feuille.querySelector("[data-aide-accueil]");
+          if (aideS) aideS.innerHTML = aideAccueil(STYLES, S.style);
+        }
         /* CHANGER D'ACCUEIL CHANGE LA PAGE, pas seulement son habillage.
 
            Les deux accueils sont bien dessinés tous les deux dans le
