@@ -10827,6 +10827,95 @@ html[data-style="lanceur"] body:not([data-accueil]) .tete-matiere { padding-top:
 .tb-hex { display: flex; align-items: center; gap: .4rem; font-size: .76rem; margin-top: .4rem; }
 .tb-hex input { width: 34px; height: 24px; padding: 0; border: 0; background: none; }
 
+/* ── Le nuancier du tableau (outil-tableau/nuancier.js) ──
+   Une bulle contre la pastille qui l'appelle ; au téléphone, une feuille qui
+   monte du bas de l'écran, sous le pouce. Toutes les commandes font 34 px,
+   les pastilles aussi, sept par rangée comme dans les réglages. Les champs
+   sont en 16 px : en dessous, un téléphone agrandit la page au toucher. */
+.nc {
+  position: fixed; z-index: 60; width: 18.5rem; max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain;
+  box-sizing: border-box; padding: .7rem .75rem .8rem; border-radius: 14px;
+  background: var(--carte); color: var(--encre); font-size: .82rem;
+  box-shadow: 0 12px 32px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.08), 0 0 0 1px var(--bord);
+  animation: nc-entree .14s ease-out;
+}
+@keyframes nc-entree { from { opacity: 0; transform: translateY(-4px) scale(.98); } }
+@keyframes nc-monte { from { opacity: .3; transform: translateY(32px); } }
+html[data-anim="0"] .nc { animation: none; }
+@media (prefers-reduced-motion: reduce) { .nc { animation: none; } }
+.nc-poignee { display: none; }
+.nc-tete { display: flex; align-items: center; gap: .4rem; }
+/* avant | après : toucher « avant » y revient */
+.nc-apercu { display: flex; flex: none; width: 64px; height: 34px; border-radius: 9px; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--bord); }
+.nc-avant { flex: 1; margin: 0; padding: 0; border: 0; background: var(--nc-avant); cursor: pointer; }
+.nc-avant:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.nc-apres { flex: 1; background: var(--nc-c); }
+.nc-code { flex: 1; min-width: 0; height: 34px; box-sizing: border-box; padding: 0 .55rem;
+  border: 1px solid var(--bord); border-radius: 9px; background: var(--papier); color: var(--encre);
+  font-family: ui-monospace, monospace; font-size: 16px; font-weight: 600; }
+.nc-code:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.nc-b { flex: none; width: 34px; height: 34px; display: grid; place-items: center; padding: 0;
+  border: 0; border-radius: 9px; background: transparent; color: var(--encre); cursor: pointer; }
+.nc-b:hover { background: var(--carte-creuse); }
+.nc-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nc-b svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round; }
+.nc-ok { background: var(--accent); color: var(--sur-accent, #fff); }
+.nc-ok:hover { background: var(--accent-sombre, var(--accent)); }
+.nc-erreur { margin: .4rem 0 0; font-size: .76rem; line-height: 1.4; color: var(--rouge, #c92a2a); }
+/* la zone : saturation de gauche à droite, luminosité de haut en bas */
+.nc-zone { position: relative; height: 150px; margin-top: .6rem; border-radius: 10px; cursor: crosshair;
+  touch-action: none; background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--nc-h));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.nc-teinte { position: relative; height: 26px; margin-top: .65rem; border-radius: 13px; cursor: pointer; touch-action: none;
+  background: linear-gradient(to right, #f00 0%, #ff0 16.67%, #0f0 33.33%, #0ff 50%, #00f 66.67%, #f0f 83.33%, #f00 100%); }
+.nc-zone:focus-visible, .nc-teinte:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* un repère blanc cerclé de sombre se voit sur toutes les couleurs */
+.nc-repere { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; box-sizing: border-box;
+  border-radius: 50%; border: 3px solid #fff; background: var(--nc-c); pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3); }
+.nc-teinte .nc-repere { top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; background: var(--nc-h); }
+.nc-ligne { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .75rem; }
+.nc-titre { margin: .75rem 0 .35rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce); }
+.nc-ligne .nc-titre { margin: 0; }
+.nc-modes { display: inline-flex; border: 1px solid var(--bord); border-radius: 9px; overflow: hidden; }
+.nc-modes button { height: 34px; min-width: 48px; padding: 0 .55rem; border: 0; background: transparent;
+  color: var(--encre-douce); font-family: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; }
+.nc-modes button + button { border-left: 1px solid var(--bord); }
+.nc-modes button[aria-pressed="true"] { background: var(--accent-pale); color: var(--accent-sombre, var(--accent)); }
+.nc-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nc-valeurs { display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin-top: .45rem; }
+.nc-valeurs label { display: flex; flex-direction: column; align-items: stretch; gap: .2rem; }
+.nc-valeurs input { width: 100%; height: 34px; box-sizing: border-box; text-align: center;
+  border: 1px solid var(--bord); border-radius: 9px; background: var(--papier); color: var(--encre);
+  font-family: ui-monospace, monospace; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nc-valeurs input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.nc-valeurs span { text-align: center; font-size: .7rem; color: var(--encre-douce); }
+.nc-rang { display: grid; grid-template-columns: repeat(7, 34px); justify-content: space-between; gap: 4px; }
+.nc-ligne + .nc-rang { margin-top: .45rem; }
+.nc-rang:empty { display: none; }
+.nc-pastille { width: 34px; height: 34px; padding: 0; border-radius: 9px; border: 1px solid rgba(0,0,0,.12);
+  background: var(--c); cursor: pointer; }
+.nc-pastille[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--carte), 0 0 0 4px var(--accent); }
+.nc-pastille:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nc-garder { height: 34px; padding: 0 .75rem; border: 1px solid var(--bord); border-radius: 9px;
+  background: var(--carte); color: var(--encre); font-family: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
+.nc-garder:hover { background: var(--carte-creuse); }
+.nc-garder:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nc-vide { margin: .4rem 0 0; font-size: .74rem; line-height: 1.4; color: var(--encre-douce); }
+/* au téléphone : la feuille du bas, et des pastilles à la largeur du pouce */
+.nc.nc-feuille { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; max-height: 86vh;
+  border-radius: 18px 18px 0 0; padding: .35rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  animation-name: nc-monte; animation-duration: .18s; }
+.nc-feuille .nc-poignee { display: block; width: 40px; height: 4px; margin: .25rem auto .6rem;
+  border-radius: 2px; background: var(--bord); }
+.nc-feuille .nc-zone { height: 170px; }
+.nc-feuille .nc-rang { grid-template-columns: repeat(7, minmax(34px, 1fr)); gap: 6px; }
+.nc-feuille .nc-pastille { width: 100%; height: auto; aspect-ratio: 1; }
+
 /* la barre d'actions au-dessus de la sélection */
 .tb-contexte { top: 0; left: 0; display: flex; gap: .1rem; padding: .2rem; z-index: 4; }
 /* Le menu « tourner » de la barre d'actions : quatre gestes, et ce que

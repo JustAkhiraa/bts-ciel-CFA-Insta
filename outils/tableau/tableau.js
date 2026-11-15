@@ -11,6 +11,7 @@
   "use strict";
   const R = window.TB_RENDU;
   const S = window.TB_STYLET;
+  const N = window.TB_NUANCIER;   // la couleur libre (nuancier.js) ; sans lui, la pastille ne fait rien
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 
@@ -196,6 +197,7 @@
        transparence. Par défaut, le laser d'avant, au réglage près. */
     laserDuree: 1.4, laserCouleur: "#ff2f2f", laserTaille: 5, laserOpacite: 1,
     styletSeul: false, inclinaison: true, regle: null, symetrie: null, lisse: 0, symAxe: "v", recentes: [],
+    favoris: [],   // « Mes couleurs », gardées depuis le nuancier
   };
   /* Les douze encres, et les six calibres. */
   const ENCRES = [[NOIR, "Noir"], ["#ffffff", "Blanc"], [OC.gray[3], "Gris"], [OC.red[4], "Rouge"],
@@ -276,6 +278,7 @@
           lassoMode: etat.lassoMode, lassoForme: etat.lassoForme, laserDuree: etat.laserDuree, laserCouleur: etat.laserCouleur,
           laserTaille: etat.laserTaille, laserOpacite: etat.laserOpacite,
           styletSeul: etat.styletSeul, inclinaison: etat.inclinaison, symAxe: etat.symAxe, recentes: etat.recentes,
+          favoris: etat.favoris,
         }));
         /* Les images vivent dans leur propre clé : réécrire un mégaoctet
            de photo à chaque trait tracé ferait ramer la main. Elles ne
@@ -312,6 +315,7 @@
       if (!(etat.stylo < etat.stylos.length)) etat.stylo = 0;
       if (typeof lu.seau === "string" && /^#[0-9a-f]{6}$/i.test(lu.seau)) etat.seau = lu.seau;
       if (Array.isArray(lu.recentes)) etat.recentes = lu.recentes.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 7);
+      if (Array.isArray(lu.favoris)) etat.favoris = lu.favoris.filter((c) => typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 14);
       const f = JSON.parse(localStorage.getItem(FICHIERS_CLE) || "null");
       if (f && typeof f === "object") { fichiers = f; fichiersGardes = Object.keys(f).sort().join(); }
     } catch (e) { /* mémoire illisible : on repart d'un tableau vierge */ }
@@ -3138,9 +3142,45 @@
       + '" aria-label="' + ech(t) + '">' + (ic || ech(t)) + '</button>').join("") + '</div>';
   }
   function grilleCouleurs(prop) {
-    return '<details class="tb-plus"><summary>Toutes les couleurs</summary><div class="tb-palette">'
+    return '<details class="tb-plus"><summary>Toutes les nuances</summary><div class="tb-palette">'
       + Object.keys(OC).map((k) => OC[k].map((c) => pastille(prop, c, null, k + " " + c)).join("")).join("")
-      + '</div><label class="tb-hex">Couleur libre <input type="color" data-prop="' + prop + '" aria-label="Choisir n\'importe quelle couleur"></label></details>';
+      + "</div></details>";
+  }
+
+  /* ── La couleur libre : le nuancier du tableau (nuancier.js) ──
+     Demandé le 15 nov. 2026 : « le meilleur sélecteur de couleur au monde ».
+     La pastille arc-en-ciel, au bout de chaque rangée de couleurs, ouvre le
+     nuancier ; une couleur prise hors de la rangée s'y affiche. Les deux
+     rappels : « enDirect » suit le doigt, « valider » retient au lâcher. */
+  function estHexa(c) { return /^#[0-9a-f]{6}$/i.test(c || ""); }
+  function pastilleLibre(actuelle, connue, attrs) {
+    const c = estHexa(actuelle) ? actuelle : "#000000";
+    return '<button type="button" class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '" data-nuancier'
+      + (attrs || "") + (connue ? "" : ' style="--c:' + c + '"')
+      + ' title="Couleur libre : n\'importe quelle teinte" aria-label="Couleur libre : ouvrir le nuancier" aria-haspopup="dialog"></button>';
+  }
+  // la pastille libre d'une rangée montre la couleur en cours, pendant le geste
+  function montrerLibre(boite, c) {
+    if (!boite) return;
+    boite.querySelectorAll("[data-rc], [data-prop][data-val]").forEach((x) => {
+      if (x.closest(".tb-pastilles, .tb-encres")) x.setAttribute("aria-pressed", "false");
+    });
+    boite.querySelectorAll(".tb-libre").forEach((x) => { x.classList.add("tb-actif"); x.style.setProperty("--c", c); });
+  }
+  function ouvrirNuancier(ancre, couleur, enDirect, valider) {
+    if (!N) return;
+    if (N.ouvert()) { N.fermer(); return; }
+    N.ouvrir({
+      ancre, cote: ancre.closest(".tb-pop, .tb-props"), hote: section,
+      couleur: estHexa(couleur) ? couleur : "#1e1e1e", enDirect, valider,
+      favoris: () => etat.favoris || [],
+      garderFavoris: (l) => { etat.favoris = l; garder(); },
+      // le focus restait dans la fenêtre cachée : il revient au tableau, et ses raccourcis avec
+      fermer: () => {
+        const f = document.activeElement;
+        if (!f || f === document.body || (f.closest && f.closest(".nc"))) scene.focus({ preventScroll: true });
+      },
+    });
   }
   const IC = {
     hachure: '<svg viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M5 11l6-6M5 16l11-11M10 16l6-6"/></svg>',
@@ -3190,12 +3230,15 @@
       bloc("Surligneur", '<div class="tb-pastilles">' + SURLIGNEURS.map((c) => pastille("surligneur", c, a.strokeColor)).join("") + '</div>');
     } else {
       bloc(types.has("text") && types.size === 1 ? "Couleur du texte" : "Trait",
-        '<div class="tb-pastilles">' + TRAITS.map((c) => pastille("strokeColor", c, a.strokeColor)).join("") + '</div>'
+        '<div class="tb-pastilles">' + TRAITS.map((c) => pastille("strokeColor", c, a.strokeColor)).join("")
+        + pastilleLibre(a.strokeColor, TRAITS.indexOf(a.strokeColor) > -1, ' data-nprop="strokeColor"') + '</div>'
         + grilleCouleurs("strokeColor"));
     }
     if ((formes || types.has("line") || types.has("freedraw")) && !surl && !postits) {
       bloc("Fond", '<div class="tb-pastilles">' + FONDS.map((c) => pastille("backgroundColor", c, a.backgroundColor,
-        c === "transparent" ? "Transparent" : c)).join("") + '</div>' + grilleCouleurs("backgroundColor"));
+        c === "transparent" ? "Transparent" : c)).join("")
+        + pastilleLibre(a.backgroundColor, FONDS.indexOf(a.backgroundColor) > -1 || !estHexa(a.backgroundColor), ' data-nprop="backgroundColor"')
+        + '</div>' + grilleCouleurs("backgroundColor"));
     }
     if (formes && T.some((e) => e.backgroundColor && e.backgroundColor !== "transparent")) {
       bloc("Remplissage", choix("fillStyle", [["hachure", "Hachures", IC.hachure],
@@ -3246,7 +3289,10 @@
 
   /* Un réglage s'applique à la sélection ET devient le réglage courant :
      le prochain élément naîtra avec. */
-  function appliquer(prop, v) {
+  /* « enDirect » : pendant un geste du nuancier, la couleur suit le doigt
+     sans redessiner le panneau ni marquer l'historique ; le lâcher, lui,
+     passe par le chemin ordinaire et fait une seule étape d'annulation. */
+  function appliquer(prop, v, enDirect) {
     const c = etat.courant;
     if (prop === "arrondi") c.arrondi = v;
     else if (prop === "postit") c.postit = v;
@@ -3275,6 +3321,7 @@
         toucher(x);
       });
     });
+    if (enDirect) { montrerLibre(panneau, v); demander(); return; }
     if (sel.length) memoriser();
     garder(); majPanneau(); demander();
   }
@@ -3285,6 +3332,11 @@
     if (b.dataset.empiler) return empiler(b.dataset.empiler);
     if (b.dataset.action === "dupliquer") return dupliquer();
     if (b.dataset.action === "supprimer") return supprimerSelection();
+    if (b.hasAttribute("data-nuancier")) {
+      const prop = b.dataset.nprop, a = cibles()[0];
+      ouvrirNuancier(b, a && a[prop], (c) => appliquer(prop, c, true), (c) => appliquer(prop, c));
+      return;
+    }
     if (b.dataset.prop) appliquer(b.dataset.prop, b.dataset.json ? JSON.parse(b.dataset.val) : b.dataset.val);
     // le focus revient au tableau : sinon les raccourcis se taisent
     if (!b.closest("details")) scene.focus({ preventScroll: true });
@@ -3294,7 +3346,6 @@
     if (!c.dataset.prop) return;
     if (c.tagName === "SELECT") appliquer(c.dataset.prop, JSON.parse(c.value));
     else if (c.type === "range") appliquer("opacity", Number(c.value));
-    else if (c.type === "color") appliquer(c.dataset.prop, c.value);
   });
 
   /* ═══════════════ 12. Le clavier ═════════════════════════════════════
@@ -5392,7 +5443,8 @@
   /* Choisir une couleur, plus simplement (demandé le 15 nov. 2026). Tout
      ce qui sert souvent est sur la première rangée : les encres, puis la
      COULEUR LIBRE, une pastille arc-en-ciel qui ouvre le nuancier du
-     système. Avant, elle dormait au fond du bloc replié, sous soixante
+     tableau (nuancier.js, depuis le soir même ; c'était celui du
+     navigateur). Avant, elle dormait au fond du bloc replié, sous soixante
      pastilles. Une couleur prise hors des encres s'affiche dans cette
      pastille, et rejoint les « Récentes » : on la retrouve sans la refaire.
      Les nuances restent repliées dessous. */
@@ -5410,10 +5462,7 @@
     const pastille = (c, t) => '<button type="button" class="tb-pastille" data-rc="' + c + '" style="--c:' + c
       + '" aria-pressed="' + (c.toLowerCase() === a) + '" title="' + t + '" aria-label="' + t + '"></button>';
     const connue = couleurs.some(([c]) => c.toLowerCase() === a);
-    const hexa = hexa6(actuelle) ? actuelle : "#000000";
-    const libre = '<label class="tb-pastille tb-libre' + (connue ? "" : " tb-actif") + '"'
-      + (connue ? "" : ' style="--c:' + hexa + '"') + ' title="Couleur libre : n\'importe quelle teinte">'
-      + '<input type="color" data-rcl value="' + hexa + '" aria-label="Couleur libre : choisir n\'importe quelle couleur"></label>';
+    const libre = pastilleLibre(actuelle, connue);
     const rec = (etat.recentes || []).filter((c) => hexa6(c) && !couleurs.some(([e]) => e.toLowerCase() === c));
     return '<div class="tb-pastilles tb-encres">' + couleurs.map(([c, t]) => pastille(c, t)).join("") + libre + "</div>"
       + (rec.length ? '<p class="tb-menu-titre tb-recentes">Récentes</p><div class="tb-pastilles tb-encres">'
@@ -5470,6 +5519,19 @@
     const b = e.target.closest("button");
     if (!b) return;
     const q = reglage.dataset.quoi;
+    if (b.hasAttribute("data-nuancier")) {
+      ouvrirNuancier(b, couleurDuReglageActuelle(), (c) => {
+        if (couleurDuReglage(c)) { majStylos(); montrerLibre(reglage, c); }
+      }, (c) => {
+        if (!couleurDuReglage(c)) return;
+        retenirCouleur(c);
+        majStylos(); garder();
+        // redessiné : la pastille libre, les « Récentes » et les calibres suivent
+        const qq = reglage.dataset.quoi;
+        ouvrirReglage(qq === "seau" || qq === "surligneur" ? qq : Number(qq));
+      });
+      return;
+    }
     if (q === "baguette") { cliquerReglageBaguette(b); return; }
     if (q === "symetrie") {
       if (b.dataset.rsy) {
@@ -5529,7 +5591,7 @@
     majStylos(); garder();
     ouvrirReglage(surl ? "surligneur" : Number(q));
   });
-  // le nuancier du système : la couleur suit le doigt, et se retient au lâcher
+  // le nuancier : la couleur suit le doigt, et se retient au lâcher
   function couleurDuReglage(c) {
     const q = reglage.dataset.quoi;
     if (q === "seau") etat.seau = c;
@@ -5538,18 +5600,13 @@
     else return false;
     return true;
   }
-  reglage.addEventListener("input", (e) => {
-    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
-    if (couleurDuReglage(e.target.value)) majStylos();
-  });
-  reglage.addEventListener("change", (e) => {
-    if (!e.target.matches || !e.target.matches("input[data-rcl]")) return;
-    if (!couleurDuReglage(e.target.value)) return;
-    retenirCouleur(e.target.value);
-    majStylos(); garder();
+  function couleurDuReglageActuelle() {
     const q = reglage.dataset.quoi;
-    ouvrirReglage(q === "seau" || q === "surligneur" ? q : Number(q));
-  });
+    if (q === "seau") return etat.seau;
+    if (q === "surligneur") return etat.courant.surligneur;
+    if (/^\d+$/.test(q || "") && etat.stylos[Number(q)]) return etat.stylos[Number(q)].c;
+    return null;
+  }
   reglage.addEventListener("toggle", (e) => {
     if (e.target.matches && e.target.matches("details.tb-plus")) plusOuvert = e.target.open;
   }, true);
@@ -5567,7 +5624,8 @@
   document.addEventListener("pointerdown", (e) => {
     // un clic de baguette dans l'image OUVRE le réglage : ne pas le refermer aussitôt
     if (etat.outil === "baguette" && e.target === toile) return;
-    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"]")) {
+    // le nuancier s'ouvre hors du réglage : y toucher ne doit pas refermer le réglage
+    if (!reglage.hidden && !reglage.contains(e.target) && !e.target.closest(".tb-stylo, .tb-encrage [data-outil], .tb-encrage [data-bascule=\"symetrie\"], .nc")) {
       reglage.hidden = true;
     }
   });
