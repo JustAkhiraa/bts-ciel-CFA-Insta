@@ -3659,7 +3659,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage, .tb-tiroir")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -6318,7 +6318,8 @@
 
   const bEncre = $("#tb-encre-b");
   function majEncre() {
-    $("#tb-encrage").hidden = !etat.encre;
+    // au téléphone, la barre d'encrage EST la barre d'outils : jamais rangée
+    $("#tb-encrage").hidden = !etat.encre && !scene.classList.contains("tb-tel");
     bEncre.setAttribute("aria-pressed", String(etat.encre));
   }
   bEncre.addEventListener("click", () => {
@@ -7345,7 +7346,7 @@
     elements.forEach((e) => { if (!estLie(e)) { const id = calqueDe(e); nb.set(id, (nb.get(id) || 0) + 1); } });
     const actif = indexCalques.get(etat.calqueActif);
     let h = '<div class="tb-cq-tete"><b>Calques</b>'
-      + '<button type="button" class="tb-b tb-petit" data-cq="fermer" aria-label="Fermer les calques" title="Fermer (le menu ☰ les rouvre)">✕</button></div>'
+      + '<button type="button" class="tb-b tb-petit" data-cq="fermer" aria-label="Fermer les calques" title="Fermer (le menu ☰ les rouvre)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button></div>'
       + '<label class="tb-cq-opa"><span>Opacité</span><input type="range" min="0" max="100" step="5" data-cq-opa value="'
       + actif.opacite + '" aria-label="Opacité de « ' + ech(actif.nom) + ' »"><output>' + actif.opacite + " %</output></label>"
       + '<ul class="tb-cq-liste" role="tree" aria-label="Calques, du haut vers le bas">';
@@ -7637,6 +7638,120 @@
     }
   }
 
+  /* ═══════════════ 14 quater. Le téléphone ═════════════════════════════
+     Signalé le 16 nov. 2026, deux captures à l'appui : au téléphone, quatre
+     îlots et seize outils sur deux rangées, qui se recouvraient (le zoom
+     passait sur la barre d'outils, la barre d'encrage sur les deux).
+     Demandé : deux stylos seulement, et le reste fait pour le doigt.
+
+     Choix retenu : UNE barre en bas, au pouce : Sélection, Stylo 1,
+     Stylo 2, Gomme, Créer, Plus. Le reste dans un tiroir « Plus d'outils »
+     qui monte du bas. Deux doigts zooment et déplacent : ni main ni îlot de
+     zoom à l'écran (la main et « Ajuster » restent dans le tiroir).
+
+     Les boutons ne sont pas copiés mais DÉPLACÉS. Copiés, ils perdraient
+     leurs écouteurs, et l'état serait faux : plusieurs fonctions ne
+     mettent à jour que le PREMIER bouton d'un genre ($('[data-bascule=…]')).
+     Déplacés, ils restent les mêmes ; un commentaire marque leur place, et
+     ils y reviennent quand l'écran s'élargit. */
+  const ecranTel = matchMedia("(max-width: 640px), (max-height: 500px) and (pointer: coarse)");
+  const tiroir = $("#tb-tiroir"), bTiroir = $("#tb-tiroir-b"), barreBas = $("#tb-encrage");
+  const reperes = [];                 // [bouton, commentaire posé à sa place d'origine]
+  const DANS_TIROIR = {
+    stylos: ['[data-stylo="2"]', '[data-stylo="3"]', '[data-stylo="4"]', '[data-outil="surligneur"]'],
+    outils: ['[data-outil="lasso"]', '[data-outil="baguette"]', '[data-outil="pipette"]', '[data-outil="seau"]',
+             '[data-outil="laser"]', '[data-outil="main"]'],
+    aides: ['[data-bascule="regle"]', '[data-bascule="formes"]', '[data-bascule="symetrie"]', '[data-bascule="lisse"]'],
+    vue: ["#tb-ajuster", '[data-outil="verrou"]'],
+  };
+  const IC_TIROIR = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.4" class="plein"/>'
+    + '<circle cx="10" cy="10" r="1.4" class="plein"/><circle cx="15.5" cy="10" r="1.4" class="plein"/></svg>';
+  // dans une tuile de 80 px, le nom entier se couperait au milieu d'un mot
+  const NOMS_COURTS = { "Déplacer le tableau": "Déplacer", "Pointeur laser": "Laser", "Seau de couleur": "Seau",
+                        "Baguette magique": "Baguette", "Formes automatiques": "Formes auto",
+                        "Ajuster à l'écran": "Tout voir", "Garder l'outil en main": "Garder l'outil" };
+  function deplacer(el, parent, avant) {
+    if (!el || parent.contains(el)) return;
+    const court = NOMS_COURTS[el.getAttribute("aria-label")];
+    if (court) el.dataset.nom = court;
+    const c = document.createComment("place d'origine");
+    el.parentNode.insertBefore(c, el);
+    reperes.push([el, c]);
+    parent.insertBefore(el, avant || null);
+  }
+  function modeTel() {
+    if (!tiroir || !bTiroir) return;
+    const tel = ecranTel.matches;
+    if (tel !== scene.classList.contains("tb-tel")) {
+      fermerTiroir();
+      if (tel) {
+        deplacer($('.tb-cote [data-outil="selection"]'), barreBas, barreBas.firstChild);
+        deplacer($("#tb-creer-b"), barreBas, bTiroir);
+        Object.entries(DANS_TIROIR).forEach(([g, liste]) => {
+          const grille = tiroir.querySelector('[data-groupe="' + g + '"]');
+          liste.forEach((q) => deplacer($(q), grille));
+        });
+      } else {
+        while (reperes.length) { const [el, c] = reperes.pop(); c.parentNode.replaceChild(el, c); }
+      }
+      scene.classList.toggle("tb-tel", tel);
+      majEncre();
+      // les îlots se placent d'après la taille de leurs voisins (démarrage,
+      // section 15) : elle vient de changer, on la remesure tout de suite
+      scene.style.setProperty("--tb-hd-l", $(".tb-hd").offsetWidth + "px");
+      scene.style.setProperty("--tb-bas", (barreBas.hidden ? 0 : barreBas.offsetHeight + 8) + "px");
+    }
+    majTiroir();
+  }
+  /* Le bouton « Plus » dit ce qui est en main quand c'est un outil du
+     tiroir (sinon on ne saurait plus avec quoi l'on dessine), et porte un
+     point quand une aide au tracé est allumée : une symétrie oubliée dans
+     un tiroir double chaque trait sans qu'on comprenne pourquoi. */
+  function majTiroir() {
+    if (!tiroir || !bTiroir) return;
+    const actif = tiroir.querySelector('[data-stylo][aria-pressed="true"], [data-outil][aria-pressed="true"]:not([data-outil="verrou"])');
+    const aide = tiroir.querySelector('[data-bascule][aria-pressed="true"], [data-outil="verrou"][aria-pressed="true"]');
+    const cle = (actif ? actif.innerHTML : "") + "|" + !!aide;
+    if (bTiroir.dataset.cle === cle) return;
+    bTiroir.dataset.cle = cle;
+    bTiroir.innerHTML = (actif ? actif.innerHTML : IC_TIROIR) + '<b class="tb-tiroir-point" aria-hidden="true"></b>';
+    bTiroir.classList.toggle("tb-tiroir-actif", !!actif);
+    bTiroir.classList.toggle("tb-tiroir-aide", !!aide);
+    bTiroir.setAttribute("aria-pressed", String(!!actif));
+    bTiroir.setAttribute("aria-label", "Plus d'outils" + (actif ? " (en main : " + actif.getAttribute("aria-label") + ")" : "")
+      + (aide ? ", une aide au tracé est allumée" : ""));
+  }
+  function ouvrirTiroir() {
+    $("#tb-reglage").hidden = true;
+    if ($("#tb-creer-b").getAttribute("aria-expanded") === "true") $("#tb-creer-b").click();
+    tiroir.hidden = false;
+    bTiroir.setAttribute("aria-expanded", "true");
+  }
+  function fermerTiroir() {
+    if (!tiroir || tiroir.hidden) return;
+    tiroir.hidden = true;
+    bTiroir.setAttribute("aria-expanded", "false");
+  }
+  if (tiroir && bTiroir) {
+    bTiroir.addEventListener("click", () => (tiroir.hidden ? ouvrirTiroir() : fermerTiroir()));
+    // un outil choisi ferme le tiroir ; une aide (bascule, verrou) le laisse
+    // ouvert, pour en allumer plusieurs d'affilée
+    tiroir.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.matches("[data-fermer-tiroir], [data-stylo], #tb-ajuster") || (b.dataset.outil && b.dataset.outil !== "verrou")) fermerTiroir();
+    });
+    tiroir.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); fermerTiroir(); bTiroir.focus(); } });
+    document.addEventListener("pointerdown", (e) => {
+      if (!tiroir.hidden && !tiroir.contains(e.target) && !bTiroir.contains(e.target)) fermerTiroir();
+    });
+    // un réglage qui s'ouvre (recliquer la symétrie) passe devant : le tiroir s'efface
+    new MutationObserver(() => { if (!$("#tb-reglage").hidden) fermerTiroir(); })
+      .observe($("#tb-reglage"), { attributes: true, attributeFilter: ["hidden"] });
+    new MutationObserver(majTiroir).observe(tiroir, { subtree: true, attributes: true, attributeFilter: ["aria-pressed", "style"] });
+    ecranTel.addEventListener("change", modeTel);
+  }
+
   /* ═══════════════ 15. Le démarrage ═══════════════════════════════════ */
   relire();
   bibDemarrer();
@@ -7675,6 +7790,7 @@
   titre.value = etat.titre;
   $("#tb-cote").value = etat.cote;
   majZoom(); majFond(); majStylos(); majEncre(); majCote(); majBascules(); choisirOutil("selection");
+  modeTel();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { replacerLies(); demander(); });
   /* Un point d'entrée pour la vérification automatique : la scène lue
      et écrite telle qu'elle est, sans passer par la souris. */

@@ -2,8 +2,8 @@
    chaque fiche visitee s'y ajoute ensuite.
    VERSION est l'empreinte du site publie : elle change des qu'un
    octet change, ce qui purge l'ancien cache a l'activation. */
-const VERSION='bts-ciel-b4f9a7f69d';
-const COQUILLE=["./", "./index.html", "./a-propos.html", "./kit.html", "./devoirs.html", "./actu.html", "./revision.html", "./projets.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/icone-180.png", "./assets/icone-192.png", "./assets/icone-512.png", "./assets/icone-maskable-512.png", "./assets/fiche.css?v=663ef16b", "./assets/app.js?v=663ef16b", "./assets/fiche.js?v=663ef16b", "./assets/recherche.js?v=663ef16b", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./assets/fond-voxel-clair.webp", "./planning.html", "./planning.ics", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html", "./06-physique/index.html", "./07-projet-e6/index.html"];
+const VERSION='bts-ciel-7b37fb6c61';
+const COQUILLE=["./", "./index.html", "./a-propos.html", "./kit.html", "./devoirs.html", "./actu.html", "./revision.html", "./projets.html", "./outils/index.html", "./outils/convertisseur.html", "./outils/masques.html", "./manifest.webmanifest", "./assets/icone.svg", "./assets/icone-180.png", "./assets/icone-192.png", "./assets/icone-512.png", "./assets/icone-maskable-512.png", "./assets/fiche.css?v=b8e40ede", "./assets/app.js?v=b8e40ede", "./assets/fiche.js?v=b8e40ede", "./assets/recherche.js?v=b8e40ede", "./assets/logo-classe.jpg", "./assets/fond-voxel.webp", "./assets/fond-voxel-clair.webp", "./planning.html", "./planning.ics", "./01-informatique-dev/index.html", "./02-reseaux-systemes/index.html", "./03-mathematiques/index.html", "./04-anglais/index.html", "./05-culture-generale/index.html", "./06-physique/index.html", "./07-projet-e6/index.html"];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(COQUILLE)).then(() => self.skipWaiting()));

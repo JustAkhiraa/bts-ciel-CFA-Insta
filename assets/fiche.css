@@ -11354,6 +11354,93 @@ span.tb-cq-pli { cursor: default; }
   .tb-avec-calques .tb-props, .tb-avec-calques .tb-a-droite .tb-props { left: 10px; right: 10px; max-height: 30%; }
 }
 
+/* ── le tableau au téléphone (16 nov. 2026) ────────────────────────────
+   « .tb-tel » est posée par tableau.js (section 14 quater) sous 640 px de
+   large, ou sous 500 px de haut au doigt (un téléphone couché). Une seule
+   barre, en bas, au pouce : Sélection, Stylo 1, Stylo 2, Gomme, Créer,
+   Plus. Le reste vit dans le tiroir. La barre de gauche, l'aide et l'îlot
+   de zoom s'effacent : deux doigts zooment et déplacent. Les boutons de la
+   barre font 46 px, au-delà des 34 du site : c'est l'outil qu'on vise le
+   plus, et on le vise en dessinant, l'œil sur le trait. */
+.tb-tiroir-b, .tb-que-tel { display: none; }
+/* le titre prend la place laissée par l'aide et le zoom */
+.tb-tel .tb-hg { width: calc(100% - 28px - var(--tb-hd-l, 96px)); max-width: 30rem; }
+.tb-tel .tb-hg .tb-titre { flex: 1 1 auto; width: auto; min-width: 2.5rem; }
+.tb-tel .tb-cote, .tb-tel .tb-bd, .tb-tel #tb-aide-b, .tb-tel .tb-sauve,
+.tb-tel .tb-sans-tel, .tb-tel .tb-ligne:has(#tb-cote) { display: none !important; }
+.tb-tel .tb-que-tel { display: inline; }
+.tb-tel .tb-encrage {
+  top: auto; right: auto; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%); flex-wrap: nowrap; max-width: calc(100% - 20px);
+  gap: 2px; padding: 5px; border-radius: 20px;
+}
+.tb-tel .tb-encrage .tb-sep { display: none; }
+.tb-tel .tb-encrage > .tb-b { min-width: 46px; height: 46px; padding: 0; border-radius: 14px; }
+.tb-tel .tb-encrage > .tb-b svg { width: 22px; height: 22px; }
+.tb-tel .tb-encrage > .tb-stylo svg, .tb-tel .tb-tiroir-b svg { margin-bottom: 6px; }
+/* Créer se détache des outils de tracé : il pose, il ne dessine pas */
+.tb-tel .tb-encrage > #tb-creer-b { margin-left: 6px; }
+.tb-tel .tb-tiroir-b { display: inline-flex; }
+.tb-tel .tb-tiroir-b:not(.tb-tiroir-actif) svg { margin-bottom: 0; }
+.tb-tiroir-b[aria-expanded="true"] { background: var(--carte-creuse); }
+/* l'outil du tiroir en main : son trait de couleur, comme sous un stylo */
+.tb-tiroir-b i {
+  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+  width: 18px; height: var(--w, 3px); max-height: 6px; border-radius: 3px; background: var(--c, transparent);
+}
+.tb-tiroir-point {
+  display: none; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px var(--tb-carte);
+}
+.tb-tiroir-aide .tb-tiroir-point { display: block; }
+.tb-tel .tb-reglage-stylo {
+  top: auto; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: min(20rem, calc(100vw - 20px));
+}
+
+/* le tiroir : une feuille qui monte du bas, au-dessus de la barre */
+.tb-tiroir {
+  position: absolute; z-index: 6; left: 50%; bottom: calc(10px + var(--tb-bas, 62px));
+  width: min(30rem, calc(100% - 20px)); max-height: min(72%, 32rem); overflow-y: auto; overscroll-behavior: contain;
+  padding: .45rem .7rem .8rem; transform: translateX(-50%);
+  background: var(--tb-carte); color: var(--tb-encre); border-radius: 16px; box-shadow: var(--tb-ombre);
+  transition: opacity .18s ease-out, transform .22s cubic-bezier(.2, .8, .2, 1);
+}
+@starting-style { .tb-tiroir { opacity: 0; transform: translate(-50%, 14px); } }
+.tb-tiroir-tete { display: flex; align-items: center; justify-content: space-between; min-height: 38px; }
+.tb-tiroir-tete b { font-size: .92rem; font-weight: 700; }
+.tb-tiroir-titre {
+  margin: .55rem 0 .3rem; font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--encre-douce);
+}
+.tb-tiroir-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tb-tiroir-grille:empty, .tb-tiroir-titre:has(+ .tb-tiroir-grille:empty) { display: none; }
+/* chaque outil : son dessin, et son nom dessous (lu dans aria-label, le
+   même que celui des lecteurs d'écran : un seul nom par outil) */
+.tb-tiroir-grille .tb-b {
+  flex-direction: column; justify-content: center; gap: 5px; width: 100%; min-width: 0; height: auto;
+  min-height: 68px; padding: 9px 4px 8px; border-radius: 12px; background: var(--carte-creuse);
+  font-size: .72rem; font-weight: 600; line-height: 1.15; text-align: center;
+}
+.tb-tiroir-grille .tb-b::after { content: attr(aria-label); order: 2; overflow-wrap: break-word; hyphens: auto; }
+.tb-tiroir-grille .tb-b[data-nom]::after { content: attr(data-nom); }
+.tb-tiroir-grille .tb-b svg { width: 22px; height: 22px; margin: 0; }
+.tb-tiroir-grille .tb-b i {
+  position: static; transform: none; order: 1; width: 22px; height: 4px; max-height: 4px; margin: -2px 0 0;
+}
+.tb-tiroir-grille .tb-b[aria-pressed="true"] { background: var(--accent-pale); color: var(--accent-sombre); }
+.tb-tiroir .tb-note { margin: .8rem .1rem 0; font-size: .76rem; line-height: 1.45; color: var(--encre-douce); }
+@media (prefers-reduced-motion: reduce) { .tb-tiroir { transition: none; } }
+
+/* les panneaux suivent la barre du bas, qui est la seule */
+.tb-tel .tb-creer { left: 10px; right: 10px; width: auto; top: 56px; bottom: calc(10px + var(--tb-bas, 62px)); z-index: 6; }
+.tb-tel .tb-props, .tb-tel.tb-a-droite .tb-props {
+  left: 10px; right: 10px; width: auto; top: auto; bottom: calc(10px + var(--tb-bas, 62px)); max-height: 45%;
+}
+.tb-avec-calques .tb-tel .tb-props { max-height: 30%; }
+.tb-tel .tb-calques, .tb-tel.tb-a-droite .tb-calques { top: 56px; left: 10px; right: 10px; width: auto; max-height: 38%; }
+.tb-tel .tb-etat { bottom: calc(14px + var(--tb-bas, 62px)); }
+
 /* ═══════════════════════════════════ la page 404
    Demandé : une page d'erreur belle. Elle n'a presque pas de classes à
    elle : elle réemploie la grille de cartes, la recherche et les blocs du
