@@ -228,7 +228,7 @@
   let pileCalques = [];               // l'arbre des calques, à chaque étape
   let baguette = null;               // la zone choisie à la baguette magique
   function memoriser() {
-    ranger();
+    ranger(true);
     const photo = JSON.stringify(elements), arbre = JSON.stringify(etat.calques);
     if (pile[curseurPile] === photo && (pileFond[curseurPile] === undefined || pileFond[curseurPile] === etat.fond)
         && (pileCalques[curseurPile] === undefined || pileCalques[curseurPile] === arbre)) return;
@@ -1441,6 +1441,8 @@
                  backgroundColor: plein ? src.strokeColor : "transparent",
                  strokeStyle: "solid", roughness: 0, opacity: src.opacity };
     if (plein) st.fillStyle = "solid";
+    // la forme redressée reste dans le calque de son trait
+    if (src.customData && src.customData.calque) st.customData = { calque: src.customData.calque };
     if (f.type === "triangle" || f.type === "polygone") {
       const [x0, y0] = f.points[0];
       const pts = f.points.concat([f.points[0]]).map(([x, y]) => [x - x0, y - y0]);
@@ -3020,6 +3022,12 @@
       });
       c.x += dx; c.y += dy;
       c.seed = graine(); c.version = 1; c.versionNonce = graine(); c.updated = Date.now();
+      // panneau des calques affiché : la copie d'un objet devient un calque à
+      // elle (au-dessus de l'actif) ; un trait copié reste dans son dessin
+      if (etat.calquesVus && c.customData && c.customData.calque) {
+        const n = indexCalques.get(c.customData.calque);
+        if (!n || n.nature === "objet") delete c.customData.calque;
+      }
       if (c.containerId) c.containerId = map.get(c.containerId) || null;
       // copiés ensemble, des équipements et leur lien : le lien suit les copies
       for (const k of ["startBinding", "endBinding"]) {
@@ -3651,7 +3659,7 @@
   $$("[data-outil]").forEach((b) => b.addEventListener("click", () => {
     const o = b.dataset.outil;
     if (o === "verrou") basculerVerrou();
-    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage")) {
+    else if ((o === "surligneur" || o === "gomme" || o === "baguette" || o === "lasso" || o === "laser" || o === "seau") && etat.outil === o && b.closest(".tb-encrage, .tb-tiroir")) {
       if (reglage.hidden || reglage.dataset.quoi !== o) ouvrirReglage(o); else reglage.hidden = true;
     } else choisirOutil(o);
     scene.focus({ preventScroll: true });
@@ -6310,7 +6318,8 @@
 
   const bEncre = $("#tb-encre-b");
   function majEncre() {
-    $("#tb-encrage").hidden = !etat.encre;
+    // au téléphone, la barre d'encrage EST la barre d'outils : jamais rangée
+    $("#tb-encrage").hidden = !etat.encre && !scene.classList.contains("tb-tel");
     bEncre.setAttribute("aria-pressed", String(etat.encre));
   }
   bEncre.addEventListener("click", () => {
@@ -6445,6 +6454,8 @@
       fontFamily: etat.courant.fontFamily, textAlign: "left", verticalAlign: "top", containerId: null,
       autoResize: true, lineHeight: 1.25, backgroundColor: "transparent", roundness: null,
       strokeColor: lu.T[0].strokeColor,
+      // le texte reste dans le calque des traits qu'il remplace
+      customData: lu.T[0].customData && lu.T[0].customData.calque ? { calque: lu.T[0].customData.calque } : null,
     });
     mesurerLibre(el);
     retirer(lu.T.map((x) => x.id));
@@ -7042,7 +7053,7 @@
   const estDossier = (c) => !!c && c.type === "dossier";
   function calquesPrets() {
     if (!Array.isArray(etat.calques) || !etat.calques.some((c) => c && c.type !== "dossier")) {
-      etat.calques = [{ id: idCalque(), nom: "Calque 1", type: "calque", parent: null, couleur: 0, visible: true, verrou: false, opacite: 100 }];
+      etat.calques = [{ id: idCalque(), nom: "Calque 1", type: "calque", parent: null, couleur: 0, visible: true, verrou: false, opacite: 100, auto: true }];
     }
     etat.calques = etat.calques.filter((c) => c && typeof c.id === "string");
     indexer();
@@ -7092,10 +7103,13 @@
   }
 
   /* Chaque élément reçoit son calque (un texte suit son conteneur), puis la
-     liste est triée, de façon STABLE, du calque du bas à celui du haut. */
-  function ranger() {
+     liste est triée, de façon STABLE, du calque du bas à celui du haut.
+     « nouveaux » : appelé par l'historique, après un geste qui a pu ajouter
+     quelque chose ; ce qui n'a pas encore de calque y est d'abord placé. */
+  function ranger(nouveaux) {
     if (!etat.calques) return;
     const parIdLocal = new Map(elements.map((e) => [e.id, e]));
+    if (nouveaux && etat.calquesVus) placerNouveaux(parIdLocal);
     elements.forEach((el) => {
       let id = el.customData && el.customData.calque;
       if (el.containerId && parIdLocal.has(el.containerId)) {
@@ -7106,6 +7120,91 @@
       if (!el.customData || el.customData.calque !== id) el.customData = Object.assign({}, el.customData, { calque: id });
     });
     if (rangs.size > 1 && !trie(elements)) elements = ordonner(elements);
+    if (etat.calquesVus) nommerAuto();
+  }
+
+  /* ── ce qui arrive : un calque par chose ajoutée ──
+     Signalé le 16 nov. 2026 : un dessin puis une image tombaient dans le
+     même calque, et le panneau ne laissait donc pas choisir lequel passe
+     devant. On suit maintenant les logiciels de retouche :
+       · les traits à main levée (et le seau) s'ajoutent au calque de dessin
+         actif ; si le calque actif tient autre chose, un « Dessin N » naît
+         juste au-dessus ;
+       · tout le reste (image, texte, forme, note, icône, modèle, collage)
+         devient un calque à lui, juste au-dessus de l'actif, nommé
+         d'après ce qu'il contient ; un geste qui pose plusieurs choses
+         (une icône et son nom, un modèle) en fait UN calque ;
+       · un câble va dans le plus bas des calques de ses deux équipements :
+         il passe dessous ;
+       · un calque actif VIDE reçoit ce qui arrive, plutôt que de laisser
+         un calque vide derrière soi ; caché ou verrouillé, il est sauté.
+     Rien de tout cela sans le panneau : caché, tout va au calque actif. */
+  const natureDe = (el) => (el.type === "freedraw" || !!(el.customData && el.customData.coulee) ? "dessin" : "objet");
+  const marquer = (el, id) => { el.customData = Object.assign({}, el.customData, { calque: id }); };
+  function nomNumerote(base) {
+    const pris = new Set(etat.calques.map((c) => c.nom));
+    let n = 1;
+    while (pris.has(base + " " + n)) n++;
+    return base + " " + n;
+  }
+  function placerNouveaux(parIdLocal) {
+    const lot = elements.filter((el) => !(el.customData && el.customData.calque)
+      && !(el.containerId && parIdLocal.has(el.containerId)));
+    if (!lot.length) return;
+    const reste = [];
+    lot.forEach((el) => {
+      if (estLien(el)) {
+        const bouts = [el.startBinding, el.endBinding].map((b) => b && parIdLocal.get(b.elementId))
+          .filter(Boolean).map(calqueDe).filter((id) => rangs.has(id));
+        if (bouts.length) { marquer(el, bouts.sort((a, b) => rangs.get(a) - rangs.get(b))[0]); return; }
+      }
+      reste.push(el);
+    });
+    if (!reste.length) return;
+    const dessin = reste.every((el) => natureDe(el) === "dessin");
+    const neufs = new Set(reste.map((e) => e.id));
+    let cible = indexCalques.get(etat.calqueActif);
+    const libre = calqueVisible(cible.id) && !calqueBloque(cible.id);
+    const occupe = elements.some((e) => !neufs.has(e.id) && !estLie(e) && calqueDe(e) === cible.id);
+    if (libre && !occupe) {
+      cible.nature = dessin ? "dessin" : "objet";
+      if (cible.auto && dessin) cible.nom = nomNumerote("Dessin");
+    } else if (!(libre && dessin && cible.nature !== "objet")) {
+      const c = { id: idCalque(), nom: dessin ? nomNumerote("Dessin") : "Objet", type: "calque",
+                  parent: cible.parent || null, couleur: 0, visible: true, verrou: false, opacite: 100,
+                  auto: true, nature: dessin ? "dessin" : "objet" };
+      etat.calques.splice(etat.calques.indexOf(cible), 0, c);
+      cible = c;
+    }
+    reste.forEach((el) => marquer(el, cible.id));
+    etat.calqueActif = cible.id;
+    indexer();
+  }
+  /* Le nom d'un calque d'objet suit ce qu'il contient tant qu'on ne l'a pas
+     renommé : « Image », « Note · À rendre lundi », le début d'un texte. */
+  const NOMS_TYPE = { image: "Image", text: "Texte", rectangle: "Rectangle", ellipse: "Ellipse",
+                      diamond: "Losange", line: "Ligne", arrow: "Flèche", freedraw: "Dessin" };
+  function decrire(liste) {
+    const court = (t) => String(t || "").replace(/\s+/g, " ").trim().slice(0, 32);
+    if (liste.length === 1) {
+      const e = liste[0], cd = e.customData || {};
+      if (e.type === "text") return court(e.text) || "Texte";
+      if (cd.coulee) return "Remplissage";
+      const nom = cd.postit ? "Note" : e.type === "line" && e.polygon ? "Forme" : NOMS_TYPE[e.type] || "Objet";
+      const t = porteur(e) ? texteDe(e) : null;
+      return t && court(t.text) ? nom + " · " + court(t.text) : nom;
+    }
+    const img = liste.filter((e) => e.type === "image"), txt = liste.filter((e) => e.type === "text");
+    if (img.length === 1 && txt.length === 1 && liste.length === 2) return court(txt[0].text) || "Icône";
+    return "Groupe de " + liste.length;
+  }
+  function nommerAuto() {
+    const par = new Map();
+    elements.forEach((e) => {
+      const id = !estLie(e) && e.customData && e.customData.calque;
+      if (id) { if (!par.has(id)) par.set(id, []); par.get(id).push(e); }
+    });
+    etat.calques.forEach((c) => { if (c.auto && c.nature === "objet" && par.has(c.id)) c.nom = decrire(par.get(c.id)); });
   }
   function trie(liste) {
     let r = -1;
@@ -7166,7 +7265,7 @@
   function nouveauCalque() {
     const actif = indexCalques.get(etat.calqueActif);
     const c = { id: idCalque(), nom: nomLibre("Calque"), type: "calque", parent: actif ? actif.parent : null,
-                couleur: 0, visible: true, verrou: false, opacite: 100 };
+                couleur: 0, visible: true, verrou: false, opacite: 100, auto: true };
     etat.calques.splice(Math.max(0, etat.calques.indexOf(actif)), 0, c);
     etat.calqueActif = c.id;
     apresCalques();
@@ -7247,7 +7346,7 @@
     elements.forEach((e) => { if (!estLie(e)) { const id = calqueDe(e); nb.set(id, (nb.get(id) || 0) + 1); } });
     const actif = indexCalques.get(etat.calqueActif);
     let h = '<div class="tb-cq-tete"><b>Calques</b>'
-      + '<button type="button" class="tb-b tb-petit" data-cq="fermer" aria-label="Fermer les calques" title="Fermer (le menu ☰ les rouvre)">✕</button></div>'
+      + '<button type="button" class="tb-b tb-petit" data-cq="fermer" aria-label="Fermer les calques" title="Fermer (le menu ☰ les rouvre)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button></div>'
       + '<label class="tb-cq-opa"><span>Opacité</span><input type="range" min="0" max="100" step="5" data-cq-opa value="'
       + actif.opacite + '" aria-label="Opacité de « ' + ech(actif.nom) + ' »"><output>' + actif.opacite + " %</output></label>"
       + '<ul class="tb-cq-liste" role="tree" aria-label="Calques, du haut vers le bas">';
@@ -7263,7 +7362,8 @@
         + (c.visible !== false ? IC_CALQUE.oeil : IC_CALQUE.cache) + "</button>"
         + (d ? '<button type="button" class="tb-cq-pli" data-cq="plier" aria-label="' + (c.ouvert !== false ? "Fermer" : "Ouvrir")
             + ' le dossier « ' + ech(c.nom) + ' »">' + IC_CALQUE.pli + "</button>" : '<span class="tb-cq-pli" aria-hidden="true"></span>')
-        + '<span class="tb-cq-ic" aria-hidden="true">' + (d ? IC_CALQUE.dossier : IC_CALQUE.calque) + "</span>"
+        + (d ? '<span class="tb-cq-ic" aria-hidden="true">' + IC_CALQUE.dossier + "</span>"
+             : '<canvas class="tb-cq-vignette" width="60" height="44" data-vig="' + c.id + '" aria-hidden="true"></canvas>')
         + (renommeCalque === c.id
           ? '<input class="tb-cq-saisie" data-cq-nom value="' + ech(c.nom) + '" aria-label="Nouveau nom" maxlength="80" spellcheck="false">'
           : '<span class="tb-cq-nom" title="Double-clic : renommer">' + ech(c.nom) + "</span>")
@@ -7293,6 +7393,37 @@
     panneauCalques.innerHTML = h;
     const saisie = panneauCalques.querySelector("[data-cq-nom]");
     if (saisie) { saisie.focus(); saisie.select(); }
+    peindreVignettes();
+  }
+  /* La vignette d'un calque : ce qu'il contient, réduit à 30 × 22, sans
+     son opacité (comme dans les logiciels de retouche), même s'il est caché.
+     C'est elle qui dit « ce calque-là, c'est l'image » sans lire de nom. */
+  function peindreVignettes() {
+    const toiles = panneauCalques.querySelectorAll("canvas[data-vig]");
+    if (!toiles.length) return;
+    const par = new Map();
+    elements.forEach((e) => {
+      if (estLie(e)) return;
+      const id = calqueDe(e);
+      if (!par.has(id)) par.set(id, []);
+      par.get(id).push(e);
+    });
+    const f = fantomes; fantomes = new Set();
+    try {
+      toiles.forEach((cv) => {
+        const k = cv.getContext("2d"), W = cv.width, H = cv.height;
+        k.setTransform(1, 0, 0, 1, 0, 0);
+        k.fillStyle = etat.fond || "#ffffff";
+        k.fillRect(0, 0, W, H);
+        const liste = par.get(cv.dataset.vig), B = liste && boiteDe(liste);
+        if (!B) return;
+        const m = 4, z = Math.min((W - 2 * m) / Math.max(1, B.w), (H - 2 * m) / Math.max(1, B.h), 3);
+        k.setTransform(z, 0, 0, z, (W - B.w * z) / 2 - B.x * z, (H - B.h * z) / 2 - B.y * z);
+        exportSansOpacite = true;
+        dessinerScene(k, liste, null, true);
+        exportSansOpacite = false;
+      });
+    } finally { fantomes = f; exportSansOpacite = false; }
   }
   function montrerCalques(oui) {
     etat.calquesVus = !!oui;
@@ -7337,12 +7468,16 @@
       // un clic sur la ligne : il devient le calque actif (un dossier s'ouvre ou se ferme)
       if (estDossier(c)) return plierDossier(c);
       etat.calqueActif = id;
-      // la sélection prise dans un AUTRE calque est lâchée : sinon elle
-      // ramènerait aussitôt son calque comme actif (suivreSelection)
-      const avant = selection.size;
-      selection = new Set([...selection].filter((s) => { const e = parId(s); return e && calqueDe(e) === id; }));
+      // Avec l'outil de sélection, toucher un calque prend ce qu'il contient :
+      // on voit sur le tableau ce qu'il est, et on peut le déplacer aussitôt.
+      // Avec un autre outil, la sélection prise dans un AUTRE calque est
+      // lâchée : sinon elle ramènerait son calque comme actif (suivreSelection).
+      const avant = [...selection].join();
+      selection = etat.outil === "selection"
+        ? new Set(elements.filter((x) => !estLie(x) && calqueDe(x) === id && prenable(x)).map((x) => x.id))
+        : new Set([...selection].filter((s) => { const x = parId(s); return x && calqueDe(x) === id; }));
       garder(); peindreCalques();
-      if (selection.size !== avant) { majPanneau(); demander(); }
+      if ([...selection].join() !== avant) { majPanneau(); demander(); }
     });
     panneauCalques.addEventListener("dblclick", (e) => {
       const n = e.target.closest(".tb-cq-nom");
@@ -7354,7 +7489,7 @@
       if (!s || !renommeCalque) return;
       const c = indexCalques.get(renommeCalque), v = s.value.trim();
       renommeCalque = null;
-      if (garderNom && c && v && v !== c.nom) { c.nom = v.slice(0, 80); apresCalques(); } else peindreCalques();
+      if (garderNom && c && v && v !== c.nom) { c.nom = v.slice(0, 80); c.auto = false; apresCalques(); } else peindreCalques();
     };
     panneauCalques.addEventListener("keydown", (e) => {
       e.stopPropagation();                          // ses touches ne sont pas des raccourcis du tableau
@@ -7503,6 +7638,120 @@
     }
   }
 
+  /* ═══════════════ 14 quater. Le téléphone ═════════════════════════════
+     Signalé le 16 nov. 2026, deux captures à l'appui : au téléphone, quatre
+     îlots et seize outils sur deux rangées, qui se recouvraient (le zoom
+     passait sur la barre d'outils, la barre d'encrage sur les deux).
+     Demandé : deux stylos seulement, et le reste fait pour le doigt.
+
+     Choix retenu : UNE barre en bas, au pouce : Sélection, Stylo 1,
+     Stylo 2, Gomme, Créer, Plus. Le reste dans un tiroir « Plus d'outils »
+     qui monte du bas. Deux doigts zooment et déplacent : ni main ni îlot de
+     zoom à l'écran (la main et « Ajuster » restent dans le tiroir).
+
+     Les boutons ne sont pas copiés mais DÉPLACÉS. Copiés, ils perdraient
+     leurs écouteurs, et l'état serait faux : plusieurs fonctions ne
+     mettent à jour que le PREMIER bouton d'un genre ($('[data-bascule=…]')).
+     Déplacés, ils restent les mêmes ; un commentaire marque leur place, et
+     ils y reviennent quand l'écran s'élargit. */
+  const ecranTel = matchMedia("(max-width: 640px), (max-height: 500px) and (pointer: coarse)");
+  const tiroir = $("#tb-tiroir"), bTiroir = $("#tb-tiroir-b"), barreBas = $("#tb-encrage");
+  const reperes = [];                 // [bouton, commentaire posé à sa place d'origine]
+  const DANS_TIROIR = {
+    stylos: ['[data-stylo="2"]', '[data-stylo="3"]', '[data-stylo="4"]', '[data-outil="surligneur"]'],
+    outils: ['[data-outil="lasso"]', '[data-outil="baguette"]', '[data-outil="pipette"]', '[data-outil="seau"]',
+             '[data-outil="laser"]', '[data-outil="main"]'],
+    aides: ['[data-bascule="regle"]', '[data-bascule="formes"]', '[data-bascule="symetrie"]', '[data-bascule="lisse"]'],
+    vue: ["#tb-ajuster", '[data-outil="verrou"]'],
+  };
+  const IC_TIROIR = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4.5" cy="10" r="1.4" class="plein"/>'
+    + '<circle cx="10" cy="10" r="1.4" class="plein"/><circle cx="15.5" cy="10" r="1.4" class="plein"/></svg>';
+  // dans une tuile de 80 px, le nom entier se couperait au milieu d'un mot
+  const NOMS_COURTS = { "Déplacer le tableau": "Déplacer", "Pointeur laser": "Laser", "Seau de couleur": "Seau",
+                        "Baguette magique": "Baguette", "Formes automatiques": "Formes auto",
+                        "Ajuster à l'écran": "Tout voir", "Garder l'outil en main": "Garder l'outil" };
+  function deplacer(el, parent, avant) {
+    if (!el || parent.contains(el)) return;
+    const court = NOMS_COURTS[el.getAttribute("aria-label")];
+    if (court) el.dataset.nom = court;
+    const c = document.createComment("place d'origine");
+    el.parentNode.insertBefore(c, el);
+    reperes.push([el, c]);
+    parent.insertBefore(el, avant || null);
+  }
+  function modeTel() {
+    if (!tiroir || !bTiroir) return;
+    const tel = ecranTel.matches;
+    if (tel !== scene.classList.contains("tb-tel")) {
+      fermerTiroir();
+      if (tel) {
+        deplacer($('.tb-cote [data-outil="selection"]'), barreBas, barreBas.firstChild);
+        deplacer($("#tb-creer-b"), barreBas, bTiroir);
+        Object.entries(DANS_TIROIR).forEach(([g, liste]) => {
+          const grille = tiroir.querySelector('[data-groupe="' + g + '"]');
+          liste.forEach((q) => deplacer($(q), grille));
+        });
+      } else {
+        while (reperes.length) { const [el, c] = reperes.pop(); c.parentNode.replaceChild(el, c); }
+      }
+      scene.classList.toggle("tb-tel", tel);
+      majEncre();
+      // les îlots se placent d'après la taille de leurs voisins (démarrage,
+      // section 15) : elle vient de changer, on la remesure tout de suite
+      scene.style.setProperty("--tb-hd-l", $(".tb-hd").offsetWidth + "px");
+      scene.style.setProperty("--tb-bas", (barreBas.hidden ? 0 : barreBas.offsetHeight + 8) + "px");
+    }
+    majTiroir();
+  }
+  /* Le bouton « Plus » dit ce qui est en main quand c'est un outil du
+     tiroir (sinon on ne saurait plus avec quoi l'on dessine), et porte un
+     point quand une aide au tracé est allumée : une symétrie oubliée dans
+     un tiroir double chaque trait sans qu'on comprenne pourquoi. */
+  function majTiroir() {
+    if (!tiroir || !bTiroir) return;
+    const actif = tiroir.querySelector('[data-stylo][aria-pressed="true"], [data-outil][aria-pressed="true"]:not([data-outil="verrou"])');
+    const aide = tiroir.querySelector('[data-bascule][aria-pressed="true"], [data-outil="verrou"][aria-pressed="true"]');
+    const cle = (actif ? actif.innerHTML : "") + "|" + !!aide;
+    if (bTiroir.dataset.cle === cle) return;
+    bTiroir.dataset.cle = cle;
+    bTiroir.innerHTML = (actif ? actif.innerHTML : IC_TIROIR) + '<b class="tb-tiroir-point" aria-hidden="true"></b>';
+    bTiroir.classList.toggle("tb-tiroir-actif", !!actif);
+    bTiroir.classList.toggle("tb-tiroir-aide", !!aide);
+    bTiroir.setAttribute("aria-pressed", String(!!actif));
+    bTiroir.setAttribute("aria-label", "Plus d'outils" + (actif ? " (en main : " + actif.getAttribute("aria-label") + ")" : "")
+      + (aide ? ", une aide au tracé est allumée" : ""));
+  }
+  function ouvrirTiroir() {
+    $("#tb-reglage").hidden = true;
+    if ($("#tb-creer-b").getAttribute("aria-expanded") === "true") $("#tb-creer-b").click();
+    tiroir.hidden = false;
+    bTiroir.setAttribute("aria-expanded", "true");
+  }
+  function fermerTiroir() {
+    if (!tiroir || tiroir.hidden) return;
+    tiroir.hidden = true;
+    bTiroir.setAttribute("aria-expanded", "false");
+  }
+  if (tiroir && bTiroir) {
+    bTiroir.addEventListener("click", () => (tiroir.hidden ? ouvrirTiroir() : fermerTiroir()));
+    // un outil choisi ferme le tiroir ; une aide (bascule, verrou) le laisse
+    // ouvert, pour en allumer plusieurs d'affilée
+    tiroir.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.matches("[data-fermer-tiroir], [data-stylo], #tb-ajuster") || (b.dataset.outil && b.dataset.outil !== "verrou")) fermerTiroir();
+    });
+    tiroir.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); fermerTiroir(); bTiroir.focus(); } });
+    document.addEventListener("pointerdown", (e) => {
+      if (!tiroir.hidden && !tiroir.contains(e.target) && !bTiroir.contains(e.target)) fermerTiroir();
+    });
+    // un réglage qui s'ouvre (recliquer la symétrie) passe devant : le tiroir s'efface
+    new MutationObserver(() => { if (!$("#tb-reglage").hidden) fermerTiroir(); })
+      .observe($("#tb-reglage"), { attributes: true, attributeFilter: ["hidden"] });
+    new MutationObserver(majTiroir).observe(tiroir, { subtree: true, attributes: true, attributeFilter: ["aria-pressed", "style"] });
+    ecranTel.addEventListener("change", modeTel);
+  }
+
   /* ═══════════════ 15. Le démarrage ═══════════════════════════════════ */
   relire();
   bibDemarrer();
@@ -7541,6 +7790,7 @@
   titre.value = etat.titre;
   $("#tb-cote").value = etat.cote;
   majZoom(); majFond(); majStylos(); majEncre(); majCote(); majBascules(); choisirOutil("selection");
+  modeTel();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { replacerLies(); demander(); });
   /* Un point d'entrée pour la vérification automatique : la scène lue
      et écrite telle qu'elle est, sans passer par la souris. */
