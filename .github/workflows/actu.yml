@@ -7,27 +7,31 @@
 #
 # Ce qui est gardé : le titre, l'adresse, la date et l'adresse de la
 # vignette. Jamais le texte des articles.
+#
+# Le rythme vient du RELAIS (dernière étape) : chaque passage attend dix
+# minutes, puis lance lui-même le suivant. Les créneaux programmés ne
+# servent qu'à démarrer la chaîne.
 name: Actu
 
 on:
   schedule:
-    # Toutes les 10 minutes (3, 13, 23, 33, 43, 53), de 5 h à 22 h UTC
-    # (6 h à 23 h à Paris en hiver).
-    #
-    # Pourquoi si souvent : GitHub ne garantit pas les passages programmés.
-    # Quand ses serveurs sont chargés, il en saute la plupart. Le 16 nov. 2026,
-    # avec un seul passage par heure, il n'en a lancé qu'un sur seize. Six
-    # passages par heure, c'est des titres frais même s'il en saute beaucoup.
-    #
-    # Les minutes ne sont pas rondes (l'heure pile est la plus chargée) et la
-    # minute 43, celle que planning.yml réserve au robot Actu, en fait partie.
+    # GitHub ne lance les passages programmés de ce dépôt qu'environ trois
+    # fois par jour (vers 7 h 40, 17 h et 0 h 40 à Paris, relevé du 2 au
+    # 16 nov. 2026), même quand on en prévoit un toutes les cinq minutes.
+    # Ces créneaux-ci démarrent donc la chaîne le matin, ou la relancent si
+    # un passage a échoué. Minutes en 3 : pas l'heure pile, la plus chargée,
+    # et la minute 43, que planning.yml réserve au robot Actu, en fait partie.
     - cron: "3-59/10 5-22 * * *"
 
-  workflow_dispatch:        # à la demande, depuis l'onglet Actions
+  workflow_dispatch:        # à la demande, depuis l'onglet Actions, et par le relais
 
 permissions:
-  contents: write           # le seul droit nécessaire : committer le relevé
+  contents: write           # committer le relevé
+  actions: write            # lancer le passage suivant (le relais)
 
+# Un seul passage à la fois, et un seul en attente : si un passage programmé
+# tombe pendant la chaîne, le relais le remplace. Deux chaînes ne peuvent
+# donc pas tourner ensemble.
 concurrency:
   group: actu
   cancel-in-progress: false
@@ -35,6 +39,7 @@ concurrency:
 jobs:
   relever:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -65,5 +70,29 @@ jobs:
           for essai in 1 2 3; do
             git pull --rebase && git push && exit 0
             sleep 5
+          done
+          exit 1
+
+      # Le relais. GitHub interdit à un robot d'en déclencher un autre, sauf
+      # par un lancement « à la demande », et ceux-là partent tout de suite.
+      # La machine attend donc dix minutes, puis lance le passage suivant.
+      # La nuit (de 23 h à 6 h, heure de Paris, été comme hiver), pas de
+      # relais : le premier passage programmé du matin relance la chaîne.
+      # Si une étape plus haut a échoué, celle-ci ne s'exécute pas : la
+      # chaîne s'arrête au lieu d'échouer toutes les dix minutes.
+      - name: Passer le relais
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          heure=$((10#$(TZ=Europe/Paris date +%H)))
+          if [ "$heure" -lt 6 ] || [ "$heure" -ge 23 ]; then
+            echo "Nuit à Paris : pas de relais, la chaîne reprendra au matin."
+            exit 0
+          fi
+          sleep 540
+          for essai in 1 2 3; do
+            gh workflow run actu.yml --ref main && exit 0
+            sleep 10
           done
           exit 1
