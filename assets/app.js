@@ -2221,6 +2221,12 @@
     'stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/>' +
     '<rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/>' +
     '<rect x="13.5" y="13.5" width="7" height="7" rx="3.5"/></svg>';
+  // le journal plié de la barre de l'ordinateur (picto « actu » de publier.py)
+  var ICONE_ACTU =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 5h13v14.5H5.5A1.5 1.5 0 0 1 4 18z"/><path d="M17 9h3v9a1.5 1.5 0 0 1-3 0"/>' +
+    '<rect x="7" y="8" width="3.4" height="3.4" rx=".6"/><path d="M12.6 8.4H14M12.6 11H14M7 14h7M7 16.6h7"/></svg>';
   var ICONE_SOMMAIRE =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" ' +
     'stroke-linecap="round" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11"/>' +
@@ -2363,6 +2369,11 @@
     barre.appendChild(outil("tel-rond tel-gros", "Réglages", ICONE_REGLAGES, ouvrir));
     var pilule = outil("tel-pilule", "Rechercher", ICONE_LOUPE + "<span>Rechercher</span>", chercherMaintenant);
     barre.appendChild(pilule);
+    /* Actu, comme dans la barre de l'ordinateur (16 nov. 2026) : sa seule
+       entrée au téléphone était une pastille de l'accueil, hors de l'écran. */
+    var actu = lien("tel-rond tel-gros", "Actu", ICONE_ACTU, base + "actu.html");
+    if (/\/actu\.html$/.test(location.pathname)) actu.setAttribute("aria-current", "page");
+    barre.appendChild(actu);
     var vers = lien("tel-rond tel-gros", "Outils", ICONE_OUTILS, base + "outils/index.html");
     if (type === "outil" || /\/outils\/index\.html$/.test(location.pathname)) vers.setAttribute("aria-current", "page");
     barre.appendChild(vers);
@@ -2371,7 +2382,7 @@
        gauche, et ne revient que si on le touche. On lit sans rien sur le
        texte ; on cherche, un geste la rend. Son dessin : une barre et ses
        trois commandes. */
-    var rappel = outil("tel-rappel", "Afficher la barre : réglages, recherche, outils",
+    var rappel = outil("tel-rappel", "Afficher la barre : réglages, recherche, actu, outils",
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">'
       + '<rect x="2.5" y="7" width="19" height="10" rx="5"/><circle cx="7.5" cy="12" r="1.3" fill="currentColor"/>'
       + '<circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="16.5" cy="12" r="1.3" fill="currentColor"/></svg>',
