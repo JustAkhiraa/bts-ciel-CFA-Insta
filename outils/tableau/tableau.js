@@ -228,7 +228,7 @@
   let pileCalques = [];               // l'arbre des calques, à chaque étape
   let baguette = null;               // la zone choisie à la baguette magique
   function memoriser() {
-    ranger();
+    ranger(true);
     const photo = JSON.stringify(elements), arbre = JSON.stringify(etat.calques);
     if (pile[curseurPile] === photo && (pileFond[curseurPile] === undefined || pileFond[curseurPile] === etat.fond)
         && (pileCalques[curseurPile] === undefined || pileCalques[curseurPile] === arbre)) return;
@@ -1441,6 +1441,8 @@
                  backgroundColor: plein ? src.strokeColor : "transparent",
                  strokeStyle: "solid", roughness: 0, opacity: src.opacity };
     if (plein) st.fillStyle = "solid";
+    // la forme redressée reste dans le calque de son trait
+    if (src.customData && src.customData.calque) st.customData = { calque: src.customData.calque };
     if (f.type === "triangle" || f.type === "polygone") {
       const [x0, y0] = f.points[0];
       const pts = f.points.concat([f.points[0]]).map(([x, y]) => [x - x0, y - y0]);
@@ -3020,6 +3022,12 @@
       });
       c.x += dx; c.y += dy;
       c.seed = graine(); c.version = 1; c.versionNonce = graine(); c.updated = Date.now();
+      // panneau des calques affiché : la copie d'un objet devient un calque à
+      // elle (au-dessus de l'actif) ; un trait copié reste dans son dessin
+      if (etat.calquesVus && c.customData && c.customData.calque) {
+        const n = indexCalques.get(c.customData.calque);
+        if (!n || n.nature === "objet") delete c.customData.calque;
+      }
       if (c.containerId) c.containerId = map.get(c.containerId) || null;
       // copiés ensemble, des équipements et leur lien : le lien suit les copies
       for (const k of ["startBinding", "endBinding"]) {
@@ -6445,6 +6453,8 @@
       fontFamily: etat.courant.fontFamily, textAlign: "left", verticalAlign: "top", containerId: null,
       autoResize: true, lineHeight: 1.25, backgroundColor: "transparent", roundness: null,
       strokeColor: lu.T[0].strokeColor,
+      // le texte reste dans le calque des traits qu'il remplace
+      customData: lu.T[0].customData && lu.T[0].customData.calque ? { calque: lu.T[0].customData.calque } : null,
     });
     mesurerLibre(el);
     retirer(lu.T.map((x) => x.id));
@@ -7042,7 +7052,7 @@
   const estDossier = (c) => !!c && c.type === "dossier";
   function calquesPrets() {
     if (!Array.isArray(etat.calques) || !etat.calques.some((c) => c && c.type !== "dossier")) {
-      etat.calques = [{ id: idCalque(), nom: "Calque 1", type: "calque", parent: null, couleur: 0, visible: true, verrou: false, opacite: 100 }];
+      etat.calques = [{ id: idCalque(), nom: "Calque 1", type: "calque", parent: null, couleur: 0, visible: true, verrou: false, opacite: 100, auto: true }];
     }
     etat.calques = etat.calques.filter((c) => c && typeof c.id === "string");
     indexer();
@@ -7092,10 +7102,13 @@
   }
 
   /* Chaque élément reçoit son calque (un texte suit son conteneur), puis la
-     liste est triée, de façon STABLE, du calque du bas à celui du haut. */
-  function ranger() {
+     liste est triée, de façon STABLE, du calque du bas à celui du haut.
+     « nouveaux » : appelé par l'historique, après un geste qui a pu ajouter
+     quelque chose ; ce qui n'a pas encore de calque y est d'abord placé. */
+  function ranger(nouveaux) {
     if (!etat.calques) return;
     const parIdLocal = new Map(elements.map((e) => [e.id, e]));
+    if (nouveaux && etat.calquesVus) placerNouveaux(parIdLocal);
     elements.forEach((el) => {
       let id = el.customData && el.customData.calque;
       if (el.containerId && parIdLocal.has(el.containerId)) {
@@ -7106,6 +7119,91 @@
       if (!el.customData || el.customData.calque !== id) el.customData = Object.assign({}, el.customData, { calque: id });
     });
     if (rangs.size > 1 && !trie(elements)) elements = ordonner(elements);
+    if (etat.calquesVus) nommerAuto();
+  }
+
+  /* ── ce qui arrive : un calque par chose ajoutée ──
+     Signalé le 16 nov. 2026 : un dessin puis une image tombaient dans le
+     même calque, et le panneau ne laissait donc pas choisir lequel passe
+     devant. On suit maintenant les logiciels de retouche :
+       · les traits à main levée (et le seau) s'ajoutent au calque de dessin
+         actif ; si le calque actif tient autre chose, un « Dessin N » naît
+         juste au-dessus ;
+       · tout le reste (image, texte, forme, note, icône, modèle, collage)
+         devient un calque à lui, juste au-dessus de l'actif, nommé
+         d'après ce qu'il contient ; un geste qui pose plusieurs choses
+         (une icône et son nom, un modèle) en fait UN calque ;
+       · un câble va dans le plus bas des calques de ses deux équipements :
+         il passe dessous ;
+       · un calque actif VIDE reçoit ce qui arrive, plutôt que de laisser
+         un calque vide derrière soi ; caché ou verrouillé, il est sauté.
+     Rien de tout cela sans le panneau : caché, tout va au calque actif. */
+  const natureDe = (el) => (el.type === "freedraw" || !!(el.customData && el.customData.coulee) ? "dessin" : "objet");
+  const marquer = (el, id) => { el.customData = Object.assign({}, el.customData, { calque: id }); };
+  function nomNumerote(base) {
+    const pris = new Set(etat.calques.map((c) => c.nom));
+    let n = 1;
+    while (pris.has(base + " " + n)) n++;
+    return base + " " + n;
+  }
+  function placerNouveaux(parIdLocal) {
+    const lot = elements.filter((el) => !(el.customData && el.customData.calque)
+      && !(el.containerId && parIdLocal.has(el.containerId)));
+    if (!lot.length) return;
+    const reste = [];
+    lot.forEach((el) => {
+      if (estLien(el)) {
+        const bouts = [el.startBinding, el.endBinding].map((b) => b && parIdLocal.get(b.elementId))
+          .filter(Boolean).map(calqueDe).filter((id) => rangs.has(id));
+        if (bouts.length) { marquer(el, bouts.sort((a, b) => rangs.get(a) - rangs.get(b))[0]); return; }
+      }
+      reste.push(el);
+    });
+    if (!reste.length) return;
+    const dessin = reste.every((el) => natureDe(el) === "dessin");
+    const neufs = new Set(reste.map((e) => e.id));
+    let cible = indexCalques.get(etat.calqueActif);
+    const libre = calqueVisible(cible.id) && !calqueBloque(cible.id);
+    const occupe = elements.some((e) => !neufs.has(e.id) && !estLie(e) && calqueDe(e) === cible.id);
+    if (libre && !occupe) {
+      cible.nature = dessin ? "dessin" : "objet";
+      if (cible.auto && dessin) cible.nom = nomNumerote("Dessin");
+    } else if (!(libre && dessin && cible.nature !== "objet")) {
+      const c = { id: idCalque(), nom: dessin ? nomNumerote("Dessin") : "Objet", type: "calque",
+                  parent: cible.parent || null, couleur: 0, visible: true, verrou: false, opacite: 100,
+                  auto: true, nature: dessin ? "dessin" : "objet" };
+      etat.calques.splice(etat.calques.indexOf(cible), 0, c);
+      cible = c;
+    }
+    reste.forEach((el) => marquer(el, cible.id));
+    etat.calqueActif = cible.id;
+    indexer();
+  }
+  /* Le nom d'un calque d'objet suit ce qu'il contient tant qu'on ne l'a pas
+     renommé : « Image », « Note · À rendre lundi », le début d'un texte. */
+  const NOMS_TYPE = { image: "Image", text: "Texte", rectangle: "Rectangle", ellipse: "Ellipse",
+                      diamond: "Losange", line: "Ligne", arrow: "Flèche", freedraw: "Dessin" };
+  function decrire(liste) {
+    const court = (t) => String(t || "").replace(/\s+/g, " ").trim().slice(0, 32);
+    if (liste.length === 1) {
+      const e = liste[0], cd = e.customData || {};
+      if (e.type === "text") return court(e.text) || "Texte";
+      if (cd.coulee) return "Remplissage";
+      const nom = cd.postit ? "Note" : e.type === "line" && e.polygon ? "Forme" : NOMS_TYPE[e.type] || "Objet";
+      const t = porteur(e) ? texteDe(e) : null;
+      return t && court(t.text) ? nom + " · " + court(t.text) : nom;
+    }
+    const img = liste.filter((e) => e.type === "image"), txt = liste.filter((e) => e.type === "text");
+    if (img.length === 1 && txt.length === 1 && liste.length === 2) return court(txt[0].text) || "Icône";
+    return "Groupe de " + liste.length;
+  }
+  function nommerAuto() {
+    const par = new Map();
+    elements.forEach((e) => {
+      const id = !estLie(e) && e.customData && e.customData.calque;
+      if (id) { if (!par.has(id)) par.set(id, []); par.get(id).push(e); }
+    });
+    etat.calques.forEach((c) => { if (c.auto && c.nature === "objet" && par.has(c.id)) c.nom = decrire(par.get(c.id)); });
   }
   function trie(liste) {
     let r = -1;
@@ -7166,7 +7264,7 @@
   function nouveauCalque() {
     const actif = indexCalques.get(etat.calqueActif);
     const c = { id: idCalque(), nom: nomLibre("Calque"), type: "calque", parent: actif ? actif.parent : null,
-                couleur: 0, visible: true, verrou: false, opacite: 100 };
+                couleur: 0, visible: true, verrou: false, opacite: 100, auto: true };
     etat.calques.splice(Math.max(0, etat.calques.indexOf(actif)), 0, c);
     etat.calqueActif = c.id;
     apresCalques();
@@ -7263,7 +7361,8 @@
         + (c.visible !== false ? IC_CALQUE.oeil : IC_CALQUE.cache) + "</button>"
         + (d ? '<button type="button" class="tb-cq-pli" data-cq="plier" aria-label="' + (c.ouvert !== false ? "Fermer" : "Ouvrir")
             + ' le dossier « ' + ech(c.nom) + ' »">' + IC_CALQUE.pli + "</button>" : '<span class="tb-cq-pli" aria-hidden="true"></span>')
-        + '<span class="tb-cq-ic" aria-hidden="true">' + (d ? IC_CALQUE.dossier : IC_CALQUE.calque) + "</span>"
+        + (d ? '<span class="tb-cq-ic" aria-hidden="true">' + IC_CALQUE.dossier + "</span>"
+             : '<canvas class="tb-cq-vignette" width="60" height="44" data-vig="' + c.id + '" aria-hidden="true"></canvas>')
         + (renommeCalque === c.id
           ? '<input class="tb-cq-saisie" data-cq-nom value="' + ech(c.nom) + '" aria-label="Nouveau nom" maxlength="80" spellcheck="false">'
           : '<span class="tb-cq-nom" title="Double-clic : renommer">' + ech(c.nom) + "</span>")
@@ -7293,6 +7392,37 @@
     panneauCalques.innerHTML = h;
     const saisie = panneauCalques.querySelector("[data-cq-nom]");
     if (saisie) { saisie.focus(); saisie.select(); }
+    peindreVignettes();
+  }
+  /* La vignette d'un calque : ce qu'il contient, réduit à 30 × 22, sans
+     son opacité (comme dans les logiciels de retouche), même s'il est caché.
+     C'est elle qui dit « ce calque-là, c'est l'image » sans lire de nom. */
+  function peindreVignettes() {
+    const toiles = panneauCalques.querySelectorAll("canvas[data-vig]");
+    if (!toiles.length) return;
+    const par = new Map();
+    elements.forEach((e) => {
+      if (estLie(e)) return;
+      const id = calqueDe(e);
+      if (!par.has(id)) par.set(id, []);
+      par.get(id).push(e);
+    });
+    const f = fantomes; fantomes = new Set();
+    try {
+      toiles.forEach((cv) => {
+        const k = cv.getContext("2d"), W = cv.width, H = cv.height;
+        k.setTransform(1, 0, 0, 1, 0, 0);
+        k.fillStyle = etat.fond || "#ffffff";
+        k.fillRect(0, 0, W, H);
+        const liste = par.get(cv.dataset.vig), B = liste && boiteDe(liste);
+        if (!B) return;
+        const m = 4, z = Math.min((W - 2 * m) / Math.max(1, B.w), (H - 2 * m) / Math.max(1, B.h), 3);
+        k.setTransform(z, 0, 0, z, (W - B.w * z) / 2 - B.x * z, (H - B.h * z) / 2 - B.y * z);
+        exportSansOpacite = true;
+        dessinerScene(k, liste, null, true);
+        exportSansOpacite = false;
+      });
+    } finally { fantomes = f; exportSansOpacite = false; }
   }
   function montrerCalques(oui) {
     etat.calquesVus = !!oui;
@@ -7337,12 +7467,16 @@
       // un clic sur la ligne : il devient le calque actif (un dossier s'ouvre ou se ferme)
       if (estDossier(c)) return plierDossier(c);
       etat.calqueActif = id;
-      // la sélection prise dans un AUTRE calque est lâchée : sinon elle
-      // ramènerait aussitôt son calque comme actif (suivreSelection)
-      const avant = selection.size;
-      selection = new Set([...selection].filter((s) => { const e = parId(s); return e && calqueDe(e) === id; }));
+      // Avec l'outil de sélection, toucher un calque prend ce qu'il contient :
+      // on voit sur le tableau ce qu'il est, et on peut le déplacer aussitôt.
+      // Avec un autre outil, la sélection prise dans un AUTRE calque est
+      // lâchée : sinon elle ramènerait son calque comme actif (suivreSelection).
+      const avant = [...selection].join();
+      selection = etat.outil === "selection"
+        ? new Set(elements.filter((x) => !estLie(x) && calqueDe(x) === id && prenable(x)).map((x) => x.id))
+        : new Set([...selection].filter((s) => { const x = parId(s); return x && calqueDe(x) === id; }));
       garder(); peindreCalques();
-      if (selection.size !== avant) { majPanneau(); demander(); }
+      if ([...selection].join() !== avant) { majPanneau(); demander(); }
     });
     panneauCalques.addEventListener("dblclick", (e) => {
       const n = e.target.closest(".tb-cq-nom");
@@ -7354,7 +7488,7 @@
       if (!s || !renommeCalque) return;
       const c = indexCalques.get(renommeCalque), v = s.value.trim();
       renommeCalque = null;
-      if (garderNom && c && v && v !== c.nom) { c.nom = v.slice(0, 80); apresCalques(); } else peindreCalques();
+      if (garderNom && c && v && v !== c.nom) { c.nom = v.slice(0, 80); c.auto = false; apresCalques(); } else peindreCalques();
     };
     panneauCalques.addEventListener("keydown", (e) => {
       e.stopPropagation();                          // ses touches ne sont pas des raccourcis du tableau
