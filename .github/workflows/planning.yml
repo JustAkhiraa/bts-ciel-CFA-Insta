@@ -8,10 +8,23 @@
 # L'API visée est l'affichage public du hall du CFA
 # (https://connect.cfa-insta.fr/planning/) : son chemin contient « /public/ »
 # et elle répond sans authentification.
+#
+# Le rythme vient du RELAIS (dernière étape) : chaque passage attend, puis
+# lance lui-même le suivant. Toutes les 5 minutes le jeudi et le vendredi
+# de 6 h à 19 h, toutes les 30 minutes les autres jours de 7 h à 20 h.
+# Le départ à 7 h n'est pas un hasard : le premier passage programmé que
+# GitHub lance le matin arrive vers 7 h 40. Plus tard, il arrêterait la
+# chaîne au lieu de la démarrer.
 name: Planning
 
 on:
   schedule:
+    # Ces créneaux ne servent plus qu'à démarrer la chaîne, ou à la relancer
+    # si un passage a échoué. GitHub ne lance les passages programmés de ce
+    # dépôt qu'environ trois fois par jour (vers 7 h 40, 17 h et 0 h 40 à
+    # Paris, relevé du 2 au 16 nov. 2026), même les jours où il y en a un
+    # toutes les cinq minutes.
+    #
     # Les heures sont en UTC : GitHub ne connaît pas l'heure de Paris.
     # Elles sont calées sur l'heure d'hiver (Paris = UTC + 1).
     # À l'heure d'été (dès le 28 mars 2027), tout partirait une heure
@@ -31,11 +44,15 @@ on:
     # Samedi et dimanche : une fois, vers 9 h.
     - cron: "17 8 * * 0,6"
 
-  workflow_dispatch:        # Toujours disponible à la demande, depuis l'onglet Actions
+  workflow_dispatch:        # Toujours disponible à la demande, depuis l'onglet Actions, et pour le relais
 
 permissions:
-  contents: write           # le seul droit nécessaire : committer la mise à jour
+  contents: write           # committer la mise à jour
+  actions: write            # lancer le passage suivant (le relais)
 
+# Un seul passage à la fois, et un seul en attente : si un passage programmé
+# tombe pendant la chaîne, le relais le remplace. Deux chaînes ne peuvent
+# donc pas tourner ensemble.
 concurrency:
   group: planning
   cancel-in-progress: false
@@ -43,6 +60,7 @@ concurrency:
 jobs:
   mettre-a-jour:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -71,5 +89,39 @@ jobs:
           git add -A
           git commit -m "Planning : mise à jour automatique"
           # Le robot Actu peut avoir poussé entre-temps : se remettre sur lui.
-          git pull --rebase
-          git push
+          # Si son envoi croise le nôtre, on réessaie (trois fois au plus).
+          for essai in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 5
+          done
+          exit 1
+
+      # Le relais. GitHub interdit à un robot d'en déclencher un autre, sauf
+      # par un lancement « à la demande », et ceux-là partent tout de suite.
+      # La machine attend donc, puis lance le passage suivant. Les heures
+      # sont celles de Paris, été comme hiver. Hors de ces heures, pas de
+      # relais : le premier passage programmé suivant relance la chaîne.
+      # Si une étape plus haut a échoué, celle-ci ne s'exécute pas : la
+      # chaîne s'arrête au lieu d'échouer à chaque passage.
+      - name: Passer le relais
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          jour=$(TZ=Europe/Paris date +%u)          # 1 = lundi, 7 = dimanche
+          heure=$((10#$(TZ=Europe/Paris date +%H)))
+          if [ "$jour" = 4 ] || [ "$jour" = 5 ]; then
+            debut=6; fin=19; pause=270              # jeudi, vendredi : toutes les 5 minutes
+          else
+            debut=7; fin=20; pause=1770             # les autres jours : toutes les 30 minutes
+          fi
+          if [ "$heure" -lt "$debut" ] || [ "$heure" -ge "$fin" ]; then
+            echo "Hors des heures du relais : la chaîne s'arrête jusqu'au prochain passage programmé."
+            exit 0
+          fi
+          sleep "$pause"
+          for essai in 1 2 3; do
+            gh workflow run planning.yml --ref main && exit 0
+            sleep 10
+          done
+          exit 1
