@@ -1795,17 +1795,19 @@
   }
   function finLasso(g) {
     selection = new Set(g.avant);
-    let coupes = 0;
+    let coupes = 0, change = false;
     if (g.pts.length > 2) {
       if (etat.lassoMode === "partie") {
         const r = couperAuLasso(g.pts);
         r.pris.forEach((id) => selection.add(id));
         coupes = r.coupes;
+        change = r.change;
       } else {
         elements.forEach((el) => { if (!estLie(el) && prenable(el) && S.pris(echantillon(el), g.pts)) selection.add(el.id); });
       }
     }
-    if (coupes) memoriser();
+    // une forme changée en traits sans être coupée change aussi le tableau
+    if (coupes || change) memoriser();
     const n = selection.size;
     dire(n ? n + " élément" + (n > 1 ? "s pris" : " pris") + " au lasso"
       + (coupes ? ", dont " + coupes + " découpé" + (coupes > 1 ? "s" : "") + " au bord. Ctrl + Z pour revenir." : ".")
@@ -1818,14 +1820,39 @@
      Un trait est coupé au bord (ses morceaux gardent son dessin, comme pour
      la gomme). Une image est coupée en deux : l'intérieur devient une image
      à part, posée exactement à sa place et sélectionnée ; l'originale garde
-     le reste, avec un trou transparent. Formes et textes ne se coupent pas :
-     ils sont pris entiers, à la règle habituelle. */
+     le reste, avec un trou transparent. Une forme (rectangle, ellipse,
+     losange) ou une zone du seau à cheval sur la boucle se coupe aussi (voir
+     plus bas). Textes, post-its, formes qui portent un texte, fonds hachurés
+     et contours en tirets ne se coupent pas : ils sont pris entiers, à la
+     règle habituelle. */
   function couperAuLasso(poly) {
     const pris = new Set();
-    let coupes = 0;
+    let coupes = 0, change = false;
     for (let i = elements.length - 1; i >= 0; i--) {
       const el = elements[i];
       if (estLie(el) || !prenable(el)) continue;
+      /* La forme à cheval sur la boucle. Signalé le 17 nov. 2026 : la moitié
+         d'un trait et la moitié d'un rond entourées, seul le trait venait ;
+         le rond, lui, devait être aux trois cinquièmes dans la boucle pour
+         être pris, et il l'était alors en entier. Elle devient d'abord ce
+         qu'elle est à l'écran, un fond et un contour (comme sous la gomme),
+         que la suite de cette boucle découpe. Entière dans la boucle, elle
+         reste une forme ; hors de la boucle, elle ne bouge pas. */
+      const forme = /^(rectangle|ellipse|diamond)$/.test(el.type) && !el.locked;
+      if (forme || estZoneSeau(el)) {
+        const f = partDansBoucle(el, poly);
+        if (f === 0) continue;
+        if (f === 1) { pris.add(el.id); continue; }
+        const libres = forme ? formeEnLibre(el) : [zoneEnLibre(el)].filter(Boolean);
+        if (libres && libres.length) {
+          elements.splice(i, 1, ...libres);
+          selection.delete(el.id);
+          change = true;
+          i += libres.length;              // ses morceaux passent à la découpe dès maintenant
+          continue;
+        }
+        // une forme qui ne se change pas en traits : la règle habituelle, plus bas
+      }
       const bb = R.boite(el);
       // la boucle dans le repère de l'élément (rotation défaite)
       const loc = () => poly.map((q) => { const r = versRepere(el, bb, q); return [r[0] - el.x, r[1] - el.y]; });
@@ -1876,7 +1903,25 @@
       }
       if (S.pris(echantillon(el), poly)) pris.add(el.id);
     }
-    return { pris, coupes };
+    return { pris, coupes, change };
+  }
+  /* La part d'une forme, ou d'une zone du seau, qui tombe dans la boucle :
+     sa surface et son contour, échantillonnés là où on les voit (rotation
+     comprise). 0 : toute dehors ; 1 : toute dedans. */
+  function partDansBoucle(el, poly) {
+    const b = R.boite(el);
+    let pts;
+    if (el.type === "line") {
+      const P = el.points.map(([x, y]) => [el.x + x, el.y + y]);
+      pts = S.tourner(S.grille(b, 9, (q) => S.dansPolygone(q, P)).concat(S.jalons(P, 48)), b, el.angle || 0);
+    } else {
+      const C = contourForme(el).map(([x, y]) => [el.x + x, el.y + y]);
+      pts = echantillon(el).concat(S.tourner(C, b, el.angle || 0));
+    }
+    if (!pts.length) return 0;
+    let n = 0;
+    for (const q of pts) if (S.dansPolygone(q, poly)) n++;
+    return n / pts.length;
   }
   /* Rend la nouvelle image (l'intérieur), « entier » si la boucle prend
      toute l'image, ou rien si elle n'en prend rien. */
