@@ -12,18 +12,17 @@
 # Le rythme vient du RELAIS (dernière étape) : chaque passage attend, puis
 # lance lui-même le suivant. Toutes les 5 minutes le jeudi et le vendredi
 # de 6 h à 19 h, toutes les 30 minutes les autres jours de 7 h à 20 h.
-# Le départ à 7 h n'est pas un hasard : le premier passage programmé que
-# GitHub lance le matin arrive vers 7 h 40. Plus tard, il arrêterait la
-# chaîne au lieu de la démarrer.
+# Le reste du temps, la chaîne ne s'arrête pas : elle dort jusqu'au début
+# du jour suivant, puis reprend toute seule.
 name: Planning
 
 on:
   schedule:
-    # Ces créneaux ne servent plus qu'à démarrer la chaîne, ou à la relancer
-    # si un passage a échoué. GitHub ne lance les passages programmés de ce
-    # dépôt qu'environ trois fois par jour (vers 7 h 40, 17 h et 0 h 40 à
-    # Paris, relevé du 2 au 16 nov. 2026), même les jours où il y en a un
-    # toutes les cinq minutes.
+    # Un filet de sécurité, pas le moteur. GitHub ne lance les passages
+    # programmés de ce dépôt que quand il veut : environ trois fois par jour
+    # du 2 au 16 nov. 2026, même les jours où il y en a un toutes les cinq
+    # minutes, et le 17 nov. pas avant 18 h 15. Ces créneaux ne servent
+    # qu'à relancer la chaîne si quelqu'un l'a arrêtée.
     #
     # Les heures sont en UTC : GitHub ne connaît pas l'heure de Paris.
     # Elles sont calées sur l'heure d'hiver (Paris = UTC + 1).
@@ -60,7 +59,9 @@ concurrency:
 jobs:
   mettre-a-jour:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 6 heures au plus pour une machine GitHub : la pause de nuit (5 h 30)
+    # plus la mise à jour y tiennent. Chaque étape a sa propre limite.
+    timeout-minutes: 359
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +70,7 @@ jobs:
           python-version: "3.12"
 
       - name: Récupérer le planning et réécrire ce qui vieillit
+        timeout-minutes: 15
         run: python3 outillage/planning-ci.py 10
 
       # Le garde-fou passe APRÈS la mise à jour et AVANT le commit : c'est le
@@ -76,9 +78,11 @@ jobs:
       # partir en ligne. Si l'API se mettait un jour à renvoyer un nom de
       # professeur, la publication échouerait ici.
       - name: Vérifier avant de publier
+        timeout-minutes: 5
         run: python3 verification/verifier.py
 
       - name: Committer s'il y a du changement
+        timeout-minutes: 5
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             echo "Rien n'a changé : aucun commit."
@@ -99,25 +103,43 @@ jobs:
       # Le relais. GitHub interdit à un robot d'en déclencher un autre, sauf
       # par un lancement « à la demande », et ceux-là partent tout de suite.
       # La machine attend donc, puis lance le passage suivant. Les heures
-      # sont celles de Paris, été comme hiver. Hors de ces heures, pas de
-      # relais : le premier passage programmé suivant relance la chaîne.
-      # Si une étape plus haut a échoué, celle-ci ne s'exécute pas : la
-      # chaîne s'arrête au lieu d'échouer à chaque passage.
+      # sont celles de Paris, été comme hiver. Hors de ces heures, elle dort
+      # jusqu'au début du jour suivant (6 h le jeudi et le vendredi, 7 h les
+      # autres jours), en plusieurs fois puisqu'une machine ne peut pas
+      # attendre plus de 6 heures : 5 h 30 au plus, puis le passage suivant
+      # reprend le compte.
+      # Le relais passe même si une étape plus haut a échoué : une panne
+      # passagère du serveur du CFA ne doit pas tuer la chaîne. Pour
+      # l'arrêter : annuler le passage en cours dans l'onglet Actions.
       - name: Passer le relais
+        if: ${{ !cancelled() }}
+        timeout-minutes: 335
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          jour=$(TZ=Europe/Paris date +%u)          # 1 = lundi, 7 = dimanche
-          heure=$((10#$(TZ=Europe/Paris date +%H)))
+          # Le début du relais selon le jour (1 = lundi, 7 = dimanche), en
+          # minutes depuis minuit : 6 h le jeudi et le vendredi, 7 h sinon.
+          debut_du() { if [ "$1" = 4 ] || [ "$1" = 5 ]; then echo 360; else echo 420; fi; }
+          jour=$(TZ=Europe/Paris date +%u)
+          h=$((10#$(TZ=Europe/Paris date +%H)))
+          m=$((10#$(TZ=Europe/Paris date +%M)))
+          maintenant=$((h * 60 + m))
+          debut=$(debut_du "$jour")
           if [ "$jour" = 4 ] || [ "$jour" = 5 ]; then
-            debut=6; fin=19; pause=270              # jeudi, vendredi : toutes les 5 minutes
+            fin=$((19 * 60)); pause=270             # jeudi, vendredi : toutes les 5 minutes
           else
-            debut=7; fin=20; pause=1770             # les autres jours : toutes les 30 minutes
+            fin=$((20 * 60)); pause=1770            # les autres jours : toutes les 30 minutes
           fi
-          if [ "$heure" -lt "$debut" ] || [ "$heure" -ge "$fin" ]; then
-            echo "Hors des heures du relais : la chaîne s'arrête jusqu'au prochain passage programmé."
-            exit 0
+          if [ "$maintenant" -lt "$debut" ] || [ "$maintenant" -ge "$fin" ]; then
+            if [ "$maintenant" -lt "$debut" ]; then
+              cible=$debut
+            else
+              cible=$(( $(debut_du $((jour % 7 + 1))) + 1440 ))
+            fi
+            pause=$(( (cible - maintenant) * 60 ))
+            if [ "$pause" -gt 19800 ]; then pause=19800; fi
+            echo "Hors des heures du relais : pause de $((pause / 60)) minutes avant le passage suivant."
           fi
           sleep "$pause"
           for essai in 1 2 3; do
