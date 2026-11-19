@@ -76,7 +76,9 @@ outils/labo/src/
     TerminalTabs.js             terminaux en onglets, en bas
     PDUInspector.js             les en-têtes d'une trame, couche par couche
     CommandPalette.js           Ctrl K
-    Presets.js                  cinq labs à découvrir, trois pannes à trouver
+    Presets.js                  six labs à découvrir, trois pannes à trouver
+    ImportPkt.js                une maquette venue du lecteur de fichiers .pkt :
+                                configurations TAPÉES, câbles, ce qui manque dit
     Objectifs.js                les objectifs d'un lab, éprouvés sur une COPIE du
                                 réseau (JSON → réseau neuf) : pings et « show »
                                 n'y laissent aucune trame chez l'élève
@@ -289,3 +291,13 @@ c'est ce qui se passerait sur du vrai matériel, en pire).
   `Fa0/1` sur les badges.
 - Sauvegarde automatique dans `localStorage` (`ciel-labo-v1`) ; export et
   import en JSON (`.labo.json`) : topologie + configurations.
+- Un lien `labo.html#lab=<id>` ouvre un lab (un cours s'en sert pour ses
+  démonstrations). La maquette en cours est mise de côté
+  (`ciel-labo-v1-avant-lien`) et la palette propose de la reprendre ; le
+  fragment est retiré de l'adresse une fois lu.
+- Un lien `labo.html#import=…` apporte une maquette lue dans un `.pkt` par
+  l'outil `lecteur-pkt.html` (JSON « ciel-labo-import » compressé, base64url).
+  Même politesse que `#lab=` : maquette en cours mise de côté, fragment
+  retiré. Le même JSON s'ouvre aussi par le bouton Ouvrir. Une configuration
+  sans `shutdown` est rejouée avec `no shutdown` (IOS n'écrit que l'état
+  éteint) ; une section refusée saute avec ses lignes.

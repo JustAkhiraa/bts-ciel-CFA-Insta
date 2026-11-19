@@ -2064,7 +2064,9 @@
         '<span class="lan-ic">' + FLECHE_REPRISE + "</span>" +
         '<span class="lan-bloc"><span class="lan-l1"><span class="lan-nom">' +
         '<span class="lan-t">' + echapper(x.t) + "</span>" +
-        (i ? '<i> : vu récemment</i>' : "") +
+        // pas de tiret : la publication le change en « : », et un titre qui
+        // en porte déjà un lisait « … du jury : vu récemment » (18 nov. 2026)
+        (i ? '<i>vu récemment</i>' : "") +
         "</span></span></span>" +
         '<span class="lan-entree">&#9166;</span></a></li>';
     }).join("");

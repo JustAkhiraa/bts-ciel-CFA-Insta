@@ -16,6 +16,7 @@ import { DeviceInspector } from "./ui/DeviceInspector.js";
 import { TerminalTabs } from "./ui/TerminalTabs.js";
 import { CommandPalette } from "./ui/CommandPalette.js";
 import { LABS, chargerLab } from "./ui/Presets.js";
+import { importerPkt, lireFragment, FORMAT_IMPORT } from "./ui/ImportPkt.js";
 
 const $ = (s) => document.querySelector(s);
 const CLE = "ciel-labo-v1";
@@ -206,9 +207,30 @@ function exporter() {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast("Topologie enregistrée : équipements, câbles et configurations.");
 }
+/* Une maquette venue du lecteur de fichiers .pkt : ce que le labo n'a pas pu
+   reprendre est dit, pas tu. */
+function appliquerImport(j) {
+  terminaux.toutFermer();
+  animateur.reinitialiser();
+  const b = importerPkt(reseau, j);
+  ui.lab = null; ui.fichier = j.source || "Fichier .pkt";
+  ui.selection = new Set(); ui.cableSel = null; ui.sautSel = null;
+  majFichier();
+  requestAnimationFrame(toutVoir);
+  modifie(); selectionChange();
+  const morceaux = ["« " + ui.fichier + " » ouvert : " + b.appareils + " équipement" + (b.appareils > 1 ? "s" : "")
+    + ", " + b.cables + " câble" + (b.cables > 1 ? "s" : "") + "."];
+  if (b.ignores.length) morceaux.push("Pas dans le labo : " + b.ignores.map((x) => x.nom + (x.raison ? " (" + x.raison + ")" : "")).join(", ") + ".");
+  const n = b.refusees.reduce((s, x) => s + x.lignes.length, 0);
+  if (n) morceaux.push(n + " ligne" + (n > 1 ? "s" : "") + " de configuration que le labo ne connaît pas, sur " + b.refusees.map((x) => x.nom).join(", ") + ".");
+  toast(morceaux.join(" "));
+  return b;
+}
+
 function importer(texte, nom) {
   try {
     const j = JSON.parse(texte);
+    if (j && j.format === FORMAT_IMPORT) { if (!j.source) j.source = nom; appliquerImport(j); return; }
     terminaux.toutFermer();
     animateur.reinitialiser();
     charger(reseau, j);
@@ -258,6 +280,21 @@ function commandes() {
   }
   LABS.forEach((l) => L.push({ titre: "Charger le " + l.titre, groupe: "Lab", mots: l.court, faire: () => ouvrirLab(l.id) }));
   L.push({ titre: "Nouvelle topologie vierge", groupe: "Fichier", faire: nouvelle });
+  let avant = null;
+  try { avant = localStorage.getItem(CLE + "-avant-lien"); } catch (e) { /* rien */ }
+  if (avant) L.push({ titre: "Reprendre la maquette d'avant le lien", groupe: "Fichier", mots: "restaurer precedente lien cours", faire: () => {
+    try {
+      const j = JSON.parse(avant);
+      terminaux.toutFermer(); animateur.reinitialiser();
+      charger(reseau, j);
+      ui.lab = j.lab ? LABS.find((l) => l.id === j.lab) || null : null;
+      ui.fichier = j.fichier || null;
+      if (j.camera) tc.cam = { ...j.camera };
+      localStorage.removeItem(CLE + "-avant-lien");
+      majFichier(); modifie(); selectionChange();
+      toast("Maquette d'avant le lien reprise.");
+    } catch (e) { toast("La maquette mise de côté est illisible.", true); }
+  } });
   L.push({ titre: "Enregistrer la topologie (JSON)", raccourci: "Ctrl S", faire: exporter });
   L.push({ titre: "Ouvrir une topologie (JSON)", raccourci: "Ctrl O", faire: () => $("#lb-fichier-in").click() });
   L.push({ titre: "Vider toutes les tables ARP", groupe: "Tables", mots: "arp cache clear", faire: () => {
@@ -328,7 +365,7 @@ $("#lb-cables").addEventListener("click", (e) => {
   else interactions.commencerPose(b.dataset.cable);
   $("#lb-scene").focus({ preventScroll: true });
 });
-$("#lb-labs").innerHTML = LABS.map((l) => '<button type="button" class="lb-lab' + (l.panne ? " panne" : "") + '" data-lab="' + l.id + '"><b>' + l.court + "</b><span>" + l.titre.split(" · ")[0] + "</span></button>").join("");
+$("#lb-labs").innerHTML = LABS.map((l) => '<button type="button" class="lb-lab' + (l.panne ? " panne" : "") + '" data-lab="' + l.id + '"><b>' + l.court + "</b><span>" + (l.titre.match(/^\S+ \d+/) || [l.titre])[0] + "</span></button>").join("");
 $("#lb-labs").addEventListener("click", (e) => { const b = e.target.closest("[data-lab]"); if (b) ouvrirLab(b.dataset.lab); });
 
 function majOutils() {
@@ -388,6 +425,24 @@ try {
   }
 } catch (e) { /* session illisible : on repart du lab 1 */ }
 if (!repris) { ui.lab = chargerLab(reseau, "lab1"); requestAnimationFrame(toutVoir); }
+
+/* Un cours peut ouvrir un lab précis : « labo.html#lab=lab6 ». La maquette en
+   cours n'est pas perdue en silence : elle est mise de côté, et la palette
+   (Ctrl K) propose de la reprendre. */
+const CLE_AVANT = CLE + "-avant-lien";
+const demande = /^#lab=([a-z0-9]+)$/.exec(location.hash || "");
+let labDuLien = null;
+if (demande && LABS.some((l) => l.id === demande[1])) {
+  // Le lab demandé est déjà celui de la session : on le reprend tel quel, sans l'effacer.
+  if (!(repris && ui.lab && ui.lab.id === demande[1])) {
+    if (repris) {
+      try { localStorage.setItem(CLE_AVANT, localStorage.getItem(CLE)); } catch (e) { /* stockage bloqué */ }
+    }
+    labDuLien = demande[1];
+  }
+  // Le lien a servi : sans cela, recharger la page relancerait le lab et perdrait le travail fait.
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* rien */ }
+}
 majFichier();
 majOutils();
 inspecteur.rendre(true);
@@ -395,5 +450,26 @@ terminaux.rendreOnglets();
 $("#lb-zoom-val").textContent = Math.round(tc.cam.z * 100) + " %";
 tc.demander();
 
+/* Le lecteur de fichiers .pkt du site ouvre sa maquette ici :
+   « labo.html#import=… ». Même politesse que pour un lien de cours : la
+   maquette en cours est mise de côté, et le fragment quitte l'adresse. */
+const demandeImport = /^#import=([A-Za-z0-9_-]+)$/.exec(location.hash || "");
+if (demandeImport) {
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* rien */ }
+  lireFragment(demandeImport[1]).then((j) => {
+    if (repris) {
+      try { localStorage.setItem(CLE_AVANT, localStorage.getItem(CLE)); } catch (e) { /* stockage bloqué */ }
+    }
+    appliquerImport(j);
+  }).catch(() => toast("La maquette envoyée par le lecteur de fichiers ne se lit pas.", true));
+}
+
 /* Un point d'entrée pour la vérification automatique. */
-window.CIEL_LABO = { reseau, ui, tc, terminaux, animateur, changerMode, ouvrirLab, serialiser: () => serialiser(reseau) };
+if (labDuLien) {
+  ouvrirLab(labDuLien);
+  let gardee = null;
+  try { gardee = localStorage.getItem(CLE_AVANT); } catch (e) { /* rien */ }
+  if (gardee) toast(ui.lab.titre + " ouvert depuis le cours. Ta maquette d'avant est gardée : Ctrl K, « Reprendre la maquette d'avant le lien ».");
+}
+
+window.CIEL_LABO = { reseau, ui, tc, terminaux, animateur, changerMode, ouvrirLab, appliquerImport, serialiser: () => serialiser(reseau) };

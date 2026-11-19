@@ -35,7 +35,14 @@ export class ServiceDhcp {
 
   allouer(pool, mac) {
     const deja = this.baux.get(mac.cle());
-    if (deja && deja.pool === pool) return deja.ip;
+    if (deja && deja.pool === pool) {
+      if (deja.ip.dansReseau(pool.reseau, pool.masque) && !this.exclue(deja.ip)) return deja.ip;
+      /* Le pool a changé de réseau (lab 6) : l'ancien bail n'a plus de sens.
+         Le reproposer ferait offrir une adresse que le REQUEST refuse ensuite,
+         et le client tournerait sans fin entre OFFER et NAK. */
+      this.baux.delete(mac.cle());
+      this.app.noter("Le bail de " + deja.ip + " n'appartient plus au réseau du pool « " + pool.nom + " » : " + this.app.nom + " l'oublie.");
+    }
     const debut = pool.debut ? pool.debut.n : pool.reseau.n + 1;
     const fin = Math.min(pool.reseau.diffusion(pool.masque).n - 1, pool.max ? debut + pool.max - 1 : Infinity);
     const prises = new Set([...this.baux.values()].map((b) => b.ip.n));
