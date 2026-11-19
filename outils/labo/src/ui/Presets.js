@@ -1,4 +1,4 @@
-/* Les labs intégrés, prêts à tester dès l'ouverture : cinq pour découvrir,
+/* Les labs intégrés, prêts à tester dès l'ouverture : six pour découvrir,
    trois pannes à trouver.
 
    Ils sont construits comme un élève les construirait : les équipements
@@ -56,6 +56,26 @@ function interVlan(reseau, { pool = "192.168.10.0", tag20 = 20 } = {}) {
   cable(reseau, b, "Fa0", s, "Fa0/2");
   cable(reseau, c, "Fa0", s, "Fa0/3");
   cable(reseau, srv, "Fa0", s, "Fa0/4");
+}
+
+/* La partie 4 du TP sans fil (chapitre 22) : le routeur de la maison change
+   de réseau. Le labo n'a pas de routeur sans fil ; un routeur et un
+   commutateur jouent ses deux rôles, passerelle et serveur DHCP d'un côté,
+   ports du LAN de l'autre. Le pool imite celui du TP : 50 adresses à partir
+   de .100, donc tout le reste du /24 est exclu. */
+function routeurMaison(reseau) {
+  const r = creer(reseau, "routeur", { nom: "WR", x: 0, y: -170 });
+  taper(r, ["hostname WR", "no ip domain-lookup",
+    "interface gi0/0", "ip address 192.168.0.1 255.255.255.0", "no shutdown",
+    "exit", "ip dhcp excluded-address 192.168.0.1 192.168.0.99", "ip dhcp excluded-address 192.168.0.150 192.168.0.254",
+    "ip dhcp pool LAN", "network 192.168.0.0 255.255.255.0", "default-router 192.168.0.1"]);
+  const s = creer(reseau, "switch", { nom: "SW1", x: 0, y: 0 });
+  taper(s, ["hostname SW1", "no ip domain-lookup"]);
+  cable(reseau, r, "Gi0/0", s, "Gi0/1");
+  const a = hote(reseau, "pc", "Admin", -220, 180, { dhcp: true });
+  const p = hote(reseau, "portable", "Portable1", 220, 180, { dhcp: true });
+  cable(reseau, a, "Fa0", s, "Fa0/1");
+  cable(reseau, p, "Fa0", s, "Fa0/2");
 }
 
 /* La maquette du lab 5 ; « regle » pose le PAT d'emblée. */
@@ -213,6 +233,26 @@ export const LABS = [
       { texte: "PC2 sort sur Internet (8.8.8.8)", test: (s) => s.joint("PC2", "8.8.8.8") },
     ],
     construire(reseau) { sortieInternet(reseau); },
+  },
+  {
+    id: "lab6",
+    titre: "Lab 6 : Le routeur de la maison change de réseau",
+    court: "DHCP qui change",
+    resume: "La partie 4 du TP sans fil, sans la radio. WR distribue 50 adresses à partir de 192.168.0.100. On le passe en 192.168.50.1 : les postes gardent leur ancienne adresse et perdent leur passerelle, jusqu'à ce qu'ils renouvellent leur bail.",
+    etapes: [
+      "Sur <b>Admin</b> : <code>ipconfig /renew</code>. Il reçoit 192.168.0.100, la première adresse du pool, et la passerelle 192.168.0.1.",
+      "Toujours sur Admin : <code>ping 192.168.0.1</code>, quatre réponses de WR.",
+      "Sur <b>WR</b> : <code>en</code>, <code>conf t</code>, <code>int g0/0</code>, <code>ip address 192.168.50.1 255.255.255.0</code>, <code>exit</code>, <code>ip dhcp excluded-address 192.168.50.1 192.168.50.99</code>, <code>ip dhcp excluded-address 192.168.50.150 192.168.50.254</code>, <code>ip dhcp pool LAN</code>, <code>network 192.168.50.0 255.255.255.0</code>, <code>default-router 192.168.50.1</code>, <code>end</code>.",
+      "Sur Admin : <code>ping 192.168.0.1</code>. Plus aucune réponse : cette adresse n'existe plus. C'est l'« expiration de la requête » du navigateur, dans le TP.",
+      "<code>ipconfig /renew</code> : Admin redemande une adresse (Discover, Offer, Request, Ack) et reçoit 192.168.50.100, avec la passerelle 192.168.50.1. Puis <code>ping 192.168.50.1</code>.",
+      "Même chose sur <b>Portable1</b>, puis, sur WR, <code>show ip dhcp binding</code> : deux baux dans le nouveau réseau. En <b>Simulation</b>, le renouvellement montre ses trames une à une.",
+    ],
+    objectifs: [
+      { texte: "WR distribue le nouveau réseau : Admin reçoit une adresse de 192.168.50.0/24", test: (s) => /^192\.168\.50\./.test(s.adresse("Admin") || "") },
+      { texte: "Admin joint sa nouvelle passerelle (192.168.50.1)", test: (s) => s.joint("Admin", "192.168.50.1") },
+      { texte: "Portable1 joint sa nouvelle passerelle (192.168.50.1)", test: (s) => s.joint("Portable1", "192.168.50.1") },
+    ],
+    construire(reseau) { routeurMaison(reseau); },
   },
   {
     id: "panne1",

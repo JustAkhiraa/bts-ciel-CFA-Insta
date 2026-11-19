@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réseau sans fil : le TP pas à pas | BTS CIEL</title>
+<meta name="description" content="Le TP de configuration d'un réseau sans fil, pas à pas : relier l'administrateur au routeur sans fil, le DHCP, le port Internet, le SSID et le canal, WPA2 Personnel, les clients, un point d'accès de plus, le mot de passe d'administration et le changement de réseau, avec les réponses aux cinq questions.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style==="classique"?"classique":"lanceur";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=44f6051d">
+</head>
+<body data-matiere="reseau">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Réseaux &amp; Systèmes</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#maquette">0 · Ce qu'on monte</a></li>
+    <li><a href="#connexion">1 · Se connecter au routeur sans fil</a></li>
+    <li><a href="#sans-fil">2 · Les réglages sans fil</a></li>
+    <li><a href="#point-acces">3 · Un point d'accès de plus</a></li>
+    <li><a href="#administration">4 · Les tâches d'administration</a></li>
+    <li><a href="#depannage">5 · Dépannage</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html">Cours</a><a href="tp.html" aria-current="page">TP</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Réseaux &amp; Systèmes</a>
+    <span class="sep">/</span><span>Chapitre 22</span>
+    <span class="sep">/</span><span class="badge">TP · pas à pas</span>
+  </div>
+
+  <h1>Réseau sans fil : le TP</h1>
+  <p class="chapeau">Un routeur sans fil, un point d'accès, un poste d'administration et
+     trois portables. On règle tout par l'<strong>interface web</strong> du routeur, puis on
+     vérifie chaque étape en ouvrant un site. Coche les actions au fur et à mesure ; les
+     <strong>cinq questions</strong> du TP sont à leur place, réponse repliable.
+     <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
+
+  <div class="encart methode">
+    <div class="titre">🎯 Avant de commencer</div>
+    <p>Le TP se fait dans le simulateur, avec l'activité 13.1.10. Presque tout se règle à la
+       souris, dans des pages web ; seule la dernière partie passe par l'invite de
+       commandes.</p>
+    <p class="rap">Les tableaux « champ, valeur » disent quoi saisir. Les blocs bleus sont à
+       taper dans l'invite de commandes d'un poste, les gris sont ce que l'écran
+       répond.</p>
+  </div>
+
+  <div class="tp-progression">
+    <span class="tp-compte">0 étape</span>
+    <div class="tp-barre"><div class="tp-jauge"></div></div>
+  </div>
+</header>
+
+<section id="maquette">
+  <h2><span class="num">00</span>Ce qu'on monte</h2>
+
+  <p>Au départ, seul le routeur sans fil <strong>WR</strong> est câblé, vers Internet. Le
+     poste <strong>Admin</strong>, le point d'accès <strong>AP</strong> et les trois
+     portables attendent d'être reliés.</p>
+
+  <figure class="schema">
+    <svg viewBox="0 0 520 250" role="img" aria-label="Admin est câblé au routeur sans fil WR. WR est relié à Internet, où se trouve le serveur www.cisco.pka. Portable1 et Portable2 se connectent à WR sans fil, sur le canal 6. Le point d'accès AP est câblé à WR, et Portable3 s'y connecte sans fil, sur le canal 1.">
+      <style>
+        .tw-b{fill:var(--carte);stroke:var(--bord-fort);stroke-width:1.5}
+        .tw-i{fill:var(--accent-pale);stroke:var(--accent);stroke-width:1.5}
+        .tw-l{stroke:var(--encre);stroke-width:2.2;fill:none}
+        .tw-o{stroke:var(--accent);stroke-width:1.6;stroke-dasharray:5 4;fill:none}
+        .tw-t{font:700 13px var(--sans);fill:var(--encre);text-anchor:middle}
+        .tw-s{font:12px var(--sans);fill:var(--encre-douce);text-anchor:middle}
+      </style>
+      <path class="tw-l" d="M95,132 H200 M260,104 V60 H340 M260,160 V196 H340"/>
+      <path class="tw-o" d="M215,108 L135,48 M215,158 L135,214 M395,212 L455,212"/>
+      <rect class="tw-b" x="200" y="104" width="120" height="56" rx="8"/>
+      <rect class="tw-b" x="25" y="114" width="70" height="36" rx="6"/>
+      <rect class="tw-b" x="65" y="30" width="80" height="34" rx="6"/>
+      <rect class="tw-b" x="65" y="198" width="80" height="34" rx="6"/>
+      <rect class="tw-b" x="340" y="180" width="60" height="34" rx="6"/>
+      <rect class="tw-b" x="440" y="196" width="70" height="34" rx="6"/>
+      <rect class="tw-i" x="340" y="38" width="160" height="44" rx="20"/>
+      <text class="tw-t" x="260" y="130">WR</text>
+      <text class="tw-s" x="260" y="148">routeur sans fil</text>
+      <text class="tw-t" x="60" y="137">Admin</text>
+      <text class="tw-t" x="105" y="52">Portable1</text>
+      <text class="tw-t" x="105" y="220">Portable2</text>
+      <text class="tw-t" x="370" y="202">AP</text>
+      <text class="tw-t" x="475" y="218">Portable3</text>
+      <text class="tw-t" x="420" y="58">Internet</text>
+      <text class="tw-s" x="420" y="74">www.cisco.pka</text>
+      <text class="tw-s" x="150" y="122">câble</text>
+      <text class="tw-s" x="300" y="52">port Internet</text>
+      <text class="tw-s" x="160" y="96">canal 6</text>
+      <text class="tw-s" x="300" y="190">câble</text>
+      <text class="tw-s" x="420" y="246">canal 1</text>
+    </svg>
+    <figcaption>La maquette finie. Trait plein : un câble. Pointillés : une liaison sans fil.
+      WR et l'AP portent le même SSID, aCompany, sur deux canaux qui ne se chevauchent
+      pas.</figcaption>
+  </figure>
+
+  <h3 class="tp-soustitre">Les adresses du TP</h3>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Appareil</th><th>Côté</th><th>Adresse</th><th>Masque</th></tr></thead>
+      <tbody>
+        <tr><td>WR</td><td>LAN, au départ</td><td>192.168.0.1</td><td>255.255.255.0</td></tr>
+        <tr><td>WR</td><td>LAN, à la fin</td><td>192.168.50.1</td><td>255.255.255.0</td></tr>
+        <tr><td>WR</td><td>Internet</td><td>209.165.200.225</td><td>255.255.255.252</td></tr>
+        <tr><td>Routeur du fournisseur</td><td>vers WR</td><td>209.165.200.226</td><td>255.255.255.252</td></tr>
+        <tr><td>Serveur DNS</td><td>Internet</td><td>209.165.201.1</td><td>255.255.255.224</td></tr>
+        <tr><td>www.cisco.pka</td><td>Internet</td><td>209.165.201.2</td><td>255.255.255.224</td></tr>
+        <tr><td>Admin et les portables</td><td>LAN</td><td colspan="2">par DHCP, de .100 à .149</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Vérifier les adresses en un clic</div>
+    <ul>
+      <li><a href="../../outils/sous-reseau.html#ip=209.165.200.225/30">209.165.200.225/30
+          dans le calculateur</a> :<br class="ae"> un lien à deux adresses, .225 et .226.</li>
+      <li><a href="../../outils/sous-reseau.html#ip=209.165.201.2/27">209.165.201.2/27</a> :<br class="ae">
+          le réseau des serveurs, de .1 à .30. Sa passerelle est la .30.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="connexion">
+  <h2><span class="num">01</span>Se connecter au routeur sans fil</h2>
+
+  <h3 class="tp-soustitre">1.1 · Câbler Admin</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Dans les connexions (l'éclair, en bas à gauche), prendre le câble <strong>cuivre droit</strong>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Cliquer sur Admin, choisir <code>FastEthernet0</code>, puis cliquer sur WR et choisir un port Ethernet libre.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Attendre les triangles verts aux deux bouts du câble.</span></label>
+  </div>
+  <p>Côté LAN, WR se comporte comme un <strong>commutateur</strong>. Côté Internet, comme
+     un <strong>routeur</strong>.</p>
+  <div class="encart savoir">
+    <div class="titre">💡 Pas de triangle vert ?</div>
+    <p>Activer « Afficher les voyants de liaison » dans Options, Préférences. Le bouton
+       d'avance rapide, au-dessus de la barre jaune, accélère aussi l'attente.</p>
+    <p class="rap">Le port exact importe peu :<br class="ae"> les ports LAN de WR forment un seul
+       commutateur. L'énoncé cite GigabitEthernet 1.</p>
+  </div>
+
+  <h3 class="tp-soustitre">1.2 · Admin en DHCP</h3>
+  <p>Un routeur sans fil contient presque toujours un <strong>serveur DHCP</strong>, actif
+     par défaut sur le LAN. Admin va donc recevoir son adresse de WR.</p>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur Admin, onglet Bureau, Configuration IP : choisir <strong>DHCP</strong>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Relever l'adresse, le masque et la passerelle, puis fermer la fenêtre.</span></label>
+  </div>
+
+  <article class="exo">
+    <h3>Question · L'adresse, le masque et la passerelle d'Admin</h3>
+    <div class="enonce">
+      <p>Quelle est l'adresse IP de l'ordinateur ? Son masque de sous-réseau ? Sa passerelle
+         par défaut ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+<ul>
+  <li><strong>Adresse</strong> : <strong>192.168.0.100</strong> en général. C'est la
+      première adresse du pool, et Admin est le premier à la demander.</li>
+  <li><strong>Masque</strong> : <strong>255.255.255.0</strong>, soit /24.</li>
+  <li><strong>Passerelle</strong> :<br class="ae"> <strong>192.168.0.1</strong>, l'adresse LAN de WR.</li>
+</ul>
+<p class="rap">L'énoncé prévient que l'adresse peut varier :<br class="ae"> toute adresse de .100 à .149
+   est juste.</p>
+      </div>
+    </div>
+  </article>
+
+  <h3 class="tp-soustitre">1.3 · L'interface web de WR</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur Admin, onglet Bureau, Navigateur Web : taper <code>192.168.0.1</code>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Se connecter avec <code>admin</code> comme nom d'utilisateur et comme mot de passe.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Page Configuration de base, rubrique Configuration du réseau : relever la plage d'adresses du serveur DHCP.</span></label>
+  </div>
+
+  <article class="exo">
+    <h3>Question · L'adresse d'Admin est-elle dans la plage ?</h3>
+    <div class="enonce">
+      <p>L'adresse IP de l'administrateur se situe-t-elle dans cette plage ? Est-ce attendu ?
+         Expliquer.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+<p><strong>Oui</strong>, et c'est attendu.</p>
+<p>La plage commence à <strong>192.168.0.100</strong> et compte <strong>50</strong>
+   adresses :<br class="ae"> elle va donc de 192.168.0.100 à 192.168.0.149.</p>
+<p>Admin est en DHCP, et le seul serveur DHCP de son réseau est celui de WR. Il ne peut
+   recevoir qu'une adresse de ce pool.</p>
+      </div>
+    </div>
+  </article>
+
+  <h3 class="tp-soustitre">1.4 · Le port Internet de WR</h3>
+  <p>Pour que les clients sortent sur Internet, WR doit avoir une adresse de ce côté-là. On
+     la fixe à la main.</p>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">En haut de la page Configuration de base, rubrique Configuration Internet : passer de « Configuration automatique - DHCP » à <strong>IP statique</strong>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Saisir les quatre valeurs ci-dessous, puis Enregistrer les paramètres, en bas de la page.</span></label>
+  </div>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Champ</th><th>Valeur</th></tr></thead>
+      <tbody>
+        <tr><td>Adresse IP Internet</td><td><code>209.165.200.225</code></td></tr>
+        <tr><td>Masque de sous-réseau</td><td><code>255.255.255.252</code></td></tr>
+        <tr><td>Passerelle par défaut</td><td><code>209.165.200.226</code></td></tr>
+        <tr><td>Serveur DNS</td><td><code>209.165.201.1</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="encart piege">
+    <div class="titre">⚠️ « Délai d'expiration de la demande »</div>
+    <p>Si ce message apparaît, fermer la fenêtre d'Admin et attendre que les voyants orange
+       redeviennent des triangles verts. L'avance rapide accélère l'attente.</p>
+    <p class="rap">Puis se reconnecter à WR comme à l'étape 1.3.</p>
+  </div>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier : ouvrir un nouveau navigateur sur Admin et aller sur <code>www.cisco.pka</code>. Laisser quelques secondes au réseau, ou utiliser l'avance rapide (Alt+D).</span></label>
+  </div>
+</section>
+
+<section id="sans-fil">
+  <h2><span class="num">02</span>Les réglages sans fil</h2>
+
+  <p>On ne règle que la bande <strong>2,4 GHz</strong> ; les deux bandes 5 GHz sont
+     coupées.</p>
+
+  <h3 class="tp-soustitre">2.1 · Le SSID et le canal</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Dans le navigateur d'Admin, sur 192.168.0.1 : Sans fil, Paramètres sans fil de base.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Pour la bande 2,4 GHz seulement : SSID <code>aCompany</code> et canal standard <code>6 - 2,437 GHz</code>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Désactiver les deux bandes 5 GHz, laisser le reste, puis Enregistrer les paramètres.</span></label>
+  </div>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Champ, bande 2,4 GHz</th><th>Valeur</th></tr></thead>
+      <tbody>
+        <tr><td>Nom du réseau (SSID)</td><td><code>aCompany</code></td></tr>
+        <tr><td>Canal standard</td><td><code>6 - 2,437 GHz</code></td></tr>
+        <tr><td>Bandes 5 GHz</td><td>désactivées</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="encart piege">
+    <div class="titre">⚠️ Le SSID est sensible à la casse</div>
+    <p><code>aCompany</code>, <code>ACompany</code> et <code>acompany</code> sont trois
+       réseaux différents pour un client.</p>
+  </div>
+
+  <h3 class="tp-soustitre">2.2 · La sécurité : WPA2 Personnel</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sans fil, Sécurité sans fil : sous l'en-tête 2,4 GHz, mode de sécurité <strong>WPA2 Personnel</strong>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Chiffrement : garder <strong>AES</strong>. Phrase secrète : <code>Cisco123!</code>. Enregistrer.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Revenir sur les deux pages et vérifier que tout est enregistré.</span></label>
+  </div>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Champ, bande 2,4 GHz</th><th>Valeur</th></tr></thead>
+      <tbody>
+        <tr><td>Mode de sécurité</td><td>WPA2 Personnel</td></tr>
+        <tr><td>Chiffrement</td><td>AES</td></tr>
+        <tr><td>Phrase secrète</td><td><code>Cisco123!</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="tp-soustitre">2.3 · Les deux premiers clients</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur Portable1 : Bureau, PC sans fil, onglet Connexion. Actualiser si besoin, choisir <code>aCompany</code>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Clé pré-partagée : <code>Cisco123!</code>, puis Connexion. Fermer la fenêtre.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier dans un navigateur : <code>www.cisco.pka</code> s'ouvre.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Recommencer avec Portable2.</span></label>
+  </div>
+  <div class="encart savoir">
+    <div class="titre">💡 Ce que fait le portable en coulisses</div>
+    <p>La liste des réseaux vient des <strong>balises</strong> de WR :<br class="ae"> c'est la découverte
+       passive du cours. Le portable s'authentifie avec la clé, s'associe, puis demande son
+       adresse au DHCP de WR.</p>
+  </div>
+</section>
+
+<section id="point-acces">
+  <h2><span class="num">03</span>Un point d'accès de plus</h2>
+
+  <p>Un <strong>point d'accès</strong> étend le réseau sans fil. Relié à WR par un câble, il
+     porte le signal là où WR n'arrive pas.</p>
+
+  <h3 class="tp-soustitre">3.1 · Câbler et régler l'AP</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Câble cuivre droit : le <code>Port 0</code> de l'AP vers un port Ethernet libre de WR.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur l'AP, onglet Config, rubrique INTERFACE : <code>Port 1</code>, l'interface sans fil.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">SSID <code>aCompany</code>, sécurité <strong>WPA2-PSK</strong>, phrase secrète <code>Cisco123!</code>, chiffrement AES gardé.</span></label>
+  </div>
+  <div class="encart savoir">
+    <div class="titre">💡 Le même nom, la même clé, un autre canal</div>
+    <p>L'AP reprend le SSID et la clé de WR :<br class="ae"> pour un client, c'est le
+       <strong>même réseau</strong>. Deux BSS sous un seul SSID, reliés par le câble : un
+       <strong>ESS</strong>.</p>
+    <p class="rap">L'AP émet sur le canal 1, WR sur le 6. Ces deux canaux ne se chevauchent
+       pas.</p>
+  </div>
+
+  <h3 class="tp-soustitre">3.2 · Le troisième client</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur Portable3 : Bureau, PC sans fil, Connexion. Choisir <code>aCompany</code> avec le <strong>signal le plus fort</strong>, celui du canal 1, puis Se connecter.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier : <code>www.cisco.pka</code> s'ouvre.</span></label>
+  </div>
+  <p>Portable3 reçoit lui aussi une adresse de WR :<br class="ae"> l'AP ne distribue rien, il relaie les
+     trames vers le réseau câblé.</p>
+</section>
+
+<section id="administration">
+  <h2><span class="num">04</span>Les tâches d'administration</h2>
+
+  <h3 class="tp-soustitre">4.1 · Le mot de passe de WR</h3>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Sur Admin, interface web de WR : Administration, Gestion. Mot de passe du routeur : <code>cisco</code>. Enregistrer.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Se reconnecter avec <code>admin</code> et le nouveau mot de passe <code>cisco</code>, cliquer OK, puis Continuer.</span></label>
+  </div>
+  <div class="encart piege">
+    <div class="titre">⚠️ admin et admin, la première chose à changer</div>
+    <p>Les identifiants d'usine d'un routeur sont publics :<br class="ae"> n'importe qui sur le réseau
+       pourrait en prendre le contrôle.</p>
+    <p class="rap">Le TP choisit <code>cisco</code> pour aller vite. Chez soi, on prend un
+       vrai mot de passe.</p>
+  </div>
+
+  <h3 class="tp-soustitre">4.2 · Changer le réseau du LAN</h3>
+  <p>On passe le réseau interne de <strong>192.168.0.0/24</strong> à
+     <strong>192.168.50.0/24</strong>. Tous les postes, câblés ou non, devront ensuite
+     renouveler leur adresse.</p>
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Configuration, Configuration de base, rubrique Configuration réseau : adresse IP du routeur <code>192.168.50.1</code>.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier que le pool commence toujours à .100 et compte 50 adresses.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Ajouter <code>209.165.201.1</code> comme serveur DNS dans les réglages DHCP, puis Enregistrer.</span></label>
+  </div>
+  <p>La plage DHCP suit d'elle-même :<br class="ae"> elle devient 192.168.50.100 à 192.168.50.149. Puis,
+     après un court délai, le navigateur affiche une expiration de la requête.</p>
+
+  <article class="exo">
+    <h3>Question · Pourquoi la requête expire</h3>
+    <div class="enonce">
+      <p>Le navigateur d'Admin affiche « Expiration de la requête » après l'enregistrement.
+         Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+<p>Le navigateur parle toujours à <strong>192.168.0.1</strong>, et cette adresse
+   n'existe plus :<br class="ae"> WR est maintenant en 192.168.50.1.</p>
+<p>Admin, lui, a gardé son adresse en 192.168.0.x. Il n'est plus dans le même réseau que
+   son routeur, et sa passerelle ne répond plus.</p>
+<p class="rap">Rien ne se répare tant qu'Admin n'a pas demandé une nouvelle adresse :<br class="ae">
+   son bail DHCP court toujours.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Fermer le navigateur d'Admin. Bureau, Invite de commandes : renouveler l'adresse.</span></label>
+  </div>
+  <div class="bloc-code" data-machine="client" style="--car:15"><span class="langue">Invite de commandes · Admin</span><pre><code>ipconfig /renew</code></pre></div>
+
+  <article class="exo">
+    <h3>Question · La nouvelle adresse d'Admin</h3>
+    <div class="enonce">
+      <p>Quelles sont les nouvelles informations d'adresse IP de l'administrateur ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+<div class="bloc-code" data-machine="sortie" style="--car:34"><span class="langue">sortie · valeurs attendues</span><pre><code>IPv4 Address......: 192.168.50.100
+Subnet Mask.......: 255.255.255.0
+Default Gateway...: 192.168.50.1</code></pre></div>
+<p>Une adresse du nouveau pool, de .100 à .149 ; le même masque ; la nouvelle adresse de
+   WR comme passerelle. Le serveur DNS reçu est 209.165.201.1.</p>
+<p class="rap">Le dernier octet dépend de l'ordre des renouvellements :<br class="ae"> seul le premier
+   poste à demander reçoit la .100.</p>
+      </div>
+    </div>
+  </article>
+
+  <div class="tp-etapes">
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Vérifier : <code>www.cisco.pka</code> s'ouvre toujours depuis Admin.</span></label>
+    <label class="tp-etape"><input type="checkbox"><span class="lib">Renouveler l'adresse des trois portables, et vérifier que chacun ouvre <code>www.cisco.pka</code>.</span></label>
+  </div>
+
+  <div class="encart outils">
+    <div class="titre">🧰 Rejouer cette partie, trame par trame</div>
+    <p>Le <a href="../../outils/labo.html#lab=lab6">lab 6 du labo réseau</a> refait
+       exactement ce changement de réseau, avec un routeur et un commutateur à la place de
+       WR.</p>
+    <p class="rap">En mode Simulation, on voit le ping vers l'ancienne passerelle se perdre,
+       puis les quatre messages du renouvellement :<br class="ae"> Discover, Offer, Request, Ack.</p>
+  </div>
+
+  <article class="exo">
+    <h3>Question · Portable1 est passé sur l'AP</h3>
+    <div class="enonce">
+      <p>On remarque que Portable1 est maintenant connecté à l'AP, et non plus à WR.
+         Pourquoi ?</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Réponse</div>
+      <button type="button" data-ouvrir="Afficher la réponse" data-fermer="Masquer la réponse">Afficher la réponse</button>
+      <div class="reponse">
+<p>Quand WR a enregistré sa nouvelle configuration, il a redémarré ses services.
+   Portable1 a perdu son association.</p>
+<p>Il a alors cherché de nouveau le réseau <code>aCompany</code>, et l'AP le proposait
+   aussi :<br class="ae"> <strong>même SSID, même clé</strong>, donc le même réseau pour lui. Il s'y est
+   associé.</p>
+<p class="rap">Un client ne revient pas de lui-même sur l'autre point d'accès tant que
+   la liaison tient. C'est le fonctionnement normal d'un ESS :<br class="ae"> on peut passer d'un BSS à
+   l'autre sans rien reconfigurer.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="depannage">
+  <h2><span class="num">05</span>Dépannage</h2>
+
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Symptôme</th><th>Cause la plus probable</th><th>Ce qu'on vérifie</th></tr></thead>
+      <tbody>
+        <tr><td>Admin n'a pas d'adresse, ou une 169.254.x.x</td><td>Configuration IP restée en statique, ou câble absent</td><td>DHCP coché, triangles verts</td></tr>
+        <tr><td>La page 192.168.0.1 ne s'ouvre pas</td><td>le réseau n'a pas encore convergé</td><td>attendre, avance rapide</td></tr>
+        <tr><td><code>www.cisco.pka</code> ne s'ouvre pas</td><td>une erreur dans le port Internet</td><td>les quatre valeurs de l'étape 1.4</td></tr>
+        <tr><td><code>aCompany</code> n'apparaît pas</td><td>réglage non enregistré, ou SSID mal écrit</td><td>la page Paramètres sans fil de base</td></tr>
+        <tr><td>Le portable voit le réseau mais ne s'y connecte pas</td><td>phrase secrète ou mode de sécurité différents</td><td>WPA2 Personnel, AES, <code>Cisco123!</code></td></tr>
+        <tr><td>Portable3 ne reçoit pas d'adresse</td><td>l'AP n'est pas câblé à WR</td><td>le câble du Port 0</td></tr>
+        <tr><td>Plus rien ne marche après le changement de réseau</td><td>les postes gardent leur ancienne adresse</td><td><code>ipconfig /renew</code> sur chacun</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le geste à retenir</div>
+    <p>Un client sans fil ne se connecte que si cinq réglages concordent :<br class="ae"> SSID, mot de passe,
+       mode réseau, mode de sécurité et canal.</p>
+    <p class="rap">Et après tout changement de réseau côté routeur, chaque poste renouvelle
+       son bail DHCP.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>« Packet Tracer : configurer un réseau sans fil » (activité 13.1.10), 4 pages :<br class="ae"> les
+          quatre parties, leurs étapes et leurs cinq questions</li>
+      <li>L'activité elle-même, lue pour les valeurs du corrigé :<br class="ae"> SSID, canaux, sécurité,
+          pool DHCP, adresses Internet</li>
+      <li>La capture de la topologie fournie avec l'activité</li>
+    </ul>
+    <p class="rap">Les réponses aux questions sont les nôtres. Les adresses obtenues par DHCP
+       peuvent varier d'un poste à l'autre :<br class="ae"> les valeurs relevées sur ta maquette font foi
+       pour le compte rendu.</p>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../21-etherchannel/tp.html"><span>Chapitre précédent</span><b>EtherChannel</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=44f6051d"></script>
+<script src="../../assets/app.js?v=44f6051d"></script>
+</body>
+</html>

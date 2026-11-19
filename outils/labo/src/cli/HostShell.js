@@ -193,7 +193,8 @@ export class HostShell {
       if (r.type === "ok") {
         if (renew) this.ipconfig([], o);
         else o.lignes(["DHCP request successful. IP " + r.ip]);
-      } else o.lignes(["DHCP request failed. APIPA is being used : " + r.ip]);
+      } else if (r.type === "refus") o.lignes(["DHCP request failed. The server refused the lease (DHCP NAK)."]);
+      else o.lignes(["DHCP request failed. APIPA is being used : " + r.ip]);
       app.reseau.emit("topologie");
       o.fin();
     });

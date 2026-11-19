@@ -2472,7 +2472,7 @@
   const NOMS_U = ["u", "v"];
   APPS.suites = {
     nom: "Suites", icone: "uₙ",
-    chapitre: ["03-fonctions-variations", "Fonctions et variations"],
+    chapitre: ["15-suites-numeriques", "Suites numériques"],
     html() {
       const vue = ETAT.onglets.suites;
       const onglets = '<div class="nw-onglets" role="tablist">'

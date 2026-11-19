@@ -128,6 +128,17 @@ export class HostPC extends Device {
         sur({ type: "ok", ip: m.yiaddr });
       } else if (m.op === "NAK") {
         horloge.annuler(etat.minuterie);
+        etat.refus = (etat.refus || 0) + 1;
+        if (etat.refus > 3) {
+          /* Un serveur qui refuse ce qu'il vient d'offrir, trois fois de
+             suite, ne changera pas d'avis : on arrête au lieu de boucler. */
+          this.ip.udp.delete(PORTS.DHCP_CLIENT);
+          etat.phase = "echec";
+          this.configurer({});
+          this.noter("DHCP NAK pour la quatrième fois : " + this.nom + " abandonne. Le serveur offre une adresse qu'il refuse ensuite ; regardez sa configuration.");
+          sur({ type: "refus" });
+          return;
+        }
         this.noter("DHCP NAK : le serveur refuse ; " + this.nom + " recommence depuis le début.");
         etat.essais = 0;
         decouvrir();

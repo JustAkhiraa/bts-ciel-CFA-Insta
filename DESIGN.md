@@ -340,6 +340,17 @@ légende en encre tenue. Ils survivent à l'impression et au changement de thèm
 - **Sélecteur de thème :** `appearance: none`, chevron dessiné en deux dégradés
   linéaires — aucune image, aucune police d'icônes.
 
+### Tuiles d'appareils (lecteur de fichiers .pkt)
+
+- **Une tuile par appareil**, 40 px, rayon 11 px : fond pâle et trait de la
+  famille, icône au trait dessinée (1,7 px). Routeur et pare-feu en accent,
+  commutateurs en vert, PC et portables en ambre, serveurs en violet, le
+  reste (sans-fil, nuage, modem) en encre douce. Les mêmes tuiles servent la
+  liste, les titres de groupe et le schéma : un appareil se reconnaît partout.
+- **Une action à faire** reprend l'étape de TP à cocher (`.tp-etape`) : carte
+  creuse, case verte, fond vert pâle une fois cochée ; ses commandes passent
+  dans un bloc de code « Copier » du site.
+
 ### Navigation
 
 En-tête collante, fond du papier à 86 % avec un flou d'arrière-plan, trait

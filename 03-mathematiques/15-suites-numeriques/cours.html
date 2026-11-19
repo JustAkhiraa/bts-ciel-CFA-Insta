@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suites numériques | BTS CIEL</title>
+<meta name="description" content="Cours : ce qu'est une suite, relation explicite et relation de récurrence, sens de variation, suites arithmétiques et géométriques, leurs formules et la somme de leurs termes, la recherche d'un seuil par balayage et par une inéquation avec le logarithme, une hausse de 20 % qui devient une multiplication par 1,2, et les limites des suites.">
+<meta name="theme-color" content="#FDF5E6">
+<script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style==="classique"?"classique":"lanceur";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
+<link rel="stylesheet" href="../../assets/fiche.css?v=44f6051d">
+</head>
+<body data-matiere="maths">
+<div class="page">
+
+<nav class="sommaire">
+  <a class="retour" href="../index.html">Mathématiques</a>
+  <h2>Sommaire</h2>
+  <ol>
+    <li><a href="#definition">1 · Une suite, et deux façons de la définir</a></li>
+    <li><a href="#variation">2 · Sens de variation, périodicité, bornes</a></li>
+    <li><a href="#arithmetique">3 · Les suites arithmétiques</a></li>
+    <li><a href="#somme-arith">4 · La somme des termes d'une suite arithmétique</a></li>
+    <li><a href="#exemple-arith">5 · Un exemple complet, et la recherche d'un seuil</a></li>
+    <li><a href="#geometrique">6 · Les suites géométriques</a></li>
+    <li><a href="#somme-geo">7 · La somme des termes d'une suite géométrique</a></li>
+    <li><a href="#exemple-geo">8 · Un exemple complet, et le seuil par le logarithme</a></li>
+    <li><a href="#pourcentage">9 · Une hausse de 20 %, c'est × 1,2</a></li>
+    <li><a href="#limites">10 · Les limites des suites</a></li>
+    <li><a href="#calculatrice">11 · Avec la calculatrice du site</a></li>
+  </ol>
+</nav>
+
+<main class="corps" data-rail="1">
+
+<nav class="tel-segments" aria-label="Les fiches du chapitre"><a href="cours.html" aria-current="page">Cours</a><a href="exercices.html">Exercices</a><a href="fiche-revision.html">Fiche</a><a href="qcm.html">QCM</a></nav>
+<header class="fiche-tete">
+  <div class="fil">
+    <a href="../../index.html">Accueil</a><span class="sep">/</span><a class="matiere" href="../index.html">Mathématiques</a>
+    <span class="sep">/</span><span>Chapitre 15</span>
+  </div>
+
+  <h1>Suites numériques</h1>
+  <p class="chapeau">Une liste de nombres rangés dans l'ordre :<br class="ae"> le premier, le deuxième, le
+     troisième… Deux familles reviennent partout, celle où l'on <strong>ajoute</strong> toujours
+     le même nombre et celle où l'on <strong>multiplie</strong> toujours par le même nombre. Et une
+     question revient dans tous les sujets :<br class="ae"> <strong>à partir de quand</strong> la suite dépasse-t-elle
+     un seuil ?
+     <a href="exercices.html">Les exercices</a> ·
+     <a href="fiche-revision.html">La fiche</a> · <a href="qcm.html">Le QCM</a></p>
+
+  <div class="flash">
+    <span class="pastille">📌</span>
+    <div>
+      <h2>Résumé flash</h2>
+    <p><strong>Arithmétique</strong> : on ajoute la raison <code>r</code>.
+       <code>u<sub>n+1</sub> = u<sub>n</sub> + r</code> et
+       <code>u<sub>n</sub> = u<sub>0</sub> + n·r</code>.</p>
+    <p><strong>Géométrique</strong> : on multiplie par la raison <code>q</code>.
+       <code>u<sub>n+1</sub> = q·u<sub>n</sub></code> et
+       <code>u<sub>n</sub> = u<sub>0</sub> × q<sup>n</sup></code>.</p>
+    <p><strong>Un seuil</strong> se cherche par <strong>balayage</strong> (un tableau de valeurs)
+       ou par une <strong>inéquation</strong>, avec le logarithme quand <code>n</code> est en
+       exposant.</p>
+    </div>
+  </div>
+
+  <p class="motscles">🔑
+    <code>#suite</code> <code>#recurrence</code> <code>#explicite</code>
+    <code>#arithmetique</code> <code>#geometrique</code> <code>#raison</code>
+    <code>#somme</code> <code>#seuil</code> <code>#balayage</code> <code>#limite</code></p>
+</header>
+
+<section id="definition">
+  <h2><span class="num">01</span>Une suite, et deux façons de la définir</h2>
+  <p>Une <strong>suite numérique</strong> associe un nombre à chaque entier naturel
+     <code>n</code>. Ce nombre se note <code>u<sub>n</sub></code> : c'est le <strong>terme de
+     rang n</strong>. La suite entière se note <code>(u<sub>n</sub>)</code>, avec des
+     parenthèses.</p>
+
+  <div class="encart piege">
+    <div class="titre">⚠️ L'indice se place en bas, l'exposant en haut</div>
+    <p>Dans <code>u<sub>n+1</sub></code>, le <code>n+1</code> est un <strong>indice</strong> : il
+       désigne le terme suivant. Ce n'est pas <code>u<sub>n</sub> + 1</code>, qui ajoute 1 au terme.</p>
+    <p>Un exposant, lui, se place en haut :<br class="ae"> dans <code>q<sup>n</sup></code>, on multiplie
+       <code>q</code> par lui-même <code>n</code> fois.</p>
+  </div>
+
+  <h3>Par une relation explicite</h3>
+  <p>On donne <code>u<sub>n</sub></code> directement en fonction de <code>n</code> :
+     <code>u<sub>n</sub> = f(n)</code>. La suite est alors entièrement définie :<br class="ae"> on calcule
+     n'importe quel terme sans connaître les autres.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:24"><span class="langue">calcul</span><pre><code>uₙ <span class="j-op">=</span> <span class="j-num">2</span>n − <span class="j-num">1</span>
+
+u₀ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">0</span> − <span class="j-num">1</span> <span class="j-op">=</span> −<span class="j-num">1</span>
+u₁ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">1</span> − <span class="j-num">1</span> <span class="j-op">=</span> <span class="j-num">1</span>
+u₂ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">2</span> − <span class="j-num">1</span> <span class="j-op">=</span> <span class="j-num">3</span>
+
+u₁<span class="j-num">₀₀</span> <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">100</span> − <span class="j-num">1</span> <span class="j-op">=</span> <span class="j-num">199</span></code></pre></div>
+
+  <h3>Par une relation de récurrence</h3>
+  <p>On donne le lien entre un terme et le suivant :<br class="ae"> <code>u<sub>n+1</sub> = f(u<sub>n</sub>)</code>.<br class="ae">
+     Cette relation seule <strong>ne suffit pas</strong> :<br class="ae"> il faut aussi connaître un terme, en
+     général le premier.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:29"><span class="langue">calcul</span><pre><code>uₙ₊<span class="j-num">₁</span> <span class="j-op">=</span> <span class="j-num">2</span>uₙ <span class="j-op">+</span> <span class="j-num">1</span>   et   u₁ <span class="j-op">=</span> <span class="j-num">11</span>
+
+u₂ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> u₁ <span class="j-op">+</span> <span class="j-num">1</span>
+   <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">11</span> <span class="j-op">+</span> <span class="j-num">1</span> <span class="j-op">=</span> <span class="j-num">23</span>
+u₃ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">23</span> <span class="j-op">+</span> <span class="j-num">1</span> <span class="j-op">=</span> <span class="j-num">47</span></code></pre></div>
+  <p>Et pour remonter au terme d'avant, on retourne la relation :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:21"><span class="langue">calcul</span><pre><code>u₁ <span class="j-op">=</span> <span class="j-num">2</span>u₀ <span class="j-op">+</span> <span class="j-num">1</span>
+<span class="j-num">2</span>u₀ <span class="j-op">=</span> u₁ − <span class="j-num">1</span>
+u₀ <span class="j-op">=</span> (u₁ − <span class="j-num">1</span>) <span class="j-op">/</span> <span class="j-num">2</span>
+   <span class="j-op">=</span> (<span class="j-num">11</span> − <span class="j-num">1</span>) <span class="j-op">/</span> <span class="j-num">2</span> <span class="j-op">=</span> <span class="j-num">5</span></code></pre></div>
+  <p class="rap">Pour calculer <code>u<sub>100</sub></code> par récurrence, il faut d'abord les 99
+     termes d'avant. C'est pourquoi on cherche, quand c'est possible, la relation explicite.</p>
+
+  <div class="encart savoir">
+    <div class="titre">💡 Le programme de l'année, au tableau</div>
+    <p>Le cours s'ouvrait sur la liste de ce qui reste à voir en mathématiques appliquées, et
+       la plupart a déjà son chapitre :</p>
+    <ul>
+      <li><strong>Fonctions</strong> :<br class="ae"> <a href="../04-derivees/cours.html">dérivées</a>,
+          <a href="../05-limites/cours.html">limites</a>,
+          <a href="../12-integrales-primitives/cours.html">calcul intégral</a> ;</li>
+      <li><strong>Suites numériques</strong>, arithmétiques et géométriques : ce chapitre ;</li>
+      <li><strong>Statistiques</strong>, l'ajustement affine :
+          <a href="../13-statistiques/cours.html">statistiques</a> ;</li>
+      <li><strong>Probabilités</strong> :<br class="ae"> <a href="../07-probabilites-conditionnelles/cours.html">probabilités
+          conditionnelles et événements indépendants</a>,
+          <a href="../08-variables-aleatoires-loi-binomiale/cours.html">loi binomiale</a>,
+          <a href="../10-loi-normale/cours.html">loi normale</a>,
+          <a href="../09-lois-uniforme-exponentielle/cours.html">fiabilité</a>, et
+          l'échantillonnage, qui n'a pas encore de chapitre.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="variation">
+  <h2><span class="num">02</span>Sens de variation, périodicité, bornes</h2>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Une suite est…</th><th>si, pour tout <code>n</code> (à partir d'un rang)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>croissante</strong></td><td><code>u<sub>n+1</sub> ⩾ u<sub>n</sub></code></td></tr>
+        <tr><td><strong>décroissante</strong></td><td><code>u<sub>n+1</sub> ⩽ u<sub>n</sub></code></td></tr>
+        <tr><td><strong>monotone</strong></td><td>elle est croissante, ou décroissante</td></tr>
+        <tr><td><strong>périodique</strong>, de période <code>p</code></td><td><code>u<sub>n+p</sub> = u<sub>n</sub></code></td></tr>
+        <tr><td><strong>majorée</strong> par <code>M</code></td><td><code>u<sub>n</sub> ⩽ M</code></td></tr>
+        <tr><td><strong>minorée</strong> par <code>m</code></td><td><code>u<sub>n</sub> ⩾ m</code></td></tr>
+        <tr><td><strong>bornée</strong></td><td>elle est à la fois majorée et minorée</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Pour étudier le sens de variation, on regarde le signe de
+     <code>u<sub>n+1</sub> − u<sub>n</sub></code> :<br class="ae"> positif, la suite croît ; négatif, elle
+     décroît.</p>
+</section>
+
+<section id="arithmetique">
+  <h2><span class="num">03</span>Les suites arithmétiques</h2>
+  <p>Une suite est <strong>arithmétique</strong> quand on passe d'un terme au suivant en
+     <strong>ajoutant</strong> toujours le même nombre réel. Ce nombre s'appelle la
+     <strong>raison</strong>, notée <code>r</code>.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:27"><span class="langue">calcul</span><pre><code><span class="j-com">récurrence :</span>  uₙ₊<span class="j-num">₁</span> <span class="j-op">=</span> uₙ <span class="j-op">+</span> r
+<span class="j-com">explicite  :</span>  uₙ <span class="j-op">=</span> u₀ <span class="j-op">+</span> n<span class="j-op">·</span>r</code></pre></div>
+
+  <div class="schema">
+    <svg viewBox="0 0 360 170" role="img" aria-label="Une droite graduée de u0 à un : chaque pas ajoute r ; n pas séparent u0 de un, et n moins 1 pas séparent u1 de un">
+      <style>
+        .su-ax { stroke: var(--encre-douce); stroke-width: 1.5; fill: none; }
+        .su-pt { fill: var(--accent); }
+        .su-arc { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+        .su-t { font: 13px var(--mono); fill: var(--encre); }
+        .su-op { font: 12px var(--mono); fill: var(--accent-sombre); }
+        .su-br { stroke: var(--encre-douce); stroke-width: 1.2; fill: none; }
+      </style>
+      <path class="su-ax" d="M10 70 H350"/>
+      <circle class="su-pt" cx="30" cy="70" r="4"/><circle class="su-pt" cx="90" cy="70" r="4"/>
+      <circle class="su-pt" cx="150" cy="70" r="4"/><circle class="su-pt" cx="210" cy="70" r="4"/>
+      <circle class="su-pt" cx="320" cy="70" r="4"/>
+      <path class="su-arc" d="M30 66 Q60 36 90 66 M90 66 Q120 36 150 66 M150 66 Q180 36 210 66"/>
+      <text class="su-op" x="48" y="38">+ r</text><text class="su-op" x="108" y="38">+ r</text>
+      <text class="su-op" x="168" y="38">+ r</text>
+      <text class="su-t" x="256" y="62">…</text>
+      <text class="su-t" x="20" y="92">u₀</text><text class="su-t" x="80" y="92">u₁</text>
+      <text class="su-t" x="140" y="92">u₂</text><text class="su-t" x="200" y="92">u₃</text>
+      <text class="su-t" x="310" y="92">uₙ</text>
+      <path class="su-br" d="M30 104 V114 H320 V104"/>
+      <text class="su-t" x="104" y="130">uₙ = u₀ + n·r</text>
+      <path class="su-br" d="M90 142 V152 H320 V142"/>
+      <text class="su-t" x="122" y="168">uₙ = u₁ + (n−1)·r</text>
+    </svg>
+  </div>
+  <p>Entre <code>u<sub>0</sub></code> et <code>u<sub>n</sub></code> il y a <code>n</code> pas ;
+     entre <code>u<sub>1</sub></code> et <code>u<sub>n</sub></code>, il y en a un de moins. D'où la
+     formule générale, à partir de n'importe quel terme <code>u<sub>p</sub></code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:19"><span class="langue">calcul</span><pre><code>uₙ <span class="j-op">=</span> uₚ <span class="j-op">+</span> (n − p)<span class="j-op">·</span>r</code></pre></div>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Raison</th><th>La suite est</th></tr></thead>
+      <tbody>
+        <tr><td><code>r &gt; 0</code></td><td>croissante</td></tr>
+        <tr><td><code>r &lt; 0</code></td><td>décroissante</td></tr>
+        <tr><td><code>r = 0</code></td><td>constante</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">La suite <code>u<sub>n</sub> = 2n − 1</code> du début est-elle
+       arithmétique ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Oui</strong>, de raison 2 :<br class="ae"> <code>u<sub>n+1</sub> − u<sub>n</sub> = 2(n+1) − 1 − (2n − 1) = 2</code>,
+         le même nombre pour tout <code>n</code>. Et son premier terme est
+         <code>u<sub>0</sub> = −1</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="somme-arith">
+  <h2><span class="num">04</span>La somme des termes d'une suite arithmétique</h2>
+  <p>Tout part de la somme des premiers entiers. On l'écrit deux fois, une fois à l'endroit
+     et une fois à l'envers, puis on additionne colonne par colonne :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:31"><span class="langue">calcul</span><pre><code>Sₙ <span class="j-op">=</span> <span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">2</span> <span class="j-op">+</span> … <span class="j-op">+</span> (n−<span class="j-num">1</span>) <span class="j-op">+</span> n
+Sₙ <span class="j-op">=</span> n <span class="j-op">+</span> (n−<span class="j-num">1</span>) <span class="j-op">+</span> … <span class="j-op">+</span> <span class="j-num">2</span> <span class="j-op">+</span> <span class="j-num">1</span>
+
+<span class="j-num">2</span>Sₙ <span class="j-op">=</span> (n<span class="j-op">+</span><span class="j-num">1</span>) <span class="j-op">+</span> (n<span class="j-op">+</span><span class="j-num">1</span>) <span class="j-op">+</span> … <span class="j-op">+</span> (n<span class="j-op">+</span><span class="j-num">1</span>)
+    <span class="j-op">=</span> <span class="j-fn">n</span>(n <span class="j-op">+</span> <span class="j-num">1</span>)
+     <span class="j-com">← n colonnes de (n+1)</span>
+
+Sₙ <span class="j-op">=</span> <span class="j-fn">n</span>(n <span class="j-op">+</span> <span class="j-num">1</span>) <span class="j-op">/</span> <span class="j-num">2</span></code></pre></div>
+  <p>Pour une suite arithmétique, le même raisonnement donne la somme de ses
+     <code>n + 1</code> premiers termes, de <code>u<sub>0</sub></code> à <code>u<sub>n</sub></code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:24"><span class="langue">calcul</span><pre><code>u₀ <span class="j-op">+</span> u₁ <span class="j-op">+</span> … <span class="j-op">+</span> uₙ
+  <span class="j-op">=</span> (n <span class="j-op">+</span> <span class="j-num">1</span>)(u₀ <span class="j-op">+</span> uₙ) <span class="j-op">/</span> <span class="j-num">2</span></code></pre></div>
+  <div class="encart analogie">
+    <div class="titre">🧮 La phrase à retenir</div>
+    <p><strong>Nombre de termes × (premier terme + dernier terme) / 2.</strong> Elle marche quel
+       que soit le premier rang :<br class="ae"> de <code>u<sub>1</sub></code> à <code>u<sub>n</sub></code>, il
+       y a <code>n</code> termes, pas <code>n + 1</code>.</p>
+  </div>
+  <p>Le symbole <code>Σ</code> (sigma) écrit la même somme en abrégé :<br class="ae">
+     <code>Σ<sub>k=0</sub><sup>n</sup> u<sub>k</sub></code> se lit « somme des
+     <code>u<sub>k</sub></code> pour <code>k</code> allant de 0 à <code>n</code> ».</p>
+</section>
+
+<section id="exemple-arith">
+  <h2><span class="num">05</span>Un exemple complet, et la recherche d'un seuil</h2>
+  <p>On considère la suite arithmétique <code>(u<sub>n</sub>)</code> de premier terme
+     <code>u<sub>0</sub> = 5</code> et de raison 3.</p>
+
+  <h3>1. Les premiers termes</h3>
+<div class="bloc-code" data-fam="calcul" style="--car:23"><span class="langue">calcul</span><pre><code>u₁ <span class="j-op">=</span> u₀ <span class="j-op">+</span> <span class="j-num">3</span> <span class="j-op">=</span> <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">3</span> <span class="j-op">=</span> <span class="j-num">8</span>
+u₂ <span class="j-op">=</span> u₁ <span class="j-op">+</span> <span class="j-num">3</span> <span class="j-op">=</span> <span class="j-num">11</span>
+u₃ <span class="j-op">=</span> u₂ <span class="j-op">+</span> <span class="j-num">3</span> <span class="j-op">=</span> <span class="j-num">14</span></code></pre></div>
+
+  <h3>2. La relation explicite, puis u<sub>100</sub></h3>
+<div class="bloc-code" data-fam="calcul" style="--car:24"><span class="langue">calcul</span><pre><code>uₙ <span class="j-op">=</span> u₀ <span class="j-op">+</span> n<span class="j-op">·</span>r
+uₙ <span class="j-op">=</span> <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">3</span>n
+
+u₁<span class="j-num">₀₀</span> <span class="j-op">=</span> <span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">3</span> <span class="j-op">×</span> <span class="j-num">100</span> <span class="j-op">=</span> <span class="j-num">305</span></code></pre></div>
+
+  <h3>3. À partir de quel rang le seuil de 250 est-il dépassé ?</h3>
+  <p><strong>Méthode 1, par une inéquation.</strong> On cherche les <code>n</code> tels que
+     <code>u<sub>n</sub> &gt; 250</code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:24"><span class="langue">calcul</span><pre><code><span class="j-num">5</span> <span class="j-op">+</span> <span class="j-num">3</span>n <span class="j-op">&gt;</span> <span class="j-num">250</span>
+<span class="j-num">3</span>n <span class="j-op">&gt;</span> <span class="j-num">245</span>
+n <span class="j-op">&gt;</span> <span class="j-num">245</span> <span class="j-op">/</span> <span class="j-num">3</span>
+     <span class="j-com">← 245 / 3 ≈ 81,67</span>
+
+n est un entier : n ⩾ <span class="j-num">82</span></code></pre></div>
+  <p>Le seuil de 250 est dépassé à partir du rang <strong>n = 82</strong>.</p>
+  <p><strong>Méthode 2, par balayage.</strong> On fait calculer un tableau de valeurs de
+     <code>5 + 3n</code> autour du seuil, et on lit le premier terme qui le dépasse :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th><code>n</code></th><th><code>u<sub>n</sub></code></th></tr></thead>
+      <tbody>
+        <tr><td>81</td><td>248</td></tr>
+        <tr><td>82</td><td>251</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><code>u<sub>81</sub> &lt; 250 &lt; u<sub>82</sub></code>, et la suite est croissante :<br class="ae">
+     le seuil est dépassé à partir de <strong>n = 82</strong>. Les deux méthodes concordent.</p>
+  <div class="encart piege">
+    <div class="titre">⚠️ « La suite est croissante » fait partie de la réponse</div>
+    <p>Le tableau montre seulement que <code>u<sub>82</sub></code> dépasse 250. C'est la
+       croissance qui garantit que <strong>tous</strong> les termes suivants le dépassent aussi.
+       Sans elle, la conclusion ne tient pas.</p>
+  </div>
+  <p class="rap">Et la somme des 101 premiers termes, de <code>u<sub>0</sub></code> à
+     <code>u<sub>100</sub></code> :<br class="ae"> <code>101 × (5 + 305) / 2 = 15 655</code>.</p>
+</section>
+
+<section id="geometrique">
+  <h2><span class="num">06</span>Les suites géométriques</h2>
+  <p>Une suite est <strong>géométrique</strong> quand on passe d'un terme au suivant en
+     <strong>multipliant</strong> toujours par le même nombre réel. Ce nombre s'appelle aussi la
+     <strong>raison</strong>, notée <code>q</code>.</p>
+<div class="bloc-code" data-fam="calcul" style="--car:26"><span class="langue">calcul</span><pre><code><span class="j-com">récurrence :</span>  uₙ₊<span class="j-num">₁</span> <span class="j-op">=</span> q<span class="j-op">·</span>uₙ
+<span class="j-com">explicite  :</span>  uₙ <span class="j-op">=</span> u₀ <span class="j-op">×</span> qⁿ</code></pre></div>
+
+  <div class="schema">
+    <svg viewBox="0 0 360 170" role="img" aria-label="Une droite graduée de v0 à vn : chaque pas multiplie par q ; n pas séparent v0 de vn, et n moins 1 pas séparent v1 de vn">
+      <style>
+        .sg-ax { stroke: var(--encre-douce); stroke-width: 1.5; fill: none; }
+        .sg-pt { fill: var(--accent); }
+        .sg-arc { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+        .sg-t { font: 13px var(--mono); fill: var(--encre); }
+        .sg-op { font: 12px var(--mono); fill: var(--accent-sombre); }
+        .sg-br { stroke: var(--encre-douce); stroke-width: 1.2; fill: none; }
+      </style>
+      <path class="sg-ax" d="M10 70 H350"/>
+      <circle class="sg-pt" cx="30" cy="70" r="4"/><circle class="sg-pt" cx="60" cy="70" r="4"/>
+      <circle class="sg-pt" cx="110" cy="70" r="4"/><circle class="sg-pt" cx="200" cy="70" r="4"/>
+      <circle class="sg-pt" cx="320" cy="70" r="4"/>
+      <path class="sg-arc" d="M30 66 Q45 44 60 66 M60 66 Q85 36 110 66 M110 66 Q155 26 200 66"/>
+      <text class="sg-op" x="30" y="40">× q</text><text class="sg-op" x="74" y="34">× q</text>
+      <text class="sg-op" x="144" y="24">× q</text>
+      <text class="sg-t" x="252" y="62">…</text>
+      <text class="sg-t" x="20" y="92">v₀</text><text class="sg-t" x="52" y="92">v₁</text>
+      <text class="sg-t" x="100" y="92">v₂</text><text class="sg-t" x="190" y="92">v₃</text>
+      <text class="sg-t" x="310" y="92">vₙ</text>
+      <path class="sg-br" d="M30 104 V114 H320 V104"/>
+      <text class="sg-t" x="108" y="130">vₙ = v₀ × qⁿ</text>
+      <path class="sg-br" d="M60 142 V152 H320 V142"/>
+      <text class="sg-t" x="118" y="168">vₙ = v₁ × qⁿ⁻¹</text>
+    </svg>
+  </div>
+  <p>Les points s'écartent de plus en plus :<br class="ae"> multiplier par 2 un grand nombre fait un grand
+     pas. La formule générale, à partir d'un terme <code>u<sub>p</sub></code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:14"><span class="langue">calcul</span><pre><code>uₙ <span class="j-op">=</span> uₚ <span class="j-op">×</span> qⁿ⁻ᵖ</code></pre></div>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Raison, avec <code>u<sub>0</sub> &gt; 0</code></th><th>La suite est</th></tr></thead>
+      <tbody>
+        <tr><td><code>q &gt; 1</code></td><td>croissante</td></tr>
+        <tr><td><code>0 &lt; q &lt; 1</code></td><td>décroissante</td></tr>
+        <tr><td><code>q = 1</code></td><td>constante</td></tr>
+        <tr><td><code>q &lt; 0</code></td><td>ni l'un ni l'autre : les signes alternent</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="rap">Avec <code>u<sub>0</sub> &lt; 0</code>, les deux premières lignes s'échangent.
+     Dans tous les cas, une suite géométrique de premier terme non nul n'est monotone que si sa
+     raison est positive ou nulle.</p>
+</section>
+
+<section id="somme-geo">
+  <h2><span class="num">07</span>La somme des termes d'une suite géométrique</h2>
+  <p>Pour tout réel <code>q ≠ 1</code> et tout entier <code>n ⩾ 1</code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:24"><span class="langue">calcul</span><pre><code><span class="j-num">1</span> <span class="j-op">+</span> q <span class="j-op">+</span> q<span class="j-num">²</span> <span class="j-op">+</span> … <span class="j-op">+</span> qⁿ
+  <span class="j-op">=</span> (<span class="j-num">1</span> − qⁿ⁺<span class="j-num">¹</span>) <span class="j-op">/</span> (<span class="j-num">1</span> − q)</code></pre></div>
+  <p>D'où la somme des <code>n + 1</code> premiers termes d'une suite géométrique :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:31"><span class="langue">calcul</span><pre><code>si q <span class="j-op">≠</span> <span class="j-num">1</span> :
+u₀ <span class="j-op">+</span> u₁ <span class="j-op">+</span> … <span class="j-op">+</span> uₙ
+  <span class="j-op">=</span> u₀ <span class="j-op">×</span> (<span class="j-num">1</span> − qⁿ⁺<span class="j-num">¹</span>) <span class="j-op">/</span> (<span class="j-num">1</span> − q)
+
+si q <span class="j-op">=</span> <span class="j-num">1</span> :
+u₀ <span class="j-op">+</span> u₁ <span class="j-op">+</span> … <span class="j-op">+</span> uₙ <span class="j-op">=</span> (n <span class="j-op">+</span> <span class="j-num">1</span>) <span class="j-op">×</span> u₀</code></pre></div>
+  <div class="encart analogie">
+    <div class="titre">🧮 La phrase à retenir</div>
+    <p><strong>Premier terme × (1 − q<sup>nombre de termes</sup>) / (1 − q).</strong> L'exposant
+       est le nombre de termes, soit <code>n + 1</code> quand on part de
+       <code>u<sub>0</sub></code>.</p>
+  </div>
+</section>
+
+<section id="exemple-geo">
+  <h2><span class="num">08</span>Un exemple complet, et le seuil par le logarithme</h2>
+  <p>Soit <code>(v<sub>n</sub>)</code> la suite géométrique de premier terme
+     <code>v<sub>0</sub> = 1,5</code> et de raison 2.</p>
+
+  <h3>1. Les premiers termes</h3>
+<div class="bloc-code" data-fam="calcul" style="--car:25"><span class="langue">calcul</span><pre><code>v₁ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> v₀ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">1,5</span> <span class="j-op">=</span> <span class="j-num">3</span>
+v₂ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> v₁ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> <span class="j-num">3</span> <span class="j-op">=</span> <span class="j-num">6</span>
+v₃ <span class="j-op">=</span> <span class="j-num">2</span> <span class="j-op">×</span> v₂ <span class="j-op">=</span> <span class="j-num">12</span></code></pre></div>
+
+  <h3>2. La relation explicite, puis v<sub>10</sub></h3>
+<div class="bloc-code" data-fam="calcul" style="--car:25"><span class="langue">calcul</span><pre><code>vₙ <span class="j-op">=</span> v₀ <span class="j-op">×</span> qⁿ
+vₙ <span class="j-op">=</span> <span class="j-num">1,5</span> <span class="j-op">×</span> <span class="j-num">2</span>ⁿ
+
+v₁<span class="j-num">₀</span> <span class="j-op">=</span> <span class="j-num">1,5</span> <span class="j-op">×</span> <span class="j-num">2</span><span class="j-num">¹⁰</span>
+    <span class="j-op">=</span> <span class="j-num">1,5</span> <span class="j-op">×</span> <span class="j-num">1</span> <span class="j-num">024</span> <span class="j-op">=</span> <span class="j-num">1</span> <span class="j-num">536</span></code></pre></div>
+
+  <h3>3. À partir de quel rang le seuil de 492 est-il dépassé ?</h3>
+  <p><strong>Par balayage :</strong></p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th><code>n</code></th><th><code>v<sub>n</sub></code></th></tr></thead>
+      <tbody>
+        <tr><td>8</td><td>384</td></tr>
+        <tr><td>9</td><td>768</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><code>v<sub>8</sub> &lt; 492 &lt; v<sub>9</sub></code>, et la suite est croissante :<br class="ae"> le
+     seuil de 492 est dépassé à partir du rang <strong>n = 9</strong>.</p>
+  <p><strong>Par une inéquation.</strong> Cette fois, <code>n</code> est en exposant. Pour le
+     faire descendre, on prend le <strong>logarithme népérien</strong> <code>ln</code> des deux
+     côtés, grâce à la règle <code>ln(a<sup>n</sup>) = n × ln(a)</code> :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:29"><span class="langue">calcul</span><pre><code><span class="j-num">1,5</span> <span class="j-op">×</span> <span class="j-num">2</span>ⁿ <span class="j-op">&gt;</span> <span class="j-num">492</span>
+<span class="j-num">2</span>ⁿ <span class="j-op">&gt;</span> <span class="j-num">492</span> <span class="j-op">/</span> <span class="j-num">1,5</span>
+<span class="j-num">2</span>ⁿ <span class="j-op">&gt;</span> <span class="j-num">328</span>
+<span class="j-fn">ln</span>(<span class="j-num">2</span>ⁿ) <span class="j-op">&gt;</span> <span class="j-fn">ln</span>(<span class="j-num">328</span>)
+n <span class="j-op">×</span> <span class="j-fn">ln</span>(<span class="j-num">2</span>) <span class="j-op">&gt;</span> <span class="j-fn">ln</span>(<span class="j-num">328</span>)
+n <span class="j-op">&gt;</span> <span class="j-fn">ln</span>(<span class="j-num">328</span>) <span class="j-op">/</span> <span class="j-fn">ln</span>(<span class="j-num">2</span>)
+     <span class="j-com">← ln(328) / ln(2) ≈ 8,36</span>
+
+n est un entier : n ⩾ <span class="j-num">9</span></code></pre></div>
+  <p>Le seuil de 492 est dépassé à partir du rang <strong>n = 9</strong>.</p>
+  <div class="encart piege">
+    <div class="titre">⚠️ Diviser par un logarithme négatif retourne l'inégalité</div>
+    <p>Ici <code>ln(2) &gt; 0</code>, donc le sens ne change pas. Mais pour une raison entre 0 et
+       1, par exemple 0,8, <code>ln(0,8)</code> est <strong>négatif</strong> : en divisant, le
+       <code>&gt;</code> devient <code>&lt;</code>.</p>
+    <p>Prendre le <code>ln</code> des deux côtés, lui, ne change jamais le sens :<br class="ae"> la fonction
+       <code>ln</code> est croissante.</p>
+  </div>
+  <p>Le <a href="../06-logarithme-exponentielle/cours.html">chapitre sur le logarithme</a>
+     reprend ses propriétés.</p>
+</section>
+
+<section id="pourcentage">
+  <h2><span class="num">09</span>Une hausse de 20 %, c'est × 1,2</h2>
+  <p>Augmenter une valeur <code>y</code> de 20 %, c'est lui ajouter 20 % d'elle-même :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:17"><span class="langue">calcul</span><pre><code>y <span class="j-op">+</span> (<span class="j-num">20</span><span class="j-op">/</span><span class="j-num">100</span>) <span class="j-op">×</span> y
+  <span class="j-op">=</span> y <span class="j-op">×</span> (<span class="j-num">1</span> <span class="j-op">+</span> <span class="j-num">0,2</span>)
+  <span class="j-op">=</span> y <span class="j-op">×</span> <span class="j-num">1,2</span></code></pre></div>
+  <p>Et une baisse de 20 % :</p>
+<div class="bloc-code" data-fam="calcul" style="--car:17"><span class="langue">calcul</span><pre><code>y − <span class="j-num">0,2</span> <span class="j-op">×</span> y
+  <span class="j-op">=</span> y <span class="j-op">×</span> (<span class="j-num">1</span> − <span class="j-num">0,2</span>)
+  <span class="j-op">=</span> y <span class="j-op">×</span> <span class="j-num">0,8</span></code></pre></div>
+  <p>Une grandeur qui augmente de 20 % chaque année est donc une suite
+     <strong>géométrique de raison 1,2</strong>, et une baisse de 20 % par an, une suite
+     géométrique de raison 0,8. C'est le modèle de l'exercice de la capacité éolienne, dans
+     les <a href="exercices.html#e1">exercices</a>.</p>
+  <div class="encart piege">
+    <div class="titre">⚠️ Une hausse en pourcentage n'est pas une suite arithmétique</div>
+    <p>« + 20 % par an » ne veut pas dire « + 20 par an ». La hausse se calcule sur la valeur
+       du moment :<br class="ae"> plus la valeur est grande, plus la hausse l'est aussi. On multiplie, on
+       n'ajoute pas.</p>
+  </div>
+</section>
+
+<section id="limites">
+  <h2><span class="num">10</span>Les limites des suites</h2>
+  <p>Une suite <code>(u<sub>n</sub>)</code> <strong>converge</strong> vers le réel
+     <code>L</code> si tout intervalle ouvert contenant <code>L</code> contient aussi tous les
+     termes de la suite, à partir d'un certain rang. Autrement dit, les termes finissent par
+     être aussi près de <code>L</code> qu'on veut.</p>
+  <p>Une suite qui ne converge pas est <strong>divergente</strong> :<br class="ae"> soit elle a une limite
+     infinie, soit elle n'a pas de limite du tout.</p>
+  <p>Les résultats ressemblent à ceux des <a href="../05-limites/cours.html">limites de
+     fonctions</a> :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Suites</th><th>Limite</th></tr></thead>
+      <tbody>
+        <tr><td><code>n</code>, <code>n²</code>, <code>√n</code>, <code>ln(n)</code>, <code>eⁿ</code></td><td><code>+∞</code></td></tr>
+        <tr><td><code>1/n</code>, <code>1/n²</code>, <code>1/√n</code>, <code>1/ln(n)</code>, <code>1/eⁿ</code></td><td><code>0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Et pour les puissances <code>q<sup>n</sup></code>, qui gouvernent les suites
+     géométriques :</p>
+  <div class="tableau">
+    <table>
+      <thead><tr><th>Raison</th><th>Limite de <code>q<sup>n</sup></code></th></tr></thead>
+      <tbody>
+        <tr><td><code>−1 &lt; q &lt; 1</code></td><td><code>0</code></td></tr>
+        <tr><td><code>q = 1</code></td><td><code>1</code> : la suite est constante</td></tr>
+        <tr><td><code>q &gt; 1</code></td><td><code>+∞</code></td></tr>
+        <tr><td><code>q ⩽ −1</code></td><td>pas de limite</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="quiz">
+    <div class="titre">❓ Auto-évaluation</div>
+    <p class="question">Une machine perd 20 % de sa valeur chaque année. Sa valeur
+       <code>1 000 × 0,8<sup>n</sup></code> tend vers quoi ?</p>
+    <button type="button">Afficher la réponse</button>
+    <div class="reponse">
+      <p><strong>Vers 0.</strong> La raison 0,8 est entre −1 et 1, donc
+         <code>0,8<sup>n</sup></code> tend vers 0, et <code>1 000 × 0,8<sup>n</sup></code> aussi.
+         La valeur ne devient jamais nulle, mais elle s'en approche autant qu'on veut.</p>
+    </div>
+  </div>
+</section>
+
+<section id="calculatrice">
+  <h2><span class="num">11</span>Avec la calculatrice du site</h2>
+  <p>La <a href="../../outils/calculatrice.html"><strong>calculatrice du site</strong></a> fait
+     les deux méthodes du balayage :</p>
+  <ul>
+    <li><strong>Application Suites</strong> :<br class="ae"> choisir la forme « récurrente », écrire
+        <code>u+3</code> et <code>u(0) = 5</code>, puis l'onglet <strong>Tableau</strong>, qui
+        donne les 25 premiers termes et leur somme. Pour la géométrique,
+        <code>2*u</code> et <code>u(0) = 1.5</code>.</li>
+    <li><strong>Application Fonctions</strong>, pour aller loin d'un coup :<br class="ae"> écrire la relation
+        explicite <code>5+3x</code>, puis l'onglet <strong>Tableau</strong> avec
+        <strong>début 80</strong> et <strong>pas 1</strong>. Les lignes 81 et 82 donnent 248 et
+        251. C'est la méthode du menu « table » d'une calculatrice de poche.</li>
+  </ul>
+  <p class="rap">Le tableau donne les valeurs ; la phrase de conclusion, avec la croissance de
+     la suite, reste à écrire.</p>
+</section>
+
+<footer>
+  <div class="recap" id="recap">
+    <h2>⚡ Récap 2 minutes</h2>
+    <ul>
+      <li><strong>Deux définitions</strong> :<br class="ae"> explicite <code>u<sub>n</sub> = f(n)</code>, ou
+          récurrence <code>u<sub>n+1</sub> = f(u<sub>n</sub>)</code> avec un premier terme.</li>
+      <li><strong>Arithmétique</strong> :<br class="ae"> <code>u<sub>n</sub> = u<sub>0</sub> + n·r</code> ;
+          somme = nombre de termes × (premier + dernier) / 2.</li>
+      <li><strong>Géométrique</strong> :<br class="ae"> <code>u<sub>n</sub> = u<sub>0</sub> × q<sup>n</sup></code> ;
+          somme = premier × (1 − q<sup>nombre de termes</sup>) / (1 − q).</li>
+      <li><strong>Un seuil</strong> :<br class="ae"> balayage (deux lignes du tableau, plus la croissance), ou
+          inéquation, avec <code>ln</code> si <code>n</code> est en exposant.</li>
+      <li><strong>+ 20 %</strong>, c'est <code>× 1,2</code> ; <strong>− 20 %</strong>, c'est
+          <code>× 0,8</code>.</li>
+      <li><strong>Limite de q<sup>n</sup></strong> : 0 si <code>−1 &lt; q &lt; 1</code>,
+          <code>+∞</code> si <code>q &gt; 1</code>.</li>
+    </ul>
+  </div>
+  <div class="sources">
+    <h2>Sources exploitées</h2>
+    <ul>
+      <li>Le tableau numérique de la séance du 19 novembre 2026 :<br class="ae"> le polycopié « Les suites
+          numériques » et ses exemples écrits à la main, la liste du programme, et l'exercice de
+          la capacité éolienne. Deux zones du tableau étaient masquées :<br class="ae"> la correction de
+          l'exercice est refaite et recalculée.</li>
+    </ul>
+  </div>
+</footer>
+
+
+<nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../14-calcul-matriciel/cours.html"><span>Chapitre précédent</span><b>Calcul matriciel</b></a><span class="vide"></span></nav>
+</main>
+</div>
+<script src="../../assets/fiche.js?v=44f6051d"></script>
+<script src="../../assets/app.js?v=44f6051d"></script>
+</body>
+</html>
