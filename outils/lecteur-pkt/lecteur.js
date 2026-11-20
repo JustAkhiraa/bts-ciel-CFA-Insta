@@ -9,7 +9,7 @@
    - « Schéma » : le réseau dessiné. Au-delà de 1000 px il reste affiché à
      droite, et la vue disparaît des onglets.
 
-   Le fichier ne quitte jamais la page : pkt.js le décode, analyse.js le lit. */
+   Le fichier ne quitte jamais la page : pkt.js le décode, reseaux.js le lit. */
 (function () {
   "use strict";
   var L = window.LecteurPKT, PKT = window.PKT;
@@ -94,6 +94,8 @@
       f.nom = src.nom; f.xml = xml;
       return f;
     }, function (e) {
+      // Sur téléphone, tout fichier peut être choisi : un autre nom, une autre explication.
+      if (!/\.pk[ta]$/i.test(src.nom)) throw new Error("« " + src.nom + " » n'est pas un fichier .pkt ou .pka. Choisissez celui du TP.");
       throw new Error("« " + src.nom + " » ne se lit pas : " + (e instanceof PKT.FormatInconnu ? e.message : "ce n'est pas un fichier .pkt ou .pka") + ".");
     });
   }
@@ -121,6 +123,8 @@
     })).then(function (sources) {
       if (comparer && etat.sources.length && sources.length === 1) sources.unshift(etat.sources[0]);
       ouvrir(sources);
+    }).catch(function () {
+      message("Le fichier n'a pas pu être ouvert. Réessayez, ou enregistrez-le d'abord sur l'appareil, puis choisissez-le là.", true);
     });
   }
   // L'appli « Lecteur PKT » du Mac ouvre une copie de cette page, fichier embarqué.
@@ -595,6 +599,10 @@
 
   /* ── les gestes de la tête ── */
   var entree = $("#pk-entree");
+  // Sur iPhone, iPad et Android, le filtre « .pkt,.pka » grise ces fichiers :
+  // le système ne connaît pas ces extensions. On y laisse tout choisir ; un
+  // fichier qui n'est pas un .pkt ou un .pka est refusé à la lecture.
+  if (window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 1) entree.removeAttribute("accept");
   var comparerEnSuite = false;
   function choisir(comparer) { comparerEnSuite = comparer; entree.click(); }
   entree.addEventListener("change", function () { depuisListe(entree.files, comparerEnSuite); entree.value = ""; });
