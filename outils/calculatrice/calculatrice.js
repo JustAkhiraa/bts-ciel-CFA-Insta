@@ -5545,6 +5545,23 @@
   /* Sur téléphone, on arrive dans la calculatrice, pas sur sa notice :
      sauf si le lien visait le catalogue, qu'on vient alors lire. */
   if (tel && !/catalogue/.test(location.hash)) telOuvrir(true);
+  /* « calculatrice.html#calc=10*4*1000000 » : un cours ouvre la
+     calculatrice avec un calcul posé et validé (20 nov. 2026 : la mémoire
+     perdue par une fuite, au chapitre de POO). Le calcul reste dans
+     l'historique : on le reprend, on change un nombre, on revalide. */
+  {
+    const m = /[#&]calc=([^&]+)/.exec(location.hash);
+    let texte = "";
+    if (m) { try { texte = decodeURIComponent(m[1]); } catch (e) {} }
+    if (texte) {
+      if (tel) telOuvrir(true);
+      aller("calculs");
+      const c = $("#nw-calc");
+      if (c) { c.value = texte; majSaisie(); valider(); }
+      // recharger la page ne le repose pas une seconde fois dans l'historique
+      try { history.replaceState(history.state, "", location.pathname + location.search); } catch (e) {}
+    }
+  }
 
   /* Le diagnostic, pour le banc de rendu et pour la console : il dit ce
      que la page sait d'elle-même. Sans point d'entrée mesurable, un
