@@ -5021,6 +5021,9 @@
     swot: '<rect x="2.5" y="2.5" width="15" height="15" rx="1.5"/><path d="M10 2.5v15M2.5 10h15"/>',
     carte: '<ellipse cx="10" cy="10" rx="3.5" ry="2.2"/><rect x="1.5" y="2" width="4" height="3" rx=".8"/><rect x="14.5" y="2" width="4" height="3" rx=".8"/><rect x="1.5" y="15" width="4" height="3" rx=".8"/><rect x="14.5" y="15" width="4" height="3" rx=".8"/><path d="M5.5 4.5l2 3.5M14.5 4.5l-2 3.5M5.5 15.5l2-3.5M14.5 15.5l-2-3.5"/>',
     chrono: '<path d="M2 9h15M15 7l2 2-2 2M5 7.5v3M9.5 7.5v3M14 7.5v3"/><rect x="3" y="13" width="4" height="3" rx=".8"/><rect x="11.5" y="13" width="4" height="3" rx=".8"/>',
+    "cycle-objet": '<rect x="5" y="1.5" width="10" height="4" rx="1"/><rect x="5" y="8" width="10" height="4" rx="1"/><rect x="5" y="14.5" width="10" height="4" rx="1"/><path d="M10 5.5V8M10 12v2.5"/>',
+    "classe-cpp": '<rect x="4" y="2" width="12" height="16" rx="1"/><path d="M4 6.5h12M4 11h12M6.5 13.5h5M6.5 15.8h7"/>',
+    "copie-objet": '<rect x="2" y="2" width="6" height="4" rx="1"/><rect x="12" y="2" width="6" height="4" rx="1"/><rect x="2" y="13" width="16" height="4" rx="1"/><path d="M5 6l3 7M15 6l-3 7"/>',
   };
   const MODELES = {
     kanban: ["Kanban", "trois colonnes, des notes à déplacer", () => {
@@ -5160,6 +5163,51 @@
         out.push(trait(i * 60 + 236, i * 76 + 28, 754 - i * 60, i * 76 + 28, { couleur: OC.gray[3], w: 1 })); });
       const code = cadre(380, 320, 230, 56, { backgroundColor: OC.yellow[0] });
       return out.concat(code, etiquette(code, "Codage", { fontSize: 18 }));
+    }],
+    /* Les trois modèles du chapitre de POO en C++ (20 nov. 2026) : le
+       cours les ouvre par « tableau.html#modele=… », pour dessiner la vie
+       d'un objet, une classe et ses constructeurs, et ce que devient la
+       mémoire quand on copie un objet qui a un pointeur. */
+    "cycle-objet": ["Cycle de vie d'un objet", "création, utilisation, destruction", () => {
+      const out = [libre(0, -56, "Cycle de vie d'un objet", 32)];
+      [["Création et initialisation", OC.green[0], "le constructeur"], ["Utilisation : les méthodes", OC.blue[0], ""],
+       ["Destruction", OC.red[0], "le destructeur"]].forEach(([t, fond, qui], i) => {
+        const c = cadre(0, i * 130, 360, 76, { backgroundColor: fond });
+        out.push(c, etiquette(c, t, { fontSize: 20 }));
+        if (qui) out.push(libre(384, i * 130 + 24, "← " + qui, 20, { strokeColor: OC.violet[4] }));
+        if (i < 2) out.push(trait(180, i * 130 + 80, 180, i * 130 + 126, { fleche: true }));
+      });
+      return out;
+    }],
+    "classe-cpp": ["Classe C++ (UML)", "attributs, constructeurs, destructeur", () => {
+      const out = gEntete(440, 44, 86, "#e5dbff", "Equipement", "- nom : string\n- numero : int\n- prix : float");
+      const m = gRect(0, 130, 440, 140);
+      out.push(m, gListe(m, "+ Equipement()\n+ Equipement(n : string, num : int, p : float)\n+ Equipement(autre : const Equipement&)\n+ ~Equipement()\n+ afficher() : void"));
+      const gris = { strokeColor: OC.gray[3] };
+      return out.concat(libre(464, 142, "constructeurs : le nom de la classe,\nsans type de retour", 16, gris),
+                        libre(464, 214, "destructeur : ~, sans paramètre", 16, gris));
+    }],
+    "copie-objet": ["Copie superficielle ou profonde", "deux objets, un tableau ou deux", () => {
+      const out = [libre(0, -70, "Copier un objet qui a un pointeur", 32)];
+      const objet = (x, nom) => { const c = cadre(x, 50, 190, 64, { backgroundColor: OC.blue[0] }); out.push(c, etiquette(c, nom + "\nmesures", { fontSize: 18 })); };
+      const tableau = (x, adresse) => {
+        ["21.5", "22.1", "23.4", "22.8"].forEach((v, i) => {
+          const c = cadre(x + i * 58, 200, 58, 50, { backgroundColor: OC.yellow[0], roundness: null });
+          out.push(c, etiquette(c, v, { fontSize: 16 }));
+        });
+        out.push(libre(x, 258, "adresse " + adresse, 15, { strokeColor: OC.gray[3] }));
+      };
+      // à gauche : la copie par défaut, membre par membre
+      out.push(libre(0, 0, "Copie superficielle", 24));
+      objet(0, "C1"); objet(240, "C2"); tableau(100, "1000");
+      out.push(trait(95, 118, 160, 196, { fleche: true }), trait(335, 118, 280, 196, { fleche: true }));
+      out.push(libre(0, 300, "un seul tableau : C2 le modifie, C1 le voit ;\ndelete[] deux fois = double libération", 16, { strokeColor: OC.red[4] }));
+      // à droite : le constructeur de copie alloue un tableau neuf
+      out.push(libre(560, 0, "Copie profonde", 24));
+      objet(560, "C1"); objet(840, "C2"); tableau(540, "1000"); tableau(820, "2000");
+      out.push(trait(655, 118, 655, 196, { fleche: true }), trait(935, 118, 935, 196, { fleche: true }));
+      out.push(libre(560, 300, "deux tableaux : chacun ses valeurs,\nchacun son delete[]", 16, { strokeColor: OC.green[4] }));
+      return out;
     }],
   };
   function insererModele(nom) {
@@ -7837,6 +7885,21 @@
   majZoom(); majFond(); majStylos(); majEncre(); majCote(); majBascules(); choisirOutil("selection");
   modeTel();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { replacerLies(); demander(); });
+  /* « tableau.html#modele=copie-objet » : un cours ouvre le tableau avec un
+     modèle posé (20 nov. 2026, chapitre de POO en C++). Le modèle s'AJOUTE
+     à ce qui est déjà dessiné, au milieu de la vue, comme depuis le menu.
+     L'adresse est ensuite nettoyée : recharger la page ne le pose pas une
+     seconde fois. Le tableau déjà ouvert l'entend aussi : changer seulement
+     la fin de l'adresse ne recharge pas la page, d'où « hashchange ». */
+  function modeleDeLAdresse() {
+    const m = /[#&]modele=([a-z0-9-]+)/.exec(location.hash);
+    if (m && Object.prototype.hasOwnProperty.call(MODELES, m[1])) {
+      insererModele(m[1]);
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    }
+  }
+  modeleDeLAdresse();
+  window.addEventListener("hashchange", modeleDeLAdresse);
   /* Un point d'entrée pour la vérification automatique : la scène lue
      et écrite telle qu'elle est, sans passer par la souris. */
   window.CIEL_TABLEAU = { scene: () => sceneJSON(), ouvrir: (t) => ouvrirTexte(t, "test"), etat: () => etat,

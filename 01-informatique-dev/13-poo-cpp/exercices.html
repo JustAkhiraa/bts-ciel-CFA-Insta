@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POO en C++ · exercices corrigés | BTS CIEL</title>
-<meta name="description" content="L'exercice du cours corrigé et exécuté, saisir et afficher les informations d'un étudiant avec cin, getline et cin.ignore(), puis quatre exercices d'entraînement : reconnaître classe, attribut, méthode et objet, écrire une classe Ordinateur, corriger deux erreurs dans une classe, et définir une méthode hors de la classe.">
+<meta name="description" content="L'exercice du cours corrigé et exécuté, saisir et afficher les informations d'un étudiant avec cin, getline et cin.ignore(), puis quatre exercices d'entraînement : reconnaître classe, attribut, méthode et objet, écrire une classe Ordinateur, corriger deux erreurs dans une classe, et définir une méthode hors de la classe. Puis cinq exercices sur les constructeurs et les destructeurs : quel constructeur est appelé, l'ordre des destructions, trois erreurs dans une classe, une liste d'initialisation, et une copie profonde.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style==="classique"?"classique":"lanceur";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=44f6051d">
+<link rel="stylesheet" href="../../assets/fiche.css?v=c914a288">
 </head>
 <body data-matiere="dev">
 <div class="page">
@@ -20,6 +20,7 @@
     <li><a href="#vocabulaire">2 · Reconnaître les quatre mots</a></li>
     <li><a href="#ordinateur">3 · Écrire une classe</a></li>
     <li><a href="#classes">4 · Les erreurs, et <code>::</code></a></li>
+    <li><a href="#constructeurs">5 · Constructeurs et destructeurs</a></li>
   </ol>
 </nav>
 
@@ -37,7 +38,9 @@
   <p class="chapeau">L'<strong>exercice du cours</strong> d'abord, corrigé, compilé puis exécuté :<br class="ae">
      il fait travailler <code>cin</code>, <code>getline</code>, et le piège de
      <code>cin.ignore()</code>. Puis <strong>quatre exercices d'entraînement</strong>, ajoutés ici
-     et construits sur les exemples du cours :<br class="ae"> ils ne viennent pas du sujet distribué.</p>
+     et construits sur les exemples du cours :<br class="ae"> ils ne viennent pas du sujet distribué. Enfin
+     <strong>cinq exercices sur les constructeurs et les destructeurs</strong>, construits de
+     la même façon sur la séance du 20 novembre.</p>
 
   <div class="encart methode">
     <div class="titre">🎯 Comment travailler ce chapitre</div>
@@ -427,6 +430,466 @@ srv-sauvegarde (192.168.10.20) : 2000 Go</code></pre></div>
   </article>
 </section>
 
+<section id="constructeurs">
+  <h2><span class="num">05</span>Constructeurs et destructeurs</h2>
+  <p class="chapeau">La séance du 20 novembre :<br class="ae"> choisir le bon constructeur, prévoir quand
+     un objet meurt, et copier un objet qui a un pointeur sans partager sa mémoire.</p>
+
+  <article class="exo">
+    <h3><span class="no">6</span>Quel constructeur est appelé ? <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>La classe <code>Equipement</code> a trois constructeurs :<br class="ae"> sans paramètre, avec
+         <code>(string n)</code>, avec <code>(string n, int num, float p)</code>. Pour chaque
+         ligne, dire quel constructeur est appelé, ou si la ligne ne compile pas.</p>
+      <div class="bloc-code" data-fam="cpp" style="--car:33"><span class="langue">C++</span><pre><code><span class="j-var">Equipement</span> <span class="j-var">a</span>;
+<span class="j-var">Equipement</span> <span class="j-fn">b</span>(<span class="j-txt">"Imprimante"</span>);
+<span class="j-var">Equipement</span> <span class="j-fn">c</span>(<span class="j-txt">"Routeur"</span>, <span class="j-num">12</span>, <span class="j-num">640</span>);
+<span class="j-var">Equipement</span> <span class="j-fn">d</span>(<span class="j-var">c</span>);
+<span class="j-var">Equipement</span> <span class="j-fn">e</span>(<span class="j-num">12</span>);</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <ul>
+          <li><code>a</code> :<br class="ae"> le constructeur <strong>sans paramètre</strong>.</li>
+          <li><code>b</code> : celui à <strong>un</strong> paramètre <code>string</code>.</li>
+          <li><code>c</code> : celui à <strong>trois</strong> paramètres.</li>
+          <li><code>d</code> : le <strong>constructeur de copie</strong>. La classe n'en écrit
+              pas :<br class="ae"> le compilateur en fournit un, qui copie les attributs un par un.</li>
+          <li><code>e</code> : <strong>ne compile pas</strong>. Aucun constructeur ne prend un
+              seul <code>int</code>, et un entier ne se change pas en <code>string</code>.</li>
+        </ul>
+        <div class="bloc-code" data-fam="cpp" data-plie style="--car:47"><span class="langue">C++ · ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Equipement</span>
+{
+<span class="j-mc">private</span><span class="j-op">:</span>
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+    <span class="j-typ">int</span> <span class="j-var">numero</span>;
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Equipement</span>()
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-txt">"Inconnu"</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    }
+
+    <span class="j-fn">Equipement</span>(<span class="j-typ">string</span> <span class="j-var">n</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    }
+
+    <span class="j-fn">Equipement</span>(<span class="j-typ">string</span> <span class="j-var">n</span>, <span class="j-typ">int</span> <span class="j-var">num</span>, <span class="j-typ">float</span> <span class="j-var">p</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-var">num</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-var">p</span>;
+    }
+
+    <span class="j-typ">void</span> <span class="j-fn">afficher</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" / "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">numero</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" / "</span>
+             <span class="j-op">&lt;&lt;</span> <span class="j-var">prix</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" euros"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Equipement</span> <span class="j-var">a</span>;
+    <span class="j-var">Equipement</span> <span class="j-fn">b</span>(<span class="j-txt">"Imprimante"</span>);
+    <span class="j-var">Equipement</span> <span class="j-fn">c</span>(<span class="j-txt">"Routeur"</span>, <span class="j-num">12</span>, <span class="j-num">640</span>);
+    <span class="j-var">Equipement</span> <span class="j-fn">d</span>(<span class="j-var">c</span>);
+    <span class="j-var">Equipement</span> <span class="j-fn">e</span>(<span class="j-num">12</span>);
+
+    <span class="j-var">a</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">b</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">c</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">d</span>.<span class="j-fn">afficher</span>();
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+        <div class="bloc-code" data-plie style="--car:69"><span class="langue">erreur réelle du compilateur</span><pre><code>ligne 47 : no matching constructor for initialization of &#x27;Equipement&#x27;</code></pre></div>
+        <p>Sans la ligne de <code>e</code>, le programme tourne :</p>
+        <div class="bloc-code" data-fam="cpp" data-plie style="--car:47"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Equipement</span>
+{
+<span class="j-mc">private</span><span class="j-op">:</span>
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+    <span class="j-typ">int</span> <span class="j-var">numero</span>;
+    <span class="j-typ">float</span> <span class="j-var">prix</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Equipement</span>()
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-txt">"Inconnu"</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    }
+
+    <span class="j-fn">Equipement</span>(<span class="j-typ">string</span> <span class="j-var">n</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+    }
+
+    <span class="j-fn">Equipement</span>(<span class="j-typ">string</span> <span class="j-var">n</span>, <span class="j-typ">int</span> <span class="j-var">num</span>, <span class="j-typ">float</span> <span class="j-var">p</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-var">numero</span> <span class="j-op">=</span> <span class="j-var">num</span>;
+        <span class="j-var">prix</span> <span class="j-op">=</span> <span class="j-var">p</span>;
+    }
+
+    <span class="j-typ">void</span> <span class="j-fn">afficher</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" / "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">numero</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" / "</span>
+             <span class="j-op">&lt;&lt;</span> <span class="j-var">prix</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" euros"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Equipement</span> <span class="j-var">a</span>;
+    <span class="j-var">Equipement</span> <span class="j-fn">b</span>(<span class="j-txt">"Imprimante"</span>);
+    <span class="j-var">Equipement</span> <span class="j-fn">c</span>(<span class="j-txt">"Routeur"</span>, <span class="j-num">12</span>, <span class="j-num">640</span>);
+    <span class="j-var">Equipement</span> <span class="j-fn">d</span>(<span class="j-var">c</span>);
+
+    <span class="j-var">a</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">b</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">c</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">d</span>.<span class="j-fn">afficher</span>();
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:24"><span class="langue">sortie réelle</span><pre><code>Inconnu / 0 / 0 euros
+Imprimante / 0 / 0 euros
+Routeur / 12 / 640 euros
+Routeur / 12 / 640 euros</code></pre></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">7</span>Dans quel ordre ? <span class="niveau n2">Moyen</span></h3>
+    <div class="enonce">
+      <p>Sans l'exécuter, écrire ce qu'affiche ce programme, ligne par ligne. Le
+         constructeur affiche <code>+</code> et le nom, le destructeur <code>-</code> et le
+         nom.</p>
+      <div class="bloc-code" data-fam="cpp" data-plie style="--car:36"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Poste</span>
+{
+<span class="j-mc">private</span><span class="j-op">:</span>
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Poste</span>(<span class="j-typ">string</span> <span class="j-var">n</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"+ "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+
+    <span class="j-op">~</span><span class="j-fn">Poste</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"- "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Poste</span> <span class="j-fn">a</span>(<span class="j-txt">"PC1"</span>);
+    <span class="j-var">Poste</span><span class="j-op">*</span> <span class="j-var">p</span> <span class="j-op">=</span> <span class="j-mc">new</span> <span class="j-fn">Poste</span>(<span class="j-txt">"PC2"</span>);
+
+    {
+        <span class="j-var">Poste</span> <span class="j-fn">b</span>(<span class="j-txt">"PC3"</span>);
+    }
+
+    <span class="j-mc">delete</span> <span class="j-var">p</span>;
+    <span class="j-var">Poste</span> <span class="j-fn">c</span>(<span class="j-txt">"PC4"</span>);
+
+    <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"fin"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code" style="--car:5"><span class="langue">sortie réelle</span><pre><code>+ PC1
++ PC2
++ PC3
+- PC3
+- PC2
++ PC4
+fin
+- PC4
+- PC1</code></pre></div>
+        <ul>
+          <li><code>PC3</code> vit dans un bloc <code>{ }</code> :<br class="ae"> il meurt à l'accolade
+              fermante, juste après sa naissance.</li>
+          <li><code>PC2</code> est dynamique :<br class="ae"> il meurt au <code>delete p;</code>, pas avant,
+              pas après.</li>
+          <li>À la sortie de <code>main</code>, il reste <code>PC1</code> et
+              <code>PC4</code> :<br class="ae"> le dernier créé, <code>PC4</code>, part le premier.</li>
+        </ul>
+        <p class="rap">Sans le <code>delete p;</code>, la ligne « - PC2 » n'apparaîtrait
+           jamais :<br class="ae"> l'objet ne serait jamais détruit.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">8</span>Trois erreurs dans une classe <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Ce programme ne compile pas. Le compilateur annonce deux erreurs ; une troisième
+         n'apparaît qu'une fois les deux premières corrigées. Les trouver toutes.</p>
+      <div class="bloc-code" data-fam="cpp" data-plie style="--car:39"><span class="langue">C++ · ne compile pas</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Salle</span>
+{
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+
+    <span class="j-typ">void</span> <span class="j-fn">Salle</span>()
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-txt">"B12"</span>;
+    }
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-op">~</span><span class="j-fn">Salle</span>(<span class="j-typ">int</span> <span class="j-var">n</span>)
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Salle fermee"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Salle</span> <span class="j-var">s1</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code" data-plie style="--car:48"><span class="langue">erreurs réelles du compilateur</span><pre><code>ligne 9 : constructor cannot have a return type
+ligne 15 : destructor cannot have any parameters</code></pre></div>
+        <p><strong>1.</strong> Un constructeur n'a <strong>aucun type de retour</strong> :<br class="ae">
+           <code>void Salle()</code> devient <code>Salle()</code>.</p>
+        <p><strong>2.</strong> Un destructeur ne reçoit <strong>aucun paramètre</strong> :<br class="ae">
+           <code>~Salle(int n)</code> devient <code>~Salle()</code>.</p>
+        <p><strong>3.</strong> Une fois les deux corrigées, le compilateur dit :</p>
+        <div class="bloc-code" data-plie style="--car:57"><span class="langue">erreur réelle du compilateur</span><pre><code>ligne 23 : calling a private constructor of class &#x27;Salle&#x27;</code></pre></div>
+        <p>Le constructeur est écrit avant <code>public:</code> :<br class="ae"> il est
+           <strong>privé</strong>, et <code>main</code> ne peut pas créer de salle. On le
+           place après <code>public:</code>.</p>
+        <div class="bloc-code" data-fam="cpp" data-plie style="--car:39"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Salle</span>
+{
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Salle</span>()
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-txt">"B12"</span>;
+    }
+
+    <span class="j-op">~</span><span class="j-fn">Salle</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Salle fermee"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Salle</span> <span class="j-var">s1</span>;
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:12"><span class="langue">sortie réelle</span><pre><code>Salle fermee</code></pre></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">9</span>Une liste d'initialisation <span class="niveau n1">Facile</span></h3>
+    <div class="enonce">
+      <p>Écrire une classe <code>Salle</code> (numéro, nom, capacité) dont le constructeur à
+         trois paramètres remplit les attributs par une <strong>liste
+         d'initialisation</strong>, corps vide. Créer la salle 12, « Reseaux », 16 places,
+         et l'afficher sur une ligne.</p>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="cpp" data-plie style="--car:54"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Salle</span>
+{
+<span class="j-mc">private</span><span class="j-op">:</span>
+    <span class="j-typ">int</span> <span class="j-var">numero</span>;
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+    <span class="j-typ">int</span> <span class="j-var">capacite</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Salle</span>(<span class="j-typ">int</span> <span class="j-var">num</span>, <span class="j-typ">string</span> <span class="j-var">n</span>, <span class="j-typ">int</span> <span class="j-var">c</span>)
+        <span class="j-op">:</span> <span class="j-fn">numero</span>(<span class="j-var">num</span>), <span class="j-fn">nom</span>(<span class="j-var">n</span>), <span class="j-fn">capacite</span>(<span class="j-var">c</span>)
+    {
+    }
+
+    <span class="j-typ">void</span> <span class="j-fn">afficher</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"Salle "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">numero</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" : "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span>
+             <span class="j-op">&lt;&lt;</span> <span class="j-txt">", "</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">capacite</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" places"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Salle</span> <span class="j-fn">s1</span>(<span class="j-num">12</span>, <span class="j-txt">"Reseaux"</span>, <span class="j-num">16</span>);
+    <span class="j-var">s1</span>.<span class="j-fn">afficher</span>();
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:29"><span class="langue">sortie réelle</span><pre><code>Salle 12 : Reseaux, 16 places</code></pre></div>
+        <p>La liste se place après <code>:</code>, entre la parenthèse et l'accolade. Chaque
+           attribut prend sa valeur entre parenthèses : <code>numero(num)</code>.</p>
+      </div>
+    </div>
+  </article>
+
+  <article class="exo">
+    <h3><span class="no">10</span>Le relevé de notes, copié en profondeur <span class="niveau n3">Difficile</span></h3>
+    <div class="enonce">
+      <p>Une classe <code>Releve</code> garde le nom d'une matière et un nombre de notes
+         choisi à la création.</p>
+      <ol>
+        <li>Attributs privés :<br class="ae"> <code>nom</code>, <code>nombreNotes</code>,<br class="ae"> et
+            <code>float* notes</code>.</li>
+        <li>Un constructeur <code>Releve(string n, int nb)</code> qui réserve le tableau et
+            met les notes à 0.</li>
+        <li>Un destructeur qui libère le tableau.</li>
+        <li>Un constructeur de copie qui fait une <strong>copie profonde</strong>.</li>
+        <li><code>setNote(i, v)</code>, qui refuse un indice hors du tableau ;
+            <code>moyenne()</code> ; <code>afficher()</code>.</li>
+        <li>Dans <code>main</code> :<br class="ae"> <code>r1</code> (« Reseau », 3 notes : 12, 15.5, 9),
+            <code>r2</code> copie de <code>r1</code>, puis la note 3 de <code>r2</code>
+            passe à 14. Afficher les deux.</li>
+      </ol>
+    </div>
+    <div class="quiz">
+      <div class="titre">✅ Correction</div>
+      <button type="button" data-ouvrir="Afficher la correction" data-fermer="Masquer la correction">Afficher la correction</button>
+      <div class="reponse">
+        <div class="bloc-code" data-fam="cpp" data-plie style="--car:56"><span class="langue">C++</span><pre><code><span class="j-pre">#include</span> <span class="j-txt">&lt;iostream&gt;</span>
+<span class="j-pre">#include</span> <span class="j-txt">&lt;string&gt;</span>
+<span class="j-mc">using</span> <span class="j-mc">namespace</span> <span class="j-typ">std</span>;
+
+<span class="j-mc">class</span> <span class="j-var">Releve</span>
+{
+<span class="j-mc">private</span><span class="j-op">:</span>
+    <span class="j-typ">string</span> <span class="j-var">nom</span>;
+    <span class="j-typ">int</span> <span class="j-var">nombreNotes</span>;
+    <span class="j-typ">float</span><span class="j-op">*</span> <span class="j-var">notes</span>;
+
+<span class="j-mc">public</span><span class="j-op">:</span>
+    <span class="j-fn">Releve</span>(<span class="j-typ">string</span> <span class="j-var">n</span>, <span class="j-typ">int</span> <span class="j-var">nb</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">n</span>;
+        <span class="j-var">nombreNotes</span> <span class="j-op">=</span> <span class="j-var">nb</span>;
+        <span class="j-var">notes</span> <span class="j-op">=</span> <span class="j-mc">new</span> <span class="j-typ">float</span>[<span class="j-var">nb</span>];
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">nb</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        {
+            <span class="j-var">notes</span>[<span class="j-var">i</span>] <span class="j-op">=</span> <span class="j-num">0</span>;
+        }
+    }
+
+    <span class="j-com">// Copie profonde : un tableau neuf</span>
+    <span class="j-fn">Releve</span>(<span class="j-mc">const</span> <span class="j-var">Releve</span><span class="j-op">&amp;</span> <span class="j-var">autre</span>)
+    {
+        <span class="j-var">nom</span> <span class="j-op">=</span> <span class="j-var">autre</span>.<span class="j-var">nom</span>;
+        <span class="j-var">nombreNotes</span> <span class="j-op">=</span> <span class="j-var">autre</span>.<span class="j-var">nombreNotes</span>;
+        <span class="j-var">notes</span> <span class="j-op">=</span> <span class="j-mc">new</span> <span class="j-typ">float</span>[<span class="j-var">nombreNotes</span>];
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">nombreNotes</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        {
+            <span class="j-var">notes</span>[<span class="j-var">i</span>] <span class="j-op">=</span> <span class="j-var">autre</span>.<span class="j-var">notes</span>[<span class="j-var">i</span>];
+        }
+    }
+
+    <span class="j-op">~</span><span class="j-fn">Releve</span>()
+    {
+        <span class="j-mc">delete</span>[] <span class="j-var">notes</span>;
+    }
+
+    <span class="j-typ">void</span> <span class="j-fn">setNote</span>(<span class="j-typ">int</span> <span class="j-var">i</span>, <span class="j-typ">float</span> <span class="j-var">v</span>)
+    {
+        <span class="j-mc">if</span> (<span class="j-var">i</span> <span class="j-op">&gt;=</span> <span class="j-num">0</span> <span class="j-op">&amp;&amp;</span> <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">nombreNotes</span>)
+        {
+            <span class="j-var">notes</span>[<span class="j-var">i</span>] <span class="j-op">=</span> <span class="j-var">v</span>;
+        }
+    }
+
+    <span class="j-typ">float</span> <span class="j-fn">moyenne</span>()
+    {
+        <span class="j-typ">float</span> <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-num">0</span>;
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">nombreNotes</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        {
+            <span class="j-var">somme</span> <span class="j-op">=</span> <span class="j-var">somme</span> <span class="j-op">+</span> <span class="j-var">notes</span>[<span class="j-var">i</span>];
+        }
+        <span class="j-mc">return</span> <span class="j-var">somme</span> <span class="j-op">/</span> <span class="j-var">nombreNotes</span>;
+    }
+
+    <span class="j-typ">void</span> <span class="j-fn">afficher</span>()
+    {
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">nom</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">" : "</span>;
+        <span class="j-mc">for</span> (<span class="j-typ">int</span> <span class="j-var">i</span> <span class="j-op">=</span> <span class="j-num">0</span>; <span class="j-var">i</span> <span class="j-op">&lt;</span> <span class="j-var">nombreNotes</span>; <span class="j-var">i</span><span class="j-op">++</span>)
+        {
+            <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-var">notes</span>[<span class="j-var">i</span>] <span class="j-op">&lt;&lt;</span> <span class="j-txt">" "</span>;
+        }
+        <span class="j-typ">cout</span> <span class="j-op">&lt;&lt;</span> <span class="j-txt">"(moyenne "</span> <span class="j-op">&lt;&lt;</span> <span class="j-fn">moyenne</span>() <span class="j-op">&lt;&lt;</span> <span class="j-txt">")"</span> <span class="j-op">&lt;&lt;</span> <span class="j-typ">endl</span>;
+    }
+};
+
+<span class="j-typ">int</span> <span class="j-fn">main</span>()
+{
+    <span class="j-var">Releve</span> <span class="j-fn">r1</span>(<span class="j-txt">"Reseau"</span>, <span class="j-num">3</span>);
+    <span class="j-var">r1</span>.<span class="j-fn">setNote</span>(<span class="j-num">0</span>, <span class="j-num">12</span>);
+    <span class="j-var">r1</span>.<span class="j-fn">setNote</span>(<span class="j-num">1</span>, <span class="j-num">15.5</span>);
+    <span class="j-var">r1</span>.<span class="j-fn">setNote</span>(<span class="j-num">2</span>, <span class="j-num">9</span>);
+
+    <span class="j-var">Releve</span> <span class="j-fn">r2</span>(<span class="j-var">r1</span>);
+    <span class="j-var">r2</span>.<span class="j-fn">setNote</span>(<span class="j-num">2</span>, <span class="j-num">14</span>);
+
+    <span class="j-var">r1</span>.<span class="j-fn">afficher</span>();
+    <span class="j-var">r2</span>.<span class="j-fn">afficher</span>();
+
+    <span class="j-mc">return</span> <span class="j-num">0</span>;
+}</code></pre></div><div class="bloc-code" style="--car:37"><span class="langue">sortie réelle</span><pre><code>Reseau : 12 15.5 9 (moyenne 12.1667)
+Reseau : 12 15.5 14 (moyenne 13.8333)</code></pre></div>
+        <p><code>r1</code> garde 9 et sa moyenne :<br class="ae"> la copie a son propre tableau. Sans le
+           constructeur de copie, <code>r1</code> afficherait aussi 14, puis les deux
+           destructeurs libéreraient le même tableau.</p>
+        <p class="rap">La « note 3 » est à l'indice 2 :<br class="ae"> un tableau se compte à partir de
+           zéro.</p>
+      </div>
+    </div>
+  </article>
+</section>
+
 <footer>
   <div class="recap">
     <h2>⚡ Ce que ces exercices font travailler</h2>
@@ -440,22 +903,31 @@ srv-sauvegarde (192.168.10.20) : 2000 Go</code></pre></div>
           <code>public:</code>, et l'accolade fermée par <code>};</code>.</li>
       <li><strong>Exercices 4 et 5</strong> :<br class="ae"> le point-virgule final, le privé par défaut, et
           une méthode définie hors de la classe avec <code>::</code>.</li>
+      <li><strong>Exercices 6 à 8</strong> :<br class="ae"> le compilateur choisit le constructeur d'après
+          les arguments ; un objet meurt à la fin de son bloc ou au <code>delete</code>, le
+          dernier créé en premier ; ni type de retour au constructeur, ni paramètre au
+          destructeur.</li>
+      <li><strong>Exercices 9 et 10</strong> :<br class="ae"> la liste d'initialisation, et une classe à
+          pointeur complète, qui réserve, libère et copie en profondeur.</li>
     </ul>
   </div>
 
   <div class="sources">
     <h2>Sources exploitées</h2>
     <ul>
-      <li>« Programmation Orientée Objet » :<br class="ae"> le professeur, séance du 30/10/2026,
-          chapitre 2, section 6 : l'exercice</li>
+      <li>Le support « Programmation Orientée Objet », séance du 30/10/2026, chapitre 2,
+          section 6 : l'exercice</li>
       <li>Le même cours, chapitre 1 :<br class="ae"> l'objet <code>Ordinateur</code> et la classe
           <code>Capteur</code>, à partir desquels les exercices 2 et 3 sont construits</li>
       <li>La séance du 06/11/2026, chapitre 3 (classes et objets) :<br class="ae"> les exercices 4 et 5
           sont construits sur ses exemples</li>
+      <li>La séance du 20/11/2026, constructeurs et destructeurs :<br class="ae"> les exercices 6 à 10 sont
+          construits sur ses exemples</li>
     </ul>
-    <p class="rap">Les cinq programmes sont compilés avec <code>c++ -std=c++17</code> à
-       chaque contrôle par <code>verif-c.py</code>. Celui de l'exercice 4 doit être refusé, et
-       il l'est. Les sorties des exercices 2, 3 et 5 sont recomparées caractère pour caractère ; celle de l'exercice 1, interactive, est
+    <p class="rap">Les programmes sont compilés avec <code>c++ -std=c++17</code> à chaque
+       contrôle par <code>verif-c.py</code>. Ceux des exercices 4, 6 et 8 annoncés « ne compile
+       pas » doivent être refusés, et ils le sont. Les sorties des exercices 2, 3, 5 et 6 à 10
+       sont recomparées caractère pour caractère ; celle de l'exercice 1, interactive, est
        exécutée avec les saisies indiquées.</p>
   </div>
 </footer>
@@ -464,7 +936,7 @@ srv-sauvegarde (192.168.10.20) : 2000 Go</code></pre></div>
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-langage-c/exercices.html"><span>Chapitre précédent</span><b>Langage C</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=44f6051d"></script>
-<script src="../../assets/app.js?v=44f6051d"></script>
+<script src="../../assets/fiche.js?v=c914a288"></script>
+<script src="../../assets/app.js?v=c914a288"></script>
 </body>
 </html>

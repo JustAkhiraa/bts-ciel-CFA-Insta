@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POO en C++ · fiche de révision | BTS CIEL</title>
-<meta name="description" content="Fiche imprimable : objet, classe, attribut, méthode, les quatre principes de la POO, puis le squelette C++, cout, cin, string, getline et cin.ignore(), les classes et l'encapsulation : private, public, protected, getters et setters.">
+<meta name="description" content="Fiche imprimable : objet, classe, attribut, méthode, les quatre principes de la POO, puis le squelette C++, cout, cin, string, getline et cin.ignore(), les classes et l'encapsulation : private, public, protected, getters et setters. Puis les constructeurs et le destructeur, new et delete, la fuite, la double libération et la copie profonde.">
 <meta name="theme-color" content="#FDF5E6">
 <script>try{var S=JSON.parse(localStorage.getItem("bts-ciel")||"{}"),SOMBRES=["dark","emerald","ocean","mocha","nordic","carbon","rosewood","sunset","starry","aurora","midnight","amoled","voxel","pixel","terminal","matrix","crt","midgar","determination","velours","neon-lime","console-bleue","verre-nuit"],d=document.documentElement,T=("theme" in S)?S.theme:"bloc-notes",n=T?SOMBRES.indexOf(T)>-1:matchMedia("(prefers-color-scheme: dark)").matches;if(T&&S.variante)n=S.variante==="sombre";d.dataset.theme=d.dataset.da?(n?"dark":"light"):(T||(n?"dark":"light"));d.dataset.sombre=n?"1":"0";d.dataset.taille=S.taille||"normal";d.dataset.largeur=S.largeur||"normal";d.dataset.police=S.police||"systeme";d.dataset.interligne=S.interligne||"normal";d.dataset.anim=S.anim===0?"0":"1";d.dataset.style=S.style==="classique"?"classique":"lanceur";d.dataset.curseur=S.curseur===0?"0":"1"}catch(e){}</script><script>try{if(window.self!==window.top)document.documentElement.dataset.encadre="1"}catch(e){document.documentElement.dataset.encadre="1"}</script><script>(function(){var d=document.documentElement;if(d.dataset.anim!=="0"&&d.dataset.encadre!=="1"&&window.matchMedia&&matchMedia("(max-width: 760px) and (prefers-reduced-motion: no-preference)").matches){var s=document.createElement("style");s.textContent="@view-transition{navigation:auto}";document.head.appendChild(s)}function g(v){if(!v)return;[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){if(p&&p.catch)p.catch(function(){})})}addEventListener("pagereveal",function(e){g(e.viewTransition)});addEventListener("pageswap",function(e){g(e.viewTransition)})})()</script>
-<link rel="stylesheet" href="../../assets/fiche.css?v=44f6051d">
+<link rel="stylesheet" href="../../assets/fiche.css?v=c914a288">
 </head>
 <body data-matiere="dev">
 <div class="page revision">
@@ -20,7 +20,7 @@
     <span class="sep">/</span><span class="badge">Fiche de révision</span>
   </div>
   <h1>POO en C++</h1>
-  <p class="chapeau">Les idées de la POO, les bases du C++, les classes et l'encapsulation sur une seule fiche. À relire la
+  <p class="chapeau">Les idées de la POO, les bases du C++, les classes, l'encapsulation, les constructeurs et le destructeur sur une seule fiche. À relire la
      veille. <a href="cours.html">Le cours</a> · <a href="exercices.html">Les exercices</a></p>
 </header>
 
@@ -148,12 +148,70 @@
     <p class="rap">Un setter sans <code>if</code> ne protège rien :<br class="ae"> il recopie n'importe
        quelle valeur.</p>
   </article>
+  <article class="memo cle">
+    <h2>⚡ Constructeurs et destructeur</h2>
+    <div class="formule">Equipement()  ← par défaut<br>
+      Equipement(string n, int num)<br>
+      &nbsp;&nbsp;← avec paramètres<br>
+      Equipement(const Equipement&amp; a)<br>
+      &nbsp;&nbsp;← de copie<br>
+      ~Equipement()  ← destructeur</div>
+    <ul>
+      <li><strong>Constructeur</strong> :<br class="ae"> le nom de la classe, aucun type de retour, appelé à
+          la création. On peut en écrire plusieurs.</li>
+      <li><strong>Destructeur</strong> :<br class="ae"> <code>~</code> devant le nom, aucun paramètre, un
+          seul par classe.</li>
+      <li><strong>Liste d'initialisation</strong> :<br class="ae"> <code>: nom(n), numero(num)</code> entre
+          la parenthèse et l'accolade.</li>
+    </ul>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚠️ Les pièges des constructeurs</h2>
+    <ul>
+      <li><code>void Salle()</code> :<br class="ae"> refusé, un constructeur n'a pas de type de retour.</li>
+      <li><code>~Salle(int n)</code> :<br class="ae"> refusé, un destructeur ne prend rien.</li>
+      <li>Un constructeur avant <code>public:</code> est privé : <code>main</code> ne crée
+          plus d'objet.</li>
+      <li>Un constructeur écrit, et le constructeur par défaut gratuit disparaît.</li>
+      <li><code>Equipement e1();</code> déclare une fonction :<br class="ae"> on écrit
+          <code>Equipement e1;</code></li>
+    </ul>
+  </article>
+
+  <article class="memo">
+    <h2>⚡ Quand un objet meurt</h2>
+    <div class="formule">Equipement e1;<br>
+      &nbsp;&nbsp;← meurt à la fin du bloc<br>
+      Equipement* p = new Equipement;<br>
+      &nbsp;&nbsp;← meurt au delete p;</div>
+    <p>Objet automatique : <code>e1.nom</code>. Objet dynamique : <code>p-&gt;nom</code>.</p>
+    <p class="rap">Plusieurs objets d'un bloc :<br class="ae"> <strong>le dernier créé part le
+       premier</strong>.</p>
+  </article>
+
+  <article class="memo alerte">
+    <h2>⚡ Une classe avec un pointeur</h2>
+    <div class="formule">mesures = new float[n];<br>
+      &nbsp;&nbsp;← dans le constructeur<br>
+      delete[] mesures;<br>
+      &nbsp;&nbsp;← dans le destructeur</div>
+    <ul>
+      <li><code>new</code> / <code>delete</code> pour un objet, <code>new[]</code> /
+          <code>delete[]</code> pour un tableau.</li>
+      <li><strong>Fuite</strong> :<br class="ae"> l'adresse est perdue, la mémoire jamais rendue.</li>
+      <li><strong>Double libération</strong> :<br class="ae"> deux <code>delete[]</code> sur la même zone.</li>
+      <li><strong>Copie superficielle</strong> (par défaut) : deux objets, un tableau.
+          <strong>Copie profonde</strong> :<br class="ae"> le constructeur de copie réserve un tableau neuf
+          et recopie les valeurs.</li>
+    </ul>
+  </article>
 </section>
 
 <nav class="voisins" aria-label="Chapitres voisins"><a class="prec" href="../12-langage-c/fiche-revision.html"><span>Chapitre précédent</span><b>Langage C</b></a><span class="vide"></span></nav>
 </main>
 </div>
-<script src="../../assets/fiche.js?v=44f6051d"></script>
-<script src="../../assets/app.js?v=44f6051d"></script>
+<script src="../../assets/fiche.js?v=c914a288"></script>
+<script src="../../assets/app.js?v=c914a288"></script>
 </body>
 </html>
